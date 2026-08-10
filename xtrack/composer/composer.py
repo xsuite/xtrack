@@ -456,7 +456,17 @@ class Composer:
         )
 
     def flatten(self, inplace=False):
-        """Return a shallow copy whose nested components have been expanded."""
+        """Return a composer with all nested components expanded.
+
+        Lines, composers, and nested component sequences are expanded into a flat
+        list of ``xtrack.Place`` objects. The original composer is not modified.
+
+        Returns
+        -------
+        xtrack.Composer
+            A new composer with the same configuration and environment, and a flat
+            component list.
+        """
         if inplace:
             raise NotImplementedError('Inplace flattening is not yet implemented')
 
