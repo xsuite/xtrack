@@ -29,6 +29,7 @@ def _is_tpsa_value(value):
 
 
 def _float_to_uint64_bits(value):
+    value = np.asarray(value).item()
     return np.array([float(value)], dtype=np.float64).view(np.uint64)[0]
 
 
@@ -124,13 +125,13 @@ class _FieldOfBeamElement:
 
         if getattr(element._xobject, "_tpsa_enabled", 0):
             descriptor = _get_tpsa_descriptor(element)
-            value = descriptor.constant(float(value))
+            value = descriptor.constant(float(np.asarray(value).item()))
             _set_tpsa_handle(element, self.name, value)
             self._write(element, value)
             return
 
         _get_tpsa_handles(element).pop(self.name, None)
-        self._write(element, float(value))
+        self._write(element, float(np.asarray(value).item()))
 
     def _read(self, element):
         ftype, offset = self.xo_field.get_offset(element._xobject)

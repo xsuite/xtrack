@@ -64,6 +64,29 @@ def test_constructor(test_context):
                     nee._xobject._offset:nee._xobject._size]).sum() == 0
 
 
+@pytest.mark.parametrize(
+    "element_cls, field, kwargs",
+    [
+        (xt.Bend, "k0", {"length": 1.0}),
+        (xt.Quadrupole, "k1", {"length": 1.0}),
+        (xt.Sextupole, "k2", {"length": 1.0}),
+        (xt.Octupole, "k3", {"length": 1.0}),
+        (xt.UniformSolenoid, "ks", {"length": 1.0}),
+        (xt.Drift, "length", {}),
+    ],
+)
+def test_scalar_element_fields_accept_length_one_array_like(
+        element_cls, field, kwargs):
+    p = xt.Particles(mass0=xt.ELECTRON_MASS_EV, gamma0=10.0, q0=-1)
+    # Dummy strength-like value; the important part is that it is a length-one
+    # array-like scalar, as obtained from single-particle reference data.
+    value = 4.0 / abs(p.p0c / (cst.c * p.q0))
+
+    element = element_cls(**kwargs, **{field: value})
+
+    assert getattr(element, field) == pytest.approx(float(value[0]))
+
+
 def test_rfmultipole_phase_n_s_and_deprecated_pn_ps_warnings():
     with warnings.catch_warnings(record=True) as record:
         warnings.simplefilter('always')
