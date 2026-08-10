@@ -432,19 +432,20 @@ class Composer:
           * input order is preserved unless placement dependencies establish an
             order;
 
-          * a reference to an upstream element moves an element toward the
+          * an element whose ``from_`` names an upstream element moves toward the
             beginning of the group;
 
-          * a reference to a downstream element moves it toward the end of the
-            group;
+          * an element whose ``from_`` names a downstream element moves toward the
+            end of the group;
 
-          * for a reference to an element inside the group:
+          * when ``from_`` names an element inside the group:
 
             * an explicit ``from_anchor`` of ``'start'``, ``'center'``, or
-              ``'centre'`` places the element before the reference;
+              ``'centre'`` places the element before the element named by
+              ``from_``;
 
-            * an explicit ``from_anchor`` of ``'end'`` places it after the
-              reference;
+            * an explicit ``from_anchor`` of ``'end'`` places it after the element
+              named by ``from_``;
 
             * an omitted ``from_anchor`` imposes no tie-break;
 
