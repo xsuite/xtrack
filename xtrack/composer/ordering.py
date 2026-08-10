@@ -12,9 +12,7 @@ class ResolvedPlacement:
     """Absolute placement used by coordinate ordering."""
 
     source_index: int
-    name: Any
-    table_name: str
-    env_name: str
+    name_with_repetition: str
     length: Any
     isthick: bool
     s_start: Any
@@ -65,9 +63,7 @@ def _sort_places(tt_unsorted, s_tol=1e-10, allow_non_existent_from=False):
     placements = [
         ResolvedPlacement(
             source_index=index,
-            name=source.env_name[index],
-            table_name=source.name[index],
-            env_name=source.env_name[index],
+            name_with_repetition=source.name[index],
             length=source.length[index],
             isthick=bool(source.isthick[index]),
             s_start=source.s_start[index],
@@ -81,32 +77,29 @@ def _sort_places(tt_unsorted, s_tol=1e-10, allow_non_existent_from=False):
         [placement.s_center for placement in placements],
         tol=s_tol,
     )
-    center_sorted = [placements[index] for index in center_order]
+    placements_by_center = [placements[index] for index in center_order]
 
-    # Group placements sharing the same longitudinal center (each group is a
-    # list of ResolvedPlacement objects). Only groups made only of thin elements
-    # can contain more than one placement.
-    groups = _group_by_position(center_sorted, s_tol)
-
-    name_index = {
-        placement.table_name: index for index, placement in enumerate(center_sorted)
+    # Only thin elements can belong to the same-s group.
+    same_s_groups = _group_elements_at_same_s(placements_by_center, s_tol)
+    group_index_by_name = {
+        placement.name_with_repetition: group_index
+        for group_index, group in enumerate(same_s_groups)
+        for placement in group
     }
 
-    # Order coincident placements according to their dependencies.
-    placements = []
-    group_start = 0
-    for group in groups:
-        placements.extend(
-            _order_coincident_group(
+    # Order the thin elements at each s according to their placement dependencies.
+    ordered_placements = []
+    for group_index, group in enumerate(same_s_groups):
+        ordered_placements.extend(
+            _order_elements_at_same_s(
                 group,
-                group_start,
-                name_index,
+                group_index,
+                group_index_by_name,
                 allow_non_existent_from,
             )
         )
-        group_start += len(group)
 
-    place_order = [placement.source_index for placement in placements]
+    place_order = [placement.source_index for placement in ordered_placements]
     sorted_table = source.rows[place_order]
     sorted_table['i_place'] = np.array(place_order)
     sorted_table['s_center'] = sorted_table['s_start'] + sorted_table['length'] / 2
@@ -120,8 +113,8 @@ def _sort_places(tt_unsorted, s_tol=1e-10, allow_non_existent_from=False):
     return sorted_table
 
 
-def _group_by_position(placements, s_tol):
-    """Group adjacent placements that share a longitudinal center coordinate."""
+def _group_elements_at_same_s(placements, s_tol):
+    """Group thin elements that share a longitudinal center coordinate."""
     if not placements:
         return []
 
@@ -140,71 +133,93 @@ def _group_by_position(placements, s_tol):
     return groups
 
 
-def _classify_group_dependencies(
-    group, name_index, group_start, group_end, allow_non_existent_from
+def _order_elements_at_same_s(
+    group,
+    group_index,
+    group_index_by_name,
+    allow_non_existent_from,
 ):
-    """Partition a coincident group according to dependency location."""
-    from_before = []
-    from_after = []
-    from_inside = []
-    no_from = []
+    """Order the thin elements in one same-s group. Criteria:
 
-    for index, placement in enumerate(group):
+    - For thin elements at the same ``s`` (within ``s_tol``):
+      - input order is preserved unless placement dependencies establish an order;
+      - an element whose ``from_`` names an upstream element moves toward the
+        beginning of the group;
+      - an element whose ``from_`` names a downstream element moves toward the end
+        of the group;
+      - when ``from_`` names an element inside the group:
+        - an explicit ``from_anchor`` of ``'start'``, ``'center'``, or ``'centre'``
+          places the element before the element named by ``from_``;
+        - an explicit ``from_anchor`` of ``'end'`` places it after the element named
+          by ``from_``;
+        - an omitted ``from_anchor`` imposes no tie-break;
+    """
+
+    if len(group) == 1 or all(placement.from_ is None for placement in group):
+        return group
+
+    from_upstream = []  # placement._from refers to an element before the group
+    from_downstream = []  # placement._from refers to an element after the group
+    from_same_s = []  # placement._from refers to an element inside group
+    unconstrained = []  # no constraint from placement._from
+
+    for placement in group:
         from_name = placement.from_
         if from_name is None:
-            no_from.append(index)
+            unconstrained.append(placement)
             continue
-        if from_name not in name_index:
-            if allow_non_existent_from:
-                no_from.append(index)
+        if from_name not in group_index_by_name:
+            if allow_non_existent_from:  # used in Line.insert
+                unconstrained.append(placement)
                 continue
             raise ValueError(
                 f'Component {placement.source_index} '
-                f'({placement.table_name!r}) references missing element '
+                f'({placement.name_with_repetition!r}) references missing element '
                 f'{from_name!r}.'
             )
 
-        from_index = name_index[from_name]
-        if from_index < group_start:
-            from_before.append(index)
-        elif from_index >= group_end:
-            from_after.append(index)
+        from_group_index = group_index_by_name[from_name]
+        if from_group_index < group_index:
+            from_upstream.append(placement)
+        elif from_group_index > group_index:
+            from_downstream.append(placement)
         elif placement.from_anchor is None:
-            no_from.append(index)
+            unconstrained.append(placement)
         else:
-            from_inside.append(index)
+            from_same_s.append(placement)
 
-    base_order = from_before + no_from + from_after
-    return base_order, from_inside
+    # References to upstream elements go first, unconstrained elements retain
+    # their input order, and references to downstream elements go last.
+    # (elements with from_ inside the group are handled below.)
+    order = from_upstream + unconstrained + from_downstream
 
-
-def _build_group_insertions(group, from_inside):
-    """Collect within-group insertions keyed by their reference element."""
-    insert_before = {}
-    insert_after = {}
-    for index in from_inside:
-        placement = group[index]
-
-        # Within a thin sandwich, center behaves as start.
+    # Turn same-s placement constraints into insertion instructions to be
+    # executed later. For example, Place('b', from_='a', from_anchor='start')
+    # stores the placement of b under elements_to_insert_before['a'].
+    elements_to_insert_before = {}
+    elements_to_insert_after = {}
+    for placement in from_same_s:
+        target_name = placement.from_
         if placement.from_anchor in ('start', 'center', 'centre'):
-            insert_before.setdefault(placement.from_, []).append(index)
+            if target_name not in elements_to_insert_before:
+                elements_to_insert_before[target_name] = []
+            elements_to_insert_before[target_name].append(placement)
         elif placement.from_anchor == 'end':
-            insert_after.setdefault(placement.from_, []).append(index)
+            if target_name not in elements_to_insert_after:
+                elements_to_insert_after[target_name] = []
+            elements_to_insert_after[target_name].append(placement)
         else:
             raise ValueError(f'Unknown from_anchor {placement.from_anchor}')
-    return insert_before, insert_after
 
-
-def _apply_group_insertions(group, base_order, insert_before, insert_after):
-    """Apply dependent insertions, detecting circular specifications."""
-    order = base_order.copy()
-    while insert_before or insert_after:
+    # Walk the current order and insert the collected elements around their
+    # targets. Repeat because an inserted element can itself be another target.
+    while elements_to_insert_before or elements_to_insert_after:
         new_order = []
-        for index in order:
-            name = group[index].table_name
-            new_order.extend(insert_before.pop(name, []))
-            new_order.append(index)
-            new_order.extend(insert_after.pop(name, []))
+        for placement in order:
+            name_with_repetition = placement.name_with_repetition
+            new_order.extend(elements_to_insert_before.pop(name_with_repetition, []))
+            new_order.append(placement)
+            new_order.extend(elements_to_insert_after.pop(name_with_repetition, []))
 
         if len(new_order) == len(order):
             raise ValueError(
@@ -212,29 +227,8 @@ def _apply_group_insertions(group, base_order, insert_before, insert_after):
                 'dependency in from_ specifications'
             )
         order = new_order
-    return [group[index] for index in order]
 
-
-def _order_coincident_group(
-    group,
-    group_start,
-    name_index,
-    allow_non_existent_from,
-):
-    """Apply dependency ordering to one coincident-position group."""
-    if len(group) == 1 or all(placement.from_ is None for placement in group):
-        return group
-
-    group_end = group_start + len(group)
-    base_order, from_inside = _classify_group_dependencies(
-        group,
-        name_index,
-        group_start,
-        group_end,
-        allow_non_existent_from,
-    )
-    insert_before, insert_after = _build_group_insertions(group, from_inside)
-    return _apply_group_insertions(group, base_order, insert_before, insert_after)
+    return order
 
 
 def _argsort_s(sequence, tol=10e-10):
