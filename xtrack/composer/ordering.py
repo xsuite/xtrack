@@ -4,7 +4,7 @@ from functools import cmp_to_key
 
 import numpy as np
 
-from .models import ResolvedPlacement
+from .positions import ResolvedPlacement
 
 
 def _resolved_placements_from_table(table):

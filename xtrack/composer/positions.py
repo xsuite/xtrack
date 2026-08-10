@@ -1,12 +1,36 @@
 """Anchor semantics and longitudinal coordinate resolution."""
 
+from dataclasses import dataclass
+from typing import Any
+
 import numpy as np
 import xdeps as xd
 
-from .models import ResolvedPlacement
-
 
 _ALLOWED_ANCHORS = (None, 'center', 'centre', 'start', 'end')
+
+
+@dataclass(frozen=True)
+class ResolvedPlacement:
+    """Absolute placement used by coordinate and ordering stages."""
+
+    source_index: int
+    name: Any
+    table_name: str
+    env_name: str
+    length: Any
+    isthick: bool
+    s_start: Any
+    from_: str | None
+    from_anchor: str | None
+
+    @property
+    def s_center(self):
+        return self.s_start + self.length / 2
+
+    @property
+    def s_end(self):
+        return self.s_start + self.length
 
 
 def _resolve_s_positions(seq_all_places, env, refer='center', diagnostics=False):
