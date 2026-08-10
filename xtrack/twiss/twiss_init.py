@@ -235,29 +235,6 @@ class TwissInit:
 
         if self._temp_optics_data is not None:
 
-            # aux_segment = xt.LineSegmentMap(
-            #     length=1., # dummy
-            #     qx=0.55, # dummy
-            #     qy=0.57, # dummy
-            #     qs=0.0000001, # dummy
-            #     bets=self._temp_optics_data['bets'],
-            #     betx=self._temp_optics_data['betx'],
-            #     bety=self._temp_optics_data['bety'],
-            #     alfx=self._temp_optics_data['alfx'] * (-1 if input_reversed else 1),
-            #     alfy=self._temp_optics_data['alfy'] * (-1 if input_reversed else 1),
-            #     dx=self._temp_optics_data['dx'] * (-1 if input_reversed else 1),
-            #     dy=self._temp_optics_data['dy'],
-            #     dpx=self._temp_optics_data['dpx'],
-            #     dpy=self._temp_optics_data['dpy'] * (-1 if input_reversed else 1),
-            #     )
-            # aux_line = xt.Line(elements=[aux_segment])
-            # aux_line.particle_ref = particle_on_co.copy(
-            #                             _context=xo.context_default)
-            # aux_line.particle_ref.reorganize()
-            # aux_line.build_tracker()
-            # aux_tw = aux_line.twiss()
-            # W_matrix = aux_tw.W_matrix[0]
-
             W_matrix = _6d_w_matrix(
                 bets=self._temp_optics_data['bets'],
                 betx=self._temp_optics_data['betx'],
