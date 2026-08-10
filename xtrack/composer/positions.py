@@ -172,7 +172,9 @@ def _try_resolve_spec(
     return True
 
 
-def _resolve_spec_coordinates(specs, table, lengths, evaluator, refer):
+def _resolve_spec_coordinates(
+    specs, table, lengths, evaluator, refer, diagnostics=False
+):
     """Resolve all specifications, iterating until dependencies stop progressing."""
     resolved_by_index = {}
     resolved_by_name = {}
@@ -207,6 +209,11 @@ def _resolve_spec_coordinates(specs, table, lengths, evaluator, refer):
                 made_progress = True
 
     if len(resolved_by_index) != len(specs):
+        if not diagnostics:
+            raise ValueError(
+                'Could not resolve all placement positions. Call '
+                'Composer.validate() or enable diagnostics for details.'
+            )
         unresolved = [
             spec for spec in specs if spec.source_index not in resolved_by_index
         ]
@@ -289,21 +296,31 @@ def _add_resolved_position_columns(table, placements):
     return table
 
 
-def _resolve_placement_records(places, env, refer='center'):
+def _resolve_placement_records(places, env, refer='center', diagnostics=False):
     """Resolve public places and return the table skeleton plus immutable records."""
     specs = _placement_specs_from_places(places)
     aux_line, table, lengths = _prepare_position_table(specs, env, refer)
     if not specs:
         return table, []
     placements = _resolve_spec_coordinates(
-        specs, table, lengths, aux_line._xdeps_eval, refer
+        specs,
+        table,
+        lengths,
+        aux_line._xdeps_eval,
+        refer,
+        diagnostics=diagnostics,
     )
     return table, placements
 
 
-def _resolve_s_positions(seq_all_places, env, refer='center'):
+def _resolve_s_positions(seq_all_places, env, refer='center', diagnostics=False):
     """Resolve placement specifications to a table of absolute coordinates."""
-    table, placements = _resolve_placement_records(seq_all_places, env, refer=refer)
+    table, placements = _resolve_placement_records(
+        seq_all_places,
+        env,
+        refer=refer,
+        diagnostics=diagnostics,
+    )
     if not placements:
         return _add_empty_position_columns(table)
     return _add_resolved_position_columns(table, placements)

@@ -157,6 +157,28 @@ def _generate_element_names_with_drifts(env, tt_sorted, length=None, s_tol=1e-6)
     return list(map(str, names_with_drifts))
 
 
+def _validate_placement_geometry(tt_sorted, length=None, s_tol=1e-6):
+    """Check resolved overlaps and length constraints without creating drifts."""
+    if not len(tt_sorted):
+        return
+
+    for index, name in enumerate(tt_sorted.env_name):
+        gap = tt_sorted['ds_upstream', index]
+        if gap < -s_tol:
+            raise ValueError(
+                f'Overlap before component {index} ({name!r}): previous '
+                f'element extends {-gap} m beyond its start.'
+            )
+
+    if length is not None:
+        line_length = tt_sorted['s_end'][-1]
+        if line_length > length + s_tol:
+            raise ValueError(
+                f'Line length {line_length} is greater than the requested '
+                f'length {length}'
+            )
+
+
 def _resolve_lines_in_components(components, env):
     """Replace named lines without mutating caller-owned placement objects."""
     components = list(components)

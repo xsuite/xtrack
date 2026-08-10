@@ -640,7 +640,8 @@ class Environment:
 
     @doc_group("Editing, Inspection, Variables and Configuration")
     def new_line(self, components=None, name=None, refer: ReferType = 'center',
-                 length=None, mirror=False, s_tol=1e-6, compose=False) -> xt.Line:
+                 length=None, mirror=False, s_tol=1e-6, compose=False,
+                 diagnostics=False) -> xt.Line:
         """
         Create a new line.
 
@@ -667,6 +668,10 @@ class Environment:
         s_tol : float, optional
             Difference between two s positions below which they should be
             treated as the same location.
+        diagnostics : bool, optional
+            If true, analyze unresolved placement dependencies when immediate
+            line assembly fails. In compose mode, pass this option to
+            :meth:`xtrack.Line.end_compose` when finalizing the line.
 
         Returns
         -------
@@ -702,7 +707,7 @@ class Environment:
             out.composer.components += list(components)
 
         if not compose:
-            out.end_compose()
+            out.end_compose(diagnostics=diagnostics)
 
         self._lines_weakrefs.add(out) # Weak references
 

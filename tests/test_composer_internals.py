@@ -94,7 +94,7 @@ def test_missing_reference_identifies_root_and_blocked_components():
     places = [xt.Place('a', at=0, from_='missing'), xt.Place('b')]
 
     with pytest.raises(ValueError) as error:
-        _resolve_s_positions(places, env)
+        _resolve_s_positions(places, env, diagnostics=True)
 
     message = str(error.value)
     assert 'Missing placement reference' in message

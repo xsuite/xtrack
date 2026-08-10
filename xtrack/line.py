@@ -1308,13 +1308,14 @@ class Line:
         return out
 
     @doc_group("Compose Mode")
-    def end_compose(self):
+    def end_compose(self, diagnostics=False):
         """
         Resolve compose-mode placements and switch the line back to normal mode.
 
         Parameters
         ----------
-        None
+        diagnostics : bool, optional
+            If true, analyze unresolved placement dependencies before raising.
 
         Returns
         -------
@@ -1354,13 +1355,17 @@ class Line:
         if self.mode != 'compose':
             raise ValueError('Line is not in compose mode')
         self.discard_tracker()
-        self._full_elements_from_composer()
+        self._full_elements_from_composer(diagnostics=diagnostics)
         self._mode = 'normal'
 
-    def _full_elements_from_composer(self):
+    def _full_elements_from_composer(self, diagnostics=False):
         if self._mode != 'compose':
             raise ValueError('Line is not in compose mode')
-        self.composer.build(line=self, inplace=False)
+        self.composer.build(
+            line=self,
+            inplace=False,
+            diagnostics=diagnostics,
+        )
 
     @doc_group("Compose Mode")
     def regenerate_from_composer(self):

@@ -13,7 +13,12 @@ from warnings import warn
 import xdeps as xd
 import xtrack as xt
 
-from .components import _all_places, _evaluate_length, _expand_components
+from .components import (
+    _all_places,
+    _evaluate_length,
+    _expand_components,
+    _validate_placement_geometry,
+)
 from .ordering import _sort_places
 from .pipeline import _build_element_names
 from .positions import _ALLOWED_ANCHORS, _resolve_s_positions
@@ -133,7 +138,14 @@ class Composer:
         self.components.append(out)
         return out
 
-    def build(self, name=None, inplace=None, s_tol=None, line=None):
+    def build(
+        self,
+        name=None,
+        inplace=None,
+        s_tol=None,
+        line=None,
+        diagnostics=False,
+    ):
         """Materialize the current component specification as a line.
 
         If ``line`` is supplied it is updated in place. Otherwise a new line is
@@ -160,6 +172,7 @@ class Composer:
             refer=self.refer,
             length=length,
             s_tol=s_tol,
+            diagnostics=diagnostics,
         )
 
         if line is None:
@@ -178,14 +191,27 @@ class Composer:
     def __len__(self):
         return len(self.components)
 
-    def resolve_s_positions(self, sort=True):
+    def resolve_s_positions(self, sort=True, diagnostics=False):
         """Return a table containing the resolved component coordinates."""
         expanded_components = _expand_components(
             self.env, self.components or [], refer=self.refer
         )
         places = _all_places(expanded_components)
-        table = _resolve_s_positions(places, self.env, refer=self.refer)
+        table = _resolve_s_positions(
+            places,
+            self.env,
+            refer=self.refer,
+            diagnostics=diagnostics,
+        )
         return _sort_places(table) if sort else table
+
+    def validate(self, s_tol=None):
+        """Validate the current placement specification without building a line."""
+        if s_tol is None:
+            s_tol = self.s_tol
+        length = _evaluate_length(self.env, self.length)
+        table = self.resolve_s_positions(sort=True, diagnostics=True)
+        _validate_placement_geometry(table, length=length, s_tol=s_tol)
 
     def flatten(self, inplace=False):
         """Return a shallow copy whose nested components have been expanded."""
