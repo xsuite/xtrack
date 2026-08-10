@@ -599,7 +599,65 @@ class Composer:
 
 
 class Place:
-    """Placement of a component relative to an element or line coordinate."""
+    """Define how a component is positioned within a line.
+
+    A ``Place`` object can position a component at an absolute longitudinal
+    coordinate, relative to another component, or sequentially after the preceding
+    component. Place objects are normally created with ``env.place(...)`` and passed
+    to ``env.new_line(...)`` or added to a line in compose mode.
+
+    Reference anchors can be written compactly by appending ``@anchor`` to the
+    component name. For example, ``from_='q1@end'`` is equivalent to
+    ``from_='q1', from_anchor='end'``. Similarly, ``at='q1@end'`` places a component
+    with zero offset from the end of ``q1``.
+
+    Parameters
+    ----------
+    name : str or xtrack.Line
+        Element or line to place.
+    at : float, str, or xdeps reference, optional
+        Position of the selected component anchor. If ``from_`` is provided, this is
+        an offset from the selected anchor of the reference component. A string of
+        the form ``'name@anchor'`` places the component directly at that anchor. If
+        omitted together with ``from_``, the component is placed sequentially.
+    from_ : str, optional
+        Component relative to which ``at`` is measured. The reference anchor can be
+        included using the ``'name@anchor'`` form.
+    anchor : {'start', 'center', 'centre', 'end'}, optional
+        Anchor of the placed component positioned at ``at``. If omitted, the
+        composer's default reference anchor is used.
+    from_anchor : {'start', 'center', 'centre', 'end'}, optional
+        Anchor of the reference component from which ``at`` is measured. If omitted,
+        the composer's default reference anchor is used.
+    env : xtrack.Environment, optional
+        Associated environment. This is normally supplied automatically by
+        ``env.place(...)``.
+
+    Examples
+    --------
+    Place ``q1`` at an absolute position, place ``q2`` relative to the end of
+    ``q1``, and place ``ip`` sequentially after ``q2``:
+
+    .. code-block:: python
+
+        import xtrack as xt
+
+        env = xt.Environment()
+        env.new('q1', xt.Quadrupole, length=1)
+        env.new('q2', xt.Quadrupole, length=1)
+        env.new('ip', xt.Marker)
+
+        line = env.new_line(components=[
+            env.place('q1', at=1, anchor='start'),
+            env.place(
+                'q2',
+                at=2,
+                from_='q1@end',
+                anchor='start',
+            ),
+            env.place('ip'),
+        ])
+    """
 
     def __init__(
         self, name, at=None, from_=None, anchor=None, from_anchor=None, env=None
