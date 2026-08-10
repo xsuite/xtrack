@@ -4,7 +4,7 @@ import pytest
 import xtrack as xt
 from xtrack.composer.composer import _all_places
 from xtrack.composer.ordering import _sort_places
-from xtrack.composer.positions import (
+from xtrack.composer.resolve_positions import (
     _anchor_offset,
     _resolve_s_positions,
 )

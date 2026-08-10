@@ -41,7 +41,7 @@ from .composer.composer import (
     _generate_element_names_with_drifts,
 )
 from .composer.ordering import _sort_places
-from .composer.positions import _resolve_s_positions
+from .composer.resolve_positions import _resolve_s_positions
 from .footprint import Footprint, _footprint_with_linear_rescale
 from .general import _print, DEPRECATION_INFO_PREP_1_0
 from .internal_record import (start_internal_logging_for_elements_of_type,

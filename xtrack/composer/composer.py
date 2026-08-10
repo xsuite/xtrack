@@ -15,7 +15,7 @@ import xdeps as xd
 import xtrack as xt
 
 from .ordering import _sort_places
-from .positions import _ALLOWED_ANCHORS, _anchor_offset, _resolve_s_positions
+from .resolve_positions import _ALLOWED_ANCHORS, _anchor_offset, _resolve_s_positions
 from ..general import DEPRECATION_INFO_PREP_1_0, parse_anchor_spec
 
 
