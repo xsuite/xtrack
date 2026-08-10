@@ -66,6 +66,10 @@ def _resolve_s_positions(seq_all_places, env, refer='center', diagnostics=False)
         resolved_by_index[0] = resolved
         resolved_by_name[place.name] = resolved
 
+    # Scan all unresolved places and resolve those whose reference component
+    # has already been resolved. Repeat the scan to handle forward references
+    # to components appearing later in the input. Stop when all places are
+    # resolved or when a full scan makes no progress.
     made_progress = True
     while made_progress:
         made_progress = False
