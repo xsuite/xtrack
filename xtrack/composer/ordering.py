@@ -7,22 +7,47 @@ import numpy as np
 from .positions import ResolvedPlacement
 
 
-def _resolved_placements_from_table(table):
-    """Copy table rows into immutable records at the ordering boundary."""
-    return [
+def _sort_places(tt_unsorted, s_tol=1e-10, allow_non_existent_from=False):
+    """Sort a placement table without mutating it."""
+    source = tt_unsorted.rows[:]
+    if not len(source):
+        source['i_place'] = np.array([], dtype=int)
+        source['group_id'] = np.array([], dtype=int)
+        source['ds_upstream'] = np.array([], dtype=float)
+        return source
+
+    placements = [
         ResolvedPlacement(
             source_index=index,
-            name=table.env_name[index],
-            table_name=table.name[index],
-            env_name=table.env_name[index],
-            length=table.length[index],
-            isthick=bool(table.isthick[index]),
-            s_start=table.s_start[index],
-            from_=table.from_[index],
-            from_anchor=table.from_anchor[index],
+            name=source.env_name[index],
+            table_name=source.name[index],
+            env_name=source.env_name[index],
+            length=source.length[index],
+            isthick=bool(source.isthick[index]),
+            s_start=source.s_start[index],
+            from_=source.from_[index],
+            from_anchor=source.from_anchor[index],
         )
-        for index in range(len(table))
+        for index in range(len(source))
     ]
+    placements = _sort_resolved_placements(
+        placements,
+        s_tol=s_tol,
+        allow_non_existent_from=allow_non_existent_from,
+    )
+
+    place_order = [placement.source_index for placement in placements]
+    sorted_table = source.rows[place_order]
+    sorted_table['i_place'] = np.array(place_order)
+    sorted_table['s_center'] = sorted_table['s_start'] + sorted_table['length'] / 2
+    sorted_table['s_end'] = sorted_table['s_start'] + sorted_table['length']
+    sorted_table['ds_upstream'] = 0 * sorted_table['s_start']
+    sorted_table['ds_upstream'][1:] = (
+        sorted_table['s_start'][1:] - sorted_table['s_end'][:-1]
+    )
+    sorted_table['ds_upstream'][0] = sorted_table['s_start'][0]
+    sorted_table['s'] = sorted_table['s_start']
+    return sorted_table
 
 
 def _group_by_position(placements, s_tol):
@@ -158,38 +183,6 @@ def _sort_resolved_placements(placements, s_tol=1e-10, allow_non_existent_from=F
         )
         group_start += len(group)
     return sorted_placements
-
-
-def _add_upstream_gaps(table):
-    """Recompute coordinate columns and the gap before each sorted element."""
-    table['s_center'] = table['s_start'] + table['length'] / 2
-    table['s_end'] = table['s_start'] + table['length']
-    table['ds_upstream'] = 0 * table['s_start']
-    table['ds_upstream'][1:] = table['s_start'][1:] - table['s_end'][:-1]
-    table['ds_upstream'][0] = table['s_start'][0]
-    table['s'] = table['s_start']
-    return table
-
-
-def _sort_places(tt_unsorted, s_tol=1e-10, allow_non_existent_from=False):
-    """Sort a placement table without mutating it."""
-    source = tt_unsorted.rows[:]
-    if not len(source):
-        source['i_place'] = np.array([], dtype=int)
-        source['group_id'] = np.array([], dtype=int)
-        source['ds_upstream'] = np.array([], dtype=float)
-        return source
-
-    placements = _resolved_placements_from_table(source)
-    placements = _sort_resolved_placements(
-        placements,
-        s_tol=s_tol,
-        allow_non_existent_from=allow_non_existent_from,
-    )
-    place_order = [placement.source_index for placement in placements]
-    sorted_table = source.rows[place_order]
-    sorted_table['i_place'] = np.array(place_order)
-    return _add_upstream_gaps(sorted_table)
 
 
 def _argsort_s(sequence, tol=10e-10):
