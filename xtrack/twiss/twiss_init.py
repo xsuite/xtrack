@@ -370,7 +370,7 @@ class TwissInit:
             if hasattr(out, 'get'):
                 out = out.get()
             if hasattr(out, '__iter__'):
-                out = out [0]
+                out = out[0]
             return out
         else:
             raise AttributeError(f'No attribute {name} found in TwissInit')

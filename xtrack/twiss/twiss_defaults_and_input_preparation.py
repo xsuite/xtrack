@@ -140,6 +140,9 @@ def _normalize_twiss_inputs(twiss_kwargs):
 
 def _normalize_public_twiss_arguments(twiss_kwargs):
 
+    if twiss_kwargs['only_markers']:
+        raise NotImplementedError('``only_markers`` not supported anymore')
+
     twiss_kwargs = twiss_kwargs.copy()
 
     (twiss_kwargs['chrom'],
@@ -166,9 +169,6 @@ def _normalize_public_twiss_arguments(twiss_kwargs):
     input_kwargs = twiss_kwargs.copy()
 
     _apply_twiss_defaults(twiss_kwargs)
-
-    if twiss_kwargs['only_markers']:
-        raise NotImplementedError('``only_markers`` not supported anymore')
 
     if twiss_kwargs['polarization_analysis']:
         twiss_kwargs['spin'] = True
