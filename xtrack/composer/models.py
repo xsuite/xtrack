@@ -1,19 +1,7 @@
-"""Internal immutable records passed between Composer pipeline stages."""
+"""Internal resolved placement record."""
 
 from dataclasses import dataclass
 from typing import Any
-
-
-@dataclass(frozen=True)
-class PlacementSpec:
-    """Caller-owned ``Place`` data copied at the pipeline boundary."""
-
-    source_index: int
-    name: Any
-    at: Any
-    from_: str | None
-    anchor: str | None
-    from_anchor: str | None
 
 
 @dataclass(frozen=True)

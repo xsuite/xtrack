@@ -1,16 +1,11 @@
-from dataclasses import FrozenInstanceError
-
 import numpy as np
 import pytest
 
 import xtrack as xt
 from xtrack.composer.components import _all_places
-from xtrack.composer.models import PlacementSpec, ResolvedPlacement
 from xtrack.composer.ordering import _sort_places
 from xtrack.composer.positions import (
     _anchor_offset,
-    _placement_specs_from_places,
-    _resolve_placement_records,
     _resolve_s_positions,
 )
 
@@ -41,26 +36,6 @@ def test_flatten_does_not_mutate_named_line_place():
     assert flattened.components[0].name == 'marker'
 
 
-def test_placement_specs_are_an_immutable_copy_boundary():
-    place = xt.Place('marker', at=2, anchor='end')
-
-    specs = _placement_specs_from_places([place])
-
-    assert specs == [
-        PlacementSpec(
-            source_index=0,
-            name='marker',
-            at=2,
-            from_=None,
-            anchor='end',
-            from_anchor=None,
-        )
-    ]
-    with pytest.raises(FrozenInstanceError):
-        specs[0].name = 'changed'
-    assert place.name == 'marker'
-
-
 @pytest.mark.parametrize(
     ('anchor', 'expected'),
     [('start', 0), ('center', 2), ('centre', 2), ('end', 4)],
@@ -79,11 +54,8 @@ def test_position_resolution_supports_forward_dependencies():
     ]
 
     table = _resolve_s_positions(places, env)
-    _, records = _resolve_placement_records(places, env, refer='center')
-
     assert np.array_equal(table.env_name, ['b', 'a'])
     assert np.allclose(table.s_start, [7, 5])
-    assert all(isinstance(item, ResolvedPlacement) for item in records)
 
 
 def test_missing_reference_identifies_root_and_blocked_components():
