@@ -168,7 +168,7 @@ def _resolve_s_positions(seq_all_places, env, refer='center', diagnostics=False)
         unresolved_indices = [
             index for index in range(len(places)) if index not in resolved_by_index
         ]
-        _raise_resolution_error(places, unresolved_indices)
+        _raise_resolution_error_with_diagnostics(places, unresolved_indices)
 
     placements = [resolved_by_index[index] for index in range(len(places))]
     table['s_start'] = np.array([place.s_start for place in placements])
@@ -243,7 +243,7 @@ def _find_dependency_cycle(places, unresolved_indices):
     return None
 
 
-def _raise_resolution_error(places, unresolved_indices):
+def _raise_resolution_error_with_diagnostics(places, unresolved_indices):
     """Raise a specific diagnostic for a stalled dependency resolution."""
     available_names = {place.name for place in places}
     missing = [
