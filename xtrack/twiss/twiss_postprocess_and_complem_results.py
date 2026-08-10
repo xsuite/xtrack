@@ -15,7 +15,7 @@ from .radiation import (
     _get_equilibrium_emittance_full,
     _get_equilibrium_emittance_kick_as_co,
 )
-from .spin import _get_spin_polarization
+from .spin import _add_spin_polarization
 from .strengths import _add_strengths_to_twiss_res
 
 import xtrack as xt  # To avoid circular imports
@@ -282,7 +282,8 @@ def _add_strengths_and_radiation_integrals_to_twiss_result(twiss_config, twiss_r
 def _add_spin_polarization_to_twiss_result(twiss_config, twiss_res):
 
     if twiss_config['polarization_analysis']:
-        _get_spin_polarization(twiss_res, twiss_config['line'], twiss_config['method'])
+        _add_spin_polarization(
+            twiss_res, twiss_config['line'], twiss_config['method'])
 
 
 def _add_edwards_teng_coupling_to_twiss_result(twiss_config, twiss_res):
