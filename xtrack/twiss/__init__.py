@@ -24,7 +24,7 @@ from .closed_orbit import (
     find_closed_orbit_line,
 )
 from .non_linear_chromaticity import get_non_linear_chromaticity
-from .strengths import _reverse_strengths
+from .strengths import _reverse_strengths as _reverse_strengths
 from .twiss import (
     trapz,
     twiss_line,
@@ -37,21 +37,6 @@ from .transfer_matrices import (
     get_R_matrix,
     get_T_matrix_line,
 )
-
-for _public_obj in (
-    ClosedOrbitSearchError,
-    TwissInit,
-    TwissTable,
-    compute_R_matrix,
-    compute_T_matrix_line,
-    find_closed_orbit_line,
-    get_R_matrix,
-    get_T_matrix_line,
-    get_non_linear_chromaticity,
-    twiss_line,
-):
-    _public_obj.__module__ = __name__
-del _public_obj
 
 __all__ = [
     'AT_TURN_FOR_TWISS',
