@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 import xobjects as xo
+from xobjects.test_helpers import for_all_test_contexts
 
 import xtrack as xt
 from xtrack import Magnet, MagnetEdge
@@ -923,9 +924,7 @@ def test_edge_full_edge_with_dipole_component(test_context):
 
 
 @for_all_test_contexts(excluding="ContextPyopencl")
-def test_rbend_full_edge_backtracks_many_coordinates():
-    test_context = xo.ContextCpu()
-
+def test_rbend_full_edge_backtracks_many_coordinates(test_context):
     bend = xt.RBend(
         length_straight=3.2,
         angle=0.18,
