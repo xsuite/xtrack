@@ -1,10 +1,33 @@
 """Stable longitudinal and dependency ordering for resolved placements."""
 
+from dataclasses import dataclass
 from functools import cmp_to_key
+from typing import Any
 
 import numpy as np
 
-from .positions import ResolvedPlacement
+
+@dataclass(frozen=True)
+class ResolvedPlacement:
+    """Absolute placement used by coordinate ordering."""
+
+    source_index: int
+    name: Any
+    table_name: str
+    env_name: str
+    length: Any
+    isthick: bool
+    s_start: Any
+    from_: str | None
+    from_anchor: str | None
+
+    @property
+    def s_center(self):
+        return self.s_start + self.length / 2
+
+    @property
+    def s_end(self):
+        return self.s_start + self.length
 
 
 def _sort_places(tt_unsorted, s_tol=1e-10, allow_non_existent_from=False):

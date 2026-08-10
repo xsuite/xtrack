@@ -1,36 +1,10 @@
 """Anchor semantics and longitudinal coordinate resolution."""
 
-from dataclasses import dataclass
-from typing import Any
-
 import numpy as np
 import xdeps as xd
 
 
 _ALLOWED_ANCHORS = (None, 'center', 'centre', 'start', 'end')
-
-
-@dataclass(frozen=True)
-class ResolvedPlacement:
-    """Absolute placement used by coordinate and ordering stages."""
-
-    source_index: int
-    name: Any
-    table_name: str
-    env_name: str
-    length: Any
-    isthick: bool
-    s_start: Any
-    from_: str | None
-    from_anchor: str | None
-
-    @property
-    def s_center(self):
-        return self.s_start + self.length / 2
-
-    @property
-    def s_end(self):
-        return self.s_start + self.length
 
 
 def _resolve_s_positions(seq_all_places, env, refer='center', diagnostics=False):
@@ -72,26 +46,16 @@ def _resolve_s_positions(seq_all_places, env, refer='center', diagnostics=False)
     # Build a dictionary of element lengths by name for quick lookup.
     length_by_name = dict(zip(table.env_name, table.length))
 
-    # Track resolved placements by input order and by referenced component name.
-    resolved_by_index = {}
-    resolved_by_name = {}
+    # Track resolved positions by input order and referenced component name.
+    s_start_by_index = [None] * len(places)
+    from_name_by_index = [None] * len(places)
+    from_anchor_by_index = [None] * len(places)
+    resolved_index_by_name = {}
 
     # If first place has at=None, it goes at s=0
     if places[0].at is None:
-        place = places[0]
-        resolved = ResolvedPlacement(
-            source_index=0,
-            name=place.name,
-            table_name=str(table.name[0]),
-            env_name=str(table.env_name[0]),
-            length=length_by_name[place.name],
-            isthick=bool(table.isthick[0]),
-            s_start=0,
-            from_=place.from_,
-            from_anchor=place.from_anchor,
-        )
-        resolved_by_index[0] = resolved
-        resolved_by_name[place.name] = resolved
+        s_start_by_index[0] = 0
+        resolved_index_by_name[places[0].name] = 0
 
     # Scan all unresolved places and resolve those whose reference component
     # has already been resolved. Repeat the scan to handle forward references
@@ -101,12 +65,11 @@ def _resolve_s_positions(seq_all_places, env, refer='center', diagnostics=False)
     while made_progress:
         made_progress = False
         for index, place in enumerate(places):
-            if index in resolved_by_index:
-                continue
+            if s_start_by_index[index] is not None:
+                continue  # Already resolved
 
             from_name = None
             from_anchor = None
-
             self_length = length_by_name[place.name]
 
             if place.at is None:
@@ -114,12 +77,13 @@ def _resolve_s_positions(seq_all_places, env, refer='center', diagnostics=False)
                 # component in the input list.
 
                 # Check if the previous component has been resolved.
-                previous = resolved_by_index.get(index - 1, None)
-                if previous is None:
+                previous_index = index - 1
+                previous_s_start = s_start_by_index[previous_index]
+                if previous_s_start is None:
                     continue  # Cannot resolve this place yet
 
-                s_start = previous.s_end
-
+                previous = places[previous_index]
+                s_start = previous_s_start + length_by_name[previous.name]
                 if not str(previous.name).startswith('||drift'):
                     # we keep track of the element to which it is referred
                     # to handle sandwiches of thin elements.
@@ -131,10 +95,8 @@ def _resolve_s_positions(seq_all_places, env, refer='center', diagnostics=False)
                 # Needs to be placed based on `at`, `from_`, and `from_anchor`.
 
                 at = _evaluate_position_expression(place.at, aux_line._xdeps_eval)
-
                 # Component anchor (start/end/center)
                 anchor = refer if place.anchor is None else place.anchor
-
                 # Absolute location of the component
                 s_start = at - _anchor_offset(anchor, self_length)
 
@@ -143,11 +105,11 @@ def _resolve_s_positions(seq_all_places, env, refer='center', diagnostics=False)
                 # based on `at`, `from_`, and `from_anchor`.
 
                 at = _evaluate_position_expression(place.at, aux_line._xdeps_eval)
-
                 # Check if the referenced component has been resolved.
-                reference = resolved_by_name.get(place.from_)
-                if reference is None:
+                reference_index = resolved_index_by_name.get(place.from_)
+                if reference_index is None:
                     continue  # Cannot resolve this place yet
+                reference = places[reference_index]
 
                 # Identify reference anchor (start/end/center)
                 if place.from_anchor is not None:
@@ -156,51 +118,40 @@ def _resolve_s_positions(seq_all_places, env, refer='center', diagnostics=False)
                     reference_anchor = refer
 
                 # Absolute s coordinate of the reference anchor point
-                s_reference = reference.s_start + _anchor_offset(
-                    reference_anchor, reference.length
+                s_reference = s_start_by_index[reference_index] + _anchor_offset(
+                    reference_anchor,
+                    length_by_name[reference.name],
                 )
-
                 # Component anchor (start/end/center)
                 anchor = refer if place.anchor is None else place.anchor
-
                 # Absolute location of the component
                 s_start = s_reference + at - _anchor_offset(anchor, self_length)
                 from_name = place.from_
                 from_anchor = place.from_anchor
 
-            resolved = ResolvedPlacement(
-                source_index=index,
-                name=place.name,
-                table_name=str(table.name[index]),
-                env_name=str(table.env_name[index]),
-                length=self_length,
-                isthick=bool(table.isthick[index]),
-                s_start=s_start,
-                from_=from_name,
-                from_anchor=from_anchor,
-            )
-            resolved_by_index[index] = resolved
-            resolved_by_name[place.name] = resolved
+            s_start_by_index[index] = s_start
+            from_name_by_index[index] = from_name
+            from_anchor_by_index[index] = from_anchor
+            resolved_index_by_name[place.name] = index
             made_progress = True
 
-    if len(resolved_by_index) != len(places):
+    unresolved_indices = [
+        index for index, s_start in enumerate(s_start_by_index) if s_start is None
+    ]
+    if unresolved_indices:
         if not diagnostics:
             raise ValueError(
                 'Could not resolve all placement positions. Call '
                 'Composer.validate() or enable diagnostics for details.'
             )
-        unresolved_indices = [
-            index for index in range(len(places)) if index not in resolved_by_index
-        ]
         _raise_resolution_error_with_diagnostics(places, unresolved_indices)
 
-    placements = [resolved_by_index[index] for index in range(len(places))]
-    table['s_start'] = np.array([place.s_start for place in placements])
-    table['s_center'] = np.array([place.s_center for place in placements])
-    table['s_end'] = np.array([place.s_end for place in placements])
+    table['s_start'] = np.array(s_start_by_index)
+    table['s_center'] = table['s_start'] + table['length'] / 2
+    table['s_end'] = table['s_start'] + table['length']
     table['s'] = table['s_start'].copy()
-    table['from_'] = np.array([place.from_ for place in placements])
-    table['from_anchor'] = np.array([place.from_anchor for place in placements])
+    table['from_'] = np.array(from_name_by_index)
+    table['from_anchor'] = np.array(from_anchor_by_index)
     return table
 
 
