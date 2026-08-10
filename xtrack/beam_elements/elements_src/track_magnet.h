@@ -386,9 +386,12 @@ void track_magnet_particles(
         x0_mid -= rbend_shift;
 
         if (rbend_compensate_sagitta && fabs(angle) > 1e-10){
-            // shift by half the sagitta
-            double cos_rbha = cos(angle / 2.);
-            x0_mid += 0.5 / h * (1 - cos_rbha);
+            // Shift by half the sagitta. Written as 0.5/h*(1 - cos(angle/2))
+            // this loses precision for small angles (1 - cos is a subtraction
+            // of near-equal numbers, amplified by the large 1/h). The identity
+            // 1 - cos(u) = 2*sin(u/2)^2 removes the cancellation.
+            double const sin_rbqa = sin(angle / 4.);
+            x0_mid += sin_rbqa * sin_rbqa / h;
         }
 
         x0_in = x0_mid;
@@ -397,8 +400,23 @@ void track_magnet_particles(
             double const px0_in = sin(theta_in);
             double const px0_mid = px0_in - h * length_straight / 2;
             double const sqrt_mid = sqrt(1 - px0_mid * px0_mid);
-            x0_in -= 1/h *(sqrt_mid - cos_theta_in);
-            x0_out += 1/h * (cos_theta_out - sqrt_mid);
+            // The offsets are (1/h)*(sqrt_mid - cos_theta_in) and
+            // (1/h)*(cos_theta_out - sqrt_mid). Both are differences of two
+            // square roots very close to 1, scaled by the large 1/h, so
+            // evaluating them literally loses ~log10(1/h) digits. Rationalising
+            // the differences using cos_theta = sqrt(1 - sin_theta^2) gives
+            //     sqrt_mid - cos_theta_in  = (px0_in^2 - px0_mid^2)/(sqrt_mid + cos_theta_in)
+            //     cos_theta_out - sqrt_mid = (px0_mid^2 - sin_theta_out^2)/(cos_theta_out + sqrt_mid)
+            // and, since px0_in - px0_mid = px0_mid + sin_theta_out = h*length_straight/2,
+            // the factor h cancels exactly against the 1/h prefactor.
+            // sin_theta_out is not used directly: it is flushed to zero for tiny
+            // theta_out, and here it enters linearly. px0_out is the exact
+            // equivalent, since h*length_straight = sin(theta_in) + sin(theta_out).
+            double const px0_out = h * length_straight / 2 - px0_mid;
+            x0_in -= 0.5 * length_straight * (px0_in + px0_mid)
+                        / (sqrt_mid + cos_theta_in);
+            x0_out += 0.5 * length_straight * (px0_mid - px0_out)
+                        / (cos_theta_out + sqrt_mid);
         }
         ;
         h = 0; // treat magnet as straight

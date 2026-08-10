@@ -2555,18 +2555,25 @@ class RBend(_BendCommon, BeamElement):
     def _x0_mid(self):
         out = -self.rbend_shift
         if abs(self.angle) > 1e-10 and self.rbend_compensate_sagitta:
-            out += 0.5 / self.h * (1 - np.cos(self.angle / 2))
+            # 1 - cos(u) = 2 * sin(u / 2)**2 avoids the cancellation in the
+            # subtraction, which the large 1 / h would otherwise amplify.
+            out += np.sin(self.angle / 4) ** 2 / self.h
         return out
 
     @property
     def _x0_in(self):
+        # The offset is (1 / h) * (sqrt_mid - cos_theta_in), a difference of two
+        # square roots very close to 1 scaled by the large 1 / h. Rationalising it
+        # with cos_theta = sqrt(1 - sin_theta**2) makes h cancel exactly, since
+        # px0_in - px0_mid = h * length_straight / 2. See also `_x0_out`.
         out = self._x0_mid
         if abs(self.angle) > 1e-10:
             px0_in = np.sin(self._angle_in)
             px0_mid = px0_in - self.h * self.length_straight / 2
             sqrt_mid = np.sqrt(1 - px0_mid * px0_mid)
             cos_theta_in = np.cos(self._angle_in)
-            out -= 1 / self.h * (sqrt_mid - cos_theta_in)
+            out -= (0.5 * self.length_straight * (px0_in + px0_mid)
+                    / (sqrt_mid + cos_theta_in))
         return out
 
     @property
@@ -2577,7 +2584,8 @@ class RBend(_BendCommon, BeamElement):
             px0_mid = px0_out - self.h * self.length_straight / 2
             sqrt_mid = np.sqrt(1 - px0_mid * px0_mid)
             cos_theta_out = np.cos(self._angle_out)
-            out += 1 / self.h * (cos_theta_out - sqrt_mid)
+            out -= (0.5 * self.length_straight * (px0_out + px0_mid)
+                    / (cos_theta_out + sqrt_mid))
         return out
 
     @property
@@ -2610,7 +2618,7 @@ class RBend(_BendCommon, BeamElement):
     def to_dict(self, copy_to_cpu=True):
         out = super().to_dict(copy_to_cpu=copy_to_cpu)
 
-        for kk in {'angle', 'length_straight'}:
+        for kk in ('angle', 'length_straight'):
             if f'_{kk}' in out:
                 out.pop(f'_{kk}')
             out[kk] = getattr(self, kk)
