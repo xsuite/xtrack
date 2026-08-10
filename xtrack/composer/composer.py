@@ -47,9 +47,6 @@ class Composer:
         Components defining the line. Entries can be element names,
         :class:`xtrack.Place` objects, lines, composers, or nested sequences of
         these objects.
-    name : str, optional
-        Name assigned to the line when it is built. If provided, :meth:`build`
-        registers the line in ``env`` under this name by default.
     length : float, str, or xdeps reference, optional
         Requested total length of the line. Strings and references are evaluated
         using ``env`` when the line is built. If omitted, the line is made just
@@ -98,7 +95,6 @@ class Composer:
         self,
         env,
         components=None,
-        name=None,
         length=None,
         refer='center',
         s_tol=1e-6,
@@ -108,7 +104,6 @@ class Composer:
             refer = 'center'
         self.env = env
         self.components = components or []
-        self.name = name
         self.refer = refer
         self.length = length
         self.s_tol = s_tol
@@ -131,8 +126,6 @@ class Composer:
 
     def __repr__(self):
         parts = []
-        if self.name:
-            parts.append(f'name={self.name!r}')
         if self.length is not None:
             parts.append(f'length={self.length!r}')
         if self.refer not in {'center', 'centre'}:
@@ -300,7 +293,6 @@ class Composer:
     def build(
         self,
         name=None,
-        inplace=None,
         s_tol=None,
         line=None,
         diagnostics=False,
@@ -314,11 +306,6 @@ class Composer:
         ----------
         name : str, optional
             Name under which the resulting line is registered in the environment.
-        inplace : bool, optional
-            If true, register the resulting line under the composer's configured
-            ``name``. The composer must have a name. If omitted, this behavior is
-            used automatically when the composer has a name and ``name`` is not
-            provided.
         s_tol : float, optional
             Longitudinal tolerance used when filling gaps and checking overlaps and
             line-length constraints. If omitted, the composer's configured
@@ -337,12 +324,6 @@ class Composer:
             The assembled line. If ``line`` was provided, the same line object is
             returned.
         """
-        if inplace is None and name is None and self.name is not None:
-            inplace = True
-        if inplace and self.name is None:
-            raise ValueError('Inplace build requires the Composer to have a name')
-        if inplace:
-            name = self.name
         if s_tol is None:
             s_tol = self.s_tol
         if line is not None and line.env is not self.env:
@@ -566,8 +547,6 @@ class Composer:
                 component_data['from_anchor'] = component.from_anchor
             data['components'].append(component_data)
 
-        if self.name is not None:
-            data['name'] = self.name
         if self.refer is not None:
             data['refer'] = self.refer
         if self.length is not None:
@@ -604,6 +583,9 @@ class Composer:
         """
         data = dct.copy()
         data.pop('__class__', None)
+        # ``name`` was serialized by the deprecated Builder API. It no longer
+        # affects composers, but accepting it keeps older files loadable.
+        data.pop('name', None)
         if 'l' in data:
             if 'length' in data:
                 raise ValueError(

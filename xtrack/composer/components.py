@@ -36,9 +36,9 @@ def _flatten_components(env, components, refer='center'):
 
         if this_line is not None:
             if isinstance(this_line, xt.Composer):
-                this_line = this_line.build(name=None, inplace=False)
+                this_line = this_line.build()
             elif isinstance(this_line, xt.Line) and this_line.mode == 'compose':
-                this_line = this_line.composer.build(name=None, inplace=False)
+                this_line = this_line.composer.build()
 
             if anchor is None:
                 anchor = refer or 'center'
@@ -61,10 +61,10 @@ def _flatten_components(env, components, refer='center'):
                 )
             flattened.extend(sub_components)
         elif isinstance(component, xt.Composer):
-            flattened.extend(component.build(inplace=False).element_names)
+            flattened.extend(component.build().element_names)
         elif isinstance(component, xt.Line):
             if component.mode == 'compose':
-                component = component.composer.build(name=None, inplace=False)
+                component = component.composer.build()
             flattened.extend(component.element_names)
         elif isinstance(component, Iterable) and not isinstance(component, str):
             flattened.extend(_flatten_components(env, component, refer=refer))

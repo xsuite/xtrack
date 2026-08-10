@@ -1363,7 +1363,6 @@ class Line:
             raise ValueError('Line is not in compose mode')
         self.composer.build(
             line=self,
-            inplace=False,
             diagnostics=diagnostics,
         )
 
