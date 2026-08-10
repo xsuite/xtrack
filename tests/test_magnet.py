@@ -1,10 +1,8 @@
 import numpy as np
 import pytest
+import xobjects as xo
 
 import xtrack as xt
-import xobjects as xo
-from xobjects.test_helpers import for_all_test_contexts
-
 from xtrack import Magnet, MagnetEdge
 
 
@@ -871,7 +869,7 @@ def test_edge_only_linear_edge(test_context):
 
     p_test_cpu = p_test.copy(_context=xo.ContextCpu())
     p_ref_cpu = p_ref.copy(_context=xo.ContextCpu())
-    
+
     xo.assert_allclose(p_test_cpu.x, p_ref_cpu.x, atol=1e-15, rtol=0)
     xo.assert_allclose(p_test_cpu.y, p_ref_cpu.y, atol=1e-15, rtol=0)
     xo.assert_allclose(p_test_cpu.zeta, p_ref_cpu.zeta, atol=1e-15, rtol=0)
@@ -880,21 +878,29 @@ def test_edge_only_linear_edge(test_context):
     xo.assert_allclose(p_test_cpu.delta, p_ref_cpu.delta, atol=1e-15, rtol=0)
 
 
-@for_all_test_contexts(excluding='ContextPyopencl')
+@for_all_test_contexts(excluding="ContextPyopencl")
 def test_edge_full_edge_with_dipole_component(test_context):
     e_test = MagnetEdge(
-        model='full', kn=[3], face_angle=0.1, face_angle_feed_down=0.2,
+        model="full",
+        kn=[3],
+        face_angle=0.1,
+        face_angle_feed_down=0.2,
         fringe_integral=0.3,
-        half_gap=0.4, _context=test_context
+        half_gap=0.4,
+        _context=test_context,
     )
     e_ref = xt.DipoleEdge(
-        model='full', k=3, e1=0.1, e1_fd=0.2, fint=0.3, hgap=0.4,
-        _context=test_context
+        model="full", k=3, e1=0.1, e1_fd=0.2, fint=0.3, hgap=0.4, _context=test_context
     )
 
     p0 = xt.Particles(
         kinetic_energy0=50e6,
-        x=1e-2, y=2e-2, zeta=1e-2, px=10e-2, py=20e-2, delta=1e-2,
+        x=1e-2,
+        y=2e-2,
+        zeta=1e-2,
+        px=10e-2,
+        py=20e-2,
+        delta=1e-2,
         _context=test_context,
     )
 
@@ -916,16 +922,76 @@ def test_edge_full_edge_with_dipole_component(test_context):
     xo.assert_allclose(p_test_cpu.delta, p_ref_cpu.delta, atol=1e-15, rtol=0)
 
 
-@for_all_test_contexts(excluding='ContextPyopencl')
-def test_edge_multipole_fringe_without_dipole_component(test_context):
-    e_test = MagnetEdge(
-        model='full', kn=[0, 2, 3], k_order=2, _context=test_context
+@for_all_test_contexts(excluding="ContextPyopencl")
+def test_rbend_full_edge_backtracks_many_coordinates():
+    test_context = xo.ContextCpu()
+
+    bend = xt.RBend(
+        length_straight=3.2,
+        angle=0.18,
+        rbend_model="straight-body",
+        edge_entry_model="full",
+        edge_exit_model="full",
+        edge_entry_angle=0.07,
+        edge_exit_angle=-0.04,
+        edge_entry_fint=0.35,
+        edge_exit_fint=0.22,
+        edge_entry_hgap=0.018,
+        edge_exit_hgap=0.014,
+        num_multipole_kicks=0,
     )
+    line = xt.Line(elements=[bend], element_names=["rb"])
+    line.particle_ref = xt.Particles(p0c=10e9)
+    line.build_tracker(_context=test_context, use_prebuilt_kernels=False)
+
+    values = np.linspace(-1.0, 1.0, 5)
+    x = 2.0e-3 * values
+    px = 3.0e-4 * values[::-1]
+    y = 1.5e-3 * np.roll(values, 1)
+    py = 2.5e-4 * np.roll(values, 2)
+    delta = 8.0e-4 * values
+    zeta = 1.0e-3 * np.roll(values, 3)
+
+    p0 = xt.Particles(
+        p0c=10e9,
+        x=x,
+        px=px,
+        y=y,
+        py=py,
+        delta=delta,
+        zeta=zeta,
+        _context=test_context,
+    )
+
+    p_test = p0.copy(_context=test_context)
+    line.track(p_test)
+    line.track(p_test, backtrack=True)
+
+    p_test.move(_context=xo.context_default)
+    p0.move(_context=xo.context_default)
+
+    assert np.all(p_test.state == 1)
+    xo.assert_allclose(p_test.x, p0.x, rtol=0, atol=2e-12)
+    xo.assert_allclose(p_test.px, p0.px, rtol=0, atol=2e-12)
+    xo.assert_allclose(p_test.y, p0.y, rtol=0, atol=2e-12)
+    xo.assert_allclose(p_test.py, p0.py, rtol=0, atol=2e-12)
+    xo.assert_allclose(p_test.delta, p0.delta, rtol=0, atol=2e-15)
+    xo.assert_allclose(p_test.zeta, p0.zeta, rtol=0, atol=2e-12)
+
+
+@for_all_test_contexts(excluding="ContextPyopencl")
+def test_edge_multipole_fringe_without_dipole_component(test_context):
+    e_test = MagnetEdge(model="full", kn=[0, 2, 3], k_order=2, _context=test_context)
     e_ref = xt.MultipoleEdge(kn=[0, 2, 3], order=2, _context=test_context)
 
     p0 = xt.Particles(
         kinetic_energy0=50e6,
-        x=1e-2, y=2e-2, zeta=1e-2, px=10e-2, py=20e-2, delta=1e-2,
+        x=1e-2,
+        y=2e-2,
+        zeta=1e-2,
+        px=10e-2,
+        py=20e-2,
+        delta=1e-2,
         _context=test_context,
     )
 
@@ -938,7 +1004,7 @@ def test_edge_multipole_fringe_without_dipole_component(test_context):
 
     p_test_cpu = p_test.copy(_context=xo.ContextCpu())
     p_ref_cpu = p_ref.copy(_context=xo.ContextCpu())
-    
+
     xo.assert_allclose(p_test_cpu.x, p_ref_cpu.x, atol=1e-15, rtol=0)
     xo.assert_allclose(p_test_cpu.y, p_ref_cpu.y, atol=1e-15, rtol=0)
     xo.assert_allclose(p_test_cpu.zeta, p_ref_cpu.zeta, atol=1e-15, rtol=0)

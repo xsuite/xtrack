@@ -84,6 +84,97 @@ void DipoleFringe_single_particle(
     LocalParticle_set_zeta(part, new_zeta);
 }
 
+GPUFUN
+void DipoleFringe_backtrack_single_particle(
+        LocalParticle* part,  // LocalParticle to track
+        const double fint,    // Fringe field integral
+        const double hgap,    // Half gap
+        const double k0       // Dipole strength
+) {
+    if (fabs(k0) < 10e-10) {
+        return;
+    }
+
+    const double beta0 = LocalParticle_get_beta0(part);
+
+    // Particle coordinates
+    const double x = LocalParticle_get_x(part);
+    const double px = LocalParticle_get_px(part);
+    const double y = LocalParticle_get_y(part);
+    const double py = LocalParticle_get_py(part);
+    const double t = LocalParticle_get_zeta(part) / beta0;
+    const double pt = LocalParticle_get_ptau(part);
+    const double delta = LocalParticle_get_delta(part);
+
+    const double fh = hgap * fint;
+    const double fsad = (fh > 10e-10) ? 1./(72 * fh) : 0;
+    const double b0 = k0 * LocalParticle_get_chi(part);
+
+    const double _beta = 1. / beta0;
+    const double dpp = POW2(1. + delta);
+    const double relp = 1./sqrt(dpp);
+    const double tfac = -(_beta + pt);
+    const double c2 = b0 * fh * 2;
+    const double c3 = POW2(b0) * fsad * relp;
+
+    double pz = sqrt(dpp - POW2(px) - POW2(py));
+    double _pz = 1./pz;
+    double xp = px / pz;
+    double yp = py / pz;
+    double xyp = xp * yp;
+    double yp2 = 1. + POW2(yp);
+    double xp2 = POW2(xp);
+    double _yp2 = 1. / yp2;
+
+    double fi0 = atan((xp * _yp2)) - c2 * (1 + xp2 * (1 + yp2)) * _pz;
+    double co2 = b0 / POW2(cos(fi0));
+    double co1 = co2 / (1 + POW2(xp * _yp2)) * _yp2;
+    double co3 = co2 * c2;
+
+    double fi1 =    co1          - co3 * 2 * xp * (1 + yp2) * _pz;
+    double fi2 = -2 * co1 * xyp * _yp2 - co3 * 2 * xp * xyp * _pz;
+    double fi3 =                    co3 * (1 + xp2 * (1 + yp2)) * POW2(_pz);
+
+    double ky = fi1 * xyp * _pz + fi2 * yp2 * _pz - fi3 * yp;
+    const double trial_y = 2 * y / (1 + sqrt(1 - 2 * ky * y));
+    const double trial_y2 = POW2(trial_y);
+    const double source_py = py + (4 * c3 * trial_y2 + b0 * tan(fi0)) * trial_y;
+
+    pz = sqrt(dpp - POW2(px) - POW2(source_py));
+    _pz = 1. / pz;
+    xp = px / pz;
+    yp = source_py / pz;
+    xyp = xp * yp;
+    yp2 = 1. + POW2(yp);
+    xp2 = POW2(xp);
+    _yp2 = 1. / yp2;
+
+    fi0 = atan((xp * _yp2)) - c2 * (1 + xp2 * (1 + yp2)) * _pz;
+    co2 = b0 / POW2(cos(fi0));
+    co1 = co2 / (1 + POW2(xp * _yp2)) * _yp2;
+    co3 = co2 * c2;
+
+    fi1 =    co1          - co3 * 2 * xp * (1 + yp2) * _pz;
+    fi2 = -2 * co1 * xyp * _yp2 - co3 * 2 * xp * xyp * _pz;
+    fi3 =                    co3 * (1 + xp2 * (1 + yp2)) * POW2(_pz);
+
+    const double kx = fi1 * (1 + xp2) * _pz + fi2 * xyp * _pz - fi3 * xp;
+    ky = fi1 * xyp * _pz + fi2 * yp2 * _pz - fi3 * yp;
+    const double kz = fi1 * tfac * xp * POW2(_pz)
+                    + fi2 * tfac * yp * POW2(_pz) - fi3 * tfac * _pz;
+
+    const double y2 = POW2(y);
+    const double new_x  = x - 0.5 * kx * y2;
+    const double new_y  = y - 0.5 * ky * y2;
+    const double new_py = py + (4 * c3 * y2 + b0 * tan(fi0)) * y;
+    const double new_t = t - (0.5 * kz + c3 * y2 * POW2(relp) * tfac) * y2;
+
+    LocalParticle_set_x(part, new_x);
+    LocalParticle_set_y(part, new_y);
+    LocalParticle_set_py(part, new_py);
+    LocalParticle_set_zeta(part, new_t * beta0);
+}
+
 #endif // no XTRACK_FRINGE_FROM_PTC
 
 
@@ -174,6 +265,19 @@ void DipoleFringe_single_particle(
     LocalParticle_set_y(part, new_y);
     LocalParticle_set_py(part, new_py);
     LocalParticle_add_to_zeta(part, -d_tau * beta0); // PTC uses tau = ct
+}
+
+GPUFUN
+void DipoleFringe_backtrack_single_particle(
+        LocalParticle* part,  // LocalParticle to track
+        const double fint,    // Fringe field integral
+        const double hgap,    // Half gap
+        const double k0       // Dipole strength
+) {
+    (void)fint;
+    (void)hgap;
+    (void)k0;
+    LocalParticle_kill_particle(part, -32);
 }
 #endif // XTRACK_FRINGE_FROM_PTC
 
