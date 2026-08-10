@@ -26,10 +26,73 @@ from ..general import DEPRECATION_INFO_PREP_1_0, parse_anchor_spec
 
 
 class Composer:
-    """Mutable specification used to assemble an :class:`xtrack.Line`.
+    """Define a line by arranging components along its length.
 
-    Parameters are retained rather than immediately materialized, allowing the
-    line to be regenerated after referenced variables or element lengths change.
+    A composer is created automatically for a line in compose mode. Users should
+    normally create such a line with ``env.new_line(compose=True)`` and add
+    components through the line, rather than instantiate a composer directly. The
+    underlying composer remains available as ``line.composer`` for inspection and
+    validation.
+
+    Components can be element names, placements, lines, other composers, or nested
+    sequences of these objects. They can be placed at an absolute longitudinal
+    position, relative to another component, or sequentially after the previous
+    component.
+
+    Parameters
+    ----------
+    env : xtrack.Environment
+        Environment containing the elements, variables, and lines used by the
+        composer.
+    components : list, optional
+        Components defining the line. Entries can be element names,
+        :class:`xtrack.Place` objects, lines, composers, or nested sequences of
+        these objects.
+    name : str, optional
+        Name assigned to the line when it is built. If provided, :meth:`build`
+        registers the line in ``env`` under this name by default.
+    length : float, str, or xdeps reference, optional
+        Requested total length of the line. Strings and references are evaluated
+        using ``env`` when the line is built. If omitted, the line is made just
+        long enough to contain all its components.
+    refer : {'start', 'center', 'centre', 'end'}, optional
+        Default anchor used when a placement does not specify one. The default is
+        ``'center'``.
+    s_tol : float, optional
+        Longitudinal tolerance used when filling gaps and checking overlaps and
+        line-length constraints. The default is ``1e-6``.
+    mirror : bool, optional
+        If true, reverse the component sequence after assembling the line.
+        The default is false.
+
+    Examples
+    --------
+    Create a line in compose mode. Its composer is available as
+    ``line.composer`` and can resolve component positions before the line is
+    assembled:
+
+    .. code-block:: python
+
+        import xtrack as xt
+
+        env = xt.Environment()
+        env.new('q1', xt.Quadrupole, length=1)
+        env.new('q2', xt.Quadrupole, length=1)
+        env.new('ip', xt.Marker)
+
+        line = env.new_line(compose=True)
+        line.place('q1', at=1, anchor='start')
+        line.place('ip', at=2, from_='q1', from_anchor='end')
+        line.place('q2')
+
+        positions = line.composer.resolve_s_positions()
+        positions.cols['name s_start s_center s_end'].show()
+        # name       s_start      s_center         s_end
+        # q1               1           1.5             2
+        # ip               4             4             4
+        # q2               4           4.5             5
+
+        line.end_compose()
     """
 
     def __init__(
@@ -53,6 +116,15 @@ class Composer:
         self.mirror = mirror
 
     def copy(self):
+        """Return a shallow copy of the composer.
+
+        Returns
+        -------
+        xtrack.Composer
+            A new composer with a separate top-level component list. The
+            environment and the individual component objects are shared with the
+            original composer.
+        """
         out = self.__class__(self.env)
         out.__dict__.update(self.__dict__)
         out.components = self.components.copy()
@@ -83,7 +155,39 @@ class Composer:
         parent=None,
         **kwargs,
     ):
-        """Create an element in the environment and add its placement."""
+        """Create an element and add it to the composer.
+
+        Parameters
+        ----------
+        name : str
+            Name of the new element.
+        prototype : str or type
+            Element type or existing element used as the prototype.
+        at : float, str, or xdeps reference, optional
+            Longitudinal position of the element. If ``from_`` is omitted, the
+            position is measured from the beginning of the line.
+        from_ : str, optional
+            Component relative to which ``at`` is measured.
+        extra : dict, optional
+            Additional metadata associated with the new element.
+        force : bool, optional
+            If true, replace an existing element with the same name. The default
+            is false.
+        cls : str or type, optional
+            Deprecated alias for ``prototype``.
+        parent : str or type, optional
+            Deprecated alias for ``prototype``.
+        **kwargs
+            Attributes used to initialize or customize the element.
+
+        Returns
+        -------
+        str or xtrack.Place
+            The name of the created element when neither ``at`` nor ``from_`` is
+            provided; otherwise, an ``xtrack.Place`` object describing where the
+            element is positioned. The returned value is also appended to
+            ``composer.components``.
+        """
         if cls is not None:
             if prototype is not None:
                 raise TypeError(
@@ -126,7 +230,63 @@ class Composer:
         return out
 
     def place(self, name, obj=None, at=None, from_=None, anchor=None, from_anchor=None):
-        """Create and append a placement using the associated environment."""
+        """Add a component to the composer.
+
+        When neither ``at`` nor ``from_`` is provided, the component is placed
+        sequentially after the preceding component.
+
+        Parameters
+        ----------
+        name : str, xtrack.Line, or sequence of str
+            Element or line to place. A sequence of element names is first combined
+            into a line.
+        obj : object, optional
+            Object to register in the environment under ``name`` before placing it.
+        at : float, str, or xdeps reference, optional
+            Position of the selected component anchor. If ``from_`` is omitted, the
+            position is measured from the beginning of the line.
+        from_ : str, optional
+            Component relative to which ``at`` is measured.
+        anchor : {'start', 'center', 'centre', 'end'}, optional
+            Anchor of the placed component positioned at ``at``. If omitted, the
+            composer's default reference anchor is used.
+        from_anchor : {'start', 'center', 'centre', 'end'}, optional
+            Anchor of the reference component from which ``at`` is measured. If
+            omitted, the composer's default reference anchor is used.
+
+        Returns
+        -------
+        xtrack.Place
+            The ``xtrack.Place`` object describing the component placement. It is
+            also appended to ``composer.components``.
+
+        Examples
+        --------
+        Place ``q1`` at an absolute position, place ``q2`` relative to the end of
+        ``q1``, and place ``ip`` sequentially after ``q2``:
+
+        .. code-block:: python
+
+            import xtrack as xt
+
+            env = xt.Environment()
+            env.new('q1', xt.Quadrupole, length=1)
+            env.new('q2', xt.Quadrupole, length=1)
+            env.new('ip', xt.Marker)
+
+            line = env.new_line(compose=True)
+            composer = line.composer
+
+            composer.place('q1', at=1, anchor='start')
+            composer.place(
+                'q2',
+                at=2,
+                from_='q1',
+                anchor='start',
+                from_anchor='end',
+            )
+            composer.place('ip')
+        """
         out = self.env.place(
             name=name,
             obj=obj,
