@@ -13,9 +13,7 @@
 // https://github.com/MethodicalAcceleratorDesign/MAD/blob/d3cabd9cdebde62ebedb51bab61ac033b9159489/src/madl_dynmap.mad#L1864
 // Generating function changed to contain 1/pz instead of pz
 
-// Coefficients of the fringe generating function, all evaluated at the given
-// transverse momenta. The map itself is a polynomial in y with these as
-// coefficients, which is what makes it analytically invertible.
+// Coefficients of the fringe generating function, at the given momenta.
 GPUFUN
 void DipoleFringe_coefficients(
         const double px, const double py, const double dpp,
@@ -47,16 +45,10 @@ void DipoleFringe_coefficients(
     *kz = fi1*tfac*xp*POW2(_pz) + fi2*tfac*yp*POW2(_pz) - fi3*tfac*_pz;
 }
 
-// Tracks the dipole fringe, or its inverse when `backtrack` is set.
-//
-// Forward, with the coefficients evaluated at the incoming momenta:
-//     y_out  = 2*y / (1 + sqrt(1 - 2*ky*y))   <=>   y = y_out - 0.5*ky*y_out^2
-//     x_out  = x + 0.5*kx*y_out^2, etc.
-// The inverse therefore only needs the coefficients at the *incoming* momenta,
-// which are recovered in two steps: the y relation above gives the incoming y
-// from the outgoing one at fixed coefficients, and that in turn gives the
-// incoming py. The coefficients are then re-evaluated there and the polynomial
-// relations are applied in reverse.
+// Tracks the dipole fringe, or its inverse when `backtrack` is set. Every
+// relation is explicit in the outgoing y, so backtracking subtracts the same
+// increments instead of adding them; only the coefficients, which the forward
+// map evaluates at the incoming py, have to be recovered first.
 GPUFUN
 void DipoleFringe_track_single_particle(
         LocalParticle* part,  // LocalParticle to track
@@ -94,16 +86,17 @@ void DipoleFringe_track_single_particle(
     double fi0, kx, ky, kz;
     DipoleFringe_coefficients(px, py, dpp, b0, c2, tfac, &fi0, &kx, &ky, &kz);
 
+    // Estimate the incoming py once, then re-evaluate the coefficients there.
+    // This could be iterated; three iterations have been observed to reach
+    // machine precision even for strong edges.
     if (backtrack) {
-        const double source_y = y - 0.5 * ky * POW2(y);
         const double source_py =
-            py + 4 * c3 * POW3(source_y) + b0 * tan(fi0) * source_y;
+            py + 4 * c3 * POW3(y) + b0 * tan(fi0) * y;
         DipoleFringe_coefficients(
             px, source_py, dpp, b0, c2, tfac, &fi0, &kx, &ky, &kz);
     }
 
-    // `yy` is always the outgoing y, so that the same polynomials describe both
-    // directions (with the sign of the increments flipped when backtracking).
+    // The outgoing y, which drives every relation in both directions.
     const double yy = backtrack ? y : 2 * y / (1 + sqrt(1 - 2 * ky * y));
     const double sign = backtrack ? -1. : 1.;
 

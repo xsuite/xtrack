@@ -2555,17 +2555,14 @@ class RBend(_BendCommon, BeamElement):
     def _x0_mid(self):
         out = -self.rbend_shift
         if abs(self.angle) > 1e-10 and self.rbend_compensate_sagitta:
-            # 1 - cos(u) = 2 * sin(u / 2)**2 avoids the cancellation in the
-            # subtraction, which the large 1 / h would otherwise amplify.
+            # 1 - cos(u) = 2 * sin(u / 2)**2, to avoid the cancellation.
             out += np.sin(self.angle / 4) ** 2 / self.h
         return out
 
     @property
     def _x0_in(self):
-        # The offset is (1 / h) * (sqrt_mid - cos_theta_in), a difference of two
-        # square roots very close to 1 scaled by the large 1 / h. Rationalising it
-        # with cos_theta = sqrt(1 - sin_theta**2) makes h cancel exactly, since
-        # px0_in - px0_mid = h * length_straight / 2. See also `_x0_out`.
+        # Rationalised form of (1 / h) * (sqrt_mid - cos_theta_in), in which h
+        # cancels exactly. See `track_magnet.h` for the derivation.
         out = self._x0_mid
         if abs(self.angle) > 1e-10:
             px0_in = np.sin(self._angle_in)
@@ -4953,7 +4950,7 @@ class ElectronCooler(BeamElement):
         magnetic_field_ratio : float, optional
             The ratio of perpendicular component of magnetic field with the
             longitudinal component of the magnetic field. This is a measure
-            of the magnetic field quality. With the ideal magnetic field quality 
+            of the magnetic field quality. With the ideal magnetic field quality
             being 0.
         space_charge : float, optional
             Whether space charge of electron beam is enabled. 0 is off and 1 is on.
