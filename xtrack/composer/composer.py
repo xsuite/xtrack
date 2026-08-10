@@ -306,10 +306,37 @@ class Composer:
         line=None,
         diagnostics=False,
     ):
-        """Materialize the current component specification as a line.
+        """Build a line from the current component definitions.
 
-        If ``line`` is supplied it is updated in place. Otherwise a new line is
-        returned. A named composer builds back into its environment by default.
+        Component positions are resolved and positive gaps are filled with drifts.
+        A new line is created unless an existing line is supplied through ``line``.
+
+        Parameters
+        ----------
+        name : str, optional
+            Name under which the resulting line is registered in the environment.
+        inplace : bool, optional
+            If true, register the resulting line under the composer's configured
+            ``name``. The composer must have a name. If omitted, this behavior is
+            used automatically when the composer has a name and ``name`` is not
+            provided.
+        s_tol : float, optional
+            Longitudinal tolerance used when filling gaps and checking overlaps and
+            line-length constraints. If omitted, the composer's configured
+            tolerance is used.
+        line : xtrack.Line, optional
+            Existing line whose element sequence is replaced with the assembled
+            sequence. The line must belong to the composer's environment. If
+            omitted, a new line is created.
+        diagnostics : bool, optional
+            If true, analyze unresolved placement dependencies and distinguish
+            missing references from dependency cycles. The default is false.
+
+        Returns
+        -------
+        xtrack.Line
+            The assembled line. If ``line`` was provided, the same line object is
+            returned.
         """
         if inplace is None and name is None and self.name is not None:
             inplace = True
@@ -352,7 +379,31 @@ class Composer:
         return len(self.components)
 
     def resolve_s_positions(self, sort=True, diagnostics=False):
-        """Return a table containing the resolved component coordinates."""
+        """Resolve the longitudinal positions of the composer components.
+
+        The components are expanded and their start, center, and end positions are
+        computed. This method neither assembles the final line nor fills gaps with
+        drifts. Overlaps are not checked at this stage: overlapping components are
+        included in the returned table with their resolved positions and do not
+        raise an error.
+
+        Parameters
+        ----------
+        sort : bool, optional
+            If true, sort the returned rows by longitudinal position and order
+            components sharing the same position according to their placement
+            dependencies. If false, preserve the input component order. The default
+            is true.
+        diagnostics : bool, optional
+            If true, analyze unresolved placement dependencies and distinguish
+            missing references from dependency cycles. The default is false.
+
+        Returns
+        -------
+        xtrack.line.LineTable
+            Table containing one row per expanded component, including its
+            ``s_start``, ``s_center``, and ``s_end`` positions.
+        """
         expanded_components = _expand_components(
             self.env, self.components or [], refer=self.refer
         )
