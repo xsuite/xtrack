@@ -4,33 +4,44 @@ from functools import cmp_to_key
 
 import numpy as np
 
+from .models import ResolvedPlacement
 
-def _assign_position_groups(table, s_tol):
-    """Label adjacent elements that share a longitudinal center coordinate."""
-    group_ids = np.zeros(len(table), dtype=int)
-    for index in range(1, len(table)):
-        different_center = (
-            abs(table.s_center[index] - table.s_center[index - 1]) > s_tol
+
+def _resolved_placements_from_table(table):
+    """Copy table rows into immutable records at the ordering boundary."""
+    return [
+        ResolvedPlacement(
+            source_index=index,
+            name=table.env_name[index],
+            table_name=table.name[index],
+            env_name=table.env_name[index],
+            length=table.length[index],
+            isthick=bool(table.isthick[index]),
+            s_start=table.s_start[index],
+            from_=table.from_[index],
+            from_anchor=table.from_anchor[index],
         )
+        for index in range(len(table))
+    ]
+
+
+def _group_by_position(placements, s_tol):
+    """Group adjacent placements that share a longitudinal center coordinate."""
+    if not placements:
+        return []
+
+    groups = [[placements[0]]]
+    for placement in placements[1:]:
+        previous = groups[-1][-1]
+        different_center = abs(placement.s_center - previous.s_center) > s_tol
         overlapping_thick_element = (
-            table.isthick[index] and table.s_end[index] - table.s_start[index] != 0
+            placement.isthick and placement.s_end - placement.s_start != 0
         )
-        group_ids[index] = group_ids[index - 1]
         if different_center or overlapping_thick_element:
-            group_ids[index] += 1
-    table['group_id'] = group_ids
-    return table
-
-
-def _iter_group_bounds(group_ids):
-    """Yield half-open index ranges for consecutive equal group identifiers."""
-    start = 0
-    while start < len(group_ids):
-        end = start + 1
-        while end < len(group_ids) and group_ids[end] == group_ids[start]:
-            end += 1
-        yield start, end
-        start = end
+            groups.append([placement])
+        else:
+            groups[-1].append(placement)
+    return groups
 
 
 def _classify_group_dependencies(
@@ -42,7 +53,8 @@ def _classify_group_dependencies(
     from_inside = []
     no_from = []
 
-    for index, from_name in enumerate(group.from_):
+    for index, placement in enumerate(group):
+        from_name = placement.from_
         if from_name is None:
             no_from.append(index)
             continue
@@ -69,16 +81,15 @@ def _build_group_insertions(group, from_inside):
     insert_before = {}
     insert_after = {}
     for index in from_inside:
-        from_name = group.from_[index]
-        from_anchor = group.from_anchor[index]
+        placement = group[index]
 
         # Within a thin sandwich, center and an omitted anchor behave as start.
-        if from_anchor in (None, 'start', 'center', 'centre'):
-            insert_before.setdefault(from_name, []).append(index)
-        elif from_anchor == 'end':
-            insert_after.setdefault(from_name, []).append(index)
+        if placement.from_anchor in (None, 'start', 'center', 'centre'):
+            insert_before.setdefault(placement.from_, []).append(index)
+        elif placement.from_anchor == 'end':
+            insert_after.setdefault(placement.from_, []).append(index)
         else:
-            raise ValueError(f'Unknown from_anchor {from_anchor}')
+            raise ValueError(f'Unknown from_anchor {placement.from_anchor}')
     return insert_before, insert_after
 
 
@@ -88,7 +99,7 @@ def _apply_group_insertions(group, base_order, insert_before, insert_after):
     while insert_before or insert_after:
         new_order = []
         for index in order:
-            name = group.name[index]
+            name = group[index].table_name
             new_order.extend(insert_before.pop(name, []))
             new_order.append(index)
             new_order.extend(insert_after.pop(name, []))
@@ -99,23 +110,50 @@ def _apply_group_insertions(group, base_order, insert_before, insert_after):
                 'dependency in from_ specifications'
             )
         order = new_order
-    return order
+    return [group[index] for index in order]
 
 
-def _order_coincident_group(table, start, end, name_index, allow_non_existent_from):
-    """Return original place indices in the required order for one group."""
-    if end - start == 1:
-        return [table.i_place[start]]
-    if all(anchor is None for anchor in table.from_anchor[start:end]):
-        return list(table.i_place[start:end])
+def _order_coincident_group(group, group_start, name_index, allow_non_existent_from):
+    """Apply dependency ordering to one coincident-position group."""
+    if len(group) == 1 or all(placement.from_anchor is None for placement in group):
+        return group
 
-    group = table.rows[start:end]
+    group_end = group_start + len(group)
     base_order, from_inside = _classify_group_dependencies(
-        group, name_index, start, end, allow_non_existent_from
+        group,
+        name_index,
+        group_start,
+        group_end,
+        allow_non_existent_from,
     )
     insert_before, insert_after = _build_group_insertions(group, from_inside)
-    order = _apply_group_insertions(group, base_order, insert_before, insert_after)
-    return list(group.rows[order].i_place)
+    return _apply_group_insertions(group, base_order, insert_before, insert_after)
+
+
+def _sort_resolved_placements(placements, s_tol=1e-10, allow_non_existent_from=False):
+    """Sort immutable placements by coordinate and dependency order."""
+    center_order = _argsort_s(
+        [placement.s_center for placement in placements], tol=s_tol
+    )
+    center_sorted = [placements[index] for index in center_order]
+    groups = _group_by_position(center_sorted, s_tol)
+    name_index = {
+        placement.table_name: index for index, placement in enumerate(center_sorted)
+    }
+
+    sorted_placements = []
+    group_start = 0
+    for group in groups:
+        sorted_placements.extend(
+            _order_coincident_group(
+                group,
+                group_start,
+                name_index,
+                allow_non_existent_from,
+            )
+        )
+        group_start += len(group)
+    return sorted_placements
 
 
 def _add_upstream_gaps(table):
@@ -130,32 +168,24 @@ def _add_upstream_gaps(table):
 
 
 def _sort_places(tt_unsorted, s_tol=1e-10, allow_non_existent_from=False):
-    """Sort placements by position and dependency order without mutating input."""
+    """Sort a placement table without mutating it."""
     source = tt_unsorted.rows[:]
-    source['i_place'] = np.arange(len(source))
-
     if not len(source):
+        source['i_place'] = np.array([], dtype=int)
         source['group_id'] = np.array([], dtype=int)
         source['ds_upstream'] = np.array([], dtype=float)
         return source
 
-    center_order = _argsort_s(source.s_center, tol=s_tol)
-    center_sorted = _assign_position_groups(source.rows[center_order], s_tol)
-
-    # Caching these indices avoids repeated Table row lookups in large lines.
-    name_index = {name: index for index, name in enumerate(center_sorted.name)}
-    place_order = []
-    for start, end in _iter_group_bounds(center_sorted.group_id):
-        place_order.extend(
-            _order_coincident_group(
-                center_sorted,
-                start,
-                end,
-                name_index,
-                allow_non_existent_from,
-            )
-        )
-    return _add_upstream_gaps(source.rows[place_order])
+    placements = _resolved_placements_from_table(source)
+    placements = _sort_resolved_placements(
+        placements,
+        s_tol=s_tol,
+        allow_non_existent_from=allow_non_existent_from,
+    )
+    place_order = [placement.source_index for placement in placements]
+    sorted_table = source.rows[place_order]
+    sorted_table['i_place'] = np.array(place_order)
+    return _add_upstream_gaps(sorted_table)
 
 
 def _argsort_s(sequence, tol=10e-10):

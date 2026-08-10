@@ -112,16 +112,11 @@ def _all_places(sequence):
     for component in sequence:
         if isinstance(component, xt.Place):
             places.append(component)
-        elif not isinstance(component, str) and hasattr(component, '__iter__'):
-            for nested_component in component:
-                if isinstance(nested_component, xt.Place):
-                    break
-                if not isinstance(nested_component, (str, xt.Line)):
-                    raise TypeError(
-                        'Only places, elements, strings or Lines are allowed '
-                        'in sequences'
-                    )
-            places.extend(_all_places(component))
+        elif isinstance(component, Iterable) and not isinstance(
+            component, (str, xt.Line)
+        ):
+            # Materialize one-shot iterables exactly once at the copy boundary.
+            places.extend(_all_places(list(component)))
         else:
             if not isinstance(component, (str, xt.Line)):
                 raise TypeError(
