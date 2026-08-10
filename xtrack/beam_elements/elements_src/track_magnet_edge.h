@@ -89,27 +89,24 @@ void track_magnet_edge_particles(
             tan_ = tan(face_angle);
         }
 
-        uint8_t physical_is_exit = is_exit;
-        if (factor_for_backtrack < 0) {
-            physical_is_exit = !physical_is_exit;
-        }
+        const uint8_t backtrack = (factor_for_backtrack < 0);
 
-        if (physical_is_exit) k0 = -k0;
+        // Backtracking traverses the same maps in reverse, so the face that is
+        // physically entered is the opposite one. Only the sign of k0 depends on
+        // it: the order of the maps below is the same in both directions (the
+        // reverse of the entry sequence is the exit sequence and vice versa).
+        if (is_exit != backtrack) k0 = -k0;
 
-        if (factor_for_backtrack < 0 && model == 1) {
+        // The multipole fringe has no closed-form inverse, so backtracking is
+        // only supported when there is no multipole component to speak of.
+        if (backtrack && model == 1) {
             uint8_t has_multipole_fringe = 0;
-            if (k_order > 0) {
-                for (int64_t ii = 1; ii <= k_order; ii++) {
-                    if (fabs(knorm[ii]) > 0 || fabs(kskew[ii]) > 0) {
-                        has_multipole_fringe = 1;
-                    }
-                }
+            for (int64_t ii = 1; ii <= k_order; ii++) {
+                has_multipole_fringe |= (knorm[ii] != 0) || (kskew[ii] != 0);
             }
-            if (fabs(length) > 1e-10 && kl_order > 0) {
+            if (fabs(length) > 1e-10) {
                 for (int64_t ii = 1; ii <= kl_order; ii++) {
-                    if (fabs(knl[ii]) > 0 || fabs(ksl[ii]) > 0) {
-                        has_multipole_fringe = 1;
-                    }
+                    has_multipole_fringe |= (knl[ii] != 0) || (ksl[ii] != 0);
                 }
             }
 
@@ -121,17 +118,18 @@ void track_magnet_edge_particles(
             }
         }
 
-        #define MAGNET_Y_ROTATE(PART) \
-            if (should_rotate) YRotation_single_particle((PART), -sin_, cos_, -tan_)
+        // Inverting a y-rotation or a (quadrupole) wedge is just flipping the
+        // sign of the angle, so the direction is folded into these values.
+        const double rot_sign = backtrack ? 1.0 : -1.0;
+        const double wedge_angle = rot_sign * face_angle;
 
-        #define MAGNET_Y_ROTATE_BACKTRACK(PART) \
-            if (should_rotate) YRotation_single_particle((PART), sin_, cos_, tan_)
+        #define MAGNET_Y_ROTATE(PART) \
+            if (should_rotate) YRotation_single_particle( \
+                (PART), rot_sign * sin_, cos_, rot_sign * tan_)
 
         #define MAGNET_DIPOLE_FRINGE(PART) \
-            DipoleFringe_single_particle((PART), fringe_integral, half_gap, k0)
-
-        #define MAGNET_DIPOLE_FRINGE_BACKTRACK(PART) \
-            DipoleFringe_backtrack_single_particle((PART), fringe_integral, half_gap, k0)
+            DipoleFringe_track_single_particle( \
+                (PART), fringe_integral, half_gap, k0, backtrack)
 
         #define MAGNET_MULTIPOLE_FRINGE(PART) \
             MultFringe_track_single_particle( \
@@ -152,73 +150,43 @@ void track_magnet_edge_particles(
         // model changes!
 
         #define MAGNET_WEDGE(PART) \
-            if (should_rotate & (k_order >= 0)) Wedge_single_particle((PART), -face_angle, knorm[0])
-
-        #define MAGNET_WEDGE_BACKTRACK(PART) \
-            if (should_rotate & (k_order >= 0)) Wedge_single_particle((PART), face_angle, knorm[0])
+            if (should_rotate & (k_order >= 0)) Wedge_single_particle((PART), wedge_angle, knorm[0])
 
         #define MAGNET_QUAD_WEDGE(PART) \
-            if (should_rotate & (k_order >= 1)) Quad_wedge_single_particle((PART), -face_angle, knorm[1])
+            if (should_rotate & (k_order >= 1)) Quad_wedge_single_particle((PART), wedge_angle, knorm[1])
 
-        #define MAGNET_QUAD_WEDGE_BACKTRACK(PART) \
-            if (should_rotate & (k_order >= 1)) Quad_wedge_single_particle((PART), face_angle, knorm[1])
-
-        if (physical_is_exit == 0){ // entry
+        if (is_exit == 0){
             START_PER_PARTICLE_BLOCK(part0, part);
-                if (factor_for_backtrack > 0) {
-                    MAGNET_Y_ROTATE(part);
-                    MAGNET_DIPOLE_FRINGE(part);
-                    if (model == 1){
-                        MAGNET_MULTIPOLE_FRINGE(part);
-                    }
-                    if (model == 1){
-                        MAGNET_QUAD_WEDGE(part);
-                    }
-                    MAGNET_WEDGE(part);
+                MAGNET_Y_ROTATE(part);
+                MAGNET_DIPOLE_FRINGE(part);
+                if (model == 1 && !backtrack){
+                    MAGNET_MULTIPOLE_FRINGE(part);
                 }
-                else {
-                    MAGNET_WEDGE_BACKTRACK(part);
-                    if (model == 1){
-                        MAGNET_QUAD_WEDGE_BACKTRACK(part);
-                    }
-                    MAGNET_DIPOLE_FRINGE_BACKTRACK(part);
-                    MAGNET_Y_ROTATE_BACKTRACK(part);
+                if (model == 1){
+                    MAGNET_QUAD_WEDGE(part);
                 }
+                MAGNET_WEDGE(part);
             END_PER_PARTICLE_BLOCK;
         }
-        else { // exit
+        else {
             START_PER_PARTICLE_BLOCK(part0, part);
-                if (factor_for_backtrack > 0) {
-                    MAGNET_WEDGE(part);
-                    if (model == 1){
-                        MAGNET_QUAD_WEDGE(part);
-                    }
-                    if (model == 1){
-                        MAGNET_MULTIPOLE_FRINGE(part);
-                    }
-                    MAGNET_DIPOLE_FRINGE(part);
-                    MAGNET_Y_ROTATE(part);
+                MAGNET_WEDGE(part);
+                if (model == 1){
+                    MAGNET_QUAD_WEDGE(part);
                 }
-                else {
-                    MAGNET_Y_ROTATE_BACKTRACK(part);
-                    MAGNET_DIPOLE_FRINGE_BACKTRACK(part);
-                    if (model == 1){
-                        MAGNET_QUAD_WEDGE_BACKTRACK(part);
-                    }
-                    MAGNET_WEDGE_BACKTRACK(part);
+                if (model == 1 && !backtrack){
+                    MAGNET_MULTIPOLE_FRINGE(part);
                 }
+                MAGNET_DIPOLE_FRINGE(part);
+                MAGNET_Y_ROTATE(part);
             END_PER_PARTICLE_BLOCK;
         }
 
         #undef MAGNET_Y_ROTATE
-        #undef MAGNET_Y_ROTATE_BACKTRACK
         #undef MAGNET_DIPOLE_FRINGE
-        #undef MAGNET_DIPOLE_FRINGE_BACKTRACK
         #undef MAGNET_MULTIPOLE_FRINGE
         #undef MAGNET_WEDGE
-        #undef MAGNET_WEDGE_BACKTRACK
         #undef MAGNET_QUAD_WEDGE
-        #undef MAGNET_QUAD_WEDGE_BACKTRACK
     }
     else if (model == 3) { // only ax ay cancellation (already done above)
         // do nothing

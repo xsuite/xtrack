@@ -60,13 +60,8 @@ void DipoleEdge_track_local_particle(DipoleEdgeData el, LocalParticle* part0){
         int64_t const backtrack = LocalParticle_check_track_flag(part0, XS_FLAG_BACKTRACK);
 
         START_PER_PARTICLE_BLOCK(part0, part);
-            if (!backtrack){
-                DipoleEdgeNonLinear_single_particle(part, k, e1, fint, hgap, side);
-            }
-            else {
-                DipoleEdgeNonLinear_backtrack_single_particle(
-                    part, k, e1, fint, hgap, side);
-            }
+            DipoleEdgeNonLinear_track_single_particle(
+                part, k, e1, fint, hgap, side, backtrack);
         END_PER_PARTICLE_BLOCK;
 
     }
