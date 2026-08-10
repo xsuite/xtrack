@@ -58,6 +58,22 @@ def test_position_resolution_supports_forward_dependencies():
     assert np.allclose(table.s_start, [7, 5])
 
 
+@pytest.mark.parametrize(
+    ('relative_argument', 'value'),
+    [('from_', 'marker'), ('from_anchor', 'end')],
+)
+def test_position_resolution_rejects_relative_argument_without_at(
+    relative_argument,
+    value,
+):
+    env = xt.Environment()
+    env.new('marker', xt.Marker)
+    place = xt.Place('marker', **{relative_argument: value})
+
+    with pytest.raises(ValueError, match='without providing `at`'):
+        _resolve_s_positions([place], env)
+
+
 def test_missing_reference_identifies_root_and_blocked_components():
     env = xt.Environment()
     env.new('a', xt.Marker)

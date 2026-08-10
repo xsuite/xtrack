@@ -13,7 +13,17 @@ def _resolve_s_positions(seq_all_places, env, refer='center', diagnostics=False)
     """Resolve placement specifications to a table of absolute coordinates."""
     places = list(seq_all_places)
 
-    # Use an auxiliary line to build a table of all the elements
+    # Check that places having at=None do not specify from_ or from_anchor.
+    for place in places:
+        if place.at is not None:
+            continue
+        if place.from_ is not None or place.from_anchor is not None:
+            raise ValueError(
+                'Cannot specify `from_` or `from_anchor` without providing '
+                f'`at`. Error in placement `{place}`.'
+            )
+
+    # Use an auxiliary line to build a table of all the elements (specified order)
     aux_line = env.new_line(
         components=[place.name for place in places],
         refer=refer,
@@ -22,6 +32,7 @@ def _resolve_s_positions(seq_all_places, env, refer='center', diagnostics=False)
     table['length'] = np.diff(table.s, append=table.s[-1])
     table = table.rows[:-1]
 
+    # If places is empty, return an empty table with the correct columns.
     if not places:
         table['s_start'] = np.array([], dtype=float)
         table['s_center'] = np.array([], dtype=float)
@@ -31,12 +42,14 @@ def _resolve_s_positions(seq_all_places, env, refer='center', diagnostics=False)
         table['from_anchor'] = np.array([], dtype=object)
         return table
 
+    # Build a dictionary of element lengths by name for quick lookup.
     length_by_name = dict(zip(table.env_name, table.length))
 
     # Track resolved placements by input order and by referenced component name.
     resolved_by_index = {}
     resolved_by_name = {}
 
+    # If first place has at=None, it goes at s=0
     if places[0].at is None:
         place = places[0]
         resolved = ResolvedPlacement(
@@ -59,14 +72,6 @@ def _resolve_s_positions(seq_all_places, env, refer='center', diagnostics=False)
         for index, place in enumerate(places):
             if index in resolved_by_index:
                 continue
-
-            if (
-                place.from_ is not None or place.from_anchor is not None
-            ) and place.at is None:
-                raise ValueError(
-                    'Cannot specify `from_` or `from_anchor` without providing '
-                    f'`at`. Error in placement `{place}`.'
-                )
 
             self_length = length_by_name[place.name]
             if place.at is None:
