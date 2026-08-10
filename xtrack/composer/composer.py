@@ -417,6 +417,41 @@ class Composer:
         xtrack.line.LineTable
             Table containing one row per expanded component, including its
             ``s_start``, ``s_center``, and ``s_end`` positions.
+
+        Notes
+        -----
+        With ``sort=True``, the following ordering rules are applied:
+
+        * Components are sorted by increasing ``s_center``. Only thin elements can
+          form a group at the same ``s``; for these elements ``s_start``,
+          ``s_center``, and ``s_end`` are identical. This is why ``s_center`` is used
+          as the common sorting coordinate.
+
+        * For thin elements at the same ``s`` (within the sorting tolerance):
+
+          * input order is preserved unless placement dependencies establish an
+            order;
+
+          * a reference to an upstream element moves an element toward the
+            beginning of the group;
+
+          * a reference to a downstream element moves it toward the end of the
+            group;
+
+          * for a reference to an element inside the group:
+
+            * an explicit ``from_anchor`` of ``'start'``, ``'center'``, or
+              ``'centre'`` places the element before the reference;
+
+            * an explicit ``from_anchor`` of ``'end'`` places it after the
+              reference;
+
+            * an omitted ``from_anchor`` imposes no tie-break;
+
+          * sequential elements depend on the end of the previous occurrence.
+
+        With ``sort=False``, these rules are not applied and the expanded input
+        order is preserved.
         """
         expanded_components = _flatten_components(
             self.env,

@@ -60,8 +60,11 @@ def _sort_places(tt_unsorted, s_tol=1e-10, allow_non_existent_from=False):
     )
     center_sorted = [placements[index] for index in center_order]
 
-    # Group placements sharing the same longitudinal center.
+    # Group placements sharing the same longitudinal center (each group is a
+    # list of ResolvedPlacement objects). Only groups made only of thin elements
+    # can contain more than one placement.
     groups = _group_by_position(center_sorted, s_tol)
+
     name_index = {
         placement.table_name: index for index, placement in enumerate(center_sorted)
     }
@@ -103,10 +106,11 @@ def _group_by_position(placements, s_tol):
     for placement in placements[1:]:
         previous = groups[-1][-1]
         different_center = abs(placement.s_center - previous.s_center) > s_tol
-        overlapping_thick_element = (
+        previous_is_thick = previous.isthick and previous.s_end - previous.s_start != 0
+        placement_is_thick = (
             placement.isthick and placement.s_end - placement.s_start != 0
         )
-        if different_center or overlapping_thick_element:
+        if different_center or previous_is_thick or placement_is_thick:
             groups.append([placement])
         else:
             groups[-1].append(placement)
@@ -142,6 +146,8 @@ def _classify_group_dependencies(
             from_before.append(index)
         elif from_index >= group_end:
             from_after.append(index)
+        elif placement.from_anchor is None:
+            no_from.append(index)
         else:
             from_inside.append(index)
 
@@ -156,8 +162,8 @@ def _build_group_insertions(group, from_inside):
     for index in from_inside:
         placement = group[index]
 
-        # Within a thin sandwich, center and an omitted anchor behave as start.
-        if placement.from_anchor in (None, 'start', 'center', 'centre'):
+        # Within a thin sandwich, center behaves as start.
+        if placement.from_anchor in ('start', 'center', 'centre'):
             insert_before.setdefault(placement.from_, []).append(index)
         elif placement.from_anchor == 'end':
             insert_after.setdefault(placement.from_, []).append(index)
@@ -186,9 +192,14 @@ def _apply_group_insertions(group, base_order, insert_before, insert_after):
     return [group[index] for index in order]
 
 
-def _order_coincident_group(group, group_start, name_index, allow_non_existent_from):
+def _order_coincident_group(
+    group,
+    group_start,
+    name_index,
+    allow_non_existent_from,
+):
     """Apply dependency ordering to one coincident-position group."""
-    if len(group) == 1 or all(placement.from_anchor is None for placement in group):
+    if len(group) == 1 or all(placement.from_ is None for placement in group):
         return group
 
     group_end = group_start + len(group)

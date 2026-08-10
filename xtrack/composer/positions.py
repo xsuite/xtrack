@@ -87,7 +87,7 @@ def _resolve_s_positions(seq_all_places, env, refer='center', diagnostics=False)
                 if not str(previous.name).startswith('||drift'):
                     # we keep track of the element to which it is referred
                     # to handle sandwiches of thin elements.
-                    from_name = previous.name
+                    from_name = str(table.name[previous_index])
                     from_anchor = 'end'
 
             elif place.from_ is None:
@@ -126,7 +126,7 @@ def _resolve_s_positions(seq_all_places, env, refer='center', diagnostics=False)
                 anchor = refer if place.anchor is None else place.anchor
                 # Absolute location of the component
                 s_start = s_reference + at - _anchor_offset(anchor, self_length)
-                from_name = place.from_
+                from_name = str(table.name[reference_index])
                 from_anchor = place.from_anchor
 
             s_start_by_index[index] = s_start

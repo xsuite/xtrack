@@ -51,6 +51,28 @@ def test_empty_composer_can_resolve_positions():
     assert len(table) == 0
 
 
+@pytest.mark.parametrize(
+    'refer',
+    ['start', 'center', 'end'],
+)
+def test_resolve_s_positions_preserves_order_for_omitted_from_anchor(refer):
+    env = xt.Environment()
+    env.new('base', xt.Marker)
+    env.new('dependent', xt.Marker)
+    composer = xt.Composer(
+        env,
+        refer=refer,
+        components=[
+            xt.Place('dependent', at=0, from_='base'),
+            xt.Place('base', at=0),
+        ],
+    )
+
+    table = composer.resolve_s_positions()
+
+    assert list(table.name) == ['dependent', 'base']
+
+
 def test_resolving_line_components_does_not_mutate_place():
     env = xt.Environment()
     env.new('marker', xt.Marker)

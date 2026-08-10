@@ -125,6 +125,83 @@ def test_ordering_places_start_and_end_dependencies_around_reference():
     assert 'i_place' not in table._col_names
 
 
+def test_ordering_preserves_input_order_when_from_anchor_is_omitted():
+    table = _placement_table(
+        name=['dependent', 'base'],
+        env_name=['dependent', 'base'],
+        s_start=[0.0, 0.0],
+        s_center=[0.0, 0.0],
+        s_end=[0.0, 0.0],
+        length=[0.0, 0.0],
+        isthick=[False, False],
+        from_=['base', None],
+        from_anchor=[None, None],
+    )
+
+    sorted_table = _sort_places(table)
+
+    assert np.array_equal(sorted_table.name, ['dependent', 'base'])
+
+
+def test_omitted_from_anchor_remains_unconstrained_in_a_sandwich():
+    table = _placement_table(
+        name=['unconstrained', 'base', 'after'],
+        env_name=['unconstrained', 'base', 'after'],
+        s_start=[0.0, 0.0, 0.0],
+        s_center=[0.0, 0.0, 0.0],
+        s_end=[0.0, 0.0, 0.0],
+        length=[0.0, 0.0, 0.0],
+        isthick=[False, False, False],
+        from_=['base', None, 'base'],
+        from_anchor=[None, None, 'end'],
+    )
+
+    sorted_table = _sort_places(table)
+
+    assert np.array_equal(sorted_table.name, ['unconstrained', 'base', 'after'])
+
+
+def test_external_references_order_coincident_elements_without_anchor():
+    table = _placement_table(
+        name=['upstream', 'base', 'from_downstream', 'from_upstream', 'downstream'],
+        env_name=[
+            'upstream',
+            'base',
+            'from_downstream',
+            'from_upstream',
+            'downstream',
+        ],
+        s_start=[0.0, 1.0, 1.0, 1.0, 2.0],
+        s_center=[0.0, 1.0, 1.0, 1.0, 2.0],
+        s_end=[0.0, 1.0, 1.0, 1.0, 2.0],
+        length=[0.0] * 5,
+        isthick=[False] * 5,
+        from_=[None, None, 'downstream', 'upstream', None],
+        from_anchor=[None] * 5,
+    )
+
+    sorted_table = _sort_places(table)
+
+    assert np.array_equal(
+        sorted_table.name,
+        ['upstream', 'from_upstream', 'base', 'from_downstream', 'downstream'],
+    )
+
+
+def test_ordering_sequential_repeated_elements_uses_occurrence_name():
+    env = xt.Environment()
+    env.new('marker', xt.Marker)
+    composer = xt.Composer(
+        env,
+        components=[xt.Place('marker'), xt.Place('marker')],
+    )
+
+    table = composer.resolve_s_positions()
+
+    assert np.array_equal(table.name, ['marker::0', 'marker::1'])
+    assert np.array_equal(table.from_, [None, 'marker::0'])
+
+
 def test_ordering_can_tolerate_removed_reference():
     table = _placement_table(
         name=['base', 'marker'],
@@ -163,6 +240,24 @@ def test_ordering_tolerance_boundary(offset, expected):
     sorted_table = _sort_places(table, s_tol=1e-10)
 
     assert np.array_equal(sorted_table.name, expected)
+
+
+def test_ordering_does_not_group_thin_element_after_thick_element():
+    table = _placement_table(
+        name=['thick', 'thin'],
+        env_name=['thick', 'thin'],
+        s_start=[-1.0, 0.0],
+        s_center=[0.0, 0.0],
+        s_end=[1.0, 0.0],
+        length=[2.0, 0.0],
+        isthick=[True, False],
+        from_=[None, 'thick'],
+        from_anchor=[None, 'start'],
+    )
+
+    sorted_table = _sort_places(table)
+
+    assert np.array_equal(sorted_table.name, ['thick', 'thin'])
 
 
 def test_composer_build_covers_sequential_and_positioned_paths():
