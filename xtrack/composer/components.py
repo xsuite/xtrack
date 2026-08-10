@@ -138,7 +138,10 @@ def _generate_element_names_with_drifts(env, tt_sorted, length=None, s_tol=1e-6)
         gap = tt_sorted['ds_upstream', index]
         if np.abs(gap) > s_tol:
             if gap < 0:
-                raise ValueError(f'Negative drift length: {gap}, upstream of {name}')
+                raise ValueError(
+                    f'Overlap before component {index} ({name!r}): previous '
+                    f'element extends {-gap} m beyond its start.'
+                )
             names_with_drifts.append(env._get_drift(gap))
         names_with_drifts.append(name)
 

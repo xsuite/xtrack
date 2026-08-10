@@ -210,8 +210,73 @@ def _resolve_spec_coordinates(specs, table, lengths, evaluator, refer):
         unresolved = [
             spec for spec in specs if spec.source_index not in resolved_by_index
         ]
-        raise ValueError(f'Could not resolve all s positions: {unresolved}')
+        _raise_resolution_error(specs, unresolved)
     return [resolved_by_index[index] for index in range(len(specs))]
+
+
+def _format_spec(spec):
+    return f'component {spec.source_index} ({spec.name!r})'
+
+
+def _find_dependency_cycle(specs, unresolved):
+    """Return one cycle of component indices, including its repeated endpoint."""
+    unresolved_indices = {spec.source_index for spec in unresolved}
+    indices_by_name = {}
+    for spec in specs:
+        indices_by_name.setdefault(spec.name, []).append(spec.source_index)
+
+    dependency_by_index = {}
+    for spec in unresolved:
+        dependency = None
+        if spec.from_ is not None:
+            candidates = indices_by_name.get(spec.from_, [])
+            dependency = next(
+                (index for index in candidates if index in unresolved_indices),
+                None,
+            )
+        elif spec.at is None and spec.source_index > 0:
+            dependency = spec.source_index - 1
+        if dependency in unresolved_indices:
+            dependency_by_index[spec.source_index] = dependency
+
+    for start in dependency_by_index:
+        path = []
+        path_index = {}
+        current = start
+        while current in dependency_by_index:
+            if current in path_index:
+                cycle = path[path_index[current] :]
+                return cycle + [current]
+            path_index[current] = len(path)
+            path.append(current)
+            current = dependency_by_index[current]
+    return None
+
+
+def _raise_resolution_error(specs, unresolved):
+    """Raise a specific diagnostic for a stalled dependency resolution."""
+    available_names = {spec.name for spec in specs}
+    missing = [
+        spec
+        for spec in unresolved
+        if spec.from_ is not None and spec.from_ not in available_names
+    ]
+    if missing:
+        details = '; '.join(
+            f'{_format_spec(spec)} references missing element {spec.from_!r}'
+            for spec in missing
+        )
+        blocked = ', '.join(_format_spec(spec) for spec in unresolved)
+        raise ValueError(f'Missing placement reference: {details}. Blocked: {blocked}.')
+
+    cycle = _find_dependency_cycle(specs, unresolved)
+    if cycle is not None:
+        specs_by_index = {spec.source_index: spec for spec in specs}
+        chain = ' -> '.join(_format_spec(specs_by_index[index]) for index in cycle)
+        raise ValueError(f'Cyclic placement dependency: {chain}.')
+
+    blocked = ', '.join(_format_spec(spec) for spec in unresolved)
+    raise ValueError(f'Could not resolve placement dependencies: {blocked}.')
 
 
 def _add_resolved_position_columns(table, placements):

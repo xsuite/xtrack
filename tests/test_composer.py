@@ -90,7 +90,7 @@ def test_cyclic_position_dependencies_are_reported():
         ],
     )
 
-    with pytest.raises(ValueError, match='Could not resolve all s positions'):
+    with pytest.raises(ValueError, match='Cyclic placement dependency'):
         composer.resolve_s_positions()
 
 

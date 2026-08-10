@@ -21,7 +21,8 @@ def _placement_table(**columns):
 
 
 def test_all_places_consumes_nested_generator_once():
-    components = (component for component in ['a', xt.Place('b', at=2)])
+    inner = (component for component in ['a', xt.Place('b', at=2)])
+    components = (component for component in [inner])
 
     places = _all_places([components])
 
@@ -86,16 +87,33 @@ def test_position_resolution_supports_forward_dependencies():
     assert all(isinstance(item, ResolvedPlacement) for item in records)
 
 
+def test_missing_reference_identifies_root_and_blocked_components():
+    env = xt.Environment()
+    env.new('a', xt.Marker)
+    env.new('b', xt.Marker)
+    places = [xt.Place('a', at=0, from_='missing'), xt.Place('b')]
+
+    with pytest.raises(ValueError) as error:
+        _resolve_s_positions(places, env)
+
+    message = str(error.value)
+    assert 'Missing placement reference' in message
+    assert "component 0 ('a') references missing element 'missing'" in message
+    assert "component 1 ('b')" in message
+
+
 def test_position_resolution_does_not_annotate_public_places():
     env = xt.Environment()
     env.new('drift', xt.Drift, length=1)
-    places = [xt.Place('drift'), xt.Place('drift')]
+    place = xt.Place('drift')
 
-    _resolve_s_positions(places, env)
+    table = _resolve_s_positions([place, place], env)
 
-    assert places[1].at is None
-    assert places[1].from_ is None
-    assert places[1].from_anchor is None
+    assert np.array_equal(table.env_name, ['drift', 'drift'])
+    assert np.allclose(table.s_start, [0, 1])
+    assert place.at is None
+    assert place.from_ is None
+    assert place.from_anchor is None
 
 
 def test_ordering_places_start_and_end_dependencies_around_reference():
@@ -136,6 +154,28 @@ def test_ordering_can_tolerate_removed_reference():
     assert len(_sort_places(table, allow_non_existent_from=True)) == 2
 
 
+@pytest.mark.parametrize(
+    ('offset', 'expected'),
+    [(0.5e-10, ['before', 'base']), (2e-10, ['base', 'before'])],
+)
+def test_ordering_tolerance_boundary(offset, expected):
+    table = _placement_table(
+        name=['base', 'before'],
+        env_name=['base', 'before'],
+        s_start=[0.0, offset],
+        s_center=[0.0, offset],
+        s_end=[0.0, offset],
+        length=[0.0, 0.0],
+        isthick=[False, False],
+        from_=[None, 'base'],
+        from_anchor=[None, 'start'],
+    )
+
+    sorted_table = _sort_places(table, s_tol=1e-10)
+
+    assert np.array_equal(sorted_table.name, expected)
+
+
 def test_pipeline_covers_sequential_and_positioned_paths():
     env = xt.Environment()
     env.new('drift', xt.Drift, length=1)
@@ -154,3 +194,23 @@ def test_pipeline_covers_sequential_and_positioned_paths():
     assert sequential[0] == 'drift'
     assert positioned[0] == 'drift'
     assert len(sequential) == len(positioned) == 2
+
+
+def test_pipeline_overlap_error_identifies_component():
+    env = xt.Environment()
+    env.new('a', xt.Drift, length=2)
+    env.new('b', xt.Drift, length=2)
+
+    with pytest.raises(ValueError) as error:
+        _build_element_names(
+            env,
+            [
+                xt.Place('a', at=0, anchor='start'),
+                xt.Place('b', at=1, anchor='start'),
+            ],
+            refer='center',
+            length=None,
+            s_tol=1e-12,
+        )
+
+    assert "Overlap before component 1 ('b')" in str(error.value)

@@ -62,7 +62,11 @@ def _classify_group_dependencies(
             if allow_non_existent_from:
                 no_from.append(index)
                 continue
-            raise ValueError(f'Element {from_name} not found in the line')
+            raise ValueError(
+                f'Component {placement.source_index} '
+                f'({placement.table_name!r}) references missing element '
+                f'{from_name!r}.'
+            )
 
         from_index = name_index[from_name]
         if from_index < group_start:
