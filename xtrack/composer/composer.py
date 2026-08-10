@@ -292,10 +292,10 @@ class Composer:
 
     def build(
         self,
-        name=None,
         s_tol=None,
         line=None,
         diagnostics=False,
+        name=None,
     ):
         """Build a line from the current component definitions.
 
@@ -304,8 +304,6 @@ class Composer:
 
         Parameters
         ----------
-        name : str, optional
-            Name under which the resulting line is registered in the environment.
         s_tol : float, optional
             Longitudinal tolerance used when filling gaps and checking overlaps and
             line-length constraints. If omitted, the composer's configured
@@ -324,6 +322,13 @@ class Composer:
             The assembled line. If ``line`` was provided, the same line object is
             returned.
         """
+        if name is not None:
+            raise ValueError(
+                '`name` is no longer supported by `Composer.build()`. '
+                'Use a line in compose mode instead, created with '
+                '`Environment.new_line(name=..., compose=True)`.'
+                + DEPRECATION_INFO_PREP_1_0
+            )
         if s_tol is None:
             s_tol = self.s_tol
         if line is not None and line.env is not self.env:
@@ -376,15 +381,12 @@ class Composer:
 
         if line is None:
             line = xt.Line(env=self.env, element_names=element_names)
-        line.element_names = element_names
+        else:
+            line.element_names = element_names
+
         if self.mirror:
             line.element_names = line.element_names[::-1]
 
-        if name is not None:
-            if name in self.env.lines:
-                del self.env.lines[name]
-            line._name = name
-            self.env.lines[name] = line
         return line
 
     def __len__(self):

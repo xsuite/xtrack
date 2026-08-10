@@ -192,6 +192,14 @@ def test_composer_build_covers_sequential_and_positioned_paths():
     assert len(sequential.element_names) == len(positioned.element_names) == 2
 
 
+def test_composer_build_rejects_name():
+    env = xt.Environment()
+    composer = xt.Composer(env)
+
+    with pytest.raises(ValueError, match='name.*no longer supported'):
+        composer.build(name='line')
+
+
 def test_composer_build_overlap_error_identifies_component():
     env = xt.Environment()
     env.new('a', xt.Drift, length=2)
