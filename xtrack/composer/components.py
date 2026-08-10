@@ -18,28 +18,6 @@ def _evaluate_length(env, length):
     return length
 
 
-def _build_sequential_element_names(env, components, length, s_tol):
-    """Build the optimized path used when no explicit placements are present."""
-    element_names = list(map(str, components))
-    if length is None:
-        return element_names
-
-    components_length = env.new_line(components=element_names).get_length()
-    if components_length > length + s_tol:
-        raise ValueError(
-            f'Line length {components_length} is greater than the requested '
-            f'length {length}'
-        )
-    if components_length < length - s_tol:
-        drift = env.new(
-            env._get_a_drift_name(),
-            xt.Drift,
-            length=length - components_length,
-        )
-        element_names.append(drift)
-    return element_names
-
-
 def _flatten_components(env, components, refer='center'):
     """Recursively replace nested lines and composers with their elements."""
     if refer not in ['start', 'center', 'centre', 'end']:
@@ -47,17 +25,13 @@ def _flatten_components(env, components, refer='center'):
             f'Allowed values for refer are "start", "center" and "end". Got "{refer}".'
         )
 
+    components = _resolve_lines_in_components(components, env)
     flattened = []
     for component in components:
         this_line = None
         anchor = None
         if isinstance(component, xt.Place) and isinstance(component.name, xt.Line):
             this_line = component.name
-            anchor = component.anchor
-        if isinstance(component, str) and isinstance(env[component], xt.Line):
-            this_line = env[component]
-        if isinstance(component, xt.Place) and component.name in env.lines:
-            this_line = env.lines[component.name]
             anchor = component.anchor
 
         if this_line is not None:

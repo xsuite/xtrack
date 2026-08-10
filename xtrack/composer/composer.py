@@ -14,11 +14,9 @@ import xtrack as xt
 
 from .components import (
     _all_places,
-    _build_sequential_element_names,
     _evaluate_length,
     _flatten_components,
     _generate_element_names_with_drifts,
-    _resolve_lines_in_components,
     _validate_placement_geometry,
 )
 from .ordering import _sort_places
@@ -350,23 +348,35 @@ class Composer:
         if line is not None and line.env is not self.env:
             raise ValueError('Line must belong to the same environment as the Composer')
 
+        # evaluate line length if it is an expression
         length = _evaluate_length(self.env, self.length)
-        expanded_components = _resolve_lines_in_components(
-            self.components,
-            self.env,
-        )
+
         expanded_components = _flatten_components(
             self.env,
-            expanded_components,
+            self.components,
             refer=self.refer,
         )
+
         if all(isinstance(component, str) for component in expanded_components):
-            element_names = _build_sequential_element_names(
-                self.env,
-                expanded_components,
-                length=length,
-                s_tol=s_tol,
-            )
+            # Skip placement resolution for purely sequential components. This avoids
+            # building a positions table and is significantly faster for large lines.
+            element_names = list(map(str, expanded_components))
+            if length is not None:
+                components_length = self.env.new_line(
+                    components=element_names
+                ).get_length()
+                if components_length > length + s_tol:
+                    raise ValueError(
+                        f'Line length {components_length} is greater than the '
+                        f'requested length {length}'
+                    )
+                if components_length < length - s_tol:
+                    drift = self.env.new(
+                        self.env._get_a_drift_name(),
+                        xt.Drift,
+                        length=length - components_length,
+                    )
+                    element_names.append(drift)
         else:
             places = _all_places(expanded_components)
             positions = _resolve_s_positions(
@@ -425,13 +435,9 @@ class Composer:
             Table containing one row per expanded component, including its
             ``s_start``, ``s_center``, and ``s_end`` positions.
         """
-        expanded_components = _resolve_lines_in_components(
-            self.components or [],
-            self.env,
-        )
         expanded_components = _flatten_components(
             self.env,
-            expanded_components,
+            self.components or [],
             refer=self.refer,
         )
         places = _all_places(expanded_components)
@@ -499,10 +505,9 @@ class Composer:
 
         out = self.__class__(self.env)
         out.__dict__.update(self.__dict__)
-        out.components = _resolve_lines_in_components(self.components, self.env)
         out.components = _flatten_components(
             self.env,
-            out.components,
+            self.components,
             refer=self.refer,
         )
         out.components = _all_places(out.components)
