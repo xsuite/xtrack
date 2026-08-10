@@ -13,14 +13,17 @@ def _resolve_s_positions(seq_all_places, env, refer='center', diagnostics=False)
     """Resolve placement specifications to a table of absolute coordinates."""
     places = list(seq_all_places)
 
-    # Check that places having at=None do not specify from_ or from_anchor.
+    # Check that relative placement arguments are used consistently.
     for place in places:
-        if place.at is not None:
-            continue
-        if place.from_ is not None or place.from_anchor is not None:
+        if place.from_anchor is not None and place.from_ is None:
             raise ValueError(
-                'Cannot specify `from_` or `from_anchor` without providing '
-                f'`at`. Error in placement `{place}`.'
+                'Cannot specify `from_anchor` without providing `from_`. '
+                f'Error in placement `{place}`.'
+            )
+        if place.from_ is not None and place.at is None:
+            raise ValueError(
+                'Cannot specify `from_` without providing `at`. '
+                f'Error in placement `{place}`.'
             )
 
     # Use an auxiliary line to build a table of all the elements (specified order)
@@ -77,6 +80,9 @@ def _resolve_s_positions(seq_all_places, env, refer='center', diagnostics=False)
             if index in resolved_by_index:
                 continue
 
+            from_name = None
+            from_anchor = None
+
             self_length = length_by_name[place.name]
 
             if place.at is None:
@@ -89,33 +95,52 @@ def _resolve_s_positions(seq_all_places, env, refer='center', diagnostics=False)
                     continue  # Cannot resolve this place yet
 
                 s_start = previous.s_end
+
                 if not str(previous.name).startswith('||drift'):
+                    # we keep track of the element to which it is referred
+                    # to handle sandwiches of thin elements.
                     from_name = previous.name
                     from_anchor = 'end'
-                else:
-                    from_name = None
-                    from_anchor = None
-            else:
+
+            elif place.from_ is None:
+                # Needs to be placed at an absolute location along the line.
                 # Needs to be placed based on `at`, `from_`, and `from_anchor`.
+
                 at = _evaluate_position_expression(place.at, aux_line._xdeps_eval)
-                s_from = 0
-                if place.from_ is not None:
-                    # Check if the referenced component has been resolved.
-                    reference = resolved_by_name.get(place.from_)
-                    if reference is None:
-                        continue  # Cannot resolve this place yet
 
-                    if place.from_anchor is not None:
-                        reference_anchor = place.from_anchor
-                    else:
-                        reference_anchor = refer
-
-                    s_from = reference.s_start + _anchor_offset(
-                        reference_anchor, reference.length
-                    )
-
+                # Component anchor (start/end/center)
                 anchor = refer if place.anchor is None else place.anchor
-                s_start = s_from + at - _anchor_offset(anchor, self_length)
+
+                # Absolute location of the component
+                s_start = at - _anchor_offset(anchor, self_length)
+
+            else:
+                # Needs to be placed relative to another component,
+                # based on `at`, `from_`, and `from_anchor`.
+
+                at = _evaluate_position_expression(place.at, aux_line._xdeps_eval)
+
+                # Check if the referenced component has been resolved.
+                reference = resolved_by_name.get(place.from_)
+                if reference is None:
+                    continue  # Cannot resolve this place yet
+
+                # Identify reference anchor (start/end/center)
+                if place.from_anchor is not None:
+                    reference_anchor = place.from_anchor
+                else:
+                    reference_anchor = refer
+
+                # Absolute s coordinate of the reference anchor point
+                s_reference = reference.s_start + _anchor_offset(
+                    reference_anchor, reference.length
+                )
+
+                # Component anchor (start/end/center)
+                anchor = refer if place.anchor is None else place.anchor
+
+                # Absolute location of the component
+                s_start = s_reference + at - _anchor_offset(anchor, self_length)
                 from_name = place.from_
                 from_anchor = place.from_anchor
 
