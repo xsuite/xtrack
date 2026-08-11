@@ -5,11 +5,14 @@ from .slice_base import (
     _SliceBase, COMMON_SLICE_XO_FIELDS, ID_RADIATION_FROM_PARENT,
     _raise_if_parent_has_transverse_rotation,
 )
-from .elements import (
-    SynchrotronRadiationRecord, Quadrupole, Sextupole,
-    Octupole, Bend, Multipole, DipoleEdge, RBend, MultipoleEdge, Marker,
-    UniformSolenoid, Cavity, CrabCavity
-)
+from .elements.bend import Bend
+from .elements.cavity import Cavity
+from .elements.crab_cavity import CrabCavity
+from .elements.multipole import Multipole
+from .elements.octupole import Octupole
+from .elements.quadrupole import Quadrupole
+from .elements.rbend import RBend
+from .elements.sextupole import Sextupole
 from ..base_element import BeamElement
 
 class _ThinSliceElementBase(_SliceBase):
