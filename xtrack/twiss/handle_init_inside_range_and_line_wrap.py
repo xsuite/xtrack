@@ -73,11 +73,11 @@ def _compute_twiss_handling_init_inside_range_and_line_wrap(
     elif not reverse:
         assert (_element_ref_to_index(line, end)
                 < _element_ref_to_index(line, start)), (
-            'This function should not have been called')
+            'Corrupted input, internal error')
     else:
         assert (_element_ref_to_index(line, end)
                 > _element_ref_to_index(line, start)), (
-            'This function should not have been called')
+            'Corrupted input, internal error')
 
     if reverse:
         line_boundary_end = line._element_names_unique[0]
