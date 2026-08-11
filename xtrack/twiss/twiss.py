@@ -527,8 +527,8 @@ def _compute_base_twiss(twiss_config):
 
     if reverse:
         start, end = end, start
-    twiss_config['start'] = start
-    twiss_config['end'] = end
+        twiss_config['start'] = start
+        twiss_config['end'] = end
 
     if twiss_config['only_twiss_init']:
         assert twiss_config['periodic'], (
