@@ -15,125 +15,36 @@ else:
     trapz = np.trapz
 
 
-def _get_chromatic_functions(line, init, delta_chrom,
-                    delta0, zeta0,
-                    steps_R_matrix,
-                    matrix_responsiveness_tol, matrix_stability_tol, symplectify,
-                    method='6d', use_full_inverse=False,
-                    nemitt_x=None, nemitt_y=None,
-                    step_W_sigma=1e-3, delta_disp=1e-3, zeta_disp=1e-3,
-                    on_momentum_twiss_res=None,
-                    start=None, end=None, num_turns=None,
-                    hide_thin_groups=False,
-                    only_markers=False,
-                    periodic=False,
-                    periodic_mode=None,
-                    include_collective=False,
-                    tw_chrom_res=None
-                    ):
+def _get_chromatic_functions(
+        twiss_config, on_momentum_twiss_res, tw_chrom_res=None):
 
-    if only_markers:
+    if twiss_config['only_markers']:
         raise NotImplementedError('only_markers not supported anymore')
 
     if tw_chrom_res is None:
         tw_chrom_res = []
-        for dd in [-delta_chrom, delta_chrom]:
-            tw_init_chrom = init.copy()
-
-            if periodic:
-                slip_factor_dzeta_ddelta = on_momentum_twiss_res.slip_factor_dzeta_ddelta
-                dzeta = dd * slip_factor_dzeta_ddelta
-                import xpart
-                part_guess = xpart.build_particles(
-                    _context=line._context,
-                    x_norm=0,
-                    zeta=tw_init_chrom.zeta,
-                    delta=tw_init_chrom.delta + dd,
-                    particle_on_co=on_momentum_twiss_res.particle_on_co.copy(),
-                    nemitt_x=nemitt_x, nemitt_y=nemitt_y,
-                    W_matrix=tw_init_chrom.W_matrix,
-                    include_collective=include_collective)
-
-                dd0=delta0
-                if method == '4d':
-                    dd0 = delta0 + dd if delta0 is not None else dd
-                part_chrom = line.find_closed_orbit(
-                    delta0=dd0,
-                    zeta0=zeta0,
-                    zeta_shift=-(dzeta if method == '6d' else 0),
-                    co_guess=part_guess,
-                    start=start, end=end, num_turns=num_turns,
-                    symmetrize=False,
-                    include_collective=include_collective,
-                    )
-                tw_init_chrom.particle_on_co = part_chrom
-                RR_chrom = line.get_R_matrix(
-                                            particle_on_co=tw_init_chrom.particle_on_co.copy(),
-                                            start=start, end=end, num_turns=num_turns,
-                                            steps=steps_R_matrix,
-                                            symmetrize=False,
-                                            include_collective=include_collective,
-                                            )['R_matrix']
-                (WW_chrom, _, _, _) = lnf.get_linear_normal_form(RR_chrom,
-                                        only_4d_block=(method == '4d'),
-                                        responsiveness_tol=matrix_responsiveness_tol,
-                                        stability_tol=matrix_stability_tol,
-                                        symplectify=symplectify)
-                tw_init_chrom.W_matrix = WW_chrom
+        delta_chrom = twiss_config['delta_chrom']
+        for momentum_offset in [-delta_chrom, delta_chrom]:
+            if twiss_config['periodic']:
+                tw_init_chrom = _build_periodic_off_momentum_init(
+                    twiss_config, on_momentum_twiss_res, momentum_offset)
             else:
-                alfx = init.alfx
-                betx = init.betx
-                alfy = init.alfy
-                bety = init.bety
-                dx = init.dx
-                dy = init.dy
-                dpx = init.dpx
-                dpy = init.dpy
-                ddx = init.ddx
-                ddpx = init.ddpx
-                ddy = init.ddy
-                ddpy = init.ddpy
-                ax_chrom = init.ax_chrom
-                bx_chrom = init.bx_chrom
-                ay_chrom = init.ay_chrom
-                by_chrom = init.by_chrom
-
-                dbetx_dpzeta = bx_chrom * betx
-                dbety_dpzeta = by_chrom * bety
-                dalfx_dpzeta = ax_chrom + bx_chrom * alfx
-                dalfy_dpzeta = ay_chrom + by_chrom * alfy
-
-                tw_init_chrom.particle_on_co.x += dx * dd + 1/2 * ddx * dd**2
-                tw_init_chrom.particle_on_co.px += dpx * dd + 1/2 * ddpx * dd**2
-                tw_init_chrom.particle_on_co.y += dy * dd + 1/2 * ddy * dd**2
-                tw_init_chrom.particle_on_co.py += dpy * dd + 1/2 * ddpy * dd**2
-                tw_init_chrom.particle_on_co.delta += dd
-
-                twinit_aux = TwissInit(
-                    alfx=alfx + dalfx_dpzeta * dd,
-                    betx=betx + dbetx_dpzeta * dd,
-                    alfy=alfy + dalfy_dpzeta * dd,
-                    bety=bety + dbety_dpzeta * dd,
-                    dx=dx + ddx * dd,
-                    dpx=dpx + ddpx * dd,
-                    dy=dy + ddy * dd,
-                    dpy=dpy + ddpy * dd)
-                twinit_aux._finish_initialization(
-                    line, element_name=init.element_name)
-                tw_init_chrom.W_matrix = twinit_aux.W_matrix
+                tw_init_chrom = _build_open_off_momentum_init(
+                    twiss_config, momentum_offset)
 
             tw_chrom_res.append(
                 _propagate_twiss_from_init(
-                    line=line,
+                    line=twiss_config['line'],
                     init=tw_init_chrom,
-                    start=start, end=end,
-                    nemitt_x=nemitt_x,
-                    nemitt_y=nemitt_y,
-                    step_W_sigma=step_W_sigma,
-                    delta_disp=delta_disp,
-                    use_full_inverse=use_full_inverse,
-                    hide_thin_groups=hide_thin_groups,
-                    only_markers=only_markers,
+                    start=twiss_config['start'],
+                    end=twiss_config['end'],
+                    nemitt_x=twiss_config['nemitt_x'],
+                    nemitt_y=twiss_config['nemitt_y'],
+                    step_W_sigma=twiss_config['step_W_sigma'],
+                    delta_disp=twiss_config['delta_disp'],
+                    use_full_inverse=twiss_config['use_full_inverse'],
+                    hide_thin_groups=twiss_config['hide_thin_groups'],
+                    only_markers=twiss_config['only_markers'],
                     continue_if_lost=False,
                     keep_tracking_data=False,
                     keep_initial_particles=False,
@@ -233,3 +144,112 @@ def _get_chromatic_functions(line, init, delta_chrom,
         scalars_chrom.update({'ddqx': ddqx, 'ddqy': ddqy})
 
     return cols_chrom, scalars_chrom
+
+
+def _build_periodic_off_momentum_init(
+        twiss_config, on_momentum_twiss_res, momentum_offset):
+
+    import xpart
+
+    line = twiss_config['line']
+    method = twiss_config['method']
+    twiss_init = twiss_config['init'].copy()
+
+    slip_factor = on_momentum_twiss_res.slip_factor_dzeta_ddelta
+    zeta_shift = momentum_offset * slip_factor
+    part_guess = xpart.build_particles(
+        _context=line._context,
+        x_norm=0,
+        zeta=twiss_init.zeta,
+        delta=twiss_init.delta + momentum_offset,
+        particle_on_co=on_momentum_twiss_res.particle_on_co.copy(),
+        nemitt_x=twiss_config['nemitt_x'],
+        nemitt_y=twiss_config['nemitt_y'],
+        W_matrix=twiss_init.W_matrix,
+        include_collective=twiss_config['include_collective'])
+
+    delta0 = twiss_config['delta0']
+    if method == '4d':
+        delta0 = (delta0 + momentum_offset
+                  if delta0 is not None else momentum_offset)
+    twiss_init.particle_on_co = line.find_closed_orbit(
+        delta0=delta0,
+        zeta0=twiss_config['zeta0'],
+        zeta_shift=-(zeta_shift if method == '6d' else 0),
+        co_guess=part_guess,
+        start=twiss_config['start'],
+        end=twiss_config['end'],
+        num_turns=twiss_config['num_turns'],
+        symmetrize=False,
+        include_collective=twiss_config['include_collective'],
+    )
+    R_matrix = line.get_R_matrix(
+        particle_on_co=twiss_init.particle_on_co.copy(),
+        start=twiss_config['start'],
+        end=twiss_config['end'],
+        num_turns=twiss_config['num_turns'],
+        steps=twiss_config['steps_R_matrix'],
+        symmetrize=False,
+        include_collective=twiss_config['include_collective'],
+    )['R_matrix']
+    W_matrix, _, _, _ = lnf.get_linear_normal_form(
+        R_matrix,
+        only_4d_block=(method == '4d'),
+        responsiveness_tol=twiss_config['matrix_responsiveness_tol'],
+        stability_tol=twiss_config['matrix_stability_tol'],
+        symplectify=twiss_config['symplectify'])
+    twiss_init.W_matrix = W_matrix
+    return twiss_init
+
+
+def _build_open_off_momentum_init(twiss_config, momentum_offset):
+
+    line = twiss_config['line']
+    init = twiss_config['init']
+    twiss_init = init.copy()
+
+    alfx = init.alfx
+    betx = init.betx
+    alfy = init.alfy
+    bety = init.bety
+    dx = init.dx
+    dy = init.dy
+    dpx = init.dpx
+    dpy = init.dpy
+    ddx = init.ddx
+    ddpx = init.ddpx
+    ddy = init.ddy
+    ddpy = init.ddpy
+    ax_chrom = init.ax_chrom
+    bx_chrom = init.bx_chrom
+    ay_chrom = init.ay_chrom
+    by_chrom = init.by_chrom
+
+    dbetx_dpzeta = bx_chrom * betx
+    dbety_dpzeta = by_chrom * bety
+    dalfx_dpzeta = ax_chrom + bx_chrom * alfx
+    dalfy_dpzeta = ay_chrom + by_chrom * alfy
+
+    twiss_init.particle_on_co.x += (
+        dx * momentum_offset + 1 / 2 * ddx * momentum_offset**2)
+    twiss_init.particle_on_co.px += (
+        dpx * momentum_offset + 1 / 2 * ddpx * momentum_offset**2)
+    twiss_init.particle_on_co.y += (
+        dy * momentum_offset + 1 / 2 * ddy * momentum_offset**2)
+    twiss_init.particle_on_co.py += (
+        dpy * momentum_offset + 1 / 2 * ddpy * momentum_offset**2)
+    twiss_init.particle_on_co.delta += momentum_offset
+
+    auxiliary_init = TwissInit(
+        alfx=alfx + dalfx_dpzeta * momentum_offset,
+        betx=betx + dbetx_dpzeta * momentum_offset,
+        alfy=alfy + dalfy_dpzeta * momentum_offset,
+        bety=bety + dbety_dpzeta * momentum_offset,
+        dx=dx + ddx * momentum_offset,
+        dpx=dpx + ddpx * momentum_offset,
+        dy=dy + ddy * momentum_offset,
+        dpy=dpy + ddpy * momentum_offset)
+    auxiliary_init._finish_initialization(
+        line, element_name=init.element_name)
+    twiss_init.W_matrix = auxiliary_init.W_matrix
+    return twiss_init
