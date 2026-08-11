@@ -14,16 +14,6 @@ kernel assembly. CPU only.
     el.track(m)                        # m.const_part (orbit), m.jacobian() (first-order)
 """
 
-from __future__ import annotations
-
-try:
-    import xgtpsa  # the GTPSA engine, import it early for a clear error
-except ImportError as exc:
-    raise ImportError(
-        "xtrack.tpsa needs the xgtpsa package (the GTPSA engine): "
-        "pip install -e <gtpsa_lib> and run its build.sh"
-    ) from exc
-
 from .particles import ParticlesTpsa
 from .optics import TpsaOptics
 

@@ -10,6 +10,7 @@ import numpy as np
 
 import xobjects as xo
 import xtrack as xt
+from xgtpsa import Tpsa, ffi
 from xobjects.general import Print
 from xobjects.hybrid_class import _build_xofields_dict
 from .general import _pkg_root
@@ -18,14 +19,6 @@ from .particles import Particles
 from .track_flags import c_header_flag_mapping
 
 _FLOAT_OR_TPSA_FIELDS = ("k0", "k1", "k2", "k3", "k1s", "k2s", "k3s", "ks")
-
-
-def _is_tpsa_value(value):
-    return (
-        hasattr(value, "ptr")
-        and hasattr(value, "descriptor")
-        and hasattr(value, "const_part")
-    )
 
 
 def _float_to_uint64_bits(value):
@@ -55,28 +48,24 @@ class _FloatOrTpsaType(xo.scalar.NumpyScalar):
             if not enabled and hasattr(container, "_xobject"):
                 enabled = getattr(container._xobject, "_tpsa_enabled", 0)
         if enabled:
-            import xgtpsa
-
-            ptr = xgtpsa.ffi().cast("void*", int(bits))
+            ptr = ffi().cast("void*", int(bits))
             descriptor = getattr(container, "_tpsa_descriptor", None)
             if descriptor is None and hasattr(container, "_DressingClass"):
                 raise ValueError(
                     "Cannot decode a TPSA-enabled FloatOrTpsa field without "
                     "the owning beam element"
                 )
-            return xgtpsa.Tpsa.from_ptr(ptr, descriptor=descriptor)
+            return Tpsa.from_ptr(ptr, descriptor=descriptor)
         return _uint64_bits_to_float(bits)
 
     def _to_buffer(self, buffer, offset, value, info=None, container=None):
-        if _is_tpsa_value(value):
+        if isinstance(value, Tpsa):
             if container is None:
                 raise ValueError(
                     "FloatOrTpsa fields can only be initialized from scalars "
                     "without an owning container"
                 )
-            import xgtpsa
-
-            bits = int(xgtpsa.ffi().cast("uintptr_t", value.ptr))
+            bits = int(ffi().cast("uintptr_t", value.ptr))
         else:
             bits = int(_float_to_uint64_bits(value))
         data = np.array([bits], dtype=self._dtype).tobytes()
@@ -112,7 +101,7 @@ class _FieldOfBeamElement:
         return self._read(element)
 
     def __set__(self, element, value):
-        if _is_tpsa_value(value):
+        if isinstance(value, Tpsa):
             if not isinstance(element._buffer.context, xo.ContextCpu):
                 raise NotImplementedError(
                     "TPSA-enabled beam elements are only supported on CPU contexts")
@@ -602,7 +591,7 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
         if not isinstance(self._buffer.context, xo.ContextCpu):
             raise NotImplementedError(
                 "TPSA-enabled beam elements are only supported on CPU contexts")
-        if _is_tpsa_value(descriptor_or_proto):
+        if isinstance(descriptor_or_proto, Tpsa):
             descriptor = descriptor_or_proto.descriptor
         else:
             descriptor = descriptor_or_proto
