@@ -1,14 +1,18 @@
 // copyright ############################### //
 // This file is part of the Xtrack Package.  //
-// Copyright (c) CERN, 2025.                 //
+// Copyright (c) CERN, 2026.                 //
 // ######################################### //
 
-#ifndef XTRACK_LOCAL_PARTICLE_CUSTOM_API_H
-#define XTRACK_LOCAL_PARTICLE_CUSTOM_API_H
+#ifndef XTRACK_PARTICLES_LOCAL_PARTICLE_CUSTOM_H
+#define XTRACK_PARTICLES_LOCAL_PARTICLE_CUSTOM_H
 
-#include "xtrack/headers/track.h"
+/*
+ * Custom LocalParticle helpers built on top of the field accessors from
+ * local_particle.h. Keep field-list/struct/accessor machinery in local_particle.h;
+ * keep hand-written physics and tracking helpers here.
+ */
 
-
+// Reference-energy and longitudinal-coordinate derived quantities.
 GPUFUN
 double LocalParticle_get_energy0(LocalParticle* part) {
     double const p0c = LocalParticle_get_p0c(part);
@@ -16,11 +20,9 @@ double LocalParticle_get_energy0(LocalParticle* part) {
     return sqrt(p0c * p0c + m0 * m0);
 }
 
-
 GPUFUN
 void LocalParticle_update_ptau(LocalParticle* part, xt_num_arg_t new_ptau_value) {
     double const beta0 = LocalParticle_get_beta0(part);
-    // 1.0* forces a value copy: a tpsa copy-init from an lvalue/ref is descriptor-only.
     xt_num_t const ptau = 1.0 * new_ptau_value;
     xt_num_t const irpp = sqrt(ptau * ptau + 2 * ptau / beta0 + 1);
     xt_num_t const new_rpp = 1. / irpp;
@@ -32,12 +34,12 @@ void LocalParticle_update_ptau(LocalParticle* part, xt_num_arg_t new_ptau_value)
     LocalParticle_set_rpp(part, new_rpp);
 }
 
-
 GPUFUN
 void LocalParticle_update_delta(LocalParticle* part, xt_num_arg_t new_delta_value) {
     double const beta0 = LocalParticle_get_beta0(part);
     xt_num_t const delta_beta0 = new_delta_value * beta0;
-    xt_num_t const ptau_beta0 = sqrt(delta_beta0 * delta_beta0 + 2 * delta_beta0 * beta0 + 1) - 1;
+    xt_num_t const ptau_beta0 = sqrt(delta_beta0 * delta_beta0
+                                   + 2 * delta_beta0 * beta0 + 1) - 1;
     xt_num_t const one_plus_delta = 1 + new_delta_value;
     xt_num_t const rvv = (one_plus_delta) / (1 + ptau_beta0);
     xt_num_t const rpp = 1 / one_plus_delta;
@@ -49,7 +51,6 @@ void LocalParticle_update_delta(LocalParticle* part, xt_num_arg_t new_delta_valu
     LocalParticle_set_ptau(part, ptau);
 }
 
-
 GPUFUN
 xt_num_t LocalParticle_get_pzeta(LocalParticle* part) {
     xt_num_t const ptau = LocalParticle_get_ptau(part);
@@ -57,21 +58,19 @@ xt_num_t LocalParticle_get_pzeta(LocalParticle* part) {
     return ptau / beta0;
 }
 
-
 GPUFUN
 void LocalParticle_update_pzeta(LocalParticle* part, xt_num_arg_t new_pzeta_value) {
     double const beta0 = LocalParticle_get_beta0(part);
     LocalParticle_update_ptau(part, beta0 * new_pzeta_value);
 }
 
-
+// Turn and element counters. These operate over a LocalParticle block.
 GPUFUN
 void increment_at_element(LocalParticle* part0, int64_t const increment) {
     START_PER_PARTICLE_BLOCK(part0, part);
         LocalParticle_add_to_at_element(part, increment);
     END_PER_PARTICLE_BLOCK;
 }
-
 
 GPUFUN
 void increment_at_turn(LocalParticle* part0, int flag_reset_s){
@@ -83,7 +82,6 @@ void increment_at_turn(LocalParticle* part0, int flag_reset_s){
         }
     END_PER_PARTICLE_BLOCK;
 }
-
 
 GPUFUN
 void increment_at_turn_backtrack(
@@ -101,100 +99,98 @@ void increment_at_turn_backtrack(
     END_PER_PARTICLE_BLOCK;
 }
 
-
-/* check_is_active has different implementation on CPU and GPU */
+// Active-particle checks and in-place reorganization are context-specific.
 #if defined(XO_CONTEXT_CPU_SERIAL)
 
-    GPUFUN
-    int64_t check_is_active(LocalParticle* part) {
-        int64_t ipart = 0;
-        while (ipart < part->_num_active_particles){
-            #ifdef XSUITE_RESTORE_LOSS
+GPUFUN
+int64_t check_is_active(LocalParticle* part) {
+    int64_t ipart = 0;
+    while (ipart < part->_num_active_particles){
+        #ifdef XSUITE_RESTORE_LOSS
+            ipart++;
+        #else
+            if (part->state[ipart] < 1) {
+                LocalParticle_exchange(part, ipart, part->_num_active_particles - 1);
+                part->_num_active_particles--;
+                part->_num_lost_particles++;
+            } else {
                 ipart++;
-            #else
-                if (part->state[ipart] < 1) {
-                    LocalParticle_exchange(part, ipart, part->_num_active_particles - 1);
-                    part->_num_active_particles--;
-                    part->_num_lost_particles++;
-                } else {
-                    ipart++;
-                }
-            #endif
-        }
-
-        if (part->_num_active_particles == 0){
-            return 0; //All particles lost
-        } else {
-            return 1; //Some stable particles are still present
-        }
+            }
+        #endif
     }
+
+    if (part->_num_active_particles == 0){
+        return 0;
+    } else {
+        return 1;
+    }
+}
 
 #elif defined(XO_CONTEXT_CPU_OPENMP)
 
-    GPUFUN
-    int64_t check_is_active(LocalParticle* part) {
-    #ifndef SKIP_SWAPS
-        int64_t ipart = part->ipart;
-        int64_t endpart = part->endpart;
-        int64_t left = ipart;
-        int64_t right = endpart - 1;
-        int64_t swap_made = 0;
-        int64_t has_alive = 0;
+GPUFUN
+int64_t check_is_active(LocalParticle* part) {
+#ifndef SKIP_SWAPS
+    int64_t ipart = part->ipart;
+    int64_t endpart = part->endpart;
+    int64_t left = ipart;
+    int64_t right = endpart - 1;
+    int64_t swap_made = 0;
+    int64_t has_alive = 0;
 
-        if (left == right)
-            return part->state[left] > 0;
+    if (left == right)
+        return part->state[left] > 0;
 
-        while (left < right) {
-            if (part->state[left] > 0) {
-                left++;
-                has_alive = 1;
-            }
-            else if (part->state[right] <= 0)
-                right--;
-            else {
-                LocalParticle_exchange(part, left, right);
-                left++;
-                right--;
-                swap_made = 1;
-            }
+    while (left < right) {
+        if (part->state[left] > 0) {
+            left++;
+            has_alive = 1;
         }
-        return swap_made || has_alive;
-    #else
-        return 1;
-    #endif
+        else if (part->state[right] <= 0)
+            right--;
+        else {
+            LocalParticle_exchange(part, left, right);
+            left++;
+            right--;
+            swap_made = 1;
+        }
+    }
+    return swap_made || has_alive;
+#else
+    return 1;
+#endif
+}
+
+GPUFUN
+void count_reorganized_particles(LocalParticle* part) {
+    int64_t num_active = 0;
+    int64_t num_lost = 0;
+
+    for (int64_t i = part->ipart; i < part->endpart; i++) {
+        if (part->state[i] <= -999999999)
+            break;
+        else if (part->state[i] > 0)
+            num_active++;
+        else
+            num_lost++;
     }
 
+    part->_num_active_particles = num_active;
+    part->_num_lost_particles = num_lost;
+}
 
-    GPUFUN
-    void count_reorganized_particles(LocalParticle* part) {
-        int64_t num_active = 0;
-        int64_t num_lost = 0;
+#else
 
-        for (int64_t i = part->ipart; i < part->endpart; i++) {
-            if (part->state[i] <= -999999999)
-                break;
-            else if (part->state[i] > 0)
-                num_active++;
-            else
-                num_lost++;
-        }
-
-        part->_num_active_particles = num_active;
-        part->_num_lost_particles = num_lost;
-    }
-
-#else // not XO_CONTEXT_CPU_SERIAL and not XO_CONTEXT_CPU_OPENMP
-
-    GPUFUN
-    int64_t check_is_active(LocalParticle* part) {
-        return LocalParticle_get_state(part) > 0;
-    };
+GPUFUN
+int64_t check_is_active(LocalParticle* part) {
+    return LocalParticle_get_state(part) > 0;
+};
 
 #endif
 
-
+// Energy kicks and reference momentum updates.
 GPUFUN
-void LocalParticle_add_to_energy(LocalParticle* part, xt_num_arg_t delta_energy, int pz_only )
+void LocalParticle_add_to_energy(LocalParticle* part, xt_num_arg_t delta_energy, int pz_only)
 {
     xt_num_t ptau = LocalParticle_get_ptau(part);
     double const p0c = LocalParticle_get_p0c(part);
@@ -216,10 +212,6 @@ void LocalParticle_add_to_energy(LocalParticle* part, xt_num_arg_t delta_energy,
     }
 }
 
-
-#ifndef XTRACK_TPSA_TRACK  /* mutates reference quantities (p0c, gamma0, beta0):
-    out of scope for non-scalar local particles (no REF setters) until the reference tail is made
-    mutable.  Compiled normally for native doubles builds. */
 GPUFUN
 void LocalParticle_update_p0c(LocalParticle* part, double new_p0c_value)
 {
@@ -245,10 +237,9 @@ void LocalParticle_update_p0c(LocalParticle* part, double new_p0c_value)
     LocalParticle_scale_py(part, old_p0c / new_p0c_value);
 
     LocalParticle_scale_zeta(part, new_beta0 / old_beta0);
-
 }
-#endif  /* native-only (update_p0c) */
 
+// Loss-state helpers.
 GPUFUN
 void LocalParticle_kill_particle(LocalParticle* part, int64_t kill_state) {
     LocalParticle_set_x(part, 1e30);
@@ -256,39 +247,38 @@ void LocalParticle_kill_particle(LocalParticle* part, int64_t kill_state) {
     LocalParticle_set_y(part, 1e30);
     LocalParticle_set_py(part, 1e30);
     LocalParticle_set_zeta(part, 1e30);
-    LocalParticle_update_delta(part, -1);  // zero energy
+    LocalParticle_update_delta(part, -1);
     LocalParticle_set_state(part, kill_state);
 }
 
-
+// Optional global aperture check compiled only when configured.
 #ifdef XTRACK_GLOBAL_XY_LIMIT
 
-    GPUFUN
-    void global_aperture_check(LocalParticle* part0)
+GPUFUN
+void global_aperture_check(LocalParticle* part0)
+{
+    if (LocalParticle_check_track_flag(part0, XS_FLAG_IGNORE_GLOBAL_APERTURE))
     {
-        if (LocalParticle_check_track_flag(part0, XS_FLAG_IGNORE_GLOBAL_APERTURE))
-        {
-            return;
-        }
-
-        START_PER_PARTICLE_BLOCK(part0, part);
-            double const x = LocalParticle_get_x(part);
-            double const y = LocalParticle_get_y(part);
-
-            int64_t const is_alive = (int64_t)(
-                (x >= -XTRACK_GLOBAL_XY_LIMIT) &&
-                (x <=  XTRACK_GLOBAL_XY_LIMIT) &&
-                (y >= -XTRACK_GLOBAL_XY_LIMIT) &&
-                (y <=  XTRACK_GLOBAL_XY_LIMIT)
-            );
-
-            // I assume that if I am in the function is because
-            if (!is_alive) {
-               LocalParticle_set_state(part, -1);
-            }
-        END_PER_PARTICLE_BLOCK;
+        return;
     }
+
+    START_PER_PARTICLE_BLOCK(part0, part);
+        double const x = LocalParticle_get_x(part);
+        double const y = LocalParticle_get_y(part);
+
+        int64_t const is_alive = (int64_t)(
+            (x >= -XTRACK_GLOBAL_XY_LIMIT) &&
+            (x <=  XTRACK_GLOBAL_XY_LIMIT) &&
+            (y >= -XTRACK_GLOBAL_XY_LIMIT) &&
+            (y <=  XTRACK_GLOBAL_XY_LIMIT)
+        );
+
+        if (!is_alive) {
+           LocalParticle_set_state(part, -1);
+        }
+    END_PER_PARTICLE_BLOCK;
+}
 
 #endif
 
-#endif /* XTRACK_LOCAL_PARTICLE_CUSTOM_API_H */
+#endif /* XTRACK_PARTICLES_LOCAL_PARTICLE_CUSTOM_H */

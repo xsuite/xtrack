@@ -63,9 +63,14 @@ static inline double xt_num_truncate_to_double(xt_num_arg_t value){
 
 // Define relational operators between TPSAs and between TPSAs and scalars.
 #define XT_TPSA_REL(OP) \
-  template<class A> inline bool operator OP (const mad::tpsa_base<A>& a, double b){ return a[0] OP b; } \
-  template<class A> inline bool operator OP (double a, const mad::tpsa_base<A>& b){ return a OP b[0]; } \
-  template<class A, class B> inline bool operator OP (const mad::tpsa_base<A>& a, const mad::tpsa_base<B>& b){ return a[0] OP b[0]; }
+  template<class A> \
+  inline bool operator OP (const mad::tpsa_base<A>& a, double b){ return a[0] OP b; } \
+  template<class A> \
+  inline bool operator OP (double a, const mad::tpsa_base<A>& b){ return a OP b[0]; } \
+  template<class A, class B> \
+  inline bool operator OP (const mad::tpsa_base<A>& a, const mad::tpsa_base<B>& b){ \
+      return a[0] OP b[0]; \
+  }
 XT_TPSA_REL(>) XT_TPSA_REL(<) XT_TPSA_REL(>=) XT_TPSA_REL(<=) XT_TPSA_REL(==) XT_TPSA_REL(!=)
 #undef XT_TPSA_REL
 

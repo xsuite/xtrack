@@ -158,32 +158,6 @@ def _set_tpsa_handle(element, name, value):
         raise ValueError("All TPSA fields on an element need to use the same descriptor")
     _get_tpsa_handles(element)[name] = value
 
-start_per_part_block = """
-    {
-    const int64_t XT_part_block_start_idx = part0->ipart; //only_for_context cpu_openmp
-    const int64_t XT_part_block_end_idx = part0->endpart; //only_for_context cpu_openmp
-
-    const int64_t XT_part_block_start_idx = 0;                                            //only_for_context cpu_serial
-    const int64_t XT_part_block_end_idx = LocalParticle_get__num_active_particles(part0); //only_for_context cpu_serial
-
-    //#pragma omp simd // TODO: currently does not work, needs investigating
-    for (int64_t XT_part_block_ii = XT_part_block_start_idx; XT_part_block_ii<XT_part_block_end_idx; XT_part_block_ii++) { //only_for_context cpu_openmp cpu_serial
-
-        LocalParticle lpart = *part0;    //only_for_context cpu_serial cpu_openmp
-        LocalParticle* part = &lpart;    //only_for_context cpu_serial cpu_openmp
-        part->ipart = XT_part_block_ii;  //only_for_context cpu_serial cpu_openmp
-
-        LocalParticle* part = part0;     //only_for_context opencl cuda
-
-        if (LocalParticle_get_state(part) > 0) {  //only_for_context cpu_openmp
-"""
-
-end_part_part_block = """
-        }  //only_for_context cpu_openmp
-    }  //only_for_context cpu_serial cpu_openmp
-    }
-"""
-
 def _handle_per_particle_blocks(sources):
 
     if isinstance(sources, str):
@@ -205,9 +179,11 @@ def _handle_per_particle_blocks(sources):
             lines = strss.splitlines()
             for ill, ll in enumerate(lines):
                 if '//start_per_particle_block' in ll:
-                    lines[ill] = start_per_part_block
+                    indent = ll[:len(ll) - len(ll.lstrip())]
+                    lines[ill] = f"{indent}START_PER_PARTICLE_BLOCK(part0, part);"
                 if '//end_per_particle_block' in ll:
-                    lines[ill] = end_part_part_block
+                    indent = ll[:len(ll) - len(ll.lstrip())]
+                    lines[ill] = f"{indent}END_PER_PARTICLE_BLOCK;"
 
             # TODO: this is very dirty, just for check!!!!!
             out.append('\n'.join(lines))

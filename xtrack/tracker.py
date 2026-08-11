@@ -1039,14 +1039,7 @@ class Tracker:
         if tpsa_track:
             import xgtpsa
             from xgtpsa.paths import LIB_BASENAME, core_library, lib_dir
-            from xtrack.particles.particles import gen_tpsa_local_particle_api
             from xtrack.internal_record import RecordIdentifier, RecordIndex
-            from xtrack.tpsa.particles import (
-                _COORDS,
-                _DERIVED_COORDS,
-                _LOCAL_COORDS,
-                _REF_VARS,
-            )
 
             tpsa_extra_sources = []
             dependency_classes = [*all_classes, RecordIdentifier, RecordIndex]
@@ -1068,10 +1061,7 @@ class Tracker:
                     cc._extra_c_sources = []
 
             tpsa_sources = [
-                gen_tpsa_local_particle_api(
-                    _COORDS + _DERIVED_COORDS + _LOCAL_COORDS,
-                    _REF_VARS,
-                ),
+                '#include "xtrack/tpsa/headers/local_particle.h"',
                 _float_or_tpsa_getter_block(all_classes),
             ]
             for extra_source in tpsa_extra_sources:
@@ -1906,8 +1896,12 @@ class Tracker:
                 headers.append(f'#define {k} {v}')
             elif v is True:
                 headers.append(f'#define {k}')
+                if k.startswith('FREEZE_VAR_'):
+                    headers.append(f'#define XT_{k} 1')
             else:
                 headers.append(f'#undef {k}')
+                if k.startswith('FREEZE_VAR_'):
+                    headers.append(f'#define XT_{k} 0')
         return headers
 
     def _get_twiss_mask_markers(self):
