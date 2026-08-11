@@ -1,7 +1,14 @@
+import os
 from math import ceil
 from typing import cast, Iterable, Collection
 
 from .general import _print
+
+
+# Select the progress indicator to use: 'tqdm', 'text', or 'suppress'. In
+# 'tqdm' mode, the simple text indicator is used when tqdm is not installed.
+# The XTRACK_PROGRESS_INDICATOR environment variable takes precedence.
+mode: str = 'tqdm'
 
 
 class DefaultProgressIndicator:
@@ -87,7 +94,25 @@ def set_default_indicator(indicator_cls, **options):
 
 
 def progress(iterable: Iterable, **options):
+    """Wrap an iterable with the configured progress indicator.
+
+    Set :data:`mode`, or the ``XTRACK_PROGRESS_INDICATOR`` environment
+    variable, to ``'tqdm'``, ``'text'``, or ``'suppress'``. The environment
+    variable takes precedence. In ``'tqdm'`` mode, the simple text indicator
+    is used when tqdm is not installed.
+    """
+    selected_mode = os.environ.get('XTRACK_PROGRESS_INDICATOR', mode)
+    if selected_mode == 'suppress':
+        return iterable
+
+    if selected_mode not in ('tqdm', 'text'):
+        raise ValueError(
+            'Invalid progress indicator mode '
+            f'{selected_mode!r}; expected "tqdm", "text", or "suppress".')
+
     indicator = _config.default_indicator_cls
+    if selected_mode == 'text':
+        indicator = DefaultProgressIndicator
     return indicator(iterable, **_config.default_options, **options)
 
 
