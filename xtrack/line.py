@@ -31,7 +31,7 @@ from . import beam_elements
 from . import json as json_utils
 from .beam_elements import (BeamElement, Drift, Marker, Multipole,
                             element_classes)
-from .beam_elements.elements._common import (
+from .beam_elements._common import (
     _EDGE_MODEL_TO_INDEX,
     _MODEL_TO_INDEX_CURVED,
     _MODEL_TO_INDEX_DRIFT,

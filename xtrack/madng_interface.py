@@ -1030,7 +1030,7 @@ class ActionTwissMadngTPSA(Action):
 def line_to_madng(line, sequence_name='seq', temp_fname=None, keep_files=False,
                   **kwargs):
     try:
-        _ge = xt.elements._get_expr
+        from .beam_elements._common import _get_expr as _ge
         if temp_fname is None:
             temp_fname = 'temp_madng_' + str(uuid.uuid4())
 

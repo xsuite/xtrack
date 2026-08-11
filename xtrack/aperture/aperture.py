@@ -7,7 +7,7 @@ from typing import Literal, cast, get_args
 import numpy as np
 
 import xobjects as xo
-from xtrack.beam_elements.apertures import LimitPolygon
+from xtrack.beam_elements.limit_polygon import LimitPolygon
 from xdeps.table import Table
 from xobjects.context import XContext
 from xtrack.twiss import TwissInit, TwissTable

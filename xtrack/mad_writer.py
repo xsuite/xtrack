@@ -4,6 +4,7 @@ from enum import Enum
 
 from xdeps.refs import is_ref
 from xtrack.functions import Functions
+from .beam_elements._common import _get_expr as _ge
 
 
 LUA_VARS_PER_CHUNK = 200
@@ -91,8 +92,6 @@ def _handle_tokens_madng(tokens, substituted_vars):
     else:
         tokens[0] = tokens[0] + ' ' + tokens[1] + ' { '
     return tokens
-
-_ge = xt.elements._get_expr
 
 def _knl_ksl_to_mad(mult, mad_type=MadType.MADX):
 

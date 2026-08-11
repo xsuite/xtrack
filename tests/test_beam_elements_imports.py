@@ -1,11 +1,8 @@
-import pickle
-
 import xtrack as xt
 import xtrack.beam_elements as beam_elements
-import xtrack.beam_elements.elements as elements
 
 
-LEGACY_ELEMENTS_EXPORTS = {
+EXPECTED_BEAM_ELEMENT_EXPORTS = {
     'copy', 'List', 'warn', 'np', 'Number', 'factorial', 'xo', 'xt',
     'BeamElement', 'RandomUniformAccurate', 'RandomExponential',
     'RandomNormal', 'DEPRECATION_INFO_PREP_1_0', 'survey_advance_element',
@@ -21,22 +18,20 @@ LEGACY_ELEMENTS_EXPORTS = {
     'DipoleFringe', 'Wedge', 'SimpleThinBend', 'RFMultipole', 'DipoleEdge',
     'MultipoleEdge', 'LineSegmentMap', 'FirstOrderTaylorMap',
     'SecondOrderTaylorMap', 'ElectronCoolerRecord', 'ElectronCooler',
-    'ThinSliceNotNeededError',
+    'ThinSliceNotNeededError', 'UNLIMITED', 'LimitRect', 'LimitRacetrack',
+    'LimitEllipse', 'LimitPolygon', 'LimitRectEllipse',
+    'LongitudinalLimitRect',
 }
 
 
-def test_legacy_elements_exports_are_preserved():
-    assert set(elements.__all__) == LEGACY_ELEMENTS_EXPORTS
-
-    for name in LEGACY_ELEMENTS_EXPORTS:
-        assert hasattr(elements, name)
+def test_beam_element_exports_are_available():
+    for name in EXPECTED_BEAM_ELEMENT_EXPORTS:
+        assert hasattr(beam_elements, name)
 
 
 def test_public_element_class_identity_is_preserved():
     for element_class in beam_elements.element_classes:
         name = element_class.__name__
-        if hasattr(elements, name):
-            assert getattr(elements, name) is element_class
         assert getattr(xt, name) is element_class
 
     assert len(beam_elements.element_classes) == len(
@@ -44,10 +39,10 @@ def test_public_element_class_identity_is_preserved():
     )
 
 
-def test_pickle_from_legacy_elements_module_resolves():
-    # Protocol 0 GLOBAL payload representing pickles produced when Drift lived
-    # directly in xtrack.beam_elements.elements.
-    legacy_drift_class_pickle = (
-        b'cxtrack.beam_elements.elements\nDrift\n.'
+def test_aperture_imports_are_preserved():
+    aperture_class_names = (
+        'LimitRect', 'LimitRacetrack', 'LimitEllipse', 'LimitPolygon',
+        'LimitRectEllipse', 'LongitudinalLimitRect',
     )
-    assert pickle.loads(legacy_drift_class_pickle) is xt.Drift
+    for name in aperture_class_names:
+        assert getattr(beam_elements, name) is getattr(xt, name)
