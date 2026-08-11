@@ -15,7 +15,7 @@ from .radiation import (
     _get_equilibrium_emittance_full,
     _get_equilibrium_emittance_kick_as_co,
 )
-from .spin import _get_spin_polarization
+from .spin import _add_spin_polarization
 from .strengths import _add_strengths_to_twiss_res
 
 import xtrack as xt  # To avoid circular imports
@@ -159,32 +159,7 @@ def _add_chromatic_functions_to_twiss_result(twiss_config, twiss_res):
         return
 
     cols_chrom, scalars_chrom = _get_chromatic_functions(
-        line=twiss_config['line'],
-        init=twiss_config['init'],
-        delta_chrom=twiss_config['delta_chrom'],
-        delta0=twiss_config['delta0'],
-        zeta0=twiss_config['zeta0'],
-        steps_R_matrix=twiss_config['steps_R_matrix'],
-        matrix_responsiveness_tol=twiss_config['matrix_responsiveness_tol'],
-        matrix_stability_tol=twiss_config['matrix_stability_tol'],
-        symplectify=twiss_config['symplectify'],
-        method=twiss_config['method'],
-        use_full_inverse=twiss_config['use_full_inverse'],
-        nemitt_x=twiss_config['nemitt_x'],
-        nemitt_y=twiss_config['nemitt_y'],
-        on_momentum_twiss_res=twiss_res,
-        step_W_sigma=twiss_config['step_W_sigma'],
-        delta_disp=twiss_config['delta_disp'],
-        zeta_disp=twiss_config['zeta_disp'],
-        start=twiss_config['start'],
-        end=twiss_config['end'],
-        num_turns=twiss_config['num_turns'],
-        hide_thin_groups=twiss_config['hide_thin_groups'],
-        only_markers=twiss_config['only_markers'],
-        periodic=twiss_config['periodic'],
-        periodic_mode=twiss_config['periodic_mode'],
-        include_collective=twiss_config['include_collective'],
-    )
+        twiss_config, on_momentum_twiss_res=twiss_res)
     twiss_res._data.update(cols_chrom)
     twiss_res._data.update(scalars_chrom)
     twiss_res._col_names += list(cols_chrom.keys())
@@ -282,7 +257,8 @@ def _add_strengths_and_radiation_integrals_to_twiss_result(twiss_config, twiss_r
 def _add_spin_polarization_to_twiss_result(twiss_config, twiss_res):
 
     if twiss_config['polarization_analysis']:
-        _get_spin_polarization(twiss_res, twiss_config['line'], twiss_config['method'])
+        _add_spin_polarization(
+            twiss_res, twiss_config['line'], twiss_config['method'])
 
 
 def _add_edwards_teng_coupling_to_twiss_result(twiss_config, twiss_res):

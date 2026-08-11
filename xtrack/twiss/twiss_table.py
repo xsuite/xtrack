@@ -11,7 +11,7 @@ import numpy as np
 from ..general import DEPRECATION_INFO_PREP_1_0
 from .. import linear_normal_form as lnf
 from ..table import Table
-from ..twissplot import TwissPlot
+from .twissplot import TwissPlot
 from .beam_covariance import _build_sigma_table
 from .twiss_init import TwissInit, _W_phys2norm
 from .strengths import (

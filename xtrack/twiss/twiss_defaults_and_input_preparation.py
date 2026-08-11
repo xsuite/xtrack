@@ -33,70 +33,47 @@ VARS_FOR_TWISS_INIT_GENERATION = [
 ]
 
 
-def _apply_twiss_defaults(
-        *,
-        step_W_sigma,
-        nemitt_x,
-        nemitt_y,
-        delta_disp,
-        delta_chrom,
-        zeta_disp,
-        zeta_shift,
-        values_at_element_exit,
-        continue_on_closed_orbit_error,
-        freeze_longitudinal,
-        radiation_method,
-        spin,
-        polarization_analysis,
-        radiation_integrals,
-        radiation_analysis,
-        symplectify,
-        reverse,
-        strengths,
-        hide_thin_groups,
-        search_for_t_rev,
-        num_turns_search_t_rev,
-        only_twiss_init,
-        only_markers,
-        only_orbit,
-        compute_R_element_by_element,
-        compute_lattice_functions,
-        chrom,
-        num_turns,
-        disable_apertures,
-):
-    return (
-        (step_W_sigma or 0.01),
-        (nemitt_x or 1e-6),
-        (nemitt_y or 1e-6),
-        (delta_disp or 1e-5),
-        (delta_chrom or 5e-5),
-        (zeta_disp or 1e-3),
-        (zeta_shift or 0.0),
-        (values_at_element_exit or False),
-        (continue_on_closed_orbit_error or False),
-        (freeze_longitudinal or False),
-        (radiation_method or None),
-        (spin or False),
-        (polarization_analysis or False),
-        (radiation_integrals or False),
-        (radiation_analysis or False),
-        (symplectify or False),
-        (reverse or False),
-        (strengths or False),
-        (hide_thin_groups or False),
-        (search_for_t_rev or False),
-        (num_turns_search_t_rev or None),
-        (only_twiss_init or False),
-        (only_markers or False),
-        (only_orbit or False),
-        (compute_R_element_by_element or False),
-        (compute_lattice_functions
-            if compute_lattice_functions is not None else True),
-        (chrom if chrom is not None else None),
-        (num_turns or 1),
-        (disable_apertures if disable_apertures is not None else True),
-    )
+def _apply_twiss_defaults(twiss_kwargs):
+
+    twiss_kwargs.update({
+        'step_W_sigma': twiss_kwargs['step_W_sigma'] or 0.01,
+        'nemitt_x': twiss_kwargs['nemitt_x'] or 1e-6,
+        'nemitt_y': twiss_kwargs['nemitt_y'] or 1e-6,
+        'delta_disp': twiss_kwargs['delta_disp'] or 1e-5,
+        'delta_chrom': twiss_kwargs['delta_chrom'] or 5e-5,
+        'zeta_disp': twiss_kwargs['zeta_disp'] or 1e-3,
+        'zeta_shift': twiss_kwargs['zeta_shift'] or 0.0,
+        'values_at_element_exit': (
+            twiss_kwargs['values_at_element_exit'] or False),
+        'continue_on_closed_orbit_error': (
+            twiss_kwargs['continue_on_closed_orbit_error'] or False),
+        'freeze_longitudinal': twiss_kwargs['freeze_longitudinal'] or False,
+        'radiation_method': twiss_kwargs['radiation_method'] or None,
+        'spin': twiss_kwargs['spin'] or False,
+        'polarization_analysis': (
+            twiss_kwargs['polarization_analysis'] or False),
+        'radiation_integrals': twiss_kwargs['radiation_integrals'] or False,
+        'radiation_analysis': twiss_kwargs['radiation_analysis'] or False,
+        'symplectify': twiss_kwargs['symplectify'] or False,
+        'reverse': twiss_kwargs['reverse'] or False,
+        'strengths': twiss_kwargs['strengths'] or False,
+        'hide_thin_groups': twiss_kwargs['hide_thin_groups'] or False,
+        'search_for_t_rev': twiss_kwargs['search_for_t_rev'] or False,
+        'num_turns_search_t_rev': (
+            twiss_kwargs['num_turns_search_t_rev'] or None),
+        'only_twiss_init': twiss_kwargs['only_twiss_init'] or False,
+        'only_markers': twiss_kwargs['only_markers'] or False,
+        'only_orbit': twiss_kwargs['only_orbit'] or False,
+        'compute_R_element_by_element': (
+            twiss_kwargs['compute_R_element_by_element'] or False),
+        'compute_lattice_functions': (
+            twiss_kwargs['compute_lattice_functions']
+            if twiss_kwargs['compute_lattice_functions'] is not None else True),
+        'num_turns': twiss_kwargs['num_turns'] or 1,
+        'disable_apertures': (
+            twiss_kwargs['disable_apertures']
+            if twiss_kwargs['disable_apertures'] is not None else True),
+    })
 
 
 def _normalize_twiss_inputs(twiss_kwargs):
@@ -163,6 +140,9 @@ def _normalize_twiss_inputs(twiss_kwargs):
 
 def _normalize_public_twiss_arguments(twiss_kwargs):
 
+    if twiss_kwargs['only_markers']:
+        raise NotImplementedError('``only_markers`` not supported anymore')
+
     twiss_kwargs = twiss_kwargs.copy()
 
     (twiss_kwargs['chrom'],
@@ -188,68 +168,7 @@ def _normalize_public_twiss_arguments(twiss_kwargs):
 
     input_kwargs = twiss_kwargs.copy()
 
-    (twiss_kwargs['step_W_sigma'],
-     twiss_kwargs['nemitt_x'],
-     twiss_kwargs['nemitt_y'],
-     twiss_kwargs['delta_disp'],
-     twiss_kwargs['delta_chrom'],
-     twiss_kwargs['zeta_disp'],
-     twiss_kwargs['zeta_shift'],
-     twiss_kwargs['values_at_element_exit'],
-     twiss_kwargs['continue_on_closed_orbit_error'],
-     twiss_kwargs['freeze_longitudinal'],
-     twiss_kwargs['radiation_method'],
-     twiss_kwargs['spin'],
-     twiss_kwargs['polarization_analysis'],
-     twiss_kwargs['radiation_integrals'],
-     twiss_kwargs['radiation_analysis'],
-     twiss_kwargs['symplectify'],
-     twiss_kwargs['reverse'],
-     twiss_kwargs['strengths'],
-     twiss_kwargs['hide_thin_groups'],
-     twiss_kwargs['search_for_t_rev'],
-     twiss_kwargs['num_turns_search_t_rev'],
-     twiss_kwargs['only_twiss_init'],
-     twiss_kwargs['only_markers'],
-     twiss_kwargs['only_orbit'],
-     twiss_kwargs['compute_R_element_by_element'],
-     twiss_kwargs['compute_lattice_functions'],
-     twiss_kwargs['chrom'],
-     twiss_kwargs['num_turns'],
-     twiss_kwargs['disable_apertures']) = _apply_twiss_defaults(
-        step_W_sigma=twiss_kwargs['step_W_sigma'],
-        nemitt_x=twiss_kwargs['nemitt_x'],
-        nemitt_y=twiss_kwargs['nemitt_y'],
-        delta_disp=twiss_kwargs['delta_disp'],
-        delta_chrom=twiss_kwargs['delta_chrom'],
-        zeta_disp=twiss_kwargs['zeta_disp'],
-        zeta_shift=twiss_kwargs['zeta_shift'],
-        values_at_element_exit=twiss_kwargs['values_at_element_exit'],
-        continue_on_closed_orbit_error=twiss_kwargs['continue_on_closed_orbit_error'],
-        freeze_longitudinal=twiss_kwargs['freeze_longitudinal'],
-        radiation_method=twiss_kwargs['radiation_method'],
-        spin=twiss_kwargs['spin'],
-        polarization_analysis=twiss_kwargs['polarization_analysis'],
-        radiation_integrals=twiss_kwargs['radiation_integrals'],
-        radiation_analysis=twiss_kwargs['radiation_analysis'],
-        symplectify=twiss_kwargs['symplectify'],
-        reverse=twiss_kwargs['reverse'],
-        strengths=twiss_kwargs['strengths'],
-        hide_thin_groups=twiss_kwargs['hide_thin_groups'],
-        search_for_t_rev=twiss_kwargs['search_for_t_rev'],
-        num_turns_search_t_rev=twiss_kwargs['num_turns_search_t_rev'],
-        only_twiss_init=twiss_kwargs['only_twiss_init'],
-        only_markers=twiss_kwargs['only_markers'],
-        only_orbit=twiss_kwargs['only_orbit'],
-        compute_R_element_by_element=twiss_kwargs['compute_R_element_by_element'],
-        compute_lattice_functions=twiss_kwargs['compute_lattice_functions'],
-        chrom=twiss_kwargs['chrom'],
-        num_turns=twiss_kwargs['num_turns'],
-        disable_apertures=twiss_kwargs['disable_apertures'],
-    )
-
-    if twiss_kwargs['only_markers']:
-        raise NotImplementedError('``only_markers`` not supported anymore')
+    _apply_twiss_defaults(twiss_kwargs)
 
     if twiss_kwargs['polarization_analysis']:
         twiss_kwargs['spin'] = True

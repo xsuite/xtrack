@@ -1,8 +1,6 @@
 # Based on E. Boscolo, A. Ciarma, E. Burkhardt, https://cds.cern.ch/record/2948247
 # Nuclear Instruments and Methods in Physics Research A 1083 (2026) 171135
 
-from tkinter import TRUE
-
 import xtrack as xt
 import time
 

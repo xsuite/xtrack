@@ -55,7 +55,7 @@ def _errfun_spin(s, line, particle_on_co):
                         pp.spin_z[0] - sz])
 
 
-def _get_spin_polarization(tw, line, method):
+def _add_spin_polarization(tw, line, method):
 
     with xt.line._preserve_config(line):
 

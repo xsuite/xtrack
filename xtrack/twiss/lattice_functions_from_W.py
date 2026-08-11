@@ -80,7 +80,6 @@ def _get_lattice_functions(Ws, use_full_inverse, s_co):
     gamx1 = gamx
     gamy2 = gamy
 
-
     temp_phix = phix.copy()
     temp_phiy = phiy.copy()
     temp_phix[i_replace] = temp_phix[i_replace_with]

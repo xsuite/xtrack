@@ -9,7 +9,7 @@ from .twiss_table import TwissTable
 import xtrack as xt  # To avoid circular imports
 
 
-def _handle_init_inside_range_and_line_wrap(
+def _compute_twiss_handling_init_inside_range_and_line_wrap(
         kwargs, crosses_line_boundary, one_turn_from_start=False, *,
         compute_base_twiss):
 
@@ -73,11 +73,11 @@ def _handle_init_inside_range_and_line_wrap(
     elif not reverse:
         assert (_element_ref_to_index(line, end)
                 < _element_ref_to_index(line, start)), (
-            'This function should not have been called')
+            'Corrupted input, internal error')
     else:
         assert (_element_ref_to_index(line, end)
                 > _element_ref_to_index(line, start)), (
-            'This function should not have been called')
+            'Corrupted input, internal error')
 
     if reverse:
         line_boundary_end = line._element_names_unique[0]
