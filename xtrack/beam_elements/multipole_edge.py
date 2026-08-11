@@ -31,6 +31,7 @@ class MultipoleEdge(_HasKnlKsl, BeamElement):
     _extra_c_sources = [
         '#include "xtrack/beam_elements/elements_src/multipoleedge.h"',
     ]
+    has_backtrack = True
 
     def __init__(self, kn: list=None, ks: list=None, is_exit=False, order=None, _xobject=None, **kwargs):
         if '_xobject' in kwargs.keys() and kwargs['_xobject'] is not None:

@@ -1011,6 +1011,20 @@ def test_edge_multipole_fringe_without_dipole_component(test_context):
     xo.assert_allclose(p_test_cpu.py, p_ref_cpu.py, atol=1e-15, rtol=0)
     xo.assert_allclose(p_test_cpu.delta, p_ref_cpu.delta, atol=1e-15, rtol=0)
 
+    for edge in (e_test, e_ref):
+        p_test = p0.copy()
+        line = xt.Line(elements=[edge])
+        line.build_tracker(_context=test_context, use_prebuilt_kernels=False)
+        line.track(p_test)
+        line.track(p_test, backtrack=True)
+        p_test_cpu = p_test.copy(_context=xo.ContextCpu())
+        p0_cpu = p0.copy(_context=xo.ContextCpu())
+        assert np.all(p_test_cpu.state == 1)
+        for coordinate in ('x', 'px', 'y', 'py', 'zeta', 'delta'):
+            xo.assert_allclose(
+                getattr(p_test_cpu, coordinate), getattr(p0_cpu, coordinate),
+                atol=2e-14, rtol=0)
+
 
 def test_multipole_edge_scales_with_chi():
     test_context = xo.ContextCpu()
@@ -1651,10 +1665,15 @@ def test_magnet_and_edge_octupole_nonlinear_fringes(test_context):
     xo.assert_allclose(p_test_cpu.delta, p_ref_cpu.delta, atol=1e-15, rtol=0)
 
     line = xt.Line(elements=[mm])
-    line.build_tracker(compile=False, _context=test_context)
+    line.build_tracker(_context=test_context, use_prebuilt_kernels=False)
     line.track(p_test, backtrack=True)
     p_test.move(_context=xo.ContextCpu())
-    assert np.all(p_test.state == -32)
+    p0.move(_context=xo.ContextCpu())
+    assert np.all(p_test.state == 1)
+    for coordinate in ('x', 'px', 'y', 'py', 'zeta', 'delta'):
+        xo.assert_allclose(
+            getattr(p_test, coordinate), getattr(p0, coordinate),
+            atol=2e-12, rtol=0)
 
 def test_bend_convergence_on_axis():
 

@@ -305,9 +305,10 @@ void track_magnet_particles(
         x0_mid -= rbend_shift;
 
         if (rbend_compensate_sagitta && fabs(angle) > 1e-10){
-            // shift by half the sagitta
-            double cos_rbha = cos(angle / 2.);
-            x0_mid += 0.5 / h * (1 - cos_rbha);
+            // Half the sagitta, via 1 - cos(u) = 2*sin(u/2)^2 to avoid the
+            // cancellation that the large 1/h would amplify.
+            double const sin_rbqa = sin(angle / 4.);
+            x0_mid += sin_rbqa * sin_rbqa / h;
         }
 
         x0_in = x0_mid;
@@ -316,8 +317,13 @@ void track_magnet_particles(
             double const px0_in = sin(theta_in);
             double const px0_mid = px0_in - h * length_straight / 2;
             double const sqrt_mid = sqrt(1 - px0_mid * px0_mid);
-            x0_in -= 1/h *(sqrt_mid - cos_theta_in);
-            x0_out += 1/h * (cos_theta_out - sqrt_mid);
+            // Rationalised form of (1/h)*(sqrt_mid - cos_theta_in) and
+            // (1/h)*(cos_theta_out - sqrt_mid), so that h cancels exactly.
+            double const px0_out = h * length_straight / 2 - px0_mid;
+            x0_in -= 0.5 * length_straight * (px0_in + px0_mid)
+                        / (sqrt_mid + cos_theta_in);
+            x0_out += 0.5 * length_straight * (px0_mid - px0_out)
+                        / (cos_theta_out + sqrt_mid);
         }
         ;
         h = 0; // treat magnet as straight
@@ -408,8 +414,11 @@ void track_magnet_particles(
         track_magnet_edge_particles(
             part0,
             edge_entry_model,
-            0, // is_exit
-            edge_entry_hgap,
+            // Which face of the element this is. The edge parameters are
+            // swapped when backtracking, so this call site handles the exit
+            // face in that case, even though it is the first one traversed.
+            factor_backtrack_edge < 0,
+            edge_entry_hgap, // used by both the linear and full dipole fringe models
             knorm,
             kskew,
             3, // k_order,
@@ -425,10 +434,10 @@ void track_magnet_particles(
             x0_solenoid,
             y0_solenoid,
             length,
-            edge_entry_angle,
+            edge_entry_angle, // pole face rotation, drives the fringe rotation/wedge and the linear fringe coefficients
             edge_entry_angle_fdown,
-            edge_entry_fint,
-            factor_backtrack_edge
+            edge_entry_fint, // fringe field integral (e.g. Enge/SAD-style), sets the fringe kick strength
+            factor_backtrack_edge // flips sign of fringe/wedge effects when backtracking (-1) vs forward (1)
         );
     }
 
@@ -531,8 +540,9 @@ void track_magnet_particles(
         track_magnet_edge_particles(
             part0,
             edge_exit_model,
-            1, // is_exit
-            edge_exit_hgap,
+            // As above: when backtracking the swap makes this the entry face.
+            factor_backtrack_edge >= 0,
+            edge_exit_hgap, // used by both the linear and full dipole fringe models
             knorm,
             kskew,
             3, // k_order,
@@ -548,10 +558,10 @@ void track_magnet_particles(
             x0_solenoid,
             y0_solenoid,
             length,
-            edge_exit_angle,
+            edge_exit_angle, // pole face rotation, drives the fringe rotation/wedge and the linear fringe coefficients
             edge_exit_angle_fdown,
-            edge_exit_fint,
-            factor_backtrack_edge
+            edge_exit_fint, // fringe field integral (e.g. Enge/SAD-style), sets the fringe kick strength
+            factor_backtrack_edge // flips sign of fringe/wedge effects when backtracking (-1) vs forward (1)
         );
 
         if (rbend_model == 2){

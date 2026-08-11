@@ -37,8 +37,8 @@ void MagnetEdge_track_local_particle(MagnetEdgeData el, LocalParticle* part0)
     track_magnet_edge_particles(
         part0,
         model,
-        is_exit,
-        half_gap,
+        is_exit, // which face of the element this is (0 for entry)
+        half_gap, // used by both the linear and full dipole fringe models
         knorm,
         kskew,
         k_order,
@@ -54,10 +54,10 @@ void MagnetEdge_track_local_particle(MagnetEdgeData el, LocalParticle* part0)
         0., // x0_solenoid
         0., // y0_solenoid
         length,
-        face_angle,
+        face_angle, // pole face rotation, drives the fringe rotation/wedge and the linear fringe coefficients
         face_angle_feed_down,
-        fringe_integral,
-        factor_for_backtrack
+        fringe_integral, // fringe field integral (e.g. Enge/SAD-style), sets the fringe kick strength
+        factor_for_backtrack // flips sign of fringe/wedge effects when backtracking (-1) vs forward (1)
     );
 }
 
