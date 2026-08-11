@@ -21,44 +21,11 @@ from ..random import (
     RandomNormal,
     RandomUniformAccurate,
 )
-from ._common import (  # noqa: F401 - legacy private module attributes
-    DEFAULT_MULTIPOLE_ORDER,
-    ElectronCoolerRecord,
-    SynchrotronRadiationRecord,
-    ThinSliceNotNeededError,
-    _BendCommon,
-    _EDGE_MODEL_TO_INDEX,
-    _HasIntegrator,
-    _HasKnlKsl,
-    _HasModelCurved,
-    _HasModelDrift,
-    _HasModelRF,
-    _HasModelStraight,
-    _INDEX_TO_EDGE_MODEL,
-    _INDEX_TO_INTEGRATOR,
-    _INDEX_TO_MODEL_CURVED,
-    _INDEX_TO_MODEL_DRIFT,
-    _INDEX_TO_MODEL_RF,
-    _INDEX_TO_MODEL_STRAIGHT,
-    _INDEX_TO_RBEND_MODEL,
-    _INTEGRATOR_TO_INDEX,
-    _MODEL_TO_INDEX_CURVED,
-    _MODEL_TO_INDEX_DRIFT,
-    _MODEL_TO_INDEX_RF,
-    _MODEL_TO_INDEX_STRAIGHT,
-    _NOEXPR_FIELDS,
-    _RBEND_MODEL_TO_INDEX,
-    _ROT_AX_TO_ID,
-    _ROT_ID_TO_AX,
-    _angle_from_trig,
-    _docstring_general_notes,
-    _for_docstring_alignment,
-    _for_docstring_edge_bend,
-    _for_docstring_edge_straight,
-    _get_expr,
-    _handle_knl_ksl_rel_kwargs,
-    _nonzero,
-    _unregister_if_preset,
+from ._common import (
+    DEFAULT_MULTIPOLE_ORDER as DEFAULT_MULTIPOLE_ORDER,
+    ElectronCoolerRecord as ElectronCoolerRecord,
+    SynchrotronRadiationRecord as SynchrotronRadiationRecord,
+    ThinSliceNotNeededError as ThinSliceNotNeededError,
 )
 
 from .splineboris import Spline4, SplineBoris
@@ -143,3 +110,17 @@ from .rft_element import RFT_Element
 from ..base_element import BeamElement
 
 element_classes = tuple(v for v in globals().values() if isinstance(v, type) and issubclass(v, BeamElement))
+
+
+__all__ = tuple(cls.__name__ for cls in element_classes) + (
+    'BeamInteraction',
+    'CombinedFunctionMagnet',
+    'DEFAULT_MULTIPOLE_ORDER',
+    'ElectronCoolerRecord',
+    'ParticlesInjectionSample',
+    'RFT_Element',
+    'Spline4',
+    'SynchrotronRadiationRecord',
+    'ThinSliceNotNeededError',
+    'element_classes',
+)

@@ -23,6 +23,19 @@ EXPECTED_BEAM_ELEMENT_EXPORTS = {
     'LongitudinalLimitRect',
 }
 
+NON_ELEMENT_EXPORTS = {
+    'BeamInteraction',
+    'CombinedFunctionMagnet',
+    'DEFAULT_MULTIPOLE_ORDER',
+    'ElectronCoolerRecord',
+    'ParticlesInjectionSample',
+    'RFT_Element',
+    'Spline4',
+    'SynchrotronRadiationRecord',
+    'ThinSliceNotNeededError',
+    'element_classes',
+}
+
 
 def test_beam_element_exports_are_available():
     for name in EXPECTED_BEAM_ELEMENT_EXPORTS:
@@ -37,6 +50,18 @@ def test_public_element_class_identity_is_preserved():
     assert len(beam_elements.element_classes) == len(
         set(beam_elements.element_classes)
     )
+
+
+def test_all_contains_element_classes_and_explicit_exceptions_only():
+    element_class_names = {
+        element_class.__name__
+        for element_class in beam_elements.element_classes
+    }
+
+    assert set(beam_elements.__all__) == (
+        element_class_names | NON_ELEMENT_EXPORTS
+    )
+    assert len(beam_elements.__all__) == len(set(beam_elements.__all__))
 
 
 def test_aperture_imports_are_preserved():
