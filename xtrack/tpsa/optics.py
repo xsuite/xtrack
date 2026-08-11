@@ -19,7 +19,6 @@ import numpy as np
 if TYPE_CHECKING:
     from .particles import ParticlesTpsa
 
-_TWO_PI = 2.0 * np.pi
 # (name -> the plane's 2x2 block origin (i0, j0) in A: x at (0,0), y at (2,2)).
 _PLANE = {"x": (0, 0), "y": (2, 2)}
 
@@ -34,13 +33,12 @@ class TpsaOptics:
 
     _NAMES = ("betx", "bety", "alfx", "alfy", "mux", "muy", "dx", "dpx", "dy", "dpy")
 
-    def __init__(self, m: ParticlesTpsa) -> None:
-        self._np = m.num_params
-        self.param_names = [f"p{ii + 1}" for ii in range(self._np)]
-        self._J = np.asarray(m.jacobian(), dtype=float)  # 6x6 A-matrix (const parts)
-        self._has_order2 = m.order >= 2
-        self._m = m
-        self._nv = m.num_vars
+    def __init__(self, map: ParticlesTpsa) -> None:
+        self._num_params = map.num_params
+        self.param_names = [f"p{ii + 1}" for ii in range(self._num_params)]
+        self._jacobian = np.asarray(map.jacobian(), dtype=float)  # 6x6 A-matrix (const parts)
+        self._map = map
+        self._num_vars = map.num_vars
         # dJ[i, j] = d A(i,j) / d parameter (length-np). Built lazily per (i,j) on first use
         # (a value read touches no dJ; a gradient builds only the coefficients it needs).
         self._dJ: dict[tuple[int, int], np.ndarray] = {}
@@ -49,11 +47,14 @@ class TpsaOptics:
         """``d A(i,j) / d parameter`` (length-np), read from the map's mixed coefficients once."""
         v = self._dJ.get((i, j))
         if v is None:
-            monos = np.zeros((self._np, self._nv + self._np), dtype=int)
+            monos = np.zeros(
+                (self._num_params, self._num_vars + self._num_params),
+                dtype=int,
+            )
             monos[:, j] = 1
-            for k in range(self._np):
-                monos[k, self._nv + k] += 1
-            v = np.atleast_1d(self._m.coefficient(i, monos))
+            for k in range(self._num_params):
+                monos[k, self._num_vars + k] += 1
+            v = np.atleast_1d(self._map.coefficient(i, monos))
             self._dJ[(i, j)] = v
         return v
 
@@ -61,37 +62,59 @@ class TpsaOptics:
 
     def _bet(self, plane: str) -> float:
         i0, j0 = _PLANE[plane]
-        return self._J[i0, j0] ** 2 + self._J[i0, j0 + 1] ** 2
+        return self._jacobian[i0, j0] ** 2 + self._jacobian[i0, j0 + 1] ** 2
 
     def _alf(self, plane: str) -> float:
         i0, j0 = _PLANE[plane]
-        return -(self._J[i0, j0] * self._J[i0 + 1, j0]
-                 + self._J[i0, j0 + 1] * self._J[i0 + 1, j0 + 1])
+        return -(self._jacobian[i0, j0] * self._jacobian[i0 + 1, j0]
+                 + self._jacobian[i0, j0 + 1] * self._jacobian[i0 + 1, j0 + 1])
 
     def _mu(self, plane: str) -> float:
         i0, j0 = _PLANE[plane]
-        return np.arctan2(self._J[i0, j0 + 1], self._J[i0, j0]) / _TWO_PI
+        return (
+            np.arctan2(self._jacobian[i0, j0 + 1], self._jacobian[i0, j0])
+            / (2.0 * np.pi)
+        )
 
     @property
-    def betx(self) -> float: return self._bet("x")
+    def betx(self) -> float:
+        return self._bet("x")
+
     @property
-    def bety(self) -> float: return self._bet("y")
+    def bety(self) -> float:
+        return self._bet("y")
+
     @property
-    def alfx(self) -> float: return self._alf("x")
+    def alfx(self) -> float:
+        return self._alf("x")
+
     @property
-    def alfy(self) -> float: return self._alf("y")
+    def alfy(self) -> float:
+        return self._alf("y")
+
     @property
-    def mux(self) -> float: return self._mu("x")
+    def mux(self) -> float:
+        return self._mu("x")
+
     @property
-    def muy(self) -> float: return self._mu("y")
+    def muy(self) -> float:
+        return self._mu("y")
+
     @property
-    def dx(self) -> float: return self._J[0, 5]
+    def dx(self) -> float:
+        return self._jacobian[0, 5]
+
     @property
-    def dpx(self) -> float: return self._J[1, 5]
+    def dpx(self) -> float:
+        return self._jacobian[1, 5]
+
     @property
-    def dy(self) -> float: return self._J[2, 5]
+    def dy(self) -> float:
+        return self._jacobian[2, 5]
+
     @property
-    def dpy(self) -> float: return self._J[3, 5]
+    def dpy(self) -> float:
+        return self._jacobian[3, 5]
 
     def to_dict(self) -> dict[str, float]:
         """All optical function values as ``{name: value}``."""
@@ -100,9 +123,9 @@ class TpsaOptics:
     # --- parameter gradients ------------------------------------------------- #
 
     def _need_parameters(self) -> None:
-        if self._np == 0:
+        if self._num_params == 0:
             raise ValueError("no parameters: use a descriptor with num_params > 0")
-        if not self._has_order2:
+        if self._map.order < 2:
             raise ValueError("parameter gradient needs a map of order >= 2 "
                              "(the mixed d A/d parameter is an order-2 term)")
 
@@ -119,32 +142,51 @@ class TpsaOptics:
 
     def _grad_bet(self, plane: str) -> np.ndarray:
         i0, j0 = _PLANE[plane]
-        return (2 * self._J[i0, j0] * self._dJij(i0, j0)
-                + 2 * self._J[i0, j0 + 1] * self._dJij(i0, j0 + 1))
+        return (2 * self._jacobian[i0, j0] * self._dJij(i0, j0)
+                + 2 * self._jacobian[i0, j0 + 1] * self._dJij(i0, j0 + 1))
 
     def _grad_alf(self, plane: str) -> np.ndarray:
         i0, j0 = _PLANE[plane]
-        J = self._J
+        J = self._jacobian
         return -(self._dJij(i0, j0) * J[i0 + 1, j0] + J[i0, j0] * self._dJij(i0 + 1, j0)
                  + self._dJij(i0, j0 + 1) * J[i0 + 1, j0 + 1]
                  + J[i0, j0 + 1] * self._dJij(i0 + 1, j0 + 1))
 
     def _grad_mu(self, plane: str) -> np.ndarray:
         i0, j0 = _PLANE[plane]
-        a11, a12 = self._J[i0, j0], self._J[i0, j0 + 1]
+        a11, a12 = self._jacobian[i0, j0], self._jacobian[i0, j0 + 1]
         return ((a11 * self._dJij(i0, j0 + 1) - a12 * self._dJij(i0, j0))
-                / (a11 ** 2 + a12 ** 2) / _TWO_PI)
+                / (a11 ** 2 + a12 ** 2) / (2.0 * np.pi))
 
-    def _grad_betx(self): return self._grad_bet("x")
-    def _grad_bety(self): return self._grad_bet("y")
-    def _grad_alfx(self): return self._grad_alf("x")
-    def _grad_alfy(self): return self._grad_alf("y")
-    def _grad_mux(self): return self._grad_mu("x")
-    def _grad_muy(self): return self._grad_mu("y")
-    def _grad_dx(self): return self._dJij(0, 5)
-    def _grad_dpx(self): return self._dJij(1, 5)
-    def _grad_dy(self): return self._dJij(2, 5)
-    def _grad_dpy(self): return self._dJij(3, 5)
+    def _grad_betx(self):
+        return self._grad_bet("x")
+
+    def _grad_bety(self):
+        return self._grad_bet("y")
+
+    def _grad_alfx(self):
+        return self._grad_alf("x")
+
+    def _grad_alfy(self):
+        return self._grad_alf("y")
+
+    def _grad_mux(self):
+        return self._grad_mu("x")
+
+    def _grad_muy(self):
+        return self._grad_mu("y")
+
+    def _grad_dx(self):
+        return self._dJij(0, 5)
+
+    def _grad_dpx(self):
+        return self._dJij(1, 5)
+
+    def _grad_dy(self):
+        return self._dJij(2, 5)
+
+    def _grad_dpy(self):
+        return self._dJij(3, 5)
 
     def __repr__(self) -> str:
         return (f"TpsaOptics(betx={self.betx:.6g}, bety={self.bety:.6g}, "

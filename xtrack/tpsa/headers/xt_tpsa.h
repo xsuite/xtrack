@@ -10,6 +10,8 @@
 #include "mad_tpsa.hpp"
 
 namespace xt_tpsa {
+// Extend mad::tpsa so scalar constants can be promoted through normal C++
+// construction syntax, e.g. `tpsa a = 7.0;`, using the active prototype.
 struct tpsa : public mad::tpsa {
     inline static thread_local tpsa_t* default_proto = nullptr;
 
@@ -40,6 +42,8 @@ struct tpsa : public mad::tpsa {
     }
 };
 
+// Keep this scope alive for the full lifetime of TPSA tracking, or for any
+// other operation that may construct xt_tpsa::tpsa values from scalar constants.
 struct default_scope {
     default_scope(tpsa_t* proto) {
         tpsa::default_proto = proto;
@@ -57,6 +61,7 @@ static inline double xt_num_truncate_to_double(xt_num_arg_t value){
     return value[0];
 }
 
+// Define relational operators between TPSAs and between TPSAs and scalars.
 #define XT_TPSA_REL(OP) \
   template<class A> inline bool operator OP (const mad::tpsa_base<A>& a, double b){ return a[0] OP b; } \
   template<class A> inline bool operator OP (double a, const mad::tpsa_base<A>& b){ return a OP b[0]; } \
@@ -64,6 +69,9 @@ static inline double xt_num_truncate_to_double(xt_num_arg_t value){
 XT_TPSA_REL(>) XT_TPSA_REL(<) XT_TPSA_REL(>=) XT_TPSA_REL(<=) XT_TPSA_REL(==) XT_TPSA_REL(!=)
 #undef XT_TPSA_REL
 
+// TPSA tracking does not inspect synchrotron radiation records, but generated
+// kernels still reference this type. Keep it opaque to avoid pulling in the
+// normal record layout for TPSA-only compilation.
 typedef void* SynchrotronRadiationRecordData;
 
 // Decode a scalar FloatOrTpsa slot stored as raw uint64_t bits.
