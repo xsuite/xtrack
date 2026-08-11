@@ -382,7 +382,7 @@ class Line:
     @doc_group("Constructors and Serialization")
     @classmethod
     def from_dict(cls, dct, _context=None, _buffer=None, classes=(),
-                  verbose=True, _env=None):
+                  verbose=True, _env=None, with_progress=True):
 
         """
         Create a Line object from a dictionary.
@@ -400,6 +400,9 @@ class Line:
         classes : list of classes, optional
             List of classes to be used for deserializing the elements. If not
             provided, the default classes are used.
+        with_progress : bool, optional
+            Whether to show progress while deserializing elements. Defaults to
+            ``True``.
 
         Returns
         -------
@@ -450,7 +453,8 @@ class Line:
                     nn: ee for nn, ee in zip(dct['element_names'], ele_list)}
 
             elements = xt.environment._deserialize_elements(dct=dct, classes=classes,
-                                             _buffer=_buffer, _context=_context)
+                                             _buffer=_buffer, _context=_context,
+                                             with_progress=with_progress)
             env = xt.Environment(
                 element_dict=elements,
                 _var_management_dct=var_management_dict)
@@ -689,7 +693,8 @@ class Line:
         allow_thick=None,
         name_prefix=None,
         enable_layout_data=False,
-        enable_thick_kickers=True
+        enable_thick_kickers=True,
+        with_progress=True,
     ):
         """
         Build a line from a MAD-X sequence.
@@ -729,6 +734,9 @@ class Line:
             if a thick element is encountered.
         enable_layout_data: bool, optional
             If true, the layout data is imported.
+        with_progress : bool, optional
+            Whether to show progress while converting elements. Defaults to
+            ``True``.
 
         Returns
         -------
@@ -760,7 +768,7 @@ class Line:
             name_prefix=name_prefix,
             enable_layout_data=enable_layout_data,
         )
-        line = loader.make_line()
+        line = loader.make_line(with_progress=with_progress)
         return line
 
     @doc_group("Constructors and Serialization")
@@ -2221,7 +2229,7 @@ class Line:
         return xt.Table(cols, index='name')
 
     @doc_group("Line Editing")
-    def slice_thick_elements(self, slicing_strategies):
+    def slice_thick_elements(self, slicing_strategies, with_progress=True):
         """
         Slice thick elements in the line. Slicing is done in place.
 
@@ -2230,6 +2238,8 @@ class Line:
         slicing_strategies : list
             List of slicing Strategy objects. In case multiple strategies
             apply to the same element, the last one takes precedence)
+        with_progress : bool, optional
+            Whether to show progress while slicing. Defaults to ``True``.
 
         Examples
         --------
@@ -2260,7 +2270,7 @@ class Line:
         self._element_names_before_slicing = list(self.element_names).copy()
 
         slicer = Slicer(self, slicing_strategies)
-        return slicer.slice_in_place()
+        return slicer.slice_in_place(with_progress=with_progress)
 
     @doc_group("Reference Particle and Particle Generation")
     def build_particles(
@@ -2474,6 +2484,7 @@ class Line:
         polarization=None,
         eneloss_and_damping=None,
         steps_r_matrix=None, *,
+        with_progress=True,
         chi=None, charge_ratio=None, mass_ratio=None,
     ):
         if not self._has_valid_tracker():
@@ -3627,7 +3638,8 @@ class Line:
         return cuts_for_element
 
     @doc_group("Line Editing")
-    def cut_at_s(self, s: Iterable[float], s_tol=1e-6, return_slices=False):
+    def cut_at_s(self, s: Iterable[float], s_tol=1e-6, return_slices=False,
+                 with_progress=True):
         """
         Slice the line in place at positions ``s``.
 
@@ -3640,6 +3652,8 @@ class Line:
             an existing boundary.
         return_slices : bool, optional
             If ``True``, return the slice information produced by the slicer.
+        with_progress : bool, optional
+            Whether to show progress while slicing. Defaults to ``True``.
 
         Returns
         -------
@@ -3692,7 +3706,7 @@ class Line:
             strategies.append(strategy)
 
         slicer = Slicer(self, slicing_strategies=strategies)
-        slices = slicer.slice_in_place()
+        slices = slicer.slice_in_place(with_progress=with_progress)
 
         if return_slices:
             return slices
@@ -3770,7 +3784,7 @@ class Line:
 
     @doc_group("Line Editing")
     def insert(self, what, obj=None, at=None, from_=None, anchor=None,
-               from_anchor=None, s_tol=1e-10):
+               from_anchor=None, s_tol=1e-10, with_progress=True):
         """
         Insert elements in the line.
 
@@ -3799,6 +3813,9 @@ class Line:
         from_anchor : str (optional)
             Location within the element specified by `from_` for which `at` is defined.
             It can be 'start', 'end' or 'center'. Default is 'center'.
+        with_progress : bool, optional
+            Whether to show progress while slicing at insertion boundaries.
+            Defaults to ``True``.
 
         Example
         -------
@@ -3897,7 +3914,9 @@ class Line:
         s_cuts = list(tab_insertions['s_start']) + list(tab_insertions['s_end'])
         s_cuts = list(set(s_cuts))
 
-        self.cut_at_s(s_cuts, s_tol=s_tol, return_slices=True)
+        self.cut_at_s(
+            s_cuts, s_tol=s_tol, return_slices=True,
+            with_progress=with_progress)
 
         tt_after_cut = self.get_table()
         tt_after_cut['length'] = np.diff(tt_after_cut.s, append=tt_after_cut.s[-1])
@@ -4092,7 +4111,7 @@ class Line:
     # To be deprecated in favor of Line.insert
     @doc_group("Deprecated")
     def insert_element(self, name, element=None, at=None, index=None, at_s=None,
-                       s_tol=1e-6):
+                       s_tol=1e-6, with_progress=True):
         """Insert an element in the line.
 
         .. warning:: This method is deprecated. Use :meth:`Line.insert` instead.
@@ -4111,6 +4130,9 @@ class Line:
             must be None.
         s_tol: float, optional
             Tolerance for the position of the element in the line in meters.
+        with_progress : bool, optional
+            Whether to show progress while slicing at insertion boundaries.
+            Defaults to ``True``.
         """
         warn('Line.insert_element is deprecated. Use Line.insert instead.'
              + DEPRECATION_INFO_PREP_1_0, FutureWarning)
@@ -4169,7 +4191,8 @@ class Line:
             i_closest = np.argmin(np.abs(s_vect_upstream - at_s))
             if np.abs(s_vect_upstream[i_closest] - at_s) < s_tol:
                 return self.insert_element(
-                    index=i_closest, element=element, name=name)
+                    index=i_closest, element=element, name=name,
+                    with_progress=with_progress)
 
         s_start_ele = at_s
         if _is_thick(element, self) and np.abs(_length(element, self)) > 0:
@@ -4177,7 +4200,8 @@ class Line:
         else:
             s_end_ele = s_start_ele
 
-        self.cut_at_s([s_start_ele, s_end_ele])
+        self.cut_at_s(
+            [s_start_ele, s_end_ele], with_progress=with_progress)
 
         s_vect_upstream = np.array(self._get_s_position(mode='upstream'))
         if _is_thick(element, self) and _length(element, self) > 0:
@@ -5462,7 +5486,7 @@ class Line:
         return elements, names
 
     @doc_group("Upcoming Deprecations")
-    def check_aperture(self, needs_aperture=[]):
+    def check_aperture(self, needs_aperture=[], with_progress=True):
 
         '''Check that all active elements have an associated aperture.
 
@@ -5470,6 +5494,9 @@ class Line:
         ----------
         needs_aperture : list of str
             Names of inactive elements that also need an aperture.
+        with_progress : bool, optional
+            Whether to show progress while checking elements. Defaults to
+            ``True``.
 
         Returns
         -------
@@ -5524,7 +5551,12 @@ class Line:
         i_prev_aperture = elements_df[elements_df['is_aperture']].index[0]
         i_next_aperture = 0
 
-        for iee in progress(range(i_prev_aperture, num_elements), desc='Checking aperture'):
+        element_indices = range(i_prev_aperture, num_elements)
+        if with_progress:
+            element_indices = progress(
+                element_indices, desc='Checking aperture')
+
+        for iee in element_indices:
             if elements_df.loc[iee, 'is_aperture']:
                 i_prev_aperture = iee
                 continue
@@ -7391,7 +7423,8 @@ class Line:
         )
         return cache
 
-    def _insert_thin_elements_at_s(self, elements_to_insert, s_tol=0.5e-6):
+    def _insert_thin_elements_at_s(self, elements_to_insert, s_tol=0.5e-6,
+                                   with_progress=True):
 
         '''
         Example:
@@ -7415,10 +7448,10 @@ class Line:
                 this_ins.append(nn)
             insertions.append(env.place(this_ins, at=ss))
 
-        self.insert(insertions)
+        self.insert(insertions, with_progress=with_progress)
 
     def _insert_thick_elements_at_s(self, element_names, elements,
-                                    at_s, s_tol=1e-6):
+                                    at_s, s_tol=1e-6, with_progress=True):
 
         self._method_incompatible_with_compose()
 
@@ -7435,7 +7468,8 @@ class Line:
             self.env.elements[nn] = ee
             insertions.append(self.env.place(nn, at=ss, anchor='start'))
 
-        self.insert(insertions, s_tol=s_tol)
+        self.insert(
+            insertions, s_tol=s_tol, with_progress=with_progress)
 
     @property
     def _line_before_slicing(self):

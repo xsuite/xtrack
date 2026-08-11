@@ -90,6 +90,7 @@ def twiss_line(line, particle_ref=None, method=None,
         polarization=None,
         eneloss_and_damping=None,
         steps_r_matrix=None, *,
+        with_progress=True,
         chi=None, charge_ratio=None, mass_ratio=None,
     ):
     """
@@ -117,6 +118,9 @@ def twiss_line(line, particle_ref=None, method=None,
         Relative rest mass ``mass / mass0``. If provided alone, the
         ``charge_ratio`` of ``particle_ref`` is preserved and ``chi`` is
         adjusted consistently.
+    with_progress : bool, optional
+        Whether to show progress when temporary slicing is needed for ``at_s``.
+        Defaults to ``True``.
     start : str, optional
         Name of the element at which the computation starts. If not provided,
         the periodic solution is computed. Initial conditions must be provided if

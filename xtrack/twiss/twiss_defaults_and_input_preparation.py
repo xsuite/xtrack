@@ -327,7 +327,8 @@ def _prepare_twiss_at_s_markers(twiss_config):
             tracker=twiss_config['line'].tracker,
             at_s=twiss_config['at_s'],
             marker_prefix='inserted_twiss_marker',
-            algorithm='insert'))
+            algorithm='insert',
+            with_progress=twiss_config['with_progress']))
     twiss_config['line'] = auxtracker.line
     twiss_config['at_elements'] = names_inserted_markers
     twiss_config['at_s'] = None
@@ -335,7 +336,7 @@ def _prepare_twiss_at_s_markers(twiss_config):
 
 
 def _build_auxiliary_tracker_with_extra_markers(
-        tracker, at_s, marker_prefix, algorithm='auto'):
+        tracker, at_s, marker_prefix, algorithm='auto', with_progress=True):
 
     import xtrack as xt  # Local import avoids circular imports.
 
@@ -358,7 +359,7 @@ def _build_auxiliary_tracker_with_extra_markers(
         name = marker_prefix + f'{ii}'
         insertions.append(auxline.env.new(name, 'Marker', at=ss))
         names_inserted_markers.append(name)
-    auxline.insert(insertions)
+    auxline.insert(insertions, with_progress=with_progress)
 
     auxtracker = xt.Tracker(
         _buffer=tracker._buffer,

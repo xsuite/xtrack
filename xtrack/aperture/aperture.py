@@ -137,6 +137,7 @@ class Aperture:
         s_tol=1e-6,
         is_ring: bool | Literal['auto'] = 'auto',
         _skip_validity_check=False,
+        with_progress=True,
     ):
         """Bind an aperture model to a line and precompute the derived geometry."""
         self.line = line
@@ -158,7 +159,10 @@ class Aperture:
 
         self._aperture_bounds: ApertureBounds | None = None
         self._profile_polygons: ProfilePolygons | None = None
-        self._build_aperture_bounds(check_validity=not _skip_validity_check)
+        self._build_aperture_bounds(
+            check_validity=not _skip_validity_check,
+            with_progress=with_progress,
+        )
 
         if halo_params is not None:
             self.halo_params.update(halo_params)
@@ -229,7 +233,7 @@ class Aperture:
 
     @doc_group("Loading and Serialization")
     @classmethod
-    def from_json(cls, filename, line, **kwargs):
+    def from_json(cls, filename, line, with_progress=True, **kwargs):
         """Load an aperture from JSON and bind it to ``line``."""
         context = kwargs.pop('context', None)
         if context is None:
@@ -244,12 +248,15 @@ class Aperture:
             halo_params=halo_params,
             is_ring=ring,
             context=context,
+            with_progress=with_progress,
             **kwargs,
         )
 
     @doc_group("Loading and Serialization")
     @classmethod
-    def from_line_with_madx_metadata(cls, line, include_offsets=True, context=None, **kwargs):
+    def from_line_with_madx_metadata(
+            cls, line, include_offsets=True, context=None,
+            with_progress=True, **kwargs):
         """Build an aperture from MAD-X layout metadata attached to a line."""
         survey = line.survey()
         survey_names = survey.name[:-1]  # _end_point is not an element
@@ -261,11 +268,13 @@ class Aperture:
         else:
             aperture_offsets = {}
 
-        name_iter_with_progress = progress(
-            survey_names,
-            desc="Building apertures",
-            total=len(survey_names),
-        )
+        survey_names_iter = survey_names
+        if with_progress:
+            survey_names_iter = progress(
+                survey_names,
+                desc="Building apertures",
+                total=len(survey_names),
+            )
 
         profiles = []
         pipes = []
@@ -273,7 +282,7 @@ class Aperture:
         pipe_positions_list = []
         pipe_position_names = []
 
-        for element_name in name_iter_with_progress:
+        for element_name in survey_names_iter:
             element = line[element_name]
 
             # Discard line name suffix to get the aperture name
@@ -392,13 +401,15 @@ class Aperture:
             profile_indices=aperture_indices,
             profile_list=profiles,
             context=context,
+            with_progress=with_progress,
             **kwargs,
         )
         return aperture
 
     @doc_group("Loading and Serialization")
     @classmethod
-    def from_line_with_associated_apertures(cls, line, context=None, **kwargs):
+    def from_line_with_associated_apertures(
+            cls, line, context=None, with_progress=True, **kwargs):
         """Build an aperture from Xsuite elements that reference associated apertures."""
         survey = line.survey()
         survey_names = survey.name[:-1]  # _end_point is not an element
@@ -410,7 +421,13 @@ class Aperture:
         pipe_positions_list = []
         pipe_position_names = []
 
-        for survey_name in progress(survey_names, desc="Building aperture data", total=len(survey_names)):
+        survey_names_iter = survey_names
+        if with_progress:
+            survey_names_iter = progress(
+                survey_names, desc="Building aperture data",
+                total=len(survey_names))
+
+        for survey_name in survey_names_iter:
             element = line[survey_name]
             aper_name = getattr(element, 'name_associated_aperture', None)
 
@@ -483,13 +500,15 @@ class Aperture:
             profile_indices=aperture_indices,
             profile_list=profiles,
             context=context,
+            with_progress=with_progress,
             **kwargs,
         )
         return aperture
 
     @doc_group("Loading and Serialization")
     @classmethod
-    def from_line_with_limits(cls, line, context=None, **kwargs):
+    def from_line_with_limits(
+            cls, line, context=None, with_progress=True, **kwargs):
         """Build an aperture from limit elements installed in the line."""
         survey = line.survey()
         survey_names = survey.name[:-1]  # _end_point is not a limit
@@ -503,7 +522,13 @@ class Aperture:
 
         aper_idx = 0
 
-        for name in progress(survey_names, desc="Building aperture data", total=len(survey_names)):
+        survey_names_iter = survey_names
+        if with_progress:
+            survey_names_iter = progress(
+                survey_names, desc="Building aperture data",
+                total=len(survey_names))
+
+        for name in survey_names_iter:
             element = line[name]
             # TODO: Revert to using LimitElement directly once Python 3.11 is dropped.
             if not isinstance(element, get_args(LimitElement)):
@@ -548,6 +573,7 @@ class Aperture:
             profile_indices=indices,
             profile_list=profiles,
             context=context,
+            with_progress=with_progress,
             **kwargs,
         )
         return aperture
@@ -654,6 +680,7 @@ class Aperture:
             num_rays: int = 32,
             output_max_envelopes: bool = False,
             output_cross_sections: bool = False,
+            with_progress: bool = True,
     ) -> tuple[Table, TwissTable]:
         """Compute the maximum number of sigmas at which the beam fits in the aperture at the given ``s_positions``.
 
@@ -682,6 +709,9 @@ class Aperture:
             If true, output beam-envelope polygons at the computed `n1`.
         output_cross_sections:
             If true, output interpolated aperture cross-sections.
+        with_progress:
+            Whether to show progress while slicing the line. Defaults to
+            ``True``.
 
         Returns
         -------
@@ -691,7 +721,9 @@ class Aperture:
         - if ``output_max_envelopes`` is true, ``table`` also contains ``envelope``.
         - ``sliced_twiss`` is the twiss table computed as part of the calculation.
         """
-        sliced_twiss = self._sliced_twiss_at_s(s_positions=s_positions, twiss_init=twiss_init)
+        sliced_twiss = self._sliced_twiss_at_s(
+            s_positions=s_positions, twiss_init=twiss_init,
+            with_progress=with_progress)
         table = self.get_aperture_sigmas_for_twiss(
             sliced_twiss=sliced_twiss,
             method=method,
@@ -845,6 +877,7 @@ class Aperture:
             element_name: str,
             resolution: float | None = None,
             twiss: TwissTable | None = None,
+            with_progress: bool = True,
     ) -> tuple[Table, TwissTable]:
         """Compute horizontal, vertical and diagonal (45°) max aperture sigmas at element ``element_name``.
 
@@ -866,13 +899,16 @@ class Aperture:
         """
         s_positions = self._get_cuts_at_element(element_name, resolution)
         twiss_init = twiss.get_twiss_init(at_element=element_name) if twiss else None
-        return self.get_hvd_aperture_sigmas_at_s(s_positions=s_positions, twiss_init=twiss_init)
+        return self.get_hvd_aperture_sigmas_at_s(
+            s_positions=s_positions, twiss_init=twiss_init,
+            with_progress=with_progress)
 
     @doc_group("Aperture Computations")
     def get_hvd_aperture_sigmas_at_s(
             self,
             s_positions: Iterable[float],
             twiss_init: TwissInit | None = None,
+            with_progress: bool = True,
     ) -> tuple[Table, TwissTable]:
         """Compute horizontal, vertical and diagonal (45°) max aperture sigmas at the given ``s_positions``.
 
@@ -882,6 +918,9 @@ class Aperture:
             Locations at which to compute the desired quantities.
         twiss_init
             Initial conditions for the twiss.
+        with_progress
+            Whether to show progress while slicing the line. Defaults to
+            ``True``.
 
         Returns
         -------
@@ -891,7 +930,9 @@ class Aperture:
           ``cross_section``.
         - ``sliced_twiss`` is the twiss table computed as part of the calculation.
         """
-        sliced_twiss = self._sliced_twiss_at_s(s_positions=s_positions, twiss_init=twiss_init)
+        sliced_twiss = self._sliced_twiss_at_s(
+            s_positions=s_positions, twiss_init=twiss_init,
+            with_progress=with_progress)
         num_slices = len(sliced_twiss.s)
 
         twiss_at_s = TwissData.from_twiss_table(self.line.particle_ref, sliced_twiss)
@@ -981,6 +1022,7 @@ class Aperture:
             include_aper_tols: bool = True,
             polygons: bool = True,
             extents: bool = False,
+            with_progress: bool = True,
     ) -> tuple[Table, TwissTable]:
         """Compute beam-envelope polygons at the requested ``s_positions`` for a fixed sigma value.
 
@@ -1000,6 +1042,9 @@ class Aperture:
             Whether to include the beam-envelope polygons in the output table.
         extents
             Whether to include the horizontal and vertical envelope extents.
+        with_progress
+            Whether to show progress while slicing the line. Defaults to
+            ``True``.
 
         Returns
         -------
@@ -1008,7 +1053,9 @@ class Aperture:
           the requested polygon and extent outputs.
         - ``sliced_twiss`` is the twiss table computed as part of the calculation.
         """
-        sliced_twiss = self._sliced_twiss_at_s(s_positions=s_positions, twiss_init=twiss_init)
+        sliced_twiss = self._sliced_twiss_at_s(
+            s_positions=s_positions, twiss_init=twiss_init,
+            with_progress=with_progress)
         envelope_table = self.get_envelope_for_twiss(
             sliced_twiss=sliced_twiss,
             sigmas=sigmas,
@@ -1213,6 +1260,7 @@ class Aperture:
         include_aper_tols: bool = False,
         plot_s_positions: Collection[float] | None = None,
         axs=None,
+        with_progress: bool = True,
     ):
         """Plot beam-envelope and aperture extents along the beam line.
 
@@ -1243,6 +1291,9 @@ class Aperture:
         axs
             Two axes on which to draw the horizontal and vertical extents. If
             not provided, a new figure with two shared-x subplots is created.
+        with_progress
+            Whether to show progress while slicing the line. Defaults to
+            ``True``.
 
         Returns
         -------
@@ -1265,6 +1316,7 @@ class Aperture:
         sliced_twiss = self._sliced_twiss_at_s(
             s_positions=s_sorted,
             twiss_init=twiss_init,
+            with_progress=with_progress,
         )
         sigmas_was_computed = sigmas is None
         if sigmas is None:
@@ -1340,6 +1392,7 @@ class Aperture:
             twiss_init: TwissInit | None = None,
             middle='beam',
             ax=None,
+            with_progress: bool = True,
     ):
         """Display transverse aperture cross-sections and beam envelopes.
 
@@ -1366,6 +1419,9 @@ class Aperture:
             Whether the plot should be centred around the ``aperture`` middle, or ``beam`` reference.
         ax
             Axes object to plot on, if not given, spawn a new one.
+        with_progress
+            Whether to show progress while slicing the line. Defaults to
+            ``True``.
 
         Returns
         -------
@@ -1393,6 +1449,7 @@ class Aperture:
                 envelopes_num_points=128,
                 output_max_envelopes=True,
                 output_cross_sections=True,
+                with_progress=with_progress,
             )
             sigmas = float(np.min(n1_tab.n1))
             beam_tols = n1_tab.envelope
@@ -1404,6 +1461,7 @@ class Aperture:
             sliced_twiss = self._sliced_twiss_at_s(
                 s_positions=s_positions,
                 twiss_init=twiss_init,
+                with_progress=with_progress,
             )
             beam_tols = self.get_envelope_for_twiss(
                 sliced_twiss=sliced_twiss,
@@ -1521,7 +1579,7 @@ class Aperture:
 
         return s_positions
 
-    def _build_aperture_bounds(self, check_validity=True):
+    def _build_aperture_bounds(self, check_validity=True, with_progress=True):
         # Pre-allocate the cross-sections with the correct sizes
         num_points = self.num_profile_points
         num_cross_sections = sum(len(self._model.pipe_for_position(pipe_pos).positions) for pipe_pos in self._model.pipe_positions)
@@ -1544,7 +1602,12 @@ class Aperture:
             _context=self.context,
         )
 
-        cross_section_idx_iter = iter(progress(range(num_cross_sections), desc='Building cross-sections', total=num_cross_sections))
+        cross_section_indices = range(num_cross_sections)
+        if with_progress:
+            cross_section_indices = progress(
+                cross_section_indices, desc='Building cross-sections',
+                total=num_cross_sections)
+        cross_section_idx_iter = iter(cross_section_indices)
 
         for pipe_pos_idx, pipe_pos in enumerate(cast(Iterable[PipePosition], self._model.pipe_positions)):
             pipe = self._model.pipe_for_position(pipe_pos)
@@ -1894,6 +1957,7 @@ class Aperture:
             self,
             s_positions: Iterable[float],
             twiss_init: TwissInit | None = None,
+            with_progress: bool = True,
     ) -> TwissTable:
         """Get a twiss table for the line with entries at each requested `s`.
 
@@ -1903,10 +1967,12 @@ class Aperture:
             s-positions for the sliced twiss.
         twiss_init
             Initial conditions for the twiss.
+        with_progress
+            Whether to show progress while slicing the line.
         """
         s_positions = np.array(s_positions, dtype=FloatType._dtype)
         line_sliced = self.line.copy()
-        line_sliced.cut_at_s(s_positions)
+        line_sliced.cut_at_s(s_positions, with_progress=with_progress)
 
         full_twiss = line_sliced.twiss(init=twiss_init, reverse=False)
 

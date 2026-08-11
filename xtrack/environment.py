@@ -824,9 +824,15 @@ class Environment:
         xtrack._passed_env = None
 
     @doc_group("Constructors and Serialization")
-    def copy(self):
+    def copy(self, with_progress=True):
         """
         Create a deep copy of the environment.
+
+        Parameters
+        ----------
+        with_progress : bool, optional
+            Whether to show progress while copying elements. Defaults to
+            ``True``.
 
         Returns
         -------
@@ -834,7 +840,8 @@ class Environment:
             Independent copy of the environment, including elements, lines,
             particles, variables, expressions and metadata.
         """
-        return self.__class__.from_dict(self.to_dict())
+        return self.__class__.from_dict(
+            self.to_dict(), with_progress=with_progress)
 
     def _copy_element_from(self, name, source, new_name=None):
         """Copy an element from another environment.
@@ -1129,7 +1136,8 @@ class Environment:
 
     @doc_group("Constructors and Serialization")
     @classmethod
-    def from_dict(cls, dct, _context=None, _buffer=None, classes=()):
+    def from_dict(cls, dct, _context=None, _buffer=None, classes=(),
+                  with_progress=True):
         """
         Rebuild an environment from a serialized dictionary.
 
@@ -1143,6 +1151,9 @@ class Environment:
             Buffer used to rebuild xobjects-backed data.
         classes : tuple, optional
             Extra element classes accepted during element deserialization.
+        with_progress : bool, optional
+            Whether to show progress while deserializing elements. Defaults to
+            ``True``.
 
         Returns
         -------
@@ -1162,7 +1173,8 @@ class Environment:
                       f'package to the latest version.')
 
         elements = _deserialize_elements(dct=dct, classes=classes,
-                                         _buffer=_buffer, _context=_context)
+                                         _buffer=_buffer, _context=_context,
+                                         with_progress=with_progress)
         particles = {}
         if 'particles' in dct:
             for nn, ppd in dct['particles'].items():
@@ -1537,7 +1549,7 @@ class Environment:
                     ] + object.__dir__(self)
 
     @doc_group("Deprecated")
-    def set_multipolar_errors(env, errors):
+    def set_multipolar_errors(env, errors, with_progress=True):
         """Deprecated: set multipolar errors for specified elements of the environment.
 
         .. warning:: This function is deprecated and will be removed in a future
@@ -1556,6 +1568,9 @@ class Environment:
                multiplied by the length. If None, the default reference strength
                is used (k0 for bends, k1 for quadrupoles, k2 for sextupoles,
                and k3 for octupoles).
+        with_progress : bool, optional
+            Whether to show progress while applying errors. Defaults to
+            ``True``.
 
         Examples
         --------
@@ -1586,7 +1601,12 @@ class Environment:
              + DEPRECATION_INFO_PREP_1_0,
              FutureWarning)
 
-        for ele_name in progress(errors.keys(), desc='Setting multipolar errors'):
+        error_names = errors.keys()
+        if with_progress:
+            error_names = progress(
+                error_names, desc='Setting multipolar errors')
+
+        for ele_name in error_names:
 
             err = errors[ele_name]
             rel_knl = err.get('rel_knl', [])
@@ -3169,19 +3189,27 @@ def _reverse_element(env, name):
 
 
 
-def _deserialize_elements(dct, classes, _buffer, _context):
+def _deserialize_elements(dct, classes, _buffer, _context,
+                          with_progress=True):
     class_dict = xt.line.mk_class_namespace(classes)
 
     _buffer = xo.get_a_buffer(context=_context, buffer=_buffer,size=8)
 
     if isinstance(dct['elements'], dict):
         elements = {}
-        for (kk, ee) in progress(dct['elements'].items(), desc='Loading line from dict'):
+        element_items = dct['elements'].items()
+        if with_progress:
+            element_items = progress(
+                element_items, desc='Loading line from dict')
+        for kk, ee in element_items:
             elements[kk] = xt.line._deserialize_element(ee, class_dict, _buffer)
     elif isinstance(dct['elements'], list):
         elements = []
-        for ii, ee in enumerate(
-                progress(dct['elements'], desc='Loading line from dict')):
+        serialized_elements = dct['elements']
+        if with_progress:
+            serialized_elements = progress(
+                serialized_elements, desc='Loading line from dict')
+        for ii, ee in enumerate(serialized_elements):
             elements.append(xt.line._deserialize_element(ee, class_dict, _buffer))
     else:
         raise ValueError('Field `elements` must be a dict or a list')

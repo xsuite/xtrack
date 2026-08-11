@@ -231,7 +231,7 @@ class Slicer:
                                     ] + slicing_strategies
         self._has_expressions = line.vars is not None
 
-    def slice_in_place(self, _edge_markers=True):
+    def slice_in_place(self, _edge_markers=True, with_progress=True):
 
         self._line._frozen_check()
 
@@ -241,7 +241,10 @@ class Slicer:
         assert tt.name[-1] == '_end_point'
         tt = tt.rows[:-1]
         slices = {}
-        for ii, nn in enumerate(progress(tt.name, desc='Slicing line')):
+        element_names_iter = tt.name
+        if with_progress:
+            element_names_iter = progress(tt.name, desc='Slicing line')
+        for ii, nn in enumerate(element_names_iter):
             env_name = tt.env_name[ii]
             element = self._line.element_dict[env_name]
 
