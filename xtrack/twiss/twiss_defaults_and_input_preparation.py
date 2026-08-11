@@ -219,6 +219,26 @@ def _normalize_line_dependent_twiss_inputs(twiss_config):
         elif twiss_config['co_guess'] is None and hasattr(twiss_config['line'], 'particle_ref'):
             twiss_config['particle_ref'] = twiss_config['line'].particle_ref
 
+    species_ratios_provided = any(
+        twiss_config[name] is not None
+        for name in ('chi', 'charge_ratio', 'mass_ratio'))
+    if species_ratios_provided:
+        if (twiss_config['particle_on_co'] is not None
+                or twiss_config['co_guess'] is not None):
+            raise ValueError(
+                '``chi``, ``charge_ratio``, and ``mass_ratio`` cannot be used '
+                'together with ``particle_on_co`` or ``co_guess``. Set the '
+                'species ratios directly on the supplied particle instead.')
+        if twiss_config['particle_ref'] is None:
+            raise ValueError(
+                'A reference particle is required when specifying ``chi``, '
+                '``charge_ratio``, or ``mass_ratio``.')
+        twiss_config['particle_ref'] = _copy_particle_with_species_ratios(
+            particle=twiss_config['particle_ref'],
+            chi=twiss_config['chi'],
+            charge_ratio=twiss_config['charge_ratio'],
+            mass_ratio=twiss_config['mass_ratio'])
+
     if twiss_config['line'].iscollective and not twiss_config['include_collective']:
         _print(
             'The line has collective elements.\n'
@@ -238,6 +258,27 @@ def _normalize_line_dependent_twiss_inputs(twiss_config):
             and (twiss_config['delta0'] is not None or twiss_config['zeta0'] is not None)):
         raise ValueError(
             'delta0 and zeta0 cannot be provided for open twiss')
+
+
+def _copy_particle_with_species_ratios(
+        particle, chi=None, charge_ratio=None, mass_ratio=None):
+    """Copy a reference particle and consistently override species ratios."""
+
+    particle = particle.copy()
+    num_provided = sum(
+        value is not None for value in (chi, charge_ratio, mass_ratio))
+
+    if num_provided == 1:
+        if chi is not None:
+            charge_ratio = particle.charge_ratio[0]
+        elif charge_ratio is not None:
+            mass_ratio = particle.mass_ratio[0]
+        else:
+            charge_ratio = particle.charge_ratio[0]
+
+    particle._update_chi_charge_ratio(
+        chi=chi, charge_ratio=charge_ratio, mass_ratio=mass_ratio)
+    return particle
 
 
 def _resolve_twiss_range_endpoint(line, endpoint, reverse):

@@ -89,7 +89,8 @@ def twiss_line(line, particle_ref=None, method=None,
         freeze_energy=None,
         polarization=None,
         eneloss_and_damping=None,
-        steps_r_matrix=None,
+        steps_r_matrix=None, *,
+        chi=None, charge_ratio=None, mass_ratio=None,
     ):
     """
     Compute the Twiss parameters of the beam line. If no initial conditions
@@ -101,6 +102,21 @@ def twiss_line(line, particle_ref=None, method=None,
     method : {'6d', '4d'}, optional
         Method to be used for the computation. If '6d' the full 6D
         normal form is used. If '4d' the 4D normal form is used.
+    particle_ref : xpart.Particles, optional
+        Reference particle used to search for the closed orbit. If not provided,
+        ``line.particle_ref`` is used.
+    chi : float, optional
+        Relative charge-to-mass ratio ``q / q0 * mass0 / mass``. The particle
+        used for the Twiss calculation is a copy; ``particle_ref`` is not
+        modified. If provided alone, its ``charge_ratio`` is preserved and
+        ``mass_ratio`` is adjusted consistently.
+    charge_ratio : float, optional
+        Relative charge ``q / q0``. If provided alone, the ``mass_ratio`` of
+        ``particle_ref`` is preserved and ``chi`` is adjusted consistently.
+    mass_ratio : float, optional
+        Relative rest mass ``mass / mass0``. If provided alone, the
+        ``charge_ratio`` of ``particle_ref`` is preserved and ``chi`` is
+        adjusted consistently.
     start : str, optional
         Name of the element at which the computation starts. If not provided,
         the periodic solution is computed. Initial conditions must be provided if

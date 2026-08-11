@@ -13,6 +13,7 @@ from .. import json as json_utils
 from ..table import Table
 from .twiss_defaults_and_input_preparation import (
     VARS_FOR_TWISS_INIT_GENERATION,
+    _copy_particle_with_species_ratios,
     _element_ref_to_index,
 )
 
@@ -190,7 +191,7 @@ class TwissInit:
 
         return cls.from_dict(dct)
 
-    def _finish_initialization(self, line, element_name):
+    def _finish_initialization(self, line, element_name, particle_ref=None):
 
         if (line is not None and 'reverse' in line.twiss_default
             and line.twiss_default['reverse']):
@@ -225,6 +226,7 @@ class TwissInit:
                 spin_z=self._temp_co_data.get('spin_z', 0),
                 delta=self._temp_co_data['delta'], zeta=self._temp_co_data['zeta'],
                 line=line,
+                particle_ref=particle_ref,
                 include_collective=True, # In fact it does not matter
             )
             particle_on_co.s = s_ele_twiss
@@ -604,7 +606,16 @@ def _build_twiss_init_from_inputs(twiss_config):
                 'init is provided')
             init._finish_initialization(
                 line=twiss_config['line'],
-                element_name=(init.element_name or twiss_config['start']))
+                element_name=(init.element_name or twiss_config['start']),
+                particle_ref=twiss_config['particle_ref'])
+
+        if any(twiss_config[name] is not None
+               for name in ('chi', 'charge_ratio', 'mass_ratio')):
+            init.particle_on_co = _copy_particle_with_species_ratios(
+                particle=init.particle_on_co,
+                chi=twiss_config['chi'],
+                charge_ratio=twiss_config['charge_ratio'],
+                mass_ratio=twiss_config['mass_ratio'])
 
         if init.reference_frame is None:
             init.reference_frame = {

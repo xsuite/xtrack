@@ -32,6 +32,63 @@ def test_twiss_table_row_slice_drops_periodic():
     assert 'periodic' not in tw_slice
 
 
+def test_twiss_with_different_particle_species():
+    line = xt.Line(elements=[
+        xt.Drift(length=1),
+        xt.Multipole(knl=[0, 0.1]),
+        xt.Drift(length=1),
+        xt.Multipole(knl=[0, -0.1]),
+    ] * 4)
+    line.particle_ref = xt.Particles(
+        p0c=1e9, mass0=xt.PROTON_MASS_EV)
+
+    tw_reference = line.twiss4d(chrom=False)
+    tw_chi = line.twiss4d(chi=0.8)
+    tw_charge_ratio = line.twiss4d(charge_ratio=0.8, chrom=False)
+    tw_mass_ratio = line.twiss4d(mass_ratio=1.25, chrom=False)
+
+    particle_ref = line.particle_ref.copy()
+    particle_ref._update_chi_charge_ratio(
+        charge_ratio=0.8, mass_ratio=1.0)
+    tw_particle_ref = line.twiss4d(
+        particle_ref=particle_ref, chrom=False)
+
+    # For magnetic elements, chi=0.8 at delta=0 is equivalent to a reference
+    # species at delta=1/chi-1.
+    tw_equivalent_delta = line.twiss4d(delta0=0.25, chrom=False)
+
+    tw_open = line.twiss4d(
+        start=line.element_names[0], end=line.element_names[-1],
+        betx=1, bety=1, chi=0.8, chrom=False)
+
+    for tw in (tw_chi, tw_charge_ratio, tw_mass_ratio, tw_particle_ref):
+        xo.assert_allclose(tw.qx, tw_equivalent_delta.qx,
+                           rtol=0, atol=1e-12)
+        xo.assert_allclose(tw.qy, tw_equivalent_delta.qy,
+                           rtol=0, atol=1e-12)
+        xo.assert_allclose(tw.particle_on_co.chi, 0.8,
+                           rtol=0, atol=1e-14)
+
+    assert abs(tw_chi.qx - tw_reference.qx) > 1e-3
+    xo.assert_allclose(tw_chi.particle_on_co.charge_ratio, 1,
+                       rtol=0, atol=1e-14)
+    xo.assert_allclose(tw_chi.particle_on_co.mass_ratio, 1.25,
+                       rtol=0, atol=1e-14)
+    xo.assert_allclose(tw_charge_ratio.particle_on_co.charge_ratio, 0.8,
+                       rtol=0, atol=1e-14)
+    xo.assert_allclose(tw_charge_ratio.particle_on_co.mass_ratio, 1,
+                       rtol=0, atol=1e-14)
+    xo.assert_allclose(tw_open.particle_on_co.chi, 0.8,
+                       rtol=0, atol=1e-14)
+
+    # The line reference particle is not modified.
+    xo.assert_allclose(line.particle_ref.chi, 1, rtol=0, atol=1e-14)
+    xo.assert_allclose(line.particle_ref.charge_ratio, 1,
+                       rtol=0, atol=1e-14)
+    xo.assert_allclose(line.particle_ref.mass_ratio, 1,
+                       rtol=0, atol=1e-14)
+
+
 @for_all_test_contexts
 def test_twiss_4d_fodo_vs_beta_rel(test_context):
     ## Generate a simple line

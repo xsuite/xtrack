@@ -2473,7 +2473,8 @@ class Line:
         freeze_energy=None,
         polarization=None,
         eneloss_and_damping=None,
-        steps_r_matrix=None
+        steps_r_matrix=None, *,
+        chi=None, charge_ratio=None, mass_ratio=None,
     ):
         if not self._has_valid_tracker():
             self.build_tracker()
