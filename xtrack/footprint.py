@@ -161,10 +161,10 @@ class Footprint():
             method={True: '4d', False: '6d'}[freeze_longitudinal]
             )
 
-        print('Tracking particles for footprint...')
+        xt._print('Tracking particles for footprint...')
         line.track(particles, num_turns=self.n_turns, turn_by_turn_monitor=True,
                    freeze_longitudinal=freeze_longitudinal)
-        print('Done tracking.')
+        xt._print('Done tracking.')
 
         ctx2np = line._context.nparray_from_context_array
         assert np.all(ctx2np(particles.state == 1)), (

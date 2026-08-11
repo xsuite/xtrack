@@ -24,7 +24,7 @@ from .match import Action
 from .multiline_legacy.multiline_legacy import MultilineLegacy
 from .progress_indicator import progress
 from .view import View
-from .general import DEPRECATION_INFO_PREP_1_0
+from .general import _print, DEPRECATION_INFO_PREP_1_0
 from .table import Table
 
 ReferType = Literal['start', 'center', 'centre', 'end']
@@ -1165,7 +1165,7 @@ class Environment:
         if "xtrack_version" in dct:
             version = dct["xtrack_version"]
             if xt.general._compare_versions(version, xt.__version__) > 0:
-                print(f'Warning: The environment you are loading was created '
+                _print(f'Warning: The environment you are loading was created '
                       f'with xtrack version {version}, which is more recent '
                       f'than the current version {xt.__version__}. '
                       'Some features may not be available or '
@@ -3068,11 +3068,11 @@ def get_environment(verbose=False):
     import xtrack
     if hasattr(xtrack, '_passed_env') and xtrack._passed_env is not None:
         if verbose:
-            print('Using existing environment')
+            _print('Using existing environment')
         return xtrack._passed_env
     else:
         if verbose:
-            print('Creating new environment')
+            _print('Creating new environment')
         return Environment()
 
 
@@ -3619,7 +3619,7 @@ class EnvVars:
         t_old = mgr.tasks.get(r_old)
         if t_old is not None:
             if verbose:
-                print(f"replacing target {t_old} with {r_new}={t_old.expr}")
+                _print(f"replacing target {t_old} with {r_new}={t_old.expr}")
             mgr.set_value(r_new, t_old.expr)
         for rt in list(env.ref_manager.rdeps[r_old]):
             if rt in mgr.tasks:
@@ -3627,7 +3627,7 @@ class EnvVars:
                 old_expr = str(tt.expr)
                 new_expr = old_expr.replace(str(r_old), str(r_new))
                 if verbose:
-                    print(f"replacing {old_expr} with {new_expr}")
+                    _print(f"replacing {old_expr} with {new_expr}")
                 mgr.set_value(rt, eval(new_expr, mgr.containers))
 
         if verbose:

@@ -19,7 +19,7 @@ from .masses import PROTON_MASS_EV
 from .masses import __dict__ as mass__dict__
 from .pdg import get_pdg_id_from_name, get_properties_from_pdg_id, \
                  get_mass_from_pdg_id
-from ..general import DEPRECATION_INFO_PREP_1_0
+from ..general import _print, DEPRECATION_INFO_PREP_1_0
 
 LAST_INVALID_STATE = -999999999
 
@@ -1360,13 +1360,14 @@ class Particles(xo.HybridClass):
 
         df = self.to_pandas()
         dash = '-' * 55
-        print("PARTICLES:\n\n")
-        print('{:<27} {:>12}'.format("Property", "Value"))
-        print(dash)
+        _print("PARTICLES:\n\n")
+        _print('{:<27} {:>12}'.format("Property", "Value"))
+        _print(dash)
         for column in df:
-            print('{:<27} {:>12}'.format(df[column].name, df[column].values[0]))
-        print(dash)
-        print('\n')
+            _print('{:<27} {:>12}'.format(
+                df[column].name, df[column].values[0]))
+        _print(dash)
+        _print('\n')
 
     def get_classical_particle_radius0(self):
 

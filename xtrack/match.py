@@ -1173,7 +1173,7 @@ def closed_orbit_correction(line, line_co_ref, correction_config,
             start=corr['start'], end=corr['end'])
         opt.solve()
         opts[corr_name] = opt
-        print()
+        _print()
     return opts
 
 def match_knob_line(line, knob_name, vary, targets, knob_value_start,

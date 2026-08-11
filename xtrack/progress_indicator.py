@@ -48,7 +48,7 @@ class DefaultProgressIndicator:
         self._total = total or len(cast(Collection, iterable))
         self._update_interval = miniters or ceil(self._total / 100)
         self._unit_scale = unit_scale or 1
-        print(f'Init: interval {self._update_interval}, total {self._total}')
+        _print(f'Init: interval {self._update_interval}, total {self._total}')
 
     def __iter__(self):
         self._iterator = iter(self.iterable)

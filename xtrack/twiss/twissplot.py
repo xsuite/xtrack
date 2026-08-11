@@ -7,6 +7,8 @@ import time
 
 import numpy as np
 
+from ..general import _print
+
 def _in_jupyter_notebook():
     try:
         from IPython import get_ipython
@@ -190,7 +192,7 @@ class TwissPlot(object):
         return object.__repr__(self)
 
     def _trig(self):
-        print("optics trig")
+        _print("optics trig")
         self.run()
 
     def update(self, *args):
@@ -280,7 +282,9 @@ class TwissPlot(object):
                     if "element_type" in self.table._col_names:
                         elem_type = self.table.element_type[idx]
                     if not elem_type.startswith("Drift"):
-                        print(f"{name:25}, s={xx[idx]:15.6g}, {lgd:>10}={yy[idx]:15.6g}")
+                        _print(
+                            f"{name:25}, s={xx[idx]:15.6g}, "
+                            f"{lgd:>10}={yy[idx]:15.6g}")
         # pos = np.array([event.mouseevent.x, event.mouseevent.y])
         # name = event.artist.elemname
         # prop = event.artist.elemprop

@@ -3,6 +3,8 @@ from scipy.optimize import lsq_linear
 import xtrack as xt
 
 import logging
+
+from .general import _print
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.StreamHandler())
 
@@ -283,7 +285,7 @@ class OrbitCorrectionSinglePlane:
             if i_iter == 0:
                 self._position_before = position
             if verbose:
-                print(
+                _print(
                     f'Trajectory correction - iter {i_iter}, rms: {position.std()}')
 
             if n_iter == 'auto':
@@ -310,7 +312,7 @@ class OrbitCorrectionSinglePlane:
             position = self._measure_position()
             self._position_after = position
             if verbose:
-                print(
+                _print(
                     f'Trajectory correction - iter {i_iter}, rms: {position.std()}')
         else:
             self._position_after = None
@@ -716,7 +718,7 @@ class TrajectoryCorrection:
                         correction_kicks_y = self.y_correction.get_kick_values()
                         relative_limits_y = (self.y_correction.corrector_limits[0] - correction_kicks_y,
                                              self.y_correction.corrector_limits[1] - correction_kicks_y)
-                print(str_2print)
+                _print(str_2print)
             if stop_x and stop_y:
                 break
             i_iter += 1
@@ -1015,7 +1017,7 @@ def _thread(line, ds_thread, twiss_table=None, rcond_short = None, rcond_long = 
                 f' -> {x_meas_print.std():.2e}, ')
             str_2print += (f'y: {ocprint.y_correction._position_before_iter.std():.2e}'
                 f' -> {y_meas_print.std():.2e}]')
-            print(str_2print)
+            _print(str_2print)
 
         s_corr_end += ds_thread
         i_win += 1

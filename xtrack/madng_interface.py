@@ -8,6 +8,8 @@ import xtrack as xt
 
 from xtrack.particles.particles import ptau2delta, dptau2ddelta
 
+from .general import _print
+
 NG_XS_MAP = {
     'beta11': 'betx',
     'beta22': 'bety',
@@ -109,7 +111,8 @@ def build_madng_model(line, sequence_name='seq', **kwargs):
     model : object
         Built MAD-NG model.
     """
-    print('Building MAD-NG model for line', line.name, 'with sequence name', sequence_name)
+    _print('Building MAD-NG model for line', line.name,
+           'with sequence name', sequence_name)
     if line.tracker is None:
         line.build_tracker()
     mng = line.to_madng(sequence_name=sequence_name, **kwargs)

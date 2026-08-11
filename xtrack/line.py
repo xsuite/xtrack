@@ -107,7 +107,7 @@ _LINE_DOC_GROUP_COLLECTOR = GroupedAPICollector(LINE_DOC_GROUP_ORDER)
 
 def find_index_repeated(item, lst,count=0):
     res=[ii for ii, nn in enumerate(lst) if nn == item]
-    print(item)
+    _print(item)
     if count>=len(res):
         raise ValueError(f'Item {item} not found')
     return res[count]
@@ -414,7 +414,7 @@ class Line:
         if "xtrack_version" in dct:
             version = dct["xtrack_version"]
             if xt.general._compare_versions(version, xt.__version__) > 0:
-                print(f'Warning: The line you are loading was created '
+                _print(f'Warning: The line you are loading was created '
                       f'with xtrack version {version}, which is more recent '
                       f'than the current version {xt.__version__}. '
                       'Some features may not be available or '
@@ -2199,7 +2199,7 @@ class Line:
             particles.x += x_offset
             particles.y += y_offset
 
-            print(f"\nTrack test particles from reference point #{ii}")
+            _print(f"\nTrack test particles from reference point #{ii}")
             self.track(
                 particles,
                 ele_start=ee,

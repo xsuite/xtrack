@@ -1,5 +1,7 @@
 import numpy as np
 
+from .general import _print
+
 flag_mapping = {
     'XS_FLAG_BACKTRACK': 0,
     'XS_FLAG_KILL_CAVITY_KICK': 2,
@@ -67,4 +69,4 @@ class TrackFlags:
 
     def print_flag_register(self):
         reg = self.get_flags_register()
-        print(f"Flag register (binary): {bin(reg)[2:].zfill(64)}")
+        _print(f"Flag register (binary): {bin(reg)[2:].zfill(64)}")

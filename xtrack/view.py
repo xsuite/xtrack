@@ -2,7 +2,7 @@ from warnings import warn
 
 import numpy as np
 
-from .general import DEPRECATION_INFO_PREP_1_0
+from .general import _print, DEPRECATION_INFO_PREP_1_0
 from .table import Table
 
 class View:
@@ -74,7 +74,7 @@ class View:
             raise ValueError("get_info not supported for this object")
 
         if key is None:
-            print("Element of type: ", self._obj.__class__.__name__)
+            _print("Element of type: ", self._obj.__class__.__name__)
             self.get_table().show(header=True, max_col_width=100)
         else:
             if hasattr(self._obj, "__iter__"):

@@ -3,6 +3,8 @@ from scipy import integrate
 from scipy.constants import c as clight
 from scipy.constants import e as qe
 
+from .general import _print
+
 
 def beta(s, beta0, alpha_s0):
     '''Beta function in drift space'''
@@ -102,8 +104,8 @@ def luminosity(f, nb,
     v_2=np.array([vx_2, vy_2, vz_2])
 
     if verbose:
-        print(f'B1 velocity vector:{v_1}')
-        print(f'B2 velocity vector:{v_2}')
+        _print(f'B1 velocity vector:{v_1}')
+        _print(f'B2 velocity vector:{v_2}')
 
     diff_v = v_1-v_2
     cross_v= np.cross(v_1, v_2)
@@ -270,9 +272,9 @@ def luminosity(f, nb,
         L0=f*N1*N2*nb/np.sqrt(2)/np.pi**(3/2)*integral[0]
     result= L0*Moeller_efficiency/1e4
     if verbose:
-        print(f'Moeller efficiency: {Moeller_efficiency}')
-        print(f'Integral Relative Error: {integral[1]/integral[0]}')
-        print(f'==> Luminosity [Hz/cm^2]: {result}')
+        _print(f'Moeller efficiency: {Moeller_efficiency}')
+        _print(f'Integral Relative Error: {integral[1]/integral[0]}')
+        _print(f'==> Luminosity [Hz/cm^2]: {result}')
     return result
 
 
