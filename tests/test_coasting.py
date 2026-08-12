@@ -4,7 +4,7 @@ import numpy as np
 import xobjects as xo
 from scipy.constants import c as clight
 from xobjects.test_helpers import (
-    allow_no_prebuilt_kernels, fix_random_seed)
+    allow_kernel_compilation, fix_random_seed)
 
 import xtrack as xt
 import xtrack.synctime as st
@@ -14,7 +14,7 @@ test_data_folder = pathlib.Path(
 
 
 @fix_random_seed(8837465)
-@allow_no_prebuilt_kernels
+@allow_kernel_compilation
 def test_coasting():
 
 

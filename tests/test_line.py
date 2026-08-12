@@ -16,7 +16,7 @@ import xobjects as xo
 import xpart as xp
 import xtrack as xt
 from xobjects.test_helpers import (
-    allow_no_prebuilt_kernels, for_all_test_contexts)
+    allow_kernel_compilation, for_all_test_contexts)
 from xtrack import Line, Node, Multipole
 
 test_data_folder = pathlib.Path(
@@ -491,7 +491,7 @@ def test_get_elements_of_type_is_deprecated():
     assert names == ['cav']
 
 
-@allow_no_prebuilt_kernels
+@allow_kernel_compilation
 def test_insert_omp():
 
 
@@ -906,7 +906,7 @@ def test_from_json_to_json(tmp_path):
 
 
 @for_all_test_contexts
-@allow_no_prebuilt_kernels
+@allow_kernel_compilation
 def test_config_propagation(test_context):
 
 

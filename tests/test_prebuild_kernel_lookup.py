@@ -9,7 +9,6 @@ import types
 import pytest
 
 import xobjects as xo
-import xobjects.context_cpu as context_cpu
 import xtrack as xt
 import xsuite.prebuild_kernels as xsprebkern
 
@@ -18,7 +17,12 @@ class DummyStruct(xo.Struct):
     value = xo.Float64
 
 
-class OptOutStruct(xo.Struct):
+class CompilationAllowedStruct(xo.Struct):
+    allow_kernel_compilation = True
+    value = xo.Float64
+
+
+class LegacyCompilationAllowedStruct(xo.Struct):
     allow_no_prebuilt_kernel = True
     value = xo.Float64
 
@@ -58,15 +62,15 @@ def _write_metadata(
 
 
 @pytest.fixture(autouse=True)
-def _restore_no_prebuilt_kernel_flags(monkeypatch):
-    monkeypatch.delenv('XSUITE_ALLOW_NO_PREBUILT_KERNELS', raising=False)
-    monkeypatch.setattr(context_cpu, 'allow_no_prebuilt_kernel', False)
-    monkeypatch.setattr(xo.settings, 'allow_no_prebuilt_kernels', False)
+def _restore_kernel_compilation_settings(monkeypatch):
+    monkeypatch.setattr(xo.settings, 'allow_kernel_compilation', False)
+    monkeypatch.setattr(xo.settings, 'force_kernel_compilation', False)
+    monkeypatch.setattr(xo.settings, 'show_kernel_diagnostics', False)
 
 
 @pytest.fixture
 def kernel_location(monkeypatch, tmp_path):
-    monkeypatch.setattr(xsprebkern, 'XSK_PREBUILT_KERNELS_LOCATION', tmp_path)
+    monkeypatch.setattr(xsprebkern, 'PREBUILT_KERNELS_LOCATION', tmp_path)
     monkeypatch.setattr(xsprebkern, 'kernel_definitions', [('test_kernel', {})])
     return tmp_path
 
@@ -116,7 +120,7 @@ def test_get_suitable_kernel_raises_when_no_cached_kernels(kernel_location):
         xsprebkern.get_suitable_kernel({}, [], [], context=xo.ContextCpu())
 
     assert 'no cached kernels were found' in str(err.value)
-    assert 'XSUITE_ALLOW_NO_PREBUILT_KERNELS' in str(err.value)
+    assert 'XSUITE_ALLOW_KERNEL_COMPILATION' in str(err.value)
 
 
 def test_get_suitable_kernel_raises_when_binary_is_missing(kernel_location):
@@ -214,9 +218,11 @@ def test_get_suitable_kernel_raises_on_missing_class(kernel_location):
     assert 'missing requested class(es): Requested' in str(err.value)
 
 
-def test_get_suitable_kernel_returns_none_with_class_opt_out(kernel_location):
+def test_get_suitable_kernel_returns_none_when_class_allows_compilation(
+    kernel_location,
+):
     class Requested:
-        allow_no_prebuilt_kernel = True
+        allow_kernel_compilation = True
 
     class RequestedStruct:
         _DressingClass = Requested
@@ -234,6 +240,21 @@ def test_get_suitable_kernel_returns_none_with_class_opt_out(kernel_location):
         )
         is None
     )
+
+
+def test_legacy_class_compilation_attribute_remains_supported(kernel_location):
+    class Requested:
+        allow_no_prebuilt_kernel = True
+
+    class RequestedStruct:
+        _DressingClass = Requested
+
+    module_name = 'test_kernel_cpu_serial'
+    _write_metadata(kernel_location, module_name=module_name)
+    xsprebkern._kernel_binary_file(module_name, kernel_location).touch()
+
+    assert xsprebkern.get_suitable_kernel(
+        {}, [], [RequestedStruct], context=xo.ContextCpu()) is None
 
 
 def test_closest_kernel_prefers_missing_class_over_config_mismatch(
@@ -272,11 +293,11 @@ def test_closest_kernel_prefers_missing_class_over_config_mismatch(
     assert 'different configuration' not in message
 
 
-def test_get_suitable_kernel_returns_none_with_setting_opt_out(
+def test_get_suitable_kernel_returns_none_when_setting_allows_compilation(
     monkeypatch,
     kernel_location,
 ):
-    monkeypatch.setattr(xo.settings, 'allow_no_prebuilt_kernels', True)
+    monkeypatch.setattr(xo.settings, 'allow_kernel_compilation', True)
 
     assert xsprebkern.get_suitable_kernel({}, [], [], context=xo.ContextCpu()) is None
 
@@ -287,7 +308,7 @@ def test_get_suitable_kernel_uses_configured_print(
 ):
     with xt.settings.override(
         print_mode='suppress',
-        allow_no_prebuilt_kernels=True,
+        allow_kernel_compilation=True,
     ):
         xsprebkern.get_suitable_kernel(
             {}, [], [], context=xo.ContextCpu(), verbose=True)
@@ -295,13 +316,25 @@ def test_get_suitable_kernel_uses_configured_print(
     assert capsys.readouterr().out == ''
 
 
-def test_get_suitable_kernel_returns_none_with_context_cpu_opt_out(
-    monkeypatch,
+def test_get_suitable_kernel_skipped_when_compilation_is_forced(
+    monkeypatch, kernel_location,
+):
+    module_name = 'test_kernel_cpu_serial'
+    _write_metadata(kernel_location, module_name=module_name)
+    xsprebkern._kernel_binary_file(module_name, kernel_location).touch()
+    monkeypatch.setattr(xo.settings, 'force_kernel_compilation', True)
+
+    assert xsprebkern.get_suitable_kernel(
+        {}, [], [], context=xo.ContextCpu()) is None
+
+
+def test_get_suitable_kernel_returns_none_when_context_allows_compilation(
     kernel_location,
 ):
-    monkeypatch.setattr(context_cpu, 'allow_no_prebuilt_kernel', True)
+    context = xo.ContextCpu()
+    context.allow_kernel_compilation = True
 
-    assert xsprebkern.get_suitable_kernel({}, [], [], context=xo.ContextCpu()) is None
+    assert xsprebkern.get_suitable_kernel({}, [], [], context=context) is None
 
 
 def test_get_suitable_kernel_returns_none_for_openmp_context(kernel_location):
@@ -324,7 +357,9 @@ def test_missing_xsuite_raises_actionable_error(missing_xsuite):
 
     message = str(err.value)
     assert 'pip install xsuite' in message
-    assert 'XSUITE_ALLOW_NO_PREBUILT_KERNELS' in message
+    assert 'XSUITE_ALLOW_KERNEL_COMPILATION' in message
+    assert 'context.allow_kernel_compilation = True' in message
+    assert 'allow_kernel_compilation = True` as a class attribute' in message
 
 
 def test_tracker_missing_xsuite_raises_actionable_error(missing_xsuite):
@@ -344,14 +379,14 @@ def test_tracker_missing_xsuite_raises_actionable_error(missing_xsuite):
 
     message = str(err.value)
     assert 'pip install xsuite' in message
-    assert 'XSUITE_ALLOW_NO_PREBUILT_KERNELS' in message
+    assert 'XSUITE_ALLOW_KERNEL_COMPILATION' in message
 
 
-def test_missing_xsuite_allows_jit_with_setting_opt_out(
+def test_missing_xsuite_allows_jit_when_setting_allows_compilation(
     monkeypatch,
     missing_xsuite,
 ):
-    monkeypatch.setattr(xo.settings, 'allow_no_prebuilt_kernels', True)
+    monkeypatch.setattr(xo.settings, 'allow_kernel_compilation', True)
     context = xo.ContextCpu()
     add_kernel_calls = _patch_add_kernels(monkeypatch, context)
 
@@ -360,11 +395,11 @@ def test_missing_xsuite_allows_jit_with_setting_opt_out(
     assert len(add_kernel_calls) == 1
 
 
-def test_missing_xsuite_allows_jit_with_context_cpu_opt_out(
+def test_missing_xsuite_allows_jit_when_compilation_is_forced(
     monkeypatch,
     missing_xsuite,
 ):
-    monkeypatch.setattr(context_cpu, 'allow_no_prebuilt_kernel', True)
+    monkeypatch.setattr(xo.settings, 'force_kernel_compilation', True)
     context = xo.ContextCpu()
     add_kernel_calls = _patch_add_kernels(monkeypatch, context)
 
@@ -373,14 +408,41 @@ def test_missing_xsuite_allows_jit_with_context_cpu_opt_out(
     assert len(add_kernel_calls) == 1
 
 
-def test_missing_xsuite_allows_jit_with_class_opt_out(
+def test_missing_xsuite_allows_jit_when_class_allows_compilation(
     missing_xsuite,
     monkeypatch,
 ):
     context = xo.ContextCpu()
     add_kernel_calls = _patch_add_kernels(monkeypatch, context)
 
-    OptOutStruct.compile_class_kernels(context, only_if_needed=False)
+    CompilationAllowedStruct.compile_class_kernels(
+        context, only_if_needed=False)
+
+    assert len(add_kernel_calls) == 1
+
+
+def test_missing_xsuite_allows_jit_with_legacy_class_attribute(
+    missing_xsuite,
+    monkeypatch,
+):
+    context = xo.ContextCpu()
+    add_kernel_calls = _patch_add_kernels(monkeypatch, context)
+
+    LegacyCompilationAllowedStruct.compile_class_kernels(
+        context, only_if_needed=False)
+
+    assert len(add_kernel_calls) == 1
+
+
+def test_missing_xsuite_allows_jit_when_context_allows_compilation(
+    missing_xsuite,
+    monkeypatch,
+):
+    context = xo.ContextCpu()
+    context.allow_kernel_compilation = True
+    add_kernel_calls = _patch_add_kernels(monkeypatch, context)
+
+    DummyStruct.compile_class_kernels(context, only_if_needed=False)
 
     assert len(add_kernel_calls) == 1
 
@@ -394,7 +456,7 @@ def test_missing_xsuite_allows_jit_for_openmp_context(missing_xsuite, monkeypatc
     assert len(add_kernel_calls) == 1
 
 
-def test_tracker_missing_xsuite_allows_jit_with_class_opt_out(
+def test_tracker_missing_xsuite_allows_jit_when_class_allows_compilation(
     missing_xsuite,
     monkeypatch,
 ):
@@ -414,7 +476,7 @@ def test_tracker_missing_xsuite_allows_jit_with_class_opt_out(
         (),
         {
             '_buffer': buffer,
-            'line_element_classes': [OptOutStruct],
+            'line_element_classes': [CompilationAllowedStruct],
             'kernel_element_classes': [],
         },
     )()

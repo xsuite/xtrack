@@ -442,7 +442,7 @@ class Tracker:
             extra_classes=[],
             extra_kernels={},
     ):
-        if compile == 'force':
+        if compile == 'force' or xo.settings.force_kernel_compilation:
             use_prebuilt_kernels = False
         elif not self._context.allow_prebuilt_kernels:  # only CPU serial
             use_prebuilt_kernels = False
@@ -453,7 +453,7 @@ class Tracker:
             try:
                 from xsuite import (
                     get_suitable_kernel,
-                    XSK_PREBUILT_KERNELS_LOCATION,
+                    PREBUILT_KERNELS_LOCATION,
                 )
             except ImportError as err:
                 requested_classes = (
@@ -467,7 +467,7 @@ class Tracker:
                         'Xsuite is required to load prebuilt kernels but could '
                         'not be imported. Please install it with '
                         f'`pip install xsuite`. '
-                        f'{xo.context_cpu.no_prebuilt_kernel_jit_message()}'
+                        f'{xo.context_cpu.kernel_compilation_help_message()}'
                     ) from err
             else:
                 kernel_info = get_suitable_kernel(
@@ -483,7 +483,7 @@ class Tracker:
                 )['track_line']
                 kernels = self._context.kernels_from_file(
                     module_name=kernel_info['module_name'],
-                    containing_dir=XSK_PREBUILT_KERNELS_LOCATION,
+                    containing_dir=PREBUILT_KERNELS_LOCATION,
                     kernel_descriptions={'track_line': kernel_description},
                 )
                 return kernels['track_line']

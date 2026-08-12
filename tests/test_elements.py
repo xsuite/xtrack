@@ -15,7 +15,7 @@ import xobjects as xo
 import xpart as xp
 import xtrack as xt
 from xobjects.test_helpers import (
-    allow_no_prebuilt_kernels, fix_random_seed, for_all_test_contexts)
+    allow_kernel_compilation, fix_random_seed, for_all_test_contexts)
 from xtrack.beam_elements._common import _angle_from_trig
 
 test_data_folder = pathlib.Path(
@@ -552,7 +552,7 @@ def test_drift_exact_and_expanded(test_context):
 
 @pytest.mark.filterwarnings('ignore::FutureWarning')
 @for_all_test_contexts
-@allow_no_prebuilt_kernels
+@allow_kernel_compilation
 def test_drift_exact_and_expanded_legacy(test_context):
 
 
@@ -917,7 +917,7 @@ void TestElement_track_local_particle(TestElementData el,
 
 
 @for_all_test_contexts
-@allow_no_prebuilt_kernels
+@allow_kernel_compilation
 def test_per_particle_kernel(test_context):
 
 

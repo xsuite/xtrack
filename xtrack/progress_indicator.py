@@ -6,27 +6,6 @@ from xobjects import settings
 from .general import _print
 
 
-# Select the progress indicator to use: 'tqdm', 'text', or 'suppress'. This
-# legacy module attribute is kept in sync with ``xtrack.settings``. In 'tqdm'
-# mode, the simple text indicator is used when tqdm is not installed.
-mode: str = 'tqdm'
-
-
-def _set_mode(value):
-    global mode
-    mode = value
-
-
-settings._register(
-    'progress_indicator',
-    default='tqdm',
-    environment_variable='XTRACK_PROGRESS_INDICATOR',
-    choices=('tqdm', 'text', 'suppress'),
-    on_change=_set_mode,
-    getter=lambda: mode,
-)
-
-
 class DefaultProgressIndicator:
     """Display progress of a task.
 
@@ -113,12 +92,12 @@ def progress(iterable: Iterable, **options):
     """Wrap an iterable with the configured progress indicator.
 
     Set ``xtrack.settings.progress_indicator`` to ``'tqdm'``, ``'text'``, or
-    ``'suppress'``. ``XTRACK_PROGRESS_INDICATOR`` provides its value when
+    ``'suppress'``. ``XSUITE_PROGRESS_INDICATOR`` provides its value when
     Xtrack is imported; a later Python assignment takes precedence. In
     ``'tqdm'`` mode, the simple text indicator is used when tqdm is not
     installed.
     """
-    selected_mode = mode
+    selected_mode = settings.progress_indicator
     if selected_mode == 'suppress':
         return iterable
 
