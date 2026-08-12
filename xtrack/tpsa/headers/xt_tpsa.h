@@ -20,8 +20,8 @@ struct tpsa : public mad::tpsa {
     tpsa(double value)
         : mad::tpsa(0.0 * mad::tpsa_ref(default_proto) + value) {}
 
-    // Resolve integer literals numerically instead of against the inherited
-    // deleted nullptr overload.
+    // GCC resolves literal 0 against the deleted tpsa(nullptr_t) constructor
+    // instead of tpsa(double) (which is what Clang does), so let's be explicit.
     tpsa(int value)
         : tpsa(static_cast<double>(value)) {}
 
