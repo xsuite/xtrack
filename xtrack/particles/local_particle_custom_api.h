@@ -270,15 +270,15 @@ void LocalParticle_kill_particle(LocalParticle* part, int64_t kill_state) {
             double const x = LocalParticle_get_x(part);
             double const y = LocalParticle_get_y(part);
 
-            int64_t const is_alive = (int64_t)(
+            int64_t const is_within_global_aperture = (int64_t)(
                 (x >= -XTRACK_GLOBAL_XY_LIMIT) &&
                 (x <=  XTRACK_GLOBAL_XY_LIMIT) &&
                 (y >= -XTRACK_GLOBAL_XY_LIMIT) &&
                 (y <=  XTRACK_GLOBAL_XY_LIMIT)
             );
 
-            // I assume that if I am in the function is because
-            if (!is_alive) {
+            if (LocalParticle_get_state(part) > 0
+                    && !is_within_global_aperture) {
                LocalParticle_set_state(part, -1);
             }
         END_PER_PARTICLE_BLOCK;

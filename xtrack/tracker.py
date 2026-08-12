@@ -668,7 +668,17 @@ class Tracker:
                         case {ii}:
 """
             )
-            if ccnn == "Drift":
+            src_lines.append(
+                f"""
+                            {ccnn}_track_local_particle_with_transformations(({ccnn}Data) el, &lpart);"""
+            )
+            # MetaBeamElement stores a literal class declaration
+            # `isthick = True` as `_isthick = True`. Use `vars()` to inspect
+            # the class namespace without invoking descriptors: for elements
+            # with a dynamic `isthick` property (e.g. Multipole), `_isthick`
+            # can be a field descriptor. The identity check therefore selects
+            # only classes whose thickness is statically and literally True.
+            if vars(cc._DressingClass).get('_isthick') is True:
                 src_lines.append(
                     """
                             #ifdef XTRACK_GLOBAL_XY_LIMIT
@@ -678,8 +688,7 @@ class Tracker:
                             """
                 )
             src_lines.append(
-                f"""
-                            {ccnn}_track_local_particle_with_transformations(({ccnn}Data) el, &lpart);
+                """
                             break;"""
             )
 
