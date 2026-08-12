@@ -20,6 +20,11 @@ struct tpsa : public mad::tpsa {
     tpsa(double value)
         : mad::tpsa(0.0 * mad::tpsa_ref(default_proto) + value) {}
 
+    // Resolve integer literals numerically instead of against the inherited
+    // deleted nullptr overload.
+    tpsa(int value)
+        : tpsa(static_cast<double>(value)) {}
+
     tpsa& operator=(double value) {
         mad::tpsa::operator=(value);
         return *this;
