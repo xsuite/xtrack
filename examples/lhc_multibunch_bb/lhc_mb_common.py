@@ -193,6 +193,53 @@ def windowed_slots(ho_offsets, scheme_b1, scheme_b2, window, n_slots=N_SLOTS):
 
 
 # ----------------------------------------------------------------------------
+# Measured per-bunch emittances
+# ----------------------------------------------------------------------------
+def set_per_bunch_sizes(setup, nemitt_cw, nemitt_acw):
+    """Replace the uniform design beam sizes of the beam-beam elements by
+    PER-BUNCH ones, from measured per-bunch normalised emittances.
+
+    ``nemitt_cw`` / ``nemitt_acw`` are ``(nemitt_x, nemitt_y)`` pairs of
+    arrays aligned with ``setup.bunches_cw`` / ``setup.bunches_acw``. The
+    sizes follow the tools' own convention, ``sigma = sqrt(beta nemitt /
+    gamma)`` with the bare-optics beta functions cached in ``setup.geom``;
+    only the single design emittance is replaced by the per-bunch one, so the
+    kick between bunch ``i`` and bunch ``j`` uses the convolved size
+    ``sqrt(eps_i beta_1 / gamma + eps_j beta_2 / gamma)``, as in pytrain.
+
+    ``MultibunchBBSetup`` carries one design emittance per plane, so this has
+    to reach into the elements (which do support per-bunch sizes: the own
+    sizes are indexed by this beam, the opposing ones by the other beam, and
+    the kernel convolves the matched pair). It must be called AFTER the
+    install / any ``set_filling`` / any geometry recomputation (all of which
+    re-register the uniform design sizes) and holds through ``solve`` /
+    ``load_solution`` as long as ``dynamic_beta`` is False -- those keep the
+    stored sizes.
+    """
+    line = {False: setup.cw_line, True: setup.acw_line}
+    gamma = {mirror: float(line[mirror].particle_ref.gamma0[0])
+             for mirror in (False, True)}
+    emit = {False: nemitt_cw, True: nemitt_acw}
+    n_bunches = {False: len(setup.bunches_cw), True: len(setup.bunches_acw)}
+    for base in setup.enc_names:
+        geom = setup.geom[base]
+        sigma = {}
+        for mirror, tag in ((False, 'cw'), (True, 'acw')):
+            sigma[mirror] = (
+                np.sqrt(geom[f'betx_{tag}'] * emit[mirror][0] / gamma[mirror]),
+                np.sqrt(geom[f'bety_{tag}'] * emit[mirror][1] / gamma[mirror]))
+        for mirror in (False, True):
+            # the RAW element: `line[name]` (and hence `setup.bb_cw[...]`) is
+            # an expression view, whose array slices are not assignable
+            bb = line[mirror].element_dict[setup.bb_name(base, mirror)]
+            own, other = sigma[mirror], sigma[not mirror]
+            n_other = n_bunches[not mirror]
+            bb.update_from_own_beam(sigma_x=own[0], sigma_y=own[1])
+            bb.other_beam_sigma_x[:n_other] = other[0]
+            bb.other_beam_sigma_y[:n_other] = other[1]
+
+
+# ----------------------------------------------------------------------------
 # Results as a DataFrame
 # ----------------------------------------------------------------------------
 def results_dataframe(setup, mbtw, slots, bare_qx, bare_qy, mirror=False,

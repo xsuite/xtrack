@@ -228,9 +228,12 @@ class MultibunchBBSetup:
                           else self.cw_line).particle_ref.q0)
         own_slots = self.bunches_acw if mirror else self.bunches_cw
         own_zeta = np.asarray(own_slots) * self.slot_len
+        length = line.get_length()
+        tab = line.get_table()
+        s_ip = {ip: float(tab['s', ip]) for ip in self.ip_names}
         places, names = [], []
         for base, ip, sn in self.enc_specs:
-            at = (-sn if mirror else sn) * self.b_h_dist + 1e-6
+            at = (s_ip[ip] + (-sn if mirror else sn) * self.b_h_dist + 1e-6) % length
             elname = self.bb_name(base, mirror)
             bb = xf.BeamBeamBiGaussianMultibunch2D(
                 num_bunches=max(n_other, 1),
@@ -243,7 +246,7 @@ class MultibunchBBSetup:
                 sigma_x=1.0, sigma_y=1.0,            # placeholders
                 other_beam_sigma_x=1.0, other_beam_sigma_y=1.0,
                 _context=line._context)
-            places.append(env.place(elname, bb, at=at, from_=ip))
+            places.append(env.place(elname, bb, at=at))
             names.append((base, elname))
         line.insert(places)
         _bind_beambeam_scale(line, [elname for _, elname in names])
@@ -270,19 +273,25 @@ class MultibunchBBSetup:
         placed and are inactive, so the twiss is the bare optics)."""
         tw_cw = self.cw_line.twiss()
         tw_acw = self.acw_line.twiss()
-        length = self.cw_line.get_length()
         n_slots = self.n_slots
         self.ip_offsets = self._resolve_ip_offsets(tw_cw)
 
         if survey_separation:
-            sv_cw = self.cw_line.survey()
-            sv_acw = self.acw_line.survey()
-            ip_pos_cw = {ip: np.array([sv_cw['X', ip], sv_cw['Y', ip],
-                                       sv_cw['Z', ip]]) for ip in self.ip_names}
-            ip_pos_acw = {ip: np.array([sv_acw['X', ip], sv_acw['Y', ip],
-                                        sv_acw['Z', ip]]) for ip in self.ip_names}
-            m_cw = _survey_positions(sv_cw, self.bb_names_cw)
-            m_acw = _survey_positions(sv_acw, self.bb_names_acw)
+            # One survey per IP, in that IP's own frame (:func:`_local_survey`).
+            # The encounters of an IP are then read off directly: their
+            # coordinates are already relative to their IP and expressed in the
+            # local frame there, so nothing has to be subtracted afterwards and
+            # the bends of the insertion are followed exactly.
+            enc_of_ip = {ip: [b for b, i, _ in self.enc_specs if i == ip]
+                         for ip in self.ip_names}
+            frames_cw = {ip: _local_survey(
+                self.cw_line, ip,
+                [self.bb_name(b, False) for b in enc_of_ip[ip]])
+                for ip in self.ip_names}
+            frames_acw = {ip: _local_survey(
+                self.acw_line, ip,
+                [self.bb_name(b, True) for b in enc_of_ip[ip]])
+                for ip in self.ip_names}
 
         geom = {}
         for j, (base, ip, sn) in enumerate(self.enc_specs):
@@ -290,22 +299,22 @@ class MultibunchBBSetup:
             offset = (self.ip_offsets[ip] + sn) % n_slots
             sep_x = sep_y = 0.0
             if survey_separation:
-                s_marker = tw_cw['s', ncw]
-                # Geometric survey separation of the two rings at this encounter,
-                # in the clockwise beam's frame. The anticlockwise-beam survey is
-                # rotated 180 deg about the vertical (X,Z -> -X,-Z), then the
-                # SIGNED horizontal separation is the horizontal-plane distance
-                # times a sign from the direction of the separation vector
-                # relative to the ring azimuth (2*pi*s/L).
-                s1 = m_cw[j] - ip_pos_cw[ip]
-                s2 = m_acw[j] - ip_pos_acw[ip]
-                s2 = np.array([-s2[0], s2[1], -s2[2]])
-                d = s1 - s2
-                ang = np.arctan2(d[2], d[0]) - 2 * np.pi * s_marker / length
-                ang = (ang + np.pi) % (2 * np.pi) - np.pi
-                xsign = 1.0 if abs(ang) <= np.pi / 2 else -1.0
-                sep_x = float(np.hypot(d[0], d[2]) * xsign)
-                sep_y = float(d[1])
+                # Geometric survey separation of the two rings at this
+                # encounter, in the clockwise beam's frame. Both positions are
+                # already in their IP's local frame; the anticlockwise ring is
+                # traversed the other way, so its frame is rotated 180 deg
+                # about the vertical (X,Z -> -X,-Z) before differencing. The
+                # separation is then PROJECTED on the local unit vectors of the
+                # clockwise beam at this encounter, which gives the horizontal
+                # and vertical components with their sign directly -- no
+                # assumption that the reference direction follows the mean ring
+                # azimuth, so a bend between the IP and the encounter is
+                # accounted for.
+                s1, frame = frames_cw[ip][ncw]
+                s2, _ = frames_acw[ip][nacw]
+                d = s1 - np.array([-s2[0], s2[1], -s2[2]])
+                sep_x = float(d @ frame[:, 0])
+                sep_y = float(d @ frame[:, 1])
             geom[base] = dict(
                 ip=ip, offset=offset, signed_n=sn,
                 betx_cw=float(tw_cw['betx', ncw]),
@@ -497,7 +506,8 @@ class MultibunchBBSetup:
                               sigmas_other=sizes_cw, sigmas_own=sizes_acw)
 
     def solve(self, max_iterations=5, tol_sigma=1e-4, dynamic_beta=False,
-              method='4d', chrom=False, twiss_mode=None, show_progress=True):
+              method='4d', chrom=False, twiss_mode=None, show_progress=True,
+              continue_on_closed_orbit_error=False):
         """Find the per-bunch self-consistent closed orbit: iterate the
         multi-bunch twiss on both beams, feeding each beam's per-bunch closed
         orbit (plus the survey separation) into the other beam's elements, until
@@ -531,6 +541,17 @@ class MultibunchBBSetup:
             ``dynamic_beta`` is True) or ``'full'``.
         show_progress : bool
             Print per-iteration convergence information (default True).
+        continue_on_closed_orbit_error : bool
+            If True, the closed-orbit search of the INTERMEDIATE iterations may
+            return its last iterate instead of raising
+            :class:`ClosedOrbitSearchError` (same meaning as in
+            :meth:`Line.twiss`); a FINAL iteration is then always run without
+            it, and it must converge. That last orbit is the one returned and
+            the one left on the elements, so the result is exactly as strict as
+            without this option -- only the intermediate rounds are relaxed.
+            Use it on lattices where the search cannot reach ``co_tol`` from a
+            cold start but does once the opposing beam has settled. Default
+            False (every iteration strict).
 
         Returns
         -------
@@ -548,16 +569,23 @@ class MultibunchBBSetup:
         zeta_cw = np.asarray(self.bunches_cw) * self.slot_len
         zeta_acw = np.asarray(self.bunches_acw) * self.slot_len
 
+        # The intermediate rounds may keep going on a closed-orbit error: their
+        # orbit is only an input to the next round, so a few bunches short of
+        # `co_tol` cost nothing, and on some machines the search cannot reach
+        # it from a cold start at all. The FINAL round below is always strict.
+        co_kwargs = (dict(continue_on_closed_orbit_error=True)
+                     if continue_on_closed_orbit_error else {})
+
         mbtw_cw = mbtw_acw = None
         prev = None
         err = np.inf
         for it in range(max_iterations):
             mbtw_cw = cw.twiss_multibunch(
                 zeta_bunches=zeta_cw, method=method, chrom=chrom,
-                mode=twiss_mode, show_progress=show_progress)
+                mode=twiss_mode, show_progress=show_progress, **co_kwargs)
             mbtw_acw = acw.twiss_multibunch(
                 zeta_bunches=zeta_acw, method=method, chrom=chrom,
-                mode=twiss_mode, show_progress=show_progress)
+                mode=twiss_mode, show_progress=show_progress, **co_kwargs)
 
             cur = np.concatenate([_orbit_vector(mbtw_cw, self.bb_names_cw),
                                   _orbit_vector(mbtw_acw, self.bb_names_acw)])
@@ -581,12 +609,78 @@ class MultibunchBBSetup:
             if show_progress:
                 _print(f'  reached max_iterations={max_iterations} '
                        f'(last change {err:.2e} sigma)')
+
+        if continue_on_closed_orbit_error:
+            # One last pass that must converge, so what is returned -- and what
+            # the elements are left holding -- is a genuine closed orbit of the
+            # converged state. If this raises, the solution is NOT usable and
+            # the caller must know.
+            if show_progress:
+                _print('  final closed-orbit pass (strict)')
+            mbtw_cw = cw.twiss_multibunch(
+                zeta_bunches=zeta_cw, method=method, chrom=chrom,
+                mode=twiss_mode, show_progress=show_progress)
+            mbtw_acw = acw.twiss_multibunch(
+                zeta_bunches=zeta_acw, method=method, chrom=chrom,
+                mode=twiss_mode, show_progress=show_progress)
+            self.load_solution(mbtw_cw, mbtw_acw, dynamic_beta=dynamic_beta)
+
         return mbtw_cw, mbtw_acw
 
 
-def _survey_positions(sv, names):
-    r = sv.rows[names]
-    return np.stack([r.X, r.Y, r.Z], axis=1)   # (n, 3)
+def _local_survey(line, ref_name, names):
+    """Survey of the region AROUND ``ref_name``, in that element's own frame:
+    the reference sits at the origin with the identity orientation and the
+    survey is integrated outwards from it, forwards and backwards, over just
+    enough of the ring to reach ``names``.
+
+    This is what makes the geometry independent of where the line is cut. A
+    survey of the line as stored integrates from the line's first element, so
+    an encounter on the far side of the seam from its IP -- which is exactly
+    what happens once the line is cycled at a beam-beam IP and the upstream
+    encounters wrap past s = 0 -- would be reached the long way round and pick
+    up the whole ring closure defect (0.374 m for the LHC sequence as loaded,
+    whose rbend lengths stay chords because ``option, -rbarc`` is not applied).
+    Here the element sequence is first ROLLED so that the reference sits in the
+    middle, then cut down to the span actually needed, so the seam is never
+    crossed, no closure enters, and the reference frame is the local one: any
+    bend between the reference and an element -- the separation and
+    recombination dipoles of the insertion, in particular -- is followed
+    exactly instead of being approximated by the mean ring azimuth.
+
+    Returns ``{name: (v, W)}``: the position of each requested element in the
+    reference frame, and its orientation matrix there. The columns of ``W`` are
+    the local unit vectors -- ``W[:, 0]`` the horizontal transverse direction
+    (the beam's ``x``), ``W[:, 1]`` the vertical, ``W[:, 2]`` the direction of
+    travel.
+    """
+    from .survey import get_survey
+
+    tab = line.get_table(attr=True)
+    elements = list(line._elements)
+    n_el = len(elements)
+    length = np.array(tab.length[:n_el], dtype=float)
+    length[~np.array(tab.isthick[:n_el], dtype=bool)] = 0.
+    angle = np.array(tab.angle[:n_el], dtype=float)
+    tilt = np.array(tab.rot_s_rad[:n_el], dtype=float)
+
+    index = {nn: i for i, nn in enumerate(line.element_names)}
+    shift = (index[ref_name] - n_el // 2) % n_el   # reference to the middle
+    rolled = {nn: (index[nn] - shift) % n_el for nn in list(names) + [ref_name]}
+    lo, hi = min(rolled.values()), max(rolled.values())
+
+    def window(arr):
+        return np.concatenate([arr[shift:], arr[:shift]])[lo:hi + 1]
+
+    order = elements[shift:] + elements[:shift]
+    V, W = get_survey(
+        elements=order[lo:hi + 1],
+        X0=0., Y0=0., Z0=0., theta0=0., phi0=0., psi0=0.,
+        drift_length=window(length), angle=window(angle), tilt=window(tilt),
+        element0=rolled[ref_name] - lo)
+
+    return {nn: (np.array(V[rolled[nn] - lo]), np.array(W[rolled[nn] - lo]))
+            for nn in names}
 
 
 def _orbit_vector(mbtw, bb_names):

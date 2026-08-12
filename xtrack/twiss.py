@@ -6175,13 +6175,20 @@ class MultiBunchTwiss:
                 f'zeta={np.array2string(self.zeta_bunches, precision=3)})')
 
 
-def _mb_co_search(line, zeta_t, delta_t, Z_init, hs, co_tol, max_iter_co):
+def _mb_co_search(line, zeta_t, delta_t, Z_init, hs, co_tol, max_iter_co,
+                  continue_on_closed_orbit_error=False):
 
     """Batched Newton closed-orbit search: for every target (a bunch at fixed
     ``zeta`` and ``delta``) track the closed-orbit candidate plus 8 transverse
     central-difference probes, all targets in ONE tracking call per iteration.
     Returns ``(Z, J, dzeta_turn)``: converged 4D closed orbits, one-turn 4x4
-    Jacobians, and the one-turn zeta slippage of each closed orbit."""
+    Jacobians, and the one-turn zeta slippage of each closed orbit.
+
+    ``continue_on_closed_orbit_error`` has the same meaning as in
+    :func:`twiss_line`: if the search does not reach ``co_tol`` within
+    ``max_iter_co`` iterations, return the last iterate instead of raising
+    :class:`ClosedOrbitSearchError`.
+    """
 
     ctx2np = line._context.nparray_from_context_array
     n_t = len(zeta_t)
@@ -6213,15 +6220,22 @@ def _mb_co_search(line, zeta_t, delta_t, Z_init, hs, co_tol, max_iter_co):
         for kk in range(4):
             JJ[:, :, kk] = (out[:, 1 + 2 * kk, :]
                             - out[:, 2 + 2 * kk, :]) / (2 * hs[kk])
-        if np.max(np.abs(FF)) < co_tol:
+        res = np.abs(FF).max(axis=1)             # per-bunch residual
+        if res.max() < co_tol:
             converged = True
             break
         dZZ = np.linalg.solve(JJ - np.eye(4)[None, :, :], -FF[:, :, None])
         ZZ += dZZ[:, :, 0]
     if not converged:
-        raise ClosedOrbitSearchError(
-            f'Multibunch closed-orbit search did not converge in '
-            f'{max_iter_co} iterations (residual {np.max(np.abs(FF)):.2e})')
+        n_bad = int((res > co_tol).sum())
+        if not continue_on_closed_orbit_error:
+            raise ClosedOrbitSearchError(
+                f'Multibunch closed-orbit search did not converge in '
+                f'{max_iter_co} iterations (residual {res.max():.2e} on '
+                f'{n_bad} of {n_t} bunches)')
+        _print(f'  closed-orbit search: {max_iter_co} iterations reached, '
+               f'residual {res.max():.2e} on {n_bad} of {n_t} bunches '
+               f'-- continuing on closed-orbit error')
     return ZZ, JJ, zeta_out - zeta_t
 
 
@@ -6250,6 +6264,7 @@ def _mb_fractional_tunes(JJ):
 
 def _twiss_multibunch_fast(line, zeta_bunches, steps_R_matrix=None,
                            co_tol=1e-11, max_iter_co=20,
+                           continue_on_closed_orbit_error=False,
                            compute_optics=False, delta_chrom=5e-5):
 
     """Batched per-bunch 4D closed solution (closed orbit + tunes + element-by-
@@ -6299,7 +6314,7 @@ def _twiss_multibunch_fast(line, zeta_bunches, steps_R_matrix=None,
     # delta = 0), layout per bunch: [co, x+, x-, px+, px-, y+, y-, py+, py-]
     ZZ, JJ, _ = _mb_co_search(line, zeta_bunches, np.zeros(n_bunches),
                               np.zeros((n_bunches, 4)), hs, co_tol,
-                              max_iter_co)
+                              max_iter_co, continue_on_closed_orbit_error)
 
     # Per-bunch fractional tunes from the 4x4 one-turn Jacobians
     qx_frac, qy_frac = _mb_fractional_tunes(JJ)
@@ -6556,8 +6571,9 @@ def twiss_line_multibunch(line, zeta_bunches=None, particles=None,
         Additional keyword arguments forwarded to :func:`twiss_line` /
         :meth:`Line.twiss` (e.g. ``nemitt_x``, ``chrom``, ...) in
         ``mode='full'``. ``zeta0`` must not be given (it is set internally to
-        each bunch position). In ``mode='fast'`` only ``chrom`` is accepted
-        (and ignored); other kwargs raise.
+        each bunch position). In ``mode='fast'``/``'fast_orbit'`` only
+        ``chrom`` (accepted and ignored), ``co_tol``, ``max_iter_co`` and
+        ``continue_on_closed_orbit_error`` are accepted; other kwargs raise.
 
     Returns
     -------
@@ -6589,12 +6605,17 @@ def twiss_line_multibunch(line, zeta_bunches=None, particles=None,
     if mode in ('fast', 'fast_orbit'):
         if method != '4d':
             raise ValueError(f"mode='{mode}' requires method='4d'")
-        unsupported = set(kwargs) - {'chrom'}
+        unsupported = set(kwargs) - {'chrom', 'co_tol', 'max_iter_co',
+                                     'continue_on_closed_orbit_error'}
         if unsupported:
             raise ValueError(
                 f'kwargs {sorted(unsupported)} are not supported in '
                 f"mode='{mode}'; use mode='full'")
-        bunch_twiss = _twiss_multibunch_fast(line, zeta_bunches, compute_optics=(mode == 'fast'))
+        co_kwargs = {kk: kwargs[kk] for kk in
+                     ('co_tol', 'max_iter_co', 'continue_on_closed_orbit_error')
+                     if kk in kwargs}
+        bunch_twiss = _twiss_multibunch_fast(
+            line, zeta_bunches, compute_optics=(mode == 'fast'), **co_kwargs)
     elif mode == 'full':
         from tqdm.auto import tqdm
         bunch_twiss = []
