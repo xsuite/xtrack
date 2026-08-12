@@ -12,7 +12,6 @@
     #include "xtrack/particles/headers/local_particle_scalar.h"
 #endif
 
-// Hand-written helpers shared by the scalar and TPSA LocalParticle implementations.
 #include "xtrack/particles/headers/local_particle_common.h"
 
 #endif /* XTRACK_PARTICLES_LOCAL_PARTICLE_H */

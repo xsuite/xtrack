@@ -89,7 +89,7 @@
 #error "Unknown context or missing XO_CONTEXT_* flag. Try updating Xobjects?"
 #endif
 
-// Select the LocalParticle implementation after defining the per-particle macros used by its API.
+// LocalParticle to be included after defining the per-particle macros used by its API.
 #include "xtrack/particles/headers/local_particle.h"
 
 #endif  // XTRACK_TRACK_H

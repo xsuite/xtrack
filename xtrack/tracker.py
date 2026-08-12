@@ -1882,12 +1882,8 @@ class Tracker:
                 headers.append(f'#define {k} {v}')
             elif v is True:
                 headers.append(f'#define {k}')
-                if k.startswith('FREEZE_VAR_'):
-                    headers.append(f'#define XT_{k} 1')
             else:
                 headers.append(f'#undef {k}')
-                if k.startswith('FREEZE_VAR_'):
-                    headers.append(f'#define XT_{k} 0')
         return headers
 
     def _get_twiss_mask_markers(self):
