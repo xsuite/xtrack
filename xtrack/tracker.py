@@ -811,32 +811,16 @@ class Tracker:
             int64_t isactive = check_is_active(&lpart);
 #else
             LocalParticle lpart;
-            lpart.tp = particles;
-            lpart.x = (tpsa_t*)(uintptr_t)TpsaParticleData_get_x(particles);
-            lpart.px = (tpsa_t*)(uintptr_t)TpsaParticleData_get_px(particles);
-            lpart.y = (tpsa_t*)(uintptr_t)TpsaParticleData_get_y(particles);
-            lpart.py = (tpsa_t*)(uintptr_t)TpsaParticleData_get_py(particles);
-            lpart.zeta = (tpsa_t*)(uintptr_t)TpsaParticleData_get_zeta(particles);
-            lpart.delta = (tpsa_t*)(uintptr_t)TpsaParticleData_get_delta(particles);
-            lpart.ptau = (tpsa_t*)(uintptr_t)TpsaParticleData_get_ptau(particles);
-            lpart.rvv = (tpsa_t*)(uintptr_t)TpsaParticleData_get_rvv(particles);
-            lpart.rpp = (tpsa_t*)(uintptr_t)TpsaParticleData_get_rpp(particles);
-            lpart.s = (tpsa_t*)(uintptr_t)TpsaParticleData_get_s(particles);
-            lpart.ax = (tpsa_t*)(uintptr_t)TpsaParticleData_get_ax(particles);
-            lpart.ay = (tpsa_t*)(uintptr_t)TpsaParticleData_get_ay(particles);
+            Particles_to_LocalParticle(particles, &lpart, 0, 1);
             lpart.line_length = line_length;
-            lpart.ipart = 0;
-            lpart.endpart = 1;
             lpart._num_active_particles = 1;
             lpart._num_lost_particles = 0;
             lpart.track_flags = track_flags;
             lpart.io_buffer = io_buffer;
             xt_tpsa::default_scope xt_tpsa_default_scope(lpart.x);
 
-            TpsaParticleData_set_state(particles, 1);
-            TpsaParticleData_set_at_element(particles, ele_start);
-            TpsaParticleData_set_track_flags(particles, track_flags);
-            TpsaParticleData_set_line_length(particles, line_length);
+            LocalParticle_set_state(&lpart, 1);
+            LocalParticle_set_at_element(&lpart, ele_start);
             LocalParticle_update_delta(&lpart, LocalParticle_get_delta(&lpart));
             LocalParticle_set_s(&lpart, 0.0);
             LocalParticle_set_ax(&lpart, 0.0);
@@ -990,6 +974,8 @@ class Tracker:
             count_reorganized_particles(&lpart);                       //only_for_context cpu_openmp
             LocalParticle_to_Particles(&lpart, particles, 0, capacity);//only_for_context cpu_openmp
             #endif                                                     //only_for_context cpu_openmp
+#else
+            LocalParticle_to_Particles(&lpart, particles, 0, 1);
 #endif
         }//kernel
         """

@@ -10,6 +10,7 @@
 #include "xtrack/particles/rng_src/base_rng.h"
 #include "xtrack/particles/rng_src/particles_rng.h"
 #include "xtrack/headers/track.h"
+#include "xtrack/particles/headers/local_particle_common.h"
 
 // Field lists used to define the scalar LocalParticle ABI and its accessors.
 #define XT_LOCAL_PARTICLE_SIZE_FIELDS(_)         \
@@ -22,30 +23,6 @@
     _(double, q0)                                \
     _(double, mass0)                             \
     _(double, t_sim)
-
-#define XT_LOCAL_PARTICLE_FLOAT_FIELDS(_)        \
-    _(double, p0c)                               \
-    _(double, gamma0)                            \
-    _(double, beta0)                             \
-    _(double, s)                                 \
-    _(double, zeta)                              \
-    _(double, x)                                 \
-    _(double, y)                                 \
-    _(double, px)                                \
-    _(double, py)                                \
-    _(double, ptau)                              \
-    _(double, delta)                             \
-    _(double, rpp)                               \
-    _(double, rvv)                               \
-    _(double, chi)                               \
-    _(double, charge_ratio)                      \
-    _(double, weight)                            \
-    _(double, ax)                                \
-    _(double, ay)                                \
-    _(double, spin_x)                            \
-    _(double, spin_y)                            \
-    _(double, spin_z)                            \
-    _(double, anomalous_magnetic_moment)
 
 #define XT_LOCAL_PARTICLE_INT_FIELDS(_)          \
     _(int64_t, pdg_id)                           \
@@ -61,11 +38,6 @@
     _(uint32_t, _rng_s3)                         \
     _(uint32_t, _rng_s4)
 
-#define XT_LOCAL_PARTICLE_FIELDS(_)              \
-    XT_LOCAL_PARTICLE_FLOAT_FIELDS(_)            \
-    XT_LOCAL_PARTICLE_INT_FIELDS(_)              \
-    XT_LOCAL_PARTICLE_UINT32_FIELDS(_)
-
 // LocalParticle stores scalar particle-level values inline and per-particle
 // arrays as pointers into ParticlesData.
 typedef struct {
@@ -74,8 +46,13 @@ typedef struct {
         XT_LOCAL_PARTICLE_SCALAR_FIELDS(XT_LOCAL_PARTICLE_SCALAR_STRUCT_FIELD)
     #undef XT_LOCAL_PARTICLE_SCALAR_STRUCT_FIELD
 
+    #define XT_LOCAL_PARTICLE_NUM_STRUCT_FIELD(NAME) GPUGLMEM xt_num_t* NAME;
+        XT_LOCAL_PARTICLE_SCALAR_NUM_FIELDS(XT_LOCAL_PARTICLE_NUM_STRUCT_FIELD)
+    #undef XT_LOCAL_PARTICLE_NUM_STRUCT_FIELD
+
     #define XT_LOCAL_PARTICLE_POINTER_STRUCT_FIELD(TYPE, NAME) GPUGLMEM TYPE* NAME;
-        XT_LOCAL_PARTICLE_FIELDS(XT_LOCAL_PARTICLE_POINTER_STRUCT_FIELD)
+        XT_LOCAL_PARTICLE_INT_FIELDS(XT_LOCAL_PARTICLE_POINTER_STRUCT_FIELD)
+        XT_LOCAL_PARTICLE_UINT32_FIELDS(XT_LOCAL_PARTICLE_POINTER_STRUCT_FIELD)
     #undef XT_LOCAL_PARTICLE_POINTER_STRUCT_FIELD
 
     int64_t ipart;
@@ -181,29 +158,26 @@ XT_LOCAL_PARTICLE_SCALAR_FIELDS(XT_LOCAL_PARTICLE_SCALAR_GETTER)
     XT_FREEZE_VAR_##NAME
 
 // Per-particle get/set/add/scale accessors.
-#define XT_LOCAL_PARTICLE_FLOAT_ACCESSORS(TYPE, NAME)                  \
-    GPUFUN                                                             \
-    void LocalParticle_add_to_##NAME(LocalParticle* part, TYPE value){ \
-        if (!XT_LOCAL_PARTICLE_IS_FROZEN(NAME)) {                      \
-            part->NAME[part->ipart] += value;                          \
-        }                                                              \
-    }                                                                  \
-    GPUFUN                                                             \
-    TYPE LocalParticle_get_##NAME(LocalParticle* part){                \
-        return part->NAME[part->ipart];                                \
-    }                                                                  \
-    GPUFUN                                                             \
-    void LocalParticle_set_##NAME(LocalParticle* part, TYPE value){    \
-        if (!XT_LOCAL_PARTICLE_IS_FROZEN(NAME)) {                      \
-            part->NAME[part->ipart] = value;                           \
-        }                                                              \
-    }                                                                  \
-    GPUFUN                                                             \
-    void LocalParticle_scale_##NAME(LocalParticle* part, TYPE value){  \
-        if (!XT_LOCAL_PARTICLE_IS_FROZEN(NAME)) {                      \
-            part->NAME[part->ipart] *= value;                          \
-        }                                                              \
-    }
+#define XT_LOCAL_PARTICLE_ACCESSOR_PREFIX GPUFUN
+#define XT_LOCAL_PARTICLE_NUM_GET(PART, NAME) ((PART)->NAME[(PART)->ipart])
+#define XT_LOCAL_PARTICLE_NUM_SET(PART, NAME, VALUE) \
+    do {                                             \
+        if (!XT_LOCAL_PARTICLE_IS_FROZEN(NAME)) {    \
+            (PART)->NAME[(PART)->ipart] = (VALUE);   \
+        }                                            \
+    } while (0)
+#define XT_LOCAL_PARTICLE_NUM_ADD(PART, NAME, VALUE) \
+    do {                                             \
+        if (!XT_LOCAL_PARTICLE_IS_FROZEN(NAME)) {    \
+            (PART)->NAME[(PART)->ipart] += (VALUE);  \
+        }                                            \
+    } while (0)
+#define XT_LOCAL_PARTICLE_NUM_SCALE(PART, NAME, VALUE) \
+    do {                                               \
+        if (!XT_LOCAL_PARTICLE_IS_FROZEN(NAME)) {      \
+            (PART)->NAME[(PART)->ipart] *= (VALUE);    \
+        }                                              \
+    } while (0)
 
 #define XT_LOCAL_PARTICLE_INDEXED_ACCESSORS(TYPE, NAME)                \
     GPUFUN                                                             \
@@ -223,10 +197,14 @@ XT_LOCAL_PARTICLE_SCALAR_FIELDS(XT_LOCAL_PARTICLE_SCALAR_GETTER)
         part->NAME[part->ipart] *= value;                              \
     }
 
-XT_LOCAL_PARTICLE_FLOAT_FIELDS(XT_LOCAL_PARTICLE_FLOAT_ACCESSORS)
+XT_LOCAL_PARTICLE_SCALAR_NUM_FIELDS(XT_LOCAL_PARTICLE_NUM_ACCESSORS)
 XT_LOCAL_PARTICLE_INT_FIELDS(XT_LOCAL_PARTICLE_INDEXED_ACCESSORS)
 XT_LOCAL_PARTICLE_UINT32_FIELDS(XT_LOCAL_PARTICLE_INDEXED_ACCESSORS)
-#undef XT_LOCAL_PARTICLE_FLOAT_ACCESSORS
+#undef XT_LOCAL_PARTICLE_NUM_SCALE
+#undef XT_LOCAL_PARTICLE_NUM_ADD
+#undef XT_LOCAL_PARTICLE_NUM_SET
+#undef XT_LOCAL_PARTICLE_NUM_GET
+#undef XT_LOCAL_PARTICLE_ACCESSOR_PREFIX
 #undef XT_LOCAL_PARTICLE_INDEXED_ACCESSORS
 
 // Conversion between the global ParticlesData structure and a LocalParticle view.
@@ -243,9 +221,15 @@ void Particles_to_LocalParticle(
         XT_LOCAL_PARTICLE_SCALAR_FIELDS(XT_LOCAL_PARTICLE_COPY_SCALAR_FROM_PARTICLES)
     #undef XT_LOCAL_PARTICLE_COPY_SCALAR_FROM_PARTICLES
 
+    #define XT_LOCAL_PARTICLE_GET_NUM_POINTER_FROM_PARTICLES(NAME) \
+        dest->NAME = ParticlesData_getp1_##NAME(source, 0);
+        XT_LOCAL_PARTICLE_SCALAR_NUM_FIELDS(XT_LOCAL_PARTICLE_GET_NUM_POINTER_FROM_PARTICLES)
+    #undef XT_LOCAL_PARTICLE_GET_NUM_POINTER_FROM_PARTICLES
+
     #define XT_LOCAL_PARTICLE_GET_POINTER_FROM_PARTICLES(TYPE, NAME) \
         dest->NAME = ParticlesData_getp1_##NAME(source, 0);
-        XT_LOCAL_PARTICLE_FIELDS(XT_LOCAL_PARTICLE_GET_POINTER_FROM_PARTICLES)
+        XT_LOCAL_PARTICLE_INT_FIELDS(XT_LOCAL_PARTICLE_GET_POINTER_FROM_PARTICLES)
+        XT_LOCAL_PARTICLE_UINT32_FIELDS(XT_LOCAL_PARTICLE_GET_POINTER_FROM_PARTICLES)
     #undef XT_LOCAL_PARTICLE_GET_POINTER_FROM_PARTICLES
 
     dest->ipart = id;
@@ -267,9 +251,15 @@ void LocalParticle_to_Particles(
         #undef XT_LOCAL_PARTICLE_COPY_SCALAR_TO_PARTICLES
     }
 
+    #define XT_LOCAL_PARTICLE_COPY_NUM_FIELD_TO_PARTICLES(NAME) \
+        ParticlesData_set_##NAME(dest, id, LocalParticle_get_##NAME(source));
+        XT_LOCAL_PARTICLE_SCALAR_NUM_FIELDS(XT_LOCAL_PARTICLE_COPY_NUM_FIELD_TO_PARTICLES)
+    #undef XT_LOCAL_PARTICLE_COPY_NUM_FIELD_TO_PARTICLES
+
     #define XT_LOCAL_PARTICLE_COPY_FIELD_TO_PARTICLES(TYPE, NAME) \
         ParticlesData_set_##NAME(dest, id, LocalParticle_get_##NAME(source));
-        XT_LOCAL_PARTICLE_FIELDS(XT_LOCAL_PARTICLE_COPY_FIELD_TO_PARTICLES)
+        XT_LOCAL_PARTICLE_INT_FIELDS(XT_LOCAL_PARTICLE_COPY_FIELD_TO_PARTICLES)
+        XT_LOCAL_PARTICLE_UINT32_FIELDS(XT_LOCAL_PARTICLE_COPY_FIELD_TO_PARTICLES)
     #undef XT_LOCAL_PARTICLE_COPY_FIELD_TO_PARTICLES
 }
 
@@ -277,13 +267,23 @@ void LocalParticle_to_Particles(
 // reorganization.
 GPUFUN
 void LocalParticle_exchange(LocalParticle* part, int64_t i1, int64_t i2){
+    #define XT_LOCAL_PARTICLE_EXCHANGE_NUM_FIELD(NAME)   \
+        {                                                \
+            xt_num_t temp = part->NAME[i2];              \
+            part->NAME[i2] = part->NAME[i1];             \
+            part->NAME[i1] = temp;                       \
+        }
+        XT_LOCAL_PARTICLE_SCALAR_NUM_FIELDS(XT_LOCAL_PARTICLE_EXCHANGE_NUM_FIELD)
+    #undef XT_LOCAL_PARTICLE_EXCHANGE_NUM_FIELD
+
     #define XT_LOCAL_PARTICLE_EXCHANGE_FIELD(TYPE, NAME) \
         {                                                \
             TYPE temp = part->NAME[i2];                  \
             part->NAME[i2] = part->NAME[i1];             \
             part->NAME[i1] = temp;                       \
         }
-        XT_LOCAL_PARTICLE_FIELDS(XT_LOCAL_PARTICLE_EXCHANGE_FIELD)
+        XT_LOCAL_PARTICLE_INT_FIELDS(XT_LOCAL_PARTICLE_EXCHANGE_FIELD)
+        XT_LOCAL_PARTICLE_UINT32_FIELDS(XT_LOCAL_PARTICLE_EXCHANGE_FIELD)
     #undef XT_LOCAL_PARTICLE_EXCHANGE_FIELD
 }
 
@@ -405,10 +405,8 @@ void LocalParticle_scale_exact_xp_yp(LocalParticle* part, double value_x, double
 // Hand-written helpers layered on top of the generated-style field API.
 #include "xtrack/particles/headers/local_particle_custom.h"
 
-#undef XT_LOCAL_PARTICLE_FIELDS
 #undef XT_LOCAL_PARTICLE_UINT32_FIELDS
 #undef XT_LOCAL_PARTICLE_INT_FIELDS
-#undef XT_LOCAL_PARTICLE_FLOAT_FIELDS
 #undef XT_LOCAL_PARTICLE_SCALAR_FIELDS
 #undef XT_LOCAL_PARTICLE_SIZE_FIELDS
 

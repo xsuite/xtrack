@@ -115,8 +115,8 @@ class ParticlesTpsa:
 
         Coordinate ``tpsa_t*`` addresses are stable for the life of the ``Tpsa`` objects
         and the shared object writes the map in place through them, so they are set once here.
-        The reference (doubles) variables never change during tracking. Per-track fields
-        (state/at_element/track_flags/line_length) are refreshed before tracking.
+        The reference (double) variables never change during tracking. The kernel copies
+        this data into an unrolled ``LocalParticle`` and synchronizes tracking state back.
         """
         ffi = xgtpsa.ffi()
         bp = TpsaParticleData()

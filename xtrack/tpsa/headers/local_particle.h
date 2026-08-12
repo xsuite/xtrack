@@ -7,42 +7,51 @@
 #define XTRACK_TPSA_LOCAL_PARTICLE_H
 
 #include "xtrack/headers/track.h"
-
-#define XT_TPSA_LOCAL_PARTICLE_FIELDS(_) \
-    _(x)                                 \
-    _(px)                                \
-    _(y)                                 \
-    _(py)                                \
-    _(zeta)                              \
-    _(delta)                             \
-    _(ptau)                              \
-    _(rvv)                               \
-    _(rpp)                               \
-    _(s)                                 \
-    _(ax)                                \
-    _(ay)
-
-#define XT_TPSA_LOCAL_PARTICLE_REF_FIELDS(_) \
-    _(q0)                                    \
-    _(mass0)                                 \
-    _(beta0)                                 \
-    _(gamma0)                                \
-    _(p0c)                                   \
-    _(chi)                                   \
-    _(charge_ratio)                          \
-    _(weight)                                \
-    _(anomalous_magnetic_moment)
+#include "xtrack/particles/headers/local_particle_common.h"
 
 struct LocalParticle {
 #define XT_TPSA_LOCAL_PARTICLE_STRUCT_FIELD(NAME) tpsa_t *NAME;
-    XT_TPSA_LOCAL_PARTICLE_FIELDS(XT_TPSA_LOCAL_PARTICLE_STRUCT_FIELD)
+    XT_LOCAL_PARTICLE_TPSA_NUM_FIELDS(XT_TPSA_LOCAL_PARTICLE_STRUCT_FIELD)
 #undef XT_TPSA_LOCAL_PARTICLE_STRUCT_FIELD
-    TpsaParticleData tp;
+
+#define XT_TPSA_LOCAL_PARTICLE_REF_FIELD(NAME) double NAME;
+    XT_LOCAL_PARTICLE_REF_FIELDS(XT_TPSA_LOCAL_PARTICLE_REF_FIELD)
+#undef XT_TPSA_LOCAL_PARTICLE_REF_FIELD
+
+    int64_t state;
+    int64_t at_element;
     double line_length;
     int64_t ipart, endpart, _num_active_particles, _num_lost_particles;
     uint64_t track_flags;
     int8_t* io_buffer;
 };
+
+// Convert between the xobject kernel argument and the unrolled LocalParticle used by tracking.
+static inline void Particles_to_LocalParticle(
+        TpsaParticleData source, LocalParticle* dest, int64_t id, int64_t end_id) {
+#define XT_TPSA_LOCAL_PARTICLE_COPY_NUM_FIELD(NAME) \
+    dest->NAME = (tpsa_t*)(uintptr_t)TpsaParticleData_get_##NAME(source);
+    XT_LOCAL_PARTICLE_TPSA_NUM_FIELDS(XT_TPSA_LOCAL_PARTICLE_COPY_NUM_FIELD)
+#undef XT_TPSA_LOCAL_PARTICLE_COPY_NUM_FIELD
+
+#define XT_TPSA_LOCAL_PARTICLE_COPY_REF_FIELD(NAME) \
+    dest->NAME = TpsaParticleData_get_##NAME(source);
+    XT_LOCAL_PARTICLE_REF_FIELDS(XT_TPSA_LOCAL_PARTICLE_COPY_REF_FIELD)
+#undef XT_TPSA_LOCAL_PARTICLE_COPY_REF_FIELD
+
+    dest->state = TpsaParticleData_get_state(source);
+    dest->at_element = TpsaParticleData_get_at_element(source);
+    dest->ipart = id;
+    dest->endpart = end_id;
+}
+
+static inline void LocalParticle_to_Particles(
+        LocalParticle* source, TpsaParticleData dest, int64_t, int64_t) {
+    TpsaParticleData_set_state(dest, source->state);
+    TpsaParticleData_set_at_element(dest, source->at_element);
+    TpsaParticleData_set_track_flags(dest, source->track_flags);
+    TpsaParticleData_set_line_length(dest, source->line_length);
+}
 
 static inline int64_t LocalParticle_get__num_active_particles(LocalParticle* p){
     return p->_num_active_particles;
@@ -58,69 +67,68 @@ static inline int64_t LocalParticle_get_at_turn(LocalParticle*){ return 0; }
 static inline int64_t LocalParticle_get_particle_id(LocalParticle*){ return 0; }
 static inline int8_t* LocalParticle_get_io_buffer(LocalParticle* p){ return p->io_buffer; }
 
-#define XT_TPSA_LOCAL_PARTICLE_ACCESSORS(NAME)                                      \
-    template<class A>                                                              \
-    static inline void LocalParticle_add_to_##NAME(                                \
-            LocalParticle* p, const mad::tpsa_base<A>& v){                         \
-        mad::tpsa_ref(p->NAME) += v;                                               \
-    }                                                                              \
-    static inline void LocalParticle_add_to_##NAME(LocalParticle* p, double v){    \
-        mad::tpsa_ref(p->NAME) += v;                                               \
-    }                                                                              \
-    static inline xt_num_t LocalParticle_get_##NAME(LocalParticle* p){             \
-        return 1.0 * mad::tpsa_ref(p->NAME);                                       \
-    }                                                                              \
-    template<class A>                                                              \
-    static inline void LocalParticle_set_##NAME(                                   \
-            LocalParticle* p, const mad::tpsa_base<A>& v){                         \
-        mad::tpsa_ref(p->NAME) = v;                                                \
-    }                                                                              \
-    static inline void LocalParticle_set_##NAME(LocalParticle* p, double v){       \
-        mad::tpsa_ref(p->NAME) = v;                                                \
-    }                                                                              \
-    template<class A>                                                              \
-    static inline void LocalParticle_scale_##NAME(                                 \
-            LocalParticle* p, const mad::tpsa_base<A>& v){                         \
-        mad::tpsa_ref(p->NAME) *= v;                                               \
-    }                                                                              \
-    static inline void LocalParticle_scale_##NAME(LocalParticle* p, double v){     \
-        mad::tpsa_ref(p->NAME) *= v;                                               \
+#define XT_TPSA_LOCAL_PARTICLE_TEMPLATE_ACCESSORS(NAME)                             \
+    template<class A>                                                               \
+    static inline void LocalParticle_add_to_##NAME(                                 \
+            LocalParticle* p, const mad::tpsa_base<A>& v){                          \
+        mad::tpsa_ref(p->NAME) += v;                                                \
+    }                                                                               \
+    template<class A>                                                               \
+    static inline void LocalParticle_set_##NAME(                                    \
+            LocalParticle* p, const mad::tpsa_base<A>& v){                          \
+        mad::tpsa_ref(p->NAME) = v;                                                 \
+    }                                                                               \
+    template<class A>                                                               \
+    static inline void LocalParticle_scale_##NAME(                                  \
+            LocalParticle* p, const mad::tpsa_base<A>& v){                          \
+        mad::tpsa_ref(p->NAME) *= v;                                                \
     }
 
-XT_TPSA_LOCAL_PARTICLE_FIELDS(XT_TPSA_LOCAL_PARTICLE_ACCESSORS)
-#undef XT_TPSA_LOCAL_PARTICLE_ACCESSORS
+#define XT_LOCAL_PARTICLE_ACCESSOR_PREFIX static inline
+#define XT_LOCAL_PARTICLE_NUM_GET(PART, NAME) (1.0 * mad::tpsa_ref((PART)->NAME))
+#define XT_LOCAL_PARTICLE_NUM_SET(PART, NAME, VALUE) (mad::tpsa_ref((PART)->NAME) = (VALUE))
+#define XT_LOCAL_PARTICLE_NUM_ADD(PART, NAME, VALUE) (mad::tpsa_ref((PART)->NAME) += (VALUE))
+#define XT_LOCAL_PARTICLE_NUM_SCALE(PART, NAME, VALUE) (mad::tpsa_ref((PART)->NAME) *= (VALUE))
+
+XT_LOCAL_PARTICLE_TPSA_NUM_FIELDS(XT_TPSA_LOCAL_PARTICLE_TEMPLATE_ACCESSORS)
+XT_LOCAL_PARTICLE_TPSA_NUM_FIELDS(XT_LOCAL_PARTICLE_NUM_ACCESSORS)
+#undef XT_LOCAL_PARTICLE_NUM_SCALE
+#undef XT_LOCAL_PARTICLE_NUM_ADD
+#undef XT_LOCAL_PARTICLE_NUM_SET
+#undef XT_LOCAL_PARTICLE_NUM_GET
+#undef XT_LOCAL_PARTICLE_ACCESSOR_PREFIX
+#undef XT_TPSA_LOCAL_PARTICLE_TEMPLATE_ACCESSORS
 
 #define XT_TPSA_LOCAL_PARTICLE_REF_ACCESSOR(NAME)                                  \
     static inline double LocalParticle_get_##NAME(LocalParticle* p){               \
-        return TpsaParticleData_get_##NAME(p->tp);                                 \
+        return p->NAME;                                                            \
     }
 
-XT_TPSA_LOCAL_PARTICLE_REF_FIELDS(XT_TPSA_LOCAL_PARTICLE_REF_ACCESSOR)
+XT_LOCAL_PARTICLE_REF_FIELDS(XT_TPSA_LOCAL_PARTICLE_REF_ACCESSOR)
 #undef XT_TPSA_LOCAL_PARTICLE_REF_ACCESSOR
 
 static inline int64_t LocalParticle_get_state(LocalParticle* p){
-    return TpsaParticleData_get_state(p->tp);
+    return p->state;
 }
 
 static inline void LocalParticle_set_state(LocalParticle* p, int64_t v){
-    TpsaParticleData_set_state(p->tp, v);
+    p->state = v;
 }
 
 static inline void LocalParticle_add_to_state(LocalParticle* p, int64_t v){
-    TpsaParticleData_set_state(p->tp, TpsaParticleData_get_state(p->tp) + v);
+    p->state += v;
 }
 
 static inline int64_t LocalParticle_get_at_element(LocalParticle* p){
-    return TpsaParticleData_get_at_element(p->tp);
+    return p->at_element;
 }
 
 static inline void LocalParticle_set_at_element(LocalParticle* p, int64_t v){
-    TpsaParticleData_set_at_element(p->tp, v);
+    p->at_element = v;
 }
 
 static inline void LocalParticle_add_to_at_element(LocalParticle* p, int64_t v){
-    TpsaParticleData_set_at_element(
-        p->tp, TpsaParticleData_get_at_element(p->tp) + v);
+    p->at_element += v;
 }
 
 static inline double LocalParticle_get_energy0(LocalParticle* part) {
@@ -221,8 +229,5 @@ static inline void LocalParticle_kill_particle(LocalParticle* part, int64_t kill
 static inline int64_t check_is_active(LocalParticle* part) {
     return LocalParticle_get_state(part) > 0;
 }
-
-#undef XT_TPSA_LOCAL_PARTICLE_REF_FIELDS
-#undef XT_TPSA_LOCAL_PARTICLE_FIELDS
 
 #endif
