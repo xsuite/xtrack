@@ -1,3 +1,6 @@
+import os
+import subprocess
+import sys
 from types import SimpleNamespace
 
 import pytest
@@ -24,45 +27,67 @@ def _install_fake_tqdm(monkeypatch):
 
 def test_tqdm_enabled_by_default(monkeypatch):
     _install_fake_tqdm(monkeypatch)
-    monkeypatch.delenv('XTRACK_PROGRESS_INDICATOR', raising=False)
-
-    indicator = progress_indicator.progress([], desc='Testing')
+    with xt.settings.override(progress_indicator='tqdm'):
+        indicator = progress_indicator.progress([], desc='Testing')
 
     assert isinstance(indicator, _FakeTqdm)
 
 
 def test_text_indicator_selected_by_module_attribute(monkeypatch):
     _install_fake_tqdm(monkeypatch)
-    monkeypatch.delenv('XTRACK_PROGRESS_INDICATOR', raising=False)
     monkeypatch.setattr(progress_indicator, 'mode', 'text')
 
     indicator = progress_indicator.progress([], desc='Testing')
 
     assert isinstance(indicator, progress_indicator.DefaultProgressIndicator)
+    assert xt.settings.progress_indicator == 'text'
 
 
-def test_text_indicator_selected_by_environment_variable(monkeypatch):
+def test_text_indicator_selected_by_settings(monkeypatch):
     _install_fake_tqdm(monkeypatch)
-    monkeypatch.setenv('XTRACK_PROGRESS_INDICATOR', 'text')
+    with xt.settings.override(progress_indicator='text'):
+        indicator = progress_indicator.progress([], desc='Testing')
 
-    indicator = progress_indicator.progress([], desc='Testing')
+        assert isinstance(
+            indicator, progress_indicator.DefaultProgressIndicator)
+        assert progress_indicator.mode == 'text'
 
-    assert isinstance(indicator, progress_indicator.DefaultProgressIndicator)
+
+def test_environment_variable_is_startup_default():
+    environment = os.environ.copy()
+    environment['XTRACK_PROGRESS_INDICATOR'] = 'text'
+    code = (
+        'import xtrack as xt; '
+        'assert xt.settings.progress_indicator == "text"')
+
+    subprocess.run(
+        [sys.executable, '-c', code],
+        env=environment,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
 
 
-def test_environment_variable_takes_precedence(monkeypatch):
-    _install_fake_tqdm(monkeypatch)
-    monkeypatch.setattr(progress_indicator, 'mode', 'text')
-    monkeypatch.setenv('XTRACK_PROGRESS_INDICATOR', 'tqdm')
+def test_python_setting_overrides_environment_default():
+    environment = os.environ.copy()
+    environment['XTRACK_PROGRESS_INDICATOR'] = 'text'
+    code = (
+        'import xtrack as xt; '
+        'xt.settings.progress_indicator = "suppress"; '
+        'assert xt.settings.progress_indicator == "suppress"')
 
-    indicator = progress_indicator.progress([], desc='Testing')
-
-    assert isinstance(indicator, _FakeTqdm)
+    subprocess.run(
+        [sys.executable, '-c', code],
+        env=environment,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
 
 
 def test_progress_indicator_suppressed_by_module_attribute(monkeypatch):
     iterable = range(3)
-    monkeypatch.delenv('XTRACK_PROGRESS_INDICATOR', raising=False)
     monkeypatch.setattr(progress_indicator, 'mode', 'suppress')
 
     indicator = progress_indicator.progress(iterable, desc='Testing')
@@ -70,21 +95,24 @@ def test_progress_indicator_suppressed_by_module_attribute(monkeypatch):
     assert indicator is iterable
 
 
-def test_progress_indicator_suppressed_by_environment_variable(monkeypatch):
+def test_progress_indicator_suppressed_by_settings():
     iterable = range(3)
-    monkeypatch.setenv('XTRACK_PROGRESS_INDICATOR', 'suppress')
-
-    indicator = progress_indicator.progress(iterable, desc='Testing')
+    with xt.settings.override(progress_indicator='suppress'):
+        indicator = progress_indicator.progress(iterable, desc='Testing')
 
     assert indicator is iterable
 
 
 def test_invalid_progress_indicator_mode(monkeypatch):
-    monkeypatch.delenv('XTRACK_PROGRESS_INDICATOR', raising=False)
     monkeypatch.setattr(progress_indicator, 'mode', 'invalid')
 
     with pytest.raises(ValueError, match='expected.*tqdm.*text.*suppress'):
         progress_indicator.progress([], desc='Testing')
+
+
+def test_invalid_progress_indicator_setting():
+    with pytest.raises(ValueError, match='expected.*tqdm.*text.*suppress'):
+        xt.settings.progress_indicator = 'invalid'
 
 
 def _unexpected_progress(*args, **kwargs):

@@ -27,7 +27,8 @@ def _find_spin_fixed_point(line, particle_on_co):
             tar=[0., 0.],
             limits=[(-1, 1), (-1, 1)],
             tols=[1e-12, 1e-12],
-            show_call_counter=False)
+            show_call_counter=False,
+            _printer=xt._print)
         opt.solve(verbose=False)
 
     sx_opt = opt.get_knob_values()[0]

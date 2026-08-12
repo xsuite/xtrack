@@ -846,6 +846,7 @@ class MeritFunctionLine(xd.MeritFunctionForMatch):
         self.zero_if_met = merit_function_match.zero_if_met
         self.show_call_counter = merit_function_match.show_call_counter
         self.check_limits = merit_function_match.check_limits
+        self._print = merit_function_match._print
         self.use_tpsa = use_tpsa
 
     def get_jacobian(self, x=None, f0=None):
@@ -1019,7 +1020,8 @@ class OptimizeLine(xd.Optimize):
                         n_steps_max=n_steps_max,
                         restore_if_fail=restore_if_fail,
                         check_limits=check_limits,
-                        name=name)
+                        name=name,
+                        _printer=_print)
 
         _err = MeritFunctionLine(self._err, use_tpsa=use_tpsa)
         self.line = line
@@ -1346,6 +1348,7 @@ def opt_from_callable(function, x0, steps, tar, tols):
 
     '''Optimize a generic callable'''
 
-    opt = xd.Optimize.from_callable(function, x0, tar, steps=steps, tols=tols,
-                                    show_call_counter=False)
+    opt = xd.Optimize.from_callable(
+        function, x0, tar, steps=steps, tols=tols,
+        show_call_counter=False, _printer=_print)
     return opt

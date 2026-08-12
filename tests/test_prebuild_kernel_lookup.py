@@ -61,6 +61,7 @@ def _write_metadata(
 def _restore_no_prebuilt_kernel_flags(monkeypatch):
     monkeypatch.delenv('XSUITE_ALLOW_NO_PREBUILT_KERNELS', raising=False)
     monkeypatch.setattr(context_cpu, 'allow_no_prebuilt_kernel', False)
+    monkeypatch.setattr(xo.settings, 'allow_no_prebuilt_kernels', False)
 
 
 @pytest.fixture
@@ -271,13 +272,27 @@ def test_closest_kernel_prefers_missing_class_over_config_mismatch(
     assert 'different configuration' not in message
 
 
-def test_get_suitable_kernel_returns_none_with_environment_opt_out(
+def test_get_suitable_kernel_returns_none_with_setting_opt_out(
     monkeypatch,
     kernel_location,
 ):
-    monkeypatch.setenv('XSUITE_ALLOW_NO_PREBUILT_KERNELS', '1')
+    monkeypatch.setattr(xo.settings, 'allow_no_prebuilt_kernels', True)
 
     assert xsprebkern.get_suitable_kernel({}, [], [], context=xo.ContextCpu()) is None
+
+
+def test_get_suitable_kernel_uses_configured_print(
+    capsys,
+    kernel_location,
+):
+    with xt.settings.override(
+        print_mode='suppress',
+        allow_no_prebuilt_kernels=True,
+    ):
+        xsprebkern.get_suitable_kernel(
+            {}, [], [], context=xo.ContextCpu(), verbose=True)
+
+    assert capsys.readouterr().out == ''
 
 
 def test_get_suitable_kernel_returns_none_with_context_cpu_opt_out(
@@ -332,11 +347,11 @@ def test_tracker_missing_xsuite_raises_actionable_error(missing_xsuite):
     assert 'XSUITE_ALLOW_NO_PREBUILT_KERNELS' in message
 
 
-def test_missing_xsuite_allows_jit_with_environment_opt_out(
+def test_missing_xsuite_allows_jit_with_setting_opt_out(
     monkeypatch,
     missing_xsuite,
 ):
-    monkeypatch.setenv('XSUITE_ALLOW_NO_PREBUILT_KERNELS', '1')
+    monkeypatch.setattr(xo.settings, 'allow_no_prebuilt_kernels', True)
     context = xo.ContextCpu()
     add_kernel_calls = _patch_add_kernels(monkeypatch, context)
 
