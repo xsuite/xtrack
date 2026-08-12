@@ -31,13 +31,19 @@ from . import beam_elements
 from . import json as json_utils
 from .beam_elements import (BeamElement, Drift, Marker, Multipole,
                             element_classes)
-from .beam_elements.elements import (_EDGE_MODEL_TO_INDEX,
-                                     _MODEL_TO_INDEX_CURVED,
-                                     _MODEL_TO_INDEX_DRIFT)
+from .beam_elements._common import (
+    _EDGE_MODEL_TO_INDEX,
+    _MODEL_TO_INDEX_CURVED,
+    _MODEL_TO_INDEX_DRIFT,
+)
 from .beam_elements.slice_base import ID_RADIATION_FROM_PARENT
-from .composer import (_all_places, _flatten_components,
-                      _generate_element_names_with_drifts,
-                      _resolve_s_positions, _sort_places)
+from .composer.composer import (
+    _all_places,
+    _flatten_components,
+    _generate_element_names_with_drifts,
+)
+from .composer.ordering import _sort_places
+from .composer.resolve_positions import _resolve_s_positions
 from .footprint import Footprint, _footprint_with_linear_rescale
 from .general import _print, DEPRECATION_INFO_PREP_1_0
 from .internal_record import (start_internal_logging_for_elements_of_type,
@@ -1304,13 +1310,14 @@ class Line:
         return out
 
     @doc_group("Compose Mode")
-    def end_compose(self):
+    def end_compose(self, diagnostics=False):
         """
         Resolve compose-mode placements and switch the line back to normal mode.
 
         Parameters
         ----------
-        None
+        diagnostics : bool, optional
+            If true, analyze unresolved placement dependencies before raising.
 
         Returns
         -------
@@ -1350,13 +1357,16 @@ class Line:
         if self.mode != 'compose':
             raise ValueError('Line is not in compose mode')
         self.discard_tracker()
-        self._full_elements_from_composer()
+        self._full_elements_from_composer(diagnostics=diagnostics)
         self._mode = 'normal'
 
-    def _full_elements_from_composer(self):
+    def _full_elements_from_composer(self, diagnostics=False):
         if self._mode != 'compose':
             raise ValueError('Line is not in compose mode')
-        self.composer.build(line=self, inplace=False)
+        self.composer.build(
+            line=self,
+            diagnostics=diagnostics,
+        )
 
     @doc_group("Compose Mode")
     def regenerate_from_composer(self):
@@ -1816,10 +1826,15 @@ class Line:
                 raise ImportError("Please install Xpart to use this feature.") from error
         return self._xpart
 
-    @property_with_doc_group("Upcoming Deprecations")
+    @property_with_doc_group("Deprecated")
     def scattering(self):
         """
         Deprecated alias for ``line.xcoll.scattering``.
+
+        .. warning::
+            This property is deprecated and will be removed in a future version.
+            Use ``line.xcoll.scattering`` instead. This deprecation is part of
+            the interface cleanup in view of the 1.0 release.
 
         Returns
         -------
@@ -1827,14 +1842,20 @@ class Line:
             Xcoll scattering API bound to this line.
         """
         warn('`Line.scattering` is deprecated and will be removed in a future version. '
-             'Please use `Line.xcoll.scattering` instead.',
+             'Please use `Line.xcoll.scattering` instead.'
+             + DEPRECATION_INFO_PREP_1_0,
              FutureWarning, stacklevel=2)
         return self.xcoll.scattering
 
-    @property_with_doc_group("Upcoming Deprecations")
+    @property_with_doc_group("Deprecated")
     def collimators(self):
         """
         Deprecated alias for ``line.xcoll.collimators``.
+
+        .. warning::
+            This property is deprecated and will be removed in a future version.
+            Use ``line.xcoll.collimators`` instead. This deprecation is part of
+            the interface cleanup in view of the 1.0 release.
 
         Returns
         -------
@@ -1842,7 +1863,8 @@ class Line:
             Xcoll collimator API bound to this line.
         """
         warn('`Line.collimators` is deprecated and will be removed in a future version. '
-             'Please use `Line.xcoll.collimators` instead.',
+             'Please use `Line.xcoll.collimators` instead.'
+             + DEPRECATION_INFO_PREP_1_0,
              FutureWarning, stacklevel=2)
         return self.xcoll.collimators
 
@@ -4811,14 +4833,19 @@ class Line:
 
         self._update_synrad_compile_flag()
 
-    @doc_group("Radiation, Spin and Intra-Beam Scattering")
+    @doc_group("Deprecated")
     def configure_intrabeam_scattering(
         self, element = None,
         update_every: int = None,
         **kwargs,
     ) -> None:
         """
-        Configures the IBS kick element in the line for tracking.
+        Deprecated alias for ``line.xfields.ibs_configure(...)``.
+
+        .. warning::
+            This method is deprecated and will be removed in a future version.
+            Use ``line.xfields.ibs_configure(...)`` instead. This deprecation
+            is part of the interface cleanup in view of the 1.0 release.
 
         Notes
         -----
@@ -4829,8 +4856,6 @@ class Line:
 
         Parameters
         ----------
-        line : xtrack.Line
-            The line in which the IBS kick element was inserted.
         element : IBSKick, optional
             If provided, the element is first inserted in the line,
             before proceeding to configuration. In this case the keyword
@@ -4858,13 +4883,13 @@ class Line:
             below transition energy.
         """
         self._method_incompatible_with_compose()
-        try:
-            from xfields.ibs import configure_intrabeam_scattering
-        except ImportError as error:
-            raise ImportError("Please install xfields to use this feature.") from error
-        configure_intrabeam_scattering(
-            self, element=element, update_every=update_every, **kwargs
-        )
+        warn('`Line.configure_intrabeam_scattering(...)` is deprecated and '
+             'will be removed in a future version. Please use '
+             '`Line.xfields.ibs_configure(...)` instead.'
+             + DEPRECATION_INFO_PREP_1_0,
+             FutureWarning, stacklevel=2)
+        return self.xfields.ibs_configure(
+            element=element, update_every=update_every, **kwargs)
 
     @doc_group("Radiation, Spin and Intra-Beam Scattering")
     def compensate_radiation_energy_loss(self, delta0='zero_mean', rtol_eneloss=1e-10,

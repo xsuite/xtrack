@@ -7,10 +7,15 @@ from .slice_base import (
     _SliceBase, COMMON_SLICE_XO_FIELDS,
     _raise_if_parent_has_transverse_rotation,
 )
-from .elements import (
-    Bend, Quadrupole, Sextupole,
-    Octupole, RBend, UniformSolenoid, DipoleEdge, Marker, MultipoleEdge
-)
+from .bend import Bend
+from .dipole_edge import DipoleEdge
+from .marker import Marker
+from .multipole_edge import MultipoleEdge
+from .octupole import Octupole
+from .quadrupole import Quadrupole
+from .rbend import RBend
+from .sextupole import Sextupole
+from .uniform_solenoid import UniformSolenoid
 from ..survey import advance_element as survey_advance_element
 
 def _parent_total_kn_ks(parent):

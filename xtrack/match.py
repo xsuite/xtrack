@@ -57,7 +57,18 @@ ALLOWED_TARGET_KWARGS= ['x', 'px', 'y', 'py', 'zeta', 'delta', 'pzeta', 'ptau',
                         'c_minus_re', 'c_minus_im',
                         'beta11_ng', 'beta22_ng', 'alfa11_ng', 'alfa22_ng',
                         'dx_ng', 'dpx_ng', 'dy_ng', 'dpy_ng',
-                        'x_ng', 'px_ng', 'y_ng', 'py_ng', 't_ng', 'pt_ng',]
+                        'x_ng', 'px_ng', 'y_ng', 'py_ng', 't_ng', 'pt_ng',
+                        'rad_int_i1x', 'rad_int_i1y', 'rad_int_i2', 'rad_int_i3', 'rad_int_i4',
+                        'rad_int_i4x', 'rad_int_i4y', 'rad_int_i5x', 'rad_int_i5y',
+                        'rad_int_i1x_integrand', 'rad_int_i1y_integrand', 'rad_int_l2_integrand',
+                        'rad_int_i3_integrand', 'rad_int_i4_integrand', 'rad_int_i4x_integrand',
+                        'rad_int_i4y_integrand', 'rad_int_i5x_integrand', 'rad_int_i5y_integrand',
+                        'rad_int_curly_hx', 'rad_int_curly_hy',
+                        'rad_int_eq_gemitt_x', 'rad_int_eq_gemitt_y',
+                        'rad_int_energy_loss', 'rad_int_sigma_delta',
+                        'rad_int_damping_constant_x_s', 'rad_int_damping_constant_y_s',
+                        'rad_int_damping_constant_zeta_s',
+]
 
 
 # Alternative transitions functions

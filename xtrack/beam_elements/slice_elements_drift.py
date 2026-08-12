@@ -1,7 +1,15 @@
 import xobjects as xo
-from .elements import (
-    Bend, Quadrupole, Sextupole, Octupole, Drift, RBend, Cavity, CrabCavity,
-    Multipole, DriftExact)
+
+from .bend import Bend
+from .cavity import Cavity
+from .crab_cavity import CrabCavity
+from .drift import Drift
+from .drift_exact import DriftExact
+from .multipole import Multipole
+from .octupole import Octupole
+from .quadrupole import Quadrupole
+from .rbend import RBend
+from .sextupole import Sextupole
 from .slice_base import _SliceBase, COMMON_SLICE_XO_FIELDS
 from ..base_element import BeamElement
 from ..survey import advance_element as survey_advance_element

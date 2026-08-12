@@ -640,7 +640,8 @@ class Environment:
 
     @doc_group("Editing, Inspection, Variables and Configuration")
     def new_line(self, components=None, name=None, refer: ReferType = 'center',
-                 length=None, mirror=False, s_tol=1e-6, compose=False) -> xt.Line:
+                 length=None, mirror=False, s_tol=1e-6, compose=False,
+                 diagnostics=False) -> xt.Line:
         """
         Create a new line.
 
@@ -667,6 +668,10 @@ class Environment:
         s_tol : float, optional
             Difference between two s positions below which they should be
             treated as the same location.
+        diagnostics : bool, optional
+            If true, analyze unresolved placement dependencies when immediate
+            line assembly fails. In compose mode, pass this option to
+            :meth:`xtrack.Line.end_compose` when finalizing the line.
 
         Returns
         -------
@@ -702,7 +707,7 @@ class Environment:
             out.composer.components += list(components)
 
         if not compose:
-            out.end_compose()
+            out.end_compose(diagnostics=diagnostics)
 
         self._lines_weakrefs.add(out) # Weak references
 
@@ -793,41 +798,11 @@ class Environment:
     @doc_group("Deprecated")
     def new_builder(self, components=None, name=None, refer: ReferType = 'center',
                     length=None, s_tol=1e-6):
-        '''
-        Deprecated. Create a new composer.
-
-        .. warning:: The `new_builder` method is deprecated and will be removed in
-           a future version. Use `new_line` with `compose=True` instead.
-
-        Parameters
-        ----------
-        components : list, optional
-            List of components to be added to the composer. It can include strings,
-            place objects, and lines.
-        name : str, optional
-            Name of the line that will be built by the composer.
-        refer : str, optional
-            Specifies which part of the component the ``at`` position will refer
-            to. Allowed values are ``start``, ``center`` (default; also allowed
-            is ``centre``), and ``end``.
-        length : float | str, optional
-            Length of the line to be built by the composer. Can be an expression.
-            If not specified, the length will be the minimum length that can
-            fit all the components.
-
-        Returns
-        -------
-        Composer
-            The new composer.
-        '''
-
-        warn('The `new_builder` method is deprecated and will be removed in a future version. '
-             'Use `new_line` with `compose=True` instead.', FutureWarning)
-
-        out = xt.Composer(env=self, components=components, name=name, refer=refer,
-                       length=length, s_tol=s_tol)
-
-        return out
+        """Raise an error because builders have been replaced by compose-mode lines."""
+        raise RuntimeError(
+            '`Environment.new_builder()` is no longer supported. '
+            'Use `Environment.new_line(..., compose=True)` instead.'
+        )
 
     @doc_group("Constructors and Serialization")
     def call(self, filename):

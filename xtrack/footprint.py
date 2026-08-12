@@ -2,6 +2,13 @@ import numpy as np
 import xobjects as xo
 import xtrack as xt
 
+
+def _trapezoid(nplike_lib, y, x=None, axis=-1):
+    if hasattr(nplike_lib, 'trapezoid'):  # numpy >= 2.0
+        return nplike_lib.trapezoid(y, x=x, axis=axis)
+    return nplike_lib.trapz(y, x=x, axis=axis)
+
+
 class LinearRescale():
 
     def __init__(self, knob_name, v0, dv):
@@ -223,7 +230,9 @@ class Footprint():
         np2ctx = _context.nparray_to_context_array
 
         integrand = -J1_2d*nplike_lib.exp(-J1_2d-J2_2d) / (coherent_tune - q + epsilon*1j)
-        tune_shift = ctx2np(-1.0/nplike_lib.trapz(J2_grid,nplike_lib.trapz(J1_grid,integrand,1),0))
+        tune_shift = ctx2np(-1.0 / _trapezoid(
+            nplike_lib, _trapezoid(nplike_lib, integrand, x=J1_grid, axis=1),
+            x=J2_grid, axis=0))
         return tune_shift
 
     def _get_tune_shift_adaptive_epsilon(self,_context,J1_2d,J1_grid,J2_2d,J2_grid,q,coherent_tune,
