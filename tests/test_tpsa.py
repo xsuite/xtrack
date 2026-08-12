@@ -128,6 +128,35 @@ def test_tpsa_multiturn_track_matches_scalar_const_part():
     )
 
 
+def test_tpsa_local_particle_freezing_and_turn_state():
+    line = xt.Line(elements=[xt.Drift(length=1.0)])
+    line.particle_ref = xt.Particles(p0c=7e12, mass0=xt.PROTON_MASS_EV)
+    line.freeze_vars(["x"])
+    line.build_tracker(use_prebuilt_kernels=False)
+    m = _map()
+
+    x_before = m.x.copy()
+    line.track(m, num_turns=2)
+
+    assert m.x == x_before
+    assert m._xobject.at_turn == 2
+
+
+def test_tpsa_reference_energy_change_matches_scalar():
+    delta_p0c = 1e9
+    line_scalar = xt.Line(elements=[xt.ReferenceEnergyIncrease(Delta_p0c=delta_p0c)])
+    part = _particle()
+    line_scalar.track(part)
+
+    line_tpsa = xt.Line(elements=[xt.ReferenceEnergyIncrease(Delta_p0c=delta_p0c)])
+    line_tpsa.build_tracker(use_prebuilt_kernels=False)
+    m = _map()
+    line_tpsa.track(m)
+
+    assert m.p0c == pytest.approx(float(part.p0c[0]))
+    assert m.delta.const_part == pytest.approx(float(part.delta[0]))
+
+
 def test_scalar_track_tpsa_enabled_element_uses_const_part():
     line_scalar = _line(k1=0.125)
     part_scalar = _particle()

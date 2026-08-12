@@ -15,6 +15,7 @@ _COORDS: tuple[str, ...] = ("x", "px", "y", "py", "zeta", "delta")
 _REF_VARS: tuple[str, ...] = (
     "q0",
     "mass0",
+    "t_sim",
     "beta0",
     "gamma0",
     "p0c",
@@ -25,7 +26,17 @@ _REF_VARS: tuple[str, ...] = (
 )
 _DERIVED_COORDS = ("ptau", "rvv", "rpp", "s")
 _LOCAL_COORDS = ("ax", "ay")
-_TPSA_NUM_FIELDS = _COORDS + _DERIVED_COORDS + _LOCAL_COORDS
+_SPIN_COORDS = ("spin_x", "spin_y", "spin_z")
+_INT_FIELDS = (
+    "pdg_id",
+    "particle_id",
+    "at_element",
+    "at_turn",
+    "state",
+    "parent_particle_id",
+)
+_RNG_FIELDS = ("_rng_s1", "_rng_s2", "_rng_s3", "_rng_s4")
+_TPSA_NUM_FIELDS = _COORDS + _DERIVED_COORDS + _LOCAL_COORDS + _SPIN_COORDS
 
 
 class TpsaParticleData(xo.Struct):
@@ -41,8 +52,12 @@ class TpsaParticleData(xo.Struct):
     s = xo.UInt64
     ax = xo.UInt64
     ay = xo.UInt64
+    spin_x = xo.UInt64
+    spin_y = xo.UInt64
+    spin_z = xo.UInt64
     q0 = xo.Float64
     mass0 = xo.Float64
+    t_sim = xo.Float64
     beta0 = xo.Float64
     gamma0 = xo.Float64
     p0c = xo.Float64
@@ -51,8 +66,16 @@ class TpsaParticleData(xo.Struct):
     weight = xo.Float64
     anomalous_magnetic_moment = xo.Float64
     line_length = xo.Float64
+    pdg_id = xo.Int64
+    particle_id = xo.Int64
     state = xo.Int64
     at_element = xo.Int64
+    at_turn = xo.Int64
+    parent_particle_id = xo.Int64
+    _rng_s1 = xo.UInt32
+    _rng_s2 = xo.UInt32
+    _rng_s3 = xo.UInt32
+    _rng_s4 = xo.UInt32
     track_flags = xo.UInt64
 
 if TYPE_CHECKING:
@@ -108,6 +131,9 @@ class ParticlesTpsa:
         self._local_series.update({
             name: xgtpsa.Tpsa(desc) for name in _LOCAL_COORDS
         })
+        self._local_series.update({
+            name: desc.constant(self._ref(name)) for name in _SPIN_COORDS
+        })
         self._xobject = self._build_xobject()
 
     def _build_xobject(self) -> TpsaParticleData:
@@ -122,12 +148,12 @@ class ParticlesTpsa:
         bp = TpsaParticleData()
         for c, t in zip(_COORDS, self.coords):
             setattr(bp, c, int(ffi.cast("uintptr_t", t.ptr)))
-        for c in _DERIVED_COORDS + _LOCAL_COORDS:
+        for c in _DERIVED_COORDS + _LOCAL_COORDS + _SPIN_COORDS:
             setattr(bp, c, int(ffi.cast("uintptr_t", self._local_series[c].ptr)))
         for r in _REF_VARS:
             setattr(bp, r, self._ref(r))
-        bp.state = 1
-        bp.at_element = 0
+        for name in _INT_FIELDS + _RNG_FIELDS:
+            setattr(bp, name, int(self._ref(name)))
         bp.track_flags = 0
         bp.line_length = 0.0
         return bp
@@ -167,6 +193,8 @@ class ParticlesTpsa:
         if name in _COORDS:
             return self.coords[_COORDS.index(name)]
         if name in _REF_VARS:
+            if self._xobject is not None:
+                return float(getattr(self._xobject, name))
             return self._ref(name)
         raise AttributeError(name)
 

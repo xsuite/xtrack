@@ -1047,7 +1047,7 @@ class Tracker:
                     cc._extra_c_sources = []
 
             tpsa_sources = [
-                '#include "xtrack/tpsa/headers/local_particle.h"',
+                '#include "xtrack/particles/headers/local_particle.h"',
                 _float_or_tpsa_getter_block(all_classes),
             ]
             for extra_source in tpsa_extra_sources:
