@@ -83,6 +83,26 @@ def test_progress_indicator_suppressed_by_settings():
     assert indicator is iterable
 
 
+@pytest.mark.parametrize('selected_mode', ['tqdm', 'text'])
+def test_print_suppression_also_suppresses_progress(
+    monkeypatch, selected_mode,
+):
+    monkeypatch.setattr(
+        progress_indicator._config,
+        'default_indicator_cls',
+        _unexpected_progress,
+    )
+    iterable = range(3)
+
+    with xt.settings.override(
+        print_mode='suppress',
+        progress_indicator=selected_mode,
+    ):
+        indicator = progress_indicator.progress(iterable, desc='Testing')
+
+    assert indicator is iterable
+
+
 def test_invalid_progress_indicator_setting():
     with pytest.raises(ValueError, match='expected.*tqdm.*text.*suppress'):
         xt.settings.progress_indicator = 'invalid'

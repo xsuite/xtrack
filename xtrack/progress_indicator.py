@@ -95,8 +95,13 @@ def progress(iterable: Iterable, **options):
     ``'suppress'``, or equivalently set the environment variable
     ``XSUITE_PROGRESS_INDICATOR`` before importing Xtrack. A later Python
     assignment takes precedence. In ``'tqdm'`` mode, the simple text indicator
-    is used when tqdm is not installed.
+    is used when tqdm is not installed. Setting ``xtrack.settings.print_mode``
+    to ``'suppress'`` also suppresses progress indicators, irrespective of the
+    selected progress-indicator mode.
     """
+    if settings.print_mode == 'suppress':
+        return iterable
+
     selected_mode = settings.progress_indicator
     if selected_mode == 'suppress':
         return iterable
