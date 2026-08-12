@@ -317,7 +317,7 @@ def test_get_suitable_kernel_uses_configured_print(
 
 
 def test_get_suitable_kernel_skipped_when_compilation_is_forced(
-    monkeypatch, kernel_location,
+    monkeypatch, kernel_location, capsys,
 ):
     module_name = 'test_kernel_cpu_serial'
     _write_metadata(kernel_location, module_name=module_name)
@@ -325,7 +325,11 @@ def test_get_suitable_kernel_skipped_when_compilation_is_forced(
     monkeypatch.setattr(xo.settings, 'force_kernel_compilation', True)
 
     assert xsprebkern.get_suitable_kernel(
-        {}, [], [], context=xo.ContextCpu()) is None
+        {}, [], [], context=xo.ContextCpu(), verbose=True) is None
+
+    message = capsys.readouterr().out
+    assert 'xobjects.settings.force_kernel_compilation' in message
+    assert 'XSUITE_FORCE_KERNEL_COMPILATION' in message
 
 
 def test_get_suitable_kernel_returns_none_when_context_allows_compilation(

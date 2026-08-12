@@ -92,10 +92,10 @@ def progress(iterable: Iterable, **options):
     """Wrap an iterable with the configured progress indicator.
 
     Set ``xtrack.settings.progress_indicator`` to ``'tqdm'``, ``'text'``, or
-    ``'suppress'``. ``XSUITE_PROGRESS_INDICATOR`` provides its value when
-    Xtrack is imported; a later Python assignment takes precedence. In
-    ``'tqdm'`` mode, the simple text indicator is used when tqdm is not
-    installed.
+    ``'suppress'``, or equivalently set the environment variable
+    ``XSUITE_PROGRESS_INDICATOR`` before importing Xtrack. A later Python
+    assignment takes precedence. In ``'tqdm'`` mode, the simple text indicator
+    is used when tqdm is not installed.
     """
     selected_mode = settings.progress_indicator
     if selected_mode == 'suppress':
