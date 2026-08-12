@@ -246,18 +246,22 @@ class RBend(_BendCommon, BeamElement):
     def _x0_mid(self):
         out = -self.rbend_shift
         if abs(self.angle) > 1e-10 and self.rbend_compensate_sagitta:
-            out += 0.5 / self.h * (1 - np.cos(self.angle / 2))
+            # 1 - cos(u) = 2 * sin(u / 2)**2, to avoid the cancellation.
+            out += np.sin(self.angle / 4) ** 2 / self.h
         return out
 
     @property
     def _x0_in(self):
+        # Rationalised form of (1 / h) * (sqrt_mid - cos_theta_in), in which h
+        # cancels exactly. See `track_magnet.h` for the derivation.
         out = self._x0_mid
         if abs(self.angle) > 1e-10:
             px0_in = np.sin(self._angle_in)
             px0_mid = px0_in - self.h * self.length_straight / 2
             sqrt_mid = np.sqrt(1 - px0_mid * px0_mid)
             cos_theta_in = np.cos(self._angle_in)
-            out -= 1 / self.h * (sqrt_mid - cos_theta_in)
+            out -= (0.5 * self.length_straight * (px0_in + px0_mid)
+                    / (sqrt_mid + cos_theta_in))
         return out
 
     @property
@@ -268,7 +272,8 @@ class RBend(_BendCommon, BeamElement):
             px0_mid = px0_out - self.h * self.length_straight / 2
             sqrt_mid = np.sqrt(1 - px0_mid * px0_mid)
             cos_theta_out = np.cos(self._angle_out)
-            out += 1 / self.h * (cos_theta_out - sqrt_mid)
+            out -= (0.5 * self.length_straight * (px0_out + px0_mid)
+                    / (cos_theta_out + sqrt_mid))
         return out
 
     @property

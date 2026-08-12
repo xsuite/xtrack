@@ -8,13 +8,16 @@ import pathlib
 
 import numpy as np
 import pytest
-from cpymad.madx import Madx
-
 import xobjects as xo
 import xpart as xp
-import xtrack as xt
+from cpymad.madx import Madx
 from xobjects.test_helpers import (
-    allow_no_prebuilt_kernels, for_all_test_contexts, skip_if_forbid_compile)
+    allow_no_prebuilt_kernels,
+    for_all_test_contexts,
+    skip_if_forbid_compile,
+)
+
+import xtrack as xt
 from xtrack.mad_loader import MadLoader
 from xtrack.slicing import Strategy, Uniform
 
@@ -433,6 +436,58 @@ def test_rbend_param_handling_set_after():
     assert bend.length_straight == 10
     assert_eq(bend.length, 10.016686131634778)
     assert_eq(bend.h, 0.01996668332936563)
+
+
+def _stable_rbend_offsets(angle, length_straight, rbend_angle_diff,
+                          rbend_shift=0.0, compensate_sagitta=True):
+    theta_in = 0.5 * angle - rbend_angle_diff / 2
+    theta_out = 0.5 * angle + rbend_angle_diff / 2
+    h = (np.sin(theta_in) + np.sin(theta_out)) / length_straight
+
+    x0_mid = -rbend_shift
+    if compensate_sagitta:
+        x0_mid += np.sin(angle / 4) ** 2 / h
+
+    px0_in = np.sin(theta_in)
+    px0_mid_from_in = px0_in - h * length_straight / 2
+    sqrt_mid_from_in = np.sqrt(1 - px0_mid_from_in * px0_mid_from_in)
+    cos_theta_in = np.cos(theta_in)
+    x0_in = x0_mid - (
+        0.5 * length_straight * (px0_in + px0_mid_from_in)
+        / (sqrt_mid_from_in + cos_theta_in))
+
+    px0_out = np.sin(theta_out)
+    px0_mid_from_out = px0_out - h * length_straight / 2
+    sqrt_mid_from_out = np.sqrt(1 - px0_mid_from_out * px0_mid_from_out)
+    cos_theta_out = np.cos(theta_out)
+    x0_out = x0_mid - (
+        0.5 * length_straight * (px0_out + px0_mid_from_out)
+        / (cos_theta_out + sqrt_mid_from_out))
+
+    return x0_in, x0_mid, x0_out
+
+
+def test_rbend_stable_offsets_for_small_asymmetric_angle():
+    angle = 1.2e-6
+    length_straight = 14.0
+    rbend_angle_diff = 0.7e-6
+
+    rbend = xt.RBend(
+        angle=angle,
+        length_straight=length_straight,
+        rbend_angle_diff=rbend_angle_diff,
+        rbend_model='straight-body',
+    )
+
+    expected = _stable_rbend_offsets(
+        angle=angle,
+        length_straight=length_straight,
+        rbend_angle_diff=rbend_angle_diff,
+    )
+    actual = (rbend._x0_in, rbend._x0_mid, rbend._x0_out)
+
+    xo.assert_allclose(actual, expected, rtol=0, atol=1e-18)
+
 
 @for_all_test_contexts
 def test_rbend(test_context):
@@ -1197,15 +1252,25 @@ def test_backtrack_with_bend_quadrupole_and_cfm(test_context):
     line.build_tracker(_context=test_context)
     p0 = line.build_particles(x=0.01, px=0.02, y=0.03, py=0.04,
                                 zeta=0.05, delta=0.01)
+    line.configure_bend_model(edge='full')
     p1 = p0.copy(_context=test_context)
     line.track(p1)
-    p1.move(_context=xo.context_default)
-    assert np.all(p1.state == 1)
-    line.configure_bend_model(edge='full')
     p2 = p1.copy(_context=test_context)
     line.track(p2, backtrack=True)
+
+    p0.move(_context=xo.context_default)
+    p1.move(_context=xo.context_default)
     p2.move(_context=xo.context_default)
-    assert np.all(p2.state == -32)
+    assert np.all(p1.state == 1)
+    assert np.all(p2.state == 1)
+    # Strong edge: one coefficient-recovery pass leaves a small residual;
+    # three iterations bring this round trip to machine precision.
+    xo.assert_allclose(p2.x, p0.x, atol=5e-9, rtol=0)
+    xo.assert_allclose(p2.px, p0.px, atol=5e-9, rtol=0)
+    xo.assert_allclose(p2.y, p0.y, atol=5e-9, rtol=0)
+    xo.assert_allclose(p2.py, p0.py, atol=5e-9, rtol=0)
+    xo.assert_allclose(p2.zeta, p0.zeta, atol=5e-9, rtol=0)
+    xo.assert_allclose(p2.delta, p0.delta, atol=1e-14, rtol=0)
 
     # Same for combined function magnet
     cfm = xt.Bend(length=1.0, k1=0.2, angle=0.1)
@@ -3087,15 +3152,15 @@ def test_api_bend():
 
 def test_delta_dipole_fringe():
     # Test momentum dependence of dipole fringe, as corrected with respect to the PTC implementation
-    
+
     dd = np.linspace(-0.05, 0.05, 11)
     p0 = xt.Particles(y=0.002, delta=dd)
     p1 = p0.copy()
 
     length = 0.05
     b1 = 0.1
-    
-    def fieldvalue(x,y,z):  
+
+    def fieldvalue(x,y,z):
         # Polynomial dipole fringe field between 0 and 0.05 with max b1=0.1
         # b1 = -1600 z^3 + 120 z^2 converted to tesla
         return [0, (-1600*z**3 + 120*z**2 - 120*y**2*(1 - 40*z))* p0.rigidity0[0], (1600*y**3 + y*(-4800*z**2 + 240*z))* p0.rigidity0[0]]
@@ -3108,18 +3173,18 @@ def test_delta_dipole_fringe():
     drift.track(p0, backtrack=True)
     exactfringe.track(p0)
     bend.track(p0, backtrack=True)
-    
+
     # Xsuite fringe with same parameters
     gap = 0.04
     ss = np.linspace(0,length,100)
     bvals = -1600 * ss**3 + 120 * ss**2
     fint = np.trapezoid((b1 - bvals)*bvals / b1**2 / gap, ss)
     PTCfringe = xt.Bend(length=0, k0=b1, edge_entry_model="full", edge_entry_fint=fint, edge_entry_hgap=gap/2, edge_exit_active=0)
-    
+
     PTCfringe.track(p1)
-    
+
     # Slopes of py vs delta should be similar, original implementation had sign difference
     deg0 = np.polyfit(p0.delta, p0.py, 1)
     deg1 = np.polyfit(p1.delta, p1.py, 1)
-    
+
     assert np.allclose(deg0/deg1, 1, rtol=1e-2)

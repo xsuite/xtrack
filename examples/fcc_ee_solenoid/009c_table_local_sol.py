@@ -62,4 +62,3 @@ plt.ylim(0.4, None)
 plt.legend()
 
 plt.show()
-
