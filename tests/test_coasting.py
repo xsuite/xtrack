@@ -41,10 +41,12 @@ def test_coasting(test_context):
     # Install dummy collective elements
     s_sync = np.linspace(0, tw.line_length, 10)
     line.cut_at_s(s_sync)
+    collective_element_names = []
     for ii, ss in enumerate(s_sync):
         nn = f'sync_here_{ii}'
         line.insert(obj=xt.Marker(), what=nn, at=ss)
         line[nn].iscollective = True
+        collective_element_names.append(nn)
 
     st.install_sync_time_at_collective_elements(line)
 
@@ -106,8 +108,11 @@ def test_coasting(test_context):
         return np.histogram(particles.zeta[mask_alive], bins=200,
                             range=(zeta_min0, zeta_max0), weights=particles.y[mask_alive])
 
+    # Move to the test context
     line.build_tracker(_context=test_context)
     p.move(_context=test_context)
+    for nn in collective_element_names:
+        line[nn].move(_context=test_context)
 
     line.enable_time_dependent_vars = True
     num_turns=200
