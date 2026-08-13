@@ -5,12 +5,13 @@ import numpy as np
 from scipy.constants import c as clight
 
 turns = 2000
-n_collective_elements = 2
+n_collective_elements = 30
 p_delta_max = 0.005
 p_delta = [p_delta_max, 0.0, -p_delta_max]
 # p_delta = [0,0,0]
 
 line = xt.load('../../test_data/psb_injection/line_and_particle.json')
+line['br.c02'].voltage = 0.0
 
 tw = line.twiss4d()
 tw_plus = line.twiss4d(delta0=p_delta_max)
@@ -114,13 +115,17 @@ for i_part in range(len(p_delta)):
     arrival_times.append(arrival_time)
 
 expected_arrival_time_on_momentum = np.arange(turns) * t_rev0
+plt.suptitle(f'n_collective_elements = {n_collective_elements}')
+
 
 plt.figure(2)
+
 for ii in range(len(p_delta)):
     plt.plot((arrival_times[ii]-expected_arrival_time_on_momentum[:len(arrival_times[ii])])/t_rev0,
              label=f"delta={p_delta[ii]}")
 plt.xlabel("Pass")
 plt.ylabel(r"Delay with respect to on-momentum particle ($\Delta t$ / $T_0$)")
 plt.legend()
+plt.suptitle(f'n_collective_elements = {n_collective_elements}')
 
 plt.show()
