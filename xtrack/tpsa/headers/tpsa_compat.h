@@ -26,7 +26,7 @@ typedef struct xt_float_or_tpsa_tpsa_ {
     xt_float_or_tpsa_ord_t lo, hi, mo, ao;
     int32_t uid;
     char nam[16];
-    double coef[];
+    double coef[1];
 } xt_float_or_tpsa_tpsa_t;
 
 // Read a FloatOrTpsa slot as a scalar, truncating TPSA slots to coef[0].

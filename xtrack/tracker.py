@@ -1078,25 +1078,30 @@ class Tracker:
             if tpsa_track:
                 skip_config_headers.add("XTRACK_MULTIPOLE_NO_SYNRAD")
 
-            out_kernels = context.build_kernels(
-                sources=sources,
-                kernel_descriptions=kernels,
-                extra_headers=cls._config_to_headers_from_config(
+            build_kwargs = {
+                'sources': sources,
+                'kernel_descriptions': kernels,
+                'extra_headers': cls._config_to_headers_from_config(
                     config, skip=skip_config_headers) + headers,
-                extra_classes=all_classes,
-                apply_to_source=apply_to_source,
-                specialize=True,
-                compile=compile,
-                save_source_as=f'{module_name}.c' if module_name else None,
-                extra_compile_args=extra_compile_args,
-                extra_link_args=extra_link_args,
-                extra_include_dirs=extra_include_dirs,
-                extra_libraries=extra_libraries,
-                extra_library_dirs=extra_library_dirs,
-                preload_libraries=preload_libraries,
-                compiler_language=compiler_language,
+                'extra_classes': all_classes,
+                'apply_to_source': apply_to_source,
+                'specialize': True,
+                'compile': compile,
+                'save_source_as': f'{module_name}.c' if module_name else None,
+                'extra_compile_args': extra_compile_args,
                 **kwargs,
-            )
+            }
+            if isinstance(context, xo.ContextCpu):
+                build_kwargs.update(
+                    extra_link_args=extra_link_args,
+                    extra_include_dirs=extra_include_dirs,
+                    extra_libraries=extra_libraries,
+                    extra_library_dirs=extra_library_dirs,
+                    preload_libraries=preload_libraries,
+                    compiler_language=compiler_language,
+                )
+
+            out_kernels = context.build_kernels(**build_kwargs)
         finally:
             for cc, depends_on in saved_depends.items():
                 cc._depends_on = depends_on
