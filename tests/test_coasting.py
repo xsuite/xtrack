@@ -4,7 +4,8 @@ import numpy as np
 import xobjects as xo
 from scipy.constants import c as clight
 from xobjects.test_helpers import (
-    allow_kernel_compilation, fix_random_seed)
+    allow_kernel_compilation, fix_random_seed,
+    for_all_test_contexts)
 
 import xtrack as xt
 import xtrack.synctime as st
@@ -15,7 +16,8 @@ test_data_folder = pathlib.Path(
 
 @fix_random_seed(8837465)
 @allow_kernel_compilation
-def test_coasting():
+@for_all_test_contexts(excluding=('ContextPyopencl',))
+def test_coasting(context):
 
 
     delta0 = 1e-2
@@ -73,17 +75,20 @@ def test_coasting():
     p0 = p.copy()
 
     def particles(_, p):
-        return p.copy()
+        return p.copy(_context=xo.context_default)
 
     def intensity(line, particles):
+        particles = particles.copy(_context=xo.context_default)
         return (np.sum(particles.weight[particles.state > 0])
                     / ((zeta_max0 - zeta_min0)/tw.beta0/clight))
 
     def z_range(line, particles):
+        particles = particles.copy(_context=xo.context_default)
         mask_alive = particles.state > 0
         return particles.zeta[mask_alive].min(), particles.zeta[mask_alive].max()
 
     def long_density(line, particles):
+        particles = particles.copy(_context=xo.context_default)
         mask_alive = particles.state > 0
         if not(np.any(particles.at_turn[mask_alive] == 0)): # don't check at the first turn
             assert np.all(particles.zeta[mask_alive] > zeta_min0)
@@ -93,7 +98,7 @@ def test_coasting():
                             weights=particles.weight[mask_alive])
 
     def y_mean_hist(line, particles):
-
+        particles = particles.copy(_context=xo.context_default)
         mask_alive = particles.state > 0
         if not(np.any(particles.at_turn[mask_alive] == 0)): # don't check at the first turn
             assert np.all(particles.zeta[mask_alive] > zeta_min0)
@@ -101,6 +106,8 @@ def test_coasting():
         return np.histogram(particles.zeta[mask_alive], bins=200,
                             range=(zeta_min0, zeta_max0), weights=particles.y[mask_alive])
 
+    line.build_tracker(_context=context)
+    p.move(_context=context)
 
     line.enable_time_dependent_vars = True
     num_turns=200
