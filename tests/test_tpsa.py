@@ -104,6 +104,30 @@ def test_tpsa_line_track_matches_scalar_const_part():
     )
 
 
+def test_tpsa_element_track_matches_scalar_const_part():
+    element_scalar = xt.Quadrupole(length=1.0, k1=0.1)
+    part = _particle()
+    element_scalar.track(part)
+
+    element_tpsa = xt.Quadrupole(length=1.0, k1=0.1)
+    m = _map()
+    element_tpsa.track(m)
+
+    assert np.allclose(
+        m.const_part,
+        [
+            float(part.x[0]),
+            float(part.px[0]),
+            float(part.y[0]),
+            float(part.py[0]),
+            float(part.zeta[0]),
+            float(part.delta[0]),
+        ],
+        rtol=0,
+        atol=1e-15,
+    )
+
+
 def test_tpsa_multiturn_track_matches_scalar_const_part():
     line_scalar = _line()
     part = _particle()

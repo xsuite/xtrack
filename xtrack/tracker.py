@@ -1016,15 +1016,11 @@ class Tracker:
         sources = [source_track]
         extra_compile_args = ()
         extra_link_args = ()
-        extra_include_dirs = ()
-        extra_libraries = ()
-        extra_library_dirs = ()
         preload_libraries = ()
         compiler_language = "c"
 
         if tpsa_track:
-            import xgtpsa
-            from xgtpsa.paths import LIB_BASENAME, core_library, lib_dir
+            from xgtpsa.paths import core_library
             from xtrack.internal_record import RecordIdentifier, RecordIndex
 
             tpsa_extra_sources = []
@@ -1066,9 +1062,6 @@ class Tracker:
             extra_compile_args = (
                 "-include", "complex",
             )
-            extra_include_dirs = (xgtpsa.include_dir(),)
-            extra_libraries = (LIB_BASENAME,)
-            extra_library_dirs = (lib_dir(),)
             preload_libraries = (core_library(),)
             compiler_language = "c++"
             headers.insert(0, "#define restrict __restrict")
@@ -1094,9 +1087,6 @@ class Tracker:
             if isinstance(context, xo.ContextCpu):
                 build_kwargs.update(
                     extra_link_args=extra_link_args,
-                    extra_include_dirs=extra_include_dirs,
-                    extra_libraries=extra_libraries,
-                    extra_library_dirs=extra_library_dirs,
                     preload_libraries=preload_libraries,
                     compiler_language=compiler_language,
                 )
