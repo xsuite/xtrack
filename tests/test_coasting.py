@@ -61,6 +61,7 @@ def test_coasting(test_context):
     num_particles = 50000
     # Build on CPU and then transfer to be able to use numpy to initialize
     p = line.build_particles(
+        _context=xo.context_default, # <-- CPU
         delta=delta0 + 0 * np.random.uniform(-1, 1, num_particles),
         x_norm=0, y_norm=0
     )
