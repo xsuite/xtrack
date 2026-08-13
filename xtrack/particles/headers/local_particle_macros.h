@@ -149,23 +149,23 @@
  * The test for frozen is known at compile time, so even at -O1 will be optimized away.
  */
 #define XT_LP_NUM_ACCESSORS(NAME)                                                  \
-    GPUFUN                                                                        \
+    GPUFUN                                                                         \
     void LocalParticle_add_to_ ## NAME(LocalParticle* part, xt_num_arg_t value){   \
         if (!XT_LP_IS_FROZEN(NAME)) {                                              \
             NUM_ADD(part, NAME, value);                                            \
         }                                                                          \
     }                                                                              \
-    GPUFUN                                                                        \
+    GPUFUN                                                                         \
     xt_num_t LocalParticle_get_ ## NAME(LocalParticle* part){                      \
         return NUM_GET(part, NAME);                                                \
     }                                                                              \
-    GPUFUN                                                                        \
+    GPUFUN                                                                         \
     void LocalParticle_set_ ## NAME(LocalParticle* part, xt_num_arg_t value){      \
         if (!XT_LP_IS_FROZEN(NAME)) {                                              \
             NUM_SET(part, NAME, value);                                            \
         }                                                                          \
     }                                                                              \
-    GPUFUN                                                                        \
+    GPUFUN                                                                         \
     void LocalParticle_scale_ ## NAME(LocalParticle* part, xt_num_arg_t value){    \
         if (!XT_LP_IS_FROZEN(NAME)) {                                              \
             NUM_SCALE(part, NAME, value);                                          \
@@ -177,23 +177,23 @@
  * TYPED_GET, TYPED_SET, TYPED_ADD, and TYPED_SCALE.
  */
 #define XT_LP_TYPED_ACCESSORS(TYPE, NAME)                                          \
-    GPUFUN                                                                        \
+    GPUFUN                                                                         \
     void LocalParticle_add_to_ ## NAME(LocalParticle* part, TYPE value){           \
         if (!XT_LP_IS_FROZEN(NAME)) {                                              \
             TYPED_ADD(part, NAME, value);                                          \
         }                                                                          \
     }                                                                              \
-    GPUFUN                                                                        \
+    GPUFUN                                                                         \
     TYPE LocalParticle_get_ ## NAME(LocalParticle* part){                          \
         return TYPED_GET(part, NAME);                                              \
     }                                                                              \
-    GPUFUN                                                                        \
+    GPUFUN                                                                         \
     void LocalParticle_set_ ## NAME(LocalParticle* part, TYPE value){              \
         if (!XT_LP_IS_FROZEN(NAME)) {                                              \
             TYPED_SET(part, NAME, value);                                          \
         }                                                                          \
     }                                                                              \
-    GPUFUN                                                                        \
+    GPUFUN                                                                         \
     void LocalParticle_scale_ ## NAME(LocalParticle* part, TYPE value){            \
         if (!XT_LP_IS_FROZEN(NAME)) {                                              \
             TYPED_SCALE(part, NAME, value);                                        \
