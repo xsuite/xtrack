@@ -60,51 +60,23 @@ at_turn_log = np.array(at_turn_log)
 zeta_log = np.array(zeta_log)
 state_log = np.array(state_log)
 
-
-
 beta0 = particles.beta0[0]
-
-
 t_rev0 = line.get_length() / clight / beta0
 t_sim = line['synctime_0'].frame_relative_length * t_rev0
 
-arrival_times = []
-for i_part in range(len(p_delta)):
 
-    mask_active = state_log[:, i_part] > 0
-    arrival_time = -zeta_log[mask_active, i_part] / beta0 / clight + np.arange(turns)[mask_active] * t_sim
-    arrival_times.append(arrival_time)
-
-expected_arrival_time_on_momentum = np.arange(turns) * t_rev0
 
 import matplotlib.pyplot as plt
 plt.close("all")
-plt.figure(1)
-for ii in range(len(p_delta)):
-    plt.plot(np.abs(arrival_times[ii]-expected_arrival_time_on_momentum[:len(arrival_times[ii])])/t_rev0, label=f"delta={p_delta[ii]}")
-plt.xlabel("Pass")
-plt.ylabel("Delay with respect to on momentum particle [T_0]")
-plt.legend()
-
-plt.figure(2)
-for ii in range(len(p_delta)):
-    plt.plot(arrival_times[ii], label=f"delta={p_delta[ii]}")
-
-plt.plot(expected_arrival_time_on_momentum, label="expected arrival time on momentum")
-plt.xlabel("Pass")
-plt.ylabel("Arrival time [s]")
-
 
 i_ref = 1
 is_ahead = np.zeros_like(zeta_log, dtype=int)
 for i_part in range(len(p_delta)):
     is_ahead[:, i_part] = np.int64(zeta_log[:, i_part] > zeta_log[:, i_ref])
 
-
-
 i_obs = 0
 t = np.arange(turns) * t_sim
-plt.figure(3)
+plt.figure(1)
 ax1 = plt.subplot(3,1,1)
 plt.plot(t / t_rev0, state_log[:, i_ref]>0, label=f'delta={p_delta[i_ref]}', color='k', alpha=0.4)
 plt.plot(t / t_rev0, state_log[:, i_obs]>0, label=f'delta={p_delta[i_obs]}')
@@ -125,5 +97,24 @@ plt.ylabel(r"$\Delta N_{turns}$")
 plt.legend()
 for ii in range(7):
     plt.axvline(x=ii*n_slip, color='r', alpha=0.4, ls='--')
+
+# Compute particle arrival time at each pass
+
+arrival_times = []
+for i_part in range(len(p_delta)):
+
+    mask_active = state_log[:, i_part] > 0
+    arrival_time = -zeta_log[mask_active, i_part] / beta0 / clight + np.arange(turns)[mask_active] * t_sim
+    arrival_times.append(arrival_time)
+
+expected_arrival_time_on_momentum = np.arange(turns) * t_rev0
+
+plt.figure(2)
+for ii in range(len(p_delta)):
+    plt.plot((arrival_times[ii]-expected_arrival_time_on_momentum[:len(arrival_times[ii])])/t_rev0,
+             label=f"delta={p_delta[ii]}")
+plt.xlabel("Pass")
+plt.ylabel(r"Delay with respect to on momentum particle ($\Delta t$ / $T_0$)")
+plt.legend()
 
 plt.show()
