@@ -4,9 +4,9 @@ import xtrack.synctime as st
 import numpy as np
 from scipy.constants import c as clight
 
-turns = 1000
-n_collective_elements = 10
-p_delta_max = 0.01
+turns = 2000
+n_collective_elements = 2
+p_delta_max = 0.005
 p_delta = [p_delta_max, 0.0, -p_delta_max]
 # p_delta = [0,0,0]
 
