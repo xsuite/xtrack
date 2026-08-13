@@ -86,6 +86,7 @@ plt.figure(1)
 ax1 = plt.subplot(3,1,1)
 plt.plot(t / t_rev0, state_log[:, i_ref]>0, label=f'delta={p_delta[i_ref]}', color='k', alpha=0.4)
 plt.plot(t / t_rev0, state_log[:, i_obs]>0, label=f'delta={p_delta[i_obs]}')
+plt.ylabel("Particle alive")
 
 plt.legend()
 ax2 = plt.subplot(3,1,2, sharex=ax1)
