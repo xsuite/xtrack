@@ -17,7 +17,7 @@ test_data_folder = pathlib.Path(
 @fix_random_seed(8837465)
 @allow_kernel_compilation
 @for_all_test_contexts(excluding=('ContextPyopencl',))
-def test_coasting(context):
+def test_coasting(test_context):
 
 
     delta0 = 1e-2
@@ -106,8 +106,8 @@ def test_coasting(context):
         return np.histogram(particles.zeta[mask_alive], bins=200,
                             range=(zeta_min0, zeta_max0), weights=particles.y[mask_alive])
 
-    line.build_tracker(_context=context)
-    p.move(_context=context)
+    line.build_tracker(_context=test_context)
+    p.move(_context=test_context)
 
     line.enable_time_dependent_vars = True
     num_turns=200
