@@ -18,14 +18,13 @@ tw_minus = line.twiss4d(delta0=-p_delta_max)
 circum = tw.line_length
 
 eta = tw.slip_factor
+# Expected number of turns to gain/lose one turn with respect to on-momentum particle:
 n_slip = 1 / abs(eta * p_delta_max)
-
 
 # Install evenly spaced markers to:
 # 1) Mimic collective elements for synctime.
 # 2) Be replaced by WrapZeta elements.
-# evenly_spaced_s = np.linspace(0, line.get_length(), n_collective_elements)
-evenly_spaced_s = np.array([0])
+evenly_spaced_s = np.linspace(0, line.get_length(), n_collective_elements)
 line.cut_at_s(evenly_spaced_s)
 for i, s in enumerate(evenly_spaced_s):
     marker = xt.Marker()
@@ -63,8 +62,6 @@ state_log = np.array(state_log)
 beta0 = particles.beta0[0]
 t_rev0 = line.get_length() / clight / beta0
 t_sim = line['synctime_0'].frame_relative_length * t_rev0
-
-
 
 import matplotlib.pyplot as plt
 plt.close("all")
@@ -114,7 +111,7 @@ for ii in range(len(p_delta)):
     plt.plot((arrival_times[ii]-expected_arrival_time_on_momentum[:len(arrival_times[ii])])/t_rev0,
              label=f"delta={p_delta[ii]}")
 plt.xlabel("Pass")
-plt.ylabel(r"Delay with respect to on momentum particle ($\Delta t$ / $T_0$)")
+plt.ylabel(r"Delay with respect to on-momentum particle ($\Delta t$ / $T_0$)")
 plt.legend()
 
 plt.show()
