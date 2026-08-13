@@ -39,6 +39,7 @@ class SyncTime:
         # Resume particles previously stopped
         particles.state[particles.state==-self.id] = 1
         particles.reorganize()
+        mask_alive = particles.state > 0
 
         # Identify particles that need to be stopped
         zeta_min = -self.circumference/ 2 * beta0_beta1 + particles.s * (1 - beta0_beta1)
