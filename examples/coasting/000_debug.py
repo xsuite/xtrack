@@ -7,12 +7,15 @@ from scipy.constants import c as clight
 turns = 1000
 n_collective_elements = 10
 p_delta_max = 0.01
-p_delta = [-p_delta_max, 0.0, p_delta_max]
+p_delta = [p_delta_max, 0.0, -p_delta_max]
 # p_delta = [0,0,0]
 
 line = xt.load('../../test_data/psb_injection/line_and_particle.json')
 
 tw = line.twiss4d()
+tw_plus = line.twiss4d(delta0=p_delta_max)
+tw_minus = line.twiss4d(delta0=-p_delta_max)
+circum = tw.line_length
 
 
 # Install evenly spaced markers to:
@@ -29,10 +32,9 @@ for i, s in enumerate(evenly_spaced_s):
 st.install_sync_time_at_collective_elements(line=line)
 line.enable_time_dependent_vars = True
 
-_context = xo.ContextCpu(omp_num_threads=4)
-line.build_tracker(_context=_context)
-
-particles: xt.Particles = line.build_particles(delta=p_delta)
+particles: xt.Particles = line.build_particles(delta=p_delta,
+                                               x=tw.dx[0]*np.array(p_delta),
+                                               px=tw.dpx[0]*np.array(p_delta))
 particles_start = particles.copy()
 st.prepare_particles_for_sync_time(particles=particles, line=line)
 
@@ -76,7 +78,7 @@ import matplotlib.pyplot as plt
 plt.close("all")
 plt.figure(1)
 for ii in range(len(p_delta)):
-    plt.plot((arrival_times[ii]-expected_arrival_time_on_momentum[:len(arrival_times[ii])])/t_rev0, label=f"delta={p_delta[ii]}")
+    plt.plot(np.abs(arrival_times[ii]-expected_arrival_time_on_momentum[:len(arrival_times[ii])])/t_rev0, label=f"delta={p_delta[ii]}")
 plt.xlabel("Pass")
 plt.ylabel("Delay with respect to on momentum particle [T_0]")
 plt.legend()
@@ -90,20 +92,39 @@ plt.xlabel("Pass")
 plt.ylabel("Arrival time [s]")
 
 
-
-i_obs = 0
 i_ref = 1
+is_ahead = np.zeros_like(zeta_log, dtype=int)
+for i_part in range(len(p_delta)):
+    is_ahead[:, i_part] = np.int64(zeta_log[:, i_part] > zeta_log[:, i_ref])
+
+
+
+i_obs1 = 0
+i_obs2 = 2
+t = np.arange(turns) * t_sim
 plt.figure(3)
 ax1 = plt.subplot(4,1,1)
-plt.plot(state_log[:, i_obs], label=f'delta={p_delta[i_obs]}')
-plt.plot(state_log[:, i_ref], label=f'delta={p_delta[i_ref]}')
+plt.plot(t / t_rev0, state_log[:, i_ref], label=f'delta={p_delta[i_ref]}', color='k')
+plt.plot(t / t_rev0, state_log[:, i_obs1], label=f'delta={p_delta[i_obs1]}')
+plt.plot(t / t_rev0, state_log[:, i_obs2], label=f'delta={p_delta[i_obs2]}')
+
 plt.legend()
 ax2 = plt.subplot(4,1,2, sharex=ax1)
-plt.plot(zeta_log[:, i_obs], label=f"zeta delta={p_delta[i_obs]}")
-plt.plot(zeta_log[:, i_ref], label=f"zeta delta={p_delta[i_ref]}")
+plt.plot(t / t_rev0, zeta_log[:, i_ref], label=f"zeta delta={p_delta[i_ref]}", color='k')
+plt.plot(t / t_rev0, zeta_log[:, i_obs1], label=f"zeta delta={p_delta[i_obs1]}")
+plt.plot(t / t_rev0, zeta_log[:, i_obs2], label=f"zeta delta={p_delta[i_obs2]}")
+plt.ylabel("zeta [m]")
 ax3 = plt.subplot(4,1,3, sharex=ax1)
-plt.plot(at_turn_log[:, i_obs], label="at_turn")
-plt.plot(at_turn_log[:, i_ref], label="at_turn reference")
+plt.plot(t / t_rev0, at_turn_log[:, i_ref], color='k')
+plt.plot(t / t_rev0, at_turn_log[:, i_obs1])
+plt.plot(t / t_rev0, at_turn_log[:, i_obs2])
 ax4 = plt.subplot(4,1,4, sharex=ax1)
-plt.plot(at_turn_log[:, i_obs]-at_turn_log[:, i_ref] + np.int64(zeta_log[:, i_obs]>zeta_log[:, i_ref]), label="zeta difference")
+plt.plot(t / t_rev0, at_turn_log[:, i_obs1]-at_turn_log[:, i_ref],
+        color='C0', alpha=0.4, label="at_turn difference")
+plt.plot(t / t_rev0, at_turn_log[:, i_obs1]-at_turn_log[:, i_ref] + is_ahead[:, i_obs1], color='C0')
+plt.plot(t / t_rev0, at_turn_log[:, i_obs2]-at_turn_log[:, i_ref],
+        color='C1', alpha=0.4, label="at_turn difference")
+plt.plot(t / t_rev0, at_turn_log[:, i_obs2]-at_turn_log[:, i_ref] + is_ahead[:, i_obs2], color='C1')
+plt.xlabel("Time [T0]")
+plt.ylabel("at_turn difference")
 plt.show()
