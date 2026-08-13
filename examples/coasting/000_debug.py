@@ -103,22 +103,18 @@ i_obs1 = 0
 i_obs2 = 2
 t = np.arange(turns) * t_sim
 plt.figure(3)
-ax1 = plt.subplot(4,1,1)
+ax1 = plt.subplot(3,1,1)
 plt.plot(t / t_rev0, state_log[:, i_ref], label=f'delta={p_delta[i_ref]}', color='k')
 plt.plot(t / t_rev0, state_log[:, i_obs1], label=f'delta={p_delta[i_obs1]}')
 plt.plot(t / t_rev0, state_log[:, i_obs2], label=f'delta={p_delta[i_obs2]}')
 
 plt.legend()
-ax2 = plt.subplot(4,1,2, sharex=ax1)
+ax2 = plt.subplot(3,1,2, sharex=ax1)
 plt.plot(t / t_rev0, zeta_log[:, i_ref], label=f"zeta delta={p_delta[i_ref]}", color='k')
 plt.plot(t / t_rev0, zeta_log[:, i_obs1], label=f"zeta delta={p_delta[i_obs1]}")
 plt.plot(t / t_rev0, zeta_log[:, i_obs2], label=f"zeta delta={p_delta[i_obs2]}")
 plt.ylabel("zeta [m]")
-ax3 = plt.subplot(4,1,3, sharex=ax1)
-plt.plot(t / t_rev0, at_turn_log[:, i_ref], color='k')
-plt.plot(t / t_rev0, at_turn_log[:, i_obs1])
-plt.plot(t / t_rev0, at_turn_log[:, i_obs2])
-ax4 = plt.subplot(4,1,4, sharex=ax1)
+ax4 = plt.subplot(3,1,3, sharex=ax1)
 plt.plot(t / t_rev0, at_turn_log[:, i_obs1]-at_turn_log[:, i_ref],
         color='C0', alpha=0.4, label="at_turn difference")
 plt.plot(t / t_rev0, at_turn_log[:, i_obs1]-at_turn_log[:, i_ref] + is_ahead[:, i_obs1], color='C0')
