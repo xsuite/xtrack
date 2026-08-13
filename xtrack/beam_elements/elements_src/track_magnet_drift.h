@@ -112,8 +112,7 @@ void track_expanded_combined_dipole_quad_single_particle(
     const xt_num_t Kx = k0 * h + k1;
     const xt_num_t Ky = -k1;
 
-    // Initialize (tpsa has no default constructor).
-    xt_num_t Sx = 0.0*x, Sy = 0.0*x, Cx = 0.0*x, Cy = 0.0*x;
+    xt_num_t Sx = 0.0, Sy = 0.0, Cx = 0.0, Cy = 0.0;
 
     if (Kx > 0.0) {
         xt_num_t sqrt_Kx = sqrt(Kx);
@@ -149,9 +148,9 @@ void track_expanded_combined_dipole_quad_single_particle(
     const xt_num_t xp = px / delta_plus_1;
     const xt_num_t yp = py / delta_plus_1;
     const xt_num_t A = -Kx * x - k0 + h;
-    const xt_num_t B = 1.0 * xp;   // 1.0 * forces a value copy: `= xp` would call the
-    const xt_num_t C = -Ky * y;    // copy-constructor trap which only copies descriptor
-    const xt_num_t D = 1.0 * yp;   // (not coefficients)
+    const xt_num_t B = xp;
+    const xt_num_t C = -Ky * y;
+    const xt_num_t D = yp;
 
     // transverse map
     xt_num_t x_ = x * Cx + xp * Sx;
@@ -165,7 +164,7 @@ void track_expanded_combined_dipole_quad_single_particle(
         x_ = x_ - (k0 - h) * 0.5 * POW2(length);
 
     // longitudinal map
-    xt_num_t length_ = 0.0*x + length; // will be the total path length traveled by the particle
+    xt_num_t length_ = length; // will be the total path length traveled by the particle
     if (NONZERO(Kx)) {
         length_ -= (h * ((Cx - 1.0) * xp + Sx * A + length * (k0 - h))) / Kx;
         length_ += 0.5 * (

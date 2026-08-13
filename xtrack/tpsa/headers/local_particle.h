@@ -101,7 +101,7 @@ XT_LP_SCALAR_FIELDS(SCALAR_GETTER)
         }                                                             \
     }
 
-#define NUM_GET(PART, NAME) (1.0 * mad::tpsa_ref((PART)->NAME))
+#define NUM_GET(PART, NAME) (xt_num_t(mad::tpsa_ref((PART)->NAME)))
 #define NUM_SET(PART, NAME, VALUE) (mad::tpsa_ref((PART)->NAME) = (VALUE))
 #define NUM_ADD(PART, NAME, VALUE) (mad::tpsa_ref((PART)->NAME) += (VALUE))
 #define NUM_SCALE(PART, NAME, VALUE) (mad::tpsa_ref((PART)->NAME) *= (VALUE))

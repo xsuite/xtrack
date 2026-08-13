@@ -10,41 +10,61 @@
 #include "mad_tpsa.hpp"
 
 namespace xt_tpsa {
-// Extend mad::tpsa so scalar constants can be promoted through normal C++
-// construction syntax, e.g. `tpsa a = 7.0;`, using the active prototype.
-struct tpsa : public mad::tpsa {
-    inline static thread_local tpsa_t* default_proto = nullptr;
+    /* Subclass mad::tpsa to implement custom behaviours for Xtrack.
+     *
+     * Extend mad::tpsa so scalar constants can be promoted through normal C++
+     * construction syntax, e.g. `tpsa a = 7.0;`, using the active prototype.
+     * Do the same for constructors.
+     */
+    struct tpsa : public mad::tpsa {
+        inline static thread_local tpsa_t* default_proto = nullptr;
 
-    using mad::tpsa::tpsa;
+        // Promote scalar constants using the active TPSA prototype.
+        tpsa(double value)
+            : mad::tpsa(mad::tpsa_ref(default_proto)) {
+            mad::tpsa::operator=(value);
+        }
 
-    tpsa(double value)
-        : mad::tpsa(0.0 * mad::tpsa_ref(default_proto) + value) {}
+        // GCC resolves literal 0 against the deleted tpsa(nullptr_t) constructor
+        // instead of tpsa(double) (which is what Clang does), so let's be explicit.
+        tpsa(int value)
+            : tpsa(static_cast<double>(value)) {}
 
-    // GCC resolves literal 0 against the deleted tpsa(nullptr_t) constructor
-    // instead of tpsa(double) (which is what Clang does), so let's be explicit.
-    tpsa(int value)
-        : tpsa(static_cast<double>(value)) {}
+        // Default mad::tpsa constructor does not copy coefficients. This can be a little
+        // confusing, so we override it so that tpsa(tpsa) just makes a copy.
+        // For a new TPSA (in tracking) that is zero it suffices to write:
+        // `xt_tpsa::tpsa my_tpsa = 0;`: this will create a zero-valued TPSA using
+        // the `default_proto` as the prototype. This should be sufficient for now.
+        tpsa(const tpsa& value)
+            : mad::tpsa(static_cast<const mad::tpsa&>(value)) {
+            mad::tpsa::operator=(static_cast<const mad::tpsa&>(value));
+        }
 
-    tpsa& operator=(double value) {
-        mad::tpsa::operator=(value);
-        return *this;
-    }
+        // Construct an xt_tpsa::tpsa as a copy of mad::tpsa
+        template<class A>
+        tpsa(const mad::tpsa_base<A>& value)
+            : mad::tpsa(value) {
+            mad::tpsa::operator=(value);
+        }
 
-    tpsa& operator=(const tpsa& value) {
-        mad::tpsa::operator=(static_cast<const mad::tpsa&>(value));
-        return *this;
-    }
+        // Forwarding shim to mad::tpsa, returns our overloaded type
+        tpsa& operator=(double value) {
+            mad::tpsa::operator=(value);
+            return *this;
+        }
 
-    tpsa& operator=(tpsa&& value) {
-        mad::tpsa::operator=(static_cast<const mad::tpsa&>(value));
-        return *this;
-    }
+        // Forwarding shim to mad::tpsa, returns our overloaded type
+        tpsa& operator=(const tpsa& value) {
+            mad::tpsa::operator=(static_cast<const mad::tpsa&>(value));
+            return *this;
+        }
 
-    template<class A>
-    tpsa& operator=(const mad::tpsa_base<A>& value) {
-        mad::tpsa::operator=(value);
-        return *this;
-    }
+        // Forwarding shim to mad::tpsa, returns our overloaded type
+        template<class A>
+        tpsa& operator=(const mad::tpsa_base<A>& value) {
+            mad::tpsa::operator=(value);
+            return *this;
+        }
 };
 
 // Keep this scope alive for the full lifetime of TPSA tracking, or for any
@@ -104,7 +124,7 @@ static inline xt_num_t xt_float_or_tpsa_lift(uint64_t bits){
 // Read a FloatOrTpsa slot as either a TPSA pointer or a lifted scalar.
 static inline xt_num_t xt_float_or_tpsa_get(uint64_t* slot, int64_t tpsa_enabled){
     if (tpsa_enabled) {
-        return 1.0 * mad::tpsa_ref((tpsa_t*)(uintptr_t)(*slot));
+        return xt_num_t(mad::tpsa_ref((tpsa_t*)(uintptr_t)(*slot)));
     }
     return xt_float_or_tpsa_lift(*slot);
 }

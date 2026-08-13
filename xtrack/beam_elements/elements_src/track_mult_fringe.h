@@ -43,17 +43,14 @@ void MultFringe_track_single_particle(
     xt_num_t const rpp = LocalParticle_get_rpp(part);
     const double chi = LocalParticle_get_chi(part);
 
-    // These accumulators are reassigned in the loop, so they need a coord-
-    // derived init (mad::tpsa has no default constructor); 0.0*x is 0, and thus identical to the
-    // double literals natively.
-    xt_num_t rx = 0.0 * x + 1.0;
-    xt_num_t ix = 0.0 * x;
-    xt_num_t fx = 0.0 * x;
-    xt_num_t fxx = 0.0 * x;
-    xt_num_t fxy = 0.0 * x;
-    xt_num_t fy = 0.0 * x;
-    xt_num_t fyx = 0.0 * x;
-    xt_num_t fyy = 0.0 * x;
+    xt_num_t rx = 1.0;
+    xt_num_t ix = 0.0;
+    xt_num_t fx = 0.0;
+    xt_num_t fxx = 0.0;
+    xt_num_t fxy = 0.0;
+    xt_num_t fy = 0.0;
+    xt_num_t fyx = 0.0;
+    xt_num_t fyy = 0.0;
 
     uint32_t order = (k_order > kl_order) ? k_order : kl_order;
     double inv_factorial = 1;
@@ -62,8 +59,8 @@ void MultFringe_track_single_particle(
     {
         if (ii > 1) inv_factorial /= ii;
         double component = ii + 1;
-        xt_num_t const drx = 1.0 * rx;
-        xt_num_t const dix = 1.0 * ix;
+        xt_num_t const drx = rx;
+        xt_num_t const dix = ix;
         rx = drx * x - dix * y;
         ix = drx * y + dix * x;
 
@@ -85,7 +82,7 @@ void MultFringe_track_single_particle(
         double nf = (component + 2) / component;
         double kj = kn_total * chi;
         double ksj = ks_total * chi;
-        xt_num_t u = 0.0 * x, v = 0.0 * x, du = 0.0 * x, dv = 0.0 * x;
+        xt_num_t u = 0.0, v = 0.0, du = 0.0, dv = 0.0;
 
         if (ii == 0) {
             u = nj * (-ksj * ix);

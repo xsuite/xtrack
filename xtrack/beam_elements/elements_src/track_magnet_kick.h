@@ -104,9 +104,9 @@ void track_magnet_kick_single_particle(
     );
 
     // Correct for the curvature
-    xt_num_t dpx = 0.0*x;
-    xt_num_t dpy = 0.0*x;
-    xt_num_t dzeta = 0.0*x;
+    xt_num_t dpx = 0.0;
+    xt_num_t dpy = 0.0;
+    xt_num_t dzeta = 0.0;
 
     if (rot_frame) {
         double const hl = h * length * kick_weight + hxl * kick_weight;
@@ -212,8 +212,8 @@ void kick_simple_single_coordinates(
 
     int64_t index = order;
 
-    xt_num_t dpx_mul = 0.0*x + chi * knl[index] * factor * inv_factorial;
-    xt_num_t dpy_mul = 0.0*x + chi * ksl[index] * factor * inv_factorial;
+    xt_num_t dpx_mul = chi * knl[index] * factor * inv_factorial;
+    xt_num_t dpy_mul = chi * ksl[index] * factor * inv_factorial;
 
     while( index > 0 )
     {
@@ -251,7 +251,7 @@ void kick_simple_single_particle(
     xt_num_t const x = LocalParticle_get_x(part);
     xt_num_t const y = LocalParticle_get_y(part);
 
-    xt_num_t dpx = 0.0*x, dpy = 0.0*x;
+    xt_num_t dpx = 0.0, dpy = 0.0;
 
     kick_simple_single_coordinates(
         x,

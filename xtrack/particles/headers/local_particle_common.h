@@ -198,7 +198,7 @@ double LocalParticle_get_energy0(LocalParticle* part) {
 GPUFUN
 void LocalParticle_update_ptau(LocalParticle* part, xt_num_arg_t new_ptau_value) {
     double const beta0 = LocalParticle_get_beta0(part);
-    xt_num_t const ptau = 1.0 * new_ptau_value;
+    xt_num_t const ptau = new_ptau_value;
     xt_num_t const irpp = sqrt(ptau * ptau + 2.0 * ptau / beta0 + 1.0);
     xt_num_t const new_rpp = 1.0 / irpp;
     xt_num_t const new_rvv = irpp / (1.0 + beta0 * ptau);
