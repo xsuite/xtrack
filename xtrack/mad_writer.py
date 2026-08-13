@@ -113,11 +113,20 @@ def _knl_ksl_to_mad(mult, mad_type=MadType.MADX):
             klmad.append(item)
 
     if mad_type == MadType.MADNG and hasattr(mult._value, 'knl_rel'):
+        # `knl_rel`/`ksl_rel` are *relative* to the main component: the tracking
+        # code adds `knl_rel[i] * rel_ref_strength` (see track_magnet_kick.h,
+        # and Element.get_total_knl_ksl), where `rel_ref_strength` is the
+        # element's `main_strength`, i.e. k0*length for a bend.  MAD-NG's `dknl`
+        # is an *absolute* integrated field error, added straight onto `knl`
+        # (madl_etrck.mad:get_mult), so the relative array has to be scaled by
+        # the main strength on the way out.
+        rel_ref_strength = mult._value.main_strength
         dknl_mad = []
         dksl_mad = []
         for kl, klmad in zip([mult.knl_rel, mult.ksl_rel], [dknl_mad, dksl_mad]):
             for ii in range(len(kl._value)):
-                item = mad_str_or_value(_ge(kl[ii]) * weight)
+                item = mad_str_or_value(
+                    _ge(kl[ii]) * weight * rel_ref_strength)
                 if not isinstance(item, str):
                     item = str(item)
                 klmad.append(item)
@@ -452,8 +461,25 @@ def bend_to_mad_str(eref, bend_type='sbend', mad_type=MadType.MADX, substituted_
     tokens.append(mad_assignment('angle', _ge(eref.h) * _ge(eref.length) * weight, mad_type, substituted_vars=substituted_vars))
     if not eref.k0_from_h._value:
         tokens.append(mad_assignment('k0', _ge(eref.k0), mad_type, substituted_vars=substituted_vars))
-    tokens.append(mad_assignment('e1', _ge(eref.edge_entry_angle), mad_type, substituted_vars=substituted_vars))
-    tokens.append(mad_assignment('e2', _ge(eref.edge_exit_angle), mad_type, substituted_vars=substituted_vars))
+
+    # Xsuite's straight-body rbend corresponds to MAD-NG's `true_rbend`, which
+    # must be requested explicitly: without the flag MAD-NG treats the rbend as
+    # an sbend and the two bodies no longer describe the same magnet.
+    # Both codes add `angle/2` to the supplied pole-face angles, but Xsuite's
+    # straight body uses the asymmetric faces `(angle -/+ rbend_angle_diff)/2`,
+    # so the difference has to be folded into e1/e2.
+    straight_body = (bend_type == 'rbend' and mad_type == MadType.MADNG
+                     and eref.rbend_model._value == 'straight-body')
+    edge_entry_angle = _ge(eref.edge_entry_angle)
+    edge_exit_angle = _ge(eref.edge_exit_angle)
+    if straight_body:
+        edge_entry_angle = edge_entry_angle - _ge(eref.rbend_angle_diff) / 2
+        edge_exit_angle = edge_exit_angle + _ge(eref.rbend_angle_diff) / 2
+
+    tokens.append(mad_assignment('e1', edge_entry_angle, mad_type, substituted_vars=substituted_vars))
+    tokens.append(mad_assignment('e2', edge_exit_angle, mad_type, substituted_vars=substituted_vars))
+    if straight_body:
+        tokens.append('true_rbend = true')  # literal, not a deferred expression
     tokens.append(mad_assignment('fint', _ge(eref.edge_entry_fint), mad_type, substituted_vars=substituted_vars))
     tokens.append(mad_assignment('fintx', _ge(eref.edge_exit_fint), mad_type, substituted_vars=substituted_vars))
     tokens.append(mad_assignment('hgap', _ge(eref.edge_entry_hgap), mad_type, substituted_vars=substituted_vars))
