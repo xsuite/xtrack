@@ -128,113 +128,25 @@
     _(spin_z)                      \
     _(anomalous_magnetic_moment)
 
-// FREEZE_VAR_* flags come from tracker config and compile writes to frozen fields into no-ops.
-// Undefined flags default to unfrozen.
-#ifndef FREEZE_VAR_p0c
-#define FREEZE_VAR_p0c 0
+// FREEZE_VAR_<var> can be defined to suppress changes to a coordinate/property <var>.
+// Flags are presence-style (`#define FREEZE_VAR_<var>`). We build a magic macro to test
+// if a given flag is defined (relying on the fact that stringifying a defined macro gives
+// its value (here ""), whereas an undefined one is expanded to its name.
+#ifndef _STRINGIFY
+#define _STRINGIFY(X) #X
 #endif
-#ifndef FREEZE_VAR_gamma0
-#define FREEZE_VAR_gamma0 0
-#endif
-#ifndef FREEZE_VAR_beta0
-#define FREEZE_VAR_beta0 0
-#endif
-#ifndef FREEZE_VAR_s
-#define FREEZE_VAR_s 0
-#endif
-#ifndef FREEZE_VAR_zeta
-#define FREEZE_VAR_zeta 0
-#endif
-#ifndef FREEZE_VAR_x
-#define FREEZE_VAR_x 0
-#endif
-#ifndef FREEZE_VAR_y
-#define FREEZE_VAR_y 0
-#endif
-#ifndef FREEZE_VAR_px
-#define FREEZE_VAR_px 0
-#endif
-#ifndef FREEZE_VAR_py
-#define FREEZE_VAR_py 0
-#endif
-#ifndef FREEZE_VAR_ptau
-#define FREEZE_VAR_ptau 0
-#endif
-#ifndef FREEZE_VAR_delta
-#define FREEZE_VAR_delta 0
-#endif
-#ifndef FREEZE_VAR_rpp
-#define FREEZE_VAR_rpp 0
-#endif
-#ifndef FREEZE_VAR_rvv
-#define FREEZE_VAR_rvv 0
-#endif
-#ifndef FREEZE_VAR_chi
-#define FREEZE_VAR_chi 0
-#endif
-#ifndef FREEZE_VAR_charge_ratio
-#define FREEZE_VAR_charge_ratio 0
-#endif
-#ifndef FREEZE_VAR_weight
-#define FREEZE_VAR_weight 0
-#endif
-#ifndef FREEZE_VAR_ax
-#define FREEZE_VAR_ax 0
-#endif
-#ifndef FREEZE_VAR_ay
-#define FREEZE_VAR_ay 0
-#endif
-#ifndef FREEZE_VAR_spin_x
-#define FREEZE_VAR_spin_x 0
-#endif
-#ifndef FREEZE_VAR_spin_y
-#define FREEZE_VAR_spin_y 0
-#endif
-#ifndef FREEZE_VAR_spin_z
-#define FREEZE_VAR_spin_z 0
-#endif
-#ifndef FREEZE_VAR_anomalous_magnetic_moment
-#define FREEZE_VAR_anomalous_magnetic_moment 0
-#endif
-#ifndef FREEZE_VAR_pdg_id
-#define FREEZE_VAR_pdg_id 0
-#endif
-#ifndef FREEZE_VAR_particle_id
-#define FREEZE_VAR_particle_id 0
-#endif
-#ifndef FREEZE_VAR_at_element
-#define FREEZE_VAR_at_element 0
-#endif
-#ifndef FREEZE_VAR_at_turn
-#define FREEZE_VAR_at_turn 0
-#endif
-#ifndef FREEZE_VAR_state
-#define FREEZE_VAR_state 0
-#endif
-#ifndef FREEZE_VAR_parent_particle_id
-#define FREEZE_VAR_parent_particle_id 0
-#endif
-#ifndef FREEZE_VAR__rng_s1
-#define FREEZE_VAR__rng_s1 0
-#endif
-#ifndef FREEZE_VAR__rng_s2
-#define FREEZE_VAR__rng_s2 0
-#endif
-#ifndef FREEZE_VAR__rng_s3
-#define FREEZE_VAR__rng_s3 0
-#endif
-#ifndef FREEZE_VAR__rng_s4
-#define FREEZE_VAR__rng_s4 0
+#ifndef STRINGIFY
+#define STRINGIFY(X) _STRINGIFY(X)
 #endif
 
-// Two-stage expansion resolves NAME before concatenating it with the freeze-macro prefix.
 #define XT_LP_IS_FROZEN(NAME) XT_LP_IS_FROZEN_IMPL(NAME)
-#define XT_LP_IS_FROZEN_IMPL(NAME) FREEZE_VAR_ ## NAME
+#define XT_LP_IS_FROZEN_IMPL(NAME) (sizeof(STRINGIFY(FREEZE_VAR_ ## NAME)) == 1)
 
 /*
  * Generate get/set/add_to/scale accessors for an xt_num_t field. Before expansion, a backend
  * defines NUM_GET, NUM_SET, NUM_ADD, and NUM_SCALE for its storage layout, then undefines them.
  * Read access is unconditional; modifying accessors honor the corresponding freeze flag.
+ * The test for frozen is known at compile time, so even at -O1 will be optimized away.
  */
 #define XT_LP_NUM_ACCESSORS(NAME)                                                  \
     GPUFUN                                                                        \
