@@ -17,6 +17,9 @@ tw_plus = line.twiss4d(delta0=p_delta_max)
 tw_minus = line.twiss4d(delta0=-p_delta_max)
 circum = tw.line_length
 
+eta = tw.slip_factor
+n_slip = 1 / abs(eta * p_delta_max)
+
 
 # Install evenly spaced markers to:
 # 1) Mimic collective elements for synctime.
@@ -99,28 +102,28 @@ for i_part in range(len(p_delta)):
 
 
 
-i_obs1 = 0
-i_obs2 = 2
+i_obs = 0
 t = np.arange(turns) * t_sim
 plt.figure(3)
 ax1 = plt.subplot(3,1,1)
-plt.plot(t / t_rev0, state_log[:, i_ref], label=f'delta={p_delta[i_ref]}', color='k')
-plt.plot(t / t_rev0, state_log[:, i_obs1], label=f'delta={p_delta[i_obs1]}')
-plt.plot(t / t_rev0, state_log[:, i_obs2], label=f'delta={p_delta[i_obs2]}')
+plt.plot(t / t_rev0, state_log[:, i_ref]>0, label=f'delta={p_delta[i_ref]}', color='k', alpha=0.4)
+plt.plot(t / t_rev0, state_log[:, i_obs]>0, label=f'delta={p_delta[i_obs]}')
 
 plt.legend()
 ax2 = plt.subplot(3,1,2, sharex=ax1)
-plt.plot(t / t_rev0, zeta_log[:, i_ref], label=f"zeta delta={p_delta[i_ref]}", color='k')
-plt.plot(t / t_rev0, zeta_log[:, i_obs1], label=f"zeta delta={p_delta[i_obs1]}")
-plt.plot(t / t_rev0, zeta_log[:, i_obs2], label=f"zeta delta={p_delta[i_obs2]}")
+plt.plot(t / t_rev0, zeta_log[:, i_ref], label=f"zeta delta={p_delta[i_ref]}", color='k', alpha=0.4)
+plt.plot(t / t_rev0, zeta_log[:, i_obs], label=f"zeta delta={p_delta[i_obs]}")
 plt.ylabel("zeta [m]")
+
 ax4 = plt.subplot(3,1,3, sharex=ax1)
-plt.plot(t / t_rev0, at_turn_log[:, i_obs1]-at_turn_log[:, i_ref],
-        color='C0', alpha=0.4, label="at_turn difference")
-plt.plot(t / t_rev0, at_turn_log[:, i_obs1]-at_turn_log[:, i_ref] + is_ahead[:, i_obs1], color='C0')
-plt.plot(t / t_rev0, at_turn_log[:, i_obs2]-at_turn_log[:, i_ref],
-        color='C1', alpha=0.4, label="at_turn difference")
-plt.plot(t / t_rev0, at_turn_log[:, i_obs2]-at_turn_log[:, i_ref] + is_ahead[:, i_obs2], color='C1')
-plt.xlabel("Time [T0]")
-plt.ylabel("at_turn difference")
+plt.plot(t / t_rev0, at_turn_log[:, i_obs]-at_turn_log[:, i_ref],
+        color='C0', alpha=0.2, label="without z-diff correction")
+plt.plot(t / t_rev0, at_turn_log[:, i_obs]-at_turn_log[:, i_ref] + is_ahead[:, i_obs],
+         color='C0', label="with z-diff correction")
+plt.xlabel(r"$t$ / $T_0$")
+plt.ylabel(r"$\Delta N_{turns}$")
+plt.legend()
+for ii in range(7):
+    plt.axvline(x=ii*n_slip, color='r', alpha=0.4, ls='--')
+
 plt.show()
