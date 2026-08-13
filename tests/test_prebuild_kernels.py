@@ -3,30 +3,21 @@
 # Copyright (c) CERN, 2024.                   #
 # ########################################### #
 import json
-import os
-
 import cffi
 import pytest
 
 import xobjects as xo
 import xtrack as xt
-from xobjects.test_helpers import allow_no_prebuilt_kernels
+from xobjects.test_helpers import allow_kernel_compilation
 
 
 @pytest.fixture
 def with_verbose():
-    old_verbose = os.environ.get('XSUITE_VERBOSE', None)
-    os.environ['XSUITE_VERBOSE'] = '1'
-
-    yield
-
-    if old_verbose is None:
-        del os.environ['XSUITE_VERBOSE']
-    else:
-        os.environ['XSUITE_VERBOSE'] = old_verbose
+    with xt.settings.override(show_kernel_diagnostics=True):
+        yield
 
 
-@allow_no_prebuilt_kernels
+@allow_kernel_compilation
 def test_prebuild_kernels(mocker, tmp_path, temp_context_default_func, capsys, with_verbose):
 
 
@@ -83,9 +74,9 @@ def test_prebuild_kernels(mocker, tmp_path, temp_context_default_func, capsys, w
     mocker.patch('xsuite.kernel_definitions.NAME_CLASS_MAP', NAME_CLASS_MAP)
     mocker.patch('xsuite.prebuild_kernels.NAME_CLASS_MAP', NAME_CLASS_MAP)
     # We need to change the default location so that loading the kernels works
-    mocker.patch('xsuite.prebuild_kernels.XSK_PREBUILT_KERNELS_LOCATION',
+    mocker.patch('xsuite.prebuild_kernels.PREBUILT_KERNELS_LOCATION',
                  tmp_path)
-    mocker.patch('xsuite.XSK_PREBUILT_KERNELS_LOCATION',
+    mocker.patch('xsuite.PREBUILT_KERNELS_LOCATION',
                  tmp_path)
 
     # Try regenerating the kernels
@@ -121,7 +112,7 @@ def test_prebuild_kernels(mocker, tmp_path, temp_context_default_func, capsys, w
     captured = capsys.readouterr()
     assert 'Found suitable prebuilt kernel `111_test_module_cpu_serial`' in captured.out
 
-@allow_no_prebuilt_kernels
+@allow_kernel_compilation
 def test_per_element_prebuild_kernels(mocker, tmp_path, temp_context_default_func):
 
 
@@ -164,9 +155,9 @@ def test_per_element_prebuild_kernels(mocker, tmp_path, temp_context_default_fun
     mocker.patch('xsuite.kernel_definitions.NAME_CLASS_MAP', NAME_CLASS_MAP)
     mocker.patch('xsuite.prebuild_kernels.NAME_CLASS_MAP', NAME_CLASS_MAP)
     # We need to change the default location so that loading the kernels works
-    mocker.patch('xsuite.prebuild_kernels.XSK_PREBUILT_KERNELS_LOCATION',
+    mocker.patch('xsuite.prebuild_kernels.PREBUILT_KERNELS_LOCATION',
                  tmp_path)
-    mocker.patch('xsuite.XSK_PREBUILT_KERNELS_LOCATION',
+    mocker.patch('xsuite.PREBUILT_KERNELS_LOCATION',
                  tmp_path)
 
     # Try regenerating the kernels
@@ -220,8 +211,8 @@ def test_context_specific_prebuilt_kernel_selection(mocker, tmp_path):
     mocker.patch('xsuite.prebuild_kernels.kernel_definitions', kernel_defs)
     mocker.patch('xsuite.kernel_definitions.NAME_CLASS_MAP', name_class_map)
     mocker.patch('xsuite.prebuild_kernels.NAME_CLASS_MAP', name_class_map)
-    mocker.patch('xsuite.prebuild_kernels.XSK_PREBUILT_KERNELS_LOCATION', tmp_path)
-    mocker.patch('xsuite.XSK_PREBUILT_KERNELS_LOCATION', tmp_path)
+    mocker.patch('xsuite.prebuild_kernels.PREBUILT_KERNELS_LOCATION', tmp_path)
+    mocker.patch('xsuite.PREBUILT_KERNELS_LOCATION', tmp_path)
 
     versions = {
         'xtrack': xt.__version__,
@@ -264,7 +255,7 @@ def test_context_specific_prebuilt_kernel_selection(mocker, tmp_path):
     assert omp_info['module_name'] == 'test_module_cpu_openmp'
 
 
-@allow_no_prebuilt_kernels
+@allow_kernel_compilation
 def test_regenerate_kernels_multiple_contexts(mocker, tmp_path, temp_context_default_func):
 
 

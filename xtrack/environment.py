@@ -24,7 +24,7 @@ from .match import Action
 from .multiline_legacy.multiline_legacy import MultilineLegacy
 from .progress_indicator import progress
 from .view import View
-from .general import DEPRECATION_INFO_PREP_1_0
+from .general import _print, DEPRECATION_INFO_PREP_1_0
 from .table import Table
 
 ReferType = Literal['start', 'center', 'centre', 'end']
@@ -640,7 +640,8 @@ class Environment:
 
     @doc_group("Editing, Inspection, Variables and Configuration")
     def new_line(self, components=None, name=None, refer: ReferType = 'center',
-                 length=None, mirror=False, s_tol=1e-6, compose=False) -> xt.Line:
+                 length=None, mirror=False, s_tol=1e-6, compose=False,
+                 diagnostics=False) -> xt.Line:
         """
         Create a new line.
 
@@ -667,6 +668,10 @@ class Environment:
         s_tol : float, optional
             Difference between two s positions below which they should be
             treated as the same location.
+        diagnostics : bool, optional
+            If true, analyze unresolved placement dependencies when immediate
+            line assembly fails. In compose mode, pass this option to
+            :meth:`xtrack.Line.end_compose` when finalizing the line.
 
         Returns
         -------
@@ -702,7 +707,7 @@ class Environment:
             out.composer.components += list(components)
 
         if not compose:
-            out.end_compose()
+            out.end_compose(diagnostics=diagnostics)
 
         self._lines_weakrefs.add(out) # Weak references
 
@@ -793,41 +798,11 @@ class Environment:
     @doc_group("Deprecated")
     def new_builder(self, components=None, name=None, refer: ReferType = 'center',
                     length=None, s_tol=1e-6):
-        '''
-        Deprecated. Create a new composer.
-
-        .. warning:: The `new_builder` method is deprecated and will be removed in
-           a future version. Use `new_line` with `compose=True` instead.
-
-        Parameters
-        ----------
-        components : list, optional
-            List of components to be added to the composer. It can include strings,
-            place objects, and lines.
-        name : str, optional
-            Name of the line that will be built by the composer.
-        refer : str, optional
-            Specifies which part of the component the ``at`` position will refer
-            to. Allowed values are ``start``, ``center`` (default; also allowed
-            is ``centre``), and ``end``.
-        length : float | str, optional
-            Length of the line to be built by the composer. Can be an expression.
-            If not specified, the length will be the minimum length that can
-            fit all the components.
-
-        Returns
-        -------
-        Composer
-            The new composer.
-        '''
-
-        warn('The `new_builder` method is deprecated and will be removed in a future version. '
-             'Use `new_line` with `compose=True` instead.', FutureWarning)
-
-        out = xt.Composer(env=self, components=components, name=name, refer=refer,
-                       length=length, s_tol=s_tol)
-
-        return out
+        """Raise an error because builders have been replaced by compose-mode lines."""
+        raise RuntimeError(
+            '`Environment.new_builder()` is no longer supported. '
+            'Use `Environment.new_line(..., compose=True)` instead.'
+        )
 
     @doc_group("Constructors and Serialization")
     def call(self, filename):
@@ -849,9 +824,15 @@ class Environment:
         xtrack._passed_env = None
 
     @doc_group("Constructors and Serialization")
-    def copy(self):
+    def copy(self, with_progress=True):
         """
         Create a deep copy of the environment.
+
+        Parameters
+        ----------
+        with_progress : bool, optional
+            Whether to show progress while copying elements. Defaults to
+            ``True``.
 
         Returns
         -------
@@ -859,7 +840,8 @@ class Environment:
             Independent copy of the environment, including elements, lines,
             particles, variables, expressions and metadata.
         """
-        return self.__class__.from_dict(self.to_dict())
+        return self.__class__.from_dict(
+            self.to_dict(), with_progress=with_progress)
 
     def _copy_element_from(self, name, source, new_name=None):
         """Copy an element from another environment.
@@ -1154,7 +1136,8 @@ class Environment:
 
     @doc_group("Constructors and Serialization")
     @classmethod
-    def from_dict(cls, dct, _context=None, _buffer=None, classes=()):
+    def from_dict(cls, dct, _context=None, _buffer=None, classes=(),
+                  with_progress=True):
         """
         Rebuild an environment from a serialized dictionary.
 
@@ -1168,6 +1151,9 @@ class Environment:
             Buffer used to rebuild xobjects-backed data.
         classes : tuple, optional
             Extra element classes accepted during element deserialization.
+        with_progress : bool, optional
+            Whether to show progress while deserializing elements. Defaults to
+            ``True``.
 
         Returns
         -------
@@ -1179,7 +1165,7 @@ class Environment:
         if "xtrack_version" in dct:
             version = dct["xtrack_version"]
             if xt.general._compare_versions(version, xt.__version__) > 0:
-                print(f'Warning: The environment you are loading was created '
+                _print(f'Warning: The environment you are loading was created '
                       f'with xtrack version {version}, which is more recent '
                       f'than the current version {xt.__version__}. '
                       'Some features may not be available or '
@@ -1187,7 +1173,8 @@ class Environment:
                       f'package to the latest version.')
 
         elements = _deserialize_elements(dct=dct, classes=classes,
-                                         _buffer=_buffer, _context=_context)
+                                         _buffer=_buffer, _context=_context,
+                                         with_progress=with_progress)
         particles = {}
         if 'particles' in dct:
             for nn, ppd in dct['particles'].items():
@@ -1562,7 +1549,7 @@ class Environment:
                     ] + object.__dir__(self)
 
     @doc_group("Deprecated")
-    def set_multipolar_errors(env, errors):
+    def set_multipolar_errors(env, errors, with_progress=True):
         """Deprecated: set multipolar errors for specified elements of the environment.
 
         .. warning:: This function is deprecated and will be removed in a future
@@ -1581,6 +1568,9 @@ class Environment:
                multiplied by the length. If None, the default reference strength
                is used (k0 for bends, k1 for quadrupoles, k2 for sextupoles,
                and k3 for octupoles).
+        with_progress : bool, optional
+            Whether to show progress while applying errors. Defaults to
+            ``True``.
 
         Examples
         --------
@@ -1611,7 +1601,12 @@ class Environment:
              + DEPRECATION_INFO_PREP_1_0,
              FutureWarning)
 
-        for ele_name in progress(errors.keys(), desc='Setting multipolar errors'):
+        error_names = errors.keys()
+        if with_progress:
+            error_names = progress(
+                error_names, desc='Setting multipolar errors')
+
+        for ele_name in error_names:
 
             err = errors[ele_name]
             rel_knl = err.get('rel_knl', [])
@@ -3073,11 +3068,11 @@ def get_environment(verbose=False):
     import xtrack
     if hasattr(xtrack, '_passed_env') and xtrack._passed_env is not None:
         if verbose:
-            print('Using existing environment')
+            _print('Using existing environment')
         return xtrack._passed_env
     else:
         if verbose:
-            print('Creating new environment')
+            _print('Creating new environment')
         return Environment()
 
 
@@ -3194,19 +3189,27 @@ def _reverse_element(env, name):
 
 
 
-def _deserialize_elements(dct, classes, _buffer, _context):
+def _deserialize_elements(dct, classes, _buffer, _context,
+                          with_progress=True):
     class_dict = xt.line.mk_class_namespace(classes)
 
     _buffer = xo.get_a_buffer(context=_context, buffer=_buffer,size=8)
 
     if isinstance(dct['elements'], dict):
         elements = {}
-        for (kk, ee) in progress(dct['elements'].items(), desc='Loading line from dict'):
+        element_items = dct['elements'].items()
+        if with_progress:
+            element_items = progress(
+                element_items, desc='Loading line from dict')
+        for kk, ee in element_items:
             elements[kk] = xt.line._deserialize_element(ee, class_dict, _buffer)
     elif isinstance(dct['elements'], list):
         elements = []
-        for ii, ee in enumerate(
-                progress(dct['elements'], desc='Loading line from dict')):
+        serialized_elements = dct['elements']
+        if with_progress:
+            serialized_elements = progress(
+                serialized_elements, desc='Loading line from dict')
+        for ii, ee in enumerate(serialized_elements):
             elements.append(xt.line._deserialize_element(ee, class_dict, _buffer))
     else:
         raise ValueError('Field `elements` must be a dict or a list')
@@ -3616,7 +3619,7 @@ class EnvVars:
         t_old = mgr.tasks.get(r_old)
         if t_old is not None:
             if verbose:
-                print(f"replacing target {t_old} with {r_new}={t_old.expr}")
+                _print(f"replacing target {t_old} with {r_new}={t_old.expr}")
             mgr.set_value(r_new, t_old.expr)
         for rt in list(env.ref_manager.rdeps[r_old]):
             if rt in mgr.tasks:
@@ -3624,7 +3627,7 @@ class EnvVars:
                 old_expr = str(tt.expr)
                 new_expr = old_expr.replace(str(r_old), str(r_new))
                 if verbose:
-                    print(f"replacing {old_expr} with {new_expr}")
+                    _print(f"replacing {old_expr} with {new_expr}")
                 mgr.set_value(rt, eval(new_expr, mgr.containers))
 
         if verbose:

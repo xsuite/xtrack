@@ -31,13 +31,19 @@ from . import beam_elements
 from . import json as json_utils
 from .beam_elements import (BeamElement, Drift, Marker, Multipole,
                             element_classes)
-from .beam_elements.elements import (_EDGE_MODEL_TO_INDEX,
-                                     _MODEL_TO_INDEX_CURVED,
-                                     _MODEL_TO_INDEX_DRIFT)
+from .beam_elements._common import (
+    _EDGE_MODEL_TO_INDEX,
+    _MODEL_TO_INDEX_CURVED,
+    _MODEL_TO_INDEX_DRIFT,
+)
 from .beam_elements.slice_base import ID_RADIATION_FROM_PARENT
-from .composer import (_all_places, _flatten_components,
-                      _generate_element_names_with_drifts,
-                      _resolve_s_positions, _sort_places)
+from .composer.composer import (
+    _all_places,
+    _flatten_components,
+    _generate_element_names_with_drifts,
+)
+from .composer.ordering import _sort_places
+from .composer.resolve_positions import _resolve_s_positions
 from .footprint import Footprint, _footprint_with_linear_rescale
 from .general import _print, DEPRECATION_INFO_PREP_1_0
 from .internal_record import (start_internal_logging_for_elements_of_type,
@@ -101,7 +107,7 @@ _LINE_DOC_GROUP_COLLECTOR = GroupedAPICollector(LINE_DOC_GROUP_ORDER)
 
 def find_index_repeated(item, lst,count=0):
     res=[ii for ii, nn in enumerate(lst) if nn == item]
-    print(item)
+    _print(item)
     if count>=len(res):
         raise ValueError(f'Item {item} not found')
     return res[count]
@@ -376,7 +382,7 @@ class Line:
     @doc_group("Constructors and Serialization")
     @classmethod
     def from_dict(cls, dct, _context=None, _buffer=None, classes=(),
-                  verbose=True, _env=None):
+                  verbose=True, _env=None, with_progress=True):
 
         """
         Create a Line object from a dictionary.
@@ -394,6 +400,9 @@ class Line:
         classes : list of classes, optional
             List of classes to be used for deserializing the elements. If not
             provided, the default classes are used.
+        with_progress : bool, optional
+            Whether to show progress while deserializing elements. Defaults to
+            ``True``.
 
         Returns
         -------
@@ -405,7 +414,7 @@ class Line:
         if "xtrack_version" in dct:
             version = dct["xtrack_version"]
             if xt.general._compare_versions(version, xt.__version__) > 0:
-                print(f'Warning: The line you are loading was created '
+                _print(f'Warning: The line you are loading was created '
                       f'with xtrack version {version}, which is more recent '
                       f'than the current version {xt.__version__}. '
                       'Some features may not be available or '
@@ -444,7 +453,8 @@ class Line:
                     nn: ee for nn, ee in zip(dct['element_names'], ele_list)}
 
             elements = xt.environment._deserialize_elements(dct=dct, classes=classes,
-                                             _buffer=_buffer, _context=_context)
+                                             _buffer=_buffer, _context=_context,
+                                             with_progress=with_progress)
             env = xt.Environment(
                 element_dict=elements,
                 _var_management_dct=var_management_dict)
@@ -683,7 +693,8 @@ class Line:
         allow_thick=None,
         name_prefix=None,
         enable_layout_data=False,
-        enable_thick_kickers=True
+        enable_thick_kickers=True,
+        with_progress=True,
     ):
         """
         Build a line from a MAD-X sequence.
@@ -723,6 +734,9 @@ class Line:
             if a thick element is encountered.
         enable_layout_data: bool, optional
             If true, the layout data is imported.
+        with_progress : bool, optional
+            Whether to show progress while converting elements. Defaults to
+            ``True``.
 
         Returns
         -------
@@ -754,7 +768,7 @@ class Line:
             name_prefix=name_prefix,
             enable_layout_data=enable_layout_data,
         )
-        line = loader.make_line()
+        line = loader.make_line(with_progress=with_progress)
         return line
 
     @doc_group("Constructors and Serialization")
@@ -1304,13 +1318,14 @@ class Line:
         return out
 
     @doc_group("Compose Mode")
-    def end_compose(self):
+    def end_compose(self, diagnostics=False):
         """
         Resolve compose-mode placements and switch the line back to normal mode.
 
         Parameters
         ----------
-        None
+        diagnostics : bool, optional
+            If true, analyze unresolved placement dependencies before raising.
 
         Returns
         -------
@@ -1350,13 +1365,16 @@ class Line:
         if self.mode != 'compose':
             raise ValueError('Line is not in compose mode')
         self.discard_tracker()
-        self._full_elements_from_composer()
+        self._full_elements_from_composer(diagnostics=diagnostics)
         self._mode = 'normal'
 
-    def _full_elements_from_composer(self):
+    def _full_elements_from_composer(self, diagnostics=False):
         if self._mode != 'compose':
             raise ValueError('Line is not in compose mode')
-        self.composer.build(line=self, inplace=False)
+        self.composer.build(
+            line=self,
+            diagnostics=diagnostics,
+        )
 
     @doc_group("Compose Mode")
     def regenerate_from_composer(self):
@@ -1816,10 +1834,15 @@ class Line:
                 raise ImportError("Please install Xpart to use this feature.") from error
         return self._xpart
 
-    @property_with_doc_group("Upcoming Deprecations")
+    @property_with_doc_group("Deprecated")
     def scattering(self):
         """
         Deprecated alias for ``line.xcoll.scattering``.
+
+        .. warning::
+            This property is deprecated and will be removed in a future version.
+            Use ``line.xcoll.scattering`` instead. This deprecation is part of
+            the interface cleanup in view of the 1.0 release.
 
         Returns
         -------
@@ -1827,14 +1850,20 @@ class Line:
             Xcoll scattering API bound to this line.
         """
         warn('`Line.scattering` is deprecated and will be removed in a future version. '
-             'Please use `Line.xcoll.scattering` instead.',
+             'Please use `Line.xcoll.scattering` instead.'
+             + DEPRECATION_INFO_PREP_1_0,
              FutureWarning, stacklevel=2)
         return self.xcoll.scattering
 
-    @property_with_doc_group("Upcoming Deprecations")
+    @property_with_doc_group("Deprecated")
     def collimators(self):
         """
         Deprecated alias for ``line.xcoll.collimators``.
+
+        .. warning::
+            This property is deprecated and will be removed in a future version.
+            Use ``line.xcoll.collimators`` instead. This deprecation is part of
+            the interface cleanup in view of the 1.0 release.
 
         Returns
         -------
@@ -1842,7 +1871,8 @@ class Line:
             Xcoll collimator API bound to this line.
         """
         warn('`Line.collimators` is deprecated and will be removed in a future version. '
-             'Please use `Line.xcoll.collimators` instead.',
+             'Please use `Line.xcoll.collimators` instead.'
+             + DEPRECATION_INFO_PREP_1_0,
              FutureWarning, stacklevel=2)
         return self.xcoll.collimators
 
@@ -2169,7 +2199,7 @@ class Line:
             particles.x += x_offset
             particles.y += y_offset
 
-            print(f"\nTrack test particles from reference point #{ii}")
+            _print(f"\nTrack test particles from reference point #{ii}")
             self.track(
                 particles,
                 ele_start=ee,
@@ -2199,7 +2229,7 @@ class Line:
         return xt.Table(cols, index='name')
 
     @doc_group("Line Editing")
-    def slice_thick_elements(self, slicing_strategies):
+    def slice_thick_elements(self, slicing_strategies, with_progress=True):
         """
         Slice thick elements in the line. Slicing is done in place.
 
@@ -2208,6 +2238,8 @@ class Line:
         slicing_strategies : list
             List of slicing Strategy objects. In case multiple strategies
             apply to the same element, the last one takes precedence)
+        with_progress : bool, optional
+            Whether to show progress while slicing. Defaults to ``True``.
 
         Examples
         --------
@@ -2238,7 +2270,7 @@ class Line:
         self._element_names_before_slicing = list(self.element_names).copy()
 
         slicer = Slicer(self, slicing_strategies)
-        return slicer.slice_in_place()
+        return slicer.slice_in_place(with_progress=with_progress)
 
     @doc_group("Reference Particle and Particle Generation")
     def build_particles(
@@ -2451,7 +2483,9 @@ class Line:
         freeze_energy=None,
         polarization=None,
         eneloss_and_damping=None,
-        steps_r_matrix=None
+        steps_r_matrix=None, *,
+        with_progress=True,
+        chi=None, charge_ratio=None, mass_ratio=None,
     ):
         if not self._has_valid_tracker():
             self.build_tracker()
@@ -3604,7 +3638,8 @@ class Line:
         return cuts_for_element
 
     @doc_group("Line Editing")
-    def cut_at_s(self, s: Iterable[float], s_tol=1e-6, return_slices=False):
+    def cut_at_s(self, s: Iterable[float], s_tol=1e-6, return_slices=False,
+                 with_progress=True):
         """
         Slice the line in place at positions ``s``.
 
@@ -3617,6 +3652,8 @@ class Line:
             an existing boundary.
         return_slices : bool, optional
             If ``True``, return the slice information produced by the slicer.
+        with_progress : bool, optional
+            Whether to show progress while slicing. Defaults to ``True``.
 
         Returns
         -------
@@ -3669,7 +3706,7 @@ class Line:
             strategies.append(strategy)
 
         slicer = Slicer(self, slicing_strategies=strategies)
-        slices = slicer.slice_in_place()
+        slices = slicer.slice_in_place(with_progress=with_progress)
 
         if return_slices:
             return slices
@@ -3747,7 +3784,7 @@ class Line:
 
     @doc_group("Line Editing")
     def insert(self, what, obj=None, at=None, from_=None, anchor=None,
-               from_anchor=None, s_tol=1e-10):
+               from_anchor=None, s_tol=1e-10, with_progress=True):
         """
         Insert elements in the line.
 
@@ -3776,6 +3813,9 @@ class Line:
         from_anchor : str (optional)
             Location within the element specified by `from_` for which `at` is defined.
             It can be 'start', 'end' or 'center'. Default is 'center'.
+        with_progress : bool, optional
+            Whether to show progress while slicing at insertion boundaries.
+            Defaults to ``True``.
 
         Example
         -------
@@ -3874,7 +3914,9 @@ class Line:
         s_cuts = list(tab_insertions['s_start']) + list(tab_insertions['s_end'])
         s_cuts = list(set(s_cuts))
 
-        self.cut_at_s(s_cuts, s_tol=s_tol, return_slices=True)
+        self.cut_at_s(
+            s_cuts, s_tol=s_tol, return_slices=True,
+            with_progress=with_progress)
 
         tt_after_cut = self.get_table()
         tt_after_cut['length'] = np.diff(tt_after_cut.s, append=tt_after_cut.s[-1])
@@ -4069,7 +4111,7 @@ class Line:
     # To be deprecated in favor of Line.insert
     @doc_group("Deprecated")
     def insert_element(self, name, element=None, at=None, index=None, at_s=None,
-                       s_tol=1e-6):
+                       s_tol=1e-6, with_progress=True):
         """Insert an element in the line.
 
         .. warning:: This method is deprecated. Use :meth:`Line.insert` instead.
@@ -4088,6 +4130,9 @@ class Line:
             must be None.
         s_tol: float, optional
             Tolerance for the position of the element in the line in meters.
+        with_progress : bool, optional
+            Whether to show progress while slicing at insertion boundaries.
+            Defaults to ``True``.
         """
         warn('Line.insert_element is deprecated. Use Line.insert instead.'
              + DEPRECATION_INFO_PREP_1_0, FutureWarning)
@@ -4146,7 +4191,8 @@ class Line:
             i_closest = np.argmin(np.abs(s_vect_upstream - at_s))
             if np.abs(s_vect_upstream[i_closest] - at_s) < s_tol:
                 return self.insert_element(
-                    index=i_closest, element=element, name=name)
+                    index=i_closest, element=element, name=name,
+                    with_progress=with_progress)
 
         s_start_ele = at_s
         if _is_thick(element, self) and np.abs(_length(element, self)) > 0:
@@ -4154,7 +4200,8 @@ class Line:
         else:
             s_end_ele = s_start_ele
 
-        self.cut_at_s([s_start_ele, s_end_ele])
+        self.cut_at_s(
+            [s_start_ele, s_end_ele], with_progress=with_progress)
 
         s_vect_upstream = np.array(self._get_s_position(mode='upstream'))
         if _is_thick(element, self) and _length(element, self) > 0:
@@ -4811,14 +4858,19 @@ class Line:
 
         self._update_synrad_compile_flag()
 
-    @doc_group("Radiation, Spin and Intra-Beam Scattering")
+    @doc_group("Deprecated")
     def configure_intrabeam_scattering(
         self, element = None,
         update_every: int = None,
         **kwargs,
     ) -> None:
         """
-        Configures the IBS kick element in the line for tracking.
+        Deprecated alias for ``line.xfields.ibs_configure(...)``.
+
+        .. warning::
+            This method is deprecated and will be removed in a future version.
+            Use ``line.xfields.ibs_configure(...)`` instead. This deprecation
+            is part of the interface cleanup in view of the 1.0 release.
 
         Notes
         -----
@@ -4829,8 +4881,6 @@ class Line:
 
         Parameters
         ----------
-        line : xtrack.Line
-            The line in which the IBS kick element was inserted.
         element : IBSKick, optional
             If provided, the element is first inserted in the line,
             before proceeding to configuration. In this case the keyword
@@ -4858,13 +4908,13 @@ class Line:
             below transition energy.
         """
         self._method_incompatible_with_compose()
-        try:
-            from xfields.ibs import configure_intrabeam_scattering
-        except ImportError as error:
-            raise ImportError("Please install xfields to use this feature.") from error
-        configure_intrabeam_scattering(
-            self, element=element, update_every=update_every, **kwargs
-        )
+        warn('`Line.configure_intrabeam_scattering(...)` is deprecated and '
+             'will be removed in a future version. Please use '
+             '`Line.xfields.ibs_configure(...)` instead.'
+             + DEPRECATION_INFO_PREP_1_0,
+             FutureWarning, stacklevel=2)
+        return self.xfields.ibs_configure(
+            element=element, update_every=update_every, **kwargs)
 
     @doc_group("Radiation, Spin and Intra-Beam Scattering")
     def compensate_radiation_energy_loss(self, delta0='zero_mean', rtol_eneloss=1e-10,
@@ -5436,7 +5486,7 @@ class Line:
         return elements, names
 
     @doc_group("Upcoming Deprecations")
-    def check_aperture(self, needs_aperture=[]):
+    def check_aperture(self, needs_aperture=[], with_progress=True):
 
         '''Check that all active elements have an associated aperture.
 
@@ -5444,6 +5494,9 @@ class Line:
         ----------
         needs_aperture : list of str
             Names of inactive elements that also need an aperture.
+        with_progress : bool, optional
+            Whether to show progress while checking elements. Defaults to
+            ``True``.
 
         Returns
         -------
@@ -5498,7 +5551,12 @@ class Line:
         i_prev_aperture = elements_df[elements_df['is_aperture']].index[0]
         i_next_aperture = 0
 
-        for iee in progress(range(i_prev_aperture, num_elements), desc='Checking aperture'):
+        element_indices = range(i_prev_aperture, num_elements)
+        if with_progress:
+            element_indices = progress(
+                element_indices, desc='Checking aperture')
+
+        for iee in element_indices:
             if elements_df.loc[iee, 'is_aperture']:
                 i_prev_aperture = iee
                 continue
@@ -7365,7 +7423,8 @@ class Line:
         )
         return cache
 
-    def _insert_thin_elements_at_s(self, elements_to_insert, s_tol=0.5e-6):
+    def _insert_thin_elements_at_s(self, elements_to_insert, s_tol=0.5e-6,
+                                   with_progress=True):
 
         '''
         Example:
@@ -7389,10 +7448,10 @@ class Line:
                 this_ins.append(nn)
             insertions.append(env.place(this_ins, at=ss))
 
-        self.insert(insertions)
+        self.insert(insertions, with_progress=with_progress)
 
     def _insert_thick_elements_at_s(self, element_names, elements,
-                                    at_s, s_tol=1e-6):
+                                    at_s, s_tol=1e-6, with_progress=True):
 
         self._method_incompatible_with_compose()
 
@@ -7409,7 +7468,8 @@ class Line:
             self.env.elements[nn] = ee
             insertions.append(self.env.place(nn, at=ss, anchor='start'))
 
-        self.insert(insertions, s_tol=s_tol)
+        self.insert(
+            insertions, s_tol=s_tol, with_progress=with_progress)
 
     @property
     def _line_before_slicing(self):

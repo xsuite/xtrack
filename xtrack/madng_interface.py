@@ -14,6 +14,8 @@ from xtrack.survey import SurveyTable
 
 from .match import Action
 
+from .general import _print
+
 # Xsuite name -> MAD-NG name. Not injective: ``delta`` and ``ptau`` are both
 # ``pt`` in MAD-NG, which is why the reverse map is spelled out separately
 # rather than derived from this one.
@@ -183,11 +185,7 @@ def build_madng_model(line: xt.Line, sequence_name: str = 'seq', **kwargs: Any) 
     model : object
         Built MAD-NG model.
     """
-    # Printed rather than logged, as the rest of xtrack reports progress this way
-    print(
-        f'Building MAD-NG model for line {line.name} '
-        f'with sequence name {sequence_name}'
-    )
+    _print(f'Building MAD-NG model for line {line.name} with sequence name {sequence_name}')
     if line.tracker is None:
         line.build_tracker()
     mng = line.to_madng(sequence_name=sequence_name, **kwargs)

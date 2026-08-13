@@ -12,13 +12,13 @@ import xtrack as xt
 import xpart as xp
 import xobjects as xo
 from xobjects.test_helpers import (
-    allow_no_prebuilt_kernels, for_all_test_contexts)
+    allow_kernel_compilation, for_all_test_contexts)
 
 TEST_DATA_FOLDER = pathlib.Path(__file__).parent / '../../xtrack/test_data'
 
 
 @for_all_test_contexts
-@allow_no_prebuilt_kernels
+@allow_kernel_compilation
 def test_record_single_table(test_context):
 
 
@@ -199,7 +199,7 @@ def test_record_single_table(test_context):
 
 
 @for_all_test_contexts
-@allow_no_prebuilt_kernels
+@allow_kernel_compilation
 def test_record_with_twiss(test_context):
 
 
@@ -288,7 +288,7 @@ def test_record_with_twiss(test_context):
 
 
 @for_all_test_contexts
-@allow_no_prebuilt_kernels
+@allow_kernel_compilation
 def test_record_multiple_tables(test_context):
 
 
@@ -547,7 +547,7 @@ def test_record_multiple_tables(test_context):
 
 
 @for_all_test_contexts
-@allow_no_prebuilt_kernels
+@allow_kernel_compilation
 def test_record_standalone_mode(test_context):
 
 

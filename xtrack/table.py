@@ -146,6 +146,11 @@ class Table(_XdepsTable):
     # Messages to be shown when accessing deprecated fields
     _DEPRECATED_FIELDS = None
 
+    def show(self, *args, **kwargs):
+        if '_printer' not in kwargs:
+            kwargs['_printer'] = xt._print
+        return super().show(*args, **kwargs)
+
     def __init__(
         self,
         data,

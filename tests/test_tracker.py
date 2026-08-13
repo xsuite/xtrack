@@ -13,7 +13,7 @@ import xobjects as xo
 import xpart as xp
 import xtrack as xt
 from xobjects.test_helpers import (
-    allow_no_prebuilt_kernels, fix_random_seed, for_all_test_contexts)
+    allow_kernel_compilation, fix_random_seed, for_all_test_contexts)
 
 test_data_folder = pathlib.Path(
     __file__).parent.joinpath('../test_data').absolute()
@@ -362,7 +362,7 @@ def test_tracker_hashable_config():
     assert line.tracker._hashable_config() == expected
 
 
-@allow_no_prebuilt_kernels
+@allow_kernel_compilation
 def test_tracker_config_to_headers():
 
 
@@ -387,7 +387,7 @@ def test_tracker_config_to_headers():
 
 
 @for_all_test_contexts
-@allow_no_prebuilt_kernels
+@allow_kernel_compilation
 def test_tracker_config(test_context):
     class TestElement(xt.BeamElement):
 
@@ -729,7 +729,7 @@ def test_track_log_and_merit_function(test_context):
 
 
 @for_all_test_contexts
-@allow_no_prebuilt_kernels
+@allow_kernel_compilation
 def test_init_io_buffer(test_context):
 
 

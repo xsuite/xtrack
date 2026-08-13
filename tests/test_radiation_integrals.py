@@ -153,6 +153,13 @@ def test_radiation_integrals_sls_combined_function_magnets():
     xo.assert_allclose(
         tw_integrals.rad_int_damping_constant_zeta_s, tw_rad.damping_constants_s[2],
         rtol=1e-3, atol=0)
+    xo.assert_allclose(
+        tw_integrals.rad_int_energy_loss, tw_rad.energy_loss,
+        rtol=1e-3, atol=0)
+    xo.assert_allclose(
+        tw_integrals.rad_int_sigma_delta,
+        np.sqrt(tw_rad.eq_gemitt_zeta / tw_rad.bets0),
+        rtol=1e-3, atol=0)
 
 @pytest.mark.parametrize('tilt', [True, False], ids=['tilt', 'no_tilt'])
 def test_radiation_integrals_sps_vs_df(tilt):

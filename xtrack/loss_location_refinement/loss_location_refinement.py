@@ -107,7 +107,8 @@ class LossLocationRefinement:
         self.ds = ds
         self.allowed_backtrack_types = allowed_backtrack_types
 
-    def refine_loss_location(self, particles, i_apertures=None):
+    def refine_loss_location(
+            self, particles, i_apertures=None, with_progress=True):
 
         '''
         Refine the location of the lost particles within the line.
@@ -120,6 +121,9 @@ class LossLocationRefinement:
             List of indices of the apertures for which the loss location
             is refined. If None, the loss location is refined for all
             apertures.
+        with_progress : bool, optional
+            Whether to show progress while constructing interpolation lines.
+            Defaults to ``True``.
 
         '''
 
@@ -166,7 +170,8 @@ class LossLocationRefinement:
                                       self.line,
                                       i_aper_0, i_aper_1,
                                       self.ds,
-                                      _ln_gen=self._ln_gen)
+                                      _ln_gen=self._ln_gen,
+                                      with_progress=with_progress)
 
                 else:
 
@@ -176,7 +181,8 @@ class LossLocationRefinement:
                                       self.line,
                                       i_aper_0, i_aper_1,
                                       self.n_theta, self.r_max, self.dr, self.ds,
-                                      _ln_gen=self._ln_gen)
+                                      _ln_gen=self._ln_gen,
+                                      with_progress=with_progress)
 
                 interp_line._original_line = self._original_line
                 part_refine = refine_loss_location_single_aperture(
@@ -378,7 +384,8 @@ def refine_loss_location_single_aperture(particles, i_aper_1, i_end_thin_0,
 
 def interp_aperture_replicate(context, line,
                               i_aper_0, i_aper_1,
-                              ds, _ln_gen, mode='end',):
+                              ds, _ln_gen, mode='end',
+                              with_progress=True):
 
     i_start_thin_1 = find_adjacent_thick(line, i_aper_1, direction='upstream') + 1
     i_end_thin_0 = find_adjacent_thick(line, i_aper_0, direction='downstream') - 1
@@ -404,13 +411,15 @@ def interp_aperture_replicate(context, line,
             aper_interp=interp_apertures,
             line=line, i_start_thin_0=i_end_thin_0,
             i_start_thin_1=i_start_thin_1,
-            _ln_gen=_ln_gen)
+            _ln_gen=_ln_gen,
+            with_progress=with_progress)
 
     return interp_line, i_end_thin_0, i_start_thin_1, s0, s1
 
 def interp_aperture_using_polygons(context, line,
                        i_aper_0, i_aper_1,
-                       n_theta, r_max, dr, ds, _ln_gen):
+                       n_theta, r_max, dr, ds, _ln_gen,
+                       with_progress=True):
 
 
     polygon_1, i_start_thin_1 = characterize_aperture(line,
@@ -449,7 +458,8 @@ def interp_aperture_using_polygons(context, line,
             aper_interp=interp_polygons,
             line=line, i_start_thin_0=i_end_thin_0,
             i_start_thin_1=i_start_thin_1,
-            _ln_gen=_ln_gen)
+            _ln_gen=_ln_gen,
+            with_progress=with_progress)
 
     return interp_line, i_end_thin_0, i_start_thin_1, s0, s1
 
@@ -481,7 +491,8 @@ class InterpAperNameGenerator:
         return name
 
 def build_interp_line(_buffer, s0, s1, s_interp, aper_0, aper_1, aper_interp,
-                         line, i_start_thin_0, i_start_thin_1, _ln_gen):
+                         line, i_start_thin_0, i_start_thin_1, _ln_gen,
+                         with_progress=True):
 
     env = line.env
 
@@ -503,7 +514,7 @@ def build_interp_line(_buffer, s0, s1, s_interp, aper_0, aper_1, aper_interp,
         assert aa._buffer is _buffer
         interp_line.env.elements[nn_insert] = aa
         insertions.append(interp_line.env.place(nn_insert, at=ss-s0))
-    interp_line.insert(insertions)
+    interp_line.insert(insertions, with_progress=with_progress)
 
     # End aperture
     nn_1 = namegen.get_name()
@@ -645,4 +656,3 @@ def characterize_aperture(line, i_aperture, n_theta, r_max, dr,
                               _buffer=buffer_for_poly)
 
     return polygon, index_start_thin
-
