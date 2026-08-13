@@ -195,6 +195,8 @@ def test_sort():
 
     line = xt.Line(elements=[xt.Cavity()])
     line.build_tracker()
+    # This test deliberately uses x values beyond the global safety aperture.
+    line.tracker.track_flags.XS_FLAG_IGNORE_GLOBAL_APERTURE = True
     line.track(p)
 
     assert np.all(p.particle_id == np.array([6, 1, 2, 5, 4, 3, 0,

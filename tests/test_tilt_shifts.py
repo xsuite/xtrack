@@ -65,6 +65,9 @@ def test_test_tilt_shifts_vs_sandwich(test_context, slice_mode, element_type):
 
     line_test.build_tracker(_context=test_context)
     line_ref.build_tracker()
+    # Compare the transformations independently of the global safety aperture.
+    line_test.tracker.track_flags.XS_FLAG_IGNORE_GLOBAL_APERTURE = True
+    line_ref.tracker.track_flags.XS_FLAG_IGNORE_GLOBAL_APERTURE = True
 
     line_test.track(p_test)
     line_ref.track(p_ref)

@@ -16,6 +16,7 @@ from cpymad.madx import Madx
 def test_global_aperture_after_static_thick_elements():
     test_context = xo.ContextCpu()
     line = xt.Line(elements=[
+        xt.Drift(length=2),
         xt.Quadrupole(length=2, k1=0),
         xt.Multipole(length=2, isthick=True),
     ])
@@ -23,7 +24,7 @@ def test_global_aperture_after_static_thick_elements():
 
     p_after_static_thick = xp.Particles(
         _context=test_context, p0c=7e12, px=0.6)
-    line.track(p_after_static_thick, ele_start=0, num_elements=1)
+    line.track(p_after_static_thick, ele_start=1, num_elements=1)
     assert test_context.nparray_from_context_array(
         p_after_static_thick.state)[0] == -1
 
@@ -31,9 +32,15 @@ def test_global_aperture_after_static_thick_elements():
     # aperture check is generated even when this instance is thick.
     p_after_dynamic_thick = xp.Particles(
         _context=test_context, p0c=7e12, px=0.6)
-    line.track(p_after_dynamic_thick, ele_start=1, num_elements=1)
+    line.track(p_after_dynamic_thick, ele_start=2, num_elements=1)
     assert test_context.nparray_from_context_array(
         p_after_dynamic_thick.state)[0] == 1
+
+    # Drift is statically thick and is therefore checked at its exit too.
+    p_after_drift = xp.Particles(
+        _context=test_context, p0c=7e12, px=0.6)
+    line.track(p_after_drift, ele_start=0, num_elements=1)
+    assert test_context.nparray_from_context_array(p_after_drift.state)[0] == -1
 
 
 @for_all_test_contexts
