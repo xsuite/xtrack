@@ -18,8 +18,8 @@ class SyncTime:
 
     def track(self, particles):
 
-        assert isinstance(particles._context, xo.ContextCpu), (
-                          'SyncTime only available for CPU for now')
+        if isinstance(particles._context, xo.ContextPyopencl):
+            raise ValueError('SyncTime does not work with ContextPyopencl')
 
         beta0 = particles._xobject.beta0[0]
         beta1 = beta0 / self.frame_relative_length
