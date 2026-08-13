@@ -32,7 +32,7 @@ typedef struct xt_float_or_tpsa_tpsa_ {
 // Read a FloatOrTpsa slot as a scalar, truncating TPSA slots to coef[0].
 static inline double xt_float_or_tpsa_get_double(uint64_t bits, uint8_t enabled){
     if (enabled) {
-        return ((xt_float_or_tpsa_tpsa_t*)(uintptr_t)bits)->coef[0];
+        return ((xt_float_or_tpsa_tpsa_t*)bits)->coef[0];
     }
     return xt_float_or_tpsa_bits_to_double(bits);
 }
