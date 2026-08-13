@@ -25,6 +25,9 @@ def test_coasting(test_context):
     line = xt.load(test_data_folder /
                              'psb_injection/line_and_particle.json')
 
+    # Move to the test context
+    line.build_tracker(_context=test_context)
+
     # RF off!
     tt = line.get_table()
     ttcav = tt.rows[tt.element_type == 'Cavity']
@@ -44,13 +47,11 @@ def test_coasting(test_context):
     collective_element_names = []
     for ii, ss in enumerate(s_sync):
         nn = f'sync_here_{ii}'
-        line.insert(obj=xt.Marker(), what=nn, at=ss)
+        line.insert(obj=xt.Marker(_context=test_context), what=nn, at=ss)
         line[nn].iscollective = True
         collective_element_names.append(nn)
 
     st.install_sync_time_at_collective_elements(line)
-
-    line.build_tracker(_context=xo.ContextCpu(omp_num_threads='auto'))
 
     beta1 = tw.beta0 / 0.9
 
@@ -60,6 +61,7 @@ def test_coasting(test_context):
 
     num_particles = 50000
     p = line.build_particles(
+        _context=test_context,
         delta=delta0 + 0 * np.random.uniform(-1, 1, num_particles),
         x_norm=0, y_norm=0
     )
@@ -108,11 +110,7 @@ def test_coasting(test_context):
         return np.histogram(particles.zeta[mask_alive], bins=200,
                             range=(zeta_min0, zeta_max0), weights=particles.y[mask_alive])
 
-    # Move to the test context
-    line.build_tracker(_context=test_context)
-    p.move(_context=test_context)
-    for nn in collective_element_names:
-        line[nn].move(_context=test_context)
+
 
     line.enable_time_dependent_vars = True
     num_turns=200
