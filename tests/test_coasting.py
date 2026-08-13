@@ -59,16 +59,16 @@ def test_coasting(test_context):
     zeta_max0 = circumference/2*tw.beta0/beta1
 
     num_particles = 50000
-    delta = delta0 + 0 * np.random.uniform(-1, 1, num_particles)
+    # Build on CPU and then transfer to be able to use numpy to initialize
     p = line.build_particles(
-        delta=test_context.nparray_to_context_array(delta),
+        delta=delta0 + 0 * np.random.uniform(-1, 1, num_particles),
         x_norm=0, y_norm=0
     )
-
     # Need to take beta of actual particles to convert the distribution along the
     # circumference to a distribution in time
     p.zeta = (np.random.uniform(0, circumference, num_particles) / p.rvv
             + (zeta_max0 - circumference) / p.rvv)
+    p.move(_context=test_context)
 
     st.prepare_particles_for_sync_time(p, line)
 
