@@ -63,6 +63,14 @@ beta0 = particles.beta0[0]
 t_rev0 = line.get_length() / clight / beta0
 t_sim = line['synctime_0'].frame_relative_length * t_rev0
 
+# `at_turn` is to be intended as the number of times the particle has passed
+# the start of the ring since the beginning of the simulation.
+
+# If one wants to compute the number ot times a given particle has slipped a
+# turn with respect to the on-momentum particle, one can take the difference of
+# `at_turn` between the two particles, and add 1 if the particle is ahead of
+# the reference particle in zeta (slippage in the present t_sim frame).
+
 import matplotlib.pyplot as plt
 plt.close("all")
 
@@ -101,7 +109,8 @@ arrival_times = []
 for i_part in range(len(p_delta)):
 
     mask_active = state_log[:, i_part] > 0
-    arrival_time = -zeta_log[mask_active, i_part] / beta0 / clight + np.arange(turns)[mask_active] * t_sim
+    arrival_time = (-zeta_log[mask_active, i_part] / beta0 / clight
+                    + np.arange(turns)[mask_active] * t_sim)
     arrival_times.append(arrival_time)
 
 expected_arrival_time_on_momentum = np.arange(turns) * t_rev0
