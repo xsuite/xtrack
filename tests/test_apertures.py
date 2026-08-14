@@ -20,7 +20,7 @@ def test_global_aperture_after_static_thick_elements():
         xt.Quadrupole(length=2, k1=0),
         xt.Multipole(length=2, isthick=True),
     ])
-    line.build_tracker(_context=test_context, use_prebuilt_kernels=False)
+    line.build_tracker(_context=test_context)
 
     p_after_static_thick = xp.Particles(
         _context=test_context, p0c=7e12, px=0.6)
