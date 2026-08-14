@@ -31,33 +31,21 @@ logger = logging.getLogger(__name__)
 
 def _float_or_tpsa_pairs(classes):
     pairs = []
+    seen = set()
     for cls in classes:
-        for field in getattr(cls, "_fields", ()):
-            if getattr(field.ftype, "_is_float_or_tpsa", False):
-                pairs.append((cls.__name__, field.name))
+        if not hasattr(cls, "_gen_data_paths"):
+            continue
+        for path in cls._gen_data_paths():
+            if not getattr(path[-1], "_is_float_or_tpsa", False):
+                continue
+            field_names = [part.name for part in path if hasattr(part, "name")]
+            key = (cls.__name__, tuple(field_names))
+            if key in seen:
+                continue
+            seen.add(key)
+            flag_names = field_names[:-1] + ["_tpsa_enabled"]
+            pairs.append((cls.__name__, "_".join(field_names), "_".join(flag_names)))
     return pairs
-
-
-def _wrap_float_or_tpsa_getters(source, classes):
-    pairs = _float_or_tpsa_pairs(classes)
-    if not pairs:
-        return source
-
-    block = _float_or_tpsa_getter_block(classes)
-    undef = _float_or_tpsa_undef_block(classes)
-    out = []
-    wrapped_any = False
-    for line in source.splitlines():
-        if '#include "xtrack/beam_elements/' in line:
-            out.append(block)
-            out.append(line)
-            out.append(undef)
-            wrapped_any = True
-        else:
-            out.append(line)
-    if not wrapped_any:
-        return source
-    return "\n".join(out)
 
 
 def _float_or_tpsa_getter_block(classes):
@@ -66,23 +54,34 @@ def _float_or_tpsa_getter_block(classes):
         return ""
 
     blocks = []
-    for data, field in pairs:
+    blocks.append('#include "xtrack/headers/track.h"')
+    for data, field, flag_field in pairs:
         getter = f"{data}_get_{field}"
+        scalar_getter = f"{getter}_scalar"
+        tpsa_getter = f"{getter}_tpsa"
+        tpsa_enabled_getter = f"{data}_get_{flag_field}"
         blocks.append(f"""
 #ifndef XTRACK_TPSA_TRACK
-#define {getter}(obj) xt_float_or_tpsa_get_double(*((uint64_t*){data}_getp_{field}(obj)), {data}_get__tpsa_enabled(obj))
+GPUFUN double {getter}({data} obj) {{
+    if ({tpsa_enabled_getter}(obj)) {{
+        return xt_float_or_tpsa_get_double({tpsa_getter}(obj), 1);
+    }}
+    return {scalar_getter}(obj);
+}}
 #else
-#define {getter}(obj) xt_float_or_tpsa_get((uint64_t*){data}_getp_{field}(obj), {data}_get__tpsa_enabled(obj))
+GPUFUN xt_num_t {getter}({data} obj) {{
+    uint64_t bits = {tpsa_getter}(obj);
+    if ({tpsa_enabled_getter}(obj)) {{
+        return xt_float_or_tpsa_get(&bits, 1);
+    }}
+    return {scalar_getter}(obj);
+}}
 #endif
 """)
     return "\n".join(blocks)
 
 
-def _float_or_tpsa_undef_block(classes):
-    pairs = _float_or_tpsa_pairs(classes)
-    return "\n".join(
-        f"#undef {data}_get_{field}" for data, field in pairs
-    )
+_MISSING_EXTRA_C_SOURCES = object()
 
 
 class Tracker:
@@ -1006,10 +1005,6 @@ class Tracker:
             kwargs = {}
 
         apply_to_source = [_handle_per_particle_blocks]
-        if not tpsa_track:
-            apply_to_source.append(
-                lambda source: _wrap_float_or_tpsa_getters(source, all_classes)
-            )
 
         saved_depends = {}
         saved_extra_sources = {}
@@ -1037,14 +1032,17 @@ class Tracker:
                         and dep.__name__ != "SynchrotronRadiationRecordData"
                     ]
                 if hasattr(cc, "_extra_c_sources"):
-                    saved_extra_sources[cc] = cc._extra_c_sources
+                    if cc not in saved_extra_sources:
+                        saved_extra_sources[cc] = cc._extra_c_sources
                     if cc in all_classes:
                         tpsa_extra_sources.extend(cc._extra_c_sources)
-                    cc._extra_c_sources = []
+                    cc._extra_c_sources = _float_or_tpsa_getter_block([cc])
+                    cc._extra_c_sources = (
+                        [cc._extra_c_sources] if cc._extra_c_sources else []
+                    )
 
             tpsa_sources = [
                 '#include "xtrack/particles/headers/local_particle.h"',
-                _float_or_tpsa_getter_block(all_classes),
             ]
             for extra_source in tpsa_extra_sources:
                 if hasattr(extra_source, "read"):
@@ -1058,13 +1056,23 @@ class Tracker:
                 if "SynchrotronRadiationRecordData" in extra_text:
                     continue
                 tpsa_sources.append(extra_text)
-            sources = [*tpsa_sources, source_track, _float_or_tpsa_undef_block(all_classes)]
+            sources = [*tpsa_sources, source_track]
             extra_compile_args = (
                 "-include", "complex",
             )
             preload_libraries = (core_library(),)
             compiler_language = "c++"
             headers.insert(0, "#define restrict __restrict")
+        else:
+            for cc in all_classes:
+                float_or_tpsa_getters = _float_or_tpsa_getter_block([cc])
+                if not float_or_tpsa_getters:
+                    continue
+                if cc not in saved_extra_sources:
+                    saved_extra_sources[cc] = getattr(cc, "_extra_c_sources",
+                                                       _MISSING_EXTRA_C_SOURCES)
+                extra_c_sources = getattr(cc, "_extra_c_sources", [])
+                cc._extra_c_sources = [float_or_tpsa_getters, *extra_c_sources]
 
         try:
             skip_config_headers = set()
@@ -1096,7 +1104,10 @@ class Tracker:
             for cc, depends_on in saved_depends.items():
                 cc._depends_on = depends_on
             for cc, extra_c_sources in saved_extra_sources.items():
-                cc._extra_c_sources = extra_c_sources
+                if extra_c_sources is _MISSING_EXTRA_C_SOURCES:
+                    del cc._extra_c_sources
+                else:
+                    cc._extra_c_sources = extra_c_sources
         return {
             'kernel': out_kernels['track_line'],
             'tracker_element_classes': kernel_element_classes,

@@ -18,9 +18,6 @@ from .internal_record import RecordIdentifier, RecordIndex, generate_get_record
 from .particles import Particles
 from .track_flags import c_header_flag_mapping
 
-_FLOAT_OR_TPSA_FIELDS = ("k0", "k1", "k2", "k3", "k1s", "k2s", "k3s", "ks")
-
-
 def _float_to_uint64_bits(value):
     value = np.asarray(value).item()
     return np.array([float(value)], dtype=np.float64).view(np.uint64)[0]
@@ -30,18 +27,17 @@ def _uint64_bits_to_float(value):
     return np.array([np.uint64(value)], dtype=np.uint64).view(np.float64)[0]
 
 
-class _FloatOrTpsaType(xo.scalar.NumpyScalar):
+class FloatOrTpsa(xo.RawUnion):
     """8-byte field storing either double bits or a ``tpsa_t*`` pointer."""
 
+    scalar = xo.Float64
+    tpsa = xo.UInt64
     _is_float_or_tpsa = True
 
-    def __init__(self):
-        super().__init__("uint64", "double")
-        self.__name__ = "FloatOrTpsa"
-
-    def _from_buffer(self, buffer, offset=0, container=None):
-        data = buffer.to_bytearray(offset, self._size)
-        bits = np.frombuffer(data, dtype=self._dtype)[0]
+    @classmethod
+    def _from_buffer(cls, buffer, offset=0, container=None):
+        data = buffer.to_bytearray(offset, cls._size)
+        bits = np.frombuffer(data, dtype=np.uint64)[0]
         enabled = False
         if container is not None:
             enabled = getattr(container, "_tpsa_enabled", 0)
@@ -58,7 +54,8 @@ class _FloatOrTpsaType(xo.scalar.NumpyScalar):
             return Tpsa.from_ptr(ptr, descriptor=descriptor)
         return _uint64_bits_to_float(bits)
 
-    def _to_buffer(self, buffer, offset, value, info=None, container=None):
+    @classmethod
+    def _to_buffer(cls, buffer, offset, value, info=None, container=None):
         if isinstance(value, Tpsa):
             if container is None:
                 raise ValueError(
@@ -68,17 +65,8 @@ class _FloatOrTpsaType(xo.scalar.NumpyScalar):
             bits = int(ffi().cast("uintptr_t", value.ptr))
         else:
             bits = int(_float_to_uint64_bits(value))
-        data = np.array([bits], dtype=self._dtype).tobytes()
+        data = np.array([bits], dtype=np.uint64).tobytes()
         buffer.update_from_buffer(offset, data)
-
-    def __call__(self, value=0):
-        return np.uint64(_float_to_uint64_bits(value))
-
-    def __repr__(self):
-        return "FloatOrTpsa"
-
-
-FloatOrTpsa = _FloatOrTpsaType()
 
 
 class _FieldOfBeamElement:
