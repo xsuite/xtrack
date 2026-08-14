@@ -29,59 +29,41 @@ from .track_flags import TrackFlags
 logger = logging.getLogger(__name__)
 
 
-def _float_or_tpsa_pairs(classes):
-    pairs = []
-    seen = set()
-    for cls in classes:
-        if not hasattr(cls, "_gen_data_paths"):
-            continue
-        for path in cls._gen_data_paths():
-            if not getattr(path[-1], "_is_float_or_tpsa", False):
-                continue
-            field_names = [part.name for part in path if hasattr(part, "name")]
-            key = (cls.__name__, tuple(field_names))
-            if key in seen:
-                continue
-            seen.add(key)
-            flag_names = field_names[:-1] + ["_tpsa_enabled"]
-            pairs.append((cls.__name__, "_".join(field_names), "_".join(flag_names)))
-    return pairs
+def _is_tpsa_safe_extra_c_source(source):
+    return getattr(source, "_xtrack_tpsa_safe", False)
 
 
-def _float_or_tpsa_getter_block(classes):
-    pairs = _float_or_tpsa_pairs(classes)
-    if not pairs:
-        return ""
-
-    blocks = []
-    blocks.append('#include "xtrack/headers/track.h"')
-    for data, field, flag_field in pairs:
-        getter = f"{data}_get_{field}"
-        scalar_getter = f"{getter}_scalar"
-        tpsa_getter = f"{getter}_tpsa"
-        tpsa_enabled_getter = f"{data}_get_{flag_field}"
-        blocks.append(f"""
-#ifndef XTRACK_TPSA_TRACK
-GPUFUN double {getter}({data} obj) {{
-    if ({tpsa_enabled_getter}(obj)) {{
-        return xt_float_or_tpsa_get_double({tpsa_getter}(obj), 1);
-    }}
-    return {scalar_getter}(obj);
-}}
-#else
-GPUFUN xt_num_t {getter}({data} obj) {{
-    uint64_t bits = {tpsa_getter}(obj);
-    if ({tpsa_enabled_getter}(obj)) {{
-        return xt_float_or_tpsa_get(&bits, 1);
-    }}
-    return {scalar_getter}(obj);
-}}
-#endif
-""")
-    return "\n".join(blocks)
+def _read_extra_c_source(source):
+    if hasattr(source, "read"):
+        return source.read()
+    if hasattr(source, "read_text"):
+        return source.read_text()
+    if hasattr(source, "source"):
+        return source.source
+    return source
 
 
-_MISSING_EXTRA_C_SOURCES = object()
+def _is_tpsa_tracking_extra_c_source(source):
+    source_text = _read_extra_c_source(source)
+    if "ParticlesData particles" in source_text:
+        return False
+    if "SynchrotronRadiationRecordData" in source_text:
+        return False
+    return True
+
+
+def _depends_on_tpsa_tracking(dep):
+    if dep.__name__ == "ParticlesData":
+        return False
+    if dep.__name__.startswith("Random"):
+        return False
+    if "Monitor" in dep.__name__:
+        return False
+    if dep.__name__.startswith("Record"):
+        return False
+    if dep.__name__ == "SynchrotronRadiationRecordData":
+        return False
+    return True
 
 
 class Tracker:
@@ -1023,39 +1005,27 @@ class Tracker:
             for cc in dependency_classes:
                 if hasattr(cc, "_depends_on"):
                     saved_depends[cc] = cc._depends_on
-                    cc._depends_on = [
-                        dep for dep in cc._depends_on
-                        if dep.__name__ != "ParticlesData"
-                        and not dep.__name__.startswith("Random")
-                        and "Monitor" not in dep.__name__
-                        and not dep.__name__.startswith("Record")
-                        and dep.__name__ != "SynchrotronRadiationRecordData"
-                    ]
+                    cc._depends_on = [dep for dep in cc._depends_on
+                                      if _depends_on_tpsa_tracking(dep)]
                 if hasattr(cc, "_extra_c_sources"):
                     if cc not in saved_extra_sources:
                         saved_extra_sources[cc] = cc._extra_c_sources
                     if cc in all_classes:
-                        tpsa_extra_sources.extend(cc._extra_c_sources)
-                    cc._extra_c_sources = _float_or_tpsa_getter_block([cc])
-                    cc._extra_c_sources = (
-                        [cc._extra_c_sources] if cc._extra_c_sources else []
-                    )
+                        tpsa_extra_sources.extend(
+                            source for source in cc._extra_c_sources
+                            if not _is_tpsa_safe_extra_c_source(source)
+                            and _is_tpsa_tracking_extra_c_source(source)
+                        )
+                    cc._extra_c_sources = [
+                        source for source in cc._extra_c_sources
+                        if _is_tpsa_safe_extra_c_source(source)
+                    ]
 
             tpsa_sources = [
                 '#include "xtrack/particles/headers/local_particle.h"',
             ]
             for extra_source in tpsa_extra_sources:
-                if hasattr(extra_source, "read"):
-                    extra_text = extra_source.read()
-                elif hasattr(extra_source, "read_text"):
-                    extra_text = extra_source.read_text()
-                else:
-                    extra_text = extra_source
-                if "ParticlesData particles" in extra_text:
-                    continue
-                if "SynchrotronRadiationRecordData" in extra_text:
-                    continue
-                tpsa_sources.append(extra_text)
+                tpsa_sources.append(_read_extra_c_source(extra_source))
             sources = [*tpsa_sources, source_track]
             extra_compile_args = (
                 "-include", "complex",
@@ -1063,16 +1033,6 @@ class Tracker:
             preload_libraries = (core_library(),)
             compiler_language = "c++"
             headers.insert(0, "#define restrict __restrict")
-        else:
-            for cc in all_classes:
-                float_or_tpsa_getters = _float_or_tpsa_getter_block([cc])
-                if not float_or_tpsa_getters:
-                    continue
-                if cc not in saved_extra_sources:
-                    saved_extra_sources[cc] = getattr(cc, "_extra_c_sources",
-                                                       _MISSING_EXTRA_C_SOURCES)
-                extra_c_sources = getattr(cc, "_extra_c_sources", [])
-                cc._extra_c_sources = [float_or_tpsa_getters, *extra_c_sources]
 
         try:
             skip_config_headers = set()
@@ -1104,10 +1064,7 @@ class Tracker:
             for cc, depends_on in saved_depends.items():
                 cc._depends_on = depends_on
             for cc, extra_c_sources in saved_extra_sources.items():
-                if extra_c_sources is _MISSING_EXTRA_C_SOURCES:
-                    del cc._extra_c_sources
-                else:
-                    cc._extra_c_sources = extra_c_sources
+                cc._extra_c_sources = extra_c_sources
         return {
             'kernel': out_kernels['track_line'],
             'tracker_element_classes': kernel_element_classes,

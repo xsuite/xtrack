@@ -11,6 +11,7 @@ import numpy as np
 import xobjects as xo
 import xtrack as xt
 from xgtpsa import Tpsa, ffi
+from xobjects.context import Source
 from xobjects.general import Print
 from xobjects.hybrid_class import _build_xofields_dict
 from .general import _pkg_root
@@ -56,6 +57,9 @@ class FloatOrTpsa(xo.RawUnion):
 
     @classmethod
     def _to_buffer(cls, buffer, offset, value, info=None, container=None):
+        if isinstance(value, cls):
+            buffer.update_from_xbuffer(offset, value._buffer, value._offset, cls._size)
+            return
         if isinstance(value, Tpsa):
             if container is None:
                 raise ValueError(
@@ -67,6 +71,61 @@ class FloatOrTpsa(xo.RawUnion):
             bits = int(_float_to_uint64_bits(value))
         data = np.array([bits], dtype=np.uint64).tobytes()
         buffer.update_from_buffer(offset, data)
+
+
+def _float_or_tpsa_accessor_paths(xostruct):
+    paths = []
+    seen = set()
+    for path in xostruct._gen_data_paths():
+        if not getattr(path[-1], "_is_float_or_tpsa", False):
+            continue
+        field_names = [part.name for part in path if hasattr(part, "name")]
+        key = tuple(field_names)
+        if key in seen:
+            continue
+        seen.add(key)
+        flag_names = field_names[:-1] + ["_tpsa_enabled"]
+        paths.append(("_".join(field_names), "_".join(flag_names)))
+    return paths
+
+
+def _generate_float_or_tpsa_accessors(xostruct):
+    paths = _float_or_tpsa_accessor_paths(xostruct)
+    if not paths:
+        return None
+
+    data_name = xostruct.__name__
+    blocks = ['#include "xtrack/headers/track.h"']
+    for field_name, flag_name in paths:
+        getter = f"{data_name}_get_{field_name}"
+        scalar_getter = f"{getter}_scalar"
+        tpsa_getter = f"{getter}_tpsa"
+        tpsa_enabled_getter = f"{data_name}_get_{flag_name}"
+        blocks.append(f"""
+#ifndef XTRACK_TPSA_TRACK
+GPUFUN double {getter}({data_name} obj) {{
+    if ({tpsa_enabled_getter}(obj)) {{
+        return xt_float_or_tpsa_get_double({tpsa_getter}(obj), 1);
+    }}
+    return {scalar_getter}(obj);
+}}
+#else
+GPUFUN xt_num_t {getter}({data_name} obj) {{
+    uint64_t bits = {tpsa_getter}(obj);
+    if ({tpsa_enabled_getter}(obj)) {{
+        return xt_float_or_tpsa_get(&bits, 1);
+    }}
+    return {scalar_getter}(obj);
+}}
+#endif
+""")
+
+    source = Source(
+        source="\n".join(blocks),
+        name=f"{data_name}_float_or_tpsa_accessors",
+    )
+    source._xtrack_tpsa_safe = True
+    return source
 
 
 class _FieldOfBeamElement:
@@ -495,6 +554,10 @@ class MetaBeamElement(xo.MetaHybridClass):
         if '_internal_record_class' in data.keys():
             new_class._XoStruct._internal_record_class = data['_internal_record_class']
             new_class._internal_record_class = data['_internal_record_class']
+
+        float_or_tpsa_accessors = _generate_float_or_tpsa_accessors(new_class._XoStruct)
+        if float_or_tpsa_accessors is not None:
+            new_class._XoStruct._extra_c_sources.insert(0, float_or_tpsa_accessors)
 
         for ff in new_class._XoStruct._fields:
             if ff.ftype is FloatOrTpsa:
