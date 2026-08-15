@@ -11,7 +11,7 @@ from cpymad.madx import Madx
 
 import xobjects as xo
 import xtrack as xt
-from xobjects.test_helpers import for_all_test_contexts
+from xobjects.test_helpers import allow_kernel_compilation, for_all_test_contexts
 
 test_data_folder = pathlib.Path(
         __file__).parent.joinpath('../test_data').absolute()
@@ -61,6 +61,7 @@ def test_line_with_second_order_maps(test_context):
 
 
 @for_all_test_contexts
+@allow_kernel_compilation
 def test_line_with_second_order_maps_split_at_octupoles(test_context):
 
     line = xt.load(test_data_folder /
