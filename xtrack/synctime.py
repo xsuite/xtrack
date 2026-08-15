@@ -83,6 +83,13 @@ def install_sync_time_at_collective_elements(
     env = line.env
     places = []
 
+    env.elements["synctime_start"] = SyncTime(circumference=circumference,
+        frame_relative_length=frame_relative_length,
+        id=COAST_STATE_RANGE_START + len(tab_collective)+1,
+        at_start=True,
+    )
+    places.append(env.place(name="synctime_start", at=0))
+
     for ii, nn in enumerate(tab_collective.name):
         name = f"synctime_{ii}"
         env.elements[name] = SyncTime(
@@ -91,13 +98,6 @@ def install_sync_time_at_collective_elements(
             id=COAST_STATE_RANGE_START + ii + 1,
         )
         places.append(env.place(name=name, at=nn))
-
-    env.elements["synctime_start"] = SyncTime(circumference=circumference,
-        frame_relative_length=frame_relative_length,
-        id=COAST_STATE_RANGE_START + len(tab_collective)+1,
-        at_start=True,
-    )
-    places.append(env.place(name="synctime_start", at=0))
 
     env.elements["synctime_end"] = SyncTime(circumference=circumference,
         frame_relative_length=frame_relative_length,
