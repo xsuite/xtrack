@@ -170,6 +170,21 @@ not uniform. The setup should expose the derived physical slot identifiers as
 `filled_slots_cw` and `filled_slots_acw`, rather than the ambiguous
 `bunches_cw` and `bunches_acw`.
 
+The normalized filling schemes also determine the exact sizes of the own- and
+opposing-bunch arrays allocated in each beam-beam element. The public API
+should not expose a separate `num_bunches` argument as reserve capacity: for a
+clockwise element, for example, the own arrays are sized from
+`len(filled_slots_cw)` and the opposing arrays from
+`len(filled_slots_acw)`, with the converse used for the anticlockwise element.
+This matches `BeamStatsMonitor` and the Xwakes slicer, where storage follows the
+configured pattern rather than a user-visible maximum capacity.
+
+If `set_filling(...)` changes the number of filled slots, it should explicitly
+reconfigure or reallocate the affected element arrays. An internal Xobject
+capacity may still exist as an implementation detail, but shrinking an active
+prefix within a larger reserved allocation must not be part of the public
+behavioral contract.
+
 Keeping `harmonic_number` and `bunch_spacing_buckets` in the high-level
 beam-beam installation API is useful because encounter pairing needs the
 integer ring topology. The normalized setup should additionally expose
