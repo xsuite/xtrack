@@ -9,17 +9,19 @@ abstractions.
 
 The current implementation introduces two concepts parallel to existing ones:
 
-1. `BeamBeamBiGaussianMultibunch2D` duplicates most of
-   `BeamBeamBiGaussian2D`.
+1. `BeamBeamBiGaussianMultibunch2D` originally duplicated the physical kick
+   calculation in `BeamBeamBiGaussian2D`.
 2. `env.xfields.install_multibunch_beambeam(...)` duplicates much of the
    existing `install_beambeam_interactions(...)` and
    `configure_beambeam_interactions(...)` workflow.
 
-Keeping the parallel implementations would create two places to maintain the
-same bi-Gaussian kick, encounter placement, survey geometry, optics, coordinate
-conventions, scale knobs, serialization and prebuilt-kernel registration. It
-would also make it unclear which API should receive future beam-beam features
-and fixes.
+The physical kick and the installation/configuration workflow should not have
+parallel implementations. The element storage, however, has a real structural
+difference: scalar BB2D has fixed-size data, while the multibunch element owns
+filling-dependent arrays and must be reallocated when the number of bunches
+changes. Combining those layouts would enlarge every scalar BB2D element,
+introduce a per-particle mode branch and complicate the API without avoiding
+multibunch reallocation.
 
 The multibunch-specific behavior is narrower than these duplicated surfaces:
 
@@ -29,54 +31,50 @@ The multibunch-specific behavior is narrower than these duplicated surfaces:
 - In coherent mode, use the convolution of the two matched bunch covariances.
 - Solve the two beams self-consistently and optionally update dynamic beta.
 
-These capabilities can be added behind the existing element and installation
-interfaces without changing the established single-bunch behavior.
+These capabilities should therefore keep a dedicated element class, while the
+physical kick and installation machinery are shared wherever their behavior is
+genuinely common.
 
-## Rationalization 1: extend `BeamBeamBiGaussian2D`
+## Rationalization 1: keep two element classes and share the kick
 
-`BeamBeamBiGaussian2D` should remain the public 2D bi-Gaussian beam-beam
-element. It should gain an optional multibunch source rather than having a
-second public element class.
+Keep both public element classes because they represent different storage and
+tracking contracts:
 
-The legacy scalar fields and constructor arguments must remain unchanged. This
-is important for existing line files, xdeps references, collective updates and
-user code. Optional multibunch arrays should be added under distinct internal
-names, together with:
+- `BeamBeamBiGaussian2D` keeps its compact scalar layout, established
+  constructor, weak-strong behavior and pipeline strong-strong updater.
+- `BeamBeamBiGaussianMultibunch2D` owns the filling-dependent bunch arrays and
+  the fixed-point train/rigid-bunch behavior.
 
-- the active number and allocated capacity of own and opposing bunches;
-- the sorted own- and opposing-beam `zeta` grids;
-- `zeta_offset`, `zeta_match_tol` and `zeta_period`;
-- per-bunch centroids, populations and transverse covariance components;
-- a flag selecting incoherent weak-strong or coherent rigid-bunch behavior.
+The classes must call one common BB2D kick helper that owns:
 
-The tracking kernel should have two stages:
+- covariance rotation;
+- the bi-Gaussian field calculation;
+- relativistic and charge scaling;
+- strength scaling; and
+- the final transverse momentum kick and optional post-subtraction.
 
-1. Select scalar kick parameters. In legacy mode these come directly from the
-   existing scalar fields. In multibunch mode they come from the bunch matched
-   on `zeta`; if no opposing bunch is matched, no kick is applied.
-2. Call one common BB2D kick implementation with the selected centroid,
-   population and covariance.
+Each wrapper remains responsible for selecting those inputs. Scalar BB2D reads
+its scalar fields. The multibunch wrapper matches the opposing bunch on the
+periodic `zeta` grid, selects its centroid, population and covariance, and, in
+coherent mode, adds the matched own-beam covariance before calling the helper.
+The bunch-matching code is multibunch-specific and does not need to be added to
+the scalar element.
 
 For coherent tracking, the effective covariance is the sum of the matched own
 and opposing bunch covariances. Using covariances instead of separate
-`sigma_x`/`sigma_y` logic preserves the existing BB2D representation and leaves
-room for transverse coupling.
+`sigma_x`/`sigma_y` logic remains consistent with scalar BB2D and leaves room
+for transverse coupling.
 
-The existing `ref_shift_*`, `post_subtract_*`, covariance rotation,
-`scale_strength` and relativistic scaling must be shared by both modes.
-Initially, pipeline-based `config_for_update` and the multibunch source should
-be mutually exclusive: the current pipeline updater exchanges the aggregate
-moments of one bunch and has different semantics from the rigid multibunch
-model.
+Multibunch array lengths should be inferred exactly from the normalized own and
+opposing filling data. There is no public reserve-capacity contract. Changing
+the number of bunches explicitly reconfigures/reallocates the multibunch
+elements; updates that preserve the filling can modify their data in place.
 
-Once migrated, remove:
-
-- `BeamBeamBiGaussianMultibunch2D`;
-- its separate C tracking header;
-- its top-level export and prebuilt-kernel registration.
-
-Its tests should instead exercise the multibunch mode of
-`BeamBeamBiGaussian2D`, including an exact comparison with the scalar mode.
+Keeping the classes separate also makes the semantics visible in the API:
+pipeline strong-strong remains a configuration of scalar BB2D, whereas train
+mode constructs the multibunch element. Their permanent tests should include
+one-bunch and per-selected-bunch comparisons against scalar BB2D so the shared
+physical model remains locked down.
 
 ## Rationalization 2: extend the existing installation workflow
 
@@ -249,28 +247,30 @@ Add the fast characterization tests before changing either implementation:
 These tests are the normal development loop. Pytrain and Xmask remain the
 realistic final acceptance tests.
 
-### Phase 2: extend BB2D without removing the old element
+### Phase 2: share Xfields physics without merging element layouts
 
-In Xfields, first extract the scalar BB2D field and kick calculation into a
-shared C helper. Then add the optional multibunch storage and mode selection to
-`BeamBeamBiGaussian2D`, preserving all existing scalar fields, constructor
-defaults and pipeline behavior.
+In Xfields, extract the scalar BB2D field and kick calculation into a shared C
+helper and call it from both element kernels. Preserve the scalar BB2D Xobject
+layout, constructor defaults and pipeline behavior. Keep multibunch matching,
+filling-dependent arrays and update methods on
+`BeamBeamBiGaussianMultibunch2D`.
 
-Keep `BeamBeamBiGaussianMultibunch2D` temporarily and compare the two elements
-directly from identical input data. This Xfields stage is backward compatible,
-so the current Xtrack train implementation continues to work until it is
-explicitly migrated.
+Then change the multibunch element to allocate exactly from the supplied own and
+opposing bunch data. Remove the public reserve-capacity arguments. A filling
+change should explicitly reconstruct/reconfigure the affected elements.
 
-### Phase 3: migrate the Xtrack train to the extended BB2D
+### Phase 3: align the Xtrack train API
 
-Change the current train installer to construct `BeamBeamBiGaussian2D` in
-multibunch mode. Apply the bunch-pattern API decisions in the same stage:
+Keep the train on `BeamBeamBiGaussianMultibunch2D` and apply the bunch-pattern
+API decisions:
 
 - separate `filling_scheme_cw` / `filling_scheme_acw` from the corresponding
   `bunch_intensity_particles_*` inputs;
 - expose `filled_slots_cw`, `filled_slots_acw` and `bunch_spacing_zeta`; and
 - translate the common public negative-`zeta` slot convention at the kernel
-  boundary if the internal matching implementation needs another convention.
+  boundary if the internal matching implementation needs another convention;
+- reconfigure the filling-dependent elements when the number of bunches
+  changes.
 
 Do not otherwise change the solver physics or iteration algorithm during this
 migration.
@@ -290,18 +290,17 @@ Refactor the existing workflow incrementally:
 Keep `install_multibunch_beambeam(...)` as a temporary bridge and compare its
 normalized output against the consolidated path after each step.
 
-### Phase 5: migrate examples and remove the duplicate paths
+### Phase 5: migrate examples and remove the duplicate installer path
 
-Once the old/new equivalence tests pass:
+Once the installer equivalence tests pass:
 
 - migrate all examples to the consolidated install/configure workflow;
 - remove `install_multibunch_beambeam(...)` and its environment façade;
-- remove `BeamBeamBiGaussianMultibunch2D`, its C header, export and prebuilt
-  kernel entry; and
 - replace temporary bridge comparisons with permanent behavioral tests.
 
-The duplicate Xfields element is removed only after Xtrack no longer depends
-on it, keeping the cross-repository history bisectable.
+`BeamBeamBiGaussianMultibunch2D` remains public, with its own serialized layout
+and prebuilt-kernel entry, but its physical kick continues to use the common
+BB2D helper.
 
 ### Phase 6: full validation
 
@@ -325,10 +324,7 @@ realistic acceptance tests.
 ### 1. Xfields element tests
 
 Extend `xfields/tests/test_beambeam_multibunch2d.py` using construction helpers
-such as `_make_scalar_bb(...)` and `_make_multibunch_bb(...)`. During the
-migration only the multibunch factory should need to change from
-`BeamBeamBiGaussianMultibunch2D` to the multibunch mode of
-`BeamBeamBiGaussian2D`.
+such as `_make_scalar_bb(...)` and `_make_multibunch_bb(...)`.
 
 Protect the current multibunch behavior with focused tests for:
 
@@ -340,7 +336,8 @@ Protect the current multibunch behavior with focused tests for:
 - unsorted updates preserving the association between `zeta`, centroids,
   populations and covariances;
 - scalar size broadcasting and per-bunch sizes;
-- capacity errors and changes in the active bunch count;
+- exact allocation from the bunch data and explicit reconfiguration when the
+  bunch count changes;
 - `scale_strength` at `0`, an intermediate value and `1`.
 
 Strengthen the scalar BB2D characterization tests to cover:
@@ -370,7 +367,7 @@ Test the installation layout exactly:
 - longitudinal positions and CW/ACW suffixes;
 - pairing offsets and their signs;
 - `zeta_period` and matching tolerance;
-- allocated and active bunch counts;
+- own and opposing array lengths inferred from the fillings;
 - `beambeam_scale` references.
 
 Test configuration and geometry:
@@ -384,8 +381,8 @@ Test configuration and geometry:
 
 Test the stateful setup independently:
 
-- `set_filling(...)` with a smaller filling;
-- rejection of a filling that exceeds the allocated capacity;
+- `set_filling(...)` rebuilding the filling-dependent elements when the bunch
+  count changes;
 - a short symmetric two-beam solve;
 - `load_solution(...)`;
 - static and dynamic-beta updates;
@@ -411,13 +408,11 @@ The tests should explicitly document the current difference in `qx/qy`
 semantics: `fast_orbit` exposes fractional tunes while `fast` exposes
 accumulated tunes.
 
-### 4. Temporary old/new equivalence tests
+### 4. Temporary installer equivalence tests
 
-Keep both implementations available briefly during each migration.
-
-For the element, construct the old multibunch element and the new multibunch
-mode of BB2D from identical data, track identical particles and compare the
-kicks directly.
+The scalar/multibunch element comparisons are permanent physics tests, not a
+temporary migration bridge. They compare each selected multibunch kick against
+an independently configured scalar BB2D.
 
 For installation, build two copies of the toy environment. Configure one with
 `install_multibunch_beambeam(...)` and the other with the multibunch mode of
@@ -430,7 +425,7 @@ containing:
 - scale-knob expressions;
 - per-bunch Twiss results after a small number of solver iterations.
 
-After equivalence is established and the duplicate implementation is removed,
+After equivalence is established and the duplicate installer is removed,
 replace these bridge comparisons with permanent behavioral assertions against
 the normalized expected result.
 
@@ -441,17 +436,16 @@ Keep the preparatory tests and implementation changes in separate commits:
 1. `Add BB2D and multibunch characterization tests`.
 2. `Add toy multibunch installer and Twiss tests`.
 3. `Share the BB2D kick implementation`.
-4. `Add multibunch mode to BeamBeamBiGaussian2D`.
-5. `Migrate multibunch train to BB2D`.
-6. `Align multibunch bunch-pattern API`.
-7. `Share beam-beam encounter and geometry configuration`.
-8. `Add multibunch mode to install/configure workflow`.
-9. `Migrate examples and remove duplicate APIs`.
-10. `Add final regression coverage`.
+4. `Infer multibunch element storage from bunch data`.
+5. `Align multibunch train bunch-pattern API`.
+6. `Share beam-beam encounter and geometry configuration`.
+7. `Add multibunch mode to install/configure workflow`.
+8. `Migrate examples and remove duplicate installer API`.
+9. `Add final regression coverage`.
 
-The first two commits are the immediate next work. Old/new equivalence tests
-remain active through commits 4--8, and the pytrain and Xmask suites are run as
-final acceptance after the duplicate paths have been removed.
+The first three commits are complete. Installer equivalence tests remain active
+through commits 6--8, and the pytrain and Xmask suites are run as final
+acceptance after the duplicate installer path has been removed.
 
 ## Non-goals
 
