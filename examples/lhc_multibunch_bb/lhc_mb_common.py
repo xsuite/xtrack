@@ -23,7 +23,7 @@ holds the LHC-specific bits the generic tools cannot know about:
   :func:`plot_results`, :func:`plot_global_quantities`).
 
 Model (following pytrain / TRAIN): head-on and long-range 2D beam-beam elements
-(``xfields.BeamBeamBiGaussianMultibunch2D``) at IP1/2/5/8; the per-IP head-on
+(``xfields.BeamBeamBiGaussianRigidBunch2D``) at IP1/2/5/8; the per-IP head-on
 bunch-pairing offsets are derived from the ring geometry
 (``round(2 * (s_ip - s_ip1) / slot_len)`` -> 0 at IP1/IP5, ~891 at IP2, ~2670
 at IP8); coherent (rigid-bunch) convolved-size kicks; beam separation = live

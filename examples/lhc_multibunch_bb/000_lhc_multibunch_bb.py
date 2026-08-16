@@ -7,7 +7,7 @@
 Multi-bunch beam-beam on the FULL (thick) LHC lattice in collisions (6.8 TeV,
 fully squeezed R2025aRP 15 cm flat optics, end-of-levelling knobs).
 
-Head-on and long-range beam-beam elements (BeamBeamBiGaussianMultibunch2D) are
+Head-on and long-range beam-beam elements (BeamBeamBiGaussianRigidBunch2D) are
 installed at IP1/2/5/8 with ``env.xfields.install_multibunch_beambeam`` (see
 ``xtrack.multibunch_beambeam``), and the per-bunch closed solution (closed orbit
 + tunes) of the two multi-bunch beams is found self-consistently with

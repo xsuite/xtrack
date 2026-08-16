@@ -13,7 +13,7 @@ tune shifts at IP1 with the stored pytrain references
 (``test_data/lhc_2024/pytrain/pytrain_{injection,collision}.json``, regenerated
 with the scripts in the same directory).
 
-The tools install one ``BeamBeamBiGaussianMultibunch2D`` element per head-on and
+The tools install one ``BeamBeamBiGaussianRigidBunch2D`` element per head-on and
 long-range encounter at IP1/2/5/8 and find the per-bunch self-consistent closed
 orbit by iterating the fast multi-bunch twiss. The geometry (per-encounter
 bunch-pairing offset, convolved beam sizes, signed survey separation) is

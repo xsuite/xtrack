@@ -7,7 +7,7 @@
 Generic (machine-independent) multi-bunch beam-beam tools.
 
 Install coherent (rigid-bunch) 2D beam-beam elements
-(:class:`xfields.BeamBeamBiGaussianMultibunch2D`) for the head-on and
+(:class:`xfields.BeamBeamBiGaussianRigidBunch2D`) for the head-on and
 long-range (LR) encounters at an arbitrary set of interaction points (IPs) of
 two counter-rotating rings, and find the per-bunch self-consistent closed orbit
 of the two multi-bunch beams by iterating the multi-bunch twiss.
@@ -248,7 +248,7 @@ class MultibunchBBSetup:
                           else self.cw_line).particle_ref.q0)
         own_slots = self.bunches_acw if mirror else self.bunches_cw
         own_zeta = np.asarray(own_slots) * self.slot_len
-        return xf.BeamBeamBiGaussianMultibunch2D(
+        return xf.BeamBeamBiGaussianRigidBunch2D(
             other_particles=self._representative_other_beam(line, mirror),
             own_beam_zeta=own_zeta,
             zeta_offset=0.0,

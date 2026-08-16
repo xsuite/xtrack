@@ -2827,7 +2827,7 @@ class EnvXfields:
         """
         Install coherent multi-bunch beam-beam elements at N interaction points.
 
-        Places one :class:`xfields.BeamBeamBiGaussianMultibunch2D` element per
+        Places one :class:`xfields.BeamBeamBiGaussianRigidBunch2D` element per
         head-on and long-range (LR) encounter at every IP of two counter-
         rotating rings (in the coherent rigid-bunch model), computes the
         encounter geometry and returns a

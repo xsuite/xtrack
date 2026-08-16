@@ -7,7 +7,7 @@
 Per-bunch closed solution of a multi-bunch beam with `twiss_multibunch`.
 
 Each bunch of a multi-bunch beam sits at a distinct longitudinal position
-`zeta` and, through the `BeamBeamBiGaussianMultibunch2D` element, sees a
+`zeta` and, through the `BeamBeamBiGaussianRigidBunch2D` element, sees a
 different opposing bunch. Its closed orbit and optics (in particular the tunes)
 therefore differ from bunch to bunch. `line.twiss_multibunch(...)` fixes `zeta`
 to each bunch position in turn and returns the corresponding periodic solution.
@@ -57,7 +57,7 @@ opposing = xp.Particles(
     x=np.zeros(n_bunches), y=np.zeros(n_bunches),
     zeta=zeta_bunches.copy(), weight=bunch_intensity)
 
-bb = xf.BeamBeamBiGaussianMultibunch2D(
+bb = xf.BeamBeamBiGaussianRigidBunch2D(
     other_particles=opposing, zeta_offset=0.0, zeta_match_tol=1e-6,
     other_beam_q0=1.0, other_beam_beta0=beta0_rel,
     other_beam_sigma_x=np.sqrt(betx_ip * nemitt_x / gamma0),
@@ -93,7 +93,7 @@ def make_line(x_ref):
     # the beam-beam element (opposing beam filled in during the iteration).
     otm = xt.LineSegmentMap(qx=qx0, qy=qy0, betx=1.0, bety=1.0,
                             x_ref=x_ref, longitudinal_mode='frozen')
-    bb = xf.BeamBeamBiGaussianMultibunch2D(
+    bb = xf.BeamBeamBiGaussianRigidBunch2D(
         other_particles=opposing,
         zeta_offset=0.0, zeta_match_tol=1e-6,
         other_beam_q0=1.0, other_beam_beta0=beta0_rel,

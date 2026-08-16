@@ -10,7 +10,7 @@ Two counter-rotating beams are each represented by several bunches, with one
 macroparticle per bunch (the macroparticle holds the bunch centroid, its
 longitudinal position `zeta` and its population through `weight`).
 
-The element `BeamBeamBiGaussianMultibunch2D` applies, to every bunch of one
+The element `BeamBeamBiGaussianRigidBunch2D` applies, to every bunch of one
 beam, the transverse (dipole) beam-beam kick produced by the opposing bunch it
 meets: a particle (bunch) at `zeta` interacts with the opposing bunch located
 at `zeta + zeta_offset`. With `zeta_offset = 0` and both beams sharing the same
@@ -95,9 +95,9 @@ common_bb_kwargs = dict(
 
 # The opposing beam is passed as a Particles object (each active macroparticle
 # is one bunch); the bunch count and initial centroids are taken from it.
-bb_on_beam1 = xf.BeamBeamBiGaussianMultibunch2D(
+bb_on_beam1 = xf.BeamBeamBiGaussianRigidBunch2D(
     other_particles=beam2, **common_bb_kwargs)  # other = beam2
-bb_on_beam2 = xf.BeamBeamBiGaussianMultibunch2D(
+bb_on_beam2 = xf.BeamBeamBiGaussianRigidBunch2D(
     other_particles=beam1, **common_bb_kwargs)  # other = beam1
 
 # Report the per-bunch transverse sizes derived from the emittances and betas.

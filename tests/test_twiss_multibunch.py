@@ -23,7 +23,7 @@ def multibunch_twiss_line(temp_context_default_func):
         zeta=ZETA_BUNCHES,
         weight=[0.8e11, 1.1e11, 1.4e11],
     )
-    bb = xf.BeamBeamBiGaussianMultibunch2D(
+    bb = xf.BeamBeamBiGaussianRigidBunch2D(
         other_particles=opposing,
         zeta_match_tol=0.02,
         zeta_period=0.8,

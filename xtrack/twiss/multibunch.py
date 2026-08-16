@@ -407,7 +407,7 @@ def twiss_line_multibunch(line, zeta_bunches=None, particles=None,
 
     In a multi-bunch beam every bunch occupies a distinct longitudinal position
     ``zeta`` and, through a multi-bunch beam-beam element (e.g.
-    :class:`xfields.BeamBeamBiGaussianMultibunch2D`), sees a different force.
+    :class:`xfields.BeamBeamBiGaussianRigidBunch2D`), sees a different force.
     This function fixes ``zeta`` to each bunch position in turn and computes the
     corresponding periodic solution, so that the per-bunch closed orbit and
     optics (including the coherent beam-beam tune shift) are obtained.

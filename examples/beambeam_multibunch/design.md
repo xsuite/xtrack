@@ -9,7 +9,7 @@ abstractions.
 
 The current implementation introduces two concepts parallel to existing ones:
 
-1. `BeamBeamBiGaussianMultibunch2D` originally duplicated the physical kick
+1. `BeamBeamBiGaussianRigidBunch2D` originally duplicated the physical kick
    calculation in `BeamBeamBiGaussian2D`.
 2. `env.xfields.install_multibunch_beambeam(...)` duplicates much of the
    existing `install_beambeam_interactions(...)` and
@@ -42,7 +42,7 @@ tracking contracts:
 
 - `BeamBeamBiGaussian2D` keeps its compact scalar layout, established
   constructor, weak-strong behavior and pipeline strong-strong updater.
-- `BeamBeamBiGaussianMultibunch2D` owns the filling-dependent bunch arrays and
+- `BeamBeamBiGaussianRigidBunch2D` owns the filling-dependent bunch arrays and
   the rigid-bunch train behavior.
 
 The classes must call one common BB2D kick helper that owns:
@@ -72,10 +72,11 @@ elements; updates that preserve the filling can modify their data in place.
 
 Keeping the classes separate also makes the semantics visible in the API:
 pipeline strong-strong remains a configuration of scalar BB2D, whereas
-`mode='rigid_bunch'` constructs the multibunch element. “Multibunch” describes
-the capability shared by both approaches; “rigid bunch” identifies the physical
-approximation used by this workflow. “Fixed point” is reserved for the solver
-algorithm, and “train” for the collection of bunches. Permanent tests should
+`mode='rigid_bunch'` constructs `BeamBeamBiGaussianRigidBunch2D`.
+“Multibunch” describes the capability shared by both approaches; “rigid bunch”
+identifies the physical approximation used by this workflow. “Fixed point” is
+reserved for the solver algorithm, and “train” for the collection of bunches.
+Permanent tests should
 include one-bunch and per-selected-bunch comparisons against scalar BB2D so the
 shared physical model remains locked down.
 
@@ -256,7 +257,7 @@ In Xfields, extract the scalar BB2D field and kick calculation into a shared C
 helper and call it from both element kernels. Preserve the scalar BB2D Xobject
 layout, constructor defaults and pipeline behavior. Keep multibunch matching,
 filling-dependent arrays and update methods on
-`BeamBeamBiGaussianMultibunch2D`.
+`BeamBeamBiGaussianRigidBunch2D`.
 
 Then change the multibunch element to allocate exactly from the supplied own and
 opposing bunch data. Remove the public reserve-capacity arguments. A filling
@@ -264,7 +265,7 @@ change should explicitly reconstruct/reconfigure the affected elements.
 
 ### Phase 3: align the Xtrack train API
 
-Keep the train on `BeamBeamBiGaussianMultibunch2D` and apply the bunch-pattern
+Keep the train on `BeamBeamBiGaussianRigidBunch2D` and apply the bunch-pattern
 API decisions:
 
 - separate `filling_scheme_cw` / `filling_scheme_acw` from the corresponding
@@ -301,7 +302,7 @@ Once the installer equivalence tests pass:
 - remove `install_multibunch_beambeam(...)` and its environment façade;
 - replace temporary bridge comparisons with permanent behavioral tests.
 
-`BeamBeamBiGaussianMultibunch2D` remains public, with its own serialized layout
+`BeamBeamBiGaussianRigidBunch2D` remains public, with its own serialized layout
 and prebuilt-kernel entry, but its physical kick continues to use the common
 BB2D helper.
 

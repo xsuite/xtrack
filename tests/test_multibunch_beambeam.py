@@ -139,8 +139,8 @@ def test_multibunch_beambeam_toy_installation_and_setup():
     for base, offset in zip(expected_encounters, expected_offsets):
         bb_cw = setup.bb_cw[base]
         bb_acw = setup.bb_acw[base]
-        assert isinstance(bb_cw, xf.BeamBeamBiGaussianMultibunch2D)
-        assert isinstance(bb_acw, xf.BeamBeamBiGaussianMultibunch2D)
+        assert isinstance(bb_cw, xf.BeamBeamBiGaussianRigidBunch2D)
+        assert isinstance(bb_acw, xf.BeamBeamBiGaussianRigidBunch2D)
         assert bb_cw.coherent == 1
         assert bb_acw.coherent == 1
         assert bb_cw.zeta_period == N_SLOTS * SLOT_LENGTH
@@ -181,10 +181,10 @@ def test_multibunch_beambeam_toy_installation_and_setup():
     assert reduced.geom == setup.geom
     for name in reduced.bb_names_cw:
         assert isinstance(
-            reduced.cw_line[name], xf.BeamBeamBiGaussianMultibunch2D)
+            reduced.cw_line[name], xf.BeamBeamBiGaussianRigidBunch2D)
     for name in reduced.bb_names_acw:
         assert isinstance(
-            reduced.acw_line[name], xf.BeamBeamBiGaussianMultibunch2D)
+            reduced.acw_line[name], xf.BeamBeamBiGaussianRigidBunch2D)
 
     mbtw_cw, mbtw_acw = reduced.solve(
         max_iterations=2,
