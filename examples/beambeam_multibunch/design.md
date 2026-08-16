@@ -215,30 +215,89 @@ slots and compact bunch ordinals, as well as spacing and `zeta`-sign mistakes.
 
 ## Implementation plan
 
-1. **Protect current behavior.** Add focused tests for scalar BB2D,
-   multibunch matching, coherent covariance convolution, missing encounters,
-   periodic wrapping and per-bunch updates.
-2. **Share the C kick.** Extract the existing scalar BB2D field and kick
-   calculation into a helper without changing results.
-3. **Add optional multibunch storage to BB2D.** Preserve all existing scalar
-   fields and defaults; validate that multibunch and pipeline-update modes are
-   not combined.
-4. **Migrate the multibunch tests and examples.** Instantiate
-   `BeamBeamBiGaussian2D` in multibunch mode and verify equivalence with the
-   current branch.
-5. **Remove the duplicate element.** Delete its Python class, header, export
-   and prebuilt-kernel entry.
-6. **Extract shared encounter and geometry helpers.** Reuse the existing
-   beam-beam configuration tables and the standard Twiss covariance results.
-7. **Add multibunch mode to install/configure.** Preserve the existing default
-   API and behavior. Make the returned setup the owner of only the stateful
-   solver operations.
-8. **Remove the parallel installer.** Delete
-   `install_multibunch_beambeam(...)` and its environment façade after all
-   examples use the shared workflow.
-9. **Run compatibility checks.** Cover line serialization, xdeps strength
-   knobs, prebuilt kernels, CPU/OpenMP contexts, existing beam-beam tests and
-   the pytrain regression.
+The work should be staged so that each intermediate commit remains usable and
+the two repositories can be migrated without requiring an atomic Xfields and
+Xtrack update.
+
+### Phase 1: freeze current behavior
+
+Add the fast characterization tests before changing either implementation:
+
+- scalar BB2D behavior and serialization;
+- current multibunch matching and coherent convolution;
+- one-bunch scalar/multibunch equivalence;
+- sparse fillings, unequal intensities and periodic matching;
+- a small deterministic Xtrack installer/setup test;
+- multibunch Twiss mode comparisons; and
+- the cross-package bunch-pattern contract described above.
+
+These tests are the normal development loop. Pytrain and Xmask remain the
+realistic final acceptance tests.
+
+### Phase 2: extend BB2D without removing the old element
+
+In Xfields, first extract the scalar BB2D field and kick calculation into a
+shared C helper. Then add the optional multibunch storage and mode selection to
+`BeamBeamBiGaussian2D`, preserving all existing scalar fields, constructor
+defaults and pipeline behavior.
+
+Keep `BeamBeamBiGaussianMultibunch2D` temporarily and compare the two elements
+directly from identical input data. This Xfields stage is backward compatible,
+so the current Xtrack train implementation continues to work until it is
+explicitly migrated.
+
+### Phase 3: migrate the Xtrack train to the extended BB2D
+
+Change the current train installer to construct `BeamBeamBiGaussian2D` in
+multibunch mode. Apply the bunch-pattern API decisions in the same stage:
+
+- separate `filling_scheme_cw` / `filling_scheme_acw` from the corresponding
+  `bunch_intensity_particles_*` inputs;
+- expose `filled_slots_cw`, `filled_slots_acw` and `bunch_spacing_zeta`; and
+- translate the common public negative-`zeta` slot convention at the kernel
+  boundary if the internal matching implementation needs another convention.
+
+Do not otherwise change the solver physics or iteration algorithm during this
+migration.
+
+### Phase 4: consolidate installation and configuration
+
+Refactor the existing workflow incrementally:
+
+1. Extract encounter generation from the current installer.
+2. Extract Twiss/survey geometry and coordinate transformations.
+3. Make the conventional and multibunch paths consume those helpers.
+4. Add `mode='multibunch'` to `install_beambeam_interactions(...)`.
+5. Add the multibunch filling, intensity and emittance inputs to
+   `configure_beambeam_interactions(...)`.
+6. Return `MultibunchBBSetup` for the genuinely stateful operations.
+
+Keep `install_multibunch_beambeam(...)` as a temporary bridge and compare its
+normalized output against the consolidated path after each step.
+
+### Phase 5: migrate examples and remove the duplicate paths
+
+Once the old/new equivalence tests pass:
+
+- migrate all examples to the consolidated install/configure workflow;
+- remove `install_multibunch_beambeam(...)` and its environment façade;
+- remove `BeamBeamBiGaussianMultibunch2D`, its C header, export and prebuilt
+  kernel entry; and
+- replace temporary bridge comparisons with permanent behavioral tests.
+
+The duplicate Xfields element is removed only after Xtrack no longer depends
+on it, keeping the cross-repository history bisectable.
+
+### Phase 6: full validation
+
+Run checks in increasing order of cost:
+
+1. Focused Xfields element tests.
+2. Focused Xtrack installer and multibunch-Twiss tests.
+3. Existing Xfields and Xtrack beam-beam suites.
+4. Serialization, xdeps knobs, prebuilt kernels and CPU/OpenMP contexts.
+5. The pytrain regression.
+6. The slow Xmask tests.
 
 ## Test plan before refactoring
 
@@ -364,15 +423,20 @@ the normalized expected result.
 
 Keep the preparatory tests and implementation changes in separate commits:
 
-1. Add scalar BB2D characterization tests.
-2. Add missing tests for the current multibunch element.
-3. Add toy installer/setup tests for the current standalone path.
-4. Add `fast`/`fast_orbit`/`full` multibunch Twiss comparisons.
-5. Refactor the element while the old/new equivalence tests are active.
-6. Refactor installation while the old/new equivalence tests are active.
-7. Remove the old paths and convert the bridge tests into permanent behavioral
-   tests.
-8. Run the pytrain regression and the slow xmask tests as final acceptance.
+1. `Add BB2D and multibunch characterization tests`.
+2. `Add toy multibunch installer and Twiss tests`.
+3. `Share the BB2D kick implementation`.
+4. `Add multibunch mode to BeamBeamBiGaussian2D`.
+5. `Migrate multibunch train to BB2D`.
+6. `Align multibunch bunch-pattern API`.
+7. `Share beam-beam encounter and geometry configuration`.
+8. `Add multibunch mode to install/configure workflow`.
+9. `Migrate examples and remove duplicate APIs`.
+10. `Add final regression coverage`.
+
+The first two commits are the immediate next work. Old/new equivalence tests
+remain active through commits 4--8, and the pytrain and Xmask suites are run as
+final acceptance after the duplicate paths have been removed.
 
 ## Non-goals
 
