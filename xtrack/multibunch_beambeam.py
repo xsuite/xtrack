@@ -12,23 +12,26 @@ long-range (LR) encounters at an arbitrary set of interaction points (IPs) of
 two counter-rotating rings, and find the per-bunch self-consistent closed orbit
 of the two multi-bunch beams by iterating the multi-bunch twiss.
 
-Everything is driven through one entry point and a small state object:
+The public workflow uses the standard beam-beam install/configure entry points
+and returns a small state object:
 
-    setup = env.xfields.install_multibunch_beambeam(
-        clockwise_line, anticlockwise_line, ips=[...],
+    env.xfields.install_beambeam_interactions(
+        clockwise_line, anticlockwise_line, ip_names=[...],
         num_long_range_encounters_per_side=..., harmonic_number=...,
-        bunch_spacing_buckets=..., nemitt_x=..., nemitt_y=...,
+        bunch_spacing_buckets=..., mode='rigid_bunch')
+    setup = env.xfields.configure_beambeam_interactions(
+        nemitt_x=..., nemitt_y=...,
         filling_scheme_cw=..., filling_scheme_acw=...,
         bunch_intensity_particles_cw=...,
         bunch_intensity_particles_acw=...)
     mbtw_cw, mbtw_acw = setup.solve()
 
-``install_multibunch_beambeam`` places one beam-beam element per encounter
-DIRECTLY on the two lines (the element is its own twiss/survey observation
-point -- there are no separate markers), computes the encounter geometry
-(per-encounter bunch-pairing offset, convolved sizes, survey separation) and
-returns a :class:`RigidBunchBBSetup`. All further operations are methods on that
-object:
+Installation places one beam-beam element per encounter DIRECTLY on the two
+lines (the element is its own twiss/survey observation point -- there are no
+separate markers), with arrays covering every RF slot. Configuration loads the
+filling and populations, computes the encounter geometry (per-encounter
+bunch-pairing offset, convolved sizes, survey separation) and returns a
+:class:`RigidBunchBBSetup`. All further operations are methods on that object:
 
 * :meth:`RigidBunchBBSetup.solve` -- self-consistent per-bunch closed orbit;
 * :meth:`RigidBunchBBSetup.second_order_maps` -- a fast sector-map copy: the arcs
@@ -142,9 +145,11 @@ def _normalize_filling(filling_scheme, bunch_intensity_particles, n_slots,
 class RigidBunchBBSetup:
     """State and operations of one rigid-bunch beam-beam problem.
 
-    Returned by :func:`install_multibunch_beambeam` /
-    :meth:`xtrack.environment.EnvXfields.install_multibunch_beambeam`. Holds the
-    two lines, the encounter geometry (per-encounter pairing offset, beta
+    Returned by
+    :meth:`xtrack.environment.EnvXfields.configure_beambeam_interactions` in
+    rigid-bunch mode (and temporarily by the compatibility entry point
+    :meth:`xtrack.environment.EnvXfields.install_multibunch_beambeam`). Holds
+    the two lines, the encounter geometry (per-encounter pairing offset, beta
     functions and survey separation), the installed beam-beam elements
     (``bb_cw`` / ``bb_acw``, keyed by encounter base name) and the per-beam bunch
     filling. The self-consistent solve, the sector-map reduction and the
@@ -159,7 +164,7 @@ class RigidBunchBBSetup:
     def __init__(self, clockwise_line, anticlockwise_line, ips,
                  num_long_range_encounters_per_side,
                  harmonic_number, bunch_spacing_buckets,
-                 nemitt_x, nemitt_y,
+                 nemitt_x=None, nemitt_y=None,
                  bb_suffix_cw='_cw', bb_suffix_acw='_acw'):
         self.cw_line = clockwise_line
         self.acw_line = anticlockwise_line
@@ -230,14 +235,9 @@ class RigidBunchBBSetup:
         physical slot identifiers are exposed as ``filled_slots_cw`` and
         ``filled_slots_acw``.
 
-        If the beam-beam elements are already installed, a change in either
-        bunch count rebuilds them with arrays sized exactly for the new filling.
-        A change that preserves both counts updates the bunch grids and resets
-        the opposing state in place."""
-        old_n_cw = (None if self.filled_slots_cw is None
-                    else len(self.filled_slots_cw))
-        old_n_acw = (None if self.filled_slots_acw is None
-                     else len(self.filled_slots_acw))
+        The installed elements have one entry per RF slot, so any filling
+        change updates their slot-indexed data in place without reallocating
+        the Xobjects."""
         normalized_cw = _normalize_filling(
             filling_scheme_cw, bunch_intensity_particles_cw,
             self.n_slots, 'cw')
@@ -249,28 +249,24 @@ class RigidBunchBBSetup:
         (self.filling_scheme_acw, self.filled_slots_acw,
          self.bunch_intensity_particles_acw) = normalized_acw
 
-        # Skipped during installation, before elements and geometry exist.
+        # Skipped before both elements and geometry exist. Once configured,
+        # filling changes reset the slot-indexed opposing state in place.
         if self.bb_cw and self.geom:
-            count_changed = (old_n_cw != len(self.filled_slots_cw)
-                             or old_n_acw != len(self.filled_slots_acw))
-            if count_changed:
-                self._rebuild_bb_elements()
-            else:
-                self._configure_bb()
+            self._configure_bb()
 
     # ------------------------------------------------------------------
     # Building (used by install_multibunch_beambeam)
     # ------------------------------------------------------------------
     def _representative_other_beam(self, line, mirror):
-        """One inactive-kick representative per opposing bunch.
+        """One inactive-kick representative per opposing RF slot.
 
-        The particles remain active so their count determines exact storage,
-        but zero weight preserves the bare-lattice cold start until a solution
-        update loads the physical bunch populations.
+        All representatives remain active so their count allocates full-slot
+        storage, while zero weight preserves the bare-lattice cold start until
+        a solution update loads the physical bunch populations.
         """
         import xtrack as xt
         other_line = self.cw_line if mirror else self.acw_line
-        slots = self.filled_slots_cw if mirror else self.filled_slots_acw
+        slots = np.arange(self.n_slots)
         return xt.Particles(
             _context=line._context,
             p0c=other_line.particle_ref.p0c[0],
@@ -282,12 +278,12 @@ class RigidBunchBBSetup:
             weight=np.zeros(len(slots)))
 
     def _make_bb(self, line, mirror):
-        """Build one exactly sized rigid-bunch beam-beam element."""
+        """Build one rigid-bunch element with one entry per RF slot."""
         import xfields as xf
         beta0_other = _beta0(self.acw_line if not mirror else self.cw_line)
         q0_other = float((self.acw_line if not mirror
                           else self.cw_line).particle_ref.q0)
-        own_zeta = self.bunch_zeta(mirror)
+        own_zeta = -np.arange(self.n_slots) * self.bunch_spacing_zeta
         return xf.BeamBeamBiGaussianRigidBunch2D(
             other_particles=self._representative_other_beam(line, mirror),
             own_beam_zeta=own_zeta,
@@ -301,7 +297,7 @@ class RigidBunchBBSetup:
             _context=line._context)
 
     def _place_bb(self, line, mirror):
-        """Place one (still un-sized) beam-beam element per encounter DIRECTLY
+        """Place one full-slot beam-beam element per encounter DIRECTLY
         at the encounter positions of ``line`` (no separate markers). The
         element is named ``bb_name(base, mirror)`` and is the observation point
         for the geometry. Sizes/offsets are set later by ``_configure_bb``.
@@ -326,22 +322,6 @@ class RigidBunchBBSetup:
         line.insert(places)
         _bind_beambeam_scale(line, [elname for _, elname in names])
         return {base: line[elname] for base, elname in names}
-
-    def _rebuild_bb_elements(self):
-        """Replace installed elements after a change in either bunch count."""
-        rebuilt = []
-        for line, mirror in ((self.cw_line, False), (self.acw_line, True)):
-            for base in self.enc_names:
-                elname = self.bb_name(base, mirror)
-                bb = self._make_bb(line, mirror)
-                line.env.elements.remove(elname)
-                line.env.elements[elname] = bb
-            names = (self.bb_names_acw if mirror else self.bb_names_cw)
-            _bind_beambeam_scale(line, names)
-            rebuilt.append({base: line[self.bb_name(base, mirror)]
-                            for base in self.enc_names})
-        self.bb_cw, self.bb_acw = rebuilt
-        self._configure_bb()
 
     def _resolve_ip_offsets(self, tw_cw):
         """Head-on pairing offset (in slots) of each IP: from ``self.ips`` if a
@@ -411,8 +391,6 @@ class RigidBunchBBSetup:
         filled with a single value broadcast over the opposing bunches."""
         for mirror, bb_dict in ((False, self.bb_cw), (True, self.bb_acw)):
             oth = 'cw' if mirror else 'acw'
-            n_oth = (len(self.filled_slots_cw) if mirror
-                     else len(self.filled_slots_acw))
             for base in self.enc_names:
                 e = self.geom[base]
                 bb = bb_dict[base]
@@ -422,9 +400,9 @@ class RigidBunchBBSetup:
                 bb.zeta_offset = (e['offset'] if mirror else -e['offset']) \
                     * self.bunch_spacing_zeta
                 bb.other_beam_sigma_x = np.full(
-                    n_oth, e[f'sigma_x_{oth}'])
+                    self.n_slots, e[f'sigma_x_{oth}'])
                 bb.other_beam_sigma_y = np.full(
-                    n_oth, e[f'sigma_y_{oth}'])
+                    self.n_slots, e[f'sigma_y_{oth}'])
         self._register_own_sizes()
         for line, mirror, bb_dict in (
                 (self.cw_line, False, self.bb_cw),
@@ -436,15 +414,11 @@ class RigidBunchBBSetup:
     def _register_own_sizes(self):
         """(Re)register each element's OWN bunch grid (``own_beam_zeta``) and
         static design sizes (``sigma_x``/``sigma_y``, indexed by THIS beam) for
-        the CURRENT filling. Called at install and again whenever the filling
-        changes (:meth:`set_filling`), so the per-bunch own arrays always match
-        ``self.filled_slots_*``. Uses the covariance-derived bare-optics sizes
-        cached in ``self.geom`` (uniform over bunches). A count change rebuilds
-        the elements before this method is called, so their array lengths match
-        the current filling."""
+        every RF slot. Uses the covariance-derived bare-optics sizes cached in
+        ``self.geom`` (uniform over slots)."""
         for mirror, bb_dict in ((False, self.bb_cw), (True, self.bb_acw)):
             own = 'acw' if mirror else 'cw'
-            own_zeta = self.bunch_zeta(mirror)
+            own_zeta = -np.arange(self.n_slots) * self.bunch_spacing_zeta
             for base in self.enc_names:
                 e = self.geom[base]
                 bb_dict[base].update_from_own_beam(
@@ -516,18 +490,18 @@ class RigidBunchBBSetup:
     def _sigma_vector(self, bb_dict, mirror):
         """Own-beam per-bunch sizes laid out to match :func:`_orbit_vector` (x
         then y, each the ``(n_bunches, n_enc)`` array raveled). :meth:`set_filling`
-        keeps every element's own arrays in sync with the solved bunches. The
-        element stores increasing zeta, while Twiss follows increasing physical
-        slot number (decreasing zeta), so the element arrays are mapped back to
-        public filled-slot order before stacking."""
+        keeps every element's own arrays in sync with all RF slots. The element
+        stores increasing zeta, while Twiss follows increasing physical slot
+        number (decreasing zeta), so the filled slots are selected and mapped
+        back to public order before stacking."""
         zeta = self.bunch_zeta(mirror)
-        inverse_zeta_order = np.argsort(np.argsort(zeta, kind='stable'),
-                                       kind='stable')
 
         def active(bb):
             n = int(bb.num_own_bunches)
-            return (np.asarray(bb.sigma_x)[:n][inverse_zeta_order],
-                    np.asarray(bb.sigma_y)[:n][inverse_zeta_order])
+            stored_zeta = np.asarray(bb.own_beam_zeta)[:n]
+            indices = np.searchsorted(stored_zeta, zeta)
+            return (np.asarray(bb.sigma_x)[:n][indices],
+                    np.asarray(bb.sigma_y)[:n][indices])
         cols = [active(bb_dict[b]) for b in self.enc_names]
         sx = np.stack([c[0] for c in cols], axis=1)   # (n_bunches, n_enc)
         sy = np.stack([c[1] for c in cols], axis=1)
@@ -547,26 +521,49 @@ class RigidBunchBBSetup:
         import xtrack as xt
         xs = -mbtw_other['x', bb_names_other]
         ys = mbtw_other['y', bb_names_other]
-        zeta_other = -np.asarray(slots_other) * self.bunch_spacing_zeta
-        zeta_own = -np.asarray(slots_own) * self.bunch_spacing_zeta
+        slots_other = np.asarray(slots_other, dtype=np.int64)
+        slots_own = np.asarray(slots_own, dtype=np.int64)
+        all_slots = np.arange(self.n_slots)
+        zeta_all = -all_slots * self.bunch_spacing_zeta
+        weight_all = np.zeros(self.n_slots)
+        weight_all[slots_other] = num_particles_other
         ref = self.cw_line.particle_ref
         p = xt.Particles(
             p0c=ref.p0c[0], mass0=ref.mass0, q0=ref.q0,
-            x=np.zeros(len(zeta_other)), y=np.zeros(len(zeta_other)),
-            zeta=zeta_other, weight=num_particles_other)
+            x=np.zeros(self.n_slots), y=np.zeros(self.n_slots),
+            zeta=zeta_all, weight=weight_all)
+        other = 'acw' if bb_dict is self.bb_cw else 'cw'
+        own = 'cw' if bb_dict is self.bb_cw else 'acw'
         for j, base in enumerate(self.enc_names):
-            p.x[:] = xs[:, j] - self.geom[base]['sep_x']
-            p.y[:] = ys[:, j] - self.geom[base]['sep_y']
+            x_all = np.zeros(self.n_slots)
+            y_all = np.zeros(self.n_slots)
+            x_all[slots_other] = xs[:, j] - self.geom[base]['sep_x']
+            y_all[slots_other] = ys[:, j] - self.geom[base]['sep_y']
+            p.x[:] = x_all
+            p.y[:] = y_all
             kw = {}
             if sigmas_other is not None:
-                kw = dict(other_beam_sigma_x=sigmas_other[0][:, j],
-                          other_beam_sigma_y=sigmas_other[1][:, j])
+                sigma_x_other = np.full(
+                    self.n_slots, self.geom[base][f'sigma_x_{other}'])
+                sigma_y_other = np.full(
+                    self.n_slots, self.geom[base][f'sigma_y_{other}'])
+                sigma_x_other[slots_other] = sigmas_other[0][:, j]
+                sigma_y_other[slots_other] = sigmas_other[1][:, j]
+                kw = dict(other_beam_sigma_x=sigma_x_other,
+                          other_beam_sigma_y=sigma_y_other)
             bb = bb_dict[base]
             bb.update_from_other_beam(p, **kw)
             if sigmas_own is not None:
-                bb.update_from_own_beam(zeta=zeta_own,
-                                        sigma_x=sigmas_own[0][:, j],
-                                        sigma_y=sigmas_own[1][:, j])
+                sigma_x_own = np.full(
+                    self.n_slots, self.geom[base][f'sigma_x_{own}'])
+                sigma_y_own = np.full(
+                    self.n_slots, self.geom[base][f'sigma_y_{own}'])
+                sigma_x_own[slots_own] = sigmas_own[0][:, j]
+                sigma_y_own[slots_own] = sigmas_own[1][:, j]
+                bb.update_from_own_beam(
+                    zeta=zeta_all,
+                    sigma_x=sigma_x_own,
+                    sigma_y=sigma_y_own)
 
     def load_solution(self, mbtw_clockwise, mbtw_anticlockwise,
                       dynamic_beta=False):
@@ -728,6 +725,139 @@ def _orbit_vector(mbtw, bb_names):
 # ----------------------------------------------------------------------------
 # Entry point
 # ----------------------------------------------------------------------------
+def install_rigid_bunch_beambeam(
+        env, clockwise_line, anticlockwise_line, ip_names,
+        num_long_range_encounters_per_side, harmonic_number,
+        bunch_spacing_buckets, delay_at_ips_slots=None,
+        survey_separation=True, bb_suffix_cw='_cw', bb_suffix_acw='_acw'):
+    """Install full-slot rigid-bunch elements and store their configuration."""
+    if harmonic_number is None or bunch_spacing_buckets is None:
+        raise ValueError(
+            '`harmonic_number` and `bunch_spacing_buckets` are required '
+            "when mode='rigid_bunch'.")
+    if clockwise_line is None or anticlockwise_line is None:
+        raise ValueError("mode='rigid_bunch' requires both beam lines.")
+
+    def line_name(line, argument_name):
+        if isinstance(line, str):
+            if line not in env.lines:
+                raise KeyError(f'Line `{line}` not found in environment.')
+            return line
+        matches = [name for name, candidate in env.lines.items()
+                   if candidate is line]
+        if len(matches) != 1:
+            raise ValueError(
+                f'`{argument_name}` must be a line in this environment or '
+                'its name.')
+        return matches[0]
+
+    ip_names = list(ip_names)
+    if delay_at_ips_slots is None:
+        ips = ip_names
+    elif isinstance(delay_at_ips_slots, dict):
+        ips = {ip: int(delay_at_ips_slots[ip]) for ip in ip_names}
+    else:
+        delays = list(delay_at_ips_slots)
+        if len(delays) != len(ip_names):
+            raise ValueError('`delay_at_ips_slots` must have one entry per IP.')
+        ips = {ip: int(delay) for ip, delay in zip(ip_names, delays)}
+
+    if isinstance(num_long_range_encounters_per_side, dict):
+        num_lr_values = [num_long_range_encounters_per_side[ip]
+                         for ip in ip_names]
+        num_lr_is_scalar = False
+    elif np.ndim(num_long_range_encounters_per_side) == 0:
+        num_lr_values = [num_long_range_encounters_per_side]
+        num_lr_is_scalar = True
+    else:
+        num_lr_values = list(num_long_range_encounters_per_side)
+        num_lr_is_scalar = False
+        if len(num_lr_values) != len(ip_names):
+            raise ValueError(
+                '`num_long_range_encounters_per_side` must have one entry '
+                'per IP.')
+    normalized_num_lr = []
+    for value in num_lr_values:
+        normalized = int(value)
+        if normalized != value or normalized < 0:
+            raise ValueError(
+                '`num_long_range_encounters_per_side` entries must be '
+                'non-negative integers.')
+        normalized_num_lr.append(normalized)
+    if num_lr_is_scalar:
+        num_lr = normalized_num_lr[0]
+    else:
+        num_lr = dict(zip(ip_names, normalized_num_lr))
+
+    cw_name = line_name(clockwise_line, 'clockwise_line')
+    acw_name = line_name(anticlockwise_line, 'anticlockwise_line')
+    env._bb_config = {
+        'mode': 'rigid_bunch',
+        # Retain the conventional serialization shape alongside the
+        # rigid-bunch installation description.
+        'dataframes': {'clockwise': None, 'anticlockwise': None},
+        'clockwise_line': cw_name,
+        'anticlockwise_line': acw_name,
+        'ip_names': ip_names,
+        'ips': ips,
+        'num_long_range_encounters_per_side': num_lr,
+        'harmonic_number': int(harmonic_number),
+        'bunch_spacing_buckets': int(bunch_spacing_buckets),
+        'survey_separation': bool(survey_separation),
+        'bb_suffix_cw': bb_suffix_cw,
+        'bb_suffix_acw': bb_suffix_acw,
+    }
+    setup = RigidBunchBBSetup(
+        env[cw_name], env[acw_name], ips, num_lr,
+        harmonic_number, bunch_spacing_buckets,
+        bb_suffix_cw=bb_suffix_cw, bb_suffix_acw=bb_suffix_acw)
+    setup.bb_cw = setup._place_bb(setup.cw_line, mirror=False)
+    setup.bb_acw = setup._place_bb(setup.acw_line, mirror=True)
+    env._rigid_bunch_bb_setup = setup
+
+
+def configure_rigid_bunch_beambeam(
+        env, nemitt_x, nemitt_y, filling_scheme_cw, filling_scheme_acw,
+        bunch_intensity_particles_cw, bunch_intensity_particles_acw):
+    """Populate installed rigid-bunch elements and return their setup."""
+    config = env._bb_config
+    if config.get('mode') != 'rigid_bunch':
+        raise RuntimeError(
+            'Install beam-beam interactions with `mode="rigid_bunch"` first.')
+    setup = getattr(env, '_rigid_bunch_bb_setup', None)
+    if setup is None:
+        cw = env[config['clockwise_line']]
+        acw = env[config['anticlockwise_line']]
+        setup = RigidBunchBBSetup(
+            cw, acw, config['ips'],
+            config['num_long_range_encounters_per_side'],
+            config['harmonic_number'], config['bunch_spacing_buckets'],
+            bb_suffix_cw=config['bb_suffix_cw'],
+            bb_suffix_acw=config['bb_suffix_acw'])
+        setup.bb_cw = {
+            base: cw[name]
+            for base, name in zip(setup.enc_names, setup.bb_names_cw)}
+        setup.bb_acw = {
+            base: acw[name]
+            for base, name in zip(setup.enc_names, setup.bb_names_acw)}
+    elif setup.geom:
+        raise RuntimeError(
+            'Rigid-bunch beam-beam interactions are already configured; use '
+            '`setup.set_filling(...)` to change their filling.')
+
+    setup.nemitt_x = nemitt_x
+    setup.nemitt_y = nemitt_y
+    setup.set_filling(
+        filling_scheme_cw=filling_scheme_cw,
+        filling_scheme_acw=filling_scheme_acw,
+        bunch_intensity_particles_cw=bunch_intensity_particles_cw,
+        bunch_intensity_particles_acw=bunch_intensity_particles_acw)
+    setup._compute_geometry(
+        survey_separation=config['survey_separation'])
+    env._rigid_bunch_bb_setup = setup
+    return setup
+
+
 def install_multibunch_beambeam(env, clockwise_line, anticlockwise_line,
                                 ips,
                                 num_long_range_encounters_per_side,
@@ -738,8 +868,10 @@ def install_multibunch_beambeam(env, clockwise_line, anticlockwise_line,
                                 bunch_intensity_particles_acw,
                                 survey_separation=True,
                                 bb_suffix_cw='_cw', bb_suffix_acw='_acw'):
-    """Install rigid-bunch beam-beam elements at N IPs of two counter-rotating
-    rings and compute the encounter geometry. See
+    """Compatibility entry point installing rigid-bunch beam-beam elements at
+    N IPs of two counter-rotating rings and computing the encounter geometry.
+    New code should use ``install_beambeam_interactions(mode='rigid_bunch')``
+    followed by ``configure_beambeam_interactions(...)``. See
     :meth:`xtrack.environment.EnvXfields.install_multibunch_beambeam` for the
     full documentation. Returns a :class:`RigidBunchBBSetup`."""
     cw = _resolve_line(env, clockwise_line)

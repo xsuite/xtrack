@@ -18,10 +18,8 @@ The current implementation introduces two concepts parallel to existing ones:
 The physical kick and the installation/configuration workflow should not have
 parallel implementations. The element storage, however, has a real structural
 difference: scalar BB2D has fixed-size data, while the rigid-bunch element owns
-filling-dependent arrays and must be reallocated when the number of bunches
-changes. Combining those layouts would enlarge every scalar BB2D element,
-introduce a per-particle mode branch and complicate the API without avoiding
-rigid-bunch reallocation.
+arrays indexed by RF slot. Combining those layouts would enlarge every scalar
+BB2D element, introduce a per-particle mode branch and complicate the API.
 
 The multibunch-specific behavior is narrower than these duplicated surfaces:
 
@@ -42,7 +40,7 @@ tracking contracts:
 
 - `BeamBeamBiGaussian2D` keeps its compact scalar layout, established
   constructor, weak-strong behavior and pipeline strong-strong updater.
-- `BeamBeamBiGaussianRigidBunch2D` owns the filling-dependent bunch arrays and
+- `BeamBeamBiGaussianRigidBunch2D` owns the slot-indexed bunch arrays and
   the rigid-bunch train behavior.
 
 The classes must call one common BB2D kick helper that owns:
@@ -65,10 +63,12 @@ and opposing bunch covariances. Using covariances instead of separate
 `sigma_x`/`sigma_y` logic remains consistent with scalar BB2D and leaves room
 for transverse coupling.
 
-Rigid-bunch array lengths should be inferred exactly from the normalized own and
-opposing filling data. There is no public reserve-capacity contract. Changing
-the number of bunches explicitly reconfigures/reallocates the rigid-bunch
-elements; updates that preserve the filling can modify their data in place.
+In the high-level ring workflow, rigid-bunch arrays have one entry per physical
+RF slot. ``harmonic_number`` and ``bunch_spacing_buckets`` determine that size
+at installation, so installation can actually place the elements before the
+filling is configured. Empty slots carry zero population, and any subsequent
+filling change updates the existing elements in place. The standalone Xfields
+element can still infer its allocation from explicitly supplied bunch data.
 
 Keeping the classes separate also makes the semantics visible in the API:
 pipeline strong-strong remains a configuration of scalar BB2D, whereas
@@ -172,20 +172,13 @@ not uniform. The setup should expose the derived physical slot identifiers as
 `filled_slots_cw` and `filled_slots_acw`, rather than the ambiguous
 `bunches_cw` and `bunches_acw`.
 
-The normalized filling schemes also determine the exact sizes of the own- and
-opposing-bunch arrays allocated in each beam-beam element. The public API
-should not expose a separate `num_bunches` argument as reserve capacity: for a
-clockwise element, for example, the own arrays are sized from
-`len(filled_slots_cw)` and the opposing arrays from
-`len(filled_slots_acw)`, with the converse used for the anticlockwise element.
-This matches `BeamStatsMonitor` and the Xwakes slicer, where storage follows the
-configured pattern rather than a user-visible maximum capacity.
-
-If `set_filling(...)` changes the number of filled slots, it should explicitly
-reconfigure or reallocate the affected element arrays. An internal Xobject
-capacity may still exist as an implementation detail, but shrinking an active
-prefix within a larger reserved allocation must not be part of the public
-behavioral contract.
+The high-level installer allocates own- and opposing-beam arrays for every RF
+slot. This is not a user-selected reserve capacity: the ring topology fixes it
+uniquely as ``harmonic_number // bunch_spacing_buckets``. The filling schemes
+select populated physical slots, while empty slots remain present with zero
+population. This keeps the public filling semantics aligned with
+`BeamStatsMonitor` and Xwakes, and lets `set_filling(...)` update elements in
+place without a hidden reallocation lifecycle.
 
 Keeping `harmonic_number` and `bunch_spacing_buckets` in the high-level
 beam-beam installation API is useful because encounter pairing needs the
@@ -256,12 +249,12 @@ realistic final acceptance tests.
 In Xfields, extract the scalar BB2D field and kick calculation into a shared C
 helper and call it from both element kernels. Preserve the scalar BB2D Xobject
 layout, constructor defaults and pipeline behavior. Keep rigid-bunch matching,
-filling-dependent arrays and update methods on
+slot-indexed arrays and update methods on
 `BeamBeamBiGaussianRigidBunch2D`.
 
-Then change the rigid-bunch element to allocate exactly from the supplied own and
-opposing bunch data. Remove the public reserve-capacity arguments. A filling
-change should explicitly reconstruct/reconfigure the affected elements.
+The standalone element allocates from the supplied own and opposing bunch data;
+the high-level ring installer supplies all RF slots. No public reserve-capacity
+argument is needed.
 
 ### Phase 3: align the Xtrack train API
 
@@ -273,8 +266,7 @@ API decisions:
 - expose `filled_slots_cw`, `filled_slots_acw` and `bunch_spacing_zeta`; and
 - translate the common public negative-`zeta` slot convention at the kernel
   boundary if the internal matching implementation needs another convention;
-- reconfigure the filling-dependent elements when the number of bunches
-  changes.
+- update full-slot element data in place when the filling changes.
 
 Do not otherwise change the solver physics or iteration algorithm during this
 migration.
@@ -315,6 +307,15 @@ MadPoint/survey calculation before checking the configured CW and
 counter-rotating ACW elements. Crabbing, the final counter-rotating element
 conversion, orbit-dependent kick subtraction and one-beam antisymmetry remain
 mode-specific and unchanged.
+
+Steps 4--6 are complete behind the explicit ``mode='rigid_bunch'`` selection.
+In this mode installation places serializable elements with arrays covering
+every RF slot. Configuration receives the two filling schemes, populations and
+emittances, loads geometry and per-slot state, and returns
+``RigidBunchBBSetup``. A bridge test compares the result with the
+temporary all-in-one installer, including names, positions, geometry, element
+arrays, strength-knob response and a short self-consistent solve. Calls without
+the mode continue to dispatch unchanged to the conventional workflow.
 
 ### Phase 5: migrate examples and remove the duplicate installer path
 
@@ -401,7 +402,7 @@ Test the installation layout exactly:
 - longitudinal positions and CW/ACW suffixes;
 - pairing offsets and their signs;
 - `zeta_period` and matching tolerance;
-- own and opposing array lengths inferred from the fillings;
+- own and opposing array lengths equal to the number of RF slots;
 - `beambeam_scale` references.
 
 Test configuration and geometry:
@@ -415,8 +416,7 @@ Test configuration and geometry:
 
 Test the stateful setup independently:
 
-- `set_filling(...)` rebuilding the filling-dependent elements when the bunch
-  count changes;
+- `set_filling(...)` updating full-slot arrays without replacing elements;
 - a short symmetric two-beam solve;
 - `load_solution(...)`;
 - static and dynamic-beta updates;
@@ -477,12 +477,12 @@ Keep the preparatory tests and implementation changes in separate commits:
 8. `Migrate examples and remove duplicate installer API`.
 9. `Add final regression coverage`.
 
-The first six work packages are complete. Fast characterization protects the
+The first seven work packages are complete. Fast characterization protects the
 shared encounter and geometry output, including exact comparison with the
-former conventional survey calculation. Installer equivalence tests remain
-active through commits 7--8; Xmask is used at this completed-geometry
-checkpoint and again for final acceptance after the duplicate installer path
-has been removed.
+former conventional survey calculation. The temporary installer equivalence
+test remains active through work package 8; Xmask passed at the completed-
+geometry checkpoint and is used again for final acceptance after the duplicate
+installer path has been removed.
 
 ## Non-goals
 
