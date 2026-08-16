@@ -174,6 +174,140 @@ closed orbit. Its lower-level coordinate conventions may still be shared.
    knobs, prebuilt kernels, CPU/OpenMP contexts, existing beam-beam tests and
    the pytrain regression.
 
+## Test plan before refactoring
+
+The xmask tests provide important end-to-end protection for the established
+LHC beam-beam workflow, but they are too slow to be the main development loop.
+Before changing the element or installer, add a compact test layer that runs in
+seconds and isolates failures. Keep the xmask and pytrain tests as final
+realistic acceptance tests.
+
+### 1. Xfields element tests
+
+Extend `xfields/tests/test_beambeam_multibunch2d.py` using construction helpers
+such as `_make_scalar_bb(...)` and `_make_multibunch_bb(...)`. During the
+migration only the multibunch factory should need to change from
+`BeamBeamBiGaussianMultibunch2D` to the multibunch mode of
+`BeamBeamBiGaussian2D`.
+
+Protect the current multibunch behavior with focused tests for:
+
+- one-bunch scalar/multibunch equivalence for round and elliptical beams;
+- several bunches with distinct centroids, intensities and sizes;
+- coherent and incoherent covariance handling;
+- an unmatched bunch receiving exactly zero kick;
+- positive and negative offsets with periodic wrapping;
+- unsorted updates preserving the association between `zeta`, centroids,
+  populations and covariances;
+- scalar size broadcasting and per-bunch sizes;
+- capacity errors and changes in the active bunch count;
+- `scale_strength` at `0`, an intermediate value and `1`.
+
+Strengthen the scalar BB2D characterization tests to cover:
+
+- modern and legacy constructors producing identical fields and kicks;
+- `ref_shift_x/y` and `post_subtract_px/py`;
+- nontrivial transverse covariance fields;
+- copy and dictionary/JSON round trips;
+- construction inside a line and xdeps control of `scale_strength`;
+- the existing pipeline updater remaining functional.
+
+Where the two paths execute the same kick formula, require agreement close to
+machine precision. Use broader tolerances only when comparing genuinely
+different numerical algorithms.
+
+### 2. Xtrack installation and configuration tests
+
+Add `xtrack/tests/test_multibunch_beambeam.py` based on a small deterministic
+two-beam environment: four or eight RF slots, two IP markers, at most one
+long-range encounter per side and three populated bunches with different
+intensities. Most tests should set `survey_separation=False`; use a separate
+small curved lattice for the survey-sign checks.
+
+Test the installation layout exactly:
+
+- element names, order and number of head-on/LR encounters;
+- longitudinal positions and CW/ACW suffixes;
+- pairing offsets and their signs;
+- `zeta_period` and matching tolerance;
+- allocated and active bunch counts;
+- `beambeam_scale` references.
+
+Test configuration and geometry:
+
+- explicit IP offsets supplied as a mapping;
+- inferred offsets supplied through an IP list;
+- scalar and per-IP long-range encounter counts;
+- assigned populations and covariances;
+- CW/ACW transverse coordinate transformations;
+- nonzero survey separation on the curved toy lattice.
+
+Test the stateful setup independently:
+
+- `set_filling(...)` with a smaller filling;
+- rejection of a filling that exceeds the allocated capacity;
+- a short symmetric two-beam solve;
+- `load_solution(...)`;
+- static and dynamic-beta updates;
+- `second_order_maps(...)` preserving the exact beam-beam elements.
+
+### 3. Multibunch Twiss tests
+
+Add `xtrack/tests/test_twiss_multibunch.py` using a `LineSegmentMap` and one 2D
+beam-beam lens, following the small generic example without plotting or
+external model data.
+
+Cover:
+
+- `full`, `fast` and `fast_orbit` on the same bunches;
+- closed-orbit and fractional-tune agreement against `full`;
+- beta, alpha, dispersion and phase from `fast` against `full`;
+- `MultiBunchTwiss` integer, named-row and attribute access;
+- explicit `zeta` input and bunch positions read from `Particles`;
+- invalid argument combinations, unsupported kwargs and empty inputs;
+- lost particles and closed-orbit failure handling.
+
+The tests should explicitly document the current difference in `qx/qy`
+semantics: `fast_orbit` exposes fractional tunes while `fast` exposes
+accumulated tunes.
+
+### 4. Temporary old/new equivalence tests
+
+Keep both implementations available briefly during each migration.
+
+For the element, construct the old multibunch element and the new multibunch
+mode of BB2D from identical data, track identical particles and compare the
+kicks directly.
+
+For installation, build two copies of the toy environment. Configure one with
+`install_multibunch_beambeam(...)` and the other with the multibunch mode of
+the existing install/configure workflow. Compare normalized snapshots
+containing:
+
+- encounter names and positions;
+- IP offsets and geometry;
+- all active per-bunch element arrays;
+- scale-knob expressions;
+- per-bunch Twiss results after a small number of solver iterations.
+
+After equivalence is established and the duplicate implementation is removed,
+replace these bridge comparisons with permanent behavioral assertions against
+the normalized expected result.
+
+### 5. Test and refactoring sequence
+
+Keep the preparatory tests and implementation changes in separate commits:
+
+1. Add scalar BB2D characterization tests.
+2. Add missing tests for the current multibunch element.
+3. Add toy installer/setup tests for the current standalone path.
+4. Add `fast`/`fast_orbit`/`full` multibunch Twiss comparisons.
+5. Refactor the element while the old/new equivalence tests are active.
+6. Refactor installation while the old/new equivalence tests are active.
+7. Remove the old paths and convert the bridge tests into permanent behavioral
+   tests.
+8. Run the pytrain regression and the slow xmask tests as final acceptance.
+
 ## Non-goals
 
 - This rationalization does not change the intended coherent multibunch
