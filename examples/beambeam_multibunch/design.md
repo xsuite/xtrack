@@ -308,6 +308,13 @@ computes local-survey separation without crossing the line seam. The temporary
 rigid-bunch installer consumes this result. The conventional configuration path
 still needs to be routed through the same helper before commit 6 is complete.
 
+The first conventional migration slice is also complete for the standard
+two-beam path. Its explicitly oriented CW/ACW Twiss tables, closed-orbit
+coordinates and all transverse covariance components now come from the shared
+geometry result. The established survey/MadPoint separation, crabbing,
+counter-rotating transformation and one-beam antisymmetry code remain in place
+for the next equivalence slices.
+
 ### Phase 5: migrate examples and remove the duplicate installer path
 
 Once the installer equivalence tests pass:
