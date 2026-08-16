@@ -283,21 +283,22 @@ Refactor the existing workflow incrementally:
    `configure_beambeam_interactions(...)`.
 6. Return `RigidBunchBBSetup` for the genuinely stateful operations.
 
-Keep `install_multibunch_beambeam(...)` as a temporary bridge and compare its
-normalized output against the consolidated path after each step.
+During migration, keep `install_multibunch_beambeam(...)` as a temporary bridge
+and compare its normalized output against the consolidated path. Remove it once
+the examples and permanent behavioral tests use the standard workflow.
 
 Step 1 is complete: Xfields now provides one logical encounter table containing
 the IP, encounter type, signed long-range index, orientation-specific
 displacement from the IP and CW/ACW bunch-pairing offsets. The conventional
-installer expands head-on slices from this table, while the temporary
-rigid-bunch installer renders its own element names and consumes the same
+installer expands head-on slices from this table, while the rigid-bunch path
+renders its own element names and consumes the same
 placement and pairing data.
 
 Step 2 is complete for the rigid-bunch path: Xfields now provides an
 element-independent geometry helper that evaluates both Twiss tables, obtains
 the standard transverse covariance with `twiss.get_beam_covariance()` and
-computes local-survey separation without crossing the line seam. The temporary
-rigid-bunch installer consumes this result.
+computes local-survey separation without crossing the line seam. The
+rigid-bunch configuration consumes this result.
 
 The standard two-beam conventional path now also consumes the shared result for
 its explicitly oriented CW/ACW Twiss tables, closed-orbit coordinates,
@@ -313,13 +314,14 @@ In this mode installation places serializable elements with arrays covering
 every RF slot. Configuration receives the two filling schemes, populations and
 emittances, loads geometry and per-slot state, and returns
 ``RigidBunchBBSetup``. A bridge test compares the result with the
-temporary all-in-one installer, including names, positions, geometry, element
-arrays, strength-knob response and a short self-consistent solve. Calls without
-the mode continue to dispatch unchanged to the conventional workflow.
+temporary all-in-one installer during migration. Permanent tests now protect
+names, positions, geometry, element arrays, strength-knob response and a short
+self-consistent solve. Calls without the mode continue to dispatch unchanged
+to the conventional workflow.
 
 ### Phase 5: migrate examples and remove the duplicate installer path
 
-Once the installer equivalence tests pass:
+This phase is complete:
 
 - migrate all examples to the consolidated install/configure workflow;
 - remove `install_multibunch_beambeam(...)` and its environment façade;
@@ -442,16 +444,14 @@ The tests should explicitly document the current difference in `qx/qy`
 semantics: `fast_orbit` exposes fractional tunes while `fast` exposes
 accumulated tunes.
 
-### 4. Temporary installer equivalence tests
+### 4. Permanent installer behavior tests
 
-The scalar/rigid-bunch element comparisons are permanent physics tests, not a
-temporary migration bridge. They compare each selected rigid-bunch kick against
-an independently configured scalar BB2D.
+The scalar/rigid-bunch element comparisons compare each selected rigid-bunch
+kick against an independently configured scalar BB2D.
 
-For installation, build two copies of the toy environment. Configure one with
-`install_multibunch_beambeam(...)` and the other with rigid-bunch mode in
-the existing install/configure workflow. Compare normalized snapshots
-containing:
+For installation, exercise rigid-bunch mode through the standard
+install/configure workflow, including a serialization round trip between the
+two calls. Protect the normalized result through assertions covering:
 
 - encounter names and positions;
 - IP offsets and geometry;
@@ -459,9 +459,8 @@ containing:
 - scale-knob expressions;
 - per-bunch Twiss results after a small number of solver iterations.
 
-After equivalence is established and the duplicate installer is removed,
-replace these bridge comparisons with permanent behavioral assertions against
-the normalized expected result.
+These assertions replaced the temporary old-vs-new bridge comparison when the
+duplicate installer was removed.
 
 ### 5. Test and refactoring sequence
 
@@ -477,12 +476,11 @@ Keep the preparatory tests and implementation changes in separate commits:
 8. `Migrate examples and remove duplicate installer API`.
 9. `Add final regression coverage`.
 
-The first seven work packages are complete. Fast characterization protects the
+The first eight work packages are complete. Fast characterization protects the
 shared encounter and geometry output, including exact comparison with the
-former conventional survey calculation. The temporary installer equivalence
-test remains active through work package 8; Xmask passed at the completed-
-geometry checkpoint and is used again for final acceptance after the duplicate
-installer path has been removed.
+former conventional survey calculation. Xmask passed at the completed-geometry
+checkpoint and is used again for final acceptance after removal of the
+duplicate installer path.
 
 ## Non-goals
 

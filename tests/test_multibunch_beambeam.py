@@ -89,31 +89,7 @@ def _toy_filling():
             intensity_cw, intensity_acw)
 
 
-def _install_toy_multibunch_beambeam():
-    env = _make_toy_environment()
-    (filling_scheme_cw, filling_scheme_acw,
-     intensity_cw, intensity_acw) = _toy_filling()
-
-    setup = env.xfields.install_multibunch_beambeam(
-        clockwise_line='cw',
-        anticlockwise_line='acw',
-        ips=['ip1', 'ip2'],
-        num_long_range_encounters_per_side=1,
-        harmonic_number=N_SLOTS,
-        bunch_spacing_buckets=1,
-        nemitt_x=NEMITT_X,
-        nemitt_y=NEMITT_Y,
-        filling_scheme_cw=filling_scheme_cw,
-        filling_scheme_acw=filling_scheme_acw,
-        bunch_intensity_particles_cw=intensity_cw,
-        bunch_intensity_particles_acw=intensity_acw,
-        survey_separation=True,
-    )
-    return (env, setup, filling_scheme_cw, filling_scheme_acw,
-            intensity_cw, intensity_acw)
-
-
-def _install_toy_rigid_bunch_through_standard_api():
+def _install_toy_rigid_bunch_beambeam():
     env = _make_toy_environment()
     (filling_scheme_cw, filling_scheme_acw,
      intensity_cw, intensity_acw) = _toy_filling()
@@ -154,102 +130,11 @@ def _install_toy_rigid_bunch_through_standard_api():
             intensity_cw, intensity_acw)
 
 
-def test_rigid_bunch_standard_api_matches_temporary_installer():
-    # The consolidated install/configure workflow must be behaviorally
-    # identical to the temporary all-in-one rigid-bunch entry point. Compare
-    # the encounter plan, installed elements, geometry, filling data, strength
-    # knob response and a short self-consistent reduced-lattice solve.
-    old = _install_toy_multibunch_beambeam()
-    new = _install_toy_rigid_bunch_through_standard_api()
-    env_old, setup_old = old[:2]
-    env_new, setup_new = new[:2]
-
-    assert isinstance(setup_new, RigidBunchBBSetup)
-    assert setup_new.enc_names == setup_old.enc_names
-    assert setup_new.bb_names_cw == setup_old.bb_names_cw
-    assert setup_new.bb_names_acw == setup_old.bb_names_acw
-    assert setup_new.ip_offsets == setup_old.ip_offsets
-    assert setup_new.n_slots == setup_old.n_slots
-    xo.assert_allclose(setup_new.filling_scheme_cw,
-                       setup_old.filling_scheme_cw, rtol=0, atol=0)
-    xo.assert_allclose(setup_new.filling_scheme_acw,
-                       setup_old.filling_scheme_acw, rtol=0, atol=0)
-    xo.assert_allclose(setup_new.bunch_intensity_particles_cw,
-                       setup_old.bunch_intensity_particles_cw,
-                       rtol=0, atol=0)
-    xo.assert_allclose(setup_new.bunch_intensity_particles_acw,
-                       setup_old.bunch_intensity_particles_acw,
-                       rtol=0, atol=0)
-
-    for orientation in ('cw', 'acw'):
-        line_old = getattr(env_old, orientation)
-        line_new = getattr(env_new, orientation)
-        names = getattr(setup_old, f'bb_names_{orientation}')
-        xo.assert_allclose(line_new.get_table()['s', names],
-                           line_old.get_table()['s', names],
-                           rtol=0, atol=0)
-
-    geometry_fields = (
-        'offset', 'signed_n',
-        'betx_cw', 'bety_cw', 'betx_acw', 'bety_acw',
-        'sigma_x_cw', 'sigma_y_cw', 'sigma_x_acw', 'sigma_y_acw',
-        'sep_x', 'sep_y')
-    element_scalars = (
-        'zeta_offset', 'zeta_match_tol', 'zeta_period',
-        'other_beam_q0', 'other_beam_beta0', 'coherent')
-    element_arrays = (
-        'own_beam_zeta', 'sigma_x', 'sigma_y',
-        'other_beam_zeta', 'other_beam_x', 'other_beam_y',
-        'other_beam_num_particles',
-        'other_beam_sigma_x', 'other_beam_sigma_y')
-    for base in setup_old.enc_names:
-        assert setup_new.geom[base]['ip'] == setup_old.geom[base]['ip']
-        for field in geometry_fields:
-            xo.assert_allclose(setup_new.geom[base][field],
-                               setup_old.geom[base][field], rtol=0, atol=0)
-        for bb_old, bb_new in (
-                (setup_old.bb_cw[base], setup_new.bb_cw[base]),
-                (setup_old.bb_acw[base], setup_new.bb_acw[base])):
-            for field in element_scalars:
-                xo.assert_allclose(getattr(bb_new, field),
-                                   getattr(bb_old, field), rtol=0, atol=0)
-            for field in element_arrays:
-                xo.assert_allclose(getattr(bb_new, field),
-                                   getattr(bb_old, field), rtol=0, atol=0)
-
-    env_old.cw['beambeam_scale'] = 0.41
-    env_new.cw['beambeam_scale'] = 0.41
-    for setup in (setup_old, setup_new):
-        for name in setup.bb_names_cw:
-            xo.assert_allclose(setup.cw_line[name].scale_strength,
-                               0.41, rtol=0, atol=0)
-        for name in setup.bb_names_acw:
-            xo.assert_allclose(setup.acw_line[name].scale_strength,
-                               0.41, rtol=0, atol=0)
-
-    reduced_old = setup_old.second_order_maps()
-    reduced_new = setup_new.second_order_maps()
-    solution_old = reduced_old.solve(
-        max_iterations=1, tol_sigma=0, twiss_mode='fast_orbit',
-        show_progress=False)
-    solution_new = reduced_new.solve(
-        max_iterations=1, tol_sigma=0, twiss_mode='fast_orbit',
-        show_progress=False)
-    for twiss_old, twiss_new, names in (
-            (solution_old[0], solution_new[0], setup_old.bb_names_cw),
-            (solution_old[1], solution_new[1], setup_old.bb_names_acw)):
-        for coordinate in ('x', 'px', 'y', 'py'):
-            xo.assert_allclose(twiss_new[coordinate, names],
-                               twiss_old[coordinate, names],
-                               rtol=0, atol=0)
-
-
 def test_multibunch_beambeam_toy_installation_and_setup():
-    # Characterize the current standalone path through a normalized set of
-    # encounter, element and solution properties. The same checks can later be
-    # applied to the consolidated install/configure path.
+    # Characterize the consolidated install/configure path through a normalized
+    # set of encounter, element and solution properties.
     (env, setup, filling_scheme_cw, filling_scheme_acw,
-     intensity_cw, intensity_acw) = _install_toy_multibunch_beambeam()
+     intensity_cw, intensity_acw) = _install_toy_rigid_bunch_beambeam()
     assert isinstance(setup, RigidBunchBBSetup)
 
     expected_encounters = [

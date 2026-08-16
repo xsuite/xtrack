@@ -32,11 +32,13 @@ COMPUTE_OPTICS_PARAMS = os.environ.get('COMPUTE_OPTICS_PARAMS', '1') == '1'
 env, line_b1, line_b2, par = mb.load_lhc('injection')
 scheme_b1, scheme_b2 = mb.load_scheme()
 
-setup = env.xfields.install_multibunch_beambeam(
-    clockwise_line='lhcb1', anticlockwise_line='lhcb2', ips=par['ips'],
+env.xfields.install_beambeam_interactions(
+    clockwise_line='lhcb1', anticlockwise_line='lhcb2', ip_names=par['ips'],
     num_long_range_encounters_per_side=par['nparasitic'],
     harmonic_number=mb.HARMONIC_NUMBER,
     bunch_spacing_buckets=mb.BUNCH_SPACING_BUCKETS,
+    mode='rigid_bunch')
+setup = env.xfields.configure_beambeam_interactions(
     nemitt_x=par['nemitt'], nemitt_y=par['nemitt'],
     filling_scheme_cw=scheme_b1, filling_scheme_acw=scheme_b2,
     bunch_intensity_particles_cw=par['bunch_intensity'],

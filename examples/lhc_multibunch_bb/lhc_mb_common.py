@@ -7,9 +7,9 @@
 LHC-specific glue for the multi-bunch beam-beam examples.
 
 The multi-bunch beam-beam machinery itself is machine-independent and lives in
-:mod:`xtrack.multibunch_beambeam`. The single entry point
-``env.xfields.install_multibunch_beambeam(...)`` returns a ``RigidBunchBBSetup``;
-all further operations are methods on it (``setup.solve()``,
+:mod:`xtrack.multibunch_beambeam`. The standard beam-beam install/configure
+workflow with ``mode='rigid_bunch'`` returns a ``RigidBunchBBSetup``; all
+further operations are methods on it (``setup.solve()``,
 ``setup.second_order_maps()``, ``setup.load_solution(...)``,
 ``setup.set_filling(...)``). The examples call those directly; this module only
 holds the LHC-specific bits the generic tools cannot know about:
@@ -161,8 +161,7 @@ def windowed_slots(ho_offsets, scheme_b1, scheme_b2, window, n_slots=N_SLOTS):
     contiguous filled run of beam 1) plus the windows it collides with at every
     distinct head-on offset (so all IPs get realistic PACMAN pairings).
     ``ho_offsets`` is the ``{ip: offset}`` mapping the tools derive from the
-    ring geometry, i.e. ``setup.ip_offsets`` after
-    ``env.xfields.install_multibunch_beambeam``.
+    ring geometry, i.e. ``setup.ip_offsets`` after rigid-bunch configuration.
     """
     offsets = sorted(set(ho_offsets.values()))
     filled = scheme_b1 > 0

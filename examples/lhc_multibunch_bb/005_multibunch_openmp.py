@@ -38,11 +38,13 @@ print(f'multi-threaded context: {ctx_mt.omp_num_threads} '
 # Build the machine (as in 002) and populate the beam-beam elements
 # ----------------------------------------------------------------------------
 scheme_b1, scheme_b2 = mb.load_scheme()
-setup = env.xfields.install_multibunch_beambeam(
-    clockwise_line='lhcb1', anticlockwise_line='lhcb2', ips=par['ips'],
+env.xfields.install_beambeam_interactions(
+    clockwise_line='lhcb1', anticlockwise_line='lhcb2', ip_names=par['ips'],
     num_long_range_encounters_per_side=par['nparasitic'],
     harmonic_number=mb.HARMONIC_NUMBER,
     bunch_spacing_buckets=mb.BUNCH_SPACING_BUCKETS,
+    mode='rigid_bunch')
+setup = env.xfields.configure_beambeam_interactions(
     nemitt_x=par['nemitt'], nemitt_y=par['nemitt'],
     filling_scheme_cw=scheme_b1, filling_scheme_acw=scheme_b2,
     bunch_intensity_particles_cw=par['bunch_intensity'],

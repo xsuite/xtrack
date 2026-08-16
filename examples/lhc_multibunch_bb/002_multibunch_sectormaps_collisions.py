@@ -13,8 +13,9 @@ levelling offsets at IP2/IP8, spectrometers/solenoids on, octupoles powered,
 tunes/chromaticity matched to 62.316/60.322 and Q' = 10. 1.1e11 p/bunch,
 2.3 um normalized emittance, full 2460-bunch filling scheme.
 
-``env.xfields.install_multibunch_beambeam`` installs the head-on + long-range
-lenses and computes the geometry on the full lattice; ``setup.second_order_maps``
+The standard beam-beam workflow in ``mode='rigid_bunch'`` installs and
+configures the head-on + long-range lenses on the full lattice;
+``setup.second_order_maps``
 then makes a fast copy where the arcs between the encounters are replaced by
 second-order Taylor maps (the lenses stay exact), and ``setup_red.solve`` finds
 the per-bunch self-consistent closed solution on it. The flattened collision
@@ -40,11 +41,13 @@ scheme_b1, scheme_b2 = mb.load_scheme()
 
 # Install the head-on + long-range lenses and compute the geometry on the full
 # thick lattice.
-setup = env.xfields.install_multibunch_beambeam(
-    clockwise_line='lhcb1', anticlockwise_line='lhcb2', ips=par['ips'],
+env.xfields.install_beambeam_interactions(
+    clockwise_line='lhcb1', anticlockwise_line='lhcb2', ip_names=par['ips'],
     num_long_range_encounters_per_side=par['nparasitic'],
     harmonic_number=mb.HARMONIC_NUMBER,
     bunch_spacing_buckets=mb.BUNCH_SPACING_BUCKETS,
+    mode='rigid_bunch')
+setup = env.xfields.configure_beambeam_interactions(
     nemitt_x=par['nemitt'], nemitt_y=par['nemitt'],
     filling_scheme_cw=scheme_b1, filling_scheme_acw=scheme_b2,
     bunch_intensity_particles_cw=par['bunch_intensity'],

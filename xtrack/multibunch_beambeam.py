@@ -64,14 +64,6 @@ import numpy as np
 from .general import _print
 
 
-def _resolve_line(env, line):
-    """Accept a Line or a line name and return the Line."""
-    import xtrack as xt
-    if isinstance(line, xt.Line):
-        return line
-    return env[line]
-
-
 def _encounter_specs(encounters):
     """Yield ``(base_name, ip, signed_n)``; ``signed_n == 0`` is the head-on
     encounter.
@@ -147,9 +139,8 @@ class RigidBunchBBSetup:
 
     Returned by
     :meth:`xtrack.environment.EnvXfields.configure_beambeam_interactions` in
-    rigid-bunch mode (and temporarily by the compatibility entry point
-    :meth:`xtrack.environment.EnvXfields.install_multibunch_beambeam`). Holds
-    the two lines, the encounter geometry (per-encounter pairing offset, beta
+    rigid-bunch mode. Holds the two lines, the encounter geometry
+    (per-encounter pairing offset, beta
     functions and survey separation), the installed beam-beam elements
     (``bb_cw`` / ``bb_acw``, keyed by encounter base name) and the per-beam bunch
     filling. The self-consistent solve, the sector-map reduction and the
@@ -255,7 +246,7 @@ class RigidBunchBBSetup:
             self._configure_bb()
 
     # ------------------------------------------------------------------
-    # Building (used by install_multibunch_beambeam)
+    # Building
     # ------------------------------------------------------------------
     def _representative_other_beam(self, line, mirror):
         """One inactive-kick representative per opposing RF slot.
@@ -855,38 +846,4 @@ def configure_rigid_bunch_beambeam(
     setup._compute_geometry(
         survey_separation=config['survey_separation'])
     env._rigid_bunch_bb_setup = setup
-    return setup
-
-
-def install_multibunch_beambeam(env, clockwise_line, anticlockwise_line,
-                                ips,
-                                num_long_range_encounters_per_side,
-                                harmonic_number, bunch_spacing_buckets,
-                                nemitt_x, nemitt_y,
-                                filling_scheme_cw, filling_scheme_acw,
-                                bunch_intensity_particles_cw,
-                                bunch_intensity_particles_acw,
-                                survey_separation=True,
-                                bb_suffix_cw='_cw', bb_suffix_acw='_acw'):
-    """Compatibility entry point installing rigid-bunch beam-beam elements at
-    N IPs of two counter-rotating rings and computing the encounter geometry.
-    New code should use ``install_beambeam_interactions(mode='rigid_bunch')``
-    followed by ``configure_beambeam_interactions(...)``. See
-    :meth:`xtrack.environment.EnvXfields.install_multibunch_beambeam` for the
-    full documentation. Returns a :class:`RigidBunchBBSetup`."""
-    cw = _resolve_line(env, clockwise_line)
-    acw = _resolve_line(env, anticlockwise_line)
-
-    setup = RigidBunchBBSetup(
-        cw, acw, ips, num_long_range_encounters_per_side,
-        harmonic_number, bunch_spacing_buckets, nemitt_x, nemitt_y,
-        bb_suffix_cw=bb_suffix_cw, bb_suffix_acw=bb_suffix_acw)
-    setup.set_filling(
-        filling_scheme_cw=filling_scheme_cw,
-        filling_scheme_acw=filling_scheme_acw,
-        bunch_intensity_particles_cw=bunch_intensity_particles_cw,
-        bunch_intensity_particles_acw=bunch_intensity_particles_acw)
-    setup.bb_cw = setup._place_bb(cw, mirror=False)
-    setup.bb_acw = setup._place_bb(acw, mirror=True)
-    setup._compute_geometry(survey_separation=survey_separation)
     return setup

@@ -8,8 +8,8 @@ Multi-bunch beam-beam on the FULL (thick) LHC lattice in collisions (6.8 TeV,
 fully squeezed R2025aRP 15 cm flat optics, end-of-levelling knobs).
 
 Head-on and long-range beam-beam elements (BeamBeamBiGaussianRigidBunch2D) are
-installed at IP1/2/5/8 with ``env.xfields.install_multibunch_beambeam`` (see
-``xtrack.multibunch_beambeam``), and the per-bunch closed solution (closed orbit
+installed at IP1/2/5/8 with the rigid-bunch mode of the standard beam-beam
+install/configure workflow, and the per-bunch closed solution (closed orbit
 + tunes) of the two multi-bunch beams is found self-consistently with
 ``setup.solve()``. The per-IP head-on bunch-pairing offsets are derived from the
 ring geometry (the IPs are passed as a list of names); the beams collide head-on
@@ -34,11 +34,13 @@ WINDOW = int(os.environ.get('LHC_WINDOW', '48'))
 env, line_b1, line_b2, par = mb.load_lhc('collision')
 scheme_b1, scheme_b2 = mb.load_scheme()
 
-setup = env.xfields.install_multibunch_beambeam(
-    clockwise_line='lhcb1', anticlockwise_line='lhcb2', ips=par['ips'],
+env.xfields.install_beambeam_interactions(
+    clockwise_line='lhcb1', anticlockwise_line='lhcb2', ip_names=par['ips'],
     num_long_range_encounters_per_side=par['nparasitic'],
     harmonic_number=mb.HARMONIC_NUMBER,
     bunch_spacing_buckets=mb.BUNCH_SPACING_BUCKETS,
+    mode='rigid_bunch')
+setup = env.xfields.configure_beambeam_interactions(
     nemitt_x=par['nemitt'], nemitt_y=par['nemitt'],
     filling_scheme_cw=scheme_b1, filling_scheme_acw=scheme_b2,
     bunch_intensity_particles_cw=par['bunch_intensity'],

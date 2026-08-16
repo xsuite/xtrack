@@ -5,7 +5,7 @@
 
 """Cross-check of the (generic) multi-bunch beam-beam machinery against pytrain
 (TRAIN): drives the machine-independent tools in ``xtrack.multibunch_beambeam``
-(``env.xfields.install_multibunch_beambeam`` -> ``setup.second_order_maps`` ->
+(standard rigid-bunch install/configure -> ``setup.second_order_maps`` ->
 ``setup_red.solve``) on the LHC sector-map model, for both the injection
 (BBLR only) and the collision (6.8 TeV squeezed, head-on + BBLR) scenarios --
 all 2460+2460 bunches -- and compares the per-bunch closed-orbit deviations and
@@ -98,18 +98,20 @@ def _run_xsuite_scenario(scenario):
     # the ring geometry since the IPs are given as a list of names) on the full
     # lattice, then make a second-order-map copy so the self-consistent solve is
     # fast.
-    setup = env.xfields.install_multibunch_beambeam(
+    env.xfields.install_beambeam_interactions(
         clockwise_line='lhcb1', anticlockwise_line='lhcb2',
-        ips=['ip1', 'ip2', 'ip5', 'ip8'],
+        ip_names=['ip1', 'ip2', 'ip5', 'ip8'],
         num_long_range_encounters_per_side=NPARASITIC,
         harmonic_number=HARMONIC_NUMBER,
         bunch_spacing_buckets=BUNCH_SPACING_BUCKETS,
+        survey_separation=True,
+        mode='rigid_bunch')
+    setup = env.xfields.configure_beambeam_interactions(
         nemitt_x=par['nemitt'], nemitt_y=par['nemitt'],
         filling_scheme_cw=filling_scheme_b1,
         filling_scheme_acw=filling_scheme_b2,
         bunch_intensity_particles_cw=par['bunch_intensity'],
-        bunch_intensity_particles_acw=par['bunch_intensity'],
-        survey_separation=True)
+        bunch_intensity_particles_acw=par['bunch_intensity'])
     setup_red = setup.second_order_maps()
 
     # bare per-bunch tunes (second-order maps preserve the linear optics, so the
