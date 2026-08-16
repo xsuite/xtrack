@@ -367,6 +367,14 @@ Strengthen the scalar BB2D characterization tests to cover:
 - construction inside a line and xdeps control of `scale_strength`;
 - the existing pipeline updater remaining functional.
 
+Before migrating the conventional installer/configurer, add a fast
+characterization in `xfields/tests/test_beambeam_config_tools.py`. It must run
+the public two-line install/configure workflow with sliced head-on and
+long-range encounters and protect names, partner mapping, positions, delays,
+Twiss covariances, nonzero orbit and separation geometry, configured 2D/3D
+fields, orbit-dependent subtraction and the global strength knob. This test is
+now in place; the slower Xmask LHC tests remain the acceptance layer.
+
 Where the two paths execute the same kick formula, require agreement close to
 machine precision. Use broader tolerances only when comparing genuinely
 different numerical algorithms.
