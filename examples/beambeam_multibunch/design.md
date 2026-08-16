@@ -294,6 +294,14 @@ Refactor the existing workflow incrementally:
 Keep `install_multibunch_beambeam(...)` as a temporary bridge and compare its
 normalized output against the consolidated path after each step.
 
+Step 1 is complete: Xfields now provides one logical encounter table containing
+the IP, encounter type, signed long-range index, orientation-specific
+displacement from the IP and CW/ACW bunch-pairing offsets. The conventional
+installer expands head-on slices from this table, while the temporary
+rigid-bunch installer renders its own element names and consumes the same
+placement and pairing data. Twiss/survey geometry extraction remains the next
+part of commit 6.
+
 ### Phase 5: migrate examples and remove the duplicate installer path
 
 Once the installer equivalence tests pass:
@@ -447,9 +455,10 @@ Keep the preparatory tests and implementation changes in separate commits:
 8. `Migrate examples and remove duplicate installer API`.
 9. `Add final regression coverage`.
 
-The first five commits are complete. Installer equivalence tests remain active
-through commits 6--8, and the pytrain and Xmask suites are run as final
-acceptance after the duplicate installer path has been removed.
+The first five commits and the encounter-description part of commit 6 are
+complete. Installer equivalence tests remain active through commits 6--8, and
+the pytrain and Xmask suites are run as final acceptance after the duplicate
+installer path has been removed.
 
 ## Non-goals
 

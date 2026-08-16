@@ -69,16 +69,22 @@ def _resolve_line(env, line):
     return env[line]
 
 
-def _encounter_specs(ip_names, nlr_per_side):
+def _encounter_specs(encounters):
     """Yield ``(base_name, ip, signed_n)``; ``signed_n == 0`` is the head-on
-    encounter. ``nlr_per_side`` is an int or a ``{ip: int}`` mapping."""
-    for ip in ip_names:
-        n_side = (nlr_per_side[ip] if isinstance(nlr_per_side, dict)
-                  else nlr_per_side)
-        yield f'bb_{ip}_ho', ip, 0
-        for n in range(1, n_side + 1):
-            yield f'bb_{ip}_r{n:02d}', ip, +n
-            yield f'bb_{ip}_l{n:02d}', ip, -n
+    encounter.
+
+    Encounter enumeration is shared with the conventional beam-beam installer;
+    only the rigid-bunch element names are rendered here.
+    """
+    for encounter in encounters.itertuples(index=False):
+        ip = encounter.ip_name
+        signed_n = encounter.identifier
+        if encounter.encounter_type == 'head_on':
+            base_name = f'bb_{ip}_ho'
+        else:
+            side = 'r' if signed_n > 0 else 'l'
+            base_name = f'bb_{ip}_{side}{abs(signed_n):02d}'
+        yield base_name, ip, signed_n
 
 
 def _gamma0(line):
@@ -172,8 +178,11 @@ class RigidBunchBBSetup:
         self.bb_suffix_cw = bb_suffix_cw
         self.bb_suffix_acw = bb_suffix_acw
 
-        self.enc_specs = list(_encounter_specs(
-            self.ip_names, num_long_range_encounters_per_side))
+        import xfields as xf
+        self.encounter_table = xf.generate_beambeam_encounter_table(
+            self.ip_names, num_long_range_encounters_per_side,
+            bunch_spacing_zeta=self.bunch_spacing_zeta)
+        self.enc_specs = list(_encounter_specs(self.encounter_table))
         self.enc_names = [b for b, _, _ in self.enc_specs]
         self.bb_names_cw = [b + bb_suffix_cw for b in self.enc_names]
         self.bb_names_acw = [b + bb_suffix_acw for b in self.enc_names]
@@ -306,8 +315,10 @@ class RigidBunchBBSetup:
         tab = line.get_table()
         s_ip = {ip: float(tab['s', ip]) for ip in self.ip_names}
         places, names = [], []
-        for base, ip, sn in self.enc_specs:
-            at = (s_ip[ip] + (-sn if mirror else sn) * self.b_h_dist + 1e-6) % length
+        position_column = 's_from_ip_acw' if mirror else 's_from_ip_cw'
+        for (base, ip, _), displacement in zip(
+                self.enc_specs, self.encounter_table[position_column]):
+            at = (s_ip[ip] + displacement + 1e-6) % length
             elname = self.bb_name(base, mirror)
             bb = self._make_bb(line, mirror)
             places.append(env.place(elname, bb, at=at))
@@ -355,6 +366,11 @@ class RigidBunchBBSetup:
         tw_acw = self.acw_line.twiss()
         n_slots = self.n_slots
         self.ip_offsets = self._resolve_ip_offsets(tw_cw)
+        import xfields as xf
+        self.encounter_table = xf.generate_beambeam_encounter_table(
+            self.ip_names, self.num_long_range_encounters_per_side,
+            bunch_spacing_zeta=self.bunch_spacing_zeta,
+            delay_at_ips_slots=self.ip_offsets, n_slots=n_slots)
 
         if survey_separation:
             # One survey per IP, in that IP's own frame (:func:`_local_survey`).
@@ -376,7 +392,8 @@ class RigidBunchBBSetup:
         geom = {}
         for j, (base, ip, sn) in enumerate(self.enc_specs):
             ncw, nacw = self.bb_names_cw[j], self.bb_names_acw[j]
-            offset = (self.ip_offsets[ip] + sn) % n_slots
+            offset = int(self.encounter_table['delay_in_slots_cw'].iloc[j]) \
+                % n_slots
             sep_x = sep_y = 0.0
             if survey_separation:
                 # Geometric survey separation of the two rings at this
