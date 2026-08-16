@@ -52,11 +52,12 @@ setup = env.xfields.install_multibunch_beambeam(
     harmonic_number=mb.HARMONIC_NUMBER,
     bunch_spacing_buckets=mb.BUNCH_SPACING_BUCKETS,
     nemitt_x=par['nemitt'], nemitt_y=par['nemitt'],
-    filling_clockwise=mb.filling_from_scheme(scheme_b1, par['bunch_intensity']),
-    filling_anticlockwise=mb.filling_from_scheme(scheme_b2, par['bunch_intensity']))
+    filling_scheme_cw=scheme_b1, filling_scheme_acw=scheme_b2,
+    bunch_intensity_particles_cw=par['bunch_intensity'],
+    bunch_intensity_particles_acw=par['bunch_intensity'])
 print('  building second-order maps between the beam-beam elements...')
 setup_red = setup.second_order_maps(context=par['context'])
-slots_b1, slots_b2 = setup_red.bunches_cw, setup_red.bunches_acw
+slots_b1, slots_b2 = setup_red.filled_slots_cw, setup_red.filled_slots_acw
 print(f'  populated bunches: B1 = {len(slots_b1)}, B2 = {len(slots_b2)}')
 
 # ----------------------------------------------------------------------------

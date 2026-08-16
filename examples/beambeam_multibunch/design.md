@@ -17,11 +17,11 @@ The current implementation introduces two concepts parallel to existing ones:
 
 The physical kick and the installation/configuration workflow should not have
 parallel implementations. The element storage, however, has a real structural
-difference: scalar BB2D has fixed-size data, while the multibunch element owns
+difference: scalar BB2D has fixed-size data, while the rigid-bunch element owns
 filling-dependent arrays and must be reallocated when the number of bunches
 changes. Combining those layouts would enlarge every scalar BB2D element,
 introduce a per-particle mode branch and complicate the API without avoiding
-multibunch reallocation.
+rigid-bunch reallocation.
 
 The multibunch-specific behavior is narrower than these duplicated surfaces:
 
@@ -54,7 +54,7 @@ The classes must call one common BB2D kick helper that owns:
 - the final transverse momentum kick and optional post-subtraction.
 
 Each wrapper remains responsible for selecting those inputs. Scalar BB2D reads
-its scalar fields. The multibunch wrapper matches the opposing bunch on the
+its scalar fields. The rigid-bunch wrapper matches the opposing bunch on the
 periodic `zeta` grid, selects its centroid, population and covariance, and, in
 coherent mode, adds the matched own-beam covariance before calling the helper.
 The bunch-matching code is multibunch-specific and does not need to be added to
@@ -65,9 +65,9 @@ and opposing bunch covariances. Using covariances instead of separate
 `sigma_x`/`sigma_y` logic remains consistent with scalar BB2D and leaves room
 for transverse coupling.
 
-Multibunch array lengths should be inferred exactly from the normalized own and
+Rigid-bunch array lengths should be inferred exactly from the normalized own and
 opposing filling data. There is no public reserve-capacity contract. Changing
-the number of bunches explicitly reconfigures/reallocates the multibunch
+the number of bunches explicitly reconfigures/reallocates the rigid-bunch
 elements; updates that preserve the filling can modify their data in place.
 
 Keeping the classes separate also makes the semantics visible in the API:
@@ -100,7 +100,7 @@ The existing configuration machinery already owns:
 
 These operations should be factored into element-independent helpers that
 produce an encounter description and its geometry. The conventional and
-multibunch workflows should consume the same description.
+rigid-bunch workflows should consume the same description.
 
 The installation API can select a mode, for example:
 
@@ -126,13 +126,13 @@ setup = env.xfields.configure_beambeam_interactions(
 ```
 
 The default mode must preserve the existing sliced head-on and long-range
-workflow. Multibunch mode installs the extended BB2D element with one 2D lens
+workflow. Rigid-bunch mode installs the extended BB2D element with one 2D lens
 per head-on or long-range encounter and allocates its bunch arrays.
 Configuration loads the filling, populations, geometry and design
-covariances, then returns a `MultibunchBBSetup`.
+covariances, then returns a `RigidBunchBBSetup`.
 
-`MultibunchBBSetup` remains useful, but should contain only the genuinely
-stateful multibunch operations:
+`RigidBunchBBSetup` remains useful, but should contain only the genuinely
+stateful rigid-bunch operations:
 
 - `set_filling(...)`;
 - `solve(...)`;
@@ -147,13 +147,13 @@ Twiss beam-covariance API rather than a separate `sqrt(beta * nemitt / gamma)`
 calculation.
 
 `configure_orbit_dependent_parameters_for_bb(...)` cannot be applied unchanged
-to the coherent multibunch solve: it subtracts the reference dipole kick,
+to the coherent rigid-bunch solve: it subtracts the reference dipole kick,
 whereas the solver intentionally retains that kick to find the distorted
 closed orbit. Its lower-level coordinate conventions may still be shared.
 
 ## Bunch-pattern API consistency
 
-The multibunch beam-beam API should use the same bunch-pattern concepts as
+The rigid-bunch beam-beam API should use the same bunch-pattern concepts as
 Xpart, Xwakes and `BeamStatsMonitor`. Their common public model is:
 
 - `filling_scheme` is a slot-indexed boolean/integer occupancy pattern;
@@ -164,7 +164,7 @@ Xpart, Xwakes and `BeamStatsMonitor`. Their common public model is:
 
 Occupancy and intensity must remain separate. In particular, a floating-point
 array containing the population of every slot should not be called a filling
-scheme. The multibunch beam-beam configuration should therefore accept
+scheme. The rigid-bunch beam-beam configuration should therefore accept
 `filling_scheme_cw` / `filling_scheme_acw` separately from
 `bunch_intensity_particles_cw` / `bunch_intensity_particles_acw`. An intensity
 can be uniform for all filled slots or slot-indexed when bunch populations are
@@ -255,11 +255,11 @@ realistic final acceptance tests.
 
 In Xfields, extract the scalar BB2D field and kick calculation into a shared C
 helper and call it from both element kernels. Preserve the scalar BB2D Xobject
-layout, constructor defaults and pipeline behavior. Keep multibunch matching,
+layout, constructor defaults and pipeline behavior. Keep rigid-bunch matching,
 filling-dependent arrays and update methods on
 `BeamBeamBiGaussianRigidBunch2D`.
 
-Then change the multibunch element to allocate exactly from the supplied own and
+Then change the rigid-bunch element to allocate exactly from the supplied own and
 opposing bunch data. Remove the public reserve-capacity arguments. A filling
 change should explicitly reconstruct/reconfigure the affected elements.
 
@@ -285,11 +285,11 @@ Refactor the existing workflow incrementally:
 
 1. Extract encounter generation from the current installer.
 2. Extract Twiss/survey geometry and coordinate transformations.
-3. Make the conventional and multibunch paths consume those helpers.
+3. Make the conventional and rigid-bunch paths consume those helpers.
 4. Add `mode='rigid_bunch'` to `install_beambeam_interactions(...)`.
-5. Add the multibunch filling, intensity and emittance inputs to
+5. Add the rigid-bunch filling, intensity and emittance inputs to
    `configure_beambeam_interactions(...)`.
-6. Return `MultibunchBBSetup` for the genuinely stateful operations.
+6. Return `RigidBunchBBSetup` for the genuinely stateful operations.
 
 Keep `install_multibunch_beambeam(...)` as a temporary bridge and compare its
 normalized output against the consolidated path after each step.
@@ -327,12 +327,12 @@ realistic acceptance tests.
 
 ### 1. Xfields element tests
 
-Extend `xfields/tests/test_beambeam_multibunch2d.py` using construction helpers
-such as `_make_scalar_bb(...)` and `_make_multibunch_bb(...)`.
+Extend `xfields/tests/test_beambeam_rigid_bunch2d.py` with focused scalar and
+rigid-bunch construction helpers.
 
-Protect the current multibunch behavior with focused tests for:
+Protect the current rigid-bunch behavior with focused tests for:
 
-- one-bunch scalar/multibunch equivalence for round and elliptical beams;
+- one-bunch scalar/rigid-bunch equivalence for round and elliptical beams;
 - several bunches with distinct centroids, intensities and sizes;
 - coherent and incoherent covariance handling;
 - an unmatched bunch receiving exactly zero kick;
@@ -414,8 +414,8 @@ accumulated tunes.
 
 ### 4. Temporary installer equivalence tests
 
-The scalar/multibunch element comparisons are permanent physics tests, not a
-temporary migration bridge. They compare each selected multibunch kick against
+The scalar/rigid-bunch element comparisons are permanent physics tests, not a
+temporary migration bridge. They compare each selected rigid-bunch kick against
 an independently configured scalar BB2D.
 
 For installation, build two copies of the toy environment. Configure one with
@@ -441,19 +441,19 @@ Keep the preparatory tests and implementation changes in separate commits:
 2. `Add toy multibunch installer and Twiss tests`.
 3. `Share the BB2D kick implementation`.
 4. `Infer multibunch element storage from bunch data`.
-5. `Align multibunch train bunch-pattern API`.
+5. `Align rigid-bunch train bunch-pattern API`.
 6. `Share beam-beam encounter and geometry configuration`.
 7. `Add rigid-bunch mode to install/configure workflow`.
 8. `Migrate examples and remove duplicate installer API`.
 9. `Add final regression coverage`.
 
-The first three commits are complete. Installer equivalence tests remain active
+The first five commits are complete. Installer equivalence tests remain active
 through commits 6--8, and the pytrain and Xmask suites are run as final
 acceptance after the duplicate installer path has been removed.
 
 ## Non-goals
 
-- This rationalization does not change the intended coherent multibunch
+- This rationalization does not change the intended coherent rigid-bunch
   physics.
 - It does not make the existing pipeline strong-strong updater multibunch
   aware.

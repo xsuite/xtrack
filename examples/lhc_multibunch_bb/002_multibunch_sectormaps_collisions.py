@@ -46,22 +46,26 @@ setup = env.xfields.install_multibunch_beambeam(
     harmonic_number=mb.HARMONIC_NUMBER,
     bunch_spacing_buckets=mb.BUNCH_SPACING_BUCKETS,
     nemitt_x=par['nemitt'], nemitt_y=par['nemitt'],
-    filling_clockwise=mb.filling_from_scheme(scheme_b1, par['bunch_intensity']),
-    filling_anticlockwise=mb.filling_from_scheme(scheme_b2, par['bunch_intensity']))
+    filling_scheme_cw=scheme_b1, filling_scheme_acw=scheme_b2,
+    bunch_intensity_particles_cw=par['bunch_intensity'],
+    bunch_intensity_particles_acw=par['bunch_intensity'])
 print(f'  bare tunes B1 {setup.meta["qx_cw"]:.5f}/{setup.meta["qy_cw"]:.5f}  '
       f'B2 {setup.meta["qx_acw"]:.5f}/{setup.meta["qy_acw"]:.5f}')
 
 if not ALL_BUNCHES:
     # restrict to a bounded window with all-IP pairings (offsets from geometry)
     s1, s2 = mb.windowed_slots(setup.ip_offsets, scheme_b1, scheme_b2, WINDOW)
-    setup.set_filling(mb.filling_from_slots(s1, par['bunch_intensity']),
-                      mb.filling_from_slots(s2, par['bunch_intensity']))
+    setup.set_filling(
+        filling_scheme_cw=mb.filling_scheme_from_slots(s1),
+        filling_scheme_acw=mb.filling_scheme_from_slots(s2),
+        bunch_intensity_particles_cw=par['bunch_intensity'],
+        bunch_intensity_particles_acw=par['bunch_intensity'])
 
 # Fast sector-map copy: the arcs between the encounters become second-order maps
 # (the beam-beam elements stay exact). Solving the reduced setup is much faster.
 print('  building second-order maps between the beam-beam elements...')
 setup_red = setup.second_order_maps(context=par['context'])
-slots_b1, slots_b2 = setup_red.bunches_cw, setup_red.bunches_acw
+slots_b1, slots_b2 = setup_red.filled_slots_cw, setup_red.filled_slots_acw
 print(f'  populated bunches: B1 = {len(slots_b1)}, B2 = {len(slots_b2)}')
 
 print('Self-consistent solve (head-on + long-range):')
@@ -74,9 +78,9 @@ if COMPUTE_OPTICS_PARAMS:
     print('Final mode="fast" twiss (per-bunch optics + global quantities):')
     t0 = time.time()
     mbtw_b1 = setup_red.cw_line.twiss_multibunch(
-        zeta_bunches=slots_b1 * setup_red.slot_len, mode='fast')
+        zeta_bunches=-slots_b1 * setup_red.bunch_spacing_zeta, mode='fast')
     mbtw_b2 = setup_red.acw_line.twiss_multibunch(
-        zeta_bunches=slots_b2 * setup_red.slot_len, mode='fast')
+        zeta_bunches=-slots_b2 * setup_red.bunch_spacing_zeta, mode='fast')
     print(f'  final twiss (both beams): {time.time() - t0:.1f} s')
 
 # bare per-bunch tunes: second-order maps preserve the linear optics, so the

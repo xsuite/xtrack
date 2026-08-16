@@ -91,9 +91,8 @@ def _run_xsuite_scenario(scenario):
 
     with open(lhc_data / '25ns_2460b_2448_2092_2239_144bpi_20inj.json') as f:
         scheme = json.load(f)
-    # per-slot bunch population (uniform intensity at the filled slots)
-    filling_b1 = (np.array(scheme['schemebeam1']) > 0) * par['bunch_intensity']
-    filling_b2 = (np.array(scheme['schemebeam2']) > 0) * par['bunch_intensity']
+    filling_scheme_b1 = np.array(scheme['schemebeam1']) > 0
+    filling_scheme_b2 = np.array(scheme['schemebeam2']) > 0
 
     # Install head-on + long-range beam-beam at IP1/2/5/8 (offsets derived from
     # the ring geometry since the IPs are given as a list of names) on the full
@@ -106,7 +105,10 @@ def _run_xsuite_scenario(scenario):
         harmonic_number=HARMONIC_NUMBER,
         bunch_spacing_buckets=BUNCH_SPACING_BUCKETS,
         nemitt_x=par['nemitt'], nemitt_y=par['nemitt'],
-        filling_clockwise=filling_b1, filling_anticlockwise=filling_b2,
+        filling_scheme_cw=filling_scheme_b1,
+        filling_scheme_acw=filling_scheme_b2,
+        bunch_intensity_particles_cw=par['bunch_intensity'],
+        bunch_intensity_particles_acw=par['bunch_intensity'],
         survey_separation=True)
     setup_red = setup.second_order_maps()
 
@@ -129,9 +131,9 @@ def _run_xsuite_scenario(scenario):
                     dqx=_wrap_frac_tune(mbtw.qx - bare_qx),
                     dqy=_wrap_frac_tune(mbtw.qy - bare_qy))
 
-    return (extract(mbtw_b1, setup_red.bunches_cw,
+    return (extract(mbtw_b1, setup_red.filled_slots_cw,
                     bare['qx_cw'], bare['qy_cw'], mirror=False),
-            extract(mbtw_b2, setup_red.bunches_acw,
+            extract(mbtw_b2, setup_red.filled_slots_acw,
                     bare['qx_acw'], bare['qy_acw'], mirror=True))
 
 

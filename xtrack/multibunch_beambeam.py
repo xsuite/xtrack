@@ -18,33 +18,37 @@ Everything is driven through one entry point and a small state object:
         clockwise_line, anticlockwise_line, ips=[...],
         num_long_range_encounters_per_side=..., harmonic_number=...,
         bunch_spacing_buckets=..., nemitt_x=..., nemitt_y=...,
-        filling_clockwise=..., filling_anticlockwise=...)
+        filling_scheme_cw=..., filling_scheme_acw=...,
+        bunch_intensity_particles_cw=...,
+        bunch_intensity_particles_acw=...)
     mbtw_cw, mbtw_acw = setup.solve()
 
 ``install_multibunch_beambeam`` places one beam-beam element per encounter
 DIRECTLY on the two lines (the element is its own twiss/survey observation
 point -- there are no separate markers), computes the encounter geometry
 (per-encounter bunch-pairing offset, convolved sizes, survey separation) and
-returns a :class:`MultibunchBBSetup`. All further operations are methods on that
+returns a :class:`RigidBunchBBSetup`. All further operations are methods on that
 object:
 
-* :meth:`MultibunchBBSetup.solve` -- self-consistent per-bunch closed orbit;
-* :meth:`MultibunchBBSetup.second_order_maps` -- a fast sector-map copy: the arcs
+* :meth:`RigidBunchBBSetup.solve` -- self-consistent per-bunch closed orbit;
+* :meth:`RigidBunchBBSetup.second_order_maps` -- a fast sector-map copy: the arcs
   between the encounters are replaced by second-order maps (splitting the lines
   at the beam-beam elements, which stay exact) and a NEW setup on the reduced
   lines is returned; solving it is orders of magnitude faster and gives the same
   per-bunch orbit and tunes;
-* :meth:`MultibunchBBSetup.load_solution` -- load a converged solution (from a
+* :meth:`RigidBunchBBSetup.load_solution` -- load a converged solution (from a
   reduced-model solve) onto this setup's lattice, e.g. to compute footprints on
   the full thick lattice;
-* :meth:`MultibunchBBSetup.set_filling` -- change the per-beam bunch filling.
+* :meth:`RigidBunchBBSetup.set_filling` -- change the per-beam bunch filling.
 
 Nothing is LHC specific: the IPs (a ``{ip: offset}`` mapping, or a list of IP
 element names for which the head-on offsets are derived from the ring geometry
-as ``round(2 * (s_ip - s_ref) / slot_len)``), the RF harmonic number and the
-bunch spacing (in RF buckets) are all inputs. The number of slots on the ring is
-``n_slots = harmonic_number / bunch_spacing_buckets`` and the longitudinal slot
-spacing is ``slot_len = circumference / n_slots``.
+as ``round(2 * (s_ip - s_ref) / bunch_spacing_zeta)``), the RF harmonic number
+and the bunch spacing (in RF buckets) are all inputs. The number of slots is
+``n_slots = harmonic_number / bunch_spacing_buckets`` and the positive physical
+slot spacing is ``bunch_spacing_zeta = circumference / n_slots``. Physical slot
+``i`` is centred at ``zeta = -i * bunch_spacing_zeta``, consistently with the
+Xpart, Xwakes and :class:`BeamStatsMonitor` bunch-pattern APIs.
 
 The two lines are the usual xsuite two-ring setup: the ``clockwise_line`` runs
 in ``+s`` and the ``anticlockwise_line`` is the *reversed* line (also running in
@@ -96,8 +100,41 @@ def _bind_beambeam_scale(line, bb_names):
         line[name].scale_strength = 'beambeam_scale'
 
 
-class MultibunchBBSetup:
-    """State and operations of one multi-bunch beam-beam problem.
+def _normalize_filling(filling_scheme, bunch_intensity_particles, n_slots,
+                       beam_name):
+    """Normalize one beam's occupancy and return compact filled-bunch data."""
+    scheme = np.asarray(filling_scheme)
+    if scheme.ndim != 1 or len(scheme) != n_slots:
+        raise ValueError(
+            f'`filling_scheme_{beam_name}` must be a one-dimensional array '
+            f'of length n_slots={n_slots}.')
+    if not np.all(np.isfinite(scheme)):
+        raise ValueError(f'`filling_scheme_{beam_name}` must be finite.')
+    scheme = (scheme != 0).astype(np.int64)
+    filled_slots = np.nonzero(scheme)[0].astype(np.int64)
+    if len(filled_slots) == 0:
+        raise ValueError(
+            f'`filling_scheme_{beam_name}` must contain at least one filled '
+            'slot.')
+
+    intensity = np.asarray(bunch_intensity_particles, dtype=float)
+    if intensity.ndim == 0:
+        intensity = np.full(len(filled_slots), float(intensity))
+    elif intensity.ndim == 1 and len(intensity) == n_slots:
+        intensity = intensity[filled_slots]
+    else:
+        raise ValueError(
+            f'`bunch_intensity_particles_{beam_name}` must be a scalar or a '
+            f'one-dimensional slot-indexed array of length n_slots={n_slots}.')
+    if not np.all(np.isfinite(intensity)) or np.any(intensity <= 0):
+        raise ValueError(
+            f'`bunch_intensity_particles_{beam_name}` must be finite and '
+            'strictly positive at every filled slot.')
+    return scheme, filled_slots, intensity
+
+
+class RigidBunchBBSetup:
+    """State and operations of one rigid-bunch beam-beam problem.
 
     Returned by :func:`install_multibunch_beambeam` /
     :meth:`xtrack.environment.EnvXfields.install_multibunch_beambeam`. Holds the
@@ -128,8 +165,8 @@ class MultibunchBBSetup:
         self.harmonic_number = int(harmonic_number)
         self.bunch_spacing_buckets = int(bunch_spacing_buckets)
         self.n_slots = int(harmonic_number) // int(bunch_spacing_buckets)
-        self.slot_len = clockwise_line.get_length() / self.n_slots
-        self.b_h_dist = self.slot_len / 2.0          # LR half-slot step [m]
+        self.bunch_spacing_zeta = clockwise_line.get_length() / self.n_slots
+        self.b_h_dist = self.bunch_spacing_zeta / 2.0
         self.nemitt_x = nemitt_x
         self.nemitt_y = nemitt_y
         self.bb_suffix_cw = bb_suffix_cw
@@ -145,13 +182,14 @@ class MultibunchBBSetup:
         self.meta = {}
         self.bb_cw = {}              # base_name -> element (in cw line)
         self.bb_acw = {}             # base_name -> element (in acw line)
-        # filling: per-slot populations (length n_slots) and derived quantities
-        self.filling_cw = None
-        self.filling_acw = None
-        self.bunches_cw = None       # slot indices of populated cw bunches
-        self.bunches_acw = None
-        self.num_particles_cw = None  # populations of the populated cw bunches
-        self.num_particles_acw = None
+        # Occupancy stays slot-indexed; intensities are compact arrays aligned
+        # with the corresponding physical filled-slot arrays.
+        self.filling_scheme_cw = None
+        self.filling_scheme_acw = None
+        self.filled_slots_cw = None
+        self.filled_slots_acw = None
+        self.bunch_intensity_particles_cw = None
+        self.bunch_intensity_particles_acw = None
 
     # ------------------------------------------------------------------
     # Naming / bookkeeping
@@ -160,58 +198,52 @@ class MultibunchBBSetup:
         """Beam-beam element name of one beam (``mirror=True`` -> acw)."""
         return base + (self.bb_suffix_acw if mirror else self.bb_suffix_cw)
 
-    @property
-    def zeta_per_slot(self):
-        return self.slot_len
-
     def bunch_zeta(self, mirror):
-        """Longitudinal positions of the populated bunches of a beam."""
-        slots = self.bunches_acw if mirror else self.bunches_cw
-        return np.asarray(slots) * self.slot_len
+        """Bunch centres in ascending physical-slot order."""
+        slots = self.filled_slots_acw if mirror else self.filled_slots_cw
+        return -np.asarray(slots) * self.bunch_spacing_zeta
 
     def __repr__(self):
-        return (f'MultibunchBBSetup({len(self.enc_names)} encounters, '
-                f'n_slots={self.n_slots}, '
-                f'B1={0 if self.bunches_cw is None else len(self.bunches_cw)} '
-                f'B2={0 if self.bunches_acw is None else len(self.bunches_acw)} '
-                f'bunches)')
+        n_cw = 0 if self.filled_slots_cw is None else len(self.filled_slots_cw)
+        n_acw = (0 if self.filled_slots_acw is None
+                 else len(self.filled_slots_acw))
+        return (f'RigidBunchBBSetup({len(self.enc_names)} encounters, '
+                f'n_slots={self.n_slots}, B1={n_cw} B2={n_acw} bunches)')
 
-    def set_filling(self, filling_clockwise, filling_anticlockwise):
-        """Set the per-beam bunch filling from two arrays of length ``n_slots``
-        holding the population (number of particles, zero = empty) of each slot.
-        Derives the populated slot indices and their intensities.
+    def set_filling(self, filling_scheme_cw, filling_scheme_acw,
+                    bunch_intensity_particles_cw,
+                    bunch_intensity_particles_acw):
+        """Set the two occupancy patterns and corresponding bunch intensities.
+
+        Each filling scheme is a slot-indexed occupancy array of length
+        ``n_slots``. Each intensity is either a scalar, applied uniformly to
+        all filled slots, or a slot-indexed array of the same length. Derived
+        physical slot identifiers are exposed as ``filled_slots_cw`` and
+        ``filled_slots_acw``.
 
         If the beam-beam elements are already installed, a change in either
         bunch count rebuilds them with arrays sized exactly for the new filling.
         A change that preserves both counts updates the bunch grids and resets
         the opposing state in place."""
-        old_n_cw = (None if self.bunches_cw is None
-                    else len(self.bunches_cw))
-        old_n_acw = (None if self.bunches_acw is None
-                     else len(self.bunches_acw))
-        fcw = np.asarray(filling_clockwise, dtype=float)
-        facw = np.asarray(filling_anticlockwise, dtype=float)
-        if len(fcw) != self.n_slots or len(facw) != self.n_slots:
-            raise ValueError(
-                f'filling arrays must have length n_slots={self.n_slots} '
-                f'(got {len(fcw)} and {len(facw)})')
-        bunches_cw = np.where(fcw > 0)[0]
-        bunches_acw = np.where(facw > 0)[0]
-        if len(bunches_cw) == 0 or len(bunches_acw) == 0:
-            raise ValueError(
-                'Rigid-bunch beam-beam requires at least one filled slot in '
-                'each beam.')
-        self.filling_cw = fcw
-        self.filling_acw = facw
-        self.bunches_cw = bunches_cw
-        self.bunches_acw = bunches_acw
-        self.num_particles_cw = fcw[self.bunches_cw]
-        self.num_particles_acw = facw[self.bunches_acw]
+        old_n_cw = (None if self.filled_slots_cw is None
+                    else len(self.filled_slots_cw))
+        old_n_acw = (None if self.filled_slots_acw is None
+                     else len(self.filled_slots_acw))
+        normalized_cw = _normalize_filling(
+            filling_scheme_cw, bunch_intensity_particles_cw,
+            self.n_slots, 'cw')
+        normalized_acw = _normalize_filling(
+            filling_scheme_acw, bunch_intensity_particles_acw,
+            self.n_slots, 'acw')
+        (self.filling_scheme_cw, self.filled_slots_cw,
+         self.bunch_intensity_particles_cw) = normalized_cw
+        (self.filling_scheme_acw, self.filled_slots_acw,
+         self.bunch_intensity_particles_acw) = normalized_acw
 
         # Skipped during installation, before elements and geometry exist.
         if self.bb_cw and self.geom:
-            count_changed = (old_n_cw != len(self.bunches_cw)
-                             or old_n_acw != len(self.bunches_acw))
+            count_changed = (old_n_cw != len(self.filled_slots_cw)
+                             or old_n_acw != len(self.filled_slots_acw))
             if count_changed:
                 self._rebuild_bb_elements()
             else:
@@ -229,7 +261,7 @@ class MultibunchBBSetup:
         """
         import xtrack as xt
         other_line = self.cw_line if mirror else self.acw_line
-        slots = self.bunches_cw if mirror else self.bunches_acw
+        slots = self.filled_slots_cw if mirror else self.filled_slots_acw
         return xt.Particles(
             _context=line._context,
             p0c=other_line.particle_ref.p0c[0],
@@ -237,7 +269,7 @@ class MultibunchBBSetup:
             q0=other_line.particle_ref.q0,
             x=np.zeros(len(slots)),
             y=np.zeros(len(slots)),
-            zeta=np.asarray(slots) * self.slot_len,
+            zeta=-np.asarray(slots) * self.bunch_spacing_zeta,
             weight=np.zeros(len(slots)))
 
     def _make_bb(self, line, mirror):
@@ -246,14 +278,13 @@ class MultibunchBBSetup:
         beta0_other = _beta0(self.acw_line if not mirror else self.cw_line)
         q0_other = float((self.acw_line if not mirror
                           else self.cw_line).particle_ref.q0)
-        own_slots = self.bunches_acw if mirror else self.bunches_cw
-        own_zeta = np.asarray(own_slots) * self.slot_len
+        own_zeta = self.bunch_zeta(mirror)
         return xf.BeamBeamBiGaussianRigidBunch2D(
             other_particles=self._representative_other_beam(line, mirror),
             own_beam_zeta=own_zeta,
             zeta_offset=0.0,
-            zeta_match_tol=0.1 * self.slot_len,
-            zeta_period=self.n_slots * self.slot_len,
+            zeta_match_tol=0.1 * self.bunch_spacing_zeta,
+            zeta_period=self.n_slots * self.bunch_spacing_zeta,
             other_beam_q0=q0_other, other_beam_beta0=beta0_other,
             coherent=True,
             sigma_x=1.0, sigma_y=1.0,
@@ -304,14 +335,14 @@ class MultibunchBBSetup:
     def _resolve_ip_offsets(self, tw_cw):
         """Head-on pairing offset (in slots) of each IP: from ``self.ips`` if a
         mapping, else from the ring geometry (first IP as the reference),
-        ``round(2 * (s_ip - s_ref) / slot_len)``."""
+        ``round(2 * (s_ip - s_ref) / bunch_spacing_zeta)``."""
         if isinstance(self.ips, dict):
             return {ip: int(v) % self.n_slots for ip, v in self.ips.items()}
         ref = self.ip_names[0]
         s_ref = tw_cw['s', self.bb_name(f'bb_{ref}_ho', False)]
         return {ip: int(round(2 * (tw_cw['s', self.bb_name(f'bb_{ip}_ho',
                                                            False)] - s_ref)
-                              / self.slot_len)) % self.n_slots
+                              / self.bunch_spacing_zeta)) % self.n_slots
                 for ip in self.ip_names}
 
     def _compute_geometry(self, survey_separation=True):
@@ -388,14 +419,17 @@ class MultibunchBBSetup:
         ex, ey = self.nemitt_x, self.nemitt_y
         for mirror, bb_dict in ((False, self.bb_cw), (True, self.bb_acw)):
             oth = 'cw' if mirror else 'acw'
-            n_oth = (len(self.bunches_cw) if mirror
-                     else len(self.bunches_acw))
+            n_oth = (len(self.filled_slots_cw) if mirror
+                     else len(self.filled_slots_acw))
             gamma0 = _gamma0(self.cw_line if not mirror else self.acw_line)
             for base in self.enc_names:
                 e = self.geom[base]
                 bb = bb_dict[base]
-                bb.zeta_offset = (-e['offset'] if mirror else e['offset']) \
-                    * self.slot_len
+                # Public bunch centres use zeta = -slot * spacing. For the CW
+                # beam, an opposing slot ``own + offset`` is therefore at
+                # ``zeta_own - offset * spacing``; ACW uses the inverse map.
+                bb.zeta_offset = (e['offset'] if mirror else -e['offset']) \
+                    * self.bunch_spacing_zeta
                 bb.other_beam_sigma_x = np.full(
                     n_oth, np.sqrt(e[f'betx_{oth}'] * ex / gamma0))
                 bb.other_beam_sigma_y = np.full(
@@ -413,15 +447,15 @@ class MultibunchBBSetup:
         static design sizes (``sigma_x``/``sigma_y``, indexed by THIS beam) for
         the CURRENT filling. Called at install and again whenever the filling
         changes (:meth:`set_filling`), so the per-bunch own arrays always match
-        ``self.bunches_*``. Uses the bare-optics betas cached in ``self.geom``
+        ``self.filled_slots_*``. Uses the bare-optics betas cached in
+        ``self.geom``
         (uniform over bunches). A count change rebuilds the elements before this
         method is called, so their array lengths match the current filling."""
         ex, ey = self.nemitt_x, self.nemitt_y
         for mirror, bb_dict in ((False, self.bb_cw), (True, self.bb_acw)):
             own = 'acw' if mirror else 'cw'
             gamma0 = _gamma0(self.cw_line if not mirror else self.acw_line)
-            own_slots = self.bunches_acw if mirror else self.bunches_cw
-            own_zeta = np.asarray(own_slots) * self.slot_len
+            own_zeta = self.bunch_zeta(mirror)
             for base in self.enc_names:
                 e = self.geom[base]
                 bb_dict[base].update_from_own_beam(
@@ -434,7 +468,7 @@ class MultibunchBBSetup:
     # ------------------------------------------------------------------
     def second_order_maps(self, keep_extra_cw=None, keep_extra_acw=None,
                           context=None):
-        """Return a NEW :class:`MultibunchBBSetup` on second-order-map copies of
+        """Return a NEW :class:`RigidBunchBBSetup` on second-order-map copies of
         the two lines: the arcs between the encounters are replaced by
         second-order maps (the beam-beam elements, kept as split points, stay
         exact), so solving the returned setup is much faster and gives the same
@@ -459,7 +493,7 @@ class MultibunchBBSetup:
             rl.twiss_default['method'] = method
             rl.build_tracker(_context=context)
 
-        new = MultibunchBBSetup(
+        new = RigidBunchBBSetup(
             red_cw, red_acw, self.ips,
             self.num_long_range_encounters_per_side, self.harmonic_number,
             self.bunch_spacing_buckets, self.nemitt_x, self.nemitt_y,
@@ -467,12 +501,12 @@ class MultibunchBBSetup:
         new.geom = self.geom
         new.meta = self.meta
         new.ip_offsets = self.ip_offsets
-        new.filling_cw = self.filling_cw
-        new.filling_acw = self.filling_acw
-        new.bunches_cw = self.bunches_cw
-        new.bunches_acw = self.bunches_acw
-        new.num_particles_cw = self.num_particles_cw
-        new.num_particles_acw = self.num_particles_acw
+        new.filling_scheme_cw = self.filling_scheme_cw
+        new.filling_scheme_acw = self.filling_scheme_acw
+        new.filled_slots_cw = self.filled_slots_cw
+        new.filled_slots_acw = self.filled_slots_acw
+        new.bunch_intensity_particles_cw = self.bunch_intensity_particles_cw
+        new.bunch_intensity_particles_acw = self.bunch_intensity_particles_acw
         new.bb_cw = {b: red_cw[new.bb_name(b, False)] for b in new.enc_names}
         new.bb_acw = {b: red_acw[new.bb_name(b, True)] for b in new.enc_names}
         # the reduced lines have their own env: re-create the beambeam_scale knob
@@ -490,22 +524,28 @@ class MultibunchBBSetup:
         sigma_y = np.sqrt(mbtw['bety', bb_names] * self.nemitt_y / gamma0)
         return sigma_x, sigma_y
 
-    def _sigma_vector(self, bb_dict):
+    def _sigma_vector(self, bb_dict, mirror):
         """Own-beam per-bunch sizes laid out to match :func:`_orbit_vector` (x
         then y, each the ``(n_bunches, n_enc)`` array raveled). :meth:`set_filling`
-        keeps every element's own arrays in sync with the solved bunches, so the
-        active per-bunch sizes (the first ``num_own_bunches`` entries, in the same
-        bunch order as the twiss) stack directly, one column per encounter"""
+        keeps every element's own arrays in sync with the solved bunches. The
+        element stores increasing zeta, while Twiss follows increasing physical
+        slot number (decreasing zeta), so the element arrays are mapped back to
+        public filled-slot order before stacking."""
+        zeta = self.bunch_zeta(mirror)
+        inverse_zeta_order = np.argsort(np.argsort(zeta, kind='stable'),
+                                       kind='stable')
+
         def active(bb):
             n = int(bb.num_own_bunches)
-            return np.asarray(bb.sigma_x)[:n], np.asarray(bb.sigma_y)[:n]
+            return (np.asarray(bb.sigma_x)[:n][inverse_zeta_order],
+                    np.asarray(bb.sigma_y)[:n][inverse_zeta_order])
         cols = [active(bb_dict[b]) for b in self.enc_names]
         sx = np.stack([c[0] for c in cols], axis=1)   # (n_bunches, n_enc)
         sy = np.stack([c[1] for c in cols], axis=1)
         return np.concatenate([sx.ravel(), sy.ravel()])
 
-    def _update_opposing(self, bb_dict, mbtw_other, slots_other, bb_names_other,
-                         num_particles_other, sigmas_other=None,
+    def _update_opposing(self, bb_dict, mbtw_other, slots_other, slots_own,
+                         bb_names_other, num_particles_other, sigmas_other=None,
                          sigmas_own=None):
         """Write the opposing beam's per-bunch orbit (+ survey separation) into
         the beam-beam elements ``bb_dict`` (optionally also the dynamic-beta
@@ -518,7 +558,8 @@ class MultibunchBBSetup:
         import xtrack as xt
         xs = -mbtw_other['x', bb_names_other]
         ys = mbtw_other['y', bb_names_other]
-        zeta_other = np.asarray(slots_other) * self.slot_len
+        zeta_other = -np.asarray(slots_other) * self.bunch_spacing_zeta
+        zeta_own = -np.asarray(slots_own) * self.bunch_spacing_zeta
         ref = self.cw_line.particle_ref
         p = xt.Particles(
             p0c=ref.p0c[0], mass0=ref.mass0, q0=ref.q0,
@@ -534,7 +575,8 @@ class MultibunchBBSetup:
             bb = bb_dict[base]
             bb.update_from_other_beam(p, **kw)
             if sigmas_own is not None:
-                bb.update_from_own_beam(sigma_x=sigmas_own[0][:, j],
+                bb.update_from_own_beam(zeta=zeta_own,
+                                        sigma_x=sigmas_own[0][:, j],
                                         sigma_y=sigmas_own[1][:, j])
 
     def load_solution(self, mbtw_clockwise, mbtw_anticlockwise,
@@ -553,12 +595,16 @@ class MultibunchBBSetup:
             sizes_acw = self._compute_sigmas(mbtw_anticlockwise,
                                              self.bb_names_acw,
                                              _gamma0(self.acw_line))
-        self._update_opposing(self.bb_cw, mbtw_anticlockwise, self.bunches_acw,
-                              self.bb_names_acw, self.num_particles_acw,
-                              sigmas_other=sizes_acw, sigmas_own=sizes_cw)
-        self._update_opposing(self.bb_acw, mbtw_clockwise, self.bunches_cw,
-                              self.bb_names_cw, self.num_particles_cw,
-                              sigmas_other=sizes_cw, sigmas_own=sizes_acw)
+        self._update_opposing(
+            self.bb_cw, mbtw_anticlockwise,
+            self.filled_slots_acw, self.filled_slots_cw,
+            self.bb_names_acw, self.bunch_intensity_particles_acw,
+            sigmas_other=sizes_acw, sigmas_own=sizes_cw)
+        self._update_opposing(
+            self.bb_acw, mbtw_clockwise,
+            self.filled_slots_cw, self.filled_slots_acw,
+            self.bb_names_cw, self.bunch_intensity_particles_cw,
+            sigmas_other=sizes_cw, sigmas_own=sizes_acw)
 
     def solve(self, max_iterations=5, tol_sigma=1e-4, dynamic_beta=False,
               method='4d', chrom=False, twiss_mode=None, show_progress=True,
@@ -613,7 +659,7 @@ class MultibunchBBSetup:
         tuple of xtrack.MultiBunchTwiss
             ``(mbtw_clockwise, mbtw_anticlockwise)``.
         """
-        if self.bunches_cw is None or self.bunches_acw is None:
+        if self.filled_slots_cw is None or self.filled_slots_acw is None:
             raise RuntimeError('bunch filling not set; call set_filling first')
         if twiss_mode is None:
             twiss_mode = 'fast' if dynamic_beta else 'fast_orbit'
@@ -621,8 +667,8 @@ class MultibunchBBSetup:
             twiss_mode = 'fast'
 
         cw, acw = self.cw_line, self.acw_line
-        zeta_cw = np.asarray(self.bunches_cw) * self.slot_len
-        zeta_acw = np.asarray(self.bunches_acw) * self.slot_len
+        zeta_cw = self.bunch_zeta(mirror=False)
+        zeta_acw = self.bunch_zeta(mirror=True)
 
         # The intermediate rounds may keep going on a closed-orbit error: their
         # orbit is only an input to the next round, so a few bunches short of
@@ -644,8 +690,8 @@ class MultibunchBBSetup:
 
             cur = np.concatenate([_orbit_vector(mbtw_cw, self.bb_names_cw),
                                   _orbit_vector(mbtw_acw, self.bb_names_acw)])
-            sig = np.concatenate([self._sigma_vector(self.bb_cw),
-                                  self._sigma_vector(self.bb_acw)])
+            sig = np.concatenate([self._sigma_vector(self.bb_cw, mirror=False),
+                                  self._sigma_vector(self.bb_acw, mirror=True)])
             err = (np.inf if prev is None
                    else float(np.max(np.abs(cur - prev) / sig)))
             prev = cur
@@ -753,21 +799,27 @@ def install_multibunch_beambeam(env, clockwise_line, anticlockwise_line,
                                 num_long_range_encounters_per_side,
                                 harmonic_number, bunch_spacing_buckets,
                                 nemitt_x, nemitt_y,
-                                filling_clockwise, filling_anticlockwise,
+                                filling_scheme_cw, filling_scheme_acw,
+                                bunch_intensity_particles_cw,
+                                bunch_intensity_particles_acw,
                                 survey_separation=True,
                                 bb_suffix_cw='_cw', bb_suffix_acw='_acw'):
-    """Install multi-bunch beam-beam elements at N IPs of two counter-rotating
+    """Install rigid-bunch beam-beam elements at N IPs of two counter-rotating
     rings and compute the encounter geometry. See
     :meth:`xtrack.environment.EnvXfields.install_multibunch_beambeam` for the
-    full documentation. Returns a :class:`MultibunchBBSetup`."""
+    full documentation. Returns a :class:`RigidBunchBBSetup`."""
     cw = _resolve_line(env, clockwise_line)
     acw = _resolve_line(env, anticlockwise_line)
 
-    setup = MultibunchBBSetup(
+    setup = RigidBunchBBSetup(
         cw, acw, ips, num_long_range_encounters_per_side,
         harmonic_number, bunch_spacing_buckets, nemitt_x, nemitt_y,
         bb_suffix_cw=bb_suffix_cw, bb_suffix_acw=bb_suffix_acw)
-    setup.set_filling(filling_clockwise, filling_anticlockwise)
+    setup.set_filling(
+        filling_scheme_cw=filling_scheme_cw,
+        filling_scheme_acw=filling_scheme_acw,
+        bunch_intensity_particles_cw=bunch_intensity_particles_cw,
+        bunch_intensity_particles_acw=bunch_intensity_particles_acw)
     setup.bb_cw = setup._place_bb(cw, mirror=False)
     setup.bb_acw = setup._place_bb(acw, mirror=True)
     setup._compute_geometry(survey_separation=survey_separation)

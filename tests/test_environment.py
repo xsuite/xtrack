@@ -4863,7 +4863,9 @@ def test_environment_xfields_multibunch_facade(monkeypatch):
         num_long_range_encounters_per_side=2,
         harmonic_number=35640, bunch_spacing_buckets=10,
         nemitt_x=2.3e-6, nemitt_y=2.3e-6,
-        filling_clockwise=[1.0, 0.0], filling_anticlockwise=[0.0, 1.0])
+        filling_scheme_cw=[1, 0], filling_scheme_acw=[0, 1],
+        bunch_intensity_particles_cw=1.0e11,
+        bunch_intensity_particles_acw=1.1e11)
     assert setup == 'the_setup'
     assert calls[-1] == (
         'install', env, (), {
@@ -4872,7 +4874,9 @@ def test_environment_xfields_multibunch_facade(monkeypatch):
             'num_long_range_encounters_per_side': 2,
             'harmonic_number': 35640, 'bunch_spacing_buckets': 10,
             'nemitt_x': 2.3e-6, 'nemitt_y': 2.3e-6,
-            'filling_clockwise': [1.0, 0.0], 'filling_anticlockwise': [0.0, 1.0],
+            'filling_scheme_cw': [1, 0], 'filling_scheme_acw': [0, 1],
+            'bunch_intensity_particles_cw': 1.0e11,
+            'bunch_intensity_particles_acw': 1.1e11,
             'survey_separation': True,
             'bb_suffix_cw': '_cw', 'bb_suffix_acw': '_acw',
         })

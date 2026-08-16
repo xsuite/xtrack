@@ -72,8 +72,9 @@ setup = env.xfields.install_multibunch_beambeam(
     harmonic_number=mb.HARMONIC_NUMBER,
     bunch_spacing_buckets=mb.BUNCH_SPACING_BUCKETS,
     nemitt_x=par['nemitt'], nemitt_y=par['nemitt'],
-    filling_clockwise=mb.filling_from_scheme(scheme_b1, par['bunch_intensity']),
-    filling_anticlockwise=mb.filling_from_scheme(scheme_b2, par['bunch_intensity']))
+    filling_scheme_cw=scheme_b1, filling_scheme_acw=scheme_b2,
+    bunch_intensity_particles_cw=par['bunch_intensity'],
+    bunch_intensity_particles_acw=par['bunch_intensity'])
 
 # lattice octupoles (MO), kept exact in the third footprint variant to
 # retain the lattice amplitude detuning (split elements are excluded from
@@ -89,7 +90,7 @@ setup_mo = setup.second_order_maps(keep_extra_cw=mo_names,
 # beam-1 lines and lens handles used for the footprints below
 red_b1, red_mo_b1 = setup_red.cw_line, setup_mo.cw_line
 bb_b1, bb_thick_b1, bb_mo_b1 = setup_red.bb_cw, setup.bb_cw, setup_mo.bb_cw
-slots_b1, slots_b2 = setup_red.bunches_cw, setup_red.bunches_acw
+slots_b1, slots_b2 = setup_red.filled_slots_cw, setup_red.filled_slots_acw
 print(f'  populated bunches: B1 = {len(slots_b1)}, B2 = {len(slots_b2)}')
 
 # ----------------------------------------------------------------------------
@@ -136,7 +137,7 @@ pos_in_train = np.round(np.linspace(0, len(train) - 1, 12)).astype(int)
 family = [(train[k], f'train bunch {k + 1}') for k in pos_in_train]
 
 # cross-check the transferred lattices on the family bunches
-zeta_fam = np.array([sl for sl, _ in family]) * setup.slot_len
+zeta_fam = -np.array([sl for sl, _ in family]) * setup.bunch_spacing_zeta
 idx_fam = np.searchsorted(slots_b1, [sl for sl, _ in family])
 for label, transferred in (('thick', line_b1), ('maps+MO', red_mo_b1)):
     mb_check = transferred.twiss_multibunch(
@@ -176,7 +177,8 @@ for sl, label in family:
         fp[tag] = line.get_footprint(
             nemitt_x=par['nemitt'], nemitt_y=par['nemitt'],
             r_range=(0.3, 6), theta_range=(0.15, np.pi / 2 - 0.15),
-            freeze_longitudinal=True, zeta0=sl * setup.slot_len,
+            freeze_longitudinal=True,
+            zeta0=-sl * setup.bunch_spacing_zeta,
             linear_rescale_on_knobs=[xt.LinearRescale(
                 knob_name='beambeam_scale', v0=0.0, dv=0.1)])
         fp[tag + '_t'] = time.time() - t0

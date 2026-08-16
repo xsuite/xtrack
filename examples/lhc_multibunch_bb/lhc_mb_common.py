@@ -8,7 +8,7 @@ LHC-specific glue for the multi-bunch beam-beam examples.
 
 The multi-bunch beam-beam machinery itself is machine-independent and lives in
 :mod:`xtrack.multibunch_beambeam`. The single entry point
-``env.xfields.install_multibunch_beambeam(...)`` returns a ``MultibunchBBSetup``;
+``env.xfields.install_multibunch_beambeam(...)`` returns a ``RigidBunchBBSetup``;
 all further operations are methods on it (``setup.solve()``,
 ``setup.second_order_maps()``, ``setup.load_solution(...)``,
 ``setup.set_filling(...)``). The examples call those directly; this module only
@@ -17,7 +17,7 @@ holds the LHC-specific bits the generic tools cannot know about:
 * :func:`load_lhc` and the ``SCENARIOS`` presets (sequence, optics files, beam
   parameters for injection / collision);
 * the filling-scheme helpers (:func:`load_scheme`, :func:`all_filled_slots`,
-  :func:`filling_from_scheme` / :func:`filling_from_slots`, :func:`windowed_slots`
+  :func:`filling_scheme_from_slots`, :func:`windowed_slots`
   -- which reuses the ``setup.ip_offsets`` the tools derive from the geometry);
 * the DataFrame / plotting utilities (:func:`results_dataframe`,
   :func:`plot_results`, :func:`plot_global_quantities`).
@@ -25,8 +25,9 @@ holds the LHC-specific bits the generic tools cannot know about:
 Model (following pytrain / TRAIN): head-on and long-range 2D beam-beam elements
 (``xfields.BeamBeamBiGaussianRigidBunch2D``) at IP1/2/5/8; the per-IP head-on
 bunch-pairing offsets are derived from the ring geometry
-(``round(2 * (s_ip - s_ip1) / slot_len)`` -> 0 at IP1/IP5, ~891 at IP2, ~2670
-at IP8); coherent (rigid-bunch) convolved-size kicks; beam separation = live
+(``round(2 * (s_ip - s_ip1) / bunch_spacing_zeta)`` -> 0 at IP1/IP5, ~891 at
+IP2, ~2670 at IP8); coherent (rigid-bunch) convolved-size kicks; beam
+separation = live
 closed-orbit difference + geometric survey separation of the two rings.
 """
 
@@ -148,18 +149,11 @@ def all_filled_slots(scheme_b1, scheme_b2):
             sorted(np.where(scheme_b2 > 0)[0].tolist()))
 
 
-def filling_from_scheme(scheme, intensity):
-    """Per-slot population array from a 0/1 filling scheme (uniform
-    ``intensity`` at every filled slot)."""
-    return (np.asarray(scheme) > 0) * float(intensity)
-
-
-def filling_from_slots(slots, intensity, n_slots=N_SLOTS):
-    """Per-slot population array (length ``n_slots``) populated at ``slots``.
-    ``intensity`` is a scalar or a per-slot array aligned with ``slots``."""
-    filling = np.zeros(n_slots)
-    filling[np.asarray(slots, dtype=int)] = intensity
-    return filling
+def filling_scheme_from_slots(slots, n_slots=N_SLOTS):
+    """Slot-indexed occupancy pattern populated at physical ``slots``."""
+    filling_scheme = np.zeros(n_slots, dtype=int)
+    filling_scheme[np.asarray(slots, dtype=int)] = 1
+    return filling_scheme
 
 
 def windowed_slots(ho_offsets, scheme_b1, scheme_b2, window, n_slots=N_SLOTS):
@@ -200,14 +194,15 @@ def set_per_bunch_sizes(setup, nemitt_cw, nemitt_acw):
     PER-BUNCH ones, from measured per-bunch normalised emittances.
 
     ``nemitt_cw`` / ``nemitt_acw`` are ``(nemitt_x, nemitt_y)`` pairs of
-    arrays aligned with ``setup.bunches_cw`` / ``setup.bunches_acw``. The
-    sizes follow the tools' own convention, ``sigma = sqrt(beta nemitt /
-    gamma)`` with the bare-optics beta functions cached in ``setup.geom``;
+    arrays aligned with ``setup.filled_slots_cw`` /
+    ``setup.filled_slots_acw``. The sizes follow the tools' own convention,
+    ``sigma = sqrt(beta nemitt / gamma)`` with the bare-optics beta functions
+    cached in ``setup.geom``;
     only the single design emittance is replaced by the per-bunch one, so the
     kick between bunch ``i`` and bunch ``j`` uses the convolved size
     ``sqrt(eps_i beta_1 / gamma + eps_j beta_2 / gamma)``, as in pytrain.
 
-    ``MultibunchBBSetup`` carries one design emittance per plane, so this has
+    ``RigidBunchBBSetup`` carries one design emittance per plane, so this has
     to reach into the elements (which do support per-bunch sizes: the own
     sizes are indexed by this beam, the opposing ones by the other beam, and
     the kernel convolves the matched pair). It must be called AFTER the
@@ -220,7 +215,10 @@ def set_per_bunch_sizes(setup, nemitt_cw, nemitt_acw):
     gamma = {mirror: float(line[mirror].particle_ref.gamma0[0])
              for mirror in (False, True)}
     emit = {False: nemitt_cw, True: nemitt_acw}
-    n_bunches = {False: len(setup.bunches_cw), True: len(setup.bunches_acw)}
+    n_bunches = {
+        False: len(setup.filled_slots_cw),
+        True: len(setup.filled_slots_acw),
+    }
     for base in setup.enc_names:
         geom = setup.geom[base]
         sigma = {}
@@ -234,9 +232,13 @@ def set_per_bunch_sizes(setup, nemitt_cw, nemitt_acw):
             bb = line[mirror].element_dict[setup.bb_name(base, mirror)]
             own, other = sigma[mirror], sigma[not mirror]
             n_other = n_bunches[not mirror]
-            bb.update_from_own_beam(sigma_x=own[0], sigma_y=own[1])
-            bb.other_beam_sigma_x[:n_other] = other[0]
-            bb.other_beam_sigma_y[:n_other] = other[1]
+            bb.update_from_own_beam(
+                zeta=setup.bunch_zeta(mirror),
+                sigma_x=own[0], sigma_y=own[1])
+            other_order = np.argsort(setup.bunch_zeta(not mirror),
+                                     kind='stable')
+            bb.other_beam_sigma_x[:n_other] = other[0][other_order]
+            bb.other_beam_sigma_y[:n_other] = other[1][other_order]
 
 
 # ----------------------------------------------------------------------------

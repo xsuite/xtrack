@@ -40,18 +40,22 @@ setup = env.xfields.install_multibunch_beambeam(
     harmonic_number=mb.HARMONIC_NUMBER,
     bunch_spacing_buckets=mb.BUNCH_SPACING_BUCKETS,
     nemitt_x=par['nemitt'], nemitt_y=par['nemitt'],
-    filling_clockwise=mb.filling_from_scheme(scheme_b1, par['bunch_intensity']),
-    filling_anticlockwise=mb.filling_from_scheme(scheme_b2, par['bunch_intensity']))
+    filling_scheme_cw=scheme_b1, filling_scheme_acw=scheme_b2,
+    bunch_intensity_particles_cw=par['bunch_intensity'],
+    bunch_intensity_particles_acw=par['bunch_intensity'])
 
 if not ALL_BUNCHES:
     # restrict to a bounded window (the pairing offsets are now known from the
     # geometry, so we can pick the colliding sub-set) to keep the thick-lattice
     # solve fast
     s1, s2 = mb.windowed_slots(setup.ip_offsets, scheme_b1, scheme_b2, WINDOW)
-    setup.set_filling(mb.filling_from_slots(s1, par['bunch_intensity']),
-                      mb.filling_from_slots(s2, par['bunch_intensity']))
+    setup.set_filling(
+        filling_scheme_cw=mb.filling_scheme_from_slots(s1),
+        filling_scheme_acw=mb.filling_scheme_from_slots(s2),
+        bunch_intensity_particles_cw=par['bunch_intensity'],
+        bunch_intensity_particles_acw=par['bunch_intensity'])
 
-slots_b1, slots_b2 = setup.bunches_cw, setup.bunches_acw
+slots_b1, slots_b2 = setup.filled_slots_cw, setup.filled_slots_acw
 for ip in par['ips']:
     print(f'  {ip}: head-on offset = {setup.geom[f"bb_{ip}_ho"]["offset"]} slots')
 print(f'  populated bunches: B1 = {len(slots_b1)}, B2 = {len(slots_b2)}')

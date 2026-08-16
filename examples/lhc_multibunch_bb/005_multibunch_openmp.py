@@ -44,12 +44,13 @@ setup = env.xfields.install_multibunch_beambeam(
     harmonic_number=mb.HARMONIC_NUMBER,
     bunch_spacing_buckets=mb.BUNCH_SPACING_BUCKETS,
     nemitt_x=par['nemitt'], nemitt_y=par['nemitt'],
-    filling_clockwise=mb.filling_from_scheme(scheme_b1, par['bunch_intensity']),
-    filling_anticlockwise=mb.filling_from_scheme(scheme_b2, par['bunch_intensity']))
+    filling_scheme_cw=scheme_b1, filling_scheme_acw=scheme_b2,
+    bunch_intensity_particles_cw=par['bunch_intensity'],
+    bunch_intensity_particles_acw=par['bunch_intensity'])
 print('  building second-order maps between the beam-beam elements...')
 setup_red = setup.second_order_maps(context=ctx_mt)
 red_b1 = setup_red.cw_line
-slots_b1, slots_b2 = setup_red.bunches_cw, setup_red.bunches_acw
+slots_b1, slots_b2 = setup_red.filled_slots_cw, setup_red.filled_slots_acw
 print(f'  populated bunches: B1 = {len(slots_b1)}, B2 = {len(slots_b2)}')
 
 print('Populating the beam-beam elements (one solve iteration):')
@@ -58,7 +59,7 @@ setup_red.solve(max_iterations=1, tol_sigma=0.0)
 # ----------------------------------------------------------------------------
 # Timing: batched multibunch twiss of B1, serial vs multi-threaded kernels
 # ----------------------------------------------------------------------------
-zeta_b1 = slots_b1 * setup_red.slot_len
+zeta_b1 = -slots_b1 * setup_red.bunch_spacing_zeta
 contexts = (('serial', xo.ContextCpu()),
             (f'openmp ({n_threads} threads)', ctx_mt))
 

@@ -2821,7 +2821,9 @@ class EnvXfields:
                                     num_long_range_encounters_per_side,
                                     harmonic_number, bunch_spacing_buckets,
                                     nemitt_x, nemitt_y,
-                                    filling_clockwise, filling_anticlockwise,
+                                    filling_scheme_cw, filling_scheme_acw,
+                                    bunch_intensity_particles_cw,
+                                    bunch_intensity_particles_acw,
                                     survey_separation=True,
                                     bb_suffix_cw='_cw', bb_suffix_acw='_acw'):
         """
@@ -2831,7 +2833,7 @@ class EnvXfields:
         head-on and long-range (LR) encounter at every IP of two counter-
         rotating rings (in the coherent rigid-bunch model), computes the
         encounter geometry and returns a
-        :class:`xtrack.multibunch_beambeam.MultibunchBBSetup`. All further
+        :class:`xtrack.multibunch_beambeam.RigidBunchBBSetup`. All further
         operations are methods on that object: ``setup.solve()`` (per-bunch
         self-consistent closed orbit), ``setup.second_order_maps()`` (a fast
         sector-map copy), ``setup.load_solution(...)`` (transfer a converged
@@ -2854,8 +2856,9 @@ class EnvXfields:
             in slot ``b`` collides head-on with the anticlockwise bunch in slot
             ``b + offset`` mod ``n_slots``), or a list of IP element names
             ``[ip1, ip2, ...]`` in which case the offsets are derived from the
-            ring geometry as ``round(2 * (s_ip - s_ref) / slot_len)`` with the
-            first IP as the pairing reference (offset zero).
+            ring geometry as
+            ``round(2 * (s_ip - s_ref) / bunch_spacing_zeta)`` with the first
+            IP as the pairing reference (offset zero).
         num_long_range_encounters_per_side : int or dict
             Number of LR encounters per side of each IP. An int applies to all
             IPs; a ``{ip_name: int}`` mapping sets it per IP.
@@ -2866,10 +2869,13 @@ class EnvXfields:
             ``n_slots = harmonic_number / bunch_spacing_buckets``.
         nemitt_x, nemitt_y : float
             Normalized transverse emittances (used for the beam sizes).
-        filling_clockwise, filling_anticlockwise : array_like
-            Per-slot bunch population of each beam, as an array of length
-            ``n_slots`` (number of particles per slot; zero = empty slot). This
-            encodes both which bunches are populated and their intensities.
+        filling_scheme_cw, filling_scheme_acw : array_like
+            Slot-indexed occupancy patterns of length ``n_slots``. Nonzero
+            entries identify filled physical slots.
+        bunch_intensity_particles_cw, bunch_intensity_particles_acw : float or array_like
+            Number of particles per filled bunch. A scalar is applied uniformly
+            to all filled slots. An array must be slot-indexed with length
+            ``n_slots``; its values at empty slots are ignored.
         survey_separation : bool, optional
             If True (default), add the geometric survey separation of the two
             rings at each encounter to the closed-orbit separation. Set to
@@ -2881,9 +2887,9 @@ class EnvXfields:
 
         Returns
         -------
-        MultibunchBBSetup
-            The setup handle; call its :meth:`~xtrack.multibunch_beambeam.MultibunchBBSetup.solve`
-            (or :meth:`~xtrack.multibunch_beambeam.MultibunchBBSetup.second_order_maps`)
+        RigidBunchBBSetup
+            The setup handle; call its :meth:`~xtrack.multibunch_beambeam.RigidBunchBBSetup.solve`
+            (or :meth:`~xtrack.multibunch_beambeam.RigidBunchBBSetup.second_order_maps`)
             method next.
         """
         from .multibunch_beambeam import install_multibunch_beambeam
@@ -2896,8 +2902,10 @@ class EnvXfields:
             harmonic_number=harmonic_number,
             bunch_spacing_buckets=bunch_spacing_buckets,
             nemitt_x=nemitt_x, nemitt_y=nemitt_y,
-            filling_clockwise=filling_clockwise,
-            filling_anticlockwise=filling_anticlockwise,
+            filling_scheme_cw=filling_scheme_cw,
+            filling_scheme_acw=filling_scheme_acw,
+            bunch_intensity_particles_cw=bunch_intensity_particles_cw,
+            bunch_intensity_particles_acw=bunch_intensity_particles_acw,
             survey_separation=survey_separation,
             bb_suffix_cw=bb_suffix_cw, bb_suffix_acw=bb_suffix_acw)
 
