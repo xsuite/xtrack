@@ -43,7 +43,7 @@ tracking contracts:
 - `BeamBeamBiGaussian2D` keeps its compact scalar layout, established
   constructor, weak-strong behavior and pipeline strong-strong updater.
 - `BeamBeamBiGaussianMultibunch2D` owns the filling-dependent bunch arrays and
-  the fixed-point train/rigid-bunch behavior.
+  the rigid-bunch train behavior.
 
 The classes must call one common BB2D kick helper that owns:
 
@@ -71,10 +71,13 @@ the number of bunches explicitly reconfigures/reallocates the multibunch
 elements; updates that preserve the filling can modify their data in place.
 
 Keeping the classes separate also makes the semantics visible in the API:
-pipeline strong-strong remains a configuration of scalar BB2D, whereas train
-mode constructs the multibunch element. Their permanent tests should include
-one-bunch and per-selected-bunch comparisons against scalar BB2D so the shared
-physical model remains locked down.
+pipeline strong-strong remains a configuration of scalar BB2D, whereas
+`mode='rigid_bunch'` constructs the multibunch element. “Multibunch” describes
+the capability shared by both approaches; “rigid bunch” identifies the physical
+approximation used by this workflow. “Fixed point” is reserved for the solver
+algorithm, and “train” for the collection of bunches. Permanent tests should
+include one-bunch and per-selected-bunch comparisons against scalar BB2D so the
+shared physical model remains locked down.
 
 ## Rationalization 2: extend the existing installation workflow
 
@@ -108,7 +111,7 @@ env.xfields.install_beambeam_interactions(
     num_long_range_encounters_per_side=45,
     harmonic_number=35640,
     bunch_spacing_buckets=10,
-    mode='multibunch',
+    mode='rigid_bunch',
 )
 
 setup = env.xfields.configure_beambeam_interactions(
@@ -282,7 +285,7 @@ Refactor the existing workflow incrementally:
 1. Extract encounter generation from the current installer.
 2. Extract Twiss/survey geometry and coordinate transformations.
 3. Make the conventional and multibunch paths consume those helpers.
-4. Add `mode='multibunch'` to `install_beambeam_interactions(...)`.
+4. Add `mode='rigid_bunch'` to `install_beambeam_interactions(...)`.
 5. Add the multibunch filling, intensity and emittance inputs to
    `configure_beambeam_interactions(...)`.
 6. Return `MultibunchBBSetup` for the genuinely stateful operations.
@@ -415,7 +418,7 @@ temporary migration bridge. They compare each selected multibunch kick against
 an independently configured scalar BB2D.
 
 For installation, build two copies of the toy environment. Configure one with
-`install_multibunch_beambeam(...)` and the other with the multibunch mode of
+`install_multibunch_beambeam(...)` and the other with rigid-bunch mode in
 the existing install/configure workflow. Compare normalized snapshots
 containing:
 
@@ -439,7 +442,7 @@ Keep the preparatory tests and implementation changes in separate commits:
 4. `Infer multibunch element storage from bunch data`.
 5. `Align multibunch train bunch-pattern API`.
 6. `Share beam-beam encounter and geometry configuration`.
-7. `Add multibunch mode to install/configure workflow`.
+7. `Add rigid-bunch mode to install/configure workflow`.
 8. `Migrate examples and remove duplicate installer API`.
 9. `Add final regression coverage`.
 

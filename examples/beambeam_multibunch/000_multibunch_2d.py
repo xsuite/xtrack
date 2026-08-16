@@ -94,7 +94,7 @@ common_bb_kwargs = dict(
 )
 
 # The opposing beam is passed as a Particles object (each active macroparticle
-# is one bunch); `num_bunches` and the initial bunch centroids are taken from it.
+# is one bunch); the bunch count and initial centroids are taken from it.
 bb_on_beam1 = xf.BeamBeamBiGaussianMultibunch2D(
     other_particles=beam2, **common_bb_kwargs)  # other = beam2
 bb_on_beam2 = xf.BeamBeamBiGaussianMultibunch2D(

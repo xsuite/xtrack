@@ -90,9 +90,10 @@ def _bind_beambeam_scale(line, bb_names):
     of all the beam-beam elements to it (as in the xfields beam-beam config
     tools), e.g. for footprints with a linear rescale of the beam-beam strength.
     """
-    line.vars['beambeam_scale'] = 1.0
+    if 'beambeam_scale' not in line.vars:
+        line['beambeam_scale'] = 1.0
     for name in bb_names:
-        line.element_refs[name].scale_strength = line.vars['beambeam_scale']
+        line[name].scale_strength = 'beambeam_scale'
 
 
 class MultibunchBBSetup:
@@ -180,38 +181,86 @@ class MultibunchBBSetup:
         holding the population (number of particles, zero = empty) of each slot.
         Derives the populated slot indices and their intensities.
 
-        If the beam-beam elements are already installed, their per-bunch arrays
-        are re-registered for the new filling: the own bunch grid and design
-        sizes via :meth:`_register_own_sizes`, and the opposing state is reset
-        (reloaded on the next solve). So a setup installed for one filling (e.g.
-        the union of several fillings) can be re-solved on any subset that fits
-        the installed capacity."""
+        If the beam-beam elements are already installed, a change in either
+        bunch count rebuilds them with arrays sized exactly for the new filling.
+        A change that preserves both counts updates the bunch grids and resets
+        the opposing state in place."""
+        old_n_cw = (None if self.bunches_cw is None
+                    else len(self.bunches_cw))
+        old_n_acw = (None if self.bunches_acw is None
+                     else len(self.bunches_acw))
         fcw = np.asarray(filling_clockwise, dtype=float)
         facw = np.asarray(filling_anticlockwise, dtype=float)
         if len(fcw) != self.n_slots or len(facw) != self.n_slots:
             raise ValueError(
                 f'filling arrays must have length n_slots={self.n_slots} '
                 f'(got {len(fcw)} and {len(facw)})')
+        bunches_cw = np.where(fcw > 0)[0]
+        bunches_acw = np.where(facw > 0)[0]
+        if len(bunches_cw) == 0 or len(bunches_acw) == 0:
+            raise ValueError(
+                'Rigid-bunch beam-beam requires at least one filled slot in '
+                'each beam.')
         self.filling_cw = fcw
         self.filling_acw = facw
-        self.bunches_cw = np.where(fcw > 0)[0]
-        self.bunches_acw = np.where(facw > 0)[0]
+        self.bunches_cw = bunches_cw
+        self.bunches_acw = bunches_acw
         self.num_particles_cw = fcw[self.bunches_cw]
         self.num_particles_acw = facw[self.bunches_acw]
 
-        # re-fit the installed elements to the new filling (own grid + sizes;
-        # opposing state reloaded on the next solve). Skipped during install
-        # (elements not placed / geometry not computed yet).
+        # Skipped during installation, before elements and geometry exist.
         if self.bb_cw and self.geom:
-            self._register_own_sizes()
-            for bb_dict in (self.bb_cw, self.bb_acw):
-                for bb in bb_dict.values():
-                    bb.num_other_bunches = 0
+            count_changed = (old_n_cw != len(self.bunches_cw)
+                             or old_n_acw != len(self.bunches_acw))
+            if count_changed:
+                self._rebuild_bb_elements()
+            else:
+                self._configure_bb()
 
     # ------------------------------------------------------------------
     # Building (used by install_multibunch_beambeam)
     # ------------------------------------------------------------------
-    def _place_bb(self, line, mirror, n_other):
+    def _representative_other_beam(self, line, mirror):
+        """One inactive-kick representative per opposing bunch.
+
+        The particles remain active so their count determines exact storage,
+        but zero weight preserves the bare-lattice cold start until a solution
+        update loads the physical bunch populations.
+        """
+        import xtrack as xt
+        other_line = self.cw_line if mirror else self.acw_line
+        slots = self.bunches_cw if mirror else self.bunches_acw
+        return xt.Particles(
+            _context=line._context,
+            p0c=other_line.particle_ref.p0c[0],
+            mass0=other_line.particle_ref.mass0,
+            q0=other_line.particle_ref.q0,
+            x=np.zeros(len(slots)),
+            y=np.zeros(len(slots)),
+            zeta=np.asarray(slots) * self.slot_len,
+            weight=np.zeros(len(slots)))
+
+    def _make_bb(self, line, mirror):
+        """Build one exactly sized rigid-bunch beam-beam element."""
+        import xfields as xf
+        beta0_other = _beta0(self.acw_line if not mirror else self.cw_line)
+        q0_other = float((self.acw_line if not mirror
+                          else self.cw_line).particle_ref.q0)
+        own_slots = self.bunches_acw if mirror else self.bunches_cw
+        own_zeta = np.asarray(own_slots) * self.slot_len
+        return xf.BeamBeamBiGaussianMultibunch2D(
+            other_particles=self._representative_other_beam(line, mirror),
+            own_beam_zeta=own_zeta,
+            zeta_offset=0.0,
+            zeta_match_tol=0.1 * self.slot_len,
+            zeta_period=self.n_slots * self.slot_len,
+            other_beam_q0=q0_other, other_beam_beta0=beta0_other,
+            coherent=True,
+            sigma_x=1.0, sigma_y=1.0,
+            other_beam_sigma_x=1.0, other_beam_sigma_y=1.0,
+            _context=line._context)
+
+    def _place_bb(self, line, mirror):
         """Place one (still un-sized) beam-beam element per encounter DIRECTLY
         at the encounter positions of ``line`` (no separate markers). The
         element is named ``bb_name(base, mirror)`` and is the observation point
@@ -221,13 +270,7 @@ class MultibunchBBSetup:
         element so the kernel can match every tracked particle to its own bunch
         for the coherent convolution; the own per-bunch sizes are indexed by it.
         """
-        import xfields as xf
         env = line.env
-        beta0_other = _beta0(self.acw_line if not mirror else self.cw_line)
-        q0_other = float((self.acw_line if not mirror
-                          else self.cw_line).particle_ref.q0)
-        own_slots = self.bunches_acw if mirror else self.bunches_cw
-        own_zeta = np.asarray(own_slots) * self.slot_len
         length = line.get_length()
         tab = line.get_table()
         s_ip = {ip: float(tab['s', ip]) for ip in self.ip_names}
@@ -235,22 +278,28 @@ class MultibunchBBSetup:
         for base, ip, sn in self.enc_specs:
             at = (s_ip[ip] + (-sn if mirror else sn) * self.b_h_dist + 1e-6) % length
             elname = self.bb_name(base, mirror)
-            bb = xf.BeamBeamBiGaussianMultibunch2D(
-                num_bunches=max(n_other, 1),
-                own_beam_zeta=own_zeta,             # this beam's bunch grid
-                zeta_offset=0.0,
-                zeta_match_tol=0.1 * self.slot_len,
-                zeta_period=self.n_slots * self.slot_len,
-                other_beam_q0=q0_other, other_beam_beta0=beta0_other,
-                coherent=True,
-                sigma_x=1.0, sigma_y=1.0,            # placeholders
-                other_beam_sigma_x=1.0, other_beam_sigma_y=1.0,
-                _context=line._context)
+            bb = self._make_bb(line, mirror)
             places.append(env.place(elname, bb, at=at))
             names.append((base, elname))
         line.insert(places)
         _bind_beambeam_scale(line, [elname for _, elname in names])
         return {base: line[elname] for base, elname in names}
+
+    def _rebuild_bb_elements(self):
+        """Replace installed elements after a change in either bunch count."""
+        rebuilt = []
+        for line, mirror in ((self.cw_line, False), (self.acw_line, True)):
+            for base in self.enc_names:
+                elname = self.bb_name(base, mirror)
+                bb = self._make_bb(line, mirror)
+                line.env.elements.remove(elname)
+                line.env.elements[elname] = bb
+            names = (self.bb_names_acw if mirror else self.bb_names_cw)
+            _bind_beambeam_scale(line, names)
+            rebuilt.append({base: line[self.bb_name(base, mirror)]
+                            for base in self.enc_names})
+        self.bb_cw, self.bb_acw = rebuilt
+        self._configure_bb()
 
     def _resolve_ip_offsets(self, tw_cw):
         """Head-on pairing offset (in slots) of each IP: from ``self.ips`` if a
@@ -348,10 +397,16 @@ class MultibunchBBSetup:
                 bb.zeta_offset = (-e['offset'] if mirror else e['offset']) \
                     * self.slot_len
                 bb.other_beam_sigma_x = np.full(
-                    max(n_oth, 1), np.sqrt(e[f'betx_{oth}'] * ex / gamma0))
+                    n_oth, np.sqrt(e[f'betx_{oth}'] * ex / gamma0))
                 bb.other_beam_sigma_y = np.full(
-                    max(n_oth, 1), np.sqrt(e[f'bety_{oth}'] * ey / gamma0))
+                    n_oth, np.sqrt(e[f'bety_{oth}'] * ey / gamma0))
         self._register_own_sizes()
+        for line, mirror, bb_dict in (
+                (self.cw_line, False, self.bb_cw),
+                (self.acw_line, True, self.bb_acw)):
+            particles = self._representative_other_beam(line, mirror)
+            for bb in bb_dict.values():
+                bb.update_from_other_beam(particles)
 
     def _register_own_sizes(self):
         """(Re)register each element's OWN bunch grid (``own_beam_zeta``) and
@@ -359,8 +414,8 @@ class MultibunchBBSetup:
         the CURRENT filling. Called at install and again whenever the filling
         changes (:meth:`set_filling`), so the per-bunch own arrays always match
         ``self.bunches_*``. Uses the bare-optics betas cached in ``self.geom``
-        (uniform over bunches); the arrays keep their allocated capacity, so the
-        current filling must fit the one the elements were installed for."""
+        (uniform over bunches). A count change rebuilds the elements before this
+        method is called, so their array lengths match the current filling."""
         ex, ey = self.nemitt_x, self.nemitt_y
         for mirror, bb_dict in ((False, self.bb_cw), (True, self.bb_acw)):
             own = 'acw' if mirror else 'cw'
@@ -713,9 +768,7 @@ def install_multibunch_beambeam(env, clockwise_line, anticlockwise_line,
         harmonic_number, bunch_spacing_buckets, nemitt_x, nemitt_y,
         bb_suffix_cw=bb_suffix_cw, bb_suffix_acw=bb_suffix_acw)
     setup.set_filling(filling_clockwise, filling_anticlockwise)
-    setup.bb_cw = setup._place_bb(cw, mirror=False,
-                                  n_other=len(setup.bunches_acw))
-    setup.bb_acw = setup._place_bb(acw, mirror=True,
-                                   n_other=len(setup.bunches_cw))
+    setup.bb_cw = setup._place_bb(cw, mirror=False)
+    setup.bb_acw = setup._place_bb(acw, mirror=True)
     setup._compute_geometry(survey_separation=survey_separation)
     return setup

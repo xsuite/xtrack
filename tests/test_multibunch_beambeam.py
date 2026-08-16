@@ -220,3 +220,33 @@ def test_multibunch_beambeam_toy_installation_and_setup():
                     getattr(full_bb, field)[:n_bunches],
                     getattr(reduced_bb, field)[:n_bunches],
                     rtol=0, atol=0)
+
+    # A changed filling count requires differently sized Xobjects. The setup
+    # rebuilds the elements under the same line names, preserving geometry and
+    # the shared strength knob; every array then has exactly the new own or
+    # opposing bunch count.
+    filling_cw_new = np.zeros(N_SLOTS)
+    filling_acw_new = np.zeros(N_SLOTS)
+    filling_cw_new[[1, 4]] = [1.2e11, 2.2e11]
+    filling_acw_new[[0, 2, 5, 7]] = [1.4e11, 2.4e11, 3.4e11, 4.4e11]
+    env.cw['beambeam_scale'] = 0.29
+    setup.set_filling(filling_cw_new, filling_acw_new)
+
+    xo.assert_allclose(setup.bunches_cw, [1, 4], rtol=0, atol=0)
+    xo.assert_allclose(setup.bunches_acw, [0, 2, 5, 7], rtol=0, atol=0)
+    for bb in setup.bb_cw.values():
+        assert len(bb.own_beam_zeta) == 2
+        assert len(bb.other_beam_zeta) == 4
+        assert bb.num_own_bunches == 2
+        assert bb.num_other_bunches == 4
+        assert bb.scale_strength == 0.29
+        xo.assert_allclose(
+            bb.other_beam_num_particles, np.zeros(4), rtol=0, atol=0)
+    for bb in setup.bb_acw.values():
+        assert len(bb.own_beam_zeta) == 4
+        assert len(bb.other_beam_zeta) == 2
+        assert bb.num_own_bunches == 4
+        assert bb.num_other_bunches == 2
+        assert bb.scale_strength == 0.29
+        xo.assert_allclose(
+            bb.other_beam_num_particles, np.zeros(2), rtol=0, atol=0)

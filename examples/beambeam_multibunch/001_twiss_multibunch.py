@@ -94,7 +94,8 @@ def make_line(x_ref):
     otm = xt.LineSegmentMap(qx=qx0, qy=qy0, betx=1.0, bety=1.0,
                             x_ref=x_ref, longitudinal_mode='frozen')
     bb = xf.BeamBeamBiGaussianMultibunch2D(
-        num_bunches=n_bunches, zeta_offset=0.0, zeta_match_tol=1e-6,
+        other_particles=opposing,
+        zeta_offset=0.0, zeta_match_tol=1e-6,
         other_beam_q0=1.0, other_beam_beta0=beta0_rel,
         other_beam_sigma_x=np.sqrt(betx_ip * nemitt_x / gamma0),
         other_beam_sigma_y=np.sqrt(bety_ip * nemitt_y / gamma0))
