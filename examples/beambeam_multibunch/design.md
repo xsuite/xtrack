@@ -114,8 +114,10 @@ env.xfields.install_beambeam_interactions(
 )
 
 setup = env.xfields.configure_beambeam_interactions(
-    filling_pattern_cw=filling_cw,
-    filling_pattern_acw=filling_acw,
+    filling_scheme_cw=filling_scheme_cw,
+    filling_scheme_acw=filling_scheme_acw,
+    bunch_intensity_particles_cw=bunch_intensity_cw,
+    bunch_intensity_particles_acw=bunch_intensity_acw,
     nemitt_x=nemitt_x,
     nemitt_y=nemitt_y,
 )
@@ -146,6 +148,70 @@ calculation.
 to the coherent multibunch solve: it subtracts the reference dipole kick,
 whereas the solver intentionally retains that kick to find the distorted
 closed orbit. Its lower-level coordinate conventions may still be shared.
+
+## Bunch-pattern API consistency
+
+The multibunch beam-beam API should use the same bunch-pattern concepts as
+Xpart, Xwakes and `BeamStatsMonitor`. Their common public model is:
+
+- `filling_scheme` is a slot-indexed boolean/integer occupancy pattern;
+- `filled_slots` contains the corresponding physical slot numbers;
+- `bunch_spacing_zeta` is the positive physical distance between adjacent
+  slots of that pattern; and
+- physical slot `i` is centred at `zeta = -i * bunch_spacing_zeta`.
+
+Occupancy and intensity must remain separate. In particular, a floating-point
+array containing the population of every slot should not be called a filling
+scheme. The multibunch beam-beam configuration should therefore accept
+`filling_scheme_cw` / `filling_scheme_acw` separately from
+`bunch_intensity_particles_cw` / `bunch_intensity_particles_acw`. An intensity
+can be uniform for all filled slots or slot-indexed when bunch populations are
+not uniform. The setup should expose the derived physical slot identifiers as
+`filled_slots_cw` and `filled_slots_acw`, rather than the ambiguous
+`bunches_cw` and `bunches_acw`.
+
+Keeping `harmonic_number` and `bunch_spacing_buckets` in the high-level
+beam-beam installation API is useful because encounter pairing needs the
+integer ring topology. The normalized setup should additionally expose
+`bunch_spacing_zeta`. Any different phase or sign convention needed inside a
+beam-beam kernel should be converted at the implementation boundary and should
+not change the public bunch-position convention.
+
+There is an existing selection-semantic difference which this refactoring must
+not spread further:
+
+- `BeamStatsMonitor.selected_slots` contains physical slot numbers;
+- Xpart and Xwakes `bunch_selection` contains ordinal indices into the compact
+  list of filled bunches.
+
+For example, with `filling_scheme=[1, 0, 1, 1]`,
+`BeamStatsMonitor(selected_slots=[0, 2])` selects physical slots 0 and 2,
+whereas the Xpart/Xwakes `bunch_selection=[0, 2]` selects physical slots 0 and
+3. The new beam-beam API should use physical slot numbers whenever it exposes
+a selection and should call that argument `selected_slots`.
+
+### Scope decision
+
+This PR will not change Xpart, Xwakes or `BeamStatsMonitor`. The latter already
+provides the desired physical-slot terminology. Changing the meaning of the
+established Xpart/Xwakes `bunch_selection` argument would require a separate
+backward-compatible API migration. A possible follow-up is to add
+`selected_slots` to those packages, make it mutually exclusive with the legacy
+`bunch_selection`, and perform the physical-slot to compact-index conversion
+internally.
+
+Add a small cross-package contract test, without Xmask, using a sparse pattern
+such as:
+
+```python
+filling_scheme = [1, 0, 1, 1]
+bunch_spacing_zeta = 5
+selected_slots = [0, 3]
+```
+
+It should establish that `filled_slots == [0, 2, 3]` and that the selected
+physical bunch centres are `[0, -15]`. This catches confusion between physical
+slots and compact bunch ordinals, as well as spacing and `zeta`-sign mistakes.
 
 ## Implementation plan
 
