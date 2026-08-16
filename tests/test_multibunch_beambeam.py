@@ -97,7 +97,7 @@ def _install_toy_multibunch_beambeam():
         filling_scheme_acw=filling_scheme_acw,
         bunch_intensity_particles_cw=intensity_cw,
         bunch_intensity_particles_acw=intensity_acw,
-        survey_separation=False,
+        survey_separation=True,
     )
     return (env, setup, filling_scheme_cw, filling_scheme_acw,
             intensity_cw, intensity_acw)
@@ -152,7 +152,10 @@ def test_multibunch_beambeam_toy_installation_and_setup():
 
     zeta_cw = -setup.filled_slots_cw * SLOT_LENGTH
     zeta_acw = -setup.filled_slots_acw * SLOT_LENGTH
-    gamma0 = float(env.cw.particle_ref.gamma0[0])
+    beta0_cw = float(env.cw.particle_ref.beta0[0])
+    gamma0_cw = float(env.cw.particle_ref.gamma0[0])
+    beta0_acw = float(env.acw.particle_ref.beta0[0])
+    gamma0_acw = float(env.acw.particle_ref.gamma0[0])
     for base, offset in zip(expected_encounters, expected_offsets):
         bb_cw = setup.bb_cw[base]
         bb_acw = setup.bb_acw[base]
@@ -175,18 +178,56 @@ def test_multibunch_beambeam_toy_installation_and_setup():
         assert len(bb_acw.other_beam_zeta) == len(setup.filled_slots_cw)
 
         geom = setup.geom[base]
+        # The shared covariance API includes relativistic beta in the
+        # normalized-to-geometric emittance conversion.
         xo.assert_allclose(
-            bb_cw.sigma_x,
-            np.sqrt(geom['betx_cw'] * NEMITT_X / gamma0), rtol=1e-14)
+            geom['sigma_x_cw'], np.sqrt(
+                geom['betx_cw'] * NEMITT_X / (beta0_cw * gamma0_cw)),
+            rtol=1e-14)
         xo.assert_allclose(
-            bb_cw.sigma_y,
-            np.sqrt(geom['bety_cw'] * NEMITT_Y / gamma0), rtol=1e-14)
+            geom['sigma_y_cw'], np.sqrt(
+                geom['bety_cw'] * NEMITT_Y / (beta0_cw * gamma0_cw)),
+            rtol=1e-14)
         xo.assert_allclose(
-            bb_cw.other_beam_sigma_x,
-            np.sqrt(geom['betx_acw'] * NEMITT_X / gamma0), rtol=1e-14)
+            geom['sigma_x_acw'], np.sqrt(
+                geom['betx_acw'] * NEMITT_X / (beta0_acw * gamma0_acw)),
+            rtol=1e-14)
         xo.assert_allclose(
-            bb_cw.other_beam_sigma_y,
-            np.sqrt(geom['bety_acw'] * NEMITT_Y / gamma0), rtol=1e-14)
+            geom['sigma_y_acw'], np.sqrt(
+                geom['bety_acw'] * NEMITT_Y / (beta0_acw * gamma0_acw)),
+            rtol=1e-14)
+        xo.assert_allclose(
+            bb_cw.sigma_x, geom['sigma_x_cw'], rtol=0, atol=0)
+        xo.assert_allclose(
+            bb_cw.sigma_y, geom['sigma_y_cw'], rtol=0, atol=0)
+        xo.assert_allclose(
+            bb_cw.other_beam_sigma_x, geom['sigma_x_acw'], rtol=0, atol=0)
+        xo.assert_allclose(
+            bb_cw.other_beam_sigma_y, geom['sigma_y_acw'], rtol=0, atol=0)
+
+    # The setup geometry is the normalized view of the shared Xfields result.
+    shared_geometry, _ = xf.compute_beambeam_geometry(
+        encounter_table=setup.encounter_table,
+        line_cw=env.cw, line_acw=env.acw,
+        element_names_cw=setup.bb_names_cw,
+        element_names_acw=setup.bb_names_acw,
+        nemitt_x=NEMITT_X, nemitt_y=NEMITT_Y,
+        survey_separation=False)
+    for ii, base in enumerate(expected_encounters):
+        geom = setup.geom[base]
+        row = shared_geometry.iloc[ii]
+        for field in ('betx_cw', 'bety_cw', 'betx_acw', 'bety_acw'):
+            xo.assert_allclose(geom[field], row[field], rtol=0, atol=0)
+        xo.assert_allclose(
+            geom['sigma_x_cw'], np.sqrt(row['Sigma_11_cw']), rtol=0, atol=0)
+        xo.assert_allclose(
+            geom['sigma_y_cw'], np.sqrt(row['Sigma_33_cw']), rtol=0, atol=0)
+        xo.assert_allclose(
+            geom['sigma_x_acw'], np.sqrt(row['Sigma_11_acw']), rtol=0, atol=0)
+        xo.assert_allclose(
+            geom['sigma_y_acw'], np.sqrt(row['Sigma_33_acw']), rtol=0, atol=0)
+        xo.assert_allclose(geom['sep_x'], row['separation_x'], rtol=0, atol=0)
+        xo.assert_allclose(geom['sep_y'], row['separation_y'], rtol=0, atol=0)
 
     env.cw['beambeam_scale'] = 0.37
     for name in setup.bb_names_cw:

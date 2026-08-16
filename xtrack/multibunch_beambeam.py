@@ -357,68 +357,44 @@ class RigidBunchBBSetup:
                 for ip in self.ip_names}
 
     def _compute_geometry(self, survey_separation=True):
-        """Twiss (and, if requested, survey) both beams and fill ``self.geom``
-        with the per-encounter pairing offset, beta functions and survey
-        separation; then configure the beam-beam element sizes/offsets. The
-        beam-beam elements are the observation points (they must already be
-        placed and are inactive, so the twiss is the bare optics)."""
-        tw_cw = self.cw_line.twiss()
-        tw_acw = self.acw_line.twiss()
+        """Fill ``self.geom`` from the shared Xfields geometry description.
+
+        The beam-beam elements are the observation points. They must already
+        be placed and inactive, so the shared Twiss and covariance calculation
+        sees the bare optics.
+        """
+        import xfields as xf
+
+        geometry_table, twisses = xf.compute_beambeam_geometry(
+            encounter_table=self.encounter_table,
+            line_cw=self.cw_line, line_acw=self.acw_line,
+            element_names_cw=self.bb_names_cw,
+            element_names_acw=self.bb_names_acw,
+            nemitt_x=self.nemitt_x, nemitt_y=self.nemitt_y,
+            survey_separation=survey_separation)
+        tw_cw = twisses['cw']
+        tw_acw = twisses['acw']
         n_slots = self.n_slots
         self.ip_offsets = self._resolve_ip_offsets(tw_cw)
-        import xfields as xf
         self.encounter_table = xf.generate_beambeam_encounter_table(
             self.ip_names, self.num_long_range_encounters_per_side,
             bunch_spacing_zeta=self.bunch_spacing_zeta,
             delay_at_ips_slots=self.ip_offsets, n_slots=n_slots)
 
-        if survey_separation:
-            # One survey per IP, in that IP's own frame (:func:`_local_survey`).
-            # The encounters of an IP are then read off directly: their
-            # coordinates are already relative to their IP and expressed in the
-            # local frame there, so nothing has to be subtracted afterwards and
-            # the bends of the insertion are followed exactly.
-            enc_of_ip = {ip: [b for b, i, _ in self.enc_specs if i == ip]
-                         for ip in self.ip_names}
-            frames_cw = {ip: _local_survey(
-                self.cw_line, ip,
-                [self.bb_name(b, False) for b in enc_of_ip[ip]])
-                for ip in self.ip_names}
-            frames_acw = {ip: _local_survey(
-                self.acw_line, ip,
-                [self.bb_name(b, True) for b in enc_of_ip[ip]])
-                for ip in self.ip_names}
-
         geom = {}
         for j, (base, ip, sn) in enumerate(self.enc_specs):
-            ncw, nacw = self.bb_names_cw[j], self.bb_names_acw[j]
             offset = int(self.encounter_table['delay_in_slots_cw'].iloc[j]) \
                 % n_slots
-            sep_x = sep_y = 0.0
-            if survey_separation:
-                # Geometric survey separation of the two rings at this
-                # encounter, in the clockwise beam's frame. Both positions are
-                # already in their IP's local frame; the anticlockwise ring is
-                # traversed the other way, so its frame is rotated 180 deg
-                # about the vertical (X,Z -> -X,-Z) before differencing. The
-                # separation is then PROJECTED on the local unit vectors of the
-                # clockwise beam at this encounter, which gives the horizontal
-                # and vertical components with their sign directly -- no
-                # assumption that the reference direction follows the mean ring
-                # azimuth, so a bend between the IP and the encounter is
-                # accounted for.
-                s1, frame = frames_cw[ip][ncw]
-                s2, _ = frames_acw[ip][nacw]
-                d = s1 - np.array([-s2[0], s2[1], -s2[2]])
-                sep_x = float(d @ frame[:, 0])
-                sep_y = float(d @ frame[:, 1])
+            row = geometry_table.iloc[j]
             geom[base] = dict(
                 ip=ip, offset=offset, signed_n=sn,
-                betx_cw=float(tw_cw['betx', ncw]),
-                bety_cw=float(tw_cw['bety', ncw]),
-                betx_acw=float(tw_acw['betx', nacw]),
-                bety_acw=float(tw_acw['bety', nacw]),
-                sep_x=sep_x, sep_y=sep_y,
+                betx_cw=row['betx_cw'], bety_cw=row['bety_cw'],
+                betx_acw=row['betx_acw'], bety_acw=row['bety_acw'],
+                sigma_x_cw=np.sqrt(row['Sigma_11_cw']),
+                sigma_y_cw=np.sqrt(row['Sigma_33_cw']),
+                sigma_x_acw=np.sqrt(row['Sigma_11_acw']),
+                sigma_y_acw=np.sqrt(row['Sigma_33_acw']),
+                sep_x=row['separation_x'], sep_y=row['separation_y'],
             )
         self.geom = geom
         self.meta = dict(
@@ -430,15 +406,13 @@ class RigidBunchBBSetup:
         """Set the pairing ``zeta_offset`` and the (static) opposing sizes on the
         placed beam-beam elements from the computed geometry, then register the
         own bunch grid and own sizes (:meth:`_register_own_sizes`). With the
-        design (static) optics the beta functions are the same for all bunches, so
-        the opposing per-bunch sizes (indexed by the OTHER beam) are filled with a
-        single value broadcast over the opposing bunches."""
-        ex, ey = self.nemitt_x, self.nemitt_y
+        design (static) optics the covariance-derived sizes are the same for all
+        bunches, so the opposing per-bunch sizes (indexed by the OTHER beam) are
+        filled with a single value broadcast over the opposing bunches."""
         for mirror, bb_dict in ((False, self.bb_cw), (True, self.bb_acw)):
             oth = 'cw' if mirror else 'acw'
             n_oth = (len(self.filled_slots_cw) if mirror
                      else len(self.filled_slots_acw))
-            gamma0 = _gamma0(self.cw_line if not mirror else self.acw_line)
             for base in self.enc_names:
                 e = self.geom[base]
                 bb = bb_dict[base]
@@ -448,9 +422,9 @@ class RigidBunchBBSetup:
                 bb.zeta_offset = (e['offset'] if mirror else -e['offset']) \
                     * self.bunch_spacing_zeta
                 bb.other_beam_sigma_x = np.full(
-                    n_oth, np.sqrt(e[f'betx_{oth}'] * ex / gamma0))
+                    n_oth, e[f'sigma_x_{oth}'])
                 bb.other_beam_sigma_y = np.full(
-                    n_oth, np.sqrt(e[f'bety_{oth}'] * ey / gamma0))
+                    n_oth, e[f'sigma_y_{oth}'])
         self._register_own_sizes()
         for line, mirror, bb_dict in (
                 (self.cw_line, False, self.bb_cw),
@@ -464,21 +438,19 @@ class RigidBunchBBSetup:
         static design sizes (``sigma_x``/``sigma_y``, indexed by THIS beam) for
         the CURRENT filling. Called at install and again whenever the filling
         changes (:meth:`set_filling`), so the per-bunch own arrays always match
-        ``self.filled_slots_*``. Uses the bare-optics betas cached in
-        ``self.geom``
-        (uniform over bunches). A count change rebuilds the elements before this
-        method is called, so their array lengths match the current filling."""
-        ex, ey = self.nemitt_x, self.nemitt_y
+        ``self.filled_slots_*``. Uses the covariance-derived bare-optics sizes
+        cached in ``self.geom`` (uniform over bunches). A count change rebuilds
+        the elements before this method is called, so their array lengths match
+        the current filling."""
         for mirror, bb_dict in ((False, self.bb_cw), (True, self.bb_acw)):
             own = 'acw' if mirror else 'cw'
-            gamma0 = _gamma0(self.cw_line if not mirror else self.acw_line)
             own_zeta = self.bunch_zeta(mirror)
             for base in self.enc_names:
                 e = self.geom[base]
                 bb_dict[base].update_from_own_beam(
                     own_zeta,
-                    sigma_x=np.sqrt(e[f'betx_{own}'] * ex / gamma0),
-                    sigma_y=np.sqrt(e[f'bety_{own}'] * ey / gamma0))
+                    sigma_x=e[f'sigma_x_{own}'],
+                    sigma_y=e[f'sigma_y_{own}'])
 
     # ------------------------------------------------------------------
     # Sector-map reduction
@@ -744,61 +716,6 @@ class RigidBunchBBSetup:
             self.load_solution(mbtw_cw, mbtw_acw, dynamic_beta=dynamic_beta)
 
         return mbtw_cw, mbtw_acw
-
-
-def _local_survey(line, ref_name, names):
-    """Survey of the region AROUND ``ref_name``, in that element's own frame:
-    the reference sits at the origin with the identity orientation and the
-    survey is integrated outwards from it, forwards and backwards, over just
-    enough of the ring to reach ``names``.
-
-    This is what makes the geometry independent of where the line is cut. A
-    survey of the line as stored integrates from the line's first element, so
-    an encounter on the far side of the seam from its IP -- which is exactly
-    what happens once the line is cycled at a beam-beam IP and the upstream
-    encounters wrap past s = 0 -- would be reached the long way round and pick
-    up the whole ring closure defect (0.374 m for the LHC sequence as loaded,
-    whose rbend lengths stay chords because ``option, -rbarc`` is not applied).
-    Here the element sequence is first ROLLED so that the reference sits in the
-    middle, then cut down to the span actually needed, so the seam is never
-    crossed, no closure enters, and the reference frame is the local one: any
-    bend between the reference and an element -- the separation and
-    recombination dipoles of the insertion, in particular -- is followed
-    exactly instead of being approximated by the mean ring azimuth.
-
-    Returns ``{name: (v, W)}``: the position of each requested element in the
-    reference frame, and its orientation matrix there. The columns of ``W`` are
-    the local unit vectors -- ``W[:, 0]`` the horizontal transverse direction
-    (the beam's ``x``), ``W[:, 1]`` the vertical, ``W[:, 2]`` the direction of
-    travel.
-    """
-    from .survey import get_survey
-
-    tab = line.get_table(attr=True)
-    elements = list(line._elements)
-    n_el = len(elements)
-    length = np.array(tab.length[:n_el], dtype=float)
-    length[~np.array(tab.isthick[:n_el], dtype=bool)] = 0.
-    angle = np.array(tab.angle[:n_el], dtype=float)
-    tilt = np.array(tab.rot_s_rad[:n_el], dtype=float)
-
-    index = {nn: i for i, nn in enumerate(line.element_names)}
-    shift = (index[ref_name] - n_el // 2) % n_el   # reference to the middle
-    rolled = {nn: (index[nn] - shift) % n_el for nn in list(names) + [ref_name]}
-    lo, hi = min(rolled.values()), max(rolled.values())
-
-    def window(arr):
-        return np.concatenate([arr[shift:], arr[:shift]])[lo:hi + 1]
-
-    order = elements[shift:] + elements[:shift]
-    V, W = get_survey(
-        elements=order[lo:hi + 1],
-        X0=0., Y0=0., Z0=0., theta0=0., phi0=0., psi0=0.,
-        drift_length=window(length), angle=window(angle), tilt=window(tilt),
-        element0=rolled[ref_name] - lo)
-
-    return {nn: (np.array(V[rolled[nn] - lo]), np.array(W[rolled[nn] - lo]))
-            for nn in names}
 
 
 def _orbit_vector(mbtw, bb_names):

@@ -299,8 +299,14 @@ the IP, encounter type, signed long-range index, orientation-specific
 displacement from the IP and CW/ACW bunch-pairing offsets. The conventional
 installer expands head-on slices from this table, while the temporary
 rigid-bunch installer renders its own element names and consumes the same
-placement and pairing data. Twiss/survey geometry extraction remains the next
-part of commit 6.
+placement and pairing data.
+
+Step 2 is complete for the rigid-bunch path: Xfields now provides an
+element-independent geometry helper that evaluates both Twiss tables, obtains
+the standard transverse covariance with `twiss.get_beam_covariance()` and
+computes local-survey separation without crossing the line seam. The temporary
+rigid-bunch installer consumes this result. The conventional configuration path
+still needs to be routed through the same helper before commit 6 is complete.
 
 ### Phase 5: migrate examples and remove the duplicate installer path
 
@@ -455,10 +461,10 @@ Keep the preparatory tests and implementation changes in separate commits:
 8. `Migrate examples and remove duplicate installer API`.
 9. `Add final regression coverage`.
 
-The first five commits and the encounter-description part of commit 6 are
-complete. Installer equivalence tests remain active through commits 6--8, and
-the pytrain and Xmask suites are run as final acceptance after the duplicate
-installer path has been removed.
+The first five commits plus encounter-description extraction and rigid-bunch
+geometry migration in commit 6 are complete. Installer equivalence tests remain
+active through commits 6--8, and the pytrain and Xmask suites are run as final
+acceptance after the duplicate installer path has been removed.
 
 ## Non-goals
 
