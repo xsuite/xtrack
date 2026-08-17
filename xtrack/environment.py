@@ -157,6 +157,7 @@ class Environment:
         if particles is not None:
             self._particles.update(particles)
 
+        self.extra_config = {}
         self.metadata = {}
 
     def _init_var_management(self, dct=None):
@@ -190,6 +191,8 @@ class Environment:
 
     def __setstate__(self, state):
         self.__dict__.update(state)
+        if '_extra_config' not in self.__dict__:
+            self._extra_config = {}
         self._lines_weakrefs = WeakSet()
         self._line_composers = WeakKeyDictionary()
 
@@ -304,6 +307,20 @@ class Environment:
     @metadata.setter
     def metadata(self, value):
         self._metadata = value
+
+    @property_with_doc_group("Editing, Inspection, Variables and Configuration")
+    def extra_config(self):
+        """Internal configuration associated with the environment.
+
+        Unlike :attr:`metadata`, this dictionary is intended for configuration
+        owned by Xsuite subsystems. It is included in environment
+        serialization and copying.
+        """
+        return self._extra_config
+
+    @extra_config.setter
+    def extra_config(self, value):
+        self._extra_config = value
 
     @doc_group("Editing, Inspection, Variables and Configuration")
     def new(self, name, prototype=None, mode=None, at=None, from_=None,
@@ -838,7 +855,8 @@ class Environment:
         -------
         Environment
             Independent copy of the environment, including elements, lines,
-            particles, variables, expressions and metadata.
+            particles, variables, expressions, extra configuration and
+            metadata.
         """
         return self.__class__.from_dict(
             self.to_dict(), with_progress=with_progress)
@@ -1116,6 +1134,7 @@ class Environment:
                 else:
                     out['_bb_config'][nn] = vv
 
+        out["_extra_config"] = deepcopy(self.extra_config)
         out["metadata"] = deepcopy(self.metadata)
 
         out['xsuite_data_type'] = 'Environment'
@@ -1219,6 +1238,8 @@ class Environment:
 
         if "metadata" in dct:
             out.metadata = dct["metadata"]
+        if "_extra_config" in dct:
+            out.extra_config = deepcopy(dct["_extra_config"])
 
         return out
 

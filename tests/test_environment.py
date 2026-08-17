@@ -3421,6 +3421,7 @@ def test_particle_ref_from_particles_container():
     assert isinstance(env2.get('my_particle'), xt.Particles)
     assert env2.get('my_particle') is not env.get('my_particle')
     xo.assert_allclose(env2['my_particle'].p0c, 5e12, rtol=0, atol=1e-9)
+
     env2['a'] = 6.
     xo.assert_allclose(env2['my_particle'].p0c, 6e12, rtol=0, atol=1e-9)
     env2['a'] = 5.
@@ -3471,6 +3472,28 @@ def test_particle_ref_from_particles_container():
     xo.assert_allclose(ll2.particle_ref.p0c, 10e12, rtol=0, atol=1e-9)
     ll2.env['my_particle'].p0c = '1e12 * a'
     xo.assert_allclose(ll2.particle_ref.p0c, 5e12, rtol=0, atol=1e-9)
+
+
+def test_environment_extra_config_is_serialized_and_copied():
+    env = xt.Environment()
+    env.extra_config['subsystem'] = {
+        'line_names': ['line_a', 'line_b'],
+        'settings': {'enabled': True},
+    }
+
+    serialized = env.to_dict()
+    assert serialized['_extra_config'] == env.extra_config
+
+    restored = xt.Environment.from_dict(serialized)
+    copied = env.copy()
+    assert restored.extra_config == env.extra_config
+    assert copied.extra_config == env.extra_config
+
+    restored.extra_config['subsystem']['settings']['enabled'] = False
+    copied.extra_config['subsystem']['line_names'].append('line_c')
+    assert env.extra_config['subsystem']['settings']['enabled'] is True
+    assert env.extra_config['subsystem']['line_names'] == ['line_a', 'line_b']
+
 
 def test_particle_ref_as_object():
 
