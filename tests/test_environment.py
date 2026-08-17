@@ -4745,6 +4745,8 @@ def test_insert_from_anchor_center():
 
 def test_environment_xfields_beambeam_facade(monkeypatch):
 
+    from xfields.environment_tools import XfieldsEnvironmentAPI
+
     env = xt.Environment()
     calls = []
 
@@ -4767,7 +4769,7 @@ def test_environment_xfields_beambeam_facade(monkeypatch):
     monkeypatch.setattr(
         xt.MultilineLegacy, 'apply_filling_pattern', fake_apply)
 
-    assert isinstance(env.xfields, xt.EnvXfields)
+    assert isinstance(env.xfields, XfieldsEnvironmentAPI)
     assert env.xfields is env.xfields
 
     assert env.xfields.install_beambeam_interactions(
@@ -4840,76 +4842,6 @@ def test_environment_xfields_beambeam_facade(monkeypatch):
             FutureWarning,
             match=r'`Environment\.apply_filling_pattern\(\.\.\.\)` is deprecated'):
         assert env.apply_filling_pattern([1], [1], 0, 0) == 'applied'
-
-
-def test_environment_xfields_rigid_bunch_install_configure_facade(monkeypatch):
-    import xtrack.multibunch_beambeam as mbb
-
-    shared_ip = xt.Marker()
-    env = xt.Environment(lines={
-        'cw': xt.Line(
-            elements=[shared_ip, xt.Drift(length=8)],
-            element_names=['ip1', 'drift_cw']),
-        'acw': xt.Line(
-            elements=[shared_ip, xt.Drift(length=8)],
-            element_names=['ip1', 'drift_acw']),
-    })
-    calls = []
-
-    def fake_install_rigid_bunch(env_arg, *args, **kwargs):
-        calls.append(('install', env_arg, args, kwargs))
-        env_arg._bb_config = {'mode': 'rigid_bunch'}
-
-    def fake_configure(env_arg, *args, **kwargs):
-        calls.append(('configure', env_arg, args, kwargs))
-        return 'the_setup'
-
-    monkeypatch.setattr(
-        mbb, 'install_rigid_bunch_beambeam', fake_install_rigid_bunch)
-    monkeypatch.setattr(mbb, 'configure_rigid_bunch_beambeam', fake_configure)
-
-    result = env.xfields.install_beambeam_interactions(
-        clockwise_line=env.cw,
-        anticlockwise_line=env.acw,
-        ip_names=['ip1'],
-        num_long_range_encounters_per_side=[2],
-        harmonic_number=8,
-        bunch_spacing_buckets=1,
-        delay_at_ips_slots=[3],
-        mode='rigid_bunch',
-        survey_separation=False,
-        bb_suffix_cw='_b1',
-        bb_suffix_acw='_b2')
-    assert result is None
-    assert calls == [('install', env, (), {
-        'clockwise_line': env.cw,
-        'anticlockwise_line': env.acw,
-        'ip_names': ['ip1'],
-        'num_long_range_encounters_per_side': [2],
-        'harmonic_number': 8,
-        'bunch_spacing_buckets': 1,
-        'delay_at_ips_slots': [3],
-        'survey_separation': False,
-        'bb_suffix_cw': '_b1',
-        'bb_suffix_acw': '_b2',
-    })]
-
-    setup = env.xfields.configure_beambeam_interactions(
-        nemitt_x=2e-6,
-        nemitt_y=3e-6,
-        filling_scheme_cw=[1, 0, 1, 0, 0, 0, 0, 0],
-        filling_scheme_acw=[0, 1, 0, 1, 0, 0, 0, 0],
-        bunch_intensity_particles_cw=1e11,
-        bunch_intensity_particles_acw=2e11)
-    assert setup == 'the_setup'
-    assert calls[-1] == ('configure', env, (), {
-        'nemitt_x': 2e-6,
-        'nemitt_y': 3e-6,
-        'filling_scheme_cw': [1, 0, 1, 0, 0, 0, 0, 0],
-        'filling_scheme_acw': [0, 1, 0, 1, 0, 0, 0, 0],
-        'bunch_intensity_particles_cw': 1e11,
-        'bunch_intensity_particles_acw': 2e11,
-    })
 
 
 def test_environment_xcoll_facade(monkeypatch):

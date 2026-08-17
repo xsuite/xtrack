@@ -120,7 +120,7 @@ class Environment:
         self.ref = EnvRef(self)
         self._elements = EnvElements(self)
         self._particles_container = EnvParticles(self)
-        self._xfields = EnvXfields(self)
+        self._xfields = None
         self._xcoll = None
         self._enable_name_clash_check = True
         self._last_context = None
@@ -1497,9 +1497,16 @@ class Environment:
 
         Returns
         -------
-        xfields : xtrack.environment.EnvXfields
+        xfields : xfields.XfieldsEnvironmentAPI
             Accessor exposing Xfields helper methods.
         """
+        if self._xfields is None:
+            try:
+                from xfields.environment_tools import XfieldsEnvironmentAPI
+                self._xfields = XfieldsEnvironmentAPI(self)
+            except ImportError as error:
+                raise ImportError(
+                    "Please install Xfields to use this feature.") from error
         return self._xfields
 
     @property_with_doc_group("Editing, Inspection, Variables and Configuration")
@@ -2803,231 +2810,6 @@ class EnvParticles:
 
     def __delitem__(self, name):
         self.remove(name)
-
-
-class EnvXfields:
-    """
-    Accessor for Xfields-related environment helpers.
-
-    Instances are available as ``env.xfields`` and expose helpers for
-    beam-beam configuration workflows.
-    """
-
-    def __init__(self, env):
-        self.env = env
-
-    def install_beambeam_interactions(self, clockwise_line, anticlockwise_line,
-                                      ip_names,
-                                      num_long_range_encounters_per_side,
-                                      num_slices_head_on=None,
-                                      harmonic_number=None,
-                                      bunch_spacing_buckets=None,
-                                      sigmaz=None,
-                                      delay_at_ips_slots=None,
-                                      mode=None,
-                                      survey_separation=True,
-                                      bb_suffix_cw='_cw',
-                                      bb_suffix_acw='_acw'):
-        """
-        Install beam-beam interactions in two lines.
-
-        Parameters
-        ----------
-        clockwise_line : str or xtrack.Line
-            Clockwise line or line name.
-        anticlockwise_line : str or xtrack.Line
-            Anticlockwise line or line name.
-        ip_names : sequence of str
-            Interaction point names.
-        num_long_range_encounters_per_side : int or sequence of int
-            Number of long-range encounters per side.
-        num_slices_head_on : int
-            Number of longitudinal slices for head-on interactions.
-        harmonic_number : int
-            RF harmonic number.
-        bunch_spacing_buckets : int
-            Bunch spacing in RF buckets.
-        sigmaz : float
-            RMS bunch length.
-        delay_at_ips_slots : sequence of int, optional
-            Delay at interaction points in bunch slots.
-        mode : {None, 'conventional', 'rigid_bunch'}, optional
-            Beam-beam element model. The default (``None`` or
-            ``'conventional'``) preserves the sliced head-on and scalar
-            long-range workflow, including its optional pipeline operation.
-            ``'rigid_bunch'`` selects the coherent rigid-bunch train model.
-            In that mode this call places elements with one array entry per RF
-            slot; :meth:`configure_beambeam_interactions` subsequently loads
-            filling-dependent populations and beam geometry.
-        survey_separation : bool, optional
-            Include geometric survey separation in rigid-bunch mode.
-        bb_suffix_cw, bb_suffix_acw : str, optional
-            Beam-specific element-name suffixes in rigid-bunch mode.
-
-        Returns
-        -------
-        object
-            Result returned by the underlying beam-beam installation helper.
-        """
-        if mode not in (None, 'conventional', 'rigid_bunch'):
-            raise ValueError(
-                "`mode` must be None, 'conventional' or 'rigid_bunch'.")
-
-        if mode != 'rigid_bunch':
-            missing = [name for name, value in (
-                ('num_slices_head_on', num_slices_head_on),
-                ('harmonic_number', harmonic_number),
-                ('bunch_spacing_buckets', bunch_spacing_buckets),
-                ('sigmaz', sigmaz),
-            ) if value is None]
-            if missing:
-                raise ValueError(
-                    'Missing conventional beam-beam installation arguments: '
-                    + ', '.join(missing))
-            return MultilineLegacy.install_beambeam_interactions(
-                self.env,
-                clockwise_line=clockwise_line,
-                anticlockwise_line=anticlockwise_line,
-                ip_names=ip_names,
-                num_long_range_encounters_per_side=
-                    num_long_range_encounters_per_side,
-                num_slices_head_on=num_slices_head_on,
-                harmonic_number=harmonic_number,
-                bunch_spacing_buckets=bunch_spacing_buckets,
-                sigmaz=sigmaz,
-                delay_at_ips_slots=delay_at_ips_slots)
-
-        if num_slices_head_on is not None or sigmaz is not None:
-            raise ValueError(
-                '`num_slices_head_on` and `sigmaz` do not apply when '
-                "mode='rigid_bunch'.")
-        from .multibunch_beambeam import install_rigid_bunch_beambeam
-        return install_rigid_bunch_beambeam(
-            self.env,
-            clockwise_line=clockwise_line,
-            anticlockwise_line=anticlockwise_line,
-            ip_names=ip_names,
-            num_long_range_encounters_per_side=
-                num_long_range_encounters_per_side,
-            harmonic_number=harmonic_number,
-            bunch_spacing_buckets=bunch_spacing_buckets,
-            delay_at_ips_slots=delay_at_ips_slots,
-            survey_separation=survey_separation,
-            bb_suffix_cw=bb_suffix_cw,
-            bb_suffix_acw=bb_suffix_acw)
-
-    def configure_beambeam_interactions(self, num_particles=None,
-                                        nemitt_x=None, nemitt_y=None,
-                                        crab_strong_beam=True,
-                                        use_antisymmetry=False,
-                                        separation_bumps=None,
-                                        filling_scheme_cw=None,
-                                        filling_scheme_acw=None,
-                                        bunch_intensity_particles_cw=None,
-                                        bunch_intensity_particles_acw=None):
-        """
-        Configure installed beam-beam interactions.
-
-        Parameters
-        ----------
-        num_particles : float
-            Number of particles per bunch.
-        nemitt_x : float
-            Horizontal normalized emittance.
-        nemitt_y : float
-            Vertical normalized emittance.
-        crab_strong_beam : bool, optional
-            Whether to include strong-beam crabbing.
-        use_antisymmetry : bool, optional
-            Whether to use antisymmetry when configuring the interactions.
-        separation_bumps : object, optional
-            Separation bump configuration passed to the underlying helper.
-        filling_scheme_cw, filling_scheme_acw : array_like, optional
-            Slot-indexed occupancy patterns required in rigid-bunch mode.
-        bunch_intensity_particles_cw, bunch_intensity_particles_acw : float or array_like, optional
-            Per-filled-bunch populations required in rigid-bunch mode. A
-            scalar is uniform; an array is indexed by physical RF slot.
-
-        Returns
-        -------
-        object
-            Result returned by the underlying beam-beam configuration helper.
-        """
-        config = getattr(self.env, '_bb_config', None) or {}
-        mode = config.get('mode', 'conventional')
-        if mode != 'rigid_bunch':
-            if num_particles is None or nemitt_x is None or nemitt_y is None:
-                raise ValueError(
-                    '`num_particles`, `nemitt_x` and `nemitt_y` are required '
-                    'for conventional beam-beam configuration.')
-            return MultilineLegacy.configure_beambeam_interactions(
-                self.env,
-                num_particles=num_particles,
-                nemitt_x=nemitt_x,
-                nemitt_y=nemitt_y,
-                crab_strong_beam=crab_strong_beam,
-                use_antisymmetry=use_antisymmetry,
-                separation_bumps=separation_bumps)
-
-        if num_particles is not None:
-            raise ValueError(
-                '`num_particles` is replaced by the two per-beam intensity '
-                "inputs when mode='rigid_bunch'.")
-        if use_antisymmetry or separation_bumps is not None:
-            raise ValueError(
-                '`use_antisymmetry` and `separation_bumps` do not apply when '
-                "mode='rigid_bunch'.")
-        required = {
-            'nemitt_x': nemitt_x,
-            'nemitt_y': nemitt_y,
-            'filling_scheme_cw': filling_scheme_cw,
-            'filling_scheme_acw': filling_scheme_acw,
-            'bunch_intensity_particles_cw': bunch_intensity_particles_cw,
-            'bunch_intensity_particles_acw': bunch_intensity_particles_acw,
-        }
-        missing = [name for name, value in required.items() if value is None]
-        if missing:
-            raise ValueError(
-                'Missing rigid-bunch configuration arguments: '
-                + ', '.join(missing))
-
-        from .multibunch_beambeam import configure_rigid_bunch_beambeam
-        return configure_rigid_bunch_beambeam(
-            self.env,
-            nemitt_x=nemitt_x,
-            nemitt_y=nemitt_y,
-            filling_scheme_cw=filling_scheme_cw,
-            filling_scheme_acw=filling_scheme_acw,
-            bunch_intensity_particles_cw=bunch_intensity_particles_cw,
-            bunch_intensity_particles_acw=bunch_intensity_particles_acw)
-
-    def apply_filling_pattern(self, filling_pattern_cw, filling_pattern_acw,
-                              i_bunch_cw, i_bunch_acw):
-        """
-        Apply filling patterns to the configured beam-beam interactions.
-
-        Parameters
-        ----------
-        filling_pattern_cw : array_like
-            Filling pattern for the clockwise beam.
-        filling_pattern_acw : array_like
-            Filling pattern for the anticlockwise beam.
-        i_bunch_cw : int
-            Bunch index for the clockwise beam.
-        i_bunch_acw : int
-            Bunch index for the anticlockwise beam.
-
-        Returns
-        -------
-        object
-            Result returned by the underlying filling-pattern helper.
-        """
-        return MultilineLegacy.apply_filling_pattern(
-            self.env,
-            filling_pattern_cw=filling_pattern_cw,
-            filling_pattern_acw=filling_pattern_acw,
-            i_bunch_cw=i_bunch_cw,
-            i_bunch_acw=i_bunch_acw)
 
 
 class EnvRef:

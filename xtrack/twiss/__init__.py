@@ -29,7 +29,6 @@ from .twiss import (
     trapz,
     twiss_line,
 )
-from .multibunch import MultiBunchTwiss, twiss_line_multibunch
 from .twiss_init import TwissInit
 from .twiss_table import CYCLICAL_QUANTITIES, DEFAULT_COL_ORDER, TwissTable
 from .transfer_matrices import (
@@ -56,7 +55,6 @@ __all__ = [
     'SKEW_STRENGTHS_FROM_ATTR',
     'TwissInit',
     'TwissTable',
-    'MultiBunchTwiss',
     'VARS_FOR_TWISS_INIT_GENERATION',
     'compute_R_matrix',
     'compute_T_matrix_line',
@@ -66,5 +64,4 @@ __all__ = [
     'get_non_linear_chromaticity',
     'trapz',
     'twiss_line',
-    'twiss_line_multibunch',
 ]

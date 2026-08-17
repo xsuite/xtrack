@@ -13,7 +13,7 @@ from .beam_elements import *
 from .random import *
 from .tracker_data import TrackerData
 from .line import Line, Node, freeze_longitudinal, _temp_knobs, EnergyProgram
-from .environment import Environment, EnvXfields, get_environment
+from .environment import Environment, get_environment
 from .composer import Composer, Place
 from .tracker import Tracker, Log
 from .match import (Vary, Target, TargetList, VaryList, TargetInequality, Action,
@@ -22,7 +22,6 @@ from .match import (Vary, Target, TargetList, VaryList, TargetInequality, Action
 from .targets import (TargetLuminosity, TargetSeparationOrthogonalToCrossing,
                       TargetSeparation)
 from .twiss import TwissInit, TwissTable
-from .twiss import twiss_line_multibunch, MultiBunchTwiss
 from .aperture import Aperture, ApertureBuilder
 from .rdt import rdt_first_order_perturbation
 from .loss_location_refinement import LossLocationRefinement
