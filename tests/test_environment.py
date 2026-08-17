@@ -4746,6 +4746,7 @@ def test_insert_from_anchor_center():
 def test_environment_xfields_beambeam_facade(monkeypatch):
 
     from xfields.environment_tools import XfieldsEnvironmentAPI
+    from xfields.config_tools.beambeam_config_tools import weak_strong
 
     env = xt.Environment()
     calls = []
@@ -4762,12 +4763,11 @@ def test_environment_xfields_beambeam_facade(monkeypatch):
         calls.append(('apply', env_arg, args, kwargs))
         return 'applied'
 
-    monkeypatch.setattr(
-        xt.MultilineLegacy, 'install_beambeam_interactions', fake_install)
-    monkeypatch.setattr(
-        xt.MultilineLegacy, 'configure_beambeam_interactions', fake_configure)
-    monkeypatch.setattr(
-        xt.MultilineLegacy, 'apply_filling_pattern', fake_apply)
+    monkeypatch.setattr(weak_strong, 'install_beambeam_interactions',
+                        fake_install)
+    monkeypatch.setattr(weak_strong, 'configure_beambeam_interactions',
+                        fake_configure)
+    monkeypatch.setattr(weak_strong, 'apply_filling_pattern', fake_apply)
 
     assert isinstance(env.xfields, XfieldsEnvironmentAPI)
     assert env.xfields is env.xfields
