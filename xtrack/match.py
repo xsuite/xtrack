@@ -884,7 +884,7 @@ class OptimizeLine(xd.Optimize):
                     restore_if_fail=True, verbose=False,
                     n_steps_max=20, default_tol=None,
                     solver=None, check_limits=True,
-                    action_twiss=None, action_twiss_ng=None,
+                    action_twiss=None, action_twiss_tpsa=None,
                     use_tpsa=False, tpsa_backend='madng', name="",
                     **kwargs):
 
@@ -947,26 +947,33 @@ class OptimizeLine(xd.Optimize):
             # Handle action
             if tt.action is None:
                 if use_tpsa:
-                    if action_twiss_ng is None:
-                        if tpsa_backend == 'gtpsa':
-                            raise NotImplementedError(
-                                "The old gtpsa matching backend has been removed. "
-                                "Use tpsa_backend='madng' or track an explicit "
-                                "ParticlesTpsa map with descriptor parameters."
+                    if action_twiss_tpsa is None:
+                        if tpsa_backend == 'xgtpsa':
+                            from .tpsa.match_action import ActionTpsaTrack
+
+                            action_twiss_tpsa = ActionTpsaTrack(
+                                line,
+                                [v.name for v in vary_flatten],
+                                targets_flatten,
+                                **kwargs,
                             )
                         elif tpsa_backend == 'madng':
                             from .madng_interface import ActionTwissMadngTPSA
 
-                            action_twiss_ng = ActionTwissMadngTPSA(
-                                    line, [v.name for v in vary_flatten], targets_flatten, {},
-                                        sum_rmat_tar=len(start_end_tuple_set), **kwargs
+                            action_twiss_tpsa = ActionTwissMadngTPSA(
+                                line,
+                                [v.name for v in vary_flatten],
+                                targets_flatten,
+                                {},
+                                sum_rmat_tar=len(start_end_tuple_set),
+                                **kwargs,
                             )
                         else:
                             raise ValueError(
                                 f"unknown tpsa_backend {tpsa_backend!r}; "
-                                f"use 'madng' or 'gtpsa'")
-                        action_twiss_ng.prepare()
-                    tt.action = action_twiss_ng
+                                f"use 'madng' or 'xgtpsa'")
+                        action_twiss_tpsa.prepare()
+                    tt.action = action_twiss_tpsa
                 else:
                     if action_twiss is None:
                         action_twiss = ActionTwiss(
