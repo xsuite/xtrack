@@ -338,7 +338,8 @@ Run checks in increasing order of cost:
 1. Focused Xfields element tests.
 2. Focused Xtrack installer and multibunch-Twiss tests.
 3. Existing Xfields and Xtrack beam-beam suites.
-4. Serialization, xdeps knobs, prebuilt kernels and CPU/OpenMP contexts.
+4. Serialization, xdeps knobs, prebuilt kernels and supported execution
+   contexts.
 5. The pytrain regression.
 6. The slow Xmask tests.
 
@@ -476,11 +477,13 @@ Keep the preparatory tests and implementation changes in separate commits:
 8. `Migrate examples and remove duplicate installer API`.
 9. `Add final regression coverage`.
 
-The first eight work packages are complete. Fast characterization protects the
-shared encounter and geometry output, including exact comparison with the
-former conventional survey calculation. Xmask passed at the completed-geometry
-checkpoint and is used again for final acceptance after removal of the
-duplicate installer path.
+All nine work packages are complete. Fast characterization protects the shared
+encounter and geometry output, including exact comparison with the former
+conventional survey calculation. Focused Xfields and Xtrack tests pass, as do
+the LHC pytrain injection and collision regressions. The final Xmask beam-beam
+test run also passes after removal of the duplicate installer path. Development
+validation used the serial CPU context; OpenMP validation was intentionally left
+out of scope for this work.
 
 ## Non-goals
 
