@@ -13,7 +13,6 @@ from scipy.constants import c as clight
 import numpy as np
 import xobjects as xo
 import xtrack as xt
-from xobjects.context import sort_classes
 
 from .base_element import _handle_per_particle_blocks
 from .beam_elements import Drift
@@ -494,9 +493,7 @@ class Tracker:
         if with_progress:
             raise NotImplementedError("progress tracking is not wired for TPSA tracking")
         if turn_by_turn_monitor not in (None, False):
-            raise NotImplementedError("TPSA monitors are not wired yet")
-        if multi_element_monitor_at is not None:
-            raise NotImplementedError("TPSA multi-element monitors are not wired yet")
+            raise NotImplementedError("TPSA turn-by-turn monitors are not wired yet")
         if self.line.config.data.get("XTRACK_MULTIPOLE_NO_SYNRAD", False) is not True:
             raise NotImplementedError(
                 "TPSA tracking does not support synchrotron radiation. "
@@ -522,6 +519,12 @@ class Tracker:
             raise ValueError("num_elements must be non-negative")
         if ele_start + num_elements > self.num_elements:
             raise NotImplementedError("TPSA wrap-around ranges are not wired yet")
+        # Splitting range into first/middle/last calls is not wired yet.
+        if num_turns > 1 and (ele_start != 0 or num_elements != self.num_elements):
+            raise NotImplementedError(
+                "TPSA multi-turn tracking is implemented only for full turns from the "
+                "first element. Partial ranges over several turns are not wired yet."
+            )
         flag_end_turn_actions = (
             num_turns > 1
             and ele_start == 0
@@ -538,7 +541,17 @@ class Tracker:
         p.track_flags = self.track_flags.get_flags_register()
         p.line_length = float(tracker_data.line_length)
 
+        multi_element_monitor = self._get_multi_element_monitor(
+            multi_element_monitor_at, particles, num_turns,
+            tpsa_descriptor=particles.descriptor)
         dummy_buffer = p._buffer.buffer
+        if multi_element_monitor is not None:
+            buffer_multi_element_monitor = multi_element_monitor._xobject._buffer.buffer
+            offset_multi_element_monitor = multi_element_monitor._xobject._offset
+        else:
+            buffer_multi_element_monitor = dummy_buffer
+            offset_multi_element_monitor = -1
+
         track_kernel(
             buffer=tracker_data._buffer.buffer,
             tracker_data=tracker_data._element_ref_data,
@@ -553,11 +566,12 @@ class Tracker:
             line_length=tracker_data.line_length,
             buffer_tbt_monitor=dummy_buffer,
             offset_tbt_monitor=0,
-            buffer_multi_element_monitor=dummy_buffer,
-            offset_multi_element_monitor=-1,
+            buffer_multi_element_monitor=buffer_multi_element_monitor,
+            offset_multi_element_monitor=offset_multi_element_monitor,
             io_buffer=self.io_buffer.buffer,
             track_flags=p.track_flags,
         )
+        self.record_multi_element_last_track = multi_element_monitor
         if p.state <= 0:
             at = p.at_element
             name = self.line.element_names[at] if at < len(self.line.element_names) else "?"
@@ -696,9 +710,12 @@ class Tracker:
         kernel_element_classes = _expand_element_classes_with_slice_classes(
             tracker_element_classes)
         if tpsa_track:
+            # The multi-element monitor records maps too, the other monitors are
+            # doubles-only and their sources do not compile against TPSA coordinates.
             kernel_element_classes = [
                 cc for cc in kernel_element_classes
                 if "Monitor" not in cc.__name__
+                or cc is xt.MultiElementMonitor._XoStruct
             ]
         kernel_element_classes = sorted(
             kernel_element_classes,
@@ -799,11 +816,6 @@ class Tracker:
             ParticlesMonitorData tbt_monitor =
                             (ParticlesMonitorData) tbt_mon_pointer;
 
-            /*gpuglmem*/ int8_t* multi_elem_mon_pointer =
-                    buffer_multi_element_monitor + offset_multi_element_monitor;
-            MultiElementMonitorData tbt_multi_elem_monitor =
-                    (MultiElementMonitorData) multi_elem_mon_pointer;
-
             int64_t part_capacity = ParticlesData_get__capacity(particles);
             if (part_id<part_capacity){
             Particles_to_LocalParticle(particles, &lpart, part_id, end_id);
@@ -825,7 +837,13 @@ class Tracker:
             LocalParticle_set_s(&lpart, 0.0);
             LocalParticle_set_ax(&lpart, 0.0);
             LocalParticle_set_ay(&lpart, 0.0);
+
 #endif
+
+            /*gpuglmem*/ int8_t* multi_elem_mon_pointer =
+                    buffer_multi_element_monitor + offset_multi_element_monitor;
+            MultiElementMonitorData tbt_multi_elem_monitor =
+                    (MultiElementMonitorData) multi_elem_mon_pointer;
 
             for (int64_t iturn=0; iturn<num_turns; iturn++){
 
@@ -866,11 +884,11 @@ class Tracker:
                         if (flag_monitor==2){
                             ParticlesMonitor_track_local_particle(tbt_monitor, &lpart);
                         }
+#endif
                         if (offset_multi_element_monitor >= 0){
                             MultiElementMonitor_track_local_particle(
                                 tbt_multi_elem_monitor, &lpart);
                         }
-#endif
 
                         // Get the pointer to and the type id of the `elem_idx`th
                         // element in `element_ref_data.elements`:
@@ -1806,48 +1824,74 @@ class Tracker:
 
         return flag_monitor, monitor, buffer_monitor, offset_monitor
 
+    def _multi_element_monitor_mapping(self, multi_element_monitor_at):
+        """``(at_element_mapping, obs_names)`` for the observed element names.
+
+        ``at_element_mapping`` sends an element index to its slot, and -1 to the elements
+        that are not observed. Shared by the doubles and the TPSA monitor.
+        """
+        tt = self._tracker_data_base._line_table # reuse cached table
+        if (isinstance(multi_element_monitor_at, str)
+            and multi_element_monitor_at == '_all_'):
+            multi_element_monitor_at = tt.name[:-1] # exclude _end_point
+        if not isinstance(self._context, xo.ContextCpu):
+            raise NotImplementedError(
+                'Multi-element monitor is only supported on CPU trackers for now.')
+        assert isinstance(multi_element_monitor_at, (list, tuple, np.ndarray)), \
+            '`multi_element_monitor_at` must be a list, tuple or array of element names'
+        indeces_obs = tt.rows.indices[multi_element_monitor_at]
+        if len(indeces_obs) != len(multi_element_monitor_at):
+            missing = set(multi_element_monitor_at) - set(
+                tt.rows.names[indeces_obs])
+            raise ValueError(f'Elements not found in line: {missing}')
+
+        at_element_mapping = np.zeros(len(tt), dtype=np.int64)
+        at_element_mapping[:] = -1
+        at_element_mapping[indeces_obs] = np.arange(len(indeces_obs), dtype=np.int64)
+
+        return at_element_mapping, tt.name[indeces_obs] # to ensure the right order
+
     def _get_multi_element_monitor(self, multi_element_monitor_at, particles,
-                                   num_turns):
+                                   num_turns, tpsa_descriptor=None):
+        """The monitor for a track. With a descriptor it also records the full maps."""
 
         if multi_element_monitor_at is None or len(multi_element_monitor_at) == 0:
-            multi_element_monitor = None
-        else:
-            tt = self._tracker_data_base._line_table # reuse cached table
-            if (isinstance(multi_element_monitor_at, str)
-                and multi_element_monitor_at == '_all_'):
-                multi_element_monitor_at = tt.name[:-1] # exclude _end_point
-            if not isinstance(self._context, xo.ContextCpu):
-                raise NotImplementedError(
-                    'Multi-element monitor is only supported on CPU trackers for now.')
-            assert isinstance(multi_element_monitor_at, (list, tuple, np.ndarray)), \
-                '`multi_element_monitor_at` must be a list, tuple or array of element names'
-            indeces_obs = tt.rows.indices[multi_element_monitor_at]
-            if len(indeces_obs) != len(multi_element_monitor_at):
-                missing = set(multi_element_monitor_at) - set(
-                    tt.rows.names[indeces_obs])
-                raise ValueError(f'Elements not found in line: {missing}')
+            return None
 
-            at_element_mapping = np.zeros(len(tt), dtype=np.int64)
-            at_element_mapping[:] = -1
-            at_element_mapping[indeces_obs] = np.arange(len(indeces_obs), dtype=np.int64)
+        at_element_mapping, obs_names = self._multi_element_monitor_mapping(
+            multi_element_monitor_at)
 
-            # Very simple constructor for now, can be made more solid and flexible later
+        # Very simple constructor for now, can be made more solid and flexible later
+        if tpsa_descriptor is None:
             part_id_start, part_id_end = particles.get_active_particle_id_range()
-            num_particles = part_id_end - part_id_start
-            num_cooordinates = 7 # hardcoded for now (C code of the monitor
-                                 # needs to be extended if different number
-                                 # of coordinates is needed)
-            num_elements = len(multi_element_monitor_at)
-            num_turns = num_turns if num_turns is not None else 1
-            multi_element_monitor = xt.MultiElementMonitor(
-                start_at_turn=0,
-                stop_at_turn=num_turns,
-                part_id_start=particles.get_active_particle_id_range()[0],
-                part_id_end=particles.get_active_particle_id_range()[1],
-                at_element_mapping=at_element_mapping,
-                data=(num_turns, num_particles, num_cooordinates, num_elements),
-                obs_names=tt.name[indeces_obs] # to ensure the right orde
-            )
+        else:
+            part_id_start, part_id_end = 0, 1  # a map is a single particle
+        num_particles = part_id_end - part_id_start
+        num_cooordinates = 7 # hardcoded for now (C code of the monitor
+                             # needs to be extended if different number
+                             # of coordinates is needed)
+        num_elements = len(obs_names)
+        num_turns = num_turns if num_turns is not None else 1
+
+        map_series = None
+        map_slots = (0, 0, 0)
+        if tpsa_descriptor is not None:
+            map_series, map_slots = xt.MultiElementMonitor.build_map_slots(
+                tpsa_descriptor, num_elements, num_turns)
+
+        multi_element_monitor = xt.MultiElementMonitor(
+            start_at_turn=0,
+            stop_at_turn=num_turns,
+            part_id_start=part_id_start,
+            part_id_end=part_id_end,
+            at_element_mapping=at_element_mapping,
+            data=(num_turns, num_particles, num_cooordinates, num_elements),
+            map_slots=map_slots,
+            obs_names=obs_names
+        )
+        multi_element_monitor._map_series = map_series
+        if tpsa_descriptor is not None:
+            multi_element_monitor._map_ref_particle = particles._ref_particle
 
         return multi_element_monitor
 
