@@ -2055,26 +2055,13 @@ class Particles(xo.HybridClass):
                                     mask=mask)
 
         delta = self._delta  # Cupy complains if we later assign LinkedArray
-        can_reuse_ptau = False
-        # A device-side reduction would force synchronization, so retain the
-        # original expression on GPU contexts.
-        if isinstance(self._context, xo.ContextCpu):
-            one_plus_ptau_beta0 = 1 + _ptau * beta0
-            values_to_check = (one_plus_ptau_beta0 if mask is None
-                               else one_plus_ptau_beta0[mask])
-            can_reuse_ptau = bool(
-                self._context.nplike_lib.all(values_to_check >= 0))
-        if can_reuse_ptau:
-            # This is algebraically identical to recovering ptau * beta0
-            # from delta through another square root, in the physical
-            # positive-energy branch. Reusing ptau avoids that round trip.
-            rvv_denominator = one_plus_ptau_beta0
-        else:
-            delta_beta0 = delta * beta0
-            ptau_beta0 = _sqrt(
-                delta_beta0 ** 2 + 2 * delta_beta0 * beta0 + 1) - 1
-            rvv_denominator = 1 + ptau_beta0
-        new_rvv = (1 + delta) / rvv_denominator
+        # Keep the operation order used historically. Although rvv can be
+        # derived directly from _ptau, the algebraic rewrite changes the last
+        # bit and can perturb finite-difference maps on accelerator contexts.
+        delta_beta0 = delta * beta0
+        ptau_beta0 = _sqrt(delta_beta0 ** 2
+                           + 2 * delta_beta0 * beta0 + 1) - 1
+        new_rvv = (1 + delta) / (1 + ptau_beta0)
         new_rpp = 1 / (1 + delta)
         self._setattr_if_consistent('_rpp',
                                     given_value=_rpp,
