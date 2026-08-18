@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 import xobjects as xo
-import xgtpsa
+import madng_tpsa
 import xtrack as xt
 import xtrack.tpsa as xtpsa
 
@@ -187,7 +187,7 @@ def test_scalar_track_tpsa_enabled_element_uses_const_part():
     line_scalar.track(part_scalar)
 
     line_tpsa_enabled = _line(k1=0.125)
-    descriptor = xgtpsa.Descriptor(6, 1, num_params=1, param_order=1)
+    descriptor = madng_tpsa.Descriptor(6, 1, num_params=1, param_order=1)
     line_tpsa_enabled["q"].k1 = descriptor.param(1, 0.125)
     part_tpsa_enabled = _particle()
     line_tpsa_enabled.track(part_tpsa_enabled)
@@ -221,7 +221,7 @@ def test_build_tracker_preserves_tpsa_enabled_elements_moved_to_common_buffer():
 
     q1 = xt.Quadrupole(length=1.0, k1=0.1, _buffer=buffer_a)
     q2 = xt.Quadrupole(length=1.0, k1=0.2, _buffer=buffer_b)
-    descriptor = xgtpsa.Descriptor(6, 1, num_params=1, param_order=1)
+    descriptor = madng_tpsa.Descriptor(6, 1, num_params=1, param_order=1)
     k1_tpsa = descriptor.param(1, 0.2)
     q2.k1 = k1_tpsa
     q2_handles = q2._tpsa_handles
@@ -284,7 +284,7 @@ def test_build_tracker_preserves_tpsa_enabled_elements_moved_to_common_buffer():
 
 def test_tpsa_enabled_element_copy_preserves_handles():
     q = xt.Quadrupole(length=1.0, k1=0.1)
-    descriptor = xgtpsa.Descriptor(6, 1, num_params=1, param_order=1)
+    descriptor = madng_tpsa.Descriptor(6, 1, num_params=1, param_order=1)
     k1_tpsa = descriptor.param(1, 0.1)
     q.k1 = k1_tpsa
 
@@ -302,7 +302,7 @@ def test_tpsa_enabled_element_copy_preserves_handles():
 
 def test_float_or_tpsa_field_assignment():
     line = _line()
-    descriptor = xgtpsa.Descriptor(6, 1, num_params=1, param_order=1)
+    descriptor = madng_tpsa.Descriptor(6, 1, num_params=1, param_order=1)
     line["q"].k1 = descriptor.param(1, 0.1)
 
     assert line["q"]._tpsa_enabled
@@ -313,7 +313,7 @@ def test_float_or_tpsa_field_assignment():
 def test_supported_float_or_tpsa_elements_accept_tpsa_fields(
         name, element_cls, kwargs, field):
     element = element_cls(**kwargs)
-    descriptor = xgtpsa.Descriptor(6, 1, num_params=1, param_order=1)
+    descriptor = madng_tpsa.Descriptor(6, 1, num_params=1, param_order=1)
 
     setattr(element, field, descriptor.param(1, kwargs[field]))
 
@@ -323,7 +323,7 @@ def test_supported_float_or_tpsa_elements_accept_tpsa_fields(
 
 def test_tpsa_enabled_element_to_dict_is_rejected():
     line = _line()
-    descriptor = xgtpsa.Descriptor(6, 1, num_params=1, param_order=1)
+    descriptor = madng_tpsa.Descriptor(6, 1, num_params=1, param_order=1)
     line["q"].k1 = descriptor.param(1, 0.1)
 
     with pytest.raises(NotImplementedError, match="Serializing TPSA-enabled"):
@@ -331,7 +331,7 @@ def test_tpsa_enabled_element_to_dict_is_rejected():
 
 
 def test_tpsa_constructor_assignment_without_container_is_rejected():
-    descriptor = xgtpsa.Descriptor(6, 1, num_params=1, param_order=1)
+    descriptor = madng_tpsa.Descriptor(6, 1, num_params=1, param_order=1)
 
     with pytest.raises(ValueError, match="without an owning container"):
         xt.Quadrupole(length=1.0, k1=descriptor.param(1, 0.1))
@@ -339,7 +339,7 @@ def test_tpsa_constructor_assignment_without_container_is_rejected():
 
 def test_parametric_element_field_tracks_with_shared_descriptor():
     line = _line()
-    descriptor = xgtpsa.Descriptor(6, 1, num_params=1, param_order=1)
+    descriptor = madng_tpsa.Descriptor(6, 1, num_params=1, param_order=1)
     line["q"].k1 = descriptor.param(1, 0.1)
 
     m = _map(descriptor=descriptor)
@@ -350,6 +350,6 @@ def test_parametric_element_field_tracks_with_shared_descriptor():
 
 
 def test_particles_tpsa_rejects_descriptor_shape_mismatch():
-    descriptor = xgtpsa.Descriptor(5, 1)
+    descriptor = madng_tpsa.Descriptor(5, 1)
     with pytest.raises(ValueError, match="6 variables"):
         _map(descriptor=descriptor)

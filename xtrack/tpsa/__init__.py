@@ -1,6 +1,6 @@
-"""TPSA module to enable tracking for Xtrack elements with the ``xgtpsa`` package.
+"""TPSA module to enable tracking for Xtrack elements with the ``madng_tpsa`` package.
 
-The TPSA algebra itself comes from the standalone ``xgtpsa`` package (which owns the GTPSA engine).
+The TPSA algebra itself comes from the standalone ``madng_tpsa`` package.
 Everything here is related to tracking with TPSAs through normal Xtrack tracker
 kernel assembly. CPU only.
 

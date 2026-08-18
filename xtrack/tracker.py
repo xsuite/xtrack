@@ -592,7 +592,7 @@ class Tracker:
                 include_auxiliary_kernels = True
                 if self.config.XTRACK_TPSA_TRACK:
                     from xtrack.tpsa.particles import TpsaParticleData
-                    from xgtpsa.paths import core_library
+                    from madng_tpsa.paths import core_library
 
                     particle_data_class = TpsaParticleData
                     include_auxiliary_kernels = False
@@ -958,7 +958,7 @@ class Tracker:
         compiler_language = "c"
 
         if tpsa_track:
-            from xgtpsa.paths import core_library
+            from madng_tpsa.paths import core_library
 
             tpsa_sources = [
                 '#include "xtrack/particles/headers/local_particle.h"',

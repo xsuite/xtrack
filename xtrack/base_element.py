@@ -10,7 +10,7 @@ import numpy as np
 
 import xobjects as xo
 import xtrack as xt
-from xgtpsa import Tpsa, ffi
+from madng_tpsa import Tpsa, ffi
 from xobjects.context import Source
 from xobjects.general import Print
 from xobjects.hybrid_class import _build_xofields_dict
