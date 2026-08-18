@@ -948,7 +948,7 @@ class OptimizeLine(xd.Optimize):
             if tt.action is None:
                 if use_tpsa:
                     if action_twiss_tpsa is None:
-                        if tpsa_backend == 'xgtpsa':
+                        if tpsa_backend == 'madng_tpsa':
                             from .tpsa.match_action import ActionTpsaTrack
 
                             action_twiss_tpsa = ActionTpsaTrack(
@@ -971,7 +971,7 @@ class OptimizeLine(xd.Optimize):
                         else:
                             raise ValueError(
                                 f"unknown tpsa_backend {tpsa_backend!r}; "
-                                f"use 'madng' or 'xgtpsa'")
+                                f"use 'madng' or 'madng_tpsa'")
                         action_twiss_tpsa.prepare()
                     tt.action = action_twiss_tpsa
                 else:

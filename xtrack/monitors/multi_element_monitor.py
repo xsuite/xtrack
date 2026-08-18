@@ -97,14 +97,14 @@ class MultiElementMonitor(xt.BeamElement):
         Returns ``(series, addresses)`` with ``series[turn][location][coordinate]``. The
         series have to outlive the track, since the C writes through their addresses.
         """
-        import xgtpsa
+        import madng_tpsa
         from xtrack.tpsa.particles import _COORDS
 
         series = [
             [[descriptor.zero() for _ in _COORDS] for _ in range(num_locations)]
             for _ in range(num_turns)
         ]
-        ffi = xgtpsa.ffi()
+        ffi = madng_tpsa.ffi()
         addresses = np.array(
             [
                 int(ffi.cast("uintptr_t", one_series.ptr))

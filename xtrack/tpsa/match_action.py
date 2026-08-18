@@ -10,7 +10,7 @@ from typing import Any
 
 import numpy as np
 
-import xgtpsa
+import madng_tpsa
 import xtrack as xt
 
 from ..match import Action, TargetRelPhaseAdvance
@@ -152,11 +152,11 @@ class ActionTpsaTrack(Action):
         # expressions reach, the tracked map and the recorded maps all live in it.
         # Parameter k+1 is vary_names[k], which is what makes TpsaOptics.gradient() come
         # out in vary order.
-        self._descriptor = xgtpsa.Descriptor(
+        self._descriptor = madng_tpsa.Descriptor(
             6, self.order, params=list(self.vary_names), param_order=1)
         # The value-only map carries no parameters and only plain_order, which is what
         # makes it cheap.
-        self._plain_descriptor = xgtpsa.Descriptor(6, self.plain_order)
+        self._plain_descriptor = madng_tpsa.Descriptor(6, self.plain_order)
         self._knobs = KnobParameters(self.line, self.vary_names, self._descriptor)
         self._knobs.apply()
         self._already_prepared = True

@@ -398,11 +398,11 @@ def test_tpsa_match_optics():
         xt.TargetRelPhaseAdvance('mux', value = tw0['mux', 'ip1.l1'] - tw0['mux', 's.ds.l8.b1'], start='s.ds.l8.b1', end='ip1.l1', weight=1),
         xt.TargetRelPhaseAdvance('muy', value = tw0['muy', 'ip1.l1'] - tw0['muy', 's.ds.l8.b1'], start='s.ds.l8.b1', end='ip1.l1', weight=1),
     ],
-    use_tpsa=True, tpsa_backend="xgtpsa")
+    use_tpsa=True, tpsa_backend="madng_tpsa")
 
     # Assert that all variables are TPSAs
     for name in opt.actions[0].vary_names:
-        assert isinstance(line.vars.val[name], xgtpsa.tpsa.Tpsa)
+        assert isinstance(line.vars.val[name], madng_tpsa.tpsa.Tpsa)
 
     opt.step(30)
 
@@ -454,7 +454,7 @@ def test_tpsa_match_optics():
             xt.TargetRelPhaseAdvance('mux', value = tw0['mux', 'ip1.l1'] - tw0['mux', 's.ds.l8.b1'], start='s.ds.l8.b1', end='ip1.l1', weight=1),
             xt.TargetRelPhaseAdvance('muy', value = tw0['muy', 'ip1.l1'] - tw0['muy', 's.ds.l8.b1'], start='s.ds.l8.b1', end='ip1.l1', weight=1),
     ],
-    use_tpsa=True, tpsa_backend="xgtpsa")
+    use_tpsa=True, tpsa_backend="madng_tpsa")
 
     opt.step(30)
 
@@ -585,7 +585,7 @@ def test_maps_of_the_same_order_share_a_descriptor():
 
 def test_getattr_and_to_particles():
     m = _offaxis_map(order=2)
-    assert isinstance(m.x, xgtpsa.Tpsa)
+    assert isinstance(m.x, madng_tpsa.Tpsa)
     assert isinstance(m.beta0, float)
     with pytest.raises(AttributeError):
         m.bogus
@@ -621,7 +621,7 @@ def test_from_coords_view_shares_series():
 
 def test_particles_tpsa_rejects_descriptor_order_mismatch():
     with pytest.raises(ValueError, match="descriptor is order 3, map asks for 2"):
-        _offaxis_map(order=2, descriptor=xgtpsa.Descriptor(6, 3))
+        _offaxis_map(order=2, descriptor=madng_tpsa.Descriptor(6, 3))
 
 
 def test_particles_tpsa_rejects_vector_coordinates():
@@ -737,7 +737,7 @@ def test_map_loss_raises():
 
 def test_tpsa_enabled_element_rejects_scalar_element_track():
     line = _line()
-    descriptor = xgtpsa.Descriptor(6, 1, num_params=1, param_order=1)
+    descriptor = madng_tpsa.Descriptor(6, 1, num_params=1, param_order=1)
     line["q"].k1 = descriptor.param(1, 0.1)
     with pytest.raises(RuntimeError, match="Cannot track normal Particles"):
         line.element_dict["q"].track(_particle())
@@ -770,7 +770,7 @@ def test_set_const_part_and_jacobian_shape_guards():
 
 
 def test_set_jacobian_leaves_parameter_columns():
-    descriptor = xgtpsa.Descriptor(6, 2, params=["kqa", "kqb"], param_order=1)
+    descriptor = madng_tpsa.Descriptor(6, 2, params=["kqa", "kqb"], param_order=1)
     m = _offaxis_map(order=2, descriptor=descriptor)
     m.set_coefficient("x", (0, 0, 0, 0, 0, 0, 1, 0), 0.25)   # d x / d kqa
     before = m.param_jacobian().copy()
@@ -871,7 +871,7 @@ def test_multi_element_monitor_records_parameters():
     """A parametric map is recorded whole, so the knob columns survive into each slot."""
     line = _fodo_knob_line()
     names = ["kqf", "kqd", "ksx"]
-    descriptor = xgtpsa.Descriptor(6, 2, params=names, param_order=1)
+    descriptor = madng_tpsa.Descriptor(6, 2, params=names, param_order=1)
     knobs = KnobParameters(line, names, descriptor)
     knobs.apply()
 
@@ -948,7 +948,7 @@ def test_optics_parameter_gradient_vs_finite_differences():
     dA = {(0, 0): [1.3, -0.5], (0, 1): [0.4, 0.9], (1, 0): [0.2, 0.1],
           (1, 1): [-0.7, 0.3], (0, 5): [0.05, -0.02]}
 
-    descriptor = xgtpsa.Descriptor(6, 2, params=["kqa", "kqb"], param_order=1)
+    descriptor = madng_tpsa.Descriptor(6, 2, params=["kqa", "kqb"], param_order=1)
     m = _offaxis_map(order=2, descriptor=descriptor)
     m.set_jacobian(A0)
     for (i, j), gradient in dA.items():
@@ -989,11 +989,11 @@ def test_optics_gradient_guards():
         plain.optics().gradient("betx")
 
     params = dict(params=["kqa", "kqb"], param_order=1)
-    order_one = _offaxis_map(order=1, descriptor=xgtpsa.Descriptor(6, 1, **params))
+    order_one = _offaxis_map(order=1, descriptor=madng_tpsa.Descriptor(6, 1, **params))
     with pytest.raises(ValueError, match="order >= 2"):
         order_one.optics().gradient("betx")
 
-    parametric = _offaxis_map(order=2, descriptor=xgtpsa.Descriptor(6, 2, **params))
+    parametric = _offaxis_map(order=2, descriptor=madng_tpsa.Descriptor(6, 2, **params))
     with pytest.raises(KeyError, match="unknown optical function"):
         parametric.optics().gradient("nope")
 
@@ -1003,9 +1003,9 @@ def test_optics_gradient_guards():
 def test_knob_parameters_rejects_bad_names_and_shapes():
     line = _knob_line()
     with pytest.raises(KeyError, match="not a line variable"):
-        KnobParameters(line, ["nope"], xgtpsa.Descriptor(6, 2, num_params=1))
+        KnobParameters(line, ["nope"], madng_tpsa.Descriptor(6, 2, num_params=1))
     with pytest.raises(ValueError, match="descriptor has 2 parameters, expected 1"):
-        KnobParameters(line, ["kqa"], xgtpsa.Descriptor(
+        KnobParameters(line, ["kqa"], madng_tpsa.Descriptor(
             6, 2, params=["kqa", "kqb"], param_order=1))
 
 
@@ -1013,7 +1013,7 @@ def test_knob_parameters_apply_and_driven_elements():
     line = _knob_line()
     names = ["kqa", "kqb", "klink"]
     knobs = KnobParameters(line, names,
-                           xgtpsa.Descriptor(6, 2, params=names, param_order=1))
+                           madng_tpsa.Descriptor(6, 2, params=names, param_order=1))
     assert len(knobs) == 3 and not knobs.applied
     knobs.teardown()          # a no-op before apply
     knobs.apply()
@@ -1034,7 +1034,7 @@ def test_knob_parameters_strength_jacobian_vs_fd():
     line = _knob_line()
     names = ["kqa", "kqb", "klink"]
     knobs = KnobParameters(line, names,
-                           xgtpsa.Descriptor(6, 2, params=names, param_order=1))
+                           madng_tpsa.Descriptor(6, 2, params=names, param_order=1))
     knobs.apply()
     jacobian = knobs.strength_jacobian()
 
@@ -1067,7 +1067,7 @@ def test_knob_parameters_strength_jacobian_vs_fd():
 def test_knob_parameters_refresh_moves_a_nonlinear_knob():
     """refresh re-seeds the parameters, so the gradient follows the knob value."""
     line = _nonlinear_knob_line()
-    knobs = KnobParameters(line, ["kqa"], xgtpsa.Descriptor(6, 2, num_params=1))
+    knobs = KnobParameters(line, ["kqa"], madng_tpsa.Descriptor(6, 2, num_params=1))
     knobs.apply()
     xo.assert_allclose(knobs.strength_jacobian()[("mq1", "k1")], [2 * 0.012],
                        rtol=0, atol=1e-14)
@@ -1084,7 +1084,7 @@ def test_knob_parameters_teardown_restores_doubles():
     line = _knob_line()
     names = ["kqa", "kqb", "klink"]
     knobs = KnobParameters(line, names,
-                           xgtpsa.Descriptor(6, 2, params=names, param_order=1))
+                           madng_tpsa.Descriptor(6, 2, params=names, param_order=1))
     knobs.apply()
     knobs.teardown()
 
@@ -1103,7 +1103,7 @@ def test_parametric_track_matches_finite_differences():
     """One knobbed track gives d(coord)/d(knob) == central differences."""
     line = _fodo_knob_line()
     names = ["kqf", "kqd", "ksx"]
-    descriptor = xgtpsa.Descriptor(6, 2, params=names, param_order=1)
+    descriptor = madng_tpsa.Descriptor(6, 2, params=names, param_order=1)
     knobs = KnobParameters(line, names, descriptor)
     knobs.apply()
 

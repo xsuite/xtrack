@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from xgtpsa import Descriptor, Tpsa
+from madng_tpsa import Descriptor, Tpsa
 
 
 class KnobParameters:
