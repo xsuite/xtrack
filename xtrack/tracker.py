@@ -427,17 +427,17 @@ class Tracker:
         if args := kwargs:
             raise TypeError(f"unsupported TPSA tracking arguments: {sorted(args)}")
         if self.iscollective or self.line.enable_time_dependent_vars:
-            raise NotImplementedError("TPSA tracking is not wired for collective/time-dependent tracking")
+            raise NotImplementedError("TPSA tracking is not implemented for collective/time-dependent tracking")
         if not isinstance(self._context, xo.ContextCpu):
             raise NotImplementedError("TPSA tracking is implemented only for ContextCpu")
         if freeze_longitudinal:
-            raise NotImplementedError("freeze_longitudinal is not wired for TPSA tracking")
+            raise NotImplementedError("freeze_longitudinal is not implemented for TPSA tracking")
         if backtrack:
-            raise NotImplementedError("backtracking is not wired for TPSA tracking")
+            raise NotImplementedError("backtracking is not implemented for TPSA tracking")
         if with_progress:
-            raise NotImplementedError("progress tracking is not wired for TPSA tracking")
+            raise NotImplementedError("progress tracking is not implemented for TPSA tracking")
         if turn_by_turn_monitor not in (None, False):
-            raise NotImplementedError("TPSA turn-by-turn monitors are not wired yet")
+            raise NotImplementedError("TPSA turn-by-turn monitors are not implemented yet")
         if self.line.config.data.get("XTRACK_MULTIPOLE_NO_SYNRAD", False) is not True:
             raise NotImplementedError(
                 "TPSA tracking does not support synchrotron radiation. "
@@ -454,7 +454,7 @@ class Tracker:
             if ele_stop is None or ele_stop == 0:
                 ele_stop = self.num_elements
             if ele_stop < ele_start:
-                raise NotImplementedError("TPSA wrap-around ranges are not wired yet")
+                raise NotImplementedError("TPSA wrap-around ranges are not implemented yet")
             num_elements = ele_stop - ele_start
         elif ele_stop is not None:
             raise ValueError("Cannot use both num_elements and ele_stop!")
@@ -462,12 +462,12 @@ class Tracker:
         if num_elements < 0:
             raise ValueError("num_elements must be non-negative")
         if ele_start + num_elements > self.num_elements:
-            raise NotImplementedError("TPSA wrap-around ranges are not wired yet")
-        # Splitting range into first/middle/last calls is not wired yet.
+            raise NotImplementedError("TPSA wrap-around ranges are not implemented yet")
+        # Splitting range into first/middle/last calls is not implemented yet.
         if num_turns > 1 and (ele_start != 0 or num_elements != self.num_elements):
             raise NotImplementedError(
                 "TPSA multi-turn tracking is implemented only for full turns from the "
-                "first element. Partial ranges over several turns are not wired yet."
+                "first element. Partial ranges over several turns are not implemented yet."
             )
         flag_end_turn_actions = (
             num_turns > 1
