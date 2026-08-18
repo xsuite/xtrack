@@ -635,15 +635,6 @@ class Particles(xo.HybridClass):
             all_input_slots_are_valid = bool(
                 np.all(state > LAST_INVALID_STATE))
 
-        # BufferNumpy guarantees a zero-filled fresh allocation. Do not make
-        # the same assumption for GPU buffers: this is not part of the context
-        # API and CUDA allocators are allowed to reuse uninitialized memory.
-        buffer_is_zeroed = (
-            _buffer is None and isinstance(self._context, xo.ContextCpu))
-        independent_defaults_are_zeroed = (
-            buffer_is_zeroed
-            and _capacity == input_length
-            and all_input_slots_are_valid)
         can_skip_sentinel_fill = (
             isinstance(self._context, xo.ContextCpu)
             and _capacity == input_length
@@ -651,12 +642,11 @@ class Particles(xo.HybridClass):
 
         # All valid input slots are overwritten below. Avoid filling every
         # array once more unless unallocated or invalid slots need sentinels.
-        # RNG state must remain zero; fresh CPU buffers already provide it.
+        # RNG state is always initialized explicitly.
         for type_, field in self.per_particle_vars:
             raw_field = self._rename.get(field, field)
             if raw_field.startswith('_rng'):
-                if not buffer_is_zeroed:
-                    setattr(self, raw_field, 0)
+                setattr(self, raw_field, 0)
             elif not can_skip_sentinel_fill:
                 setattr(self, raw_field, LAST_INVALID_STATE)
 
@@ -723,10 +713,7 @@ class Particles(xo.HybridClass):
 
 
         # Init independent per particle vars
-        self.init_independent_per_part_vars(
-            kwargs,
-            _zeroed_buffer=independent_defaults_are_zeroed,
-        )
+        self.init_independent_per_part_vars(kwargs)
 
         # Init chi and charge ratio
         self._update_chi_charge_ratio(
@@ -1852,22 +1839,23 @@ class Particles(xo.HybridClass):
     def part_energy_varnames(cls):
         return [vv for tt, vv in cls.part_energy_vars]
 
-    def init_independent_per_part_vars(self, kwargs, _zeroed_buffer=False):
-        zero_default_fields = (
-            's', 'at_turn', 'at_element', 'x', 'y', 'px', 'py', 'ax', 'ay',
-            'anomalous_magnetic_moment', 'spin_x', 'spin_y', 'spin_z')
-        for field in zero_default_fields:
-            value = kwargs.get(field, 0)
-            is_positive_zero = (np.isscalar(value) and value == 0
-                                and not np.signbit(value))
-            if not _zeroed_buffer or not is_positive_zero:
-                setattr(self, field, value)
-
+    def init_independent_per_part_vars(self, kwargs):
+        self.s = kwargs.get('s', 0)
+        self.at_turn = kwargs.get('at_turn', 0)
+        self.at_element = kwargs.get('at_element', 0)
         self.weight = kwargs.get('weight', 1)
+        self.x = kwargs.get('x', 0)
+        self.y = kwargs.get('y', 0)
+        self.px = kwargs.get('px', 0)
+        self.py = kwargs.get('py', 0)
+        self.ax = kwargs.get('ax', 0)
+        self.ay = kwargs.get('ay', 0)
+        self.anomalous_magnetic_moment = kwargs.get('anomalous_magnetic_moment', 0)
+        self.spin_x = kwargs.get('spin_x', 0)
+        self.spin_y = kwargs.get('spin_y', 0)
+        self.spin_z = kwargs.get('spin_z', 0)
 
         pdg_id = kwargs.get('pdg_id')
-        if pdg_id is None and _zeroed_buffer:
-            return
         try:
             pdg_id = get_pdg_id_from_name(pdg_id)
             if not np.isscalar(pdg_id):
