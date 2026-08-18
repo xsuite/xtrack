@@ -124,7 +124,6 @@ GPUFUN xt_num_t {getter}({data_name} obj) {{
         source="\n".join(blocks),
         name=f"{data_name}_float_or_tpsa_accessors",
     )
-    source._xtrack_tpsa_safe = True
     return source
 
 
@@ -303,6 +302,11 @@ def _generate_per_particle_kernel_from_local_particle_function(
         add_to_call = ", " + ", ".join(f"{arg.name}" for arg in additional_args)
 
     source = ('''
+            #ifndef XTRACK_TPSA_TRACK
+            /*
+             * Scalar element kernels operate on ParticlesData and are not supported
+             * when compiling a TPSA tracker, which uses TpsaParticleData instead.
+             */
             /*gpukern*/
             '''
             f'void {kernel_name}(\n'
@@ -375,6 +379,7 @@ def _generate_per_particle_kernel_from_local_particle_function(
             check_is_active(&lpart);                                   //only_for_context cpu_openmp
             #endif                                                     //only_for_context cpu_openmp
         }
+            #endif /* XTRACK_TPSA_TRACK */
 ''')
     return source
 
