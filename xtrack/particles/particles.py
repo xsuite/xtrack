@@ -635,24 +635,29 @@ class Particles(xo.HybridClass):
             all_input_slots_are_valid = bool(
                 np.all(state > LAST_INVALID_STATE))
 
-        buffer_is_zeroed = (_buffer is None
-                            and isinstance(self._context,
-                                           (xo.ContextCpu, xo.ContextCupy)))
+        # BufferNumpy guarantees a zero-filled fresh allocation. Do not make
+        # the same assumption for GPU buffers: this is not part of the context
+        # API and CUDA allocators are allowed to reuse uninitialized memory.
+        buffer_is_zeroed = (
+            _buffer is None and isinstance(self._context, xo.ContextCpu))
         independent_defaults_are_zeroed = (
             buffer_is_zeroed
+            and _capacity == input_length
+            and all_input_slots_are_valid)
+        can_skip_sentinel_fill = (
+            isinstance(self._context, xo.ContextCpu)
             and _capacity == input_length
             and all_input_slots_are_valid)
 
         # All valid input slots are overwritten below. Avoid filling every
         # array once more unless unallocated or invalid slots need sentinels.
-        # RNG state must remain zero; fresh CPU/CUDA buffers already provide it.
+        # RNG state must remain zero; fresh CPU buffers already provide it.
         for type_, field in self.per_particle_vars:
             raw_field = self._rename.get(field, field)
             if raw_field.startswith('_rng'):
                 if not buffer_is_zeroed:
                     setattr(self, raw_field, 0)
-            elif (_capacity > input_length
-                  or not all_input_slots_are_valid):
+            elif not can_skip_sentinel_fill:
                 setattr(self, raw_field, LAST_INVALID_STATE)
 
         np_to_ctx = self._context.nparray_to_context_array
@@ -667,7 +672,8 @@ class Particles(xo.HybridClass):
         self.state = state
         # None selects the cheaper direct-assignment path in the update
         # helpers. A mask is only needed when input slots can be invalid.
-        input_mask = (None if all_input_slots_are_valid
+        input_mask = (None if (all_input_slots_are_valid
+                               and isinstance(self._context, xo.ContextCpu))
                       else self.state > LAST_INVALID_STATE)
 
         if 'particle_id' in kwargs:
@@ -2049,11 +2055,11 @@ class Particles(xo.HybridClass):
                                     mask=mask)
 
         delta = self._delta  # Cupy complains if we later assign LinkedArray
-        one_plus_ptau_beta0 = 1 + _ptau * beta0
         can_reuse_ptau = False
         # A device-side reduction would force synchronization, so retain the
         # original expression on GPU contexts.
         if isinstance(self._context, xo.ContextCpu):
+            one_plus_ptau_beta0 = 1 + _ptau * beta0
             values_to_check = (one_plus_ptau_beta0 if mask is None
                                else one_plus_ptau_beta0[mask])
             can_reuse_ptau = bool(
