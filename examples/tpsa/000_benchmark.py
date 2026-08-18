@@ -16,7 +16,7 @@ import numpy as np
 
 import xtrack as xt
 import xtrack.tpsa as xtpsa
-import xgtpsa
+import madng_tpsa
 
 
 HERE = Path(__file__).resolve().parent
@@ -150,7 +150,7 @@ def main():
     scalar_line.build_tracker(compile=False)
     param_line.build_tracker(compile=False)
 
-    param_descriptor = xgtpsa.Descriptor(
+    param_descriptor = madng_tpsa.Descriptor(
         6, args.order, num_params=len(IR8_VARY), param_order=1
     )
     _enable_line_variable_tpsa(param_line, IR8_VARY, param_descriptor)

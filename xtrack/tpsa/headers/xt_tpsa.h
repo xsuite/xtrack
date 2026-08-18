@@ -99,10 +99,13 @@ static inline double xt_num_truncate_to_double(xt_num_arg_t value){
 XT_TPSA_REL(>) XT_TPSA_REL(<) XT_TPSA_REL(>=) XT_TPSA_REL(<=) XT_TPSA_REL(==) XT_TPSA_REL(!=)
 #undef XT_TPSA_REL
 
-// TPSA tracking does not inspect synchrotron radiation records, but generated
-// kernels still reference this type. Keep it opaque to avoid pulling in the
-// normal record layout for TPSA-only compilation.
+// TPSA tracking does not support synchrotron radiation record operations. If
+// the normal record C API is not emitted, keep the type opaque so declarations
+// that mention it still parse.
+#ifndef XOBJ_TYPEDEF_SynchrotronRadiationRecordData
+#define XOBJ_TYPEDEF_SynchrotronRadiationRecordData
 typedef void* SynchrotronRadiationRecordData;
+#endif
 
 // Decode a scalar FloatOrTpsa slot stored as raw uint64_t bits.
 static inline double xt_float_or_tpsa_bits_to_double(uint64_t bits){

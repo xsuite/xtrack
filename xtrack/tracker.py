@@ -28,62 +28,6 @@ from .track_flags import TrackFlags
 logger = logging.getLogger(__name__)
 
 
-def _float_or_tpsa_pairs(classes):
-    pairs = []
-    for cls in classes:
-        for field in getattr(cls, "_fields", ()):
-            if getattr(field.ftype, "_is_float_or_tpsa", False):
-                pairs.append((cls.__name__, field.name))
-    return pairs
-
-
-def _wrap_float_or_tpsa_getters(source, classes):
-    pairs = _float_or_tpsa_pairs(classes)
-    if not pairs:
-        return source
-
-    block = _float_or_tpsa_getter_block(classes)
-    undef = _float_or_tpsa_undef_block(classes)
-    out = []
-    wrapped_any = False
-    for line in source.splitlines():
-        if '#include "xtrack/beam_elements/' in line:
-            out.append(block)
-            out.append(line)
-            out.append(undef)
-            wrapped_any = True
-        else:
-            out.append(line)
-    if not wrapped_any:
-        return source
-    return "\n".join(out)
-
-
-def _float_or_tpsa_getter_block(classes):
-    pairs = _float_or_tpsa_pairs(classes)
-    if not pairs:
-        return ""
-
-    blocks = []
-    for data, field in pairs:
-        getter = f"{data}_get_{field}"
-        blocks.append(f"""
-#ifndef XTRACK_TPSA_TRACK
-#define {getter}(obj) xt_float_or_tpsa_get_double(*((uint64_t*){data}_getp_{field}(obj)), {data}_get__tpsa_enabled(obj))
-#else
-#define {getter}(obj) xt_float_or_tpsa_get((uint64_t*){data}_getp_{field}(obj), {data}_get__tpsa_enabled(obj))
-#endif
-""")
-    return "\n".join(blocks)
-
-
-def _float_or_tpsa_undef_block(classes):
-    pairs = _float_or_tpsa_pairs(classes)
-    return "\n".join(
-        f"#undef {data}_get_{field}" for data, field in pairs
-    )
-
-
 class Tracker:
 
     '''
@@ -662,7 +606,7 @@ class Tracker:
                 include_auxiliary_kernels = True
                 if self.config.XTRACK_TPSA_TRACK:
                     from xtrack.tpsa.particles import TpsaParticleData
-                    from xgtpsa.paths import core_library
+                    from madng_tpsa.paths import core_library
 
                     particle_data_class = TpsaParticleData
                     include_auxiliary_kernels = False
@@ -1024,13 +968,7 @@ class Tracker:
             kwargs = {}
 
         apply_to_source = [_handle_per_particle_blocks]
-        if not tpsa_track:
-            apply_to_source.append(
-                lambda source: _wrap_float_or_tpsa_getters(source, all_classes)
-            )
 
-        saved_depends = {}
-        saved_extra_sources = {}
         sources = [source_track]
         extra_compile_args = ()
         extra_link_args = ()
@@ -1038,45 +976,12 @@ class Tracker:
         compiler_language = "c"
 
         if tpsa_track:
-            from xgtpsa.paths import core_library
-            from xtrack.internal_record import RecordIdentifier, RecordIndex
-
-            tpsa_extra_sources = []
-            dependency_classes = [*all_classes, RecordIdentifier, RecordIndex]
-            for cc in dependency_classes:
-                if hasattr(cc, "_depends_on"):
-                    saved_depends[cc] = cc._depends_on
-                    cc._depends_on = [
-                        dep for dep in cc._depends_on
-                        if dep.__name__ != "ParticlesData"
-                        and not dep.__name__.startswith("Random")
-                        and "Monitor" not in dep.__name__
-                        and not dep.__name__.startswith("Record")
-                        and dep.__name__ != "SynchrotronRadiationRecordData"
-                    ]
-                if hasattr(cc, "_extra_c_sources"):
-                    saved_extra_sources[cc] = cc._extra_c_sources
-                    if cc in all_classes:
-                        tpsa_extra_sources.extend(cc._extra_c_sources)
-                    cc._extra_c_sources = []
+            from madng_tpsa.paths import core_library
 
             tpsa_sources = [
                 '#include "xtrack/particles/headers/local_particle.h"',
-                _float_or_tpsa_getter_block(all_classes),
             ]
-            for extra_source in tpsa_extra_sources:
-                if hasattr(extra_source, "read"):
-                    extra_text = extra_source.read()
-                elif hasattr(extra_source, "read_text"):
-                    extra_text = extra_source.read_text()
-                else:
-                    extra_text = extra_source
-                if "ParticlesData particles" in extra_text:
-                    continue
-                if "SynchrotronRadiationRecordData" in extra_text:
-                    continue
-                tpsa_sources.append(extra_text)
-            sources = [*tpsa_sources, source_track, _float_or_tpsa_undef_block(all_classes)]
+            sources = [*tpsa_sources, source_track]
             extra_compile_args = (
                 "-include", "complex",
             )
@@ -1084,37 +989,31 @@ class Tracker:
             compiler_language = "c++"
             headers.insert(0, "#define restrict __restrict")
 
-        try:
-            skip_config_headers = set()
-            if tpsa_track:
-                skip_config_headers.add("XTRACK_MULTIPOLE_NO_SYNRAD")
+        skip_config_headers = set()
+        if tpsa_track:
+            skip_config_headers.add("XTRACK_MULTIPOLE_NO_SYNRAD")
 
-            build_kwargs = {
-                'sources': sources,
-                'kernel_descriptions': kernels,
-                'extra_headers': cls._config_to_headers_from_config(
-                    config, skip=skip_config_headers) + headers,
-                'extra_classes': all_classes,
-                'apply_to_source': apply_to_source,
-                'specialize': True,
-                'compile': compile,
-                'save_source_as': f'{module_name}.c' if module_name else None,
-                'extra_compile_args': extra_compile_args,
-                **kwargs,
-            }
-            if isinstance(context, xo.ContextCpu):
-                build_kwargs.update(
-                    extra_link_args=extra_link_args,
-                    preload_libraries=preload_libraries,
-                    compiler_language=compiler_language,
-                )
+        build_kwargs = {
+            'sources': sources,
+            'kernel_descriptions': kernels,
+            'extra_headers': cls._config_to_headers_from_config(
+                config, skip=skip_config_headers) + headers,
+            'extra_classes': all_classes,
+            'apply_to_source': apply_to_source,
+            'specialize': True,
+            'compile': compile,
+            'save_source_as': f'{module_name}.c' if module_name else None,
+            'extra_compile_args': extra_compile_args,
+            **kwargs,
+        }
+        if isinstance(context, xo.ContextCpu):
+            build_kwargs.update(
+                extra_link_args=extra_link_args,
+                preload_libraries=preload_libraries,
+                compiler_language=compiler_language,
+            )
 
-            out_kernels = context.build_kernels(**build_kwargs)
-        finally:
-            for cc, depends_on in saved_depends.items():
-                cc._depends_on = depends_on
-            for cc, extra_c_sources in saved_extra_sources.items():
-                cc._extra_c_sources = extra_c_sources
+        out_kernels = context.build_kernels(**build_kwargs)
         return {
             'kernel': out_kernels['track_line'],
             'tracker_element_classes': kernel_element_classes,

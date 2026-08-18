@@ -70,6 +70,13 @@ XT_LP_UINT32_FIELDS(XT_LP_TYPED_ACCESSORS)
 #undef NUM_GET
 #undef ACCESSOR_PREFIX
 
+#ifndef XTRACK_TPSA_TRACK
+/*
+ * These conversion helpers are only supported by scalar tracking. TPSA tracking
+ * uses TpsaParticleData and provides its own conversion helpers in the TPSA
+ * LocalParticle implementation.
+ */
+
 // Conversion between the global ParticlesData structure and a LocalParticle view.
 GPUFUN
 void Particles_to_LocalParticle(
@@ -125,5 +132,7 @@ void LocalParticle_to_Particles(
         XT_LP_UINT32_FIELDS(COPY_FIELD_TO_PARTICLES)
     #undef COPY_FIELD_TO_PARTICLES
 }
+
+#endif /* XTRACK_TPSA_TRACK */
 
 #endif /* XTRACK_PARTICLES_LOCAL_PARTICLE_SCALAR_H */

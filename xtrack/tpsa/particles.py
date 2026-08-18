@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any, Iterable, Sequence
 import numpy as np
 import xtrack as xt
 
-import xgtpsa
+import madng_tpsa
 
 import xobjects as xo
 
@@ -97,12 +97,12 @@ class ParticlesTpsa:
     descriptor parameters directly to participating element fields or line variables.
     """
 
-    coords: list[xgtpsa.Tpsa] | None = None
+    coords: list[madng_tpsa.Tpsa] | None = None
 
     def __init__(
         self,
         order: int = 1,
-        descriptor: xgtpsa.Descriptor | None = None,
+        descriptor: madng_tpsa.Descriptor | None = None,
         **kwargs: Any,
     ) -> None:
         # Single source of truth for kwargs and derived values.
@@ -120,7 +120,7 @@ class ParticlesTpsa:
                     f"descriptor is order {desc.order}, map asks for {order}"
                 )
         else:
-            desc = xgtpsa.Descriptor(6, order)
+            desc = madng_tpsa.Descriptor(6, order)
         self.coords = [
             desc.var(i + 1, self._ref(c))
             for i, c in enumerate(_COORDS)
@@ -129,7 +129,7 @@ class ParticlesTpsa:
             name: desc.constant(self._ref(name)) for name in _DERIVED_COORDS
         }
         self._local_series.update({
-            name: xgtpsa.Tpsa(desc) for name in _LOCAL_COORDS
+            name: madng_tpsa.Tpsa(desc) for name in _LOCAL_COORDS
         })
         self._local_series.update({
             name: desc.constant(self._ref(name)) for name in _SPIN_COORDS
@@ -144,7 +144,7 @@ class ParticlesTpsa:
         The reference (double) variables never change during tracking. The kernel copies
         this data into an unrolled ``LocalParticle`` and synchronizes tracking state back.
         """
-        ffi = xgtpsa.ffi()
+        ffi = madng_tpsa.ffi()
         bp = TpsaParticleData()
         for c, t in zip(_COORDS, self.coords):
             setattr(bp, c, int(ffi.cast("uintptr_t", t.ptr)))
@@ -161,7 +161,7 @@ class ParticlesTpsa:
     @classmethod
     def _from_coords(
         cls,
-        coords: Iterable[xgtpsa.Tpsa],
+        coords: Iterable[madng_tpsa.Tpsa],
         ref_particle: xt.Particles | None = None,
     ) -> ParticlesTpsa:
         """A map over existing ``Tpsa`` handles without using the ABI.
@@ -189,7 +189,7 @@ class ParticlesTpsa:
             setattr(p, c, [v])
         return p
 
-    def __getattr__(self, name: str) -> xgtpsa.Tpsa | float:
+    def __getattr__(self, name: str) -> madng_tpsa.Tpsa | float:
         if name in _COORDS:
             return self.coords[_COORDS.index(name)]
         if name in _REF_VARS:
@@ -199,7 +199,7 @@ class ParticlesTpsa:
         raise AttributeError(name)
 
     @property
-    def descriptor(self) -> xgtpsa.Descriptor:
+    def descriptor(self) -> madng_tpsa.Descriptor:
         """The GTPSA ``Descriptor`` shared by the six coordinate series (from C)."""
         return self.coords[0].descriptor
 
@@ -268,7 +268,7 @@ class ParticlesTpsa:
                 mono[j] = 1
                 c.set(mono, R[i, j])
 
-    def _series(self, coord: str | int) -> xgtpsa.Tpsa:
+    def _series(self, coord: str | int) -> madng_tpsa.Tpsa:
         """The ``Tpsa`` output series for ``coord`` (name like ``'x'`` or index 0..5)."""
         if isinstance(coord, str):
             return self.coords[_COORDS.index(coord)]
