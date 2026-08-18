@@ -28,15 +28,15 @@ class ActionTpsaTrack(Action):
     """Match action for the GTPSA backend.
 
     ``vary_names`` are held as parametric maps (``KnobParameters``). The dependencies are
-    resolved propagated through xdeps into the element strengths. The map is tracked once through
-    the range, recording the full map at every target location. Values come from
-    ``TpsaOptics``, from which the Jacobian is read.
+    resolved by propagating through xdeps into the element strengths. The map is tracked once through
+    the range, recording the full map at every target location.
+    Values come from ``TpsaOptics``, from which the Jacobian is read.
 
     Optics targets and phase-advance targets are both supported.
     Caveat for the phase-advances: the map Jacobian yields only the fractional betatron phase (``atan2``).
     The continuous phase advance is recovered by unwrapping against the reference twiss ``init``, which is
-    exact whenever the phase stays within half a unit of the reference. Whenever this is not the case,
-    the offset is an integer.
+    exact whenever the phase stays within half a unit of the reference.
+    Whenever this is not the case, the offset is an integer.
     The knob gradient is exact regardless (the integer offset is knob-independent).
 
     The element fields hold TPSA handles for the whole match. Call ``teardown()`` to put
@@ -73,7 +73,6 @@ class ActionTpsaTrack(Action):
         """Solver hint: parametric map (Jacobian point) or value-only (line search)."""
         self._build_parametric = bool(flag)
 
-    # ------------------------------------------------------------------ prepare
     def prepare(self, force=False):
         if self._already_prepared and not force:
             return
@@ -169,7 +168,6 @@ class ActionTpsaTrack(Action):
             self._knobs = None
         self._already_prepared = False
 
-    # ------------------------------------------------------------------- seed
     def _seed_map(self, parametric=True):
         """A fresh map seeded with the periodic orbit + W-matrix at the start."""
         init = self._init
@@ -193,7 +191,6 @@ class ActionTpsaTrack(Action):
         ))
         return m
 
-    # -------------------------------------------------------------------- run
     def run(self):
         if not self._already_prepared:
             self.prepare()
@@ -258,7 +255,6 @@ class ActionTpsaTrack(Action):
             return self._views[loc].const_part[_ORBIT_QTYS.index(qty)]
         return getattr(self._optics[loc], qty)
 
-    # -------------------------------------------------------------- jacobian
     def acquire_jacobian(self):
         """(n_targets, n_vary) analytic d(target)/d(knob) from the last tracked map.
             If the last map was value-only, re-track to get a parametric one."""
