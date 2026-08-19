@@ -14,7 +14,7 @@ import xobjects as xo
 import xpart as xp
 import xtrack as xt
 from xobjects.test_helpers import (
-    allow_no_prebuilt_kernels, for_all_test_contexts, skip_if_forbid_compile)
+    allow_kernel_compilation, for_all_test_contexts, skip_if_forbid_compile)
 from xtrack.mad_loader import MadLoader
 from xtrack.slicing import Strategy, Uniform
 
@@ -1103,7 +1103,7 @@ def test_import_thick_quad_from_madx_and_slice_native():
 
 
 @for_all_test_contexts
-@allow_no_prebuilt_kernels
+@allow_kernel_compilation
 def test_fringe_implementations(test_context):
 
 
@@ -1293,6 +1293,7 @@ def test_import_thick_with_apertures_and_slice_cpymad():
         'drift_elm..2',                 # drift 2
         'elm_aper..3',                  # exit edge aperture
         'elm..exit_map',                # exit edge (+transform)
+        'elm_aper..4',                  # closing aperture
         'elm_exit',                     # exit marker
     ])
 
@@ -1364,6 +1365,7 @@ def test_import_thick_with_apertures_and_slice_native():
         'drift_elm..2',                 # drift 2
         'elm_aper..3',                  # exit edge aperture
         'elm..exit_map',                # exit edge (+transform)
+        'elm_aper..4',                  # closing aperture
         'elm_exit',                     # exit marker
     ])
 
@@ -1679,6 +1681,8 @@ def test_solenoid_against_madx_cpymad(test_context, ks, ksi, length):
     ml = MadLoader(mad.sequence.ss, allow_thick=True)
     line_thick = ml.make_line()
     line_thick.build_tracker(_context=test_context)
+    # Compare the map itself also for particles outside the safety aperture.
+    line_thick.tracker.track_flags.XS_FLAG_IGNORE_GLOBAL_APERTURE = True
     line_thick.configure_drift_model('exact')  # to be consistent with madx
 
     for ii in range(len(p0.x)):
@@ -1756,6 +1760,8 @@ def test_solenoid_against_madx_native(test_context, ks, ksi, length):
 
     line_thick.configure_drift_model('exact')  # to be consistent with madx
     line_thick.build_tracker(_context=test_context)
+    # Compare the map itself also for particles outside the safety aperture.
+    line_thick.tracker.track_flags.XS_FLAG_IGNORE_GLOBAL_APERTURE = True
 
     mad = Madx(stdout=False)
     mad.input(mad_src)
@@ -2217,7 +2223,7 @@ def test_solenoid_multipole_rotations():
         ('quantum-kick', {}),
     ],
 )
-@allow_no_prebuilt_kernels(skip_when_forbid_compile=False)
+@allow_kernel_compilation(skip_when_forbid_compile=False)
 def test_drift_like_solenoid_with_kicks_radiation(radiation_mode, config):
 
     if config.get('XTRACK_SYNRAD_KICK_SAME_AS_FIRST', False):
@@ -2286,7 +2292,7 @@ def test_drift_like_solenoid_with_kicks_radiation(radiation_mode, config):
         ('quantum-kick', {}),
     ],
 )
-@allow_no_prebuilt_kernels(skip_when_forbid_compile=False)
+@allow_kernel_compilation(skip_when_forbid_compile=False)
 def test_solenoid_with_kicks_radiation(radiation_mode, config):
 
     if config.get('XTRACK_SYNRAD_KICK_SAME_AS_FIRST', False):

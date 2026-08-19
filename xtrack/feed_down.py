@@ -12,6 +12,8 @@ import numpy as np
 from math import factorial
 from typing import Tuple
 
+from .general import _print
+
 
 def _as_array(x):
     return np.atleast_1d(np.asarray(x, dtype=np.float64))
@@ -120,5 +122,5 @@ if __name__ == "__main__":
     y0 = np.array([0.0])
 
     kn_eff, kskew_eff = feed_down(kn, kskew, shift_x, shift_y, psi, x0, y0)
-    print("Effective normal multipoles:", kn_eff)
-    print("Effective skew multipoles:", kskew_eff)
+    _print("Effective normal multipoles:", kn_eff)
+    _print("Effective skew multipoles:", kskew_eff)

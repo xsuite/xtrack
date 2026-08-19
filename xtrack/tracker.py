@@ -566,7 +566,7 @@ class Tracker:
             extra_classes=[],
             extra_kernels={},
     ):
-        if compile == 'force':
+        if compile == 'force' or xo.settings.force_kernel_compilation:
             use_prebuilt_kernels = False
         elif not self._context.allow_prebuilt_kernels:  # only CPU serial
             use_prebuilt_kernels = False
@@ -577,7 +577,7 @@ class Tracker:
             try:
                 from xsuite import (
                     get_suitable_kernel,
-                    XSK_PREBUILT_KERNELS_LOCATION,
+                    PREBUILT_KERNELS_LOCATION,
                 )
             except ImportError as err:
                 requested_classes = (
@@ -591,7 +591,7 @@ class Tracker:
                         'Xsuite is required to load prebuilt kernels but could '
                         'not be imported. Please install it with '
                         f'`pip install xsuite`. '
-                        f'{xo.context_cpu.no_prebuilt_kernel_jit_message()}'
+                        f'{xo.context_cpu.kernel_compilation_help_message()}'
                     ) from err
             else:
                 kernel_info = get_suitable_kernel(
@@ -620,7 +620,7 @@ class Tracker:
                 )['track_line']
                 kernels = self._context.kernels_from_file(
                     module_name=kernel_info['module_name'],
-                    containing_dir=XSK_PREBUILT_KERNELS_LOCATION,
+                    containing_dir=PREBUILT_KERNELS_LOCATION,
                     kernel_descriptions={'track_line': kernel_description},
                     preload_libraries=preload_libraries,
                 )
@@ -850,7 +850,17 @@ class Tracker:
                         case {ii}:
 """
             )
-            if ccnn == "Drift":
+            src_lines.append(
+                f"""
+                            {ccnn}_track_local_particle_with_transformations(({ccnn}Data) el, &lpart);"""
+            )
+            # MetaBeamElement stores a literal class declaration
+            # `isthick = True` as `_isthick = True`. Use `vars()` to inspect
+            # the class namespace without invoking descriptors: for elements
+            # with a dynamic `isthick` property (e.g. Multipole), `_isthick`
+            # can be a field descriptor. The identity check therefore selects
+            # only classes whose thickness is statically and literally True.
+            if vars(cc._DressingClass).get('_isthick') is True:
                 src_lines.append(
                     """
 #ifndef XTRACK_TPSA_TRACK
@@ -862,8 +872,7 @@ class Tracker:
                             """
                 )
             src_lines.append(
-                f"""
-                            {ccnn}_track_local_particle_with_transformations(({ccnn}Data) el, &lpart);
+                """
                             break;"""
             )
 

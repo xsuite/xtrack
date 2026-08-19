@@ -97,6 +97,10 @@ def _initialize_hdf5_file(monitor, h5file):
     h5file.attrs['every_n_turns'] = int(monitor.every_n_turns)
     h5file.attrs['n_records_per_frame'] = int(monitor._num_records)
     h5file.attrs['coasting'] = monitor.coasting
+    h5file.attrs['particle_id_range'] = np.array(
+        [-1, -1] if monitor.particle_id_range is None
+        else monitor.particle_id_range,
+        dtype=np.int64)
     h5file.attrs['profile_coordinates'] = np.array(
         monitor.profile_coordinates, dtype='S')
 
@@ -151,6 +155,21 @@ def _validate_hdf5_file(monitor, h5file):
     if actual_coasting != monitor.coasting:
         raise ValueError(
             'Output HDF5 metadata `coasting` does not match this monitor')
+
+    expected_particle_id_range = np.array(
+        [-1, -1] if monitor.particle_id_range is None
+        else monitor.particle_id_range,
+        dtype=np.int64)
+    if 'particle_id_range' in h5file.attrs:
+        if not np.array_equal(
+                np.asarray(h5file.attrs['particle_id_range']),
+                expected_particle_id_range):
+            raise ValueError(
+                'Output HDF5 metadata `particle_id_range` does not match '
+                'this monitor')
+    elif monitor.particle_id_range is not None:
+        raise ValueError(
+            'Output HDF5 file is missing metadata `particle_id_range`')
 
     if not monitor.coasting:
         _check_hdf5_dataset_equal(

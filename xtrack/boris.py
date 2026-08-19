@@ -3,6 +3,8 @@ import numpy as np
 from scipy.constants import c as clight
 from scipy.constants import e as qe
 
+from .general import _print
+
 class BorisSpatialIntegrator:
     """
     Track particles through a magnetic field map with a spatial Boris stepper.
@@ -105,7 +107,8 @@ class BorisSpatialIntegrator:
         for ii in range(self.n_steps):
 
             if self.verbose:
-                print(f's_in = {s_in[0]:.3f} s_in_map = {p.s[0]:.3f}', end='\r', flush=True)
+                _print(f's_in = {s_in[0]:.3f} s_in_map = {p.s[0]:.3f}',
+                       end='\r', flush=True)
 
             x = p.x[mask_alive].copy()
             y = p.y[mask_alive].copy()

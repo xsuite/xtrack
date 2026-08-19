@@ -231,7 +231,7 @@ class Slicer:
                                     ] + slicing_strategies
         self._has_expressions = line.vars is not None
 
-    def slice_in_place(self, _edge_markers=True):
+    def slice_in_place(self, _edge_markers=True, with_progress=True):
 
         self._line._frozen_check()
 
@@ -241,7 +241,10 @@ class Slicer:
         assert tt.name[-1] == '_end_point'
         tt = tt.rows[:-1]
         slices = {}
-        for ii, nn in enumerate(progress(tt.name, desc='Slicing line')):
+        element_names_iter = tt.name
+        if with_progress:
+            element_names_iter = progress(tt.name, desc='Slicing line')
+        for ii, nn in enumerate(element_names_iter):
             env_name = tt.env_name[ii]
             element = self._line.element_dict[env_name]
 
@@ -296,18 +299,26 @@ class Slicer:
             element = element.resolve(self._line)
         if (hasattr(element, 'name_associated_aperture')
             and element.name_associated_aperture is not None):
+            def _make_aperture_replica(index):
+                aper_name = f'{name}_aper..{index}'
+                self._line._element_dict[aper_name] = xt.Replica(
+                    parent_name=element.name_associated_aperture)
+                return aper_name
+
             new_slices_to_add = []
             aper_index = 0
             for nn in slices_to_add:
                 ee = self._line._element_dict[nn]
                 if (type(ee).__name__.startswith('ThinSlice')
-                    or type(ee).__name__.startswith('ThickSlice')):
-                    aper_name = f'{name}_aper..{aper_index}'
-                    self._line._element_dict[aper_name] = xt.Replica(
-                        parent_name=element.name_associated_aperture)
-                    new_slices_to_add += [aper_name]
+                    or type(ee).__name__.startswith('ThickSlice')
+                    or (_edge_markers and nn == exit_marker)):
+                    new_slices_to_add += [_make_aperture_replica(aper_index)]
                     aper_index += 1
                 new_slices_to_add += [nn]
+            if not _edge_markers:
+                # With edge markers, the closing aperture is added before the
+                # exit marker in the loop above. Without them, append it here.
+                new_slices_to_add += [_make_aperture_replica(aper_index)]
             slices_to_add = new_slices_to_add
 
         return slices_to_add

@@ -5,7 +5,7 @@ import pytest
 import numpy as np
 from scipy.constants import c as clight
 from xobjects.test_helpers import (
-    allow_no_prebuilt_kernels, skip_if_forbid_compile)
+    allow_kernel_compilation, skip_if_forbid_compile)
 
 import xobjects as xo
 import xtrack as xt
@@ -25,7 +25,7 @@ CONFIGURATIONS_TO_TEST = [
 ]
 
 @pytest.mark.parametrize('conf', CONFIGURATIONS_TO_TEST)
-@allow_no_prebuilt_kernels(skip_when_forbid_compile=False)
+@allow_kernel_compilation(skip_when_forbid_compile=False)
 def test_tapering_and_twiss_with_radiation(conf):
 
     if conf['radiation_method'] == 'scale_as_co':

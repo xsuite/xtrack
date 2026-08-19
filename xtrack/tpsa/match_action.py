@@ -14,7 +14,7 @@ import madng_tpsa
 import xtrack as xt
 
 from ..match import Action, TargetRelPhaseAdvance
-from ..twiss import _6d_w_matrix
+from ..twiss.twiss_init import _6d_w_matrix
 from ._knobs import KnobParameters
 from .particles import ParticlesTpsa
 

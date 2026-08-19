@@ -9,7 +9,7 @@ import xtrack.tpsa as xtpsa
 
 from xtrack._temp import lhc_match as lm
 from xtrack.tpsa._knobs import KnobParameters
-from xtrack.twiss import _6d_w_matrix
+from xtrack.twiss.twiss_init import _6d_w_matrix
 
 test_data_folder = pathlib.Path(
     __file__).parent.joinpath('../test_data').absolute()

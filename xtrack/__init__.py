@@ -4,6 +4,7 @@
 # ######################################### #
 
 from .general import _pkg_root, _print, START, END
+from xobjects import settings
 from .particles import (Particles, PROTON_MASS_EV, ELECTRON_MASS_EV,
                         enable_pyheadtail_interface, disable_pyheadtail_interface, masses)
 

@@ -522,7 +522,7 @@ class SurveyData(xo.Struct):
 
         # Straight-body RBends use an internal reference line that differs from
         # the element entrance frame stored in the survey table.
-        from xtrack.beam_elements.elements import RBend
+        from xtrack.beam_elements.rbend import RBend
         for idx, element in enumerate(line._elements):
             if isinstance(element, RBend) and element.rbend_model == 'straight-body':
                 rbend_shift_x_in[idx] = element._x0_in

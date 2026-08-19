@@ -2,11 +2,16 @@ import xobjects as xo
 
 from ..base_element import BeamElement
 from .slice_base import _SliceBase, COMMON_SLICE_XO_FIELDS
-from .elements import (
-    Multipole, Bend, Quadrupole, Sextupole,
-    Octupole, Solenoid, Drift, RBend, UniformSolenoid, Cavity, CrabCavity,
-    DriftExact
-)
+from .bend import Bend
+from .cavity import Cavity
+from .crab_cavity import CrabCavity
+from .multipole import Multipole
+from .octupole import Octupole
+from .quadrupole import Quadrupole
+from .rbend import RBend
+from .sextupole import Sextupole
+from .solenoid import Solenoid
+from .uniform_solenoid import UniformSolenoid
 from ..survey import advance_element as survey_advance_element
 
 class _ThickSliceElementBase(_SliceBase):

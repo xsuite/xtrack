@@ -1454,12 +1454,13 @@ def test_import_thick_with_apertures_and_slice():
         'drift_elm..2',                 # drift 2
         'elm_aper..3',                  # exit edge aperture
         'elm..exit_map',                # exit edge (+transform)
+        'elm_aper..4',                  # downstream closing aperture
         'elm_exit',                     # exit marker
     ])
 
     line.build_tracker(compile=False) # To resolve parents
 
-    for i in range(4):
+    for i in range(5):
         _assert_eq(line[f'elm_aper..{i}'].resolve(line).rot_s_rad, 0.1)
         _assert_eq(line[f'elm_aper..{i}'].resolve(line).shift_x, 0.2)
         _assert_eq(line[f'elm_aper..{i}'].resolve(line).shift_y, 0.3)
@@ -1650,4 +1651,3 @@ def test_native_loader_yrotation():
     assert isinstance(line[0], xt.Rotation)
     line.vars['angle'] = 2.0
     assert line[0].rot_y_rad == line.vars['angle']._value
-

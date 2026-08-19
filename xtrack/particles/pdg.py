@@ -8,6 +8,7 @@ from numbers import Number
 
 from .masses import U_MASS_EV
 from .masses import __dict__ as mass__dict__
+from ..general import _print
 
 # Monte Carlo numbering scheme as defined by the Particle Data Group
 # See https://pdg.lbl.gov/2007/reviews/montecarlorpp.pdf for implementation
@@ -427,7 +428,7 @@ def get_mass_from_pdg_id(pdg_id, allow_approximation=True, expected_mass=None, v
     elif pdg_id > 1000000000 and allow_approximation:
         _, A, _, _ = get_properties_from_pdg_id(pdg_id)
         if verbose:
-            print(f"Warning: approximating the mass as {A}u!")
+            _print(f"Warning: approximating the mass as {A}u!")
         return A*U_MASS_EV
     elif expected_mass is not None and _mass_consistent(pdg_id, expected_mass):
         # This is a workaround in case an exact mass is given

@@ -16,7 +16,7 @@ import xobjects as xo
 import xpart as xp
 import xtrack as xt
 from xobjects.test_helpers import (
-    allow_no_prebuilt_kernels, for_all_test_contexts)
+    allow_kernel_compilation, for_all_test_contexts)
 from xtrack import Line, Node, Multipole
 
 test_data_folder = pathlib.Path(
@@ -205,6 +205,46 @@ def test_line_xpart_facade(monkeypatch):
     assert isinstance(line.xpart, FakeXpartLineAPI)
     assert line.xpart is line.xpart
     assert line.xpart.line is line
+
+
+def test_line_xfields_facade_and_deprecated_ibs_configure(monkeypatch):
+
+    calls = {}
+
+    class FakeXfieldsLineAPI:
+        def __init__(self, line):
+            self.line = line
+
+        def ibs_configure(self, **kwargs):
+            calls['line'] = self.line
+            calls.update(kwargs)
+            return 'configured'
+
+    xfields_module = types.ModuleType('xfields')
+    line_tools_module = types.ModuleType('xfields.line_tools')
+    line_tools_module.XfieldsLineAPI = FakeXfieldsLineAPI
+    xfields_module.line_tools = line_tools_module
+    monkeypatch.setitem(sys.modules, 'xfields', xfields_module)
+    monkeypatch.setitem(sys.modules, 'xfields.line_tools', line_tools_module)
+
+    line = xt.Line(elements=[], element_names=[])
+
+    assert isinstance(line.xfields, FakeXfieldsLineAPI)
+    assert line.xfields is line.xfields
+    assert line.xfields.line is line
+
+    with pytest.warns(
+            FutureWarning,
+            match=r'`Line\.configure_intrabeam_scattering\(\.\.\.\)` '
+                  r'is deprecated'):
+        result = line.configure_intrabeam_scattering(
+            element='ibs_kick', update_every=10, at=0)
+
+    assert result == 'configured'
+    assert calls['line'] is line
+    assert calls['element'] == 'ibs_kick'
+    assert calls['update_every'] == 10
+    assert calls['at'] == 0
 
 
 def test_remove_redundant_apertures():
@@ -451,7 +491,7 @@ def test_get_elements_of_type_is_deprecated():
     assert names == ['cav']
 
 
-@allow_no_prebuilt_kernels
+@allow_kernel_compilation
 def test_insert_omp():
 
 
@@ -866,7 +906,7 @@ def test_from_json_to_json(tmp_path):
 
 
 @for_all_test_contexts
-@allow_no_prebuilt_kernels
+@allow_kernel_compilation
 def test_config_propagation(test_context):
 
 

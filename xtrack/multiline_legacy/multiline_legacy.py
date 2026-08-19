@@ -84,7 +84,7 @@ class MultilineLegacy:
         return dct
 
     @classmethod
-    def from_dict(cls, dct):
+    def from_dict(cls, dct, with_progress=True):
 
         '''
         Load a multiline from a dictionary.
@@ -93,6 +93,9 @@ class MultilineLegacy:
         ----------
         dct: dict
             The dictionary with the multiline data.
+        with_progress : bool, optional
+            Whether to show progress while deserializing line elements.
+            Defaults to ``True``.
 
         Returns
         -------
@@ -102,7 +105,8 @@ class MultilineLegacy:
 
         lines = {}
         for nn, ll in dct['lines'].items():
-            lines[nn] = xt.Line.from_dict(ll)
+            lines[nn] = xt.Line.from_dict(
+                ll, with_progress=with_progress)
 
         new_multiline = cls(lines=lines, link_vars=('_var_manager' in dct))
 
@@ -181,11 +185,12 @@ class MultilineLegacy:
         return _multiline_from_madx(cls, filename=filename, madx=madx, stdout=stdout,
                              return_lines=return_lines, **kwargs)
 
-    def copy(self):
+    def copy(self, with_progress=True):
         '''
         Returns a deep copy of the multiline.
         '''
-        return self.__class__.from_dict(self.to_dict())
+        return self.__class__.from_dict(
+            self.to_dict(), with_progress=with_progress)
 
     def __getstate__(self):
         out = self.__dict__.copy()

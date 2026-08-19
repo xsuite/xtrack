@@ -560,8 +560,17 @@ class MadLoader:
                 last_element = madelem
         yield last_element
 
-    def make_line(self, buffer=None):
-        """Create a new line in buffer"""
+    def make_line(self, buffer=None, with_progress=True):
+        """Create a new line in buffer.
+
+        Parameters
+        ----------
+        buffer : xobjects.Buffer, optional
+            Buffer in which to create the line.
+        with_progress : bool, optional
+            Whether to show progress while converting elements. Defaults to
+            ``True``.
+        """
 
         mad = self.sequence._madx
 
@@ -584,7 +593,7 @@ class MadLoader:
         self.bv = bv
 
         # Avoid progress bar if there are few elements
-        if len(self.sequence.expanded_elements) > 10:
+        if with_progress and len(self.sequence.expanded_elements) > 10:
             _prog = progress(
                 self.iter_elements(madeval=madeval),
                 desc=f'Converting sequence "{self.sequence.name}"',

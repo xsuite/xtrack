@@ -10,7 +10,7 @@ import xtrack as xt
 import xpart as xp
 
 from xobjects.test_helpers import (
-    allow_no_prebuilt_kernels, for_all_test_contexts)
+    allow_kernel_compilation, for_all_test_contexts)
 
 
 def _check_consistency_energy_variables(particles):
@@ -195,6 +195,8 @@ def test_sort():
 
     line = xt.Line(elements=[xt.Cavity()])
     line.build_tracker()
+    # This test deliberately uses x values beyond the global safety aperture.
+    line.tracker.track_flags.XS_FLAG_IGNORE_GLOBAL_APERTURE = True
     line.track(p)
 
     assert np.all(p.particle_id == np.array([6, 1, 2, 5, 4, 3, 0,
@@ -339,7 +341,7 @@ def test_python_delta_setter(test_context):
 
 
 @for_all_test_contexts
-@allow_no_prebuilt_kernels
+@allow_kernel_compilation
 def test_LocalParticle_add_to_energy(test_context):
 
 
@@ -418,7 +420,7 @@ def test_LocalParticle_add_to_energy(test_context):
 
 
 @for_all_test_contexts
-@allow_no_prebuilt_kernels
+@allow_kernel_compilation
 def test_LocalParticle_update_delta(test_context):
 
 
@@ -464,7 +466,7 @@ def test_LocalParticle_update_delta(test_context):
 
 
 @for_all_test_contexts
-@allow_no_prebuilt_kernels
+@allow_kernel_compilation
 def test_LocalParticle_update_ptau(test_context):
 
 
@@ -510,7 +512,7 @@ def test_LocalParticle_update_ptau(test_context):
 
 
 @for_all_test_contexts
-@allow_no_prebuilt_kernels
+@allow_kernel_compilation
 def test_LocalParticle_update_pzeta(test_context):
 
 
@@ -558,7 +560,7 @@ def test_LocalParticle_update_pzeta(test_context):
 
 
 @for_all_test_contexts
-@allow_no_prebuilt_kernels
+@allow_kernel_compilation
 def test_LocalParticle_update_p0c(test_context):
 
 
@@ -607,7 +609,7 @@ def test_LocalParticle_update_p0c(test_context):
 
 
 @for_all_test_contexts
-@allow_no_prebuilt_kernels
+@allow_kernel_compilation
 def test_LocalParticle_angles(test_context):
 
 

@@ -31,13 +31,19 @@ from . import beam_elements
 from . import json as json_utils
 from .beam_elements import (BeamElement, Drift, Marker, Multipole,
                             element_classes)
-from .beam_elements.elements import (_EDGE_MODEL_TO_INDEX,
-                                     _MODEL_TO_INDEX_CURVED,
-                                     _MODEL_TO_INDEX_DRIFT)
+from .beam_elements._common import (
+    _EDGE_MODEL_TO_INDEX,
+    _MODEL_TO_INDEX_CURVED,
+    _MODEL_TO_INDEX_DRIFT,
+)
 from .beam_elements.slice_base import ID_RADIATION_FROM_PARENT
-from .composer import (_all_places, _flatten_components,
-                      _generate_element_names_with_drifts,
-                      _resolve_s_positions, _sort_places)
+from .composer.composer import (
+    _all_places,
+    _flatten_components,
+    _generate_element_names_with_drifts,
+)
+from .composer.ordering import _sort_places
+from .composer.resolve_positions import _resolve_s_positions
 from .footprint import Footprint, _footprint_with_linear_rescale
 from .general import _print, DEPRECATION_INFO_PREP_1_0
 from .internal_record import (start_internal_logging_for_elements_of_type,
@@ -65,10 +71,11 @@ _ALLOWED_ELEMENT_TYPES_IN_NEW = [
     xt.UniformSolenoid, xt.Solenoid, xt.VariableSolenoid,
     xt.Cavity, xt.RFMultipole, xt.CrabCavity, xt.ReferenceEnergyIncrease,
     xt.ReferenceEnergyChange,
-    xt.Translation, xt.Rotation, xt.XRotation, xt.TimeDelay,
+    xt.Translation, xt.Rotation, xt.TimeDelay,
     xt.XYShift, xt.XRotation, xt.YRotation, xt.SRotation, xt.ZetaShift,
     xt.LimitRacetrack, xt.LimitRectEllipse, xt.LimitRect, xt.LimitEllipse,
-    xt.LimitPolygon, xt.DipoleEdge, xt.LongitudinalLimitRect, xt.FirstOrderTaylorMap]
+    xt.LimitPolygon, xt.DipoleEdge, xt.LongitudinalLimitRect, xt.FirstOrderTaylorMap,
+    xt.SecondOrderTaylorMap]
 
 _ALLOWED_ELEMENT_TYPES_DICT = {
     cc.__name__: cc for cc in _ALLOWED_ELEMENT_TYPES_IN_NEW}
@@ -100,7 +107,7 @@ _LINE_DOC_GROUP_COLLECTOR = GroupedAPICollector(LINE_DOC_GROUP_ORDER)
 
 def find_index_repeated(item, lst,count=0):
     res=[ii for ii, nn in enumerate(lst) if nn == item]
-    print(item)
+    _print(item)
     if count>=len(res):
         raise ValueError(f'Item {item} not found')
     return res[count]
@@ -270,6 +277,7 @@ class Line:
         self._metadata = None
         self._tracker = None
         self._xcoll = None
+        self._xfields = None
         self._xpart = None
 
         self.config = xt.tracker.TrackerConfig()
@@ -374,7 +382,7 @@ class Line:
     @doc_group("Constructors and Serialization")
     @classmethod
     def from_dict(cls, dct, _context=None, _buffer=None, classes=(),
-                  verbose=True, _env=None):
+                  verbose=True, _env=None, with_progress=True):
 
         """
         Create a Line object from a dictionary.
@@ -392,6 +400,9 @@ class Line:
         classes : list of classes, optional
             List of classes to be used for deserializing the elements. If not
             provided, the default classes are used.
+        with_progress : bool, optional
+            Whether to show progress while deserializing elements. Defaults to
+            ``True``.
 
         Returns
         -------
@@ -403,7 +414,7 @@ class Line:
         if "xtrack_version" in dct:
             version = dct["xtrack_version"]
             if xt.general._compare_versions(version, xt.__version__) > 0:
-                print(f'Warning: The line you are loading was created '
+                _print(f'Warning: The line you are loading was created '
                       f'with xtrack version {version}, which is more recent '
                       f'than the current version {xt.__version__}. '
                       'Some features may not be available or '
@@ -442,7 +453,8 @@ class Line:
                     nn: ee for nn, ee in zip(dct['element_names'], ele_list)}
 
             elements = xt.environment._deserialize_elements(dct=dct, classes=classes,
-                                             _buffer=_buffer, _context=_context)
+                                             _buffer=_buffer, _context=_context,
+                                             with_progress=with_progress)
             env = xt.Environment(
                 element_dict=elements,
                 _var_management_dct=var_management_dict)
@@ -681,7 +693,8 @@ class Line:
         allow_thick=None,
         name_prefix=None,
         enable_layout_data=False,
-        enable_thick_kickers=True
+        enable_thick_kickers=True,
+        with_progress=True,
     ):
         """
         Build a line from a MAD-X sequence.
@@ -721,6 +734,9 @@ class Line:
             if a thick element is encountered.
         enable_layout_data: bool, optional
             If true, the layout data is imported.
+        with_progress : bool, optional
+            Whether to show progress while converting elements. Defaults to
+            ``True``.
 
         Returns
         -------
@@ -752,7 +768,7 @@ class Line:
             name_prefix=name_prefix,
             enable_layout_data=enable_layout_data,
         )
-        line = loader.make_line()
+        line = loader.make_line(with_progress=with_progress)
         return line
 
     @doc_group("Constructors and Serialization")
@@ -1302,13 +1318,14 @@ class Line:
         return out
 
     @doc_group("Compose Mode")
-    def end_compose(self):
+    def end_compose(self, diagnostics=False):
         """
         Resolve compose-mode placements and switch the line back to normal mode.
 
         Parameters
         ----------
-        None
+        diagnostics : bool, optional
+            If true, analyze unresolved placement dependencies before raising.
 
         Returns
         -------
@@ -1348,13 +1365,16 @@ class Line:
         if self.mode != 'compose':
             raise ValueError('Line is not in compose mode')
         self.discard_tracker()
-        self._full_elements_from_composer()
+        self._full_elements_from_composer(diagnostics=diagnostics)
         self._mode = 'normal'
 
-    def _full_elements_from_composer(self):
+    def _full_elements_from_composer(self, diagnostics=False):
         if self._mode != 'compose':
             raise ValueError('Line is not in compose mode')
-        self.composer.build(line=self, inplace=False)
+        self.composer.build(
+            line=self,
+            diagnostics=diagnostics,
+        )
 
     @doc_group("Compose Mode")
     def regenerate_from_composer(self):
@@ -1794,6 +1814,17 @@ class Line:
                 raise ImportError("Please install Xcoll to use this feature.") from error
         return self._xcoll
 
+    @property_with_doc_group("Radiation, Spin and Intra-Beam Scattering")
+    def xfields(self):
+        """Xfields-specific helpers associated with this line."""
+        if self._xfields is None:
+            try:
+                from xfields.line_tools import XfieldsLineAPI
+                self._xfields = XfieldsLineAPI(self)
+            except ImportError as error:
+                raise ImportError("Please install Xfields to use this feature.") from error
+        return self._xfields
+
     @property_with_doc_group("Reference Particle and Particle Generation")
     def xpart(self):
         """Xpart particle-generation helpers associated with this line."""
@@ -1805,10 +1836,15 @@ class Line:
                 raise ImportError("Please install Xpart to use this feature.") from error
         return self._xpart
 
-    @property_with_doc_group("Upcoming Deprecations")
+    @property_with_doc_group("Deprecated")
     def scattering(self):
         """
         Deprecated alias for ``line.xcoll.scattering``.
+
+        .. warning::
+            This property is deprecated and will be removed in a future version.
+            Use ``line.xcoll.scattering`` instead. This deprecation is part of
+            the interface cleanup in view of the 1.0 release.
 
         Returns
         -------
@@ -1816,14 +1852,20 @@ class Line:
             Xcoll scattering API bound to this line.
         """
         warn('`Line.scattering` is deprecated and will be removed in a future version. '
-             'Please use `Line.xcoll.scattering` instead.',
+             'Please use `Line.xcoll.scattering` instead.'
+             + DEPRECATION_INFO_PREP_1_0,
              FutureWarning, stacklevel=2)
         return self.xcoll.scattering
 
-    @property_with_doc_group("Upcoming Deprecations")
+    @property_with_doc_group("Deprecated")
     def collimators(self):
         """
         Deprecated alias for ``line.xcoll.collimators``.
+
+        .. warning::
+            This property is deprecated and will be removed in a future version.
+            Use ``line.xcoll.collimators`` instead. This deprecation is part of
+            the interface cleanup in view of the 1.0 release.
 
         Returns
         -------
@@ -1831,7 +1873,8 @@ class Line:
             Xcoll collimator API bound to this line.
         """
         warn('`Line.collimators` is deprecated and will be removed in a future version. '
-             'Please use `Line.xcoll.collimators` instead.',
+             'Please use `Line.xcoll.collimators` instead.'
+             + DEPRECATION_INFO_PREP_1_0,
              FutureWarning, stacklevel=2)
         return self.xcoll.collimators
 
@@ -1972,8 +2015,244 @@ class Line:
             multi_element_monitor_at=multi_element_monitor_at,
             **kwargs)
 
+    @doc_group("Tracking and Analysis")
+    def get_local_momentum_acceptance(
+        self,
+        *,
+        elements=None,
+        twiss=None,
+        scattering='off',
+        x_offset: float = 0.0,
+        y_offset: float = 0.0,
+        x_norm_offset: float = 0.0,
+        y_norm_offset: float = 0.0,
+        nemitt_x=None,
+        nemitt_y=None,
+        delta_negative_limit: float = -0.10,
+        delta_positive_limit: float = +0.10,
+        delta_step_size: float = 0.01,
+        n_turns: int = 512,
+        with_progress: bool | int = False,
+        verbose: bool = False,
+        **kwargs):
+        """
+        Compute the local momentum acceptance (LMA) along the line by tracking a
+        grid of momentum offsets (δ) from the **entrance** of selected
+        elements and reporting the surviving negative and positive δ limits.
+
+        The δ grid is centered on the local closed orbit at each element, and offsets
+        can be applied (either physical x/y or normalized x/y in σ units).
+
+        Parameters
+        ----------
+        elements : list of str or array-like of str, optional
+            Names of the elements at whose entrance the LMA is evaluated.
+            If ``None`` (default), all elements in the line are used.
+            If multiple elements share the same ``s``, only the first encountered
+            is used.
+        twiss : xt.TwissTable, optional
+            Twiss table to define the closed orbit and optics. By default,
+            a 6D solution is computed with `self.twiss(method='6d')`. You can
+            override the method with `method=...` in `**kwargs`.
+        scattering : str, optional
+            Wheter scattering has been enabled or not (`'on'` or `'off'`).
+        x_offset : float, default 0.0
+            Horizontal physical offset in meters. Mutually exclusive with
+            `x_norm_offset`.
+        y_offset : float, default 0.0
+            Vertical physical offset in meters. Mutually exclusive with
+            `y_norm_offset`.
+        x_norm_offset : float, default 0.0
+            Horizontal normalized offset in units of σx (rms). Mutually exclusive
+            with `x_offset`.
+        y_norm_offset : float, default 0.0
+            Vertical normalized offset in units of σy (rms). Mutually exclusive
+            with `y_offset`.
+        nemitt_x : float
+            Horizontal normalized emittance (m·rad, rms).
+        nemitt_y : float
+            Vertical normalized emittance (m·rad, rms).
+        delta_negative_limit : float, default -0.10
+            Lower bound of the δ scan (inclusive). Must be < 0.
+        delta_positive_limit : float, default +0.10
+            Upper bound of the δ scan (inclusive). Must be > 0.
+        delta_step_size : float, default 0.01
+            Step for the δ grid. Must be > 0. The positive end is included
+            with a half-step guard to reduce floating-point exclusion.
+        n_turns : int, default 512
+            Number of turns to track.
+        with_progress : bool | int, default False
+            If truthy, shows a per-element progress bar.
+        verbose : bool, default False
+            If True, enables tracker progress for each element scan.
+        **kwargs
+            Passed through to `self.twiss` and `build_particles`.
+
+        Selection semantics
+        -------------------
+        - LMA is evaluated at the **entrance** of each element.
+        - If multiple elements share the same `s`, only the first encountered is used.
+
+        Algorithm (per selected element)
+        --------------------------------
+        1. Build particles on closed orbit with the requested (normalized or physical) offsets.
+        2. Apply the δ grid by shifting the initial δ around `delta_co`.
+        3. Track for `n_turns` turns from the element to itself.
+        4. Among surviving particles, report:
+        - `delta_neg` = min of the *initial* δ of survivors,
+        - `delta_pos` = max of the *initial* δ of survivors.
+        If none survive, `delta_neg` = `delta_pos` = 0.0
+
+        Returns
+        -------
+        xt.Table
+            Table indexed by `'name'` with columns:
+            - `name` (str): Element name.
+            - `s` (float): Element entrance position (m).
+            - `delta_neg` (float): Surviving negative δ limit (may be 0).
+            - `delta_pos` (float): Surviving positive δ limit (may be 0).
+        """
+        if self.particle_ref is None:
+            raise ValueError("Line.particle_ref must be set to build probe particles.")
+
+        # Mutual exclusivity: physical vs normalized offsets
+        if x_offset != 0.0 and x_norm_offset != 0.0:
+            raise ValueError("Provide either x_offset or x_norm_offset, not both.")
+        if y_offset != 0.0 and y_norm_offset != 0.0:
+            raise ValueError("Provide either y_offset or y_norm_offset, not both.")
+
+        if nemitt_x is None or nemitt_y is None:
+            raise ValueError("nemitt_x and nemitt_y must be provided.")
+
+        if delta_negative_limit >= 0:
+            raise ValueError("delta_negative_limit must be < 0")
+        if delta_positive_limit <= 0:
+            raise ValueError("delta_positive_limit must be > 0")
+        if delta_step_size <= 0:
+            raise ValueError("delta_step_size must be > 0")
+        if n_turns <= 0:
+            raise ValueError("n_turns must be > 0")
+
+        if elements is not None:
+            if not hasattr(elements, '__iter__') or isinstance(elements, str):
+                raise ValueError("`elements` must be an iterable of strings, not a scalar.")
+            elements = list(elements)
+            if not all(isinstance(e, str) for e in elements):
+                raise ValueError("All entries in `elements` must be strings.")
+            invalid = [e for e in elements if e not in self.element_names]
+            if invalid:
+                raise ValueError(
+                    f"The following elements were not found in the line: {invalid}")
+
+        if not self._has_valid_tracker():
+            self.build_tracker()
+
+        # Compute twiss (use 6D by default, overridable via kwargs['method'])
+        twiss_method = kwargs.pop('method', '6d')
+        if twiss is None:
+            if scattering == 'on':
+                self.scattering.disable()
+            twiss = self.twiss(method=twiss_method, reverse=False)
+            if scattering == 'on':
+                self.scattering.enable()
+
+        if elements is None:
+            tt = self.get_table()
+            elements = tt.name
+
+        # Delta grid
+        deltas = np.arange(delta_negative_limit, delta_positive_limit + 0.5 * delta_step_size,
+                           delta_step_size)
+        n_part = len(deltas)
+
+        rows = []
+        seen_s = set()
+
+        iterable = progress(elements, desc="Local Momentum Acceptance") if with_progress else elements
+
+        for ii, ee in enumerate(iterable):
+            s_here = float(twiss['s', ee])
+
+            # Some elements may share the same s
+            if s_here in seen_s:
+                continue
+            seen_s.add(s_here)
+
+            ## Prepare test particles
+            # The longitudinal closed orbit need to be manually supplied
+            zeta_co = twiss['zeta', ee]
+            delta_co = twiss['delta', ee]
+
+            if scattering == 'on':
+                self.scattering.disable()
+
+            # Extract W_matrix and particle_on_co from the already-computed twiss
+            tw_init = twiss.get_twiss_init(at_element=ee)
+
+            idx_at_element = self.element_names.index(ee)
+
+            # On-momentum, matched, test particles
+            particles = self.build_particles(
+                _context=self._context,
+                num_particles=n_part,
+                x_norm=x_norm_offset,
+                y_norm=y_norm_offset,
+                zeta=zeta_co,
+                delta=delta_co,
+                nemitt_x=nemitt_x,
+                nemitt_y=nemitt_y,
+                W_matrix=tw_init.W_matrix,
+                particle_on_co=tw_init.particle_on_co,
+            )
+            particles.at_element[:] = idx_at_element
+            particles.s[:] = s_here
+            particles.start_tracking_at_element = -1
+
+            if scattering == 'on':
+                self.scattering.enable()
+
+            # Add the delta grid
+            delta_temp = particles.delta.copy()
+            delta_temp += deltas
+            particles.update_delta(delta_temp)
+
+            initial_deltas = particles.delta.copy()
+
+            # Apply absolute offsets, if any
+            particles.x += x_offset
+            particles.y += y_offset
+
+            _print(f"\nTrack test particles from reference point #{ii}")
+            self.track(
+                particles,
+                ele_start=ee,
+                ele_stop=ee,
+                num_turns=n_turns,
+                with_progress=1 if verbose else 0
+            )
+
+            mask_alive = (particles.state == 1)
+            if np.any(mask_alive):
+                surviving_pids = particles.filter(mask_alive).particle_id
+                delta_neg = float(np.min(initial_deltas[surviving_pids]))
+                delta_pos = float(np.max(initial_deltas[surviving_pids]))
+            else:
+                delta_neg = float(0.0)
+                delta_pos = float(0.0)
+
+            rows.append({
+                'name': ee,
+                's': s_here,
+                'delta_neg': delta_neg,
+                'delta_pos': delta_pos
+            })
+
+        cols = {k: np.array([r[k] for r in rows]) for k in rows[0].keys()}
+
+        return xt.Table(cols, index='name')
+
     @doc_group("Line Editing")
-    def slice_thick_elements(self, slicing_strategies):
+    def slice_thick_elements(self, slicing_strategies, with_progress=True):
         """
         Slice thick elements in the line. Slicing is done in place.
 
@@ -1982,6 +2261,8 @@ class Line:
         slicing_strategies : list
             List of slicing Strategy objects. In case multiple strategies
             apply to the same element, the last one takes precedence)
+        with_progress : bool, optional
+            Whether to show progress while slicing. Defaults to ``True``.
 
         Examples
         --------
@@ -2012,7 +2293,7 @@ class Line:
         self._element_names_before_slicing = list(self.element_names).copy()
 
         slicer = Slicer(self, slicing_strategies)
-        return slicer.slice_in_place()
+        return slicer.slice_in_place(with_progress=with_progress)
 
     @doc_group("Reference Particle and Particle Generation")
     def build_particles(
@@ -2225,7 +2506,9 @@ class Line:
         freeze_energy=None,
         polarization=None,
         eneloss_and_damping=None,
-        steps_r_matrix=None
+        steps_r_matrix=None, *,
+        with_progress=True,
+        chi=None, charge_ratio=None, mass_ratio=None,
     ):
         if not self._has_valid_tracker():
             self.build_tracker()
@@ -3378,7 +3661,8 @@ class Line:
         return cuts_for_element
 
     @doc_group("Line Editing")
-    def cut_at_s(self, s: Iterable[float], s_tol=1e-6, return_slices=False):
+    def cut_at_s(self, s: Iterable[float], s_tol=1e-6, return_slices=False,
+                 with_progress=True):
         """
         Slice the line in place at positions ``s``.
 
@@ -3391,6 +3675,8 @@ class Line:
             an existing boundary.
         return_slices : bool, optional
             If ``True``, return the slice information produced by the slicer.
+        with_progress : bool, optional
+            Whether to show progress while slicing. Defaults to ``True``.
 
         Returns
         -------
@@ -3443,7 +3729,7 @@ class Line:
             strategies.append(strategy)
 
         slicer = Slicer(self, slicing_strategies=strategies)
-        slices = slicer.slice_in_place()
+        slices = slicer.slice_in_place(with_progress=with_progress)
 
         if return_slices:
             return slices
@@ -3521,7 +3807,7 @@ class Line:
 
     @doc_group("Line Editing")
     def insert(self, what, obj=None, at=None, from_=None, anchor=None,
-               from_anchor=None, s_tol=1e-10):
+               from_anchor=None, s_tol=1e-10, with_progress=True):
         """
         Insert elements in the line.
 
@@ -3550,6 +3836,9 @@ class Line:
         from_anchor : str (optional)
             Location within the element specified by `from_` for which `at` is defined.
             It can be 'start', 'end' or 'center'. Default is 'center'.
+        with_progress : bool, optional
+            Whether to show progress while slicing at insertion boundaries.
+            Defaults to ``True``.
 
         Example
         -------
@@ -3648,7 +3937,9 @@ class Line:
         s_cuts = list(tab_insertions['s_start']) + list(tab_insertions['s_end'])
         s_cuts = list(set(s_cuts))
 
-        self.cut_at_s(s_cuts, s_tol=s_tol, return_slices=True)
+        self.cut_at_s(
+            s_cuts, s_tol=s_tol, return_slices=True,
+            with_progress=with_progress)
 
         tt_after_cut = self.get_table()
         tt_after_cut['length'] = np.diff(tt_after_cut.s, append=tt_after_cut.s[-1])
@@ -3843,7 +4134,7 @@ class Line:
     # To be deprecated in favor of Line.insert
     @doc_group("Deprecated")
     def insert_element(self, name, element=None, at=None, index=None, at_s=None,
-                       s_tol=1e-6):
+                       s_tol=1e-6, with_progress=True):
         """Insert an element in the line.
 
         .. warning:: This method is deprecated. Use :meth:`Line.insert` instead.
@@ -3862,6 +4153,9 @@ class Line:
             must be None.
         s_tol: float, optional
             Tolerance for the position of the element in the line in meters.
+        with_progress : bool, optional
+            Whether to show progress while slicing at insertion boundaries.
+            Defaults to ``True``.
         """
         warn('Line.insert_element is deprecated. Use Line.insert instead.'
              + DEPRECATION_INFO_PREP_1_0, FutureWarning)
@@ -3920,7 +4214,8 @@ class Line:
             i_closest = np.argmin(np.abs(s_vect_upstream - at_s))
             if np.abs(s_vect_upstream[i_closest] - at_s) < s_tol:
                 return self.insert_element(
-                    index=i_closest, element=element, name=name)
+                    index=i_closest, element=element, name=name,
+                    with_progress=with_progress)
 
         s_start_ele = at_s
         if _is_thick(element, self) and np.abs(_length(element, self)) > 0:
@@ -3928,7 +4223,8 @@ class Line:
         else:
             s_end_ele = s_start_ele
 
-        self.cut_at_s([s_start_ele, s_end_ele])
+        self.cut_at_s(
+            [s_start_ele, s_end_ele], with_progress=with_progress)
 
         s_vect_upstream = np.array(self._get_s_position(mode='upstream'))
         if _is_thick(element, self) and _length(element, self) > 0:
@@ -4585,14 +4881,19 @@ class Line:
 
         self._update_synrad_compile_flag()
 
-    @doc_group("Radiation, Spin and Intra-Beam Scattering")
+    @doc_group("Deprecated")
     def configure_intrabeam_scattering(
         self, element = None,
         update_every: int = None,
         **kwargs,
     ) -> None:
         """
-        Configures the IBS kick element in the line for tracking.
+        Deprecated alias for ``line.xfields.ibs_configure(...)``.
+
+        .. warning::
+            This method is deprecated and will be removed in a future version.
+            Use ``line.xfields.ibs_configure(...)`` instead. This deprecation
+            is part of the interface cleanup in view of the 1.0 release.
 
         Notes
         -----
@@ -4603,8 +4904,6 @@ class Line:
 
         Parameters
         ----------
-        line : xtrack.Line
-            The line in which the IBS kick element was inserted.
         element : IBSKick, optional
             If provided, the element is first inserted in the line,
             before proceeding to configuration. In this case the keyword
@@ -4632,13 +4931,13 @@ class Line:
             below transition energy.
         """
         self._method_incompatible_with_compose()
-        try:
-            from xfields.ibs import configure_intrabeam_scattering
-        except ImportError as error:
-            raise ImportError("Please install xfields to use this feature.") from error
-        configure_intrabeam_scattering(
-            self, element=element, update_every=update_every, **kwargs
-        )
+        warn('`Line.configure_intrabeam_scattering(...)` is deprecated and '
+             'will be removed in a future version. Please use '
+             '`Line.xfields.ibs_configure(...)` instead.'
+             + DEPRECATION_INFO_PREP_1_0,
+             FutureWarning, stacklevel=2)
+        return self.xfields.ibs_configure(
+            element=element, update_every=update_every, **kwargs)
 
     @doc_group("Radiation, Spin and Intra-Beam Scattering")
     def compensate_radiation_energy_loss(self, delta0='zero_mean', rtol_eneloss=1e-10,
@@ -5210,7 +5509,7 @@ class Line:
         return elements, names
 
     @doc_group("Upcoming Deprecations")
-    def check_aperture(self, needs_aperture=[]):
+    def check_aperture(self, needs_aperture=[], with_progress=True):
 
         '''Check that all active elements have an associated aperture.
 
@@ -5218,6 +5517,9 @@ class Line:
         ----------
         needs_aperture : list of str
             Names of inactive elements that also need an aperture.
+        with_progress : bool, optional
+            Whether to show progress while checking elements. Defaults to
+            ``True``.
 
         Returns
         -------
@@ -5272,7 +5574,12 @@ class Line:
         i_prev_aperture = elements_df[elements_df['is_aperture']].index[0]
         i_next_aperture = 0
 
-        for iee in progress(range(i_prev_aperture, num_elements), desc='Checking aperture'):
+        element_indices = range(i_prev_aperture, num_elements)
+        if with_progress:
+            element_indices = progress(
+                element_indices, desc='Checking aperture')
+
+        for iee in element_indices:
             if elements_df.loc[iee, 'is_aperture']:
                 i_prev_aperture = iee
                 continue
@@ -5411,13 +5718,21 @@ class Line:
     def get_line_with_second_order_maps(self, split_at):
 
         '''
-        Return a new lines with segments definded by the elements in `split_at`
+        Return a new line with segments defined by the elements in `split_at`
         replaced by second order maps.
 
         Parameters
         ----------
         split_at : list of str
-            Names of elements at which to split the line.
+            Names of elements at which to split the line. These elements are
+            kept as they are in the new line and are excluded from the maps:
+            each map spans from the exit of one split element to the
+            entrance of the next. Hence also thick and/or nonlinear elements
+            can be preserved exactly by splitting at them (e.g. octupoles,
+            to retain their amplitude detuning). Repeated elements are
+            referred to by their disambiguated name 'name::N' (as shown in
+            the line table and in the twiss table); the same names are used
+            in the returned line.
 
         Returns
         -------
@@ -5426,15 +5741,30 @@ class Line:
         '''
         self._method_incompatible_with_compose()
 
-        ele_cut_ext = split_at.copy()
-        if self.element_names[0] not in ele_cut_ext:
-            ele_cut_ext.insert(0, self.element_names[0])
-        if self.element_names[-1] not in ele_cut_ext:
-            ele_cut_ext.append(self.element_names[-1])
+        if not self._has_valid_tracker():
+            self.build_tracker()
 
+        # element names disambiguated for repeated elements ('name::N', as
+        # in the line table and in the twiss table); for non-repeated
+        # elements they coincide with the plain element names
+        ele_names = self._element_names_unique
+
+        missing = set(split_at) - set(ele_names)
+        if missing:
+            raise ValueError(f'Elements {sorted(missing)} are not present in the line')
+
+        ele_idx = {nn: ii for ii, nn in enumerate(ele_names)}
+
+        ele_cut_ext = split_at.copy()
+        if ele_names[0] not in ele_cut_ext:
+            ele_cut_ext.insert(0, ele_names[0])
+        if ele_names[-1] not in ele_cut_ext:
+            ele_cut_ext.append(ele_names[-1])
+
+        ele_cut_set = set(ele_cut_ext)
         ele_cut_sorted = []
-        for ee in self.element_names:
-            if ee in ele_cut_ext:
+        for ee in ele_names:
+            if ee in ele_cut_set:
                 ele_cut_sorted.append(ee)
 
         elements_map_line = []
@@ -5443,10 +5773,21 @@ class Line:
 
         for ii in range(len(ele_cut_sorted)-1):
             names_map_line.append(ele_cut_sorted[ii])
-            elements_map_line.append(self.get(ele_cut_sorted[ii]))
+            # element object by its unique name: `element_names` and
+            # `self.element_names` are index-aligned (all occurrences of a
+            # repeated element share the same object)
+            elements_map_line.append(self.get(self.element_names[ele_idx[ele_cut_sorted[ii]]]))
+
+            # the split element is placed in the new line as it is, hence it
+            # is excluded from the map: the map starts at its exit, i.e. at
+            # the entrance of the following element (relevant for thick
+            # split elements)
+            map_start = ele_names[ele_idx[ele_cut_sorted[ii]] + 1]
+            if map_start == ele_cut_sorted[ii+1]:
+                continue  # nothing between this element and the next cut
 
             smap = xt.SecondOrderTaylorMap.from_line(
-                                    self, start=ele_cut_sorted[ii],
+                                    self, start=map_start,
                                     end=ele_cut_sorted[ii+1],
                                     twiss_table=tw,
                                     _buffer=self._buffer)
@@ -5454,7 +5795,7 @@ class Line:
             elements_map_line.append(smap)
 
         names_map_line.append(ele_cut_sorted[-1])
-        elements_map_line.append(self.get(ele_cut_sorted[-1]))
+        elements_map_line.append(self.get(self.element_names[ele_idx[ele_cut_sorted[-1]]]))
 
         line_maps = Line(elements=elements_map_line, element_names=names_map_line)
         line_maps.particle_ref = self.particle_ref.copy()
@@ -7139,7 +7480,8 @@ class Line:
         )
         return cache
 
-    def _insert_thin_elements_at_s(self, elements_to_insert, s_tol=0.5e-6):
+    def _insert_thin_elements_at_s(self, elements_to_insert, s_tol=0.5e-6,
+                                   with_progress=True):
 
         '''
         Example:
@@ -7163,10 +7505,10 @@ class Line:
                 this_ins.append(nn)
             insertions.append(env.place(this_ins, at=ss))
 
-        self.insert(insertions)
+        self.insert(insertions, with_progress=with_progress)
 
     def _insert_thick_elements_at_s(self, element_names, elements,
-                                    at_s, s_tol=1e-6):
+                                    at_s, s_tol=1e-6, with_progress=True):
 
         self._method_incompatible_with_compose()
 
@@ -7183,7 +7525,8 @@ class Line:
             self.env.elements[nn] = ee
             insertions.append(self.env.place(nn, at=ss, anchor='start'))
 
-        self.insert(insertions, s_tol=s_tol)
+        self.insert(
+            insertions, s_tol=s_tol, with_progress=with_progress)
 
     @property
     def _line_before_slicing(self):

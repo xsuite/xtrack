@@ -10,6 +10,26 @@ from pathlib import Path
 
 test_data_folder = Path(__file__).parent.joinpath('../test_data').absolute()
 
+
+def test_env_elements_table_length():
+
+    env = xt.Environment()
+    env.new('d', 'Drift', length=52.0)
+    env.new('thin_multipole', 'Multipole', length=3.0, isthick=False)
+    line = env.new_line(components=['d'])
+
+    env.new('m', 'Marker')
+    line.insert('m', at=26.0, with_progress=False)
+
+    tt_elements = env.elements.get_table()
+    tt_slices = tt_elements.rows.match(
+        element_type='DriftSlice')
+
+    assert np.all(tt_slices.name == ['d..0', 'd..1'])
+    xo.assert_allclose(tt_slices.length, [26.0, 26.0])
+    assert tt_elements['length', 'thin_multipole'] == 3.0
+
+
 @pytest.mark.parametrize('container_type', ['env', 'line'])
 def test_vars_and_element_access_modes(container_type):
 
@@ -682,8 +702,14 @@ def test_assemble_ring():
     # ring2.survey().plot()
     # plt.show()
 
-@pytest.mark.filterwarnings('ignore::FutureWarning')
-def test_assemble_ring_builders():
+def test_new_builder_is_no_longer_supported():
+    env = xt.Environment()
+
+    with pytest.raises(RuntimeError, match=r'new_line\(\.\.\., compose=True\)'):
+        env.new_builder()
+
+
+def test_assemble_ring_compose_mode():
 
     env = xt.Environment()
     env.particle_ref = xt.Particles(p0c=2e9)
@@ -714,11 +740,11 @@ def test_assemble_ring_builders():
     env.new('ms', xt.Sextupole, length='l.ms')
     env.new('corrector', xt.Multipole, knl=[0], length=0.1)
 
-    girder = env.new_builder()
+    girder = env.new_line(compose=True)
     girder.place('mq', at=1),
     girder.place('ms', at=0.8, from_='mq'),
     girder.place('corrector', at=-0.8, from_='mq'),
-    girder = girder.build()
+    girder.end_compose()
 
     tt_girder = girder.get_table(attr=True)
     assert np.all(tt_girder.name == np.array(
@@ -772,7 +798,7 @@ def test_assemble_ring_builders():
                     0.8, atol=1e-14, rtol=0)
 
 
-    halfcell = env.new_builder()
+    halfcell = env.new_line(compose=True)
     # End of the half cell (will be mid of the cell)
     halfcell.new('mid', xt.Marker, at='l.halfcell')
     # Bends
@@ -782,7 +808,7 @@ def test_assemble_ring_builders():
     # Quadrupoles, sextupoles and correctors
     halfcell.place(girder_d, at=1.2)
     halfcell.place(girder_f, at='l.halfcell - 1.2')
-    halfcell = halfcell.build()
+    halfcell.end_compose()
 
 
     l_hc = env['l.halfcell']
@@ -825,12 +851,12 @@ def test_assemble_ring_builders():
     hcell_left = halfcell.replicate(suffix='l', mirror=True)
     hcell_right = halfcell.replicate(suffix='r')
 
-    cell = env.new_builder()
+    cell = env.new_line(compose=True)
     cell.new('start', xt.Marker)
     cell.place(hcell_left)
     cell.place(hcell_right)
     cell.new('end', xt.Marker)
-    cell = cell.build()
+    cell.end_compose()
 
     tt_cell = cell.get_table(attr=True)
     tt_cell['s_center'] = (
@@ -892,18 +918,18 @@ def test_assemble_ring_builders():
 
     hcell_left_ss = halfcell_ss.replicate(suffix='l', mirror=True)
     hcell_right_ss = halfcell_ss.replicate(suffix='r')
-    cell_ss = env.new_builder()
+    cell_ss = env.new_line(compose=True)
     cell_ss.new('start.ss', xt.Marker)
     cell_ss.place(hcell_left_ss)
     cell_ss.place(hcell_right_ss)
     cell_ss.new('end.ss', xt.Marker)
-    cell_ss = cell_ss.build()
+    cell_ss.end_compose()
 
-    arc = env.new_builder()
+    arc = env.new_line(compose=True)
     arc.new('cell.1', cell, mode='replica')
     arc.new('cell.2', cell, mode='replica')
     arc.new('cell.3', cell, mode='replica')
-    arc = arc.build()
+    arc.end_compose()
 
     assert 'cell.2' in env.lines
     tt_cell2 = env.lines['cell.2'].get_table(attr=True)
@@ -925,19 +951,19 @@ def test_assemble_ring_builders():
         assert arc.get(nn) is env.get(nn)
         assert arc.get(nn) is env['cell.2'].get(nn)
 
-    ss = env.new_builder()
+    ss = env.new_line(compose=True)
     ss.new('ss.cell.1', cell_ss, mode='replica')
     ss.new('ss.cell.2', cell_ss, mode='replica')
-    ss = ss.build()
+    ss.end_compose()
 
-    ring = env.new_builder()
+    ring = env.new_line(compose=True)
     ring.new('arc.1', arc, mode='replica')
     ring.new('ss.1', ss, mode='replica')
     ring.new('arc.2', arc, mode='replica')
     ring.new('ss.2', ss, mode='replica')
     ring.new('arc.3', arc, mode='replica')
     ring.new('ss.3', ss, mode='replica')
-    ring = ring.build()
+    ring.end_compose()
 
     tt_ring = ring.get_table(attr=True)
     # Check length
@@ -961,7 +987,7 @@ def test_assemble_ring_builders():
         'k1.q5': 0.025,
     })
 
-    half_insertion = env.new_builder()
+    half_insertion = env.new_line(compose=True)
     # Start-end markers
     half_insertion.new('ip', xt.Marker)
     half_insertion.new('e.insertion', xt.Marker, at=76)
@@ -977,21 +1003,21 @@ def test_assemble_ring_builders():
     half_insertion.new('corrector.ss.3', 'corrector', at=0.75, from_='mq.3')
     half_insertion.new('corrector.ss.4', 'corrector', at=-0.75, from_='mq.4')
     half_insertion.new('corrector.ss.5', 'corrector', at=0.75, from_='mq.5')
-    half_insertion = half_insertion.build()
+    half_insertion.end_compose()
 
-    insertion = env.new_builder()
+    insertion = env.new_line(compose=True)
     insertion.new('l', half_insertion, mode='replica', mirror=True)
     insertion.new('r', half_insertion, mode='replica')
-    insertion = insertion.build()
+    insertion.end_compose()
 
-    ring2 = env.new_builder()
+    ring2 = env.new_line(compose=True)
     ring2.place(env['arc.1'])
     ring2.place(env['ss.1'])
     ring2.place(env['arc.2'])
     ring2.place(insertion)
     ring2.place(env['arc.3'])
     ring2.place(env['ss.3'])
-    ring2 = ring2.build()
+    ring2.end_compose()
 
     select_whole = ring2.select()
     assert select_whole.env is ring2.env
@@ -1661,6 +1687,110 @@ def test_env_new():
     assert ret == 'aper'
     assert env[ret].a == 6
     assert env[ret].b == 3
+
+
+@pytest.mark.parametrize('cls_name', sorted(xt.line._ALLOWED_ELEMENT_TYPES_DICT.keys()))
+@pytest.mark.filterwarnings('ignore::FutureWarning')
+def test_env_new_allowed_elements(cls_name):
+    # Every class in `_ALLOWED_ELEMENT_TYPES_IN_NEW` must be constructible via `env.new(name, cls)`.
+    # If there are mandatory arguments, they must be special-cased below.
+    cls = xt.line._ALLOWED_ELEMENT_TYPES_DICT[cls_name]
+    env = xt.Environment()
+
+    if cls_name == 'Replica':
+        env.new('base', xt.Marker)
+        env.new('e', 'base', mode='replica')
+    elif cls_name == 'LimitPolygon':
+        env.new('e', cls, x_vertices=[-1, 1, 1, -1], y_vertices=[-1, -1, 1, 1])
+    else:
+        env.new('e', cls)
+
+    assert isinstance(env['e'], cls)
+
+
+def test_env_new_multi_dimensional_arrays():
+    # env.new() must wire expressions nested at any depth. SecondOrderTaylorMap
+    # is used because its k/R/T are 1D/2D/3D array fields.
+    env = xt.Environment()
+    env['a'] = 2.
+
+    k = [0, 0, 0, 0, 0, 0]
+    k[1] = '3*a'
+    env.new('tm_k', xt.SecondOrderTaylorMap, k=k)
+    assert env['tm_k'].k[1] == 6.
+    assert env.ref['tm_k'].k[1].xdeps.expr == "(3.0 * vars['a'])"
+    env['a'] = 5.
+    assert env['tm_k'].k[1] == 15.
+    env['a'] = 2.
+
+    R = np.eye(6).tolist()
+    R[2][3] = '2*a'
+    env.new('tm_R', xt.SecondOrderTaylorMap, R=R)
+    expected_R = np.eye(6)
+    expected_R[2, 3] = 4.
+    xo.assert_allclose(env['tm_R'].R, expected_R, atol=0, rtol=0)
+    assert env.ref['tm_R'].R[2, 3].xdeps.expr == "(2.0 * vars['a'])"
+    env['a'] = 5.
+    assert env['tm_R'].R[2, 3] == 10.
+    env['a'] = 2.
+
+    T = np.zeros((6, 6, 6)).tolist()
+    T[1][2][3] = '4*a'
+    env.new('tm_T', xt.SecondOrderTaylorMap, T=T)
+    expected_T = np.zeros((6, 6, 6))
+    expected_T[1, 2, 3] = 8.
+    xo.assert_allclose(env['tm_T'].T, expected_T, atol=0, rtol=0)
+    assert env.ref['tm_T'].T[1, 2, 3].xdeps.expr == "(4.0 * vars['a'])"
+    env['a'] = 3.
+    assert env['tm_T'].T[1, 2, 3] == 12.
+
+
+def test_env_set_multi_dimensional_arrays():
+    # env.set() must wire a new expression, and clear a stale one when an
+    # expression-bearing cell is overwritten with a plain value.
+    env = xt.Environment()
+    env['a'] = 2.
+    env.new('tm', xt.SecondOrderTaylorMap)
+
+    env.set('tm', k=['3*a', 0, 0, 0, 0, 0])
+    assert env['tm'].k[0] == 6.
+
+    env.set('tm', k=[99, 0, 0, 0, 0, 0])
+    env['a'] = 100.
+    assert env['tm'].k[0] == 99., 'stale expression on k[0] should have been cleared'
+    env['a'] = 2.
+
+    R = np.eye(6).tolist()
+    R[1][4] = '5*a'
+    env.set('tm', R=R)
+    assert env['tm'].R[1, 4] == 10.
+
+    env.set('tm', R=np.eye(6).tolist())
+    env['a'] = 50.
+    assert env['tm'].R[1, 4] == 0., 'stale expression on R[1,4] should have been cleared'
+
+
+def test_env_new_array_field_errors():
+    # Bad values for an array field must be reported against that field.
+    env = xt.Environment()
+
+    with pytest.raises(TypeError, match='knl should be an iterable'):
+        env.new('q', xt.Quadrupole, length=1, knl=5)
+
+    with pytest.raises(ValueError, match='R must be a rectangular array'):
+        env.new('tm', xt.SecondOrderTaylorMap, R=[[1., 2.], [3.]])
+
+
+def test_env_new_whole_array_reference():
+    # Passing a whole array as a single reference wires each item to the
+    # corresponding item of the referenced array.
+    env = xt.Environment()
+    env.new('src', xt.Quadrupole, knl=[1, 2, 3])
+    env.new('dst', xt.Quadrupole, knl=env.ref['src'].knl)
+
+    assert env['dst'].knl[0] == 1.
+    env.set('src', knl=[9, 9, 9])
+    assert env['dst'].knl[0] == 9.
 
 
 def test_env_new_prototype_keyword_and_deprecated_parent():
@@ -3646,24 +3776,21 @@ def test_compose_parametric_lines():
         ['||drift_2', 'q1', '||drift_1', 'q2', '||drift_2', 'q2',
        '||drift_1', 'q1', '_end_point'])
 
-# Before removing this test, check that an equivalent test for Line in compose mode
-# is present.
-@pytest.mark.filterwarnings('ignore::FutureWarning')
-def test_expr_in_builder():
+def test_expr_in_compose_mode():
 
     env = xt.Environment()
 
     env['a'] = 1.0
 
-    b1 = env.new_builder(name='b1', length='3*a')
+    b1 = env.new_line(name='b1', length='3*a', compose=True)
     b1.new('q1', 'Quadrupole', length='a', at='1.5*a')
 
-    b2 = env.new_builder(name='b2', length=3*env.ref['a'])
+    b2 = env.new_line(name='b2', length=3*env.ref['a'], compose=True)
     b2.new('q2', 'Quadrupole', length=env.ref['a'], at=1.5*env.ref['a'])
 
     env['a'] = 2.0
-    b1.build()
-    b2.build()
+    b1.end_compose()
+    b2.end_compose()
 
     assert isinstance(env['b1'], xt.Line)
     assert isinstance(env['b2'], xt.Line)

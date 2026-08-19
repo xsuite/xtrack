@@ -4,12 +4,12 @@ import xtrack as xt
 import numpy as np
 import xobjects as xo
 from cpymad.madx import Madx
-from xobjects.test_helpers import allow_no_prebuilt_kernels
+from xobjects.test_helpers import allow_kernel_compilation
 
 test_data_folder = pathlib.Path(
     __file__).parent.joinpath('../test_data').absolute()
 
-@allow_no_prebuilt_kernels
+@allow_kernel_compilation
 def test_aperture_table():
 
     aper_blacklist = [
@@ -106,7 +106,7 @@ def test_aperture_table():
     assert np.all(aper_check.y_aper_high_discrete[mask_not_none]
                     == aper_check.y_aper_high[mask_not_none])
 
-@allow_no_prebuilt_kernels
+@allow_kernel_compilation
 def test_aperture_table_aper_at_same_s():
 
     env = xt.Environment()

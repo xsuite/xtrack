@@ -19,6 +19,16 @@ _C_LIGHT = 299792458.0
 _COORDS = (
     'x', 'px', 'y', 'py', 'zeta', 'delta', 'pzeta',
 )
+_PARTICLE_PROPERTIES = (
+    'charge_ratio', 'mass_ratio',
+)
+_FIRST_MOMENTS = (
+    *_COORDS,
+    *_PARTICLE_PROPERTIES,
+)
+_PARTICLE_PROPERTY_SUM_STATS = (
+    *(f'sum_{name}' for name in _PARTICLE_PROPERTIES),
+)
 _STAT_ALIASES = {
     'normal_mode_emittances': _NORMAL_MODE_EMITTANCE_STATS,
     'covariance_optics': _COVARIANCE_OPTICS_STATS,
@@ -58,6 +68,8 @@ class BeamStatsMonitorRecord(xo.HybridClass):
         'sum_zeta': xo.Float64[:],
         'sum_delta': xo.Float64[:],
         'sum_pzeta': xo.Float64[:],
+        'sum_charge_ratio': xo.Float64[:],
+        'sum_mass_ratio': xo.Float64[:],
         'sum_x_x': xo.Float64[:],
         'sum_x_px': xo.Float64[:],
         'sum_x_y': xo.Float64[:],
@@ -124,9 +136,32 @@ class BeamStatsMonitor(BeamElement):
       is recorded per logged turn and full-turn slice. Whole-beam statistics
       are also available.
 
+    In this monitor, "slot" means a bunch position on the bunch pattern grid,
+    where adjacent slots are separated in `zeta` by `bunch_spacing_zeta`.
+    Note that `bunch_spacing_zeta` is distinct from an RF bucket, which can be
+    finer than the bunch spacing.
+
+    The bunch pattern to be monitored can be specified using either
+    `filling_scheme` or `filled_slots`. For example,
+    `filling_scheme=[1, 0, 1, 1]` is equivalent to
+    `filled_slots=[0, 2, 3]`. The `selected_slots` argument can be used to
+    record only a subset of the filled slots. A "slice" is a longitudinal
+    subdivision inside a bunch, or a full-turn subdivision in coasting mode.
+
     All statistics are weighted by ``particles.weight``. The public
     ``num_particles`` quantity is therefore the sum of particle weights in each
     bin, not the number of macroparticles.
+    Particle species diagnostics can be requested with ``sum_charge_ratio``,
+    ``mean_charge_ratio``, ``sum_mass_ratio``, and ``mean_mass_ratio``; these
+    quantities use the same ``particles.weight`` weighting.
+    The optional ``particle_id_range=(start, stop)`` argument restricts
+    recording to particles with ``particle_id`` in the inclusive-lower,
+    exclusive-upper range ``[start, stop)``.
+
+    Whole-beam statistics, obtained with ``level="beam"``, are computed from
+    all accepted particles for the same effective turn. In bunched and sliced
+    modes, this means summing the recorded weighted sums over the selected
+    slots and slices; unselected filled slots do not contribute.
 
     Requested statistics are available as attributes at the most detailed
     recorded level, for example ``monitor.mean_x``. The :meth:`get` method
@@ -171,20 +206,25 @@ class BeamStatsMonitor(BeamElement):
         `num_slices`.
     num_slices : int, optional
         Number of longitudinal slices per selected bunch.
-    num_bunches : int, optional
-        Number of consecutive filled slots when neither `filled_slots` nor
-        `filling_scheme` is provided.
-    filling_scheme : array_like, optional
-        Boolean/integer filling scheme identifying filled physical slots.
-    filled_slots : array_like, optional
-        Explicit physical slot numbers which are filled.
-    selected_slots : array_like, optional
-        Filled physical slots to record. Output follows this order.
     bunch_spacing_zeta : float, optional
-        Longitudinal spacing between adjacent physical slots.
+        Longitudinal spacing between adjacent bunch slots.
+    num_bunches : int, optional
+        Number of consecutive filled slots. Mutually exclusive with
+        `filled_slots` and `filling_scheme`.
+    filling_scheme : array_like, optional
+        Slot-indexed boolean/integer filling scheme identifying filled slots.
+        Mutually exclusive with `num_bunches` and `filled_slots`.
+    filled_slots : array_like, optional
+        Explicit slot numbers which are filled. Mutually exclusive
+        with `num_bunches` and `filling_scheme`.
+    selected_slots : array_like, optional
+        Filled slots to record. Output follows this order.
     coasting : bool, optional
         If True, slice the full turn periodically for a coasting beam.
         Requires `num_slices` and rejects bunched-beam filling inputs.
+    particle_id_range : tuple[int, int], optional
+        Inclusive-lower, exclusive-upper particle-id range to record. By
+        default all particles are recorded.
     stats : sequence of str, optional
         Requested public statistics.
     output_file : str or path-like, optional
@@ -205,6 +245,8 @@ class BeamStatsMonitor(BeamElement):
         '_z_min_edge': xo.Float64,
         '_dzeta': xo.Float64,
         '_bunch_spacing_zeta': xo.Float64,
+        '_particle_id_start': xo.Int64,
+        '_particle_id_stop': xo.Int64,
         '_selected_slots': xo.Int64[:],
         '_filled_slots': xo.Int64[:],
         '_slot_to_selected': xo.Int64[:],
@@ -221,7 +263,7 @@ class BeamStatsMonitor(BeamElement):
     allow_loss_refinement = True
 
     _RAW_FIELDS = ('num_particles', 'sum_beta0_gamma0',
-                   *(f'sum_{coord}' for coord in _COORDS),
+                   *(f'sum_{coord}' for coord in _FIRST_MOMENTS),
                    *(f'sum_{moment}' for moment in _SECOND_MOMENTS))
 
     def __init__(self, *,
@@ -230,12 +272,13 @@ class BeamStatsMonitor(BeamElement):
                  every_n_turns=1,
                  zeta_range=None,
                  num_slices=None,
-                 num_bunches=1,
+                 bunch_spacing_zeta=None,
+                 num_bunches=None,
                  filling_scheme=None,
                  filled_slots=None,
                  selected_slots=None,
-                 bunch_spacing_zeta=None,
                  coasting=False,
+                 particle_id_range=None,
                  stats=None,
                  profiles=None,
                  output_file=None,
@@ -267,6 +310,8 @@ class BeamStatsMonitor(BeamElement):
             stop_at_turn = start_at_turn + 1
         if every_n_turns <= 0:
             raise ValueError('`every_n_turns` must be positive')
+        particle_id_start, particle_id_stop = _validate_particle_id_range(
+            particle_id_range)
 
         # Keep requested stats in user order while ignoring duplicates.
         raw_stats = _DEFAULT_STATS if stats is None else _expand_stats(stats)
@@ -275,6 +320,8 @@ class BeamStatsMonitor(BeamElement):
             if stat not in stats:
                 stats.append(stat)
         stats = tuple(stats)
+
+        num_bunches_provided = num_bunches is not None
 
         # Bunch mode is selected by any bunch-related input, unless slice
         # inputs already selected the more detailed slice mode.
@@ -285,13 +332,13 @@ class BeamStatsMonitor(BeamElement):
                  or filling_scheme is not None
                  or selected_slots is not None
                  or bunch_spacing_zeta is not None
-                 or int(num_bunches) != 1))
+                 or num_bunches_provided))
         if coasting and (
                 filled_slots is not None
                 or filling_scheme is not None
                 or selected_slots is not None
                 or bunch_spacing_zeta is not None
-                or int(num_bunches) != 1):
+                or num_bunches_provided):
             raise ValueError(
                 'Bunched-beam filling inputs cannot be used in coasting mode')
 
@@ -301,16 +348,26 @@ class BeamStatsMonitor(BeamElement):
         elif slice_mode or bunch_mode:
             # Normalize the public filling inputs into physical filled slots
             # and selected slots. The output bunch axis follows selected_slots.
-            if filled_slots is not None and filling_scheme is not None:
-                raise ValueError('Only one of `filled_slots` and '
-                                 '`filling_scheme` can be provided')
+            provided_slot_definitions = [
+                name for name, is_provided in (
+                    ('`num_bunches`', num_bunches_provided),
+                    ('`filled_slots`', filled_slots is not None),
+                    ('`filling_scheme`', filling_scheme is not None),
+                )
+                if is_provided]
+            if len(provided_slot_definitions) > 1:
+                raise ValueError(
+                    'Only one of `num_bunches`, `filled_slots`, and '
+                    '`filling_scheme` can be provided')
             if filling_scheme is not None:
                 filling_scheme = np.asarray(filling_scheme, dtype=np.int64)
                 filled_slots = np.nonzero(filling_scheme)[0].astype(np.int64)
             elif filled_slots is not None:
                 filled_slots = np.asarray(filled_slots, dtype=np.int64)
-            else:
+            elif num_bunches_provided:
                 filled_slots = np.arange(int(num_bunches), dtype=np.int64)
+            else:
+                filled_slots = np.array([0], dtype=np.int64)
 
             if len(filled_slots) == 0:
                 raise ValueError('At least one filled slot is required')
@@ -461,6 +518,8 @@ class BeamStatsMonitor(BeamElement):
             _bunch_spacing_zeta=(
                 0.0 if bunch_spacing_zeta is None
                 else float(bunch_spacing_zeta)),
+            _particle_id_start=particle_id_start,
+            _particle_id_stop=particle_id_stop,
             _selected_slots=selected_slots,
             _filled_slots=filled_slots,
             _slot_to_selected=slot_to_selected,
@@ -515,6 +574,15 @@ class BeamStatsMonitor(BeamElement):
         Whether the monitor uses full-turn periodic coasting slicing.
         """
         return int(self._mode) == 3
+
+    @property
+    def particle_id_range(self):
+        """
+        Inclusive-lower, exclusive-upper particle-id range, or None.
+        """
+        if int(self._particle_id_start) < 0:
+            return None
+        return (int(self._particle_id_start), int(self._particle_id_stop))
 
     @property
     def available_levels(self):
@@ -597,6 +665,8 @@ class BeamStatsMonitor(BeamElement):
             'every_n_turns': int(self.every_n_turns),
             'stats': list(self._stats_names),
         }
+        if self.particle_id_range is not None:
+            out['particle_id_range'] = self.particle_id_range
         if self.coasting:
             out['coasting'] = True
             out['num_slices'] = int(self._num_slices)
@@ -1017,6 +1087,8 @@ class BeamStatsMonitor(BeamElement):
         """
         if name == 'num_particles':
             return moments['num_particles']
+        if name in _PARTICLE_PROPERTY_SUM_STATS:
+            return moments[name[4:]]
         if name in _COVARIANCE_OPTICS_STATS:
             return self._covariance_derived_stat_from_moments(name, moments)
 
@@ -1257,7 +1329,11 @@ def _moments_for_stat(name):
         return _FULL_COVARIANCE_MOMENTS
     if name.startswith('mean_'):
         coord = name[5:]
-        _check_coord(coord)
+        _check_first_moment_coord(coord)
+        return (coord,)
+    if name in _PARTICLE_PROPERTY_SUM_STATS:
+        coord = name[4:]
+        _check_first_moment_coord(coord)
         return (coord,)
     if name.startswith('sigma_'):
         coord = name[6:]
@@ -1292,6 +1368,39 @@ def _check_coord(coord):
     """
     if coord not in _COORDS:
         raise ValueError(f'Unknown coordinate `{coord}`')
+
+
+def _check_first_moment_coord(coord):
+    """
+    Validate a particle quantity with a stored weighted sum.
+    """
+    if coord not in _FIRST_MOMENTS:
+        raise ValueError(f'Unknown coordinate `{coord}`')
+
+
+def _validate_particle_id_range(particle_id_range):
+    """
+    Return normalized particle-id filter bounds.
+    """
+    if particle_id_range is None:
+        return -1, -1
+    try:
+        num_bounds = len(particle_id_range)
+    except TypeError as exc:
+        raise ValueError(
+            '`particle_id_range` must contain two integer bounds') from exc
+    if num_bounds != 2:
+        raise ValueError(
+            '`particle_id_range` must contain two integer bounds')
+    start = _as_int(particle_id_range[0], 'particle_id_range[0]')
+    stop = _as_int(particle_id_range[1], 'particle_id_range[1]')
+    if start < 0:
+        raise ValueError('`particle_id_range[0]` must be non-negative')
+    if stop <= start:
+        raise ValueError(
+            '`particle_id_range[1]` must be larger than '
+            '`particle_id_range[0]`')
+    return start, stop
 
 
 def _validate_profiles(profiles):
@@ -1377,7 +1486,7 @@ def _field_name_from_moment(name):
     """
     Return the record field name used to store a primitive moment.
     """
-    if name in _COORDS or name in _SECOND_MOMENTS:
+    if name in _FIRST_MOMENTS or name in _SECOND_MOMENTS:
         return f'sum_{name}'
     raise ValueError(f'Unknown moment `{name}`')
 

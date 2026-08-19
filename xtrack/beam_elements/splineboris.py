@@ -11,7 +11,7 @@ import xobjects as xo
 
 from ..base_element import BeamElement
 from ..random import RandomUniformAccurate, RandomExponential
-from .elements import SynchrotronRadiationRecord
+from ._common import SynchrotronRadiationRecord
 
 _POLY_ORDER = 4
 _NUM_COEFFS = _POLY_ORDER + 1

@@ -786,7 +786,7 @@ def load_madx_lattice(file=None, string=None, reverse_lines=None, s_tol=1e-6,
         if not end_compose:
             raise ValueError('`end_compose` must be True when using `reverse_lines`!')
 
-        print('Reversing lines:', reverse_lines)
+        xt._print('Reversing lines:', reverse_lines)
         rlines = {}
         for nn in reverse_lines:
             ll = env.lines[nn]

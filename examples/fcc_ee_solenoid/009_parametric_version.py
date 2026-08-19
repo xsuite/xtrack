@@ -10,7 +10,7 @@ from tilted_solenoid import TiltedSolenoid
 
 t1 = time.time()
 
-plot=True
+plot = True
 
 env = xt.load('fccee_z_lcc.json')
 line = env.fccee_p_ring
@@ -27,10 +27,11 @@ ds_start = 1.4
 ds_end = 2.29
 
 B0 = 3 # T
-B0_screen = -1.4 # T
 r0 = 0.13
-r0_screen_sol = 0.13
-l_screen_sol = 0.6
+
+B0_local = -0 # T
+r0_local = 0.13
+l_local = 0.6
 
 for ip_name in ip_names:
 
@@ -41,10 +42,10 @@ for ip_name in ip_names:
 
     # Analytic field map
     sf = TiltedSolenoid(L=sol_half_length*2, a=r0, B0=B0, theta=theta)
-    sf_right = TiltedSolenoid(L=l_screen_sol, a=r0_screen_sol, B0=B0_screen, theta=theta,
-                              z0=sol_half_length + 0.5 * l_screen_sol)
-    sf_left = TiltedSolenoid(L=l_screen_sol, a=r0_screen_sol, B0=B0_screen, theta=theta,
-                              z0=-sol_half_length - 0.5 * l_screen_sol)
+    sf_right = TiltedSolenoid(L=l_local, a=r0_local, B0=B0_local, theta=theta,
+                              z0=sol_half_length + 0.5 * l_local)
+    sf_left = TiltedSolenoid(L=l_local, a=r0_local, B0=B0_local, theta=theta,
+                              z0=-sol_half_length - 0.5 * l_local)
 
     # s coordinate along the beam axis
     s = np.linspace(-2.399, 2.399, 201)
@@ -503,6 +504,29 @@ for ip_name in tw4d.rows['ip.*'].name:
 t2 = time.time()
 print(f'Took {t2-t1} s')
 
+
+
+out = {
+    'B0': B0,
+    'r0': r0,
+    'sol_half_length': sol_half_length,
+    'ds_start': ds_start,
+    'ds_end': ds_end,
+    'B0_local': B0_local,
+    'r0_local': r0_local,
+    'l_local': l_local,
+    'gemitt_y': float(tw4d.rad_int_eq_gemitt_y) * 4 # for 4 ips
+}
+
+from pprint import pp
+pp(out)
+
+fout = (f'B0_{B0:.3f}_r0_{r0:.3f}_sol_half_length_{sol_half_length:.3f}'
+        f'_ds_start_{ds_start:.3f}_ds_end_{ds_end:.3f}')
+
+if B0_local !=0:
+    fout += f'_B0_local_{-B0_local:.3f}_r0_local_{r0_local:.3f}_l_local_{l_local:.3f}'
+
 if plot:
 
     import matplotlib.pyplot as plt
@@ -555,31 +579,22 @@ if plot:
     ax23 = fig2.add_subplot(4,1,3, sharex=ax1)
     ax23.plot(tw4d.s, tw4d.k0sl / tw4d.length * rigidity0)
     ax23.set_ylabel(r'$B_x$ [T]')
+    ax23.set_ylim(-0.25, 0.15)
     ax23.grid(True)
 
     ax24 = fig2.add_subplot(4,1,4, sharex=ax1)
     ax24.plot(tw4d.s, tw4d.rad_int_i5y_integrand)
     ax24.set_ylabel(r'$i_5(s)$')
+    ax24.set_ylim(0, 1e-13)
     ax24.grid(True)
     fig2.subplots_adjust(bottom=0.08, hspace=0.3)
 
     ax1.set_xlim(-20, 20)
 
+    # fname in suptitle (small font)
+    plt.suptitle(fout, fontsize=8)
 
-out = {
-    'B0': B0,
-    'r0': r0,
-    'sol_half_length': sol_half_length,
-    'ds_start': ds_start,
-    'ds_end': ds_end,
-    'gemitt_y': float(tw4d.rad_int_eq_gemitt_y) * 4 # for 4 ips
-}
-
-from pprint import pp
-pp(out)
-
-# fout = (f'B0_{B0:.3f}_r0_{r0:.3f}_sol_half_length_{sol_half_length:.3f}'
-#         f'_ds_start_{ds_start:.3f}_ds_end_{ds_end:.3f}.json')
-
-# xt.json.dump(out, 'results/' + fout)
+out_path = 'results/' + fout + '.json'
+print(f'Saving results to {out_path}')
+xt.json.dump(out, out_path)
 
