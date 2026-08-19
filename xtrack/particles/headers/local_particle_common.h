@@ -421,10 +421,10 @@ void global_aperture_check(LocalParticle* part0) {
     START_PER_PARTICLE_BLOCK(part0, part);
         xt_num_t const x = LocalParticle_get_x(part);
         xt_num_t const y = LocalParticle_get_y(part);
-        int64_t const is_alive = (int64_t)(
+        int64_t const is_within_global_aperture = (int64_t)(
             x >= -XTRACK_GLOBAL_XY_LIMIT && x <= XTRACK_GLOBAL_XY_LIMIT
             && y >= -XTRACK_GLOBAL_XY_LIMIT && y <= XTRACK_GLOBAL_XY_LIMIT);
-        if (!is_alive) {
+        if (LocalParticle_get_state(part) > 0 && !is_within_global_aperture) {
             LocalParticle_set_state(part, -1);
         }
     END_PER_PARTICLE_BLOCK;
