@@ -22,6 +22,7 @@ from .line import Line, _is_thick, _is_collective
 from .line import freeze_longitudinal as _freeze_longitudinal
 from .pipeline import PipelineStatus
 from .progress_indicator import progress
+from .tpsa import ParticlesTpsa
 from .tracker_data import TrackerData, _expand_element_classes_with_slice_classes
 from .track_flags import TrackFlags
 
@@ -296,10 +297,7 @@ class Tracker:
         if time:
             t0 = perf_counter()
 
-        if (
-            type(particles).__name__ == "ParticlesTpsa"
-            and type(particles).__module__.startswith("xtrack.tpsa")
-        ):
+        if isinstance(particles, ParticlesTpsa):
             out = self._track_tpsa(
                 particles,
                 *args,
