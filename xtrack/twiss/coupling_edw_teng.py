@@ -108,10 +108,10 @@ def _get_coupling_rdts(r11, r12, r21, r22, betx, bety, alfx, alfy):
     inv_gy[:, 0, 0] = sqrt_betay
 
     c = np.matmul(gx, np.matmul(r, inv_gy))
-    gamma = np.sqrt(1 - np.linalg.det(c))
+    g = np.sqrt(1 - np.linalg.det(c))
 
     # Eq. (9) and Eq. (10)
-    denom = 1 / (4 * gamma)
+    denom = 1 / (4 * g)
     f1001 = denom * (+c[:, 0, 1] - c[:, 1, 0] + (c[:, 0, 0] + c[:, 1, 1]) * 1j)
     f1010 = denom * (-c[:, 0, 1] - c[:, 1, 0] + (c[:, 0, 0] - c[:, 1, 1]) * 1j)
     f0110 = np.conj(f1001)
@@ -121,8 +121,14 @@ def _get_coupling_rdts(r11, r12, r21, r22, betx, bety, alfx, alfy):
     f1001 = -np.conj(f1001)
     f1010 = -np.conj(f1010)
     f0110 = -np.conj(f0110)
+    f0101 = np.conj(f1010)
 
-    return {'f1001': f1001, 'f1010': f1010, 'f0110': f0110}
+    return {
+        'f1001': f1001,
+        'f1010': f1010,
+        'f0110': f0110,
+        'f0101': f0101,
+    }
 
 
 def _get_edwards_teng_initial(RR):

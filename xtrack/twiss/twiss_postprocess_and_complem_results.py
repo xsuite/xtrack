@@ -280,7 +280,12 @@ def _add_edwards_teng_coupling_to_twiss_result(twiss_config, twiss_res):
         muy=twiss_res['muy'],
         qx=twiss_res['qx'],
         qy=twiss_res['qy'])
-    for key in coupling_result:
+    # The ET Twiss parameters, g, and coupling RDTs are computed directly from
+    # W in _get_lattice_functions and are therefore always available.  This
+    # optional path only adds the explicitly reconstructed ET coupling matrix.
+    for key in (
+            'r11_edw_teng', 'r12_edw_teng',
+            'r21_edw_teng', 'r22_edw_teng'):
         twiss_res[key] = coupling_result[key]
 
 

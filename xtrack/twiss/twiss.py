@@ -208,8 +208,10 @@ def twiss_line(line, particle_ref=None, method=None,
         Vertical emittance assumed for the computation of the deviation
         used for the propagation of the W matrix.
     coupling_edw_teng : bool, optional
-        If True, Edwards-Teng coupling quantities are computed. Default is
-        False.
+        If True, the Edwards-Teng coupling matrix is reconstructed. The
+        Edwards-Teng Twiss functions, normalization `g_edw_teng`, and linear
+        coupling RDTs are computed directly from `W_matrix` independently of
+        this option. Default is False.
     zero_at : str, optional
         Element name at which the s coordinate and the phase advances are set to
         zero.
@@ -280,6 +282,12 @@ def twiss_line(line, particle_ref=None, method=None,
         - `betx1`, `bety1`, `betx2`, `bety2`, `alfx1`, `alfy1`, `alfx2`,
           `alfy2`, `gamx1`, `gamy1`, `gamx2`, `gamy2`: Mais-Ripken coupled optics
           functions (ebe)
+        - `betx_edw_teng`, `bety_edw_teng`, `alfx_edw_teng`, `alfy_edw_teng`:
+          Edwards-Teng modal Twiss functions obtained directly from `W_matrix`. (ebe)
+        - `g_edw_teng`: Edwards-Teng coupling normalization obtained directly
+          from `W_matrix`. (ebe)
+        - `f1001`, `f1010`, `f0110`, `f0101`: exact matrix-equivalent linear
+          coupling RDTs obtained directly from `W_matrix`. (ebe)
         - `wx_chrom`, `wy_chrom`, `bx_chrom`, `by_chrom`, `ax_chrom`, `ay_chrom`:
           chromatic functions, see physics guide for definitions (ebe)
         - `particle_on_co`: particle on closed orbit or reference trajecory, placed
