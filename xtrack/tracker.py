@@ -443,36 +443,21 @@ class Tracker:
                 "TPSA tracking does not support synchrotron radiation. "
                 "Set line.config.XTRACK_MULTIPOLE_NO_SYNRAD = True."
             )
-        num_turns = 1 if num_turns is None else num_turns
 
         if isinstance(ele_start, str):
             ele_start = self.line.element_names.index(ele_start)
-        ele_start = ele_start or 0
-        if num_elements is None:
-            if isinstance(ele_stop, str):
-                ele_stop = self.line.element_names.index(ele_stop)
-            if ele_stop is None or ele_stop == 0:
-                ele_stop = self.num_elements
-            if ele_stop < ele_start:
-                raise NotImplementedError("TPSA wrap-around ranges are not implemented yet")
-            num_elements = ele_stop - ele_start
-        elif ele_stop is not None:
-            raise ValueError("Cannot use both num_elements and ele_stop!")
+        if ele_start is None:
+            ele_start = 0
 
-        if num_elements < 0:
-            raise ValueError("num_elements must be non-negative")
-        if ele_start + num_elements > self.num_elements:
-            raise NotImplementedError("TPSA wrap-around ranges are not implemented yet")
-        # Splitting range into first/middle/last calls is not implemented yet.
-        if num_turns > 1 and (ele_start != 0 or num_elements != self.num_elements):
-            raise NotImplementedError(
-                "TPSA multi-turn tracking is implemented only for full turns from the "
-                "first element. Partial ranges over several turns are not implemented yet."
-            )
-        flag_end_turn_actions = (
-            num_turns > 1
-            and ele_start == 0
-            and num_elements == self.num_elements
+        (
+            num_elements_first_turn,
+            num_middle_turns,
+            num_elements_last_turn,
+        ) = self._split_track_range(
+            ele_start=ele_start,
+            ele_stop=ele_stop,
+            num_elements=num_elements,
+            num_turns=num_turns,
         )
 
         self.config.XTRACK_TPSA_TRACK = True
@@ -485,8 +470,13 @@ class Tracker:
         p.track_flags = self.track_flags.get_flags_register()
         p.line_length = float(tracker_data.line_length)
 
+        if num_elements_last_turn > 0:
+            monitor_turns = num_middle_turns + 2
+        else:
+            monitor_turns = num_middle_turns + 1
+
         multi_element_monitor = self._get_multi_element_monitor(
-            multi_element_monitor_at, particles, num_turns,
+            multi_element_monitor_at, particles, monitor_turns,
             tpsa_descriptor=particles.descriptor)
         dummy_buffer = p._buffer.buffer
         if multi_element_monitor is not None:
@@ -496,31 +486,119 @@ class Tracker:
             buffer_multi_element_monitor = dummy_buffer
             offset_multi_element_monitor = -1
 
-        track_kernel(
-            buffer=tracker_data._buffer.buffer,
-            tracker_data=tracker_data._element_ref_data,
-            particles=p,
-            num_turns=int(num_turns),
-            ele_start=int(ele_start),
-            num_ele_track=int(num_elements),
-            flag_end_turn_actions=flag_end_turn_actions,
-            flag_reset_s_at_end_turn=self.reset_s_at_end_turn,
-            flag_monitor=0,
-            num_ele_line=len(tracker_data.element_names),
-            line_length=tracker_data.line_length,
-            buffer_tbt_monitor=dummy_buffer,
-            offset_tbt_monitor=0,
-            buffer_multi_element_monitor=buffer_multi_element_monitor,
-            offset_multi_element_monitor=offset_multi_element_monitor,
-            io_buffer=self.io_buffer.buffer,
-            track_flags=p.track_flags,
+        if self.skip_end_turn_actions:
+            flag_end_first_turn_actions = False
+            flag_end_middle_turn_actions = False
+        else:
+            flag_end_first_turn_actions = (
+                num_elements_first_turn + ele_start == self.num_elements)
+            flag_end_middle_turn_actions = True
+
+        def run_track_kernel(num_turns, ele_start, num_ele_track, flag_end_turn_actions):
+            track_kernel(
+                buffer=tracker_data._buffer.buffer,
+                tracker_data=tracker_data._element_ref_data,
+                particles=p,
+                num_turns=int(num_turns),
+                ele_start=int(ele_start),
+                num_ele_track=int(num_ele_track),
+                flag_end_turn_actions=flag_end_turn_actions,
+                flag_reset_s_at_end_turn=self.reset_s_at_end_turn,
+                flag_monitor=0,
+                num_ele_line=len(tracker_data.element_names),
+                line_length=tracker_data.line_length,
+                buffer_tbt_monitor=dummy_buffer,
+                offset_tbt_monitor=0,
+                buffer_multi_element_monitor=buffer_multi_element_monitor,
+                offset_multi_element_monitor=offset_multi_element_monitor,
+                io_buffer=self.io_buffer.buffer,
+                track_flags=p.track_flags,
+            )
+
+        run_track_kernel(
+            num_turns=1,
+            ele_start=ele_start,
+            num_ele_track=num_elements_first_turn,
+            flag_end_turn_actions=flag_end_first_turn_actions,
         )
+        if num_middle_turns > 0:
+            run_track_kernel(
+                num_turns=num_middle_turns,
+                ele_start=0,
+                num_ele_track=self.num_elements,
+                flag_end_turn_actions=flag_end_middle_turn_actions,
+            )
+        if num_elements_last_turn > 0:
+            run_track_kernel(
+                num_turns=1,
+                ele_start=0,
+                num_ele_track=num_elements_last_turn,
+                flag_end_turn_actions=False,
+            )
         self.record_multi_element_last_track = multi_element_monitor
         if p.state <= 0:
             at = p.at_element
             name = self.line.element_names[at] if at < len(self.line.element_names) else "?"
             raise RuntimeError(f"TPSA map lost at element index {at} ('{name}')")
         return particles
+
+    def _split_track_range(self, ele_start, ele_stop, num_elements, num_turns):
+        # Logic to split the tracking turns:
+        # Case 1: 0 <= start < stop <= L
+        #      Track first turn from start until stop (with num_elements_first_turn=stop-start)
+        # Case 2: 0 <= start < L < stop < 2L
+        #      Track first turn from start until L    (with num_elements_first_turn=L-start)
+        #      Track last turn from 0 until stop      (with num_elements_last_turn=stop)
+        # Case 3: 0 <= start < L < stop=nL
+        #      Track first turn from start until L    (with num_elements_first_turn=L-start)
+        #      Track middle turns from 0 until (n-1)L (with num_middle_turns=n-1)
+        # Case 4: 0 <= start < L < nL < stop
+        #      Track first turn from start until L    (with num_elements_first_turn=L-start)
+        #      Track middle turns from 0 until (n-1)L (with num_middle_turns=n-1)
+        #      Track last turn from 0 until stop      (with num_elements_last_turn=stop)
+        assert ele_start >= 0
+        assert ele_start <= self.num_elements
+
+        num_middle_turns = 0
+        num_elements_last_turn = 0
+
+        if num_elements is not None:
+            assert num_elements >= 0
+            if ele_stop is not None:
+                raise ValueError("Cannot use both num_elements and ele_stop!")
+            if num_turns is not None:
+                raise ValueError("Cannot use both num_elements and num_turns!")
+            if num_elements + ele_start <= self.num_elements:
+                num_elements_first_turn = num_elements
+            else:
+                num_elements_first_turn = self.num_elements - ele_start
+                num_middle_turns, ele_stop = np.divmod(
+                    ele_start + num_elements, self.num_elements)
+                num_elements_last_turn = ele_stop
+                num_middle_turns -= 1
+        else:
+            if num_turns is None:
+                num_turns = 1
+            else:
+                assert num_turns > 0
+            if ele_stop is None:
+                num_elements_first_turn = self.num_elements - ele_start
+                num_middle_turns = num_turns - 1
+            else:
+                if isinstance(ele_stop, str):
+                    ele_stop = self.line.element_names.index(ele_stop)
+                assert ele_stop >= 0
+                assert ele_stop <= self.num_elements
+                if ele_stop <= ele_start:
+                    num_turns += 1
+                if num_turns == 1:
+                    num_elements_first_turn = ele_stop - ele_start
+                else:
+                    num_elements_first_turn = self.num_elements - ele_start
+                    num_middle_turns = num_turns - 2
+                    num_elements_last_turn = ele_stop
+
+        return num_elements_first_turn, num_middle_turns, num_elements_last_turn
 
     @property
     def particle_ref(self) -> xt.Particles:
@@ -1520,70 +1598,16 @@ class Tracker:
 
         track_flags = self.track_flags.get_flags_register()
 
-        # Logic to split the tracking turns:
-        # Case 1: 0 <= start < stop <= L
-        #      Track first turn from start until stop (with num_elements_first_turn=stop-start)
-        # Case 2: 0 <= start < L < stop < 2L
-        #      Track first turn from start until L    (with num_elements_first_turn=L-start)
-        #      Track last turn from 0 until stop      (with num_elements_last_turn=stop)
-        # Case 3: 0 <= start < L < stop=nL
-        #      Track first turn from start until L    (with num_elements_first_turn=L-start)
-        #      Track middle turns from 0 until (n-1)L (with num_middle_turns=n-1)
-        # Case 4: 0 <= start < L < nL < stop
-        #      Track first turn from start until L    (with num_elements_first_turn=L-start)
-        #      Track middle turns from 0 until (n-1)L (with num_middle_turns=n-1)
-        #      Track last turn from 0 until stop      (with num_elements_last_turn=stop)
-
-        num_middle_turns = 0
-        num_elements_last_turn = 0
-
-        if num_elements is not None:
-            # We are using ele_start and num_elements
-            assert num_elements >= 0
-            if ele_stop is not None:
-                raise ValueError("Cannot use both num_elements and ele_stop!")
-            if num_turns is not None:
-                raise ValueError("Cannot use both num_elements and num_turns!")
-            if num_elements + ele_start <= self.num_elements:
-                # Track only the first (potentially partial) turn
-                num_elements_first_turn = num_elements
-            else:
-                # Track the first turn until the end of the lattice
-                num_elements_first_turn = self.num_elements - ele_start
-                # Middle turns and potential last turn
-                num_middle_turns, ele_stop = np.divmod(ele_start + num_elements, self.num_elements)
-                num_elements_last_turn = ele_stop
-                num_middle_turns -= 1
-
-        else:
-            # We are using ele_start, ele_stop, and num_turns
-            if num_turns is None:
-                num_turns = 1
-            else:
-                assert num_turns > 0
-            if ele_stop is None:
-                # Track the first turn until the end of the lattice
-                # (last turn is also a full cycle, so will be treated as a middle turn)
-                num_elements_first_turn = self.num_elements - ele_start
-                num_middle_turns = num_turns - 1
-            else:
-                if isinstance(ele_stop, str):
-                    ele_stop = self.line.element_names.index(ele_stop)
-                assert ele_stop >= 0
-                assert ele_stop <= self.num_elements
-                if ele_stop <= ele_start:
-                    # Correct for overflow:
-                    num_turns += 1
-                if num_turns == 1:
-                    # Track only the first partial turn
-                    num_elements_first_turn = ele_stop - ele_start
-                else:
-                    # Track the first turn until the end of the lattice
-                    num_elements_first_turn = self.num_elements - ele_start
-                    # Track the middle turns
-                    num_middle_turns = num_turns - 2
-                    # Track the last turn until ele_stop
-                    num_elements_last_turn = ele_stop
+        (
+            num_elements_first_turn,
+            num_middle_turns,
+            num_elements_last_turn,
+        ) = self._split_track_range(
+            ele_start=ele_start,
+            ele_stop=ele_stop,
+            num_elements=num_elements,
+            num_turns=num_turns,
+        )
 
         if self.skip_end_turn_actions or _force_no_end_turn_actions:
             flag_end_first_turn_actions = False

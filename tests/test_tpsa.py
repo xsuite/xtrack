@@ -702,12 +702,43 @@ def test_track_range_and_argument_errors():
     line = _demo_line()
     with pytest.raises(ValueError, match="Cannot use both num_elements and ele_stop"):
         line.track(_offaxis_map(), ele_stop=2, num_elements=1)
-    with pytest.raises(NotImplementedError, match="wrap-around"):
-        line.track(_offaxis_map(), ele_start=2, ele_stop=1)
-    with pytest.raises(NotImplementedError, match="multi-turn"):
-        line.track(_offaxis_map(), num_turns=3, ele_start=1)
     with pytest.raises(TypeError, match="unsupported TPSA tracking arguments"):
         line.track(_offaxis_map(), bogus_kwarg=1)
+
+
+def test_track_partial_range_multiturn_matches_scalar_semantics():
+    line = _demo_line()
+    multi_turn = _offaxis_map()
+    line.track(multi_turn, ele_start=1, ele_stop=3, num_turns=3)
+
+    line_repeated = _demo_line()
+    expected = _offaxis_map()
+    line_repeated.track(expected, ele_start=1)
+    line_repeated.track(expected)
+    line_repeated.track(expected, ele_stop=3)
+
+    scalar_line = _demo_line()
+    scalar_particle = scalar_line.build_particles(**X0)
+    scalar_line.track(scalar_particle, ele_start=1, ele_stop=3, num_turns=3)
+
+    xo.assert_allclose(multi_turn.const_part, expected.const_part, rtol=0, atol=0)
+    xo.assert_allclose(multi_turn.jacobian(), expected.jacobian(), rtol=0, atol=0)
+    xo.assert_allclose(
+        multi_turn.const_part,
+        [float(getattr(scalar_particle, cc)[0]) for cc in COORDS],
+        rtol=0,
+        atol=1e-15,
+    )
+    assert (
+        multi_turn._xobject.at_turn
+        == expected._xobject.at_turn
+        == scalar_particle.at_turn[0]
+    )
+    assert (
+        multi_turn._xobject.at_element
+        == expected._xobject.at_element
+        == scalar_particle.at_element[0]
+    )
 
 
 @pytest.mark.parametrize("kwargs, match", [
