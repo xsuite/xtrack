@@ -1103,8 +1103,6 @@ class TwissTable(Table):
             out.pop('r12_edw_teng')
             out.pop('r21_edw_teng')
             out.pop('r22_edw_teng')
-            out.pop('f1010')
-            out.pop('f1001')
 
         out._data['reference_frame'] = {
             'proper': 'reverse', 'reverse': 'proper'}[self.reference_frame]
