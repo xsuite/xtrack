@@ -286,14 +286,13 @@ def twiss_line(line, particle_ref=None, method=None,
           `alfy2`, `gamx1`, `gamy1`, `gamx2`, `gamy2`: Mais-Ripken coupled optics
           functions (ebe)
         - `betx_edw_teng`, `bety_edw_teng`, `alfx_edw_teng`, `alfy_edw_teng`:
-          Edwards-Teng modal Twiss functions obtained directly from `W_matrix`.
-          Exact for `method='4d'`; for `method='6d'`, they can become inaccurate
-          when the transverse 4D transfer matrix has a significant symplectic
-          deviation. (ebe)
-        - `g_edw_teng`: Edwards-Teng coupling normalization obtained directly
-          from `W_matrix`. Exact for `method='4d'`; for `method='6d'`, it can
-          become inaccurate when the transverse 4D transfer matrix has a
-          significant symplectic deviation. (ebe)
+          Edwards-Teng modal Twiss functions. Exact for `method='4d'`; for
+          `method='6d'`, they can become inaccurate when the transverse 4D
+          transfer matrix has a significant symplectic deviation. (ebe)
+        - `g_edw_teng`: Edwards-Teng coupling normalization. Exact for
+          `method='4d'`; for `method='6d'`, it can become inaccurate when the
+          transverse 4D transfer matrix has a significant symplectic deviation.
+          (ebe)
         - `f1001`, `f1010`, `f0110`, `f0101`: matrix-equivalent linear coupling
           RDTs obtained directly from `W_matrix`. Exact for `method='4d'`; for
           `method='6d'`, they can become inaccurate when the transverse 4D

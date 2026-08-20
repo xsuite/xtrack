@@ -190,6 +190,7 @@ def test_second_order_maps_split_at_thick_elements(test_context):
                       ('ref', line)):
         pp = ll.build_particles(**p_test)
         ll.track(pp, num_turns=50)
+        pp.move(_context=xo.context_default)
         res[label] = np.array([getattr(pp, cc)[0] for cc in ['x', 'px', 'y', 'py']])
 
     # kept octupoles -> exact (everything else is linear)
@@ -261,6 +262,7 @@ def test_second_order_maps_split_at_repeated_names(test_context):
                       ('ref', line)):
         pp = ll.build_particles(**p_test)
         ll.track(pp, num_turns=50)
+        pp.move(_context=xo.context_default)
         res[label] = np.array([getattr(pp, cc)[0] for cc in ['x', 'px', 'y', 'py']])
 
     # split octupole -> exact (everything else is linear)
@@ -318,6 +320,7 @@ def test_second_order_maps_split_at_sliced_line(test_context):
                       ('ref', line)):
         pp = ll.build_particles(**p_test)
         ll.track(pp, num_turns=50)
+        pp.move(_context=xo.context_default)
         res[label] = np.array([getattr(pp, cc)[0] for cc in ['x', 'px', 'y', 'py']])
 
     # split octupole -> exact (thin quad slices and drifts are linear)
