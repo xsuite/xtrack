@@ -216,6 +216,57 @@ def test_madng_conversion_drift_slice():
     xo.assert_allclose(tw_ng.beta11_ng, tw.betx, rtol=1e-8)
     xo.assert_allclose(tw_ng.beta22_ng, tw.bety, rtol=1e-8)
 
+
+def test_madng_track_single_rbend():
+    line = xt.Line(
+        elements=[xt.RBend(length_straight=2, angle=0.2)],
+        element_names=['rbend'],
+        particle_ref=xt.Particles(p0c=1e9),
+    )
+    line.configure_bend_model(
+        core="bend-kick-bend",
+        integrator="uniform",
+        num_multipole_kicks=1,
+        edge="full", # MAD-NG has this by default, so we need to match it
+    )
+    mng = line.to_madng(sequence_name='seq')
+
+    X0 = {
+        'x': 3e-5,
+        'px': -1e-7,
+        'y': -3e-5,
+        'py': 1e-7,
+        't': 0.0,
+        'pt': 0.0,
+    }
+    mng.send(
+        """
+        trk = MAD.track{
+            sequence=MADX.seq,
+            nturn=1,
+            observe=0,
+            save='atentry',
+            X0=py:recv(),
+        }
+        """
+    ).send(list(X0.values()))
+    madng_track = mng.trk.to_df().iloc[-1]
+    particles = xt.Particles(
+        p0c=1e9,
+        x=X0['x'],
+        px=X0['px'],
+        y=X0['y'],
+        py=X0['py'],
+    )
+    line.track(particles)
+
+    # This rtol below is concerning -> should be investigated, could be a bug in MAD-NG or in Xsuite.
+    xo.assert_allclose(madng_track.x, particles.x[0], rtol=7e-11, atol=0) #rtol is much worse -> so we use atol=0
+    xo.assert_allclose(madng_track.px, particles.px[0], rtol=1.4e-10, atol=0)
+    xo.assert_allclose(madng_track.y, particles.y[0], rtol=1e-16, atol=0)
+    xo.assert_allclose(madng_track.py, particles.py[0], rtol=2e-16, atol=0)
+    xo.assert_allclose(madng_track.s, line.get_length(), rtol=1e-16, atol=0)
+
 def test_madng_interface_with_slicing():
     line = xt.load(test_data_folder /
                             'hllhc15_thick/lhc_thick_with_knobs.json')
@@ -657,3 +708,69 @@ def test_madng_tpsa_optics_with_nonzero_initial_orbit():
     tw_sol = line.twiss(**init)
     for q in quants:
         xo.assert_allclose(tw_sol[q, 'end'], target[q], rtol=2e-4, atol=1e-5)
+
+
+def test_madng_tpsa_rmatrix_match_and_jacobian():
+    """R-matrix matching through ``Line.match`` with TPSA derivatives.
+
+    The Jacobian rows are checked against central finite differences of Xsuite's
+    own ``get_R_matrix``, and the matched terms against the same function after
+    solving, so the numbers are tested and not merely that the machinery runs.
+    Two ranges are used, because MAD-NG indexes the stored transfer maps by
+    range and an off-by-one there is invisible with a single one. Only
+    transverse terms are compared, as Xsuite and MAD-NG do not share
+    longitudinal coordinates. The finite difference step is small against the
+    knobs, which are of order 1e-2, yet far enough above the twiss round-off
+    floor: at 1e-8 the comparison degrades to 7e-5.
+
+    Going through ``Line.match`` rather than through the action covers a lookup
+    that used to be fatal: matching labels the targets with ``rtag`` and the
+    MAD-NG interface stores the terms under that label, but the target read them
+    back under ``tag``. The miss fell through to ``get_R_matrix`` on the MAD-NG
+    table, which raised ``AttributeError`` on the absent ``values_at`` column.
+    """
+    line = xt.load(test_data_folder / 'hllhc15_thick/lhc_thick_with_knobs.json')
+    line['on_disp'] = 0
+
+    specs = [('r12', 's.ds.l8.b1', 'ip8', 0, 1),
+             ('r34', 's.ds.l8.b1', 'e.ds.r8.b1', 2, 3)]
+    knobs = ['kq6.l8b1', 'kq7.l8b1']
+    step = 1e-6
+
+    def terms_of(twiss):
+        return np.array([twiss.get_R_matrix(start=start, end=end)[ii, jj]
+                         for _, start, end, ii, jj in specs])
+
+    initial_terms = terms_of(line.twiss4d())
+
+    expected_jac = np.zeros((len(specs), len(knobs)))
+    for col, knob in enumerate(knobs):
+        base = line[knob]
+        line[knob] = base + step
+        forward = terms_of(line.twiss4d())
+        line[knob] = base - step
+        backward = terms_of(line.twiss4d())
+        line[knob] = base
+        expected_jac[:, col] = (forward - backward) / (2 * step)
+
+    target_terms = initial_terms * [0.9, 1.0]
+    opt = line.match(
+        use_tpsa=True,
+        solve=False,
+        vary=[xt.VaryList(knobs, step=1e-8)],
+        targets=[xt.TargetRmatrixTerm(term, value=value, start=start, end=end)
+                 for (term, start, end, _, _), value in zip(specs, target_terms)],
+    )
+
+    action = opt.targets[0].action
+    got_terms = np.array([action.run()._data.attrs[t.rtag] for t in opt.targets])
+    xo.assert_allclose(got_terms, initial_terms, rtol=1e-9, atol=1e-11)
+
+    jac = np.array(action.acquire_jacobian())
+    assert jac.shape == (len(specs), len(knobs))
+    xo.assert_allclose(jac, expected_jac, rtol=1e-6, atol=1e-8)
+
+    opt.solve()
+    assert opt.log()['penalty'][-1] < 1e-8
+    xo.assert_allclose(terms_of(line.twiss4d()), target_terms,
+                       rtol=1e-9, atol=1e-11)
