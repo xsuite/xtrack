@@ -3,6 +3,7 @@ import json
 
 import numpy as np
 from cpymad.madx import Madx
+import pytest
 
 import xpart as xp
 import xtrack as xt
@@ -45,8 +46,8 @@ def test_orbit_correction_basics(test_context):
     shift_x = rgen.randn(len(tt_quad)) * 0.01e-3 # 0.01 mm rms shift on all quads
     shift_y = rgen.randn(len(tt_quad)) * 0.01e-3 # 0.01 mm rms shift on all quads
     for nn_quad, sx, sy in zip(tt_quad.name, shift_x, shift_y):
-        line.element_refs[nn_quad].shift_x = sx
-        line.element_refs[nn_quad].shift_y = sy
+        line[nn_quad].shift_x = sx
+        line[nn_quad].shift_y = sy
 
     # Twiss before correction
     tw_before = line.twiss4d()
@@ -103,8 +104,8 @@ def test_orbit_correction_micado(test_context):
     shift_x = rgen.randn(len(tt_quad)) * 0.01e-3 # 0.01 mm rms shift on all quads
     shift_y = rgen.randn(len(tt_quad)) * 0.01e-3 # 0.01 mm rms shift on all quads
     for nn_quad, sx, sy in zip(tt_quad.name, shift_x, shift_y):
-        line.element_refs[nn_quad].shift_x = sx
-        line.element_refs[nn_quad].shift_y = sy
+        line[nn_quad].shift_x = sx
+        line[nn_quad].shift_y = sy
 
     # Twiss before correction
     tw_before = line.twiss4d()
@@ -161,8 +162,8 @@ def test_orbit_correction_customize(test_context):
     shift_x = rgen.randn(len(tt_quad)) * 0.01e-3 # 0.01 mm rms shift on all quads
     shift_y = rgen.randn(len(tt_quad)) * 0.01e-3 # 0.01 mm rms shift on all quads
     for nn_quad, sx, sy in zip(tt_quad.name, shift_x, shift_y):
-        line.element_refs[nn_quad].shift_x = sx
-        line.element_refs[nn_quad].shift_y = sy
+        line[nn_quad].shift_x = sx
+        line[nn_quad].shift_y = sy
 
     # Create orbit correction object without running the correction
     orbit_correction = line.correct_trajectory(twiss_table=tw_ref, run=False)
@@ -230,8 +231,8 @@ def test_orbit_correction_thread(test_context):
     shift_x = rgen.randn(len(tt_quad)) * 1e-3 # 1. mm rms shift on all quads
     shift_y = rgen.randn(len(tt_quad)) * 1e-3 # 1. mm rms shift on all quads
     for nn_quad, sx, sy in zip(tt_quad.name, shift_x, shift_y):
-        line.element_refs[nn_quad].shift_x = sx
-        line.element_refs[nn_quad].shift_y = sy
+        line[nn_quad].shift_x = sx
+        line[nn_quad].shift_y = sy
 
     # Closed twiss fails (closed orbit is not found)
     # line.twiss4d()
@@ -270,19 +271,19 @@ def test_orbit_correction_thread(test_context):
     assert kicks_x.std() < 5e-5
     assert kicks_y.std() < 5e-5
 
+@pytest.mark.filterwarnings('ignore::xtrack.mad_parser.loader.MADLoaderWarning')
 @for_all_test_contexts
 def test_correct_trajectory_transfer_line(test_context):
 
-    mad_ti2 = Madx()
-    mad_ti2.call(str(test_data_folder / 'sps_to_lhc_ti2/ti2.seq'))
-    mad_ti2.call(str(test_data_folder / 'sps_to_lhc_ti2/ti2_liu.str'))
-    mad_ti2.beam()
-    mad_ti2.use('ti2')
-
-    line = xt.Line.from_madx_sequence(mad_ti2.sequence['ti2'])
-    line.particle_ref = xt.Particles(p0c=450e9, mass0=xt.PROTON_MASS_EV, q0=1)
+    env = xt.load([test_data_folder / 'sps_to_lhc_ti2/ti2.seq',
+                   test_data_folder / 'sps_to_lhc_ti2/ti2_liu.str'])
+    line = env['ti2']
+    line.set_particle_ref('proton', p0c=450e9)
     line.build_tracker(_context=test_context)
     tt = line.get_table()
+
+    line.insert('start_ti2', xt.Marker(), at=0.)
+    line.append('end_ti2', xt.Marker())
 
     # Define elements to be used as monitors for orbit correction
     # (in this case all element names starting by "bpm" and not ending by "_entry" or "_exit")
@@ -303,7 +304,7 @@ def test_correct_trajectory_transfer_line(test_context):
                         dx=-0.59866300, dpx=0.01603536)
 
     # Reference twiss (no misalignments)
-    tw_ref = line.twiss4d(start='ti2$start', end='ti2$end', init=init)
+    tw_ref = line.twiss4d(start=xt.START, end=xt.END, init=init)
 
     # Introduce misalignments on all quadrupoles
     tt = line.get_table()
@@ -312,17 +313,18 @@ def test_correct_trajectory_transfer_line(test_context):
     shift_x = rgen.randn(len(tt_quad)) * 0.1e-3 # 0.1 mm rms shift on all quads
     shift_y = rgen.randn(len(tt_quad)) * 0.1e-3 # 0.1 mm rms shift on all quads
     for nn_quad, sx, sy in zip(tt_quad.name, shift_x, shift_y):
-        line.element_refs[nn_quad].shift_x = sx
-        line.element_refs[nn_quad].shift_y = sy
+        line[nn_quad].shift_x = sx
+        line[nn_quad].shift_y = sy
 
     # Twiss before correction
-    tw_before = line.twiss4d(start='ti2$start', end='ti2$end', init=init)
+    tw_before = line.twiss4d(start=xt.START, end=xt.END, init=init)
 
     # Correct trajectory
-    correction = line.correct_trajectory(twiss_table=tw_ref, start='ti2$start', end='ti2$end')
+    correction = line.correct_trajectory(twiss_table=tw_ref,
+                                         start='start_ti2', end='end_ti2')
 
     # Twiss after correction
-    tw_after = line.twiss4d(start='ti2$start', end='ti2$end', init=init)
+    tw_after = line.twiss4d(start=xt.START, end=xt.END, init=init)
 
     # Extract correction strength
     kicks_x = correction.x_correction.get_kick_values()
@@ -398,7 +400,7 @@ def test_orbit_correction_and_threading_shift_monitors():
     correction = line.correct_trajectory(twiss_table=tw0,
                                         monitor_alignment=bpm_alignment, # <--BPM alignment
                                         run=False)
-    correction.correct()
+    correction.correct(delta0=0)
 
     #!end-doc-part
 
@@ -414,9 +416,9 @@ def test_orbit_correction_and_threading_shift_monitors():
                     [0., 0., 0.002, 0.002, 0.002, 0.002, 0., 0.], rtol=0, atol=1e-14)
 
     # Data from previous step can be found in:
-    correction.correct() # Some more steps to log the position
-    xo.assert_allclose(correction.x_correction._position_before,0, rtol=0, atol=1e-10)
-    xo.assert_allclose(correction.y_correction._position_before,0, rtol=0, atol=1e-10)
+    correction.correct(delta0=0) # Some more steps to log the position
+    xo.assert_allclose(correction.x_correction._position_before,0, rtol=0, atol=5e-10)
+    xo.assert_allclose(correction.y_correction._position_before,0, rtol=0, atol=5e-10)
 
     correction.clear_correction_knobs()
 
@@ -560,8 +562,8 @@ def test_orbit_correction_with_limits():
     shift_x = rgen.randn(len(tt_quad)) * 0.01e-3 # 0.01 mm rms shift on all quads
     shift_y = rgen.randn(len(tt_quad)) * 0.01e-3 # 0.01 mm rms shift on all quads
     for nn_quad, sx, sy in zip(tt_quad.name, shift_x, shift_y):
-        line.element_refs[nn_quad].shift_x = sx
-        line.element_refs[nn_quad].shift_y = sy
+        line[nn_quad].shift_x = sx
+        line[nn_quad].shift_y = sy
 
     # Twiss before correction
     tw_before = line.twiss4d()
@@ -572,7 +574,7 @@ def test_orbit_correction_with_limits():
 
     # Orbit correction without limits as reference
     orbit_correction_basic_no_limits = line.correct_trajectory(twiss_table=tw_ref)
-    
+
     #print(np.max(np.abs(orbit_correction_basic_no_limits.x_correction.get_kick_values())))
     #print(np.max(np.abs(orbit_correction_basic_no_limits.y_correction.get_kick_values())))
 

@@ -47,7 +47,7 @@ line = line.cycle('qdw1..1:38')
 
 c0 = line['rf']
 v0 = c0.voltage
-s0 = line.get_s_position('rf')
+s0 = line.get_table()['s', 'rf']
 
 # I install some more cavities to test the tapering
 line.insert_element(at_s=41., element=c0.copy(), name='rf1')

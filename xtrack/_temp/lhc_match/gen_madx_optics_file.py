@@ -1,8 +1,8 @@
 import xtrack as xt
+from xtrack.functions import Functions
 
 
-
-fun_container = xt.line.Functions()
+fun_container = Functions()
 _functions = []
 for ff in fun_container._mathfunctions.keys():
     _functions.append(ff)

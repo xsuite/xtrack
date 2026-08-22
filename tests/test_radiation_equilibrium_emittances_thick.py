@@ -121,7 +121,7 @@ def test_eq_emitt(conf):
     line.configure_radiation(model='mean')
     line.compensate_radiation_energy_loss()
 
-    tw_rad = line.twiss(eneloss_and_damping=True)
+    tw_rad = line.twiss(radiation_analysis=True)
     ex = tw_rad.eq_gemitt_x
     ey = tw_rad.eq_gemitt_y
     ez = tw_rad.eq_gemitt_zeta
@@ -174,10 +174,10 @@ def test_eq_emitt(conf):
     xo.assert_allclose(tw_integ.rad_int_eq_gemitt_x, ex, rtol=0.15, atol=1e-14)
     xo.assert_allclose(tw_integ.rad_int_eq_gemitt_y, ey, rtol=0.15, atol=1e-14)
 
-    tw_rad2 = line.twiss(eneloss_and_damping=True, method='6d',
+    tw_rad2 = line.twiss(radiation_analysis=True, method='6d',
                      radiation_method='full',
                      compute_lattice_functions=False,
-                     compute_chromatic_properties=False)
+                     chrom=False)
 
     assert 'x' in tw_rad2
     assert 'betx' not in tw_rad2
@@ -202,14 +202,46 @@ def test_eq_emitt(conf):
 
     if conf['check_against_tracking']:
 
+        num_turns=400
+        num_parts=50
+
+        # quantum radiation model
         line.discard_tracker()
         line.build_tracker(_context=test_context)
 
         line.configure_radiation(model='quantum')
-        p = line.build_particles(num_particles=30)
-        line.track(p, num_turns=400, turn_by_turn_monitor=True, time=True)
+        p = line.build_particles(num_particles=num_parts)
+        line.track(p, num_turns=num_turns, turn_by_turn_monitor=True, time=True)
         mon = line.record_last_track
-        print(f'Tracking time: {line.time_last_track}')
+        print(f'Tracking time (quantum): {line.time_last_track}')
+
+        sigma_x_eq = float(np.sqrt(ex * tw_rad.betx[0] + ey * tw_rad.betx2[0] + (np.std(p.delta) * tw_rad.dx[0])**2))
+        sigma_y_eq = float(np.sqrt(ex * tw_rad.bety1[0] + ey * tw_rad.bety[0] + (np.std(p.delta) * tw_rad.dy[0])**2))
+        sigma_zeta_eq = float(np.sqrt(ez * tw_rad.bets0))
+
+        sigma_x_track = np.std(mon.x, axis=0)[-200:]
+        sigma_y_track = np.std(mon.y, axis=0)[-200:]
+        sigma_zeta_track = np.std(mon.zeta, axis=0)[-200:]
+
+        if sigma_x_eq > 1e-8:
+            assert np.min(np.abs(sigma_x_track/sigma_x_eq - 1.)) < 0.1
+        if sigma_y_eq > 1e-8:
+            assert np.min(np.abs(sigma_y_track/sigma_y_eq - 1.)) < 0.1
+        assert np.min(np.abs(sigma_zeta_track/sigma_zeta_eq - 1.)) < 0.1
+
+        xo.assert_allclose(sigma_x_eq, np.mean(sigma_x_track), rtol=0.3, atol=1e-9)
+        xo.assert_allclose(sigma_y_eq, np.mean(sigma_y_track), rtol=0.3, atol=1e-9)
+        xo.assert_allclose(sigma_zeta_eq, np.mean(sigma_zeta_track), rtol=0.3, atol=1e-9)
+
+        # quantum-kick radiation model
+        line.discard_tracker()
+        line.build_tracker(_context=test_context)
+
+        line.configure_radiation(model='quantum-kick')
+        p = line.build_particles(num_particles=num_parts)
+        line.track(p, num_turns=num_turns, turn_by_turn_monitor=True, time=True)
+        mon = line.record_last_track
+        print(f'Tracking time (quantum-kick): {line.time_last_track}')
 
         sigma_x_eq = float(np.sqrt(ex * tw_rad.betx[0] + ey * tw_rad.betx2[0] + (np.std(p.delta) * tw_rad.dx[0])**2))
         sigma_y_eq = float(np.sqrt(ex * tw_rad.bety1[0] + ey * tw_rad.bety[0] + (np.std(p.delta) * tw_rad.dy[0])**2))

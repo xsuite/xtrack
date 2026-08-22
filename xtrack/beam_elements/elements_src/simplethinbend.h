@@ -6,7 +6,7 @@
 #ifndef XTRACK_FASTDIPOLE_H
 #define XTRACK_FASTDIPOLE_H
 
-#include <headers/track.h>
+#include "xtrack/headers/track.h"
 
 
 GPUFUN
@@ -17,11 +17,11 @@ void SimpleThinBend_track_local_particle(SimpleThinBendData el, LocalParticle* p
         double hxl = SimpleThinBendData_get_hxl(el);
         double length = SimpleThinBendData_get_length(el); // m
 
-        #ifdef XSUITE_BACKTRACK
+        if (LocalParticle_check_track_flag(part0, XS_FLAG_BACKTRACK)) {
             knl0 = -knl0;
             hxl = -hxl;
             length = -length;
-        #endif
+        }
 
         START_PER_PARTICLE_BLOCK(part0, part);
             double const chi = LocalParticle_get_chi(part);

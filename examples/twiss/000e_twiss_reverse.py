@@ -6,21 +6,19 @@
 import xtrack as xt
 
 # Load collider with two lines
-collider = xt.load(
-    '../../test_data/hllhc15_thick/hllhc15_collider_thick.json')
-collider.build_trackers()
+collider = xt.load('../../test_data/hllhc15_thick/hllhc15_collider_thick.json')
 collider.lhcb1.twiss_default.clear() # clear twiss default settings
 collider.lhcb2.twiss_default.clear() # clear twiss default settings
-collider.vars['on_disp'] = 0 # disable dispersion correction
+collider['on_disp'] = 0 # disable dispersion correction
 
 # Set a horizontal crossing angle between the two beams  in the interaction
 # point ip1 and a vertical crossing angle in ip5
-collider.vars['on_x1hl'] = 10 # [urad]
-collider.vars['on_x5vl'] = 10 # [urad]
+collider['on_x1hl'] = 10 # [urad]
+collider['on_x5vl'] = 10 # [urad]
 # Set a vertical separation between the two beams in the interaction point ip5
 # and a horizontal separation in ip5
-collider.vars['on_sep1v'] = 0.5 # [mm]
-collider.vars['on_sep5h'] = 0.5 # [mm]
+collider['on_sep1v'] = 0.5 # [mm]
+collider['on_sep5h'] = 0.5 # [mm]
 
 # Twiss the two lines (4d method since cavities are off)
 tw1 = collider.lhcb1.twiss(method='4d')
@@ -29,7 +27,7 @@ tw2 = collider.lhcb2.twiss(method='4d')
 tw1.reference_frame # is `proper`
 tw2.reference_frame # is `proper`
 
-# tw1 has a clokwise orientation while tw2 has a counter-clockwise orientation.
+# tw1 has a clokwise frame while tw2 has a counter-clockwise frame.
 #
 # name         s   mux   muy         x          y         px         py
 # ip1          0     0     0 4.313e-09     0.0005  1.002e-05 -4.133e-09

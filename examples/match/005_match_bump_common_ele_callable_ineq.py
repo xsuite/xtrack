@@ -1,9 +1,7 @@
 import xtrack as xt
 
-# Load a line and build a tracker
-collider = xt.load(
-    '../../test_data/hllhc15_thick/hllhc15_collider_thick.json')
-collider.build_trackers()
+# Load a line
+collider = xt.load('../../test_data/hllhc15_thick/hllhc15_collider_thick.json')
 
 tw0 = collider.twiss(method='4d')
 
@@ -57,7 +55,7 @@ plt.xlabel('s [m]')
 plt.ylabel('y [mm]')
 plt.legend()
 
-for nn in ['mcbxfbv.a2r5', 'mcbxfbv.a2l5', 'ip5',
+for nn in ['mcbxfbv.a2r5/lhcb1', 'mcbxfbv.a2l5/lhcb1', 'ip5',
            'mcbyv.a4l5.b1', 'mcbrdv.4r5.b1', 'mcbcv.5l5.b1',
            'mcbyv.4l5.b2', 'mcbrdv.4r5.b2', 'mcbcv.5r5.b2']:
     if nn.endswith('b2'):

@@ -6,7 +6,7 @@
 #ifndef XTRACK_MARKER_H
 #define XTRACK_MARKER_H
 
-#include <headers/track.h>
+#include "xtrack/headers/track.h"
 
 GPUFUN void Marker_track_local_particle(MarkerData el, LocalParticle* part0) {}
 

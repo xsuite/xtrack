@@ -48,16 +48,19 @@ line.particle_ref = xt.Particles(mass0=xt.ELECTRON_MASS_EV,
                                     q0=-1, gamma0=mad.sequence.sps.beam.gamma)
 line.cycle('bpv.11706', inplace=True)
 
-line.insert_element(element=line['actcse.31632'].copy(), index='bpv.11706',
-                    name='cav1')
-line.insert_element(element=line['actcse.31632'].copy(), index='bpv.21508',
-                    name='cav2')
-line.insert_element(element=line['actcse.31632'].copy(), index='bpv.41508',
-                    name='cav4')
-line.insert_element(element=line['actcse.31632'].copy(), index='bpv.51508',
-                    name='cav5')
-line.insert_element(element=line['actcse.31632'].copy(), index='bpv.61508',
-                    name='cav6')
+line.env.new('cav', xt.Cavity, length=0,
+             frequency=line.ref['actcse.31632'].frequency,
+             voltage=line.ref['actcse.31632'].voltage,
+             phase=line.ref['actcse.31632'].phase)
+
+line.insert([
+    line.env.new('cav1', 'cav', at='bpv.11706@start'),
+    line.env.new('cav2', 'cav', at='bpv.21508@start'),
+    line.env.new('cav4', 'cav', at='bpv.41508@start'),
+    line.env.new('cav5', 'cav', at='bpv.51508@start'),
+    line.env.new('cav6', 'cav', at='bpv.61508@start'),
+    ])
+
 mad.emit()
 
 tt = line.get_table()
@@ -74,6 +77,7 @@ Teapot = xt.slicing.Teapot
 line.discard_tracker()
 slicing_strategies = [
     Strategy(slicing=Teapot(1)),  # Default
+    Strategy(slicing=None, element_type=xt.Cavity),
     Strategy(slicing=Teapot(2), element_type=xt.Bend),
     Strategy(slicing=Teapot(8), element_type=xt.Quadrupole),
 ]
@@ -87,34 +91,34 @@ line.configure_radiation(model=None)
 
 match_chrom = True
 
-# line.vars['klsda'] = 0.0
-# line.vars['klsdb'] = 0.0
-# line.vars['klsfa'] = 0.0
-# line.vars['klsfb'] = 0.0
-# line.vars['klsfc'] = 0.0
+# line['klsda'] = 0.0
+# line['klsdb'] = 0.0
+# line['klsfa'] = 0.0
+# line['klsfb'] = 0.0
+# line['klsfc'] = 0.0
 # match_chrom = False
 
-line.vars['mdv.52907.ksl0'] = 0.0
-line.vars['mdv.53107.ksl0'] = 0.0
-line.vars['mdv.53307.ksl0'] = 0.0
-line.vars['mdv.53507.ksl0'] = 0.0
+line['mdv.52907.ksl0'] = 0.0
+line['mdv.53107.ksl0'] = 0.0
+line['mdv.53307.ksl0'] = 0.0
+line['mdv.53507.ksl0'] = 0.0
 
-line.element_refs['mdv.52907'].ksl[0] = line.vars['mdv.52907.ksl0']
-line.element_refs['mdv.53107'].ksl[0] = line.vars['mdv.53107.ksl0']
-line.element_refs['mdv.53307'].ksl[0] = line.vars['mdv.53307.ksl0']
-line.element_refs['mdv.53507'].ksl[0] = line.vars['mdv.53507.ksl0']
+line['mdv.52907'].ksl[0] = line.ref['mdv.52907.ksl0']
+line['mdv.53107'].ksl[0] = line.ref['mdv.53107.ksl0']
+line['mdv.53307'].ksl[0] = line.ref['mdv.53307.ksl0']
+line['mdv.53507'].ksl[0] = line.ref['mdv.53507.ksl0']
 
 # Kill sextupoles in the bump
-line.element_refs['lsf.53205'].k2l = 0
-line.element_refs['lsd.53505'].k2l = 0
-line.element_refs['lsf.53605'].k2l = 0
-line.element_refs['lsd.60105'].k2l = 0
+line['lsf.53205'].k2l = 0
+line['lsd.53505'].k2l = 0
+line['lsf.53605'].k2l = 0
+line['lsd.60105'].k2l = 0
 
 tw0 = line.twiss()
 opt_bump = line.match(
     solve=False,
     method='4d',
-    start='mdv.52707', end='mdv.60107',
+    start='mdv.52707_entry', end='mdv.60107_entry',
     init_at=xt.START, init=tw0,
     vary=[
         xt.VaryList(['mdv.52907.ksl0', 'mdv.53107.ksl0',
@@ -139,22 +143,22 @@ opt = line.match(
         ],
 )
 
-opt.enable_all_targets()
-opt.enable_all_vary()
-opt.disable_targets(tag='chrom')
-opt.disable_vary(tag='chrom')
+opt.enable(target=True)
+opt.enable(vary=True)
+opt.disable(target='chrom')
+opt.disable(vary='chrom')
 opt.solve()
 
 if match_chrom:
 
-    opt.disable_all_targets()
-    opt.disable_all_vary()
-    opt.enable_targets(tag='chrom')
-    opt.enable_vary(tag='chrom')
+    opt.disable(target=True)
+    opt.disable(vary=True)
+    opt.enable(target='chrom')
+    opt.enable(vary='chrom')
     opt.solve()
 
-    opt.enable_all_targets()
-    opt.enable_all_vary()
+    opt.enable(target=True)
+    opt.enable(vary=True)
     opt.solve()
 
 
@@ -166,9 +170,9 @@ line.configure_radiation(model='mean')
 # Tapering!!!
 line.compensate_radiation_energy_loss()
 
-tw_rad = line.twiss(eneloss_and_damping=True, method='6d',
+tw_rad = line.twiss(radiation_analysis=True, method='6d',
                     use_full_inverse=False)
-tw_rad2 = line.twiss(eneloss_and_damping=True, method='6d',
+tw_rad2 = line.twiss(radiation_analysis=True, method='6d',
                      radiation_method='full')
 
 
@@ -189,7 +193,7 @@ line.track(p, num_turns=num_turns, time=True, turn_by_turn_monitor=True)
 print(f'Tracking time: {line.time_last_track}')
 
 twe = tw.rows[:-1]
-hl = twe.angle_rad
+hl = twe.angle
 dl = twe.length
 hh = hl * 0
 hh[dl>0] = hl[dl>0] / dl[dl>0]
@@ -274,3 +278,5 @@ mdv.53107, kick := mdv.53107.ksl0;
 mdv.53307, kick := mdv.53307.ksl0;
 mdv.53507, kick := mdv.53507.ksl0;
 ''')
+
+plt.show()

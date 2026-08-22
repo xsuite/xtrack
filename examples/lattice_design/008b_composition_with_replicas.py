@@ -10,10 +10,10 @@ env['l_quad'] = 1.
 env['l_cell'] = 20.
 env['n_bends'] = 24.
 
-env['h_bend']= 'pi / n_bends / l_bend'
+env['angle_bend']= 'pi / n_bends'
 
 env.new('mq', xt.Quadrupole, length='l_quad')
-env.new('mb', xt.Bend, length='l_bend', h='h_bend', k0='h_bend')
+env.new('mb', xt.Bend, length='l_bend', angle='angle_bend')
 
 env.new('mqf', 'mq', k1=0.1)
 env.new('mqd', 'mq', k1=-0.1)
@@ -29,8 +29,8 @@ arc_half_cell = env.new_line(components=[
 
 # We create two replicas of the half cell, one mirrored and one not and we
 # call them left and right
-arc_half_cell_left = env.new('l', arc_half_cell, mirror=True, mode='replica')
-arc_half_cell_right = env.new('r', arc_half_cell, mode='replica')
+arc_half_cell_left = arc_half_cell.replicate(suffix='l', mirror=True)
+arc_half_cell_right = arc_half_cell.replicate(suffix='r')
 
 # We concatenate the two half cells to create a full cell
 cell = arc_half_cell_left + arc_half_cell_right

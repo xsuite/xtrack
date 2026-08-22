@@ -103,7 +103,7 @@ for kk in knobs_to_compensate:
             ],
         )
 
-        temp_expr = line.vars[kk]._expr
+        temp_expr = line.vars[kk].xdeps.expr
         line.vars[kk] = ref_val
         opt.solve()
         line.vars[kk] = temp_expr

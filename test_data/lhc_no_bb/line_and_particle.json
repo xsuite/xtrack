@@ -37710,9 +37710,9 @@
                 "length": 3.796
             },
             "mbrb.5l4.b1..1_preshift": {
-                "__class__": "XYShift",
-                "dx": 1.364951e-07,
-                "dy": 0.0
+                "__class__": "Translation",
+                "shift_x": 1.364951e-07,
+                "shift_y": 0.0
             },
             "mbrb.5l4.b1..1": {
                 "__class__": "Multipole",
@@ -37758,18 +37758,18 @@
                 ]
             },
             "mbrb.5l4.b1..1_postshift": {
-                "__class__": "XYShift",
-                "dx": -1.364951e-07,
-                "dy": -0.0
+                "__class__": "Translation",
+                "shift_x": -1.364951e-07,
+                "shift_y": -0.0
             },
             "drift_875": {
                 "__class__": "Drift",
                 "length": 2.52
             },
             "mbrb.5l4.b1..1_preshift_1": {
-                "__class__": "XYShift",
-                "dx": 0.0009902471000000001,
-                "dy": 0.0
+                "__class__": "Translation",
+                "shift_x": 0.0009902471000000001,
+                "shift_y": 0.0
             },
             "mbrb.5l4.b1..1_1": {
                 "__class__": "Multipole",
@@ -37815,18 +37815,18 @@
                 ]
             },
             "mbrb.5l4.b1..1_postshift_1": {
-                "__class__": "XYShift",
-                "dx": -0.0009902471000000001,
-                "dy": -0.0
+                "__class__": "Translation",
+                "shift_x": -0.0009902471000000001,
+                "shift_y": -0.0
             },
             "drift_875_1": {
                 "__class__": "Drift",
                 "length": 2.52
             },
             "mbrb.5l4.b1..1_preshift_2": {
-                "__class__": "XYShift",
-                "dx": 0.002970468,
-                "dy": 0.0
+                "__class__": "Translation",
+                "shift_x": 0.002970468,
+                "shift_y": 0.0
             },
             "mbrb.5l4.b1..1_2": {
                 "__class__": "Multipole",
@@ -37872,18 +37872,18 @@
                 ]
             },
             "mbrb.5l4.b1..1_postshift_2": {
-                "__class__": "XYShift",
-                "dx": -0.002970468,
-                "dy": -0.0
+                "__class__": "Translation",
+                "shift_x": -0.002970468,
+                "shift_y": -0.0
             },
             "drift_875_2": {
                 "__class__": "Drift",
                 "length": 2.52
             },
             "mbrb.5l4.b1..1_preshift_3": {
-                "__class__": "XYShift",
-                "dx": 0.005940799,
-                "dy": 0.0
+                "__class__": "Translation",
+                "shift_x": 0.005940799,
+                "shift_y": 0.0
             },
             "mbrb.5l4.b1..1_3": {
                 "__class__": "Multipole",
@@ -37929,18 +37929,18 @@
                 ]
             },
             "mbrb.5l4.b1..1_postshift_3": {
-                "__class__": "XYShift",
-                "dx": -0.005940799,
-                "dy": -0.0
+                "__class__": "Translation",
+                "shift_x": -0.005940799,
+                "shift_y": -0.0
             },
             "drift_877": {
                 "__class__": "Drift",
                 "length": 64.341
             },
             "mbrs.5l4.b1..1_preshift": {
-                "__class__": "XYShift",
-                "dx": -0.002940663,
-                "dy": 0.0
+                "__class__": "Translation",
+                "shift_x": -0.002940663,
+                "shift_y": 0.0
             },
             "mbrs.5l4.b1..1": {
                 "__class__": "Multipole",
@@ -37986,18 +37986,18 @@
                 ]
             },
             "mbrs.5l4.b1..1_postshift": {
-                "__class__": "XYShift",
-                "dx": 0.002940663,
-                "dy": -0.0
+                "__class__": "Translation",
+                "shift_x": 0.002940663,
+                "shift_y": -0.0
             },
             "drift_875_3": {
                 "__class__": "Drift",
                 "length": 2.52
             },
             "mbrs.5l4.b1..1_preshift_1": {
-                "__class__": "XYShift",
-                "dx": 2.966847e-05,
-                "dy": 0.0
+                "__class__": "Translation",
+                "shift_x": 2.966847e-05,
+                "shift_y": 0.0
             },
             "mbrs.5l4.b1..1_1": {
                 "__class__": "Multipole",
@@ -38043,18 +38043,18 @@
                 ]
             },
             "mbrs.5l4.b1..1_postshift_1": {
-                "__class__": "XYShift",
-                "dx": -2.966847e-05,
-                "dy": -0.0
+                "__class__": "Translation",
+                "shift_x": -2.966847e-05,
+                "shift_y": -0.0
             },
             "drift_875_4": {
                 "__class__": "Drift",
                 "length": 2.52
             },
             "mbrs.5l4.b1..1_preshift_2": {
-                "__class__": "XYShift",
-                "dx": 0.002009889,
-                "dy": 0.0
+                "__class__": "Translation",
+                "shift_x": 0.002009889,
+                "shift_y": 0.0
             },
             "mbrs.5l4.b1..1_2": {
                 "__class__": "Multipole",
@@ -38100,18 +38100,18 @@
                 ]
             },
             "mbrs.5l4.b1..1_postshift_2": {
-                "__class__": "XYShift",
-                "dx": -0.002009889,
-                "dy": -0.0
+                "__class__": "Translation",
+                "shift_x": -0.002009889,
+                "shift_y": -0.0
             },
             "drift_875_5": {
                 "__class__": "Drift",
                 "length": 2.52
             },
             "mbrs.5l4.b1..1_preshift_3": {
-                "__class__": "XYShift",
-                "dx": -0.003,
-                "dy": 0.0
+                "__class__": "Translation",
+                "shift_x": -0.003,
+                "shift_y": 0.0
             },
             "mbrs.5l4.b1..1_3": {
                 "__class__": "Multipole",
@@ -38157,9 +38157,9 @@
                 ]
             },
             "mbrs.5l4.b1..1_postshift_3": {
-                "__class__": "XYShift",
-                "dx": 0.003,
-                "dy": -0.0
+                "__class__": "Translation",
+                "shift_x": 0.003,
+                "shift_y": -0.0
             },
             "drift_879": {
                 "__class__": "Drift",
@@ -38169,7 +38169,7 @@
                 "__class__": "Cavity",
                 "voltage": 0.0,
                 "frequency": 200394799.20530927,
-                "lag": 180.0
+                "phase": 3.141592653589793
             },
             "drift_560_4": {
                 "__class__": "Drift",
@@ -38179,7 +38179,7 @@
                 "__class__": "Cavity",
                 "voltage": 0.0,
                 "frequency": 200394799.20530927,
-                "lag": 180.0
+                "phase": 3.141592653589793
             },
             "drift_880": {
                 "__class__": "Drift",
@@ -38189,7 +38189,7 @@
                 "__class__": "Cavity",
                 "voltage": 0.0,
                 "frequency": 200394799.20530927,
-                "lag": 180.0
+                "phase": 3.141592653589793
             },
             "drift_560_5": {
                 "__class__": "Drift",
@@ -38199,7 +38199,7 @@
                 "__class__": "Cavity",
                 "voltage": 0.0,
                 "frequency": 200394799.20530927,
-                "lag": 180.0
+                "phase": 3.141592653589793
             },
             "d_c6t_1018": {
                 "__class__": "Drift",
@@ -38209,7 +38209,7 @@
                 "__class__": "Cavity",
                 "voltage": 2000000.0,
                 "frequency": 400789598.41061854,
-                "lag": 180.0
+                "phase": 3.141592653589793
             },
             "drift_883": {
                 "__class__": "Drift",
@@ -38219,7 +38219,7 @@
                 "__class__": "Cavity",
                 "voltage": 2000000.0,
                 "frequency": 400789598.41061854,
-                "lag": 180.0
+                "phase": 3.141592653589793
             },
             "drift_883_1": {
                 "__class__": "Drift",
@@ -38229,7 +38229,7 @@
                 "__class__": "Cavity",
                 "voltage": 2000000.0,
                 "frequency": 400789598.41061854,
-                "lag": 180.0
+                "phase": 3.141592653589793
             },
             "drift_883_2": {
                 "__class__": "Drift",
@@ -38239,7 +38239,7 @@
                 "__class__": "Cavity",
                 "voltage": 2000000.0,
                 "frequency": 400789598.41061854,
-                "lag": 180.0
+                "phase": 3.141592653589793
             },
             "drift_885": {
                 "__class__": "Drift",
@@ -38257,7 +38257,7 @@
                 "__class__": "Cavity",
                 "voltage": 2000000.0,
                 "frequency": 400789598.41061854,
-                "lag": 180.0
+                "phase": 3.141592653589793
             },
             "drift_883_3": {
                 "__class__": "Drift",
@@ -38267,7 +38267,7 @@
                 "__class__": "Cavity",
                 "voltage": 2000000.0,
                 "frequency": 400789598.41061854,
-                "lag": 180.0
+                "phase": 3.141592653589793
             },
             "drift_883_4": {
                 "__class__": "Drift",
@@ -38277,7 +38277,7 @@
                 "__class__": "Cavity",
                 "voltage": 2000000.0,
                 "frequency": 400789598.41061854,
-                "lag": 180.0
+                "phase": 3.141592653589793
             },
             "drift_883_5": {
                 "__class__": "Drift",
@@ -38287,16 +38287,16 @@
                 "__class__": "Cavity",
                 "voltage": 2000000.0,
                 "frequency": 400789598.41061854,
-                "lag": 180.0
+                "phase": 3.141592653589793
             },
             "d_c6t_1019": {
                 "__class__": "Drift",
                 "length": 33.925
             },
             "mbrs.5l4.b1..1_preshift_4": {
-                "__class__": "XYShift",
-                "dx": -0.003,
-                "dy": 0.0
+                "__class__": "Translation",
+                "shift_x": -0.003,
+                "shift_y": 0.0
             },
             "mbrs.5l4.b1..1_4": {
                 "__class__": "Multipole",
@@ -38342,18 +38342,18 @@
                 ]
             },
             "mbrs.5l4.b1..1_postshift_4": {
-                "__class__": "XYShift",
-                "dx": 0.003,
-                "dy": -0.0
+                "__class__": "Translation",
+                "shift_x": 0.003,
+                "shift_y": -0.0
             },
             "drift_875_6": {
                 "__class__": "Drift",
                 "length": 2.52
             },
             "mbrs.5l4.b1..1_preshift_5": {
-                "__class__": "XYShift",
-                "dx": 0.002009889,
-                "dy": 0.0
+                "__class__": "Translation",
+                "shift_x": 0.002009889,
+                "shift_y": 0.0
             },
             "mbrs.5l4.b1..1_5": {
                 "__class__": "Multipole",
@@ -38399,18 +38399,18 @@
                 ]
             },
             "mbrs.5l4.b1..1_postshift_5": {
-                "__class__": "XYShift",
-                "dx": -0.002009889,
-                "dy": -0.0
+                "__class__": "Translation",
+                "shift_x": -0.002009889,
+                "shift_y": -0.0
             },
             "drift_875_7": {
                 "__class__": "Drift",
                 "length": 2.52
             },
             "mbrs.5l4.b1..1_preshift_6": {
-                "__class__": "XYShift",
-                "dx": 2.966847e-05,
-                "dy": 0.0
+                "__class__": "Translation",
+                "shift_x": 2.966847e-05,
+                "shift_y": 0.0
             },
             "mbrs.5l4.b1..1_6": {
                 "__class__": "Multipole",
@@ -38456,18 +38456,18 @@
                 ]
             },
             "mbrs.5l4.b1..1_postshift_6": {
-                "__class__": "XYShift",
-                "dx": -2.966847e-05,
-                "dy": -0.0
+                "__class__": "Translation",
+                "shift_x": -2.966847e-05,
+                "shift_y": -0.0
             },
             "drift_875_8": {
                 "__class__": "Drift",
                 "length": 2.52
             },
             "mbrs.5l4.b1..1_preshift_7": {
-                "__class__": "XYShift",
-                "dx": -0.002940663,
-                "dy": 0.0
+                "__class__": "Translation",
+                "shift_x": -0.002940663,
+                "shift_y": 0.0
             },
             "mbrs.5l4.b1..1_7": {
                 "__class__": "Multipole",
@@ -38513,18 +38513,18 @@
                 ]
             },
             "mbrs.5l4.b1..1_postshift_7": {
-                "__class__": "XYShift",
-                "dx": 0.002940663,
-                "dy": -0.0
+                "__class__": "Translation",
+                "shift_x": 0.002940663,
+                "shift_y": -0.0
             },
             "drift_877_1": {
                 "__class__": "Drift",
                 "length": 64.341
             },
             "mbrb.5l4.b1..1_preshift_4": {
-                "__class__": "XYShift",
-                "dx": 0.005940799,
-                "dy": 0.0
+                "__class__": "Translation",
+                "shift_x": 0.005940799,
+                "shift_y": 0.0
             },
             "mbrb.5l4.b1..1_4": {
                 "__class__": "Multipole",
@@ -38570,18 +38570,18 @@
                 ]
             },
             "mbrb.5l4.b1..1_postshift_4": {
-                "__class__": "XYShift",
-                "dx": -0.005940799,
-                "dy": -0.0
+                "__class__": "Translation",
+                "shift_x": -0.005940799,
+                "shift_y": -0.0
             },
             "drift_875_9": {
                 "__class__": "Drift",
                 "length": 2.52
             },
             "mbrb.5l4.b1..1_preshift_5": {
-                "__class__": "XYShift",
-                "dx": 0.002970468,
-                "dy": 0.0
+                "__class__": "Translation",
+                "shift_x": 0.002970468,
+                "shift_y": 0.0
             },
             "mbrb.5l4.b1..1_5": {
                 "__class__": "Multipole",
@@ -38627,18 +38627,18 @@
                 ]
             },
             "mbrb.5l4.b1..1_postshift_5": {
-                "__class__": "XYShift",
-                "dx": -0.002970468,
-                "dy": -0.0
+                "__class__": "Translation",
+                "shift_x": -0.002970468,
+                "shift_y": -0.0
             },
             "drift_875_10": {
                 "__class__": "Drift",
                 "length": 2.52
             },
             "mbrb.5l4.b1..1_preshift_6": {
-                "__class__": "XYShift",
-                "dx": 0.0009902471000000001,
-                "dy": 0.0
+                "__class__": "Translation",
+                "shift_x": 0.0009902471000000001,
+                "shift_y": 0.0
             },
             "mbrb.5l4.b1..1_6": {
                 "__class__": "Multipole",
@@ -38684,18 +38684,18 @@
                 ]
             },
             "mbrb.5l4.b1..1_postshift_6": {
-                "__class__": "XYShift",
-                "dx": -0.0009902471000000001,
-                "dy": -0.0
+                "__class__": "Translation",
+                "shift_x": -0.0009902471000000001,
+                "shift_y": -0.0
             },
             "drift_875_11": {
                 "__class__": "Drift",
                 "length": 2.52
             },
             "mbrb.5l4.b1..1_preshift_7": {
-                "__class__": "XYShift",
-                "dx": 1.364951e-07,
-                "dy": 0.0
+                "__class__": "Translation",
+                "shift_x": 1.364951e-07,
+                "shift_y": 0.0
             },
             "mbrb.5l4.b1..1_7": {
                 "__class__": "Multipole",
@@ -38741,9 +38741,9 @@
                 ]
             },
             "mbrb.5l4.b1..1_postshift_7": {
-                "__class__": "XYShift",
-                "dx": -1.364951e-07,
-                "dy": -0.0
+                "__class__": "Translation",
+                "shift_x": -1.364951e-07,
+                "shift_y": -0.0
             },
             "d_c6t_1015_1": {
                 "__class__": "Drift",
@@ -73362,9 +73362,9 @@
                 "length": 2.759
             },
             "mbrc.4l5.b1..1_preshift": {
-                "__class__": "XYShift",
-                "dx": 0.00299994,
-                "dy": 0.0
+                "__class__": "Translation",
+                "shift_x": 0.00299994,
+                "shift_y": 0.0
             },
             "mbrc.4l5.b1..1": {
                 "__class__": "Multipole",
@@ -73410,18 +73410,18 @@
                 ]
             },
             "mbrc.4l5.b1..1_postshift": {
-                "__class__": "XYShift",
-                "dx": -0.00299994,
-                "dy": -0.0
+                "__class__": "Translation",
+                "shift_x": -0.00299994,
+                "shift_y": -0.0
             },
             "drift_875_12": {
                 "__class__": "Drift",
                 "length": 2.52
             },
             "mbrc.4l5.b1..1_preshift_1": {
-                "__class__": "XYShift",
-                "dx": 0.00228864,
-                "dy": 0.0
+                "__class__": "Translation",
+                "shift_x": 0.00228864,
+                "shift_y": 0.0
             },
             "mbrc.4l5.b1..1_1": {
                 "__class__": "Multipole",
@@ -73467,18 +73467,18 @@
                 ]
             },
             "mbrc.4l5.b1..1_postshift_1": {
-                "__class__": "XYShift",
-                "dx": -0.00228864,
-                "dy": -0.0
+                "__class__": "Translation",
+                "shift_x": -0.00228864,
+                "shift_y": -0.0
             },
             "drift_875_13": {
                 "__class__": "Drift",
                 "length": 2.52
             },
             "mbrc.4l5.b1..1_preshift_2": {
-                "__class__": "XYShift",
-                "dx": 0.0008660383000000001,
-                "dy": 0.0
+                "__class__": "Translation",
+                "shift_x": 0.0008660383000000001,
+                "shift_y": 0.0
             },
             "mbrc.4l5.b1..1_2": {
                 "__class__": "Multipole",
@@ -73524,18 +73524,18 @@
                 ]
             },
             "mbrc.4l5.b1..1_postshift_2": {
-                "__class__": "XYShift",
-                "dx": -0.0008660383000000001,
-                "dy": -0.0
+                "__class__": "Translation",
+                "shift_x": -0.0008660383000000001,
+                "shift_y": -0.0
             },
             "drift_875_14": {
                 "__class__": "Drift",
                 "length": 2.52
             },
             "mbrc.4l5.b1..1_preshift_3": {
-                "__class__": "XYShift",
-                "dx": -0.001267863,
-                "dy": 0.0
+                "__class__": "Translation",
+                "shift_x": -0.001267863,
+                "shift_y": 0.0
             },
             "mbrc.4l5.b1..1_3": {
                 "__class__": "Multipole",
@@ -73581,9 +73581,9 @@
                 ]
             },
             "mbrc.4l5.b1..1_postshift_3": {
-                "__class__": "XYShift",
-                "dx": 0.001267863,
-                "dy": -0.0
+                "__class__": "Translation",
+                "shift_x": 0.001267863,
+                "shift_y": -0.0
             },
             "d_c6t_1378": {
                 "__class__": "Drift",
@@ -73614,9 +73614,9 @@
                 "length": 60.098
             },
             "mbxw.f4l5_preshift": {
-                "__class__": "XYShift",
-                "dx": 0.0120413,
-                "dy": 0.0
+                "__class__": "Translation",
+                "shift_x": 0.0120413,
+                "shift_y": 0.0
             },
             "mbxw.f4l5": {
                 "__class__": "Multipole",
@@ -73662,18 +73662,18 @@
                 ]
             },
             "mbxw.f4l5_postshift": {
-                "__class__": "XYShift",
-                "dx": -0.0120413,
-                "dy": -0.0
+                "__class__": "Translation",
+                "shift_x": -0.0120413,
+                "shift_y": -0.0
             },
             "drift_954": {
                 "__class__": "Drift",
                 "length": 4.266
             },
             "mbxw.f4l5_preshift_1": {
-                "__class__": "XYShift",
-                "dx": 0.008027536,
-                "dy": 0.0
+                "__class__": "Translation",
+                "shift_x": 0.008027536,
+                "shift_y": 0.0
             },
             "mbxw.f4l5_1": {
                 "__class__": "Multipole",
@@ -73719,18 +73719,18 @@
                 ]
             },
             "mbxw.f4l5_postshift_1": {
-                "__class__": "XYShift",
-                "dx": -0.008027536,
-                "dy": -0.0
+                "__class__": "Translation",
+                "shift_x": -0.008027536,
+                "shift_y": -0.0
             },
             "drift_954_1": {
                 "__class__": "Drift",
                 "length": 4.266
             },
             "mbxw.f4l5_preshift_2": {
-                "__class__": "XYShift",
-                "dx": 0.004816521,
-                "dy": 0.0
+                "__class__": "Translation",
+                "shift_x": 0.004816521,
+                "shift_y": 0.0
             },
             "mbxw.f4l5_2": {
                 "__class__": "Multipole",
@@ -73776,18 +73776,18 @@
                 ]
             },
             "mbxw.f4l5_postshift_2": {
-                "__class__": "XYShift",
-                "dx": -0.004816521,
-                "dy": -0.0
+                "__class__": "Translation",
+                "shift_x": -0.004816521,
+                "shift_y": -0.0
             },
             "drift_954_2": {
                 "__class__": "Drift",
                 "length": 4.266
             },
             "mbxw.f4l5_preshift_3": {
-                "__class__": "XYShift",
-                "dx": 0.002408261,
-                "dy": 0.0
+                "__class__": "Translation",
+                "shift_x": 0.002408261,
+                "shift_y": 0.0
             },
             "mbxw.f4l5_3": {
                 "__class__": "Multipole",
@@ -73833,18 +73833,18 @@
                 ]
             },
             "mbxw.f4l5_postshift_3": {
-                "__class__": "XYShift",
-                "dx": -0.002408261,
-                "dy": -0.0
+                "__class__": "Translation",
+                "shift_x": -0.002408261,
+                "shift_y": -0.0
             },
             "drift_954_3": {
                 "__class__": "Drift",
                 "length": 4.266
             },
             "mbxw.f4l5_preshift_4": {
-                "__class__": "XYShift",
-                "dx": 0.0008027536,
-                "dy": 0.0
+                "__class__": "Translation",
+                "shift_x": 0.0008027536,
+                "shift_y": 0.0
             },
             "mbxw.f4l5_4": {
                 "__class__": "Multipole",
@@ -73890,18 +73890,18 @@
                 ]
             },
             "mbxw.f4l5_postshift_4": {
-                "__class__": "XYShift",
-                "dx": -0.0008027536,
-                "dy": -0.0
+                "__class__": "Translation",
+                "shift_x": -0.0008027536,
+                "shift_y": -0.0
             },
             "drift_954_4": {
                 "__class__": "Drift",
                 "length": 4.266
             },
             "mbxw.f4l5_preshift_5": {
-                "__class__": "XYShift",
-                "dx": -7.183599e-14,
-                "dy": 0.0
+                "__class__": "Translation",
+                "shift_x": -7.183599e-14,
+                "shift_y": 0.0
             },
             "mbxw.f4l5_5": {
                 "__class__": "Multipole",
@@ -73947,9 +73947,9 @@
                 ]
             },
             "mbxw.f4l5_postshift_5": {
-                "__class__": "XYShift",
-                "dx": 7.183599e-14,
-                "dy": -0.0
+                "__class__": "Translation",
+                "shift_x": 7.183599e-14,
+                "shift_y": -0.0
             },
             "d_c6t_1380": {
                 "__class__": "Drift",
@@ -82498,9 +82498,9 @@
                 "length": 7.025
             },
             "mbxw.a4r5_preshift": {
-                "__class__": "XYShift",
-                "dx": 7.183599e-14,
-                "dy": 0.0
+                "__class__": "Translation",
+                "shift_x": 7.183599e-14,
+                "shift_y": 0.0
             },
             "mbxw.a4r5": {
                 "__class__": "Multipole",
@@ -82546,18 +82546,18 @@
                 ]
             },
             "mbxw.a4r5_postshift": {
-                "__class__": "XYShift",
-                "dx": -7.183599e-14,
-                "dy": -0.0
+                "__class__": "Translation",
+                "shift_x": -7.183599e-14,
+                "shift_y": -0.0
             },
             "drift_954_5": {
                 "__class__": "Drift",
                 "length": 4.266
             },
             "mbxw.a4r5_preshift_1": {
-                "__class__": "XYShift",
-                "dx": -0.0008027536,
-                "dy": 0.0
+                "__class__": "Translation",
+                "shift_x": -0.0008027536,
+                "shift_y": 0.0
             },
             "mbxw.a4r5_1": {
                 "__class__": "Multipole",
@@ -82603,18 +82603,18 @@
                 ]
             },
             "mbxw.a4r5_postshift_1": {
-                "__class__": "XYShift",
-                "dx": 0.0008027536,
-                "dy": -0.0
+                "__class__": "Translation",
+                "shift_x": 0.0008027536,
+                "shift_y": -0.0
             },
             "drift_954_6": {
                 "__class__": "Drift",
                 "length": 4.266
             },
             "mbxw.a4r5_preshift_2": {
-                "__class__": "XYShift",
-                "dx": -0.002408261,
-                "dy": 0.0
+                "__class__": "Translation",
+                "shift_x": -0.002408261,
+                "shift_y": 0.0
             },
             "mbxw.a4r5_2": {
                 "__class__": "Multipole",
@@ -82660,18 +82660,18 @@
                 ]
             },
             "mbxw.a4r5_postshift_2": {
-                "__class__": "XYShift",
-                "dx": 0.002408261,
-                "dy": -0.0
+                "__class__": "Translation",
+                "shift_x": 0.002408261,
+                "shift_y": -0.0
             },
             "drift_954_7": {
                 "__class__": "Drift",
                 "length": 4.266
             },
             "mbxw.a4r5_preshift_3": {
-                "__class__": "XYShift",
-                "dx": -0.004816521,
-                "dy": 0.0
+                "__class__": "Translation",
+                "shift_x": -0.004816521,
+                "shift_y": 0.0
             },
             "mbxw.a4r5_3": {
                 "__class__": "Multipole",
@@ -82717,18 +82717,18 @@
                 ]
             },
             "mbxw.a4r5_postshift_3": {
-                "__class__": "XYShift",
-                "dx": 0.004816521,
-                "dy": -0.0
+                "__class__": "Translation",
+                "shift_x": 0.004816521,
+                "shift_y": -0.0
             },
             "drift_954_8": {
                 "__class__": "Drift",
                 "length": 4.266
             },
             "mbxw.a4r5_preshift_4": {
-                "__class__": "XYShift",
-                "dx": -0.008027536,
-                "dy": 0.0
+                "__class__": "Translation",
+                "shift_x": -0.008027536,
+                "shift_y": 0.0
             },
             "mbxw.a4r5_4": {
                 "__class__": "Multipole",
@@ -82774,18 +82774,18 @@
                 ]
             },
             "mbxw.a4r5_postshift_4": {
-                "__class__": "XYShift",
-                "dx": 0.008027536,
-                "dy": -0.0
+                "__class__": "Translation",
+                "shift_x": 0.008027536,
+                "shift_y": -0.0
             },
             "drift_954_9": {
                 "__class__": "Drift",
                 "length": 4.266
             },
             "mbxw.a4r5_preshift_5": {
-                "__class__": "XYShift",
-                "dx": -0.0120413,
-                "dy": 0.0
+                "__class__": "Translation",
+                "shift_x": -0.0120413,
+                "shift_y": 0.0
             },
             "mbxw.a4r5_5": {
                 "__class__": "Multipole",
@@ -82831,9 +82831,9 @@
                 ]
             },
             "mbxw.a4r5_postshift_5": {
-                "__class__": "XYShift",
-                "dx": 0.0120413,
-                "dy": -0.0
+                "__class__": "Translation",
+                "shift_x": 0.0120413,
+                "shift_y": -0.0
             },
             "d_c6t_1379_1": {
                 "__class__": "Drift",
@@ -82880,9 +82880,9 @@
                 "length": 3.644
             },
             "mbrc.4r5.b1..1_preshift": {
-                "__class__": "XYShift",
-                "dx": 0.001267863,
-                "dy": 0.0
+                "__class__": "Translation",
+                "shift_x": 0.001267863,
+                "shift_y": 0.0
             },
             "mbrc.4r5.b1..1": {
                 "__class__": "Multipole",
@@ -82928,18 +82928,18 @@
                 ]
             },
             "mbrc.4r5.b1..1_postshift": {
-                "__class__": "XYShift",
-                "dx": -0.001267863,
-                "dy": -0.0
+                "__class__": "Translation",
+                "shift_x": -0.001267863,
+                "shift_y": -0.0
             },
             "drift_875_15": {
                 "__class__": "Drift",
                 "length": 2.52
             },
             "mbrc.4r5.b1..1_preshift_1": {
-                "__class__": "XYShift",
-                "dx": -0.0008660383000000001,
-                "dy": 0.0
+                "__class__": "Translation",
+                "shift_x": -0.0008660383000000001,
+                "shift_y": 0.0
             },
             "mbrc.4r5.b1..1_1": {
                 "__class__": "Multipole",
@@ -82985,18 +82985,18 @@
                 ]
             },
             "mbrc.4r5.b1..1_postshift_1": {
-                "__class__": "XYShift",
-                "dx": 0.0008660383000000001,
-                "dy": -0.0
+                "__class__": "Translation",
+                "shift_x": 0.0008660383000000001,
+                "shift_y": -0.0
             },
             "drift_875_16": {
                 "__class__": "Drift",
                 "length": 2.52
             },
             "mbrc.4r5.b1..1_preshift_2": {
-                "__class__": "XYShift",
-                "dx": -0.00228864,
-                "dy": 0.0
+                "__class__": "Translation",
+                "shift_x": -0.00228864,
+                "shift_y": 0.0
             },
             "mbrc.4r5.b1..1_2": {
                 "__class__": "Multipole",
@@ -83042,18 +83042,18 @@
                 ]
             },
             "mbrc.4r5.b1..1_postshift_2": {
-                "__class__": "XYShift",
-                "dx": 0.00228864,
-                "dy": -0.0
+                "__class__": "Translation",
+                "shift_x": 0.00228864,
+                "shift_y": -0.0
             },
             "drift_875_17": {
                 "__class__": "Drift",
                 "length": 2.52
             },
             "mbrc.4r5.b1..1_preshift_3": {
-                "__class__": "XYShift",
-                "dx": -0.00299994,
-                "dy": 0.0
+                "__class__": "Translation",
+                "shift_x": -0.00299994,
+                "shift_y": 0.0
             },
             "mbrc.4r5.b1..1_3": {
                 "__class__": "Multipole",
@@ -83099,9 +83099,9 @@
                 ]
             },
             "mbrc.4r5.b1..1_postshift_3": {
-                "__class__": "XYShift",
-                "dx": 0.00299994,
-                "dy": -0.0
+                "__class__": "Translation",
+                "shift_x": 0.00299994,
+                "shift_y": -0.0
             },
             "drift_946_1": {
                 "__class__": "Drift",
@@ -194087,9 +194087,9 @@
                 "length": 2.767
             },
             "mbrc.4l8.b1..1_preshift": {
-                "__class__": "XYShift",
-                "dx": -0.002999889,
-                "dy": 0.0
+                "__class__": "Translation",
+                "shift_x": -0.002999889,
+                "shift_y": 0.0
             },
             "mbrc.4l8.b1..1": {
                 "__class__": "Multipole",
@@ -194135,18 +194135,18 @@
                 ]
             },
             "mbrc.4l8.b1..1_postshift": {
-                "__class__": "XYShift",
-                "dx": 0.002999889,
-                "dy": -0.0
+                "__class__": "Translation",
+                "shift_x": 0.002999889,
+                "shift_y": -0.0
             },
             "drift_875_18": {
                 "__class__": "Drift",
                 "length": 2.52
             },
             "mbrc.4l8.b1..1_preshift_1": {
-                "__class__": "XYShift",
-                "dx": -0.002034411,
-                "dy": 0.0
+                "__class__": "Translation",
+                "shift_x": -0.002034411,
+                "shift_y": 0.0
             },
             "mbrc.4l8.b1..1_1": {
                 "__class__": "Multipole",
@@ -194192,18 +194192,18 @@
                 ]
             },
             "mbrc.4l8.b1..1_postshift_1": {
-                "__class__": "XYShift",
-                "dx": 0.002034411,
-                "dy": -0.0
+                "__class__": "Translation",
+                "shift_x": 0.002034411,
+                "shift_y": -0.0
             },
             "drift_875_19": {
                 "__class__": "Drift",
                 "length": 2.52
             },
             "mbrc.4l8.b1..1_preshift_2": {
-                "__class__": "XYShift",
-                "dx": -0.0001034541,
-                "dy": 0.0
+                "__class__": "Translation",
+                "shift_x": -0.0001034541,
+                "shift_y": 0.0
             },
             "mbrc.4l8.b1..1_2": {
                 "__class__": "Multipole",
@@ -194249,18 +194249,18 @@
                 ]
             },
             "mbrc.4l8.b1..1_postshift_2": {
-                "__class__": "XYShift",
-                "dx": 0.0001034541,
-                "dy": -0.0
+                "__class__": "Translation",
+                "shift_x": 0.0001034541,
+                "shift_y": -0.0
             },
             "drift_875_20": {
                 "__class__": "Drift",
                 "length": 2.52
             },
             "mbrc.4l8.b1..1_preshift_3": {
-                "__class__": "XYShift",
-                "dx": 0.00279298,
-                "dy": 0.0
+                "__class__": "Translation",
+                "shift_x": 0.00279298,
+                "shift_y": 0.0
             },
             "mbrc.4l8.b1..1_3": {
                 "__class__": "Multipole",
@@ -194306,9 +194306,9 @@
                 ]
             },
             "mbrc.4l8.b1..1_postshift_3": {
-                "__class__": "XYShift",
-                "dx": -0.00279298,
-                "dy": -0.0
+                "__class__": "Translation",
+                "shift_x": -0.00279298,
+                "shift_y": -0.0
             },
             "d_c6t_2513": {
                 "__class__": "Drift",
@@ -194339,9 +194339,9 @@
                 "length": 6.86
             },
             "mbx.4l8..1_preshift": {
-                "__class__": "XYShift",
-                "dx": -0.005792869,
-                "dy": 0.0
+                "__class__": "Translation",
+                "shift_x": -0.005792869,
+                "shift_y": 0.0
             },
             "mbx.4l8..1": {
                 "__class__": "Multipole",
@@ -194387,18 +194387,18 @@
                 ]
             },
             "mbx.4l8..1_postshift": {
-                "__class__": "XYShift",
-                "dx": 0.005792869,
-                "dy": -0.0
+                "__class__": "Translation",
+                "shift_x": 0.005792869,
+                "shift_y": -0.0
             },
             "drift_875_21": {
                 "__class__": "Drift",
                 "length": 2.52
             },
             "mbx.4l8..1_preshift_1": {
-                "__class__": "XYShift",
-                "dx": -0.0028964349999999997,
-                "dy": 0.0
+                "__class__": "Translation",
+                "shift_x": -0.0028964349999999997,
+                "shift_y": 0.0
             },
             "mbx.4l8..1_1": {
                 "__class__": "Multipole",
@@ -194444,18 +194444,18 @@
                 ]
             },
             "mbx.4l8..1_postshift_1": {
-                "__class__": "XYShift",
-                "dx": 0.0028964349999999997,
-                "dy": -0.0
+                "__class__": "Translation",
+                "shift_x": 0.0028964349999999997,
+                "shift_y": -0.0
             },
             "drift_875_22": {
                 "__class__": "Drift",
                 "length": 2.52
             },
             "mbx.4l8..1_preshift_2": {
-                "__class__": "XYShift",
-                "dx": -0.0009654783000000001,
-                "dy": 0.0
+                "__class__": "Translation",
+                "shift_x": -0.0009654783000000001,
+                "shift_y": 0.0
             },
             "mbx.4l8..1_2": {
                 "__class__": "Multipole",
@@ -194501,18 +194501,18 @@
                 ]
             },
             "mbx.4l8..1_postshift_2": {
-                "__class__": "XYShift",
-                "dx": 0.0009654783000000001,
-                "dy": -0.0
+                "__class__": "Translation",
+                "shift_x": 0.0009654783000000001,
+                "shift_y": -0.0
             },
             "drift_875_23": {
                 "__class__": "Drift",
                 "length": 2.52
             },
             "mbx.4l8..1_preshift_3": {
-                "__class__": "XYShift",
-                "dx": 8.565593e-12,
-                "dy": 0.0
+                "__class__": "Translation",
+                "shift_x": 8.565593e-12,
+                "shift_y": 0.0
             },
             "mbx.4l8..1_3": {
                 "__class__": "Multipole",
@@ -194558,9 +194558,9 @@
                 ]
             },
             "mbx.4l8..1_postshift_3": {
-                "__class__": "XYShift",
-                "dx": -8.565593e-12,
-                "dy": -0.0
+                "__class__": "Translation",
+                "shift_x": -8.565593e-12,
+                "shift_y": -0.0
             },
             "d_c6t_2517": {
                 "__class__": "Drift",
@@ -198701,10 +198701,8 @@
                 "length": 2.3990625
             },
             "mbxws.1l8_pretilt": {
-                "__class__": "SRotation",
-                "cos_z": 0.9999101428713411,
-                "sin_z": 0.013405453480381444,
-                "angle": 0.7680989134102677
+                "__class__": "Rotation",
+                "rot_s_rad": 0.013405855019999998
             },
             "mbxws.1l8": {
                 "__class__": "Multipole",
@@ -198722,20 +198720,16 @@
                 ]
             },
             "mbxws.1l8_posttilt": {
-                "__class__": "SRotation",
-                "cos_z": 0.9999101428713411,
-                "sin_z": -0.013405453480381444,
-                "angle": -0.7680989134102677
+                "__class__": "Rotation",
+                "rot_s_rad": -0.013405855019999998
             },
             "drift_1276": {
                 "__class__": "Drift",
                 "length": 15.515
             },
             "mbxwh.1l8_pretilt": {
-                "__class__": "SRotation",
-                "cos_z": 0.9999101428713411,
-                "sin_z": 0.013405453480381444,
-                "angle": 0.7680989134102677
+                "__class__": "Rotation",
+                "rot_s_rad":0.013405855019999998
             },
             "mbxwh.1l8": {
                 "__class__": "Multipole",
@@ -198753,10 +198747,8 @@
                 ]
             },
             "mbxwh.1l8_posttilt": {
-                "__class__": "SRotation",
-                "cos_z": 0.9999101428713411,
-                "sin_z": -0.013405453480381444,
-                "angle": -0.7680989134102677
+                "__class__": "Rotation",
+                "rot_s_rad": -0.013405855019999998
             },
             "drift_1277": {
                 "__class__": "Drift",
@@ -198771,10 +198763,8 @@
                 "length": 5.25
             },
             "mblw.1r8_pretilt": {
-                "__class__": "SRotation",
-                "cos_z": 0.9999101428713411,
-                "sin_z": 0.013405453480381444,
-                "angle": 0.7680989134102677
+                "__class__": "Rotation",
+                "rot_s_rad": 0.013405855019999998
             },
             "mblw.1r8": {
                 "__class__": "Multipole",
@@ -198792,20 +198782,16 @@
                 ]
             },
             "mblw.1r8_posttilt": {
-                "__class__": "SRotation",
-                "cos_z": 0.9999101428713411,
-                "sin_z": -0.013405453480381444,
-                "angle": -0.7680989134102677
+                "__class__": "Rotation",
+                "rot_s_rad": -0.013405855019999998
             },
             "drift_1276_1": {
                 "__class__": "Drift",
                 "length": 15.515
             },
             "mbxws.1r8_pretilt": {
-                "__class__": "SRotation",
-                "cos_z": 0.9999101428713411,
-                "sin_z": 0.013405453480381444,
-                "angle": 0.7680989134102677
+                "__class__": "Rotation",
+                "rot_s_rad": 0.013405855019999998
             },
             "mbxws.1r8": {
                 "__class__": "Multipole",
@@ -198823,10 +198809,8 @@
                 ]
             },
             "mbxws.1r8_posttilt": {
-                "__class__": "SRotation",
-                "cos_z": 0.9999101428713411,
-                "sin_z": -0.013405453480381444,
-                "angle": -0.7680989134102677
+                "__class__": "Rotation",
+                "rot_s_rad": -0.013405855019999998
             },
             "d_c6t_2524_1": {
                 "__class__": "Drift",
@@ -202967,9 +202951,9 @@
                 "length": 5.514
             },
             "mbrc.4l8.b1..1_preshift_4": {
-                "__class__": "XYShift",
-                "dx": -8.565593e-12,
-                "dy": 0.0
+                "__class__": "Translation",
+                "shift_x": -8.565593e-12,
+                "shift_y": 0.0
             },
             "mbrc.4l8.b1..1_4": {
                 "__class__": "Multipole",
@@ -203015,18 +202999,18 @@
                 ]
             },
             "mbrc.4l8.b1..1_postshift_4": {
-                "__class__": "XYShift",
-                "dx": 8.565593e-12,
-                "dy": -0.0
+                "__class__": "Translation",
+                "shift_x": 8.565593e-12,
+                "shift_y": -0.0
             },
             "drift_875_24": {
                 "__class__": "Drift",
                 "length": 2.52
             },
             "mbrc.4l8.b1..1_preshift_5": {
-                "__class__": "XYShift",
-                "dx": 0.0009654783000000001,
-                "dy": 0.0
+                "__class__": "Translation",
+                "shift_x": 0.0009654783000000001,
+                "shift_y": 0.0
             },
             "mbrc.4l8.b1..1_5": {
                 "__class__": "Multipole",
@@ -203072,18 +203056,18 @@
                 ]
             },
             "mbrc.4l8.b1..1_postshift_5": {
-                "__class__": "XYShift",
-                "dx": -0.0009654783000000001,
-                "dy": -0.0
+                "__class__": "Translation",
+                "shift_x": -0.0009654783000000001,
+                "shift_y": -0.0
             },
             "drift_875_25": {
                 "__class__": "Drift",
                 "length": 2.52
             },
             "mbrc.4l8.b1..1_preshift_6": {
-                "__class__": "XYShift",
-                "dx": 0.0028964349999999997,
-                "dy": 0.0
+                "__class__": "Translation",
+                "shift_x": 0.0028964349999999997,
+                "shift_y": 0.0
             },
             "mbrc.4l8.b1..1_6": {
                 "__class__": "Multipole",
@@ -203129,18 +203113,18 @@
                 ]
             },
             "mbrc.4l8.b1..1_postshift_6": {
-                "__class__": "XYShift",
-                "dx": -0.0028964349999999997,
-                "dy": -0.0
+                "__class__": "Translation",
+                "shift_x": -0.0028964349999999997,
+                "shift_y": -0.0
             },
             "drift_875_26": {
                 "__class__": "Drift",
                 "length": 2.52
             },
             "mbrc.4l8.b1..1_preshift_7": {
-                "__class__": "XYShift",
-                "dx": 0.005792869,
-                "dy": 0.0
+                "__class__": "Translation",
+                "shift_x": 0.005792869,
+                "shift_y": 0.0
             },
             "mbrc.4l8.b1..1_7": {
                 "__class__": "Multipole",
@@ -203186,9 +203170,9 @@
                 ]
             },
             "mbrc.4l8.b1..1_postshift_7": {
-                "__class__": "XYShift",
-                "dx": -0.005792869,
-                "dy": -0.0
+                "__class__": "Translation",
+                "shift_x": -0.005792869,
+                "shift_y": -0.0
             },
             "d_c6t_2534": {
                 "__class__": "Drift",
@@ -203211,9 +203195,9 @@
                 "length": 48.875
             },
             "mbx.4l8..1_preshift_4": {
-                "__class__": "XYShift",
-                "dx": -0.00279298,
-                "dy": 0.0
+                "__class__": "Translation",
+                "shift_x": -0.00279298,
+                "shift_y": 0.0
             },
             "mbx.4l8..1_4": {
                 "__class__": "Multipole",
@@ -203259,18 +203243,18 @@
                 ]
             },
             "mbx.4l8..1_postshift_4": {
-                "__class__": "XYShift",
-                "dx": 0.00279298,
-                "dy": -0.0
+                "__class__": "Translation",
+                "shift_x": 0.00279298,
+                "shift_y": -0.0
             },
             "drift_875_27": {
                 "__class__": "Drift",
                 "length": 2.52
             },
             "mbx.4l8..1_preshift_5": {
-                "__class__": "XYShift",
-                "dx": 0.0001034541,
-                "dy": 0.0
+                "__class__": "Translation",
+                "shift_x": 0.0001034541,
+                "shift_y": 0.0
             },
             "mbx.4l8..1_5": {
                 "__class__": "Multipole",
@@ -203316,18 +203300,18 @@
                 ]
             },
             "mbx.4l8..1_postshift_5": {
-                "__class__": "XYShift",
-                "dx": -0.0001034541,
-                "dy": -0.0
+                "__class__": "Translation",
+                "shift_x": -0.0001034541,
+                "shift_y": -0.0
             },
             "drift_875_28": {
                 "__class__": "Drift",
                 "length": 2.52
             },
             "mbx.4l8..1_preshift_6": {
-                "__class__": "XYShift",
-                "dx": 0.002034411,
-                "dy": 0.0
+                "__class__": "Translation",
+                "shift_x": 0.002034411,
+                "shift_y": 0.0
             },
             "mbx.4l8..1_6": {
                 "__class__": "Multipole",
@@ -203373,18 +203357,18 @@
                 ]
             },
             "mbx.4l8..1_postshift_6": {
-                "__class__": "XYShift",
-                "dx": -0.002034411,
-                "dy": -0.0
+                "__class__": "Translation",
+                "shift_x": -0.002034411,
+                "shift_y": -0.0
             },
             "drift_875_29": {
                 "__class__": "Drift",
                 "length": 2.52
             },
             "mbx.4l8..1_preshift_7": {
-                "__class__": "XYShift",
-                "dx": 0.002999889,
-                "dy": 0.0
+                "__class__": "Translation",
+                "shift_x": 0.002999889,
+                "shift_y": 0.0
             },
             "mbx.4l8..1_7": {
                 "__class__": "Multipole",
@@ -203430,9 +203414,9 @@
                 ]
             },
             "mbx.4l8..1_postshift_7": {
-                "__class__": "XYShift",
-                "dx": -0.002999889,
-                "dy": -0.0
+                "__class__": "Translation",
+                "shift_x": -0.002999889,
+                "shift_y": -0.0
             },
             "drift_1260_1": {
                 "__class__": "Drift",
@@ -239287,9 +239271,9 @@
                 "length": 2.759
             },
             "mbrc.4l5.b1..1_preshift_4": {
-                "__class__": "XYShift",
-                "dx": 0.00299994,
-                "dy": 0.0
+                "__class__": "Translation",
+                "shift_x": 0.00299994,
+                "shift_y": 0.0
             },
             "mbrc.4l5.b1..1_4": {
                 "__class__": "Multipole",
@@ -239335,18 +239319,18 @@
                 ]
             },
             "mbrc.4l5.b1..1_postshift_4": {
-                "__class__": "XYShift",
-                "dx": -0.00299994,
-                "dy": -0.0
+                "__class__": "Translation",
+                "shift_x": -0.00299994,
+                "shift_y": -0.0
             },
             "drift_875_30": {
                 "__class__": "Drift",
                 "length": 2.52
             },
             "mbrc.4l5.b1..1_preshift_5": {
-                "__class__": "XYShift",
-                "dx": 0.00228864,
-                "dy": 0.0
+                "__class__": "Translation",
+                "shift_x": 0.00228864,
+                "shift_y": 0.0
             },
             "mbrc.4l5.b1..1_5": {
                 "__class__": "Multipole",
@@ -239392,18 +239376,18 @@
                 ]
             },
             "mbrc.4l5.b1..1_postshift_5": {
-                "__class__": "XYShift",
-                "dx": -0.00228864,
-                "dy": -0.0
+                "__class__": "Translation",
+                "shift_x": -0.00228864,
+                "shift_y": -0.0
             },
             "drift_875_31": {
                 "__class__": "Drift",
                 "length": 2.52
             },
             "mbrc.4l5.b1..1_preshift_6": {
-                "__class__": "XYShift",
-                "dx": 0.0008660383000000001,
-                "dy": 0.0
+                "__class__": "Translation",
+                "shift_x": 0.0008660383000000001,
+                "shift_y": 0.0
             },
             "mbrc.4l5.b1..1_6": {
                 "__class__": "Multipole",
@@ -239449,18 +239433,18 @@
                 ]
             },
             "mbrc.4l5.b1..1_postshift_6": {
-                "__class__": "XYShift",
-                "dx": -0.0008660383000000001,
-                "dy": -0.0
+                "__class__": "Translation",
+                "shift_x": -0.0008660383000000001,
+                "shift_y": -0.0
             },
             "drift_875_32": {
                 "__class__": "Drift",
                 "length": 2.52
             },
             "mbrc.4l5.b1..1_preshift_7": {
-                "__class__": "XYShift",
-                "dx": -0.001267863,
-                "dy": 0.0
+                "__class__": "Translation",
+                "shift_x": -0.001267863,
+                "shift_y": 0.0
             },
             "mbrc.4l5.b1..1_7": {
                 "__class__": "Multipole",
@@ -239506,9 +239490,9 @@
                 ]
             },
             "mbrc.4l5.b1..1_postshift_7": {
-                "__class__": "XYShift",
-                "dx": 0.001267863,
-                "dy": -0.0
+                "__class__": "Translation",
+                "shift_x": 0.001267863,
+                "shift_y": -0.0
             },
             "d_c6t_1378_1": {
                 "__class__": "Drift",
@@ -239539,9 +239523,9 @@
                 "length": 60.098
             },
             "mbxw.f4l5_preshift_6": {
-                "__class__": "XYShift",
-                "dx": 0.0120413,
-                "dy": 0.0
+                "__class__": "Translation",
+                "shift_x": 0.0120413,
+                "shift_y": 0.0
             },
             "mbxw.f4l5_6": {
                 "__class__": "Multipole",
@@ -239587,18 +239571,18 @@
                 ]
             },
             "mbxw.f4l5_postshift_6": {
-                "__class__": "XYShift",
-                "dx": -0.0120413,
-                "dy": -0.0
+                "__class__": "Translation",
+                "shift_x": -0.0120413,
+                "shift_y": -0.0
             },
             "drift_954_10": {
                 "__class__": "Drift",
                 "length": 4.266
             },
             "mbxw.f4l5_preshift_7": {
-                "__class__": "XYShift",
-                "dx": 0.008027536,
-                "dy": 0.0
+                "__class__": "Translation",
+                "shift_x": 0.008027536,
+                "shift_y": 0.0
             },
             "mbxw.f4l5_7": {
                 "__class__": "Multipole",
@@ -239644,18 +239628,18 @@
                 ]
             },
             "mbxw.f4l5_postshift_7": {
-                "__class__": "XYShift",
-                "dx": -0.008027536,
-                "dy": -0.0
+                "__class__": "Translation",
+                "shift_x": -0.008027536,
+                "shift_y": -0.0
             },
             "drift_954_11": {
                 "__class__": "Drift",
                 "length": 4.266
             },
             "mbxw.f4l5_preshift_8": {
-                "__class__": "XYShift",
-                "dx": 0.004816521,
-                "dy": 0.0
+                "__class__": "Translation",
+                "shift_x": 0.004816521,
+                "shift_y": 0.0
             },
             "mbxw.f4l5_8": {
                 "__class__": "Multipole",
@@ -239701,18 +239685,18 @@
                 ]
             },
             "mbxw.f4l5_postshift_8": {
-                "__class__": "XYShift",
-                "dx": -0.004816521,
-                "dy": -0.0
+                "__class__": "Translation",
+                "shift_x": -0.004816521,
+                "shift_y": -0.0
             },
             "drift_954_12": {
                 "__class__": "Drift",
                 "length": 4.266
             },
             "mbxw.f4l5_preshift_9": {
-                "__class__": "XYShift",
-                "dx": 0.002408261,
-                "dy": 0.0
+                "__class__": "Translation",
+                "shift_x": 0.002408261,
+                "shift_y": 0.0
             },
             "mbxw.f4l5_9": {
                 "__class__": "Multipole",
@@ -239758,18 +239742,18 @@
                 ]
             },
             "mbxw.f4l5_postshift_9": {
-                "__class__": "XYShift",
-                "dx": -0.002408261,
-                "dy": -0.0
+                "__class__": "Translation",
+                "shift_x": -0.002408261,
+                "shift_y": -0.0
             },
             "drift_954_13": {
                 "__class__": "Drift",
                 "length": 4.266
             },
             "mbxw.f4l5_preshift_10": {
-                "__class__": "XYShift",
-                "dx": 0.0008027536,
-                "dy": 0.0
+                "__class__": "Translation",
+                "shift_x": 0.0008027536,
+                "shift_y": 0.0
             },
             "mbxw.f4l5_10": {
                 "__class__": "Multipole",
@@ -239815,18 +239799,18 @@
                 ]
             },
             "mbxw.f4l5_postshift_10": {
-                "__class__": "XYShift",
-                "dx": -0.0008027536,
-                "dy": -0.0
+                "__class__": "Translation",
+                "shift_x": -0.0008027536,
+                "shift_y": -0.0
             },
             "drift_954_14": {
                 "__class__": "Drift",
                 "length": 4.266
             },
             "mbxw.f4l5_preshift_11": {
-                "__class__": "XYShift",
-                "dx": -1.201944e-13,
-                "dy": 0.0
+                "__class__": "Translation",
+                "shift_x": -1.201944e-13,
+                "shift_y": 0.0
             },
             "mbxw.f4l5_11": {
                 "__class__": "Multipole",
@@ -239872,9 +239856,9 @@
                 ]
             },
             "mbxw.f4l5_postshift_11": {
-                "__class__": "XYShift",
-                "dx": 1.201944e-13,
-                "dy": -0.0
+                "__class__": "Translation",
+                "shift_x": 1.201944e-13,
+                "shift_y": -0.0
             },
             "d_c6t_1380_2": {
                 "__class__": "Drift",
@@ -248427,9 +248411,9 @@
                 "length": 7.025
             },
             "mbxw.a4r5_preshift_6": {
-                "__class__": "XYShift",
-                "dx": 1.201944e-13,
-                "dy": 0.0
+                "__class__": "Translation",
+                "shift_x": 1.201944e-13,
+                "shift_y": 0.0
             },
             "mbxw.a4r5_6": {
                 "__class__": "Multipole",
@@ -248475,18 +248459,18 @@
                 ]
             },
             "mbxw.a4r5_postshift_6": {
-                "__class__": "XYShift",
-                "dx": -1.201944e-13,
-                "dy": -0.0
+                "__class__": "Translation",
+                "shift_x": -1.201944e-13,
+                "shift_y": -0.0
             },
             "drift_954_15": {
                 "__class__": "Drift",
                 "length": 4.266
             },
             "mbxw.a4r5_preshift_7": {
-                "__class__": "XYShift",
-                "dx": -0.0008027536,
-                "dy": 0.0
+                "__class__": "Translation",
+                "shift_x": -0.0008027536,
+                "shift_y": 0.0
             },
             "mbxw.a4r5_7": {
                 "__class__": "Multipole",
@@ -248532,18 +248516,18 @@
                 ]
             },
             "mbxw.a4r5_postshift_7": {
-                "__class__": "XYShift",
-                "dx": 0.0008027536,
-                "dy": -0.0
+                "__class__": "Translation",
+                "shift_x": 0.0008027536,
+                "shift_y": -0.0
             },
             "drift_954_16": {
                 "__class__": "Drift",
                 "length": 4.266
             },
             "mbxw.a4r5_preshift_8": {
-                "__class__": "XYShift",
-                "dx": -0.002408261,
-                "dy": 0.0
+                "__class__": "Translation",
+                "shift_x": -0.002408261,
+                "shift_y": 0.0
             },
             "mbxw.a4r5_8": {
                 "__class__": "Multipole",
@@ -248589,18 +248573,18 @@
                 ]
             },
             "mbxw.a4r5_postshift_8": {
-                "__class__": "XYShift",
-                "dx": 0.002408261,
-                "dy": -0.0
+                "__class__": "Translation",
+                "shift_x": 0.002408261,
+                "shift_y": -0.0
             },
             "drift_954_17": {
                 "__class__": "Drift",
                 "length": 4.266
             },
             "mbxw.a4r5_preshift_9": {
-                "__class__": "XYShift",
-                "dx": -0.004816521,
-                "dy": 0.0
+                "__class__": "Translation",
+                "shift_x": -0.004816521,
+                "shift_y": 0.0
             },
             "mbxw.a4r5_9": {
                 "__class__": "Multipole",
@@ -248646,18 +248630,18 @@
                 ]
             },
             "mbxw.a4r5_postshift_9": {
-                "__class__": "XYShift",
-                "dx": 0.004816521,
-                "dy": -0.0
+                "__class__": "Translation",
+                "shift_x": 0.004816521,
+                "shift_y": -0.0
             },
             "drift_954_18": {
                 "__class__": "Drift",
                 "length": 4.266
             },
             "mbxw.a4r5_preshift_10": {
-                "__class__": "XYShift",
-                "dx": -0.008027536,
-                "dy": 0.0
+                "__class__": "Translation",
+                "shift_x": -0.008027536,
+                "shift_y": 0.0
             },
             "mbxw.a4r5_10": {
                 "__class__": "Multipole",
@@ -248703,18 +248687,18 @@
                 ]
             },
             "mbxw.a4r5_postshift_10": {
-                "__class__": "XYShift",
-                "dx": 0.008027536,
-                "dy": -0.0
+                "__class__": "Translation",
+                "shift_x": 0.008027536,
+                "shift_y": -0.0
             },
             "drift_954_19": {
                 "__class__": "Drift",
                 "length": 4.266
             },
             "mbxw.a4r5_preshift_11": {
-                "__class__": "XYShift",
-                "dx": -0.0120413,
-                "dy": 0.0
+                "__class__": "Translation",
+                "shift_x": -0.0120413,
+                "shift_y": 0.0
             },
             "mbxw.a4r5_11": {
                 "__class__": "Multipole",
@@ -248760,9 +248744,9 @@
                 ]
             },
             "mbxw.a4r5_postshift_11": {
-                "__class__": "XYShift",
-                "dx": 0.0120413,
-                "dy": -0.0
+                "__class__": "Translation",
+                "shift_x": 0.0120413,
+                "shift_y": -0.0
             },
             "d_c6t_1379_3": {
                 "__class__": "Drift",
@@ -248785,9 +248769,9 @@
                 "length": 4.39
             },
             "mbrc.4r5.b1..1_preshift_4": {
-                "__class__": "XYShift",
-                "dx": 0.001267863,
-                "dy": 0.0
+                "__class__": "Translation",
+                "shift_x": 0.001267863,
+                "shift_y": 0.0
             },
             "mbrc.4r5.b1..1_4": {
                 "__class__": "Multipole",
@@ -248833,18 +248817,18 @@
                 ]
             },
             "mbrc.4r5.b1..1_postshift_4": {
-                "__class__": "XYShift",
-                "dx": -0.001267863,
-                "dy": -0.0
+                "__class__": "Translation",
+                "shift_x": -0.001267863,
+                "shift_y": -0.0
             },
             "drift_875_33": {
                 "__class__": "Drift",
                 "length": 2.52
             },
             "mbrc.4r5.b1..1_preshift_5": {
-                "__class__": "XYShift",
-                "dx": -0.0008660383000000001,
-                "dy": 0.0
+                "__class__": "Translation",
+                "shift_x": -0.0008660383000000001,
+                "shift_y": 0.0
             },
             "mbrc.4r5.b1..1_5": {
                 "__class__": "Multipole",
@@ -248890,18 +248874,18 @@
                 ]
             },
             "mbrc.4r5.b1..1_postshift_5": {
-                "__class__": "XYShift",
-                "dx": 0.0008660383000000001,
-                "dy": -0.0
+                "__class__": "Translation",
+                "shift_x": 0.0008660383000000001,
+                "shift_y": -0.0
             },
             "drift_875_34": {
                 "__class__": "Drift",
                 "length": 2.52
             },
             "mbrc.4r5.b1..1_preshift_6": {
-                "__class__": "XYShift",
-                "dx": -0.00228864,
-                "dy": 0.0
+                "__class__": "Translation",
+                "shift_x": -0.00228864,
+                "shift_y": 0.0
             },
             "mbrc.4r5.b1..1_6": {
                 "__class__": "Multipole",
@@ -248947,18 +248931,18 @@
                 ]
             },
             "mbrc.4r5.b1..1_postshift_6": {
-                "__class__": "XYShift",
-                "dx": 0.00228864,
-                "dy": -0.0
+                "__class__": "Translation",
+                "shift_x": 0.00228864,
+                "shift_y": -0.0
             },
             "drift_875_35": {
                 "__class__": "Drift",
                 "length": 2.52
             },
             "mbrc.4r5.b1..1_preshift_7": {
-                "__class__": "XYShift",
-                "dx": -0.00299994,
-                "dy": 0.0
+                "__class__": "Translation",
+                "shift_x": -0.00299994,
+                "shift_y": 0.0
             },
             "mbrc.4r5.b1..1_7": {
                 "__class__": "Multipole",
@@ -249004,9 +248988,9 @@
                 ]
             },
             "mbrc.4r5.b1..1_postshift_7": {
-                "__class__": "XYShift",
-                "dx": 0.00299994,
-                "dy": -0.0
+                "__class__": "Translation",
+                "shift_x": 0.00299994,
+                "shift_y": -0.0
             },
             "drift_946_3": {
                 "__class__": "Drift",
@@ -284869,9 +284853,9 @@
                 "length": 2.767
             },
             "mbrc.4l8.b1..1_preshift_8": {
-                "__class__": "XYShift",
-                "dx": -0.002999889,
-                "dy": 0.0
+                "__class__": "Translation",
+                "shift_x": -0.002999889,
+                "shift_y": 0.0
             },
             "mbrc.4l8.b1..1_8": {
                 "__class__": "Multipole",
@@ -284917,18 +284901,18 @@
                 ]
             },
             "mbrc.4l8.b1..1_postshift_8": {
-                "__class__": "XYShift",
-                "dx": 0.002999889,
-                "dy": -0.0
+                "__class__": "Translation",
+                "shift_x": 0.002999889,
+                "shift_y": -0.0
             },
             "drift_875_36": {
                 "__class__": "Drift",
                 "length": 2.52
             },
             "mbrc.4l8.b1..1_preshift_9": {
-                "__class__": "XYShift",
-                "dx": -0.002034411,
-                "dy": 0.0
+                "__class__": "Translation",
+                "shift_x": -0.002034411,
+                "shift_y": 0.0
             },
             "mbrc.4l8.b1..1_9": {
                 "__class__": "Multipole",
@@ -284974,18 +284958,18 @@
                 ]
             },
             "mbrc.4l8.b1..1_postshift_9": {
-                "__class__": "XYShift",
-                "dx": 0.002034411,
-                "dy": -0.0
+                "__class__": "Translation",
+                "shift_x": 0.002034411,
+                "shift_y": -0.0
             },
             "drift_875_37": {
                 "__class__": "Drift",
                 "length": 2.52
             },
             "mbrc.4l8.b1..1_preshift_10": {
-                "__class__": "XYShift",
-                "dx": -0.0001034541,
-                "dy": 0.0
+                "__class__": "Translation",
+                "shift_x": -0.0001034541,
+                "shift_y": 0.0
             },
             "mbrc.4l8.b1..1_10": {
                 "__class__": "Multipole",
@@ -285031,18 +285015,18 @@
                 ]
             },
             "mbrc.4l8.b1..1_postshift_10": {
-                "__class__": "XYShift",
-                "dx": 0.0001034541,
-                "dy": -0.0
+                "__class__": "Translation",
+                "shift_x": 0.0001034541,
+                "shift_y": -0.0
             },
             "drift_875_38": {
                 "__class__": "Drift",
                 "length": 2.52
             },
             "mbrc.4l8.b1..1_preshift_11": {
-                "__class__": "XYShift",
-                "dx": 0.00279298,
-                "dy": 0.0
+                "__class__": "Translation",
+                "shift_x": 0.00279298,
+                "shift_y": 0.0
             },
             "mbrc.4l8.b1..1_11": {
                 "__class__": "Multipole",
@@ -285088,9 +285072,9 @@
                 ]
             },
             "mbrc.4l8.b1..1_postshift_11": {
-                "__class__": "XYShift",
-                "dx": -0.00279298,
-                "dy": -0.0
+                "__class__": "Translation",
+                "shift_x": -0.00279298,
+                "shift_y": -0.0
             },
             "d_c6t_2513_2": {
                 "__class__": "Drift",
@@ -285129,9 +285113,9 @@
                 "length": 4.34
             },
             "mbx.4l8..1_preshift_8": {
-                "__class__": "XYShift",
-                "dx": -0.005792869,
-                "dy": 0.0
+                "__class__": "Translation",
+                "shift_x": -0.005792869,
+                "shift_y": 0.0
             },
             "mbx.4l8..1_8": {
                 "__class__": "Multipole",
@@ -285177,18 +285161,18 @@
                 ]
             },
             "mbx.4l8..1_postshift_8": {
-                "__class__": "XYShift",
-                "dx": 0.005792869,
-                "dy": -0.0
+                "__class__": "Translation",
+                "shift_x": 0.005792869,
+                "shift_y": -0.0
             },
             "drift_875_40": {
                 "__class__": "Drift",
                 "length": 2.52
             },
             "mbx.4l8..1_preshift_9": {
-                "__class__": "XYShift",
-                "dx": -0.0028964349999999997,
-                "dy": 0.0
+                "__class__": "Translation",
+                "shift_x": -0.0028964349999999997,
+                "shift_y": 0.0
             },
             "mbx.4l8..1_9": {
                 "__class__": "Multipole",
@@ -285234,18 +285218,18 @@
                 ]
             },
             "mbx.4l8..1_postshift_9": {
-                "__class__": "XYShift",
-                "dx": 0.0028964349999999997,
-                "dy": -0.0
+                "__class__": "Translation",
+                "shift_x": 0.0028964349999999997,
+                "shift_y": -0.0
             },
             "drift_875_41": {
                 "__class__": "Drift",
                 "length": 2.52
             },
             "mbx.4l8..1_preshift_10": {
-                "__class__": "XYShift",
-                "dx": -0.0009654783000000001,
-                "dy": 0.0
+                "__class__": "Translation",
+                "shift_x": -0.0009654783000000001,
+                "shift_y": 0.0
             },
             "mbx.4l8..1_10": {
                 "__class__": "Multipole",
@@ -285291,18 +285275,18 @@
                 ]
             },
             "mbx.4l8..1_postshift_10": {
-                "__class__": "XYShift",
-                "dx": 0.0009654783000000001,
-                "dy": -0.0
+                "__class__": "Translation",
+                "shift_x": 0.0009654783000000001,
+                "shift_y": -0.0
             },
             "drift_875_42": {
                 "__class__": "Drift",
                 "length": 2.52
             },
             "mbx.4l8..1_preshift_11": {
-                "__class__": "XYShift",
-                "dx": -3.3892890000000002e-12,
-                "dy": 0.0
+                "__class__": "Translation",
+                "shift_x": -3.3892890000000002e-12,
+                "shift_y": 0.0
             },
             "mbx.4l8..1_11": {
                 "__class__": "Multipole",
@@ -285348,9 +285332,9 @@
                 ]
             },
             "mbx.4l8..1_postshift_11": {
-                "__class__": "XYShift",
-                "dx": 3.3892890000000002e-12,
-                "dy": -0.0
+                "__class__": "Translation",
+                "shift_x": 3.3892890000000002e-12,
+                "shift_y": -0.0
             },
             "d_c6t_2517_2": {
                 "__class__": "Drift",
@@ -289491,10 +289475,8 @@
                 "length": 2.6740625
             },
             "mbxwt.1l2_pretilt": {
-                "__class__": "SRotation",
-                "cos_z": 0.9999913039698283,
-                "sin_z": -0.004170369854403924,
-                "angle": -0.23894528429146786
+                "__class__": "Rotation",
+                "rot_s_rad": -0.004170381943
             },
             "mbxwt.1l2": {
                 "__class__": "Multipole",
@@ -289512,20 +289494,16 @@
                 ]
             },
             "mbxwt.1l2_posttilt": {
-                "__class__": "SRotation",
-                "cos_z": 0.9999913039698283,
-                "sin_z": 0.004170369854403924,
-                "angle": 0.23894528429146786
+                "__class__": "Rotation",
+                "rot_s_rad": 0.004170381943
             },
             "drift_1375": {
                 "__class__": "Drift",
                 "length": 9.74
             },
             "mbwmd.1l2_pretilt": {
-                "__class__": "SRotation",
-                "cos_z": 0.9999913039698283,
-                "sin_z": -0.004170369854403924,
-                "angle": -0.23894528429146786
+                "__class__": "Rotation",
+                "rot_s_rad": -0.004170381943
             },
             "mbwmd.1l2": {
                 "__class__": "Multipole",
@@ -289543,10 +289521,8 @@
                 ]
             },
             "mbwmd.1l2_posttilt": {
-                "__class__": "SRotation",
-                "cos_z": 0.9999913039698283,
-                "sin_z": 0.004170369854403924,
-                "angle": 0.23894528429146786
+                "__class__": "Rotation",
+                "rot_s_rad": 0.004170381943
             },
             "drift_1376": {
                 "__class__": "Drift",
@@ -289577,10 +289553,8 @@
                 "length": 6.725
             },
             "mbaw.1r2_pretilt": {
-                "__class__": "SRotation",
-                "cos_z": 0.9999913039698283,
-                "sin_z": -0.004170369854403924,
-                "angle": -0.23894528429146786
+                "__class__": "Rotation",
+                "rot_s_rad": -0.004170381943
             },
             "mbaw.1r2": {
                 "__class__": "Multipole",
@@ -289598,20 +289572,16 @@
                 ]
             },
             "mbaw.1r2_posttilt": {
-                "__class__": "SRotation",
-                "cos_z": 0.9999913039698283,
-                "sin_z": 0.004170369854403924,
-                "angle": 0.23894528429146786
+                "__class__": "Rotation",
+                "rot_s_rad": 0.004170381943
             },
             "drift_1380": {
                 "__class__": "Drift",
                 "length": 10.74
             },
             "mbxwt.1r2_pretilt": {
-                "__class__": "SRotation",
-                "cos_z": 0.9999913039698283,
-                "sin_z": -0.004170369854403924,
-                "angle": -0.23894528429146786
+                "__class__": "Rotation",
+                "rot_s_rad": -0.004170381943
             },
             "mbxwt.1r2": {
                 "__class__": "Multipole",
@@ -289629,10 +289599,8 @@
                 ]
             },
             "mbxwt.1r2_posttilt": {
-                "__class__": "SRotation",
-                "cos_z": 0.9999913039698283,
-                "sin_z": 0.004170369854403924,
-                "angle": 0.23894528429146786
+                "__class__": "Rotation",
+                "rot_s_rad": 0.004170381943
             },
             "d_c6t_3293_1": {
                 "__class__": "Drift",
@@ -293773,9 +293741,9 @@
                 "length": 5.514
             },
             "mbrc.4l8.b1..1_preshift_12": {
-                "__class__": "XYShift",
-                "dx": 3.549161e-12,
-                "dy": 0.0
+                "__class__": "Translation",
+                "shift_x": 3.549161e-12,
+                "shift_y": 0.0
             },
             "mbrc.4l8.b1..1_12": {
                 "__class__": "Multipole",
@@ -293821,18 +293789,18 @@
                 ]
             },
             "mbrc.4l8.b1..1_postshift_12": {
-                "__class__": "XYShift",
-                "dx": -3.549161e-12,
-                "dy": -0.0
+                "__class__": "Translation",
+                "shift_x": -3.549161e-12,
+                "shift_y": -0.0
             },
             "drift_875_43": {
                 "__class__": "Drift",
                 "length": 2.52
             },
             "mbrc.4l8.b1..1_preshift_13": {
-                "__class__": "XYShift",
-                "dx": 0.0009654783000000001,
-                "dy": 0.0
+                "__class__": "Translation",
+                "shift_x": 0.0009654783000000001,
+                "shift_y": 0.0
             },
             "mbrc.4l8.b1..1_13": {
                 "__class__": "Multipole",
@@ -293878,18 +293846,18 @@
                 ]
             },
             "mbrc.4l8.b1..1_postshift_13": {
-                "__class__": "XYShift",
-                "dx": -0.0009654783000000001,
-                "dy": -0.0
+                "__class__": "Translation",
+                "shift_x": -0.0009654783000000001,
+                "shift_y": -0.0
             },
             "drift_875_44": {
                 "__class__": "Drift",
                 "length": 2.52
             },
             "mbrc.4l8.b1..1_preshift_14": {
-                "__class__": "XYShift",
-                "dx": 0.0028964349999999997,
-                "dy": 0.0
+                "__class__": "Translation",
+                "shift_x": 0.0028964349999999997,
+                "shift_y": 0.0
             },
             "mbrc.4l8.b1..1_14": {
                 "__class__": "Multipole",
@@ -293935,18 +293903,18 @@
                 ]
             },
             "mbrc.4l8.b1..1_postshift_14": {
-                "__class__": "XYShift",
-                "dx": -0.0028964349999999997,
-                "dy": -0.0
+                "__class__": "Translation",
+                "shift_x": -0.0028964349999999997,
+                "shift_y": -0.0
             },
             "drift_875_45": {
                 "__class__": "Drift",
                 "length": 2.52
             },
             "mbrc.4l8.b1..1_preshift_15": {
-                "__class__": "XYShift",
-                "dx": 0.005792869,
-                "dy": 0.0
+                "__class__": "Translation",
+                "shift_x": 0.005792869,
+                "shift_y": 0.0
             },
             "mbrc.4l8.b1..1_15": {
                 "__class__": "Multipole",
@@ -293992,9 +293960,9 @@
                 ]
             },
             "mbrc.4l8.b1..1_postshift_15": {
-                "__class__": "XYShift",
-                "dx": -0.005792869,
-                "dy": -0.0
+                "__class__": "Translation",
+                "shift_x": -0.005792869,
+                "shift_y": -0.0
             },
             "d_c6t_2515_1": {
                 "__class__": "Drift",
@@ -294017,9 +293985,9 @@
                 "length": 46.615
             },
             "mbx.4l8..1_preshift_12": {
-                "__class__": "XYShift",
-                "dx": -0.00279298,
-                "dy": 0.0
+                "__class__": "Translation",
+                "shift_x": -0.00279298,
+                "shift_y": 0.0
             },
             "mbx.4l8..1_12": {
                 "__class__": "Multipole",
@@ -294065,18 +294033,18 @@
                 ]
             },
             "mbx.4l8..1_postshift_12": {
-                "__class__": "XYShift",
-                "dx": 0.00279298,
-                "dy": -0.0
+                "__class__": "Translation",
+                "shift_x": 0.00279298,
+                "shift_y": -0.0
             },
             "drift_875_46": {
                 "__class__": "Drift",
                 "length": 2.52
             },
             "mbx.4l8..1_preshift_13": {
-                "__class__": "XYShift",
-                "dx": 0.0001034541,
-                "dy": 0.0
+                "__class__": "Translation",
+                "shift_x": 0.0001034541,
+                "shift_y": 0.0
             },
             "mbx.4l8..1_13": {
                 "__class__": "Multipole",
@@ -294122,18 +294090,18 @@
                 ]
             },
             "mbx.4l8..1_postshift_13": {
-                "__class__": "XYShift",
-                "dx": -0.0001034541,
-                "dy": -0.0
+                "__class__": "Translation",
+                "shift_x": -0.0001034541,
+                "shift_y": -0.0
             },
             "drift_875_47": {
                 "__class__": "Drift",
                 "length": 2.52
             },
             "mbx.4l8..1_preshift_14": {
-                "__class__": "XYShift",
-                "dx": 0.002034411,
-                "dy": 0.0
+                "__class__": "Translation",
+                "shift_x": 0.002034411,
+                "shift_y": 0.0
             },
             "mbx.4l8..1_14": {
                 "__class__": "Multipole",
@@ -294179,18 +294147,18 @@
                 ]
             },
             "mbx.4l8..1_postshift_14": {
-                "__class__": "XYShift",
-                "dx": -0.002034411,
-                "dy": -0.0
+                "__class__": "Translation",
+                "shift_x": -0.002034411,
+                "shift_y": -0.0
             },
             "drift_875_48": {
                 "__class__": "Drift",
                 "length": 2.52
             },
             "mbx.4l8..1_preshift_15": {
-                "__class__": "XYShift",
-                "dx": 0.002999889,
-                "dy": 0.0
+                "__class__": "Translation",
+                "shift_x": 0.002999889,
+                "shift_y": 0.0
             },
             "mbx.4l8..1_15": {
                 "__class__": "Multipole",
@@ -294236,9 +294204,9 @@
                 ]
             },
             "mbx.4l8..1_postshift_15": {
-                "__class__": "XYShift",
-                "dx": -0.002999889,
-                "dy": -0.0
+                "__class__": "Translation",
+                "shift_x": -0.002999889,
+                "shift_y": -0.0
             },
             "drift_1260_3": {
                 "__class__": "Drift",

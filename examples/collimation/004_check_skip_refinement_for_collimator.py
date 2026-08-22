@@ -86,12 +86,6 @@ line = xt.Line(elements=[
     xt.LimitEllipse(a=2e-2, b=2e-2),
     xt.Drift(length=10.),
     ])
-
-#################
-# Build tracker #
-#################
-
-line.build_tracker()
 line.config.XTRACK_GLOBAL_XY_LIMIT = 1e3
 
 ##########################

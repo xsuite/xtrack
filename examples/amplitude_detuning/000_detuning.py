@@ -7,8 +7,7 @@ import xtrack as xt
 
 line = xt.Line(elements=[xt.LineSegmentMap(qx=62.31, qy=60.32,
                         det_xx=1000, det_xy=10, det_yx=20, det_yy=2000)])
-line.particle_ref = xt.Particles(p0c=7e9)
-line.build_tracker()
+line.set_particle_ref('proton', p0c=7e12)
 
 nemitt_x = 2.5e-6
 nemitt_y = 2.5e-6

@@ -6,6 +6,7 @@ import pytest
 import xtrack as xt
 import json
 import textwrap
+import gzip
 
 
 @pytest.fixture
@@ -116,6 +117,28 @@ def test_load_http(input_fixture, format, suffix, with_format, tmpdir, request, 
 
     url = f'http://example.com/test_input.{suffix}'
     requests_mock.get(url, text=input_data)
+
+    kwargs = {'file': url}
+    if with_format:
+        kwargs['format'] = format
+    loaded_entity = xt.load(**kwargs)
+
+    quad = loaded_entity['quad']
+    assert quad.length == 1.0 and quad.k1 == 0.5
+
+@pytest.mark.parametrize(
+    'input_fixture,format,suffix', [
+        ('json_line', 'json', 'json'),
+        ('json_environment', 'json', 'json'),
+    ]
+)
+@pytest.mark.parametrize('with_format', [True, False])
+def test_load_http_gz(input_fixture, format, suffix, with_format, tmpdir, request, requests_mock):
+    input_data = request.getfixturevalue(input_fixture)
+    compressed_data=gzip.compress(input_data.encode("utf-8"))
+
+    url = f'http://example.com/test_input.{suffix}.gz'
+    requests_mock.get(url, content=compressed_data)
 
     kwargs = {'file': url}
     if with_format:

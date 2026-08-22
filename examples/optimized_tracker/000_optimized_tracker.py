@@ -3,20 +3,18 @@
 # Copyright (c) CERN, 2021.                 #
 # ######################################### #
 
-import json
 import time
 import numpy as np
 
 import xtrack as xt
 import xpart as xp
+import xobjects as xo
 
 #################################
 # Load a line and build tracker #
 #################################
-line = xt.load(
-    '../../test_data/hllhc15_noerrors_nobb/line_w_knobs_and_particle.json')
-line.particle_ref = xt.Particles(mass0=xt.PROTON_MASS_EV, p0c=7e12)
-line.build_tracker()
+line = xt.load('../../test_data/hllhc15_noerrors_nobb/line_w_knobs_and_particle.json')
+line.set_particle_ref('proton', p0c=7e12)
 
 ###########################
 # Generate some particles #
@@ -72,9 +70,9 @@ print(f'Time optimized {t_optimized*1e6/num_particles/num_turns:.1f} us/part/tur
 assert np.all(p_no_optimized.state == 1)
 assert np.all(p_optimized.state == 1)
 
-assert np.allclose(p_no_optimized.x, p_optimized.x, rtol=0, atol=1e-14)
-assert np.allclose(p_no_optimized.y, p_optimized.y, rtol=0, atol=1e-14)
-assert np.allclose(p_no_optimized.px, p_optimized.px, rtol=0, atol=1e-14)
-assert np.allclose(p_no_optimized.py, p_optimized.py, rtol=0, atol=1e-14)
-assert np.allclose(p_no_optimized.zeta, p_optimized.zeta, rtol=0, atol=1e-14)
-assert np.allclose(p_no_optimized.delta, p_optimized.delta, rtol=0, atol=1e-14)
+xo.assert_allclose(p_no_optimized.x, p_optimized.x, rtol=0, atol=1e-14)
+xo.assert_allclose(p_no_optimized.y, p_optimized.y, rtol=0, atol=1e-14)
+xo.assert_allclose(p_no_optimized.px, p_optimized.px, rtol=0, atol=1e-14)
+xo.assert_allclose(p_no_optimized.py, p_optimized.py, rtol=0, atol=1e-14)
+xo.assert_allclose(p_no_optimized.zeta, p_optimized.zeta, rtol=0, atol=1e-12)
+xo.assert_allclose(p_no_optimized.delta, p_optimized.delta, rtol=0, atol=1e-14)

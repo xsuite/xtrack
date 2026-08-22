@@ -8,11 +8,11 @@ Date: 2023-06-10
 import numpy as np
 
 import xobjects as xo
+import xtrack as xt
 
 from ..base_element import BeamElement
 from ..beam_elements import Marker
 from ..internal_record import RecordIndex
-from ..general import _pkg_root
 
 
 class BeamPositionMonitorRecord(xo.Struct):
@@ -40,8 +40,7 @@ class BeamPositionMonitor(BeamElement):
     properties = [field.name for field in BeamPositionMonitorRecord._fields]
 
     _extra_c_sources = [
-        _pkg_root.joinpath('headers/atomicadd.h'),
-        _pkg_root.joinpath('monitors/beam_position_monitor.h')
+        '#include "xtrack/monitors/beam_position_monitor.h"',
     ]
 
     def __init__(self, *, particle_id_range=None, particle_id_start=None, num_particles=None,

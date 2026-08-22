@@ -11,15 +11,12 @@ from scipy.constants import epsilon_0, hbar
 import xtrack as xt
 import xobjects as xo
 
-context = xo.ContextCpu()
-
 L_bend = 1.
 B_T = 1
 n_part = 1_000_000
 
 delta = 0
 particles_ave = xt.Particles(
-        _context=context,
         p0c=80e9, # / (1 + delta), # 5 GeV
         x=np.zeros(n_part),
         px=1e-4,
@@ -37,9 +34,9 @@ h_bend = B_T * qe / P0_J
 theta_bend = h_bend * L_bend
 
 dipole_ave = xt.Multipole(knl=[theta_bend], length=L_bend, hxl=theta_bend,
-                          radiation_flag=1, _context=context)
+                          radiation_flag=1)
 dipole_rnd = xt.Multipole(knl=[theta_bend], length=L_bend, hxl=theta_bend,
-                          radiation_flag=2, _context=context)
+                          radiation_flag=2)
 
 
 dct_ave_before = particles_ave.to_dict()
@@ -74,7 +71,6 @@ line=xt.Line(elements=[
              xt.Drift(length=1.0),
              xt.Multipole(knl=[theta_bend], length=L_bend, hxl=theta_bend)
             ])
-line.build_tracker(_context=context)
 line.configure_radiation(model='quantum')
 
 record_capacity = int(1000e6)

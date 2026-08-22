@@ -2,10 +2,16 @@ import xobjects as xo
 
 from ..base_element import BeamElement
 from .slice_base import _SliceBase, COMMON_SLICE_XO_FIELDS
-from .elements import (
-    SynchrotronRadiationRecord, Bend, Quadrupole, Sextupole,
-    Octupole, Solenoid, Drift, RBend, UniformSolenoid
-)
+from .bend import Bend
+from .cavity import Cavity
+from .crab_cavity import CrabCavity
+from .multipole import Multipole
+from .octupole import Octupole
+from .quadrupole import Quadrupole
+from .rbend import RBend
+from .sextupole import Sextupole
+from .solenoid import Solenoid
+from .uniform_solenoid import UniformSolenoid
 from ..survey import advance_element as survey_advance_element
 
 class _ThickSliceElementBase(_SliceBase):
@@ -20,7 +26,7 @@ class ThickSliceBend(_ThickSliceElementBase, BeamElement):
     _xofields = {'_parent': xo.Ref(Bend), **COMMON_SLICE_XO_FIELDS}
 
     _extra_c_sources = [
-        '#include <beam_elements/elements_src/thick_slice_bend.h>'
+        '#include "xtrack/beam_elements/elements_src/thick_slice_bend.h"'
     ]
 
 class ThickSliceRBend(_ThickSliceElementBase, BeamElement):
@@ -28,7 +34,7 @@ class ThickSliceRBend(_ThickSliceElementBase, BeamElement):
     _xofields = {'_parent': xo.Ref(RBend), **COMMON_SLICE_XO_FIELDS}
 
     _extra_c_sources = [
-        '#include <beam_elements/elements_src/thick_slice_rbend.h>'
+        '#include "xtrack/beam_elements/elements_src/thick_slice_rbend.h"'
     ]
 
     def _propagate_survey(self, v, w, backtrack):
@@ -65,7 +71,7 @@ class ThickSliceQuadrupole(_ThickSliceElementBase, BeamElement):
     _xofields = {'_parent': xo.Ref(Quadrupole), **COMMON_SLICE_XO_FIELDS}
 
     _extra_c_sources = [
-        '#include <beam_elements/elements_src/thick_slice_quadrupole.h>'
+        '#include "xtrack/beam_elements/elements_src/thick_slice_quadrupole.h"'
     ]
 
 
@@ -74,7 +80,7 @@ class ThickSliceSextupole(_ThickSliceElementBase, BeamElement):
     _xofields = {'_parent': xo.Ref(Sextupole), **COMMON_SLICE_XO_FIELDS}
 
     _extra_c_sources = [
-        '#include <beam_elements/elements_src/thick_slice_sextupole.h>'
+        '#include "xtrack/beam_elements/elements_src/thick_slice_sextupole.h"'
     ]
 
 class ThickSliceOctupole(_ThickSliceElementBase, BeamElement):
@@ -82,7 +88,31 @@ class ThickSliceOctupole(_ThickSliceElementBase, BeamElement):
     _xofields = {'_parent': xo.Ref(Octupole), **COMMON_SLICE_XO_FIELDS}
 
     _extra_c_sources = [
-        '#include <beam_elements/elements_src/thick_slice_octupole.h>'
+        '#include "xtrack/beam_elements/elements_src/thick_slice_octupole.h"'
+    ]
+
+class ThickSliceCavity(_ThickSliceElementBase, BeamElement):
+
+    _xofields = {'_parent': xo.Ref(Cavity), **COMMON_SLICE_XO_FIELDS}
+
+    _extra_c_sources = [
+        '#include "xtrack/beam_elements/elements_src/thick_slice_cavity.h"'
+    ]
+
+class ThickSliceCrabCavity(_ThickSliceElementBase, BeamElement):
+
+    _xofields = {'_parent': xo.Ref(CrabCavity), **COMMON_SLICE_XO_FIELDS}
+
+    _extra_c_sources = [
+        '#include "xtrack/beam_elements/elements_src/thick_slice_crab_cavity.h"'
+    ]
+
+class ThickSliceMultipole(_ThickSliceElementBase, BeamElement):
+
+    _xofields = {'_parent': xo.Ref(Multipole), **COMMON_SLICE_XO_FIELDS}
+
+    _extra_c_sources = [
+        '#include "xtrack/beam_elements/elements_src/thick_slice_multipole.h"'
     ]
 
 class ThickSliceUniformSolenoid(_ThickSliceElementBase, BeamElement):
@@ -90,7 +120,7 @@ class ThickSliceUniformSolenoid(_ThickSliceElementBase, BeamElement):
     _xofields = {'_parent': xo.Ref(UniformSolenoid), **COMMON_SLICE_XO_FIELDS}
 
     _extra_c_sources = [
-        '#include <beam_elements/elements_src/thick_slice_uniform_solenoid.h>'
+        '#include "xtrack/beam_elements/elements_src/thick_slice_uniform_solenoid.h"'
     ]
 
 class ThickSliceSolenoid(_ThickSliceElementBase, BeamElement):
@@ -98,5 +128,5 @@ class ThickSliceSolenoid(_ThickSliceElementBase, BeamElement):
     _xofields = {'_parent': xo.Ref(Solenoid), **COMMON_SLICE_XO_FIELDS}
 
     _extra_c_sources = [
-        '#include <beam_elements/elements_src/thick_slice_solenoid.h>'
+        '#include "xtrack/beam_elements/elements_src/thick_slice_solenoid.h"'
     ]

@@ -16,19 +16,20 @@ env['a'] = 3.
 env['b'] = '2 * a'
 
 env['b'] # is 6.0
-env.get_expr('b') # is (2.0 * vars['a'])
+env.ref['b'].xdeps.expr # is (2.0 * vars['a'])
 env.info('b')
-# prints:
-#  vars['b']._get_value()
-#  vars['b'] = 6.0
-
-#  vars['b']._expr
-#  vars['b'] = (2.0 * vars['a'])
-
-#  vars['b']._expr._get_dependencies()
-#  vars['a'] = 3.0
-
-#  vars['b'] does not influence any target
+# Info for vars['b']
+#
+# value: 8.0
+#
+# controlled by expr:
+#   vars['b'] = (2.0 * vars['a'])
+#
+# expr_dependencies:
+#   vars['a'] = 4.0
+#
+# controlled_targets:
+#    element_refs['mq'].k1
 
 # We can use the eval method to evaluate the value for a given expression:
 env.eval('sqrt(b + a)') # returns 3.0
@@ -67,19 +68,21 @@ env.info('mq')
 env['mq'].length # is 15.0
 env['mq'].k1 # is 6.0
 
-env['mq'].get_expr('length') # is (5.0 * vars['a'])
-env['mq'].get_info('length')
+# The .ref container can be used to inspect expressions and dependencies on the elements
+env.ref['mq'].length.xdeps.expr # is (5.0 * vars['a'])
+env.ref['mq'].length.xdeps.info()
 # prints:
-#  element_refs['mq'].length._get_value()
-#  element_refs['mq'].length = 15.0
+# Info for element_refs['mq'].length
 #
-#  element_refs['mq'].length._expr
-#  element_refs['mq'].length = (5.0 * vars['a'])
+# value: 1.0
 #
-#  element_refs['mq'].length._expr._get_dependencies()
-#  vars['a'] = 3.0
+# controlled by expr:
+#   element_refs['mq'].length = vars['l_quad']
 #
-#  element_refs['mq'].length does not influence any target
+# expr_dependencies:
+#   vars['l_quad'] = 1.0
+#
+# controlled_targets: None
 
 # It is also possible to add to the environment elements that are instantiated by
 # the user:

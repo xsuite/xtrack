@@ -86,12 +86,13 @@ class LossLocationRefinement:
                                           y_out=na([2]), z_out=na([0]))
 
         # Build track kernel with all elements + polygon
-        elm_gen = self.line.element_dict.copy()
+        elm_gen = self.line._element_dict.copy()
         elm_gen['_xtrack_temp_poly_'] = temp_poly
+        elm_gen['_xtrack_temp_marker_'] = xt.Marker(_buffer=self.line._buffer)
         ln_gen = Line(elements=elm_gen,
-                      element_names=list(line.element_names) + ['_xtrack_temp_poly_'])
+                      element_names=list(line.element_names)
+                      + ['_xtrack_temp_poly_', '_xtrack_temp_marker_'])
         ln_gen.build_tracker(_buffer=self.line._buffer)
-        ln_gen.config.XTRACK_GLOBAL_XY_LIMIT = line.config.XTRACK_GLOBAL_XY_LIMIT
         self._ln_gen = ln_gen
 
         self.i_apertures, self.apertures = find_apertures(self.line)
@@ -106,7 +107,8 @@ class LossLocationRefinement:
         self.ds = ds
         self.allowed_backtrack_types = allowed_backtrack_types
 
-    def refine_loss_location(self, particles, i_apertures=None):
+    def refine_loss_location(
+            self, particles, i_apertures=None, with_progress=True):
 
         '''
         Refine the location of the lost particles within the line.
@@ -119,6 +121,9 @@ class LossLocationRefinement:
             List of indices of the apertures for which the loss location
             is refined. If None, the loss location is refined for all
             apertures.
+        with_progress : bool, optional
+            Whether to show progress while constructing interpolation lines.
+            Defaults to ``True``.
 
         '''
 
@@ -127,6 +132,8 @@ class LossLocationRefinement:
 
         for i_ap in i_apertures:
             if np.any((particles.at_element==i_ap) & (particles.state==0)):
+
+                elements_existing_before = set(self.line.env._element_dict.keys())
 
                 if self.i_apertures.index(i_ap) == 0:
                     logger.warning(
@@ -154,8 +161,8 @@ class LossLocationRefinement:
                 logger.debug(f'presence_shifts_rotations={presence_shifts_rotations}')
 
                 if (not(presence_shifts_rotations) and
-                   apertures_are_identical(self.line.elements[i_aper_0],
-                                           self.line.elements[i_aper_1], self.line)):
+                   apertures_are_identical(self.line.get(self.line.element_names[i_aper_0]),
+                                           self.line.get(self.line.element_names[i_aper_1]), self.line)):
 
                     logger.debug('Replicate mode')
                     (interp_line, i_end_thin_0, i_start_thin_1, s0, s1
@@ -163,7 +170,8 @@ class LossLocationRefinement:
                                       self.line,
                                       i_aper_0, i_aper_1,
                                       self.ds,
-                                      _ln_gen=self._ln_gen)
+                                      _ln_gen=self._ln_gen,
+                                      with_progress=with_progress)
 
                 else:
 
@@ -173,7 +181,8 @@ class LossLocationRefinement:
                                       self.line,
                                       i_aper_0, i_aper_1,
                                       self.n_theta, self.r_max, self.dr, self.ds,
-                                      _ln_gen=self._ln_gen)
+                                      _ln_gen=self._ln_gen,
+                                      with_progress=with_progress)
 
                 interp_line._original_line = self._original_line
                 part_refine = refine_loss_location_single_aperture(
@@ -187,22 +196,80 @@ class LossLocationRefinement:
                     interp_line.s0 = s0
                     interp_line.s1 = s1
                     self.refine_lines[i_ap] = interp_line
+                else:
+                    elements_existing_after = set(self.line.env._element_dict.keys())
+                    elements_to_delete = (elements_existing_after - elements_existing_before)
+                    interp_line.discard_tracker() # Free tracker data
+                    del interp_line
+                    for nn in elements_to_delete:
+                        if nn.startswith('||drift_'):
+                            ll = self.line.get(nn).length
+                            del self.line.env._drift_cache[ll]
+                        sz = self.line.env._element_dict[nn]._xobject._size
+                        oo = self.line.env._element_dict[nn]._xobject._offset
+                        self.line._buffer.free(oo, sz)
+                        del self.line.env._element_dict[nn]
 
 
 def check_for_active_shifts_and_rotations(line, i_aper_0, i_aper_1):
 
     presence_shifts_rotations = False
     for ii in range(i_aper_0, i_aper_1):
-        ee = line.elements[ii]
-        if ee.__class__ is SRotation:
+        ee = line.get(line.element_names[ii])
+        if ee.__class__ is xt.SRotation:
             if not np.isclose(ee.angle, 0, rtol=0, atol=1e-15):
                 presence_shifts_rotations = True
                 break
-        if ee.__class__ is XYShift:
+        if ee.__class__ is xt.Rotation:
+            if not np.isclose(ee.rot_s_rad, 0, rtol=0, atol=1e-15):
+                presence_shifts_rotations = True
+                break
+            if not np.isclose(ee.rot_x_rad, 0, rtol=0, atol=1e-15):
+                presence_shifts_rotations = True
+                break
+            if not np.isclose(ee.rot_y_rad, 0, rtol=0, atol=1e-15):
+                presence_shifts_rotations = True
+                break
+        if ee.__class__ in [xt.Translation]:
+            if not np.allclose([ee.shift_x, ee.shift_y], 0, rtol=0, atol=1e-15):
+                presence_shifts_rotations = True
+                break
+        if ee.__class__ is xt.XYShift:
             if not np.allclose([ee.dx, ee.dy], 0, rtol=0, atol=1e-15):
                 presence_shifts_rotations = True
                 break
     return presence_shifts_rotations
+
+def fields_equal(a, b, atol=1e-15):
+    # Check if exactly the same object
+    if a is b:
+        return True
+
+    # Check for type mismatch
+    if type(a) is not type(b):
+        return False
+
+    # Numpy array checks
+    if isinstance(a, np.ndarray):
+        if a.shape != b.shape:
+            return False
+        return np.allclose(a, b, rtol=0, atol=atol)
+
+    # Scalar check
+    if np.isscalar(a):
+        return abs(a - b) <= atol
+
+    # List/tuple check
+    if isinstance(a, (list, tuple)):
+        if len(a) != len(b):
+            return False
+        try:
+            return np.allclose(a, b, rtol=0, atol=atol)
+        except Exception:
+            return all(fields_equal(x, y, atol) for x, y in zip(a, b))
+
+    # Fallback check
+    return a == b
 
 
 def apertures_are_identical(aper1, aper2, line):
@@ -218,9 +285,7 @@ def apertures_are_identical(aper1, aper2, line):
 
     identical = True
     for ff in aper1._fields:
-        tt = np.allclose(getattr(aper1, ff), getattr(aper2, ff),
-                        rtol=0, atol=1e-15)
-        if not tt:
+        if not fields_equal(getattr(aper1, ff), getattr(aper2, ff)):
             identical = False
             break
     return identical
@@ -284,8 +349,8 @@ def refine_loss_location_single_aperture(particles, i_aper_1, i_end_thin_0,
                 f'Cannot backtrack through element {nn} of type '
                 f'{ee.__class__.__name__}')
 
-    with xt.line._preserve_config(line):
-        line.config.XTRACK_GLOBAL_XY_LIMIT = None
+    with xt.line._preserve_track_flags(line):
+        line.tracker.track_flags.XS_FLAG_IGNORE_GLOBAL_APERTURE = True
         line.track(part_refine, ele_start=i_start, ele_stop=i_stop,
                     backtrack='force')
 
@@ -294,6 +359,9 @@ def refine_loss_location_single_aperture(particles, i_aper_1, i_end_thin_0,
     # There is a small fraction of particles that are not lost.
     # We verified that they are really at the edge. Their coordinates
     # correspond to the end fo the short line, which is correct
+
+    if np.any(part_refine.state<0): # Some particles are lost but not on instelled limits
+        raise RuntimeError(f'Particles are lost with error codes: {part_refine.state[part_refine.state<0]}')
 
     if inplace:
         indx_sorted = np.argsort(part_refine.particle_id)
@@ -316,7 +384,8 @@ def refine_loss_location_single_aperture(particles, i_aper_1, i_end_thin_0,
 
 def interp_aperture_replicate(context, line,
                               i_aper_0, i_aper_1,
-                              ds, _ln_gen, mode='end',):
+                              ds, _ln_gen, mode='end',
+                              with_progress=True):
 
     i_start_thin_1 = find_adjacent_thick(line, i_aper_1, direction='upstream') + 1
     i_end_thin_0 = find_adjacent_thick(line, i_aper_0, direction='downstream') - 1
@@ -325,9 +394,9 @@ def interp_aperture_replicate(context, line,
                                                    i_aper_0, i_aper_1, ds)
 
     if mode=='end':
-        aper_to_copy = line.elements[i_aper_1]
+        aper_to_copy = line.get(line.element_names[i_aper_1])
     elif mode=='start':
-        aper_to_copy = line.elements[i_aper_0]
+        aper_to_copy = line.get(line.element_names[i_aper_0])
     else:
         raise ValueError(f'Invalid mode: {mode}')
     interp_apertures = []
@@ -342,13 +411,15 @@ def interp_aperture_replicate(context, line,
             aper_interp=interp_apertures,
             line=line, i_start_thin_0=i_end_thin_0,
             i_start_thin_1=i_start_thin_1,
-            _ln_gen=_ln_gen)
+            _ln_gen=_ln_gen,
+            with_progress=with_progress)
 
     return interp_line, i_end_thin_0, i_start_thin_1, s0, s1
 
 def interp_aperture_using_polygons(context, line,
                        i_aper_0, i_aper_1,
-                       n_theta, r_max, dr, ds, _ln_gen):
+                       n_theta, r_max, dr, ds, _ln_gen,
+                       with_progress=True):
 
 
     polygon_1, i_start_thin_1 = characterize_aperture(line,
@@ -387,7 +458,8 @@ def interp_aperture_using_polygons(context, line,
             aper_interp=interp_polygons,
             line=line, i_start_thin_0=i_end_thin_0,
             i_start_thin_1=i_start_thin_1,
-            _ln_gen=_ln_gen)
+            _ln_gen=_ln_gen,
+            with_progress=with_progress)
 
     return interp_line, i_end_thin_0, i_start_thin_1, s0, s1
 
@@ -419,7 +491,8 @@ class InterpAperNameGenerator:
         return name
 
 def build_interp_line(_buffer, s0, s1, s_interp, aper_0, aper_1, aper_interp,
-                         line, i_start_thin_0, i_start_thin_1, _ln_gen):
+                         line, i_start_thin_0, i_start_thin_1, _ln_gen,
+                         with_progress=True):
 
     env = line.env
 
@@ -441,7 +514,7 @@ def build_interp_line(_buffer, s0, s1, s_interp, aper_0, aper_1, aper_interp,
         assert aa._buffer is _buffer
         interp_line.env.elements[nn_insert] = aa
         insertions.append(interp_line.env.place(nn_insert, at=ss-s0))
-    interp_line.insert(insertions)
+    interp_line.insert(insertions, with_progress=with_progress)
 
     # End aperture
     nn_1 = namegen.get_name()
@@ -453,7 +526,7 @@ def build_interp_line(_buffer, s0, s1, s_interp, aper_0, aper_1, aper_interp,
     interp_line.build_tracker(_buffer=_buffer,
                               track_kernel=_ln_gen.tracker.track_kernel)
     interp_line.reset_s_at_end_turn = False
-    interp_line.config.XTRACK_GLOBAL_XY_LIMIT = _ln_gen.config.XTRACK_GLOBAL_XY_LIMIT
+    interp_line.tracker.track_flags.XS_FLAG_IGNORE_GLOBAL_APERTURE = True
 
     return interp_line
 
@@ -539,8 +612,8 @@ def characterize_aperture(line, i_aperture, n_theta, r_max, dr,
         ptest = xt.Particles(p0c=1,
                 x = x_test.copy(),
                 y = y_test.copy())
-        with xt.line._preserve_config(line):
-            line.config.XTRACK_GLOBAL_XY_LIMIT = None
+        with xt.line._preserve_track_flags(line):
+            line.tracker.track_flags.XS_FLAG_IGNORE_GLOBAL_APERTURE = True
             line.track(ptest, ele_start=i_start, ele_stop=i_stop,
                        backtrack=backtrack)
 
@@ -583,4 +656,3 @@ def characterize_aperture(line, i_aperture, n_theta, r_max, dr,
                               _buffer=buffer_for_poly)
 
     return polygon, index_start_thin
-

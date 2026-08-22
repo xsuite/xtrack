@@ -1,8 +1,7 @@
 import xtrack as xt
 import numpy as np
 
-line = xt.load(
-    '../../test_data/hllhc15_thick/lhc_thick_with_knobs.json')
+line = xt.load('../../test_data/hllhc15_thick/lhc_thick_with_knobs.json')
 tt = line.get_table()
 
 # Define elements to be used as monitors for orbit correction

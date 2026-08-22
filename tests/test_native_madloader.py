@@ -10,8 +10,8 @@ from cpymad.madx import Madx
 from xdeps.refs import CompactFormatter
 import xtrack as xt
 from xtrack import Strategy, Uniform
-from xtrack.mad_parser.loader import MadxLoader
-from xtrack.mad_parser.parse import MadxOutputType, MadxParser
+from xtrack.mad_parser.loader import MadxLoader, MADLoaderWarning
+from xtrack.mad_parser.parse import MadxParser
 
 test_data_folder = (Path(__file__).parent / '../test_data').absolute()
 
@@ -41,6 +41,9 @@ def test_simple_parser():
     mb1, k0 := hello, polarity = +1;
     qf1, knl := {0, 0, 0, 0.01, 0};
     qd1, knl := {0, 0, 0, -0.01, 0};
+
+    BEAM, PARTICLE = PROTON, ENERGY = 7.0;
+    BEAM, SEQUENCE = LINE, PARTICLE = ELECTRON, GAMMA = 2.0;
 
     return;  ! should also be ignored
     """
@@ -110,6 +113,17 @@ def test_simple_parser():
                 'knl': [0.0, 0.0, 0.0, -0.01, 0.0],
             },
         },
+        'beams': [
+            {
+                'particle': 'proton',
+                'energy': 7.0,
+            },
+            {
+                'sequence': 'line',
+                'particle': 'electron',
+                'gamma': 2.0,
+            },
+        ],
     }
 
     def _order_madx_output(item):
@@ -117,12 +131,307 @@ def test_simple_parser():
         item['lines'] = OrderedDict(item['lines'])
         for line in item['lines'].values():
             line['elements'] = OrderedDict(line['elements'])
+        item['beams'] = list(item['beams'])
         item['parameters'] = OrderedDict(item['parameters'])
 
     _order_madx_output(expected)
     _order_madx_output(result)
 
     assert expected == result
+
+
+def test_parse_linac4_beta0_sequence(capsys):
+    sequence = """
+    ! Minimal reproduction of the LINAC4 BETA0 initial-Twiss block pattern.
+
+    LINAC.BETX0 = 0.451;
+    LINAC.ALFX0 = -3.599;
+    LINAC.BETY0 = 2.236;
+    LINAC.ALFY0 = -10.419;
+
+    LINAC.INITBETA0: BETA0,
+      BETX := LINAC.BETX0,
+      ALFX := LINAC.ALFX0,
+      BETY := LINAC.BETY0,
+      ALFY := LINAC.ALFY0;
+
+    D1: DRIFT, L = 1.0;
+    QF: QUADRUPOLE, L = 0.2, K1 = 0.1;
+    D2: DRIFT, L = 1.0;
+
+    LINAC4_MWE: SEQUENCE, REFER = ENTRY, L = 2.2;
+      D1, AT = 0.0;
+      QF, AT = 1.0;
+      D2, AT = 1.2;
+    ENDSEQUENCE;
+    """
+
+    env = xt.load(string=sequence, format='madx')
+    line = env['linac4_mwe']
+    assert line.element_names == ['d1', 'qf', 'd2']
+    assert line.get_length() == 2.2
+    tt = line.get_table()
+    assert list(tt['name']) == ['d1', 'qf', 'd2', '_end_point']
+    assert list(tt['s']) == [0.0, 1.0, 1.2, 2.2]
+    assert 'Ignoring beta0 statement' in capsys.readouterr().out
+
+
+@pytest.mark.filterwarnings('ignore::xtrack.mad_parser.loader.MADLoaderWarning')
+def test_parse_beam_sets_particle_ref():
+    sequence = """
+    D1: DRIFT, L = 1.0;
+
+    TESTSEQ: SEQUENCE, REFER = ENTRY, L = 1.0;
+      D1, AT = 0.0;
+    ENDSEQUENCE;
+
+    BEAM, SEQUENCE = TESTSEQ, PARTICLE = PROTON, ENERGY = 7.0,
+        BV = -1, BUNCHED = 1, NPART = 3, RADIATE = 1, SIGT = 0.1;
+    """
+
+    env = xt.load(string=sequence, format='madx')
+    line = env['testseq']
+
+    assert line.particle_ref.name == 'madx_beam_for_testseq'
+    xo.assert_allclose(line.particle_ref.mass0, xt.PROTON_MASS_EV, rtol=0, atol=1e-12)
+    xo.assert_allclose(line.particle_ref.q0, 1.0, rtol=0, atol=1e-12)
+    xo.assert_allclose(line.particle_ref.energy0, 7.0e9, rtol=0, atol=1e-12)
+    assert line.twiss_default.get('reverse', False) is False
+
+
+@pytest.mark.parametrize(
+    'beam_option,value,expected_p0c,expected_energy0,expected_beta0',
+    [
+        (
+            'PC',
+            7.0,
+            7.0e9,
+            (7.0e9**2 + xt.PROTON_MASS_EV**2) ** 0.5,
+            7.0e9 / ((7.0e9**2 + xt.PROTON_MASS_EV**2) ** 0.5),
+        ),
+        (
+            'GAMMA',
+            2.0,
+            xt.PROTON_MASS_EV * (2.0**2 - 1.0) ** 0.5,
+            2.0 * xt.PROTON_MASS_EV,
+            (1.0 - 1.0 / 2.0**2) ** 0.5,
+        ),
+        (
+            'BETA',
+            0.8,
+            xt.PROTON_MASS_EV * 0.8 / (1.0 - 0.8**2) ** 0.5,
+            xt.PROTON_MASS_EV / (1.0 - 0.8**2) ** 0.5,
+            0.8,
+        ),
+    ],
+)
+def test_parse_beam_reference_kinematics(beam_option, value, expected_p0c, expected_energy0, expected_beta0):
+    sequence = f"""
+    D1: DRIFT, L = 1.0;
+
+    TESTSEQ: SEQUENCE, REFER = ENTRY, L = 1.0;
+      D1, AT = 0.0;
+    ENDSEQUENCE;
+
+    BEAM, SEQUENCE = TESTSEQ, PARTICLE = PROTON, {beam_option} = {value};
+    """
+
+    env = xt.load(string=sequence, format='madx')
+    line = env['testseq']
+
+    xo.assert_allclose(line.particle_ref.mass0, xt.PROTON_MASS_EV, rtol=0, atol=1e-12)
+    xo.assert_allclose(line.particle_ref.q0, 1.0, rtol=0, atol=1e-12)
+    xo.assert_allclose(float(line.particle_ref.p0c[0]), expected_p0c, rtol=0, atol=1e-6)
+    xo.assert_allclose(float(line.particle_ref.energy0[0]), expected_energy0, rtol=0, atol=1e-6)
+    xo.assert_allclose(float(line.particle_ref.beta0[0]), expected_beta0, rtol=0, atol=1e-12)
+
+
+@pytest.mark.parametrize(
+    'beam_option,var_name,var_value,expected_p0c,expected_energy0,expected_beta0',
+    [
+        (
+            'ENERGY',
+            'e0',
+            7.0,
+            (7.0e9**2 - xt.PROTON_MASS_EV**2) ** 0.5,
+            7.0e9,
+            ( (7.0e9**2 - xt.PROTON_MASS_EV**2) ** 0.5 ) / 7.0e9,
+        ),
+        (
+            'PC',
+            'p0',
+            7.0,
+            7.0e9,
+            (7.0e9**2 + xt.PROTON_MASS_EV**2) ** 0.5,
+            7.0e9 / ((7.0e9**2 + xt.PROTON_MASS_EV**2) ** 0.5),
+        ),
+        (
+            'GAMMA',
+            'g0',
+            2.0,
+            xt.PROTON_MASS_EV * (2.0**2 - 1.0) ** 0.5,
+            2.0 * xt.PROTON_MASS_EV,
+            (1.0 - 1.0 / 2.0**2) ** 0.5,
+        ),
+        (
+            'BETA',
+            'b0',
+            0.8,
+            xt.PROTON_MASS_EV * 0.8 / (1.0 - 0.8**2) ** 0.5,
+            xt.PROTON_MASS_EV / (1.0 - 0.8**2) ** 0.5,
+            0.8,
+        ),
+    ],
+)
+def test_parse_beam_variable_kinematics(beam_option, var_name, var_value,
+                                        expected_p0c, expected_energy0, expected_beta0):
+    sequence = f"""
+    {var_name} := {var_value};
+
+    D1: DRIFT, L = 1.0;
+
+    TESTSEQ: SEQUENCE, REFER = ENTRY, L = 1.0;
+      D1, AT = 0.0;
+    ENDSEQUENCE;
+
+    BEAM, SEQUENCE = TESTSEQ, PARTICLE = PROTON, {beam_option} = {var_name};
+    """
+
+    env = xt.load(string=sequence, format='madx')
+    line = env['testseq']
+
+    assert line.particle_ref.name == 'madx_beam_for_testseq'
+    xo.assert_allclose(line.particle_ref.mass0, xt.PROTON_MASS_EV, rtol=0, atol=1e-12)
+    xo.assert_allclose(line.particle_ref.q0, 1.0, rtol=0, atol=1e-12)
+    xo.assert_allclose(float(line.particle_ref.p0c[0]), expected_p0c, rtol=0, atol=1e-6)
+    xo.assert_allclose(float(line.particle_ref.energy0[0]), expected_energy0, rtol=0, atol=1e-6)
+    xo.assert_allclose(float(line.particle_ref.beta0[0]), expected_beta0, rtol=0, atol=1e-12)
+
+
+def test_parse_beam_energy_variable_is_live():
+    sequence = """
+    e0 := 7.0;
+
+    D1: DRIFT, L = 1.0;
+
+    TESTSEQ: SEQUENCE, REFER = ENTRY, L = 1.0;
+      D1, AT = 0.0;
+    ENDSEQUENCE;
+
+    BEAM, SEQUENCE = TESTSEQ, PARTICLE = PROTON, ENERGY = e0;
+    """
+
+    env = xt.load(string=sequence, format='madx')
+    line = env['testseq']
+
+    expected_p0c = (7.0e9**2 - xt.PROTON_MASS_EV**2) ** 0.5
+    xo.assert_allclose(float(line.particle_ref.energy0[0]), 7.0e9, rtol=0, atol=1e-6)
+    xo.assert_allclose(float(line.particle_ref.p0c[0]), expected_p0c, rtol=0, atol=1e-6)
+
+    env['e0'] = 8.0
+    expected_p0c = (8.0e9**2 - xt.PROTON_MASS_EV**2) ** 0.5
+    xo.assert_allclose(float(line.particle_ref.energy0[0]), 8.0e9, rtol=0, atol=1e-6)
+    xo.assert_allclose(float(line.particle_ref.p0c[0]), expected_p0c, rtol=0, atol=1e-6)
+
+
+def test_parse_multiple_beams_for_different_lines():
+    sequence = """
+    D1: DRIFT, L = 1.0;
+
+    LINEA: SEQUENCE, REFER = ENTRY, L = 1.0;
+      D1, AT = 0.0;
+    ENDSEQUENCE;
+
+    LINEB: SEQUENCE, REFER = ENTRY, L = 1.0;
+      D1, AT = 0.0;
+    ENDSEQUENCE;
+
+    BEAM, SEQUENCE = LINEA, PARTICLE = PROTON, ENERGY = 7.0;
+    BEAM, SEQUENCE = LINEB, PARTICLE = ELECTRON, ENERGY = 1.0;
+    """
+
+    env = xt.load(string=sequence, format='madx')
+    line_a = env['linea']
+    line_b = env['lineb']
+
+    assert line_a.particle_ref.name == 'madx_beam_for_linea'
+    assert line_b.particle_ref.name == 'madx_beam_for_lineb'
+    xo.assert_allclose(line_a.particle_ref.mass0, xt.PROTON_MASS_EV, rtol=0, atol=1e-12)
+    xo.assert_allclose(line_a.particle_ref.q0, 1.0, rtol=0, atol=1e-12)
+    xo.assert_allclose(line_b.particle_ref.mass0, xt.ELECTRON_MASS_EV, rtol=0, atol=1e-12)
+    xo.assert_allclose(line_b.particle_ref.q0, -1.0, rtol=0, atol=1e-12)
+
+
+def test_parse_beam_without_sequence_uses_global_name():
+    sequence = """
+    BEAM, PARTICLE = PROTON, ENERGY = 7.0;
+    """
+
+    env = xt.load(string=sequence, format='madx')
+
+    assert env._particle_ref == 'madx_beam'
+    xo.assert_allclose(env.particles['madx_beam'].mass0, xt.PROTON_MASS_EV, rtol=0, atol=1e-12)
+    xo.assert_allclose(env.particles['madx_beam'].q0, 1.0, rtol=0, atol=1e-12)
+    xo.assert_allclose(float(env.particles['madx_beam'].energy0[0]), 7.0e9, rtol=0, atol=1e-6)
+
+
+def test_parse_beam_brho_variable():
+    sequence = """
+    br0 := 3.0;
+
+    D1: DRIFT, L = 1.0;
+
+    TESTSEQ: SEQUENCE, REFER = ENTRY, L = 1.0;
+      D1, AT = 0.0;
+    ENDSEQUENCE;
+
+    BEAM, SEQUENCE = TESTSEQ, PARTICLE = PROTON, BRHO = br0;
+    """
+
+    env = xt.load(string=sequence, format='madx')
+    line = env['testseq']
+
+    expected_p0c = 3.0 * 299792458.0
+    expected_energy0 = (expected_p0c**2 + xt.PROTON_MASS_EV**2) ** 0.5
+    expected_beta0 = expected_p0c / expected_energy0
+
+    assert line.particle_ref.name == 'madx_beam_for_testseq'
+    xo.assert_allclose(line.particle_ref.mass0, xt.PROTON_MASS_EV, rtol=0, atol=1e-12)
+    xo.assert_allclose(line.particle_ref.q0, 1.0, rtol=0, atol=1e-12)
+    xo.assert_allclose(float(line.particle_ref.p0c[0]), expected_p0c, rtol=0, atol=1e-6)
+    xo.assert_allclose(float(line.particle_ref.energy0[0]), expected_energy0, rtol=0, atol=1e-6)
+    xo.assert_allclose(float(line.particle_ref.beta0[0]), expected_beta0, rtol=0, atol=1e-12)
+
+
+@pytest.mark.parametrize(
+    'particle_name,expected_q0,expected_mass0,extra',
+    [
+        ('POSITRON', 1.0, xt.ELECTRON_MASS_EV, ''),
+        ('electron', -1.0, xt.ELECTRON_MASS_EV, ''),
+        ('Proton', 1.0, xt.PROTON_MASS_EV, ''),
+        ('antiproton', -1.0, xt.PROTON_MASS_EV, ''),
+        ('POSMUON', 1.0, xt.particles.masses.MUON_MASS_EV, ''),
+        ('negmuon', -1.0, xt.particles.masses.MUON_MASS_EV, ''),
+        ('Ion', 2.0, 1.0e9, ', MASS = 1.0, CHARGE = 2'),
+    ],
+)
+def test_parse_beam_particle_aliases(particle_name, expected_q0, expected_mass0, extra):
+    sequence = f"""
+    D1: DRIFT, L = 1.0;
+
+    TESTSEQ: SEQUENCE, REFER = ENTRY, L = 1.0;
+      D1, AT = 0.0;
+    ENDSEQUENCE;
+
+    BEAM, SEQUENCE = TESTSEQ, PARTICLE = {particle_name}, ENERGY = 7.0{extra};
+    """
+
+    env = xt.load(string=sequence, format='madx')
+    line = env['testseq']
+
+    xo.assert_allclose(line.particle_ref.q0, expected_q0, rtol=0, atol=1e-12)
+    xo.assert_allclose(line.particle_ref.mass0, expected_mass0, rtol=0, atol=1e-12)
+    xo.assert_allclose(float(line.particle_ref.energy0[0]), 7.0e9, rtol=0, atol=1e-6)
 
 
 @pytest.mark.parametrize(
@@ -158,16 +467,16 @@ def example_sequence(temp_context_default_mod):
     in: instrument, l=2;
     mo: monitor, l=1;
     pl: placeholder, l=1;
-    sb: sbend, l=2, angle=2, tilt=-2, k0=3, k1=1, k2=2, k1s=3, e1=2, e2=1, fint=3, fintx=2, hgap=1, h1=3, h2=2;
-    rb: rbend, l=1.5, angle=2, tilt=-2, k0=3, k1=1, k2=2, k1s=3, e1=2, e2=1, fint=3, fintx=2, hgap=1, h1=3, h2=2;
+    sb: sbend, l=2, angle=2, tilt=-2, k0=3, k1=1, k2=2, e1=2, e2=1, fint=3, fintx=2, hgap=1, h1=3, h2=2;
+    rb: rbend, l=1.5, angle=2, tilt=-2, k0=3, k1=1, k2=2, e1=2, e2=1, fint=3, fintx=2, hgap=1, h1=3, h2=2;
     qu: quadrupole, l=2, k1=3, k1s=4, tilt=2;  ! ignore thick and ktap
     se: sextupole, L=1, K2=2, K2S=3, TILT=2;  ! ignore ktap
     oc: octupole, L=2, K3=3, K3S=2, TILT=2;
     ma: marker;
-    rf: rfcavity, L=2, VOLT=1, LAG=2, FREQ=3, HARMON=2, NO_CAVITY_TOTALPATH;  ! ignore N_BESSEL
+    rf: rfcavity, L=2, VOLT=1, LAG=2, FREQ=3, NO_CAVITY_TOTALPATH;  ! ignore N_BESSEL
     mu: multipole, LRAD=1, TILT=2, KNL={3, 4, 5, 6}, KSL={1, 2, 3, 4};
     so: solenoid, l=2, ks=3;  ! ignore ksi
-    
+
     rb_stage1: rbend, l=1;
     rb_stage2: rb_stage1, angle=2;
 
@@ -312,7 +621,7 @@ def test_placeholder(example_sequence):
 
 def test_sbend(example_sequence):
     env, positions, _ = example_sequence
-    # sb: sbend, l=2, angle=2, tilt=-2, k0=3, k1=1, k2=2, k1s=3, e1=2, e2=1,
+    # sb: sbend, l=2, angle=2, tilt=-2, k0=3, k1=1, k2=2, e1=2, e2=1,
     #   fint=3, fintx=2, hgap=1;  ! thick, ktap, h1, h2 we ignore
     sb1 = env['sb1/line']
     xo.assert_allclose(positions['sb1/line'], 15, atol=1e-14)
@@ -321,11 +630,12 @@ def test_sbend(example_sequence):
     assert sb1.k0 == 3
     assert sb1.h == 2 / 2  # angle / l
     assert sb1.k1 == 1
+    assert sb1.k2 == 2.
     assert sb1.knl[0] == 0
     assert sb1.knl[1] == 0
-    assert sb1.knl[2] == 2 * 2  # k2 * l
+    assert sb1.knl[2] == 0
     assert sb1.ksl[0] == 0
-    assert sb1.ksl[1] == 3 * 2  # k1s * l
+    assert sb1.ksl[1] == 0
     assert sb1.edge_entry_angle == 2
     assert sb1.edge_exit_angle == 1
     assert sb1.edge_entry_fint == 3
@@ -336,7 +646,7 @@ def test_sbend(example_sequence):
 
 def test_rbend(example_sequence):
     env, positions, _ = example_sequence
-    # rb: rbend, l=2, angle=1.5, tilt=-2, k0=3, k1=1, k2=2, k1s=3, e1=2, e2=1,
+    # rb: rbend, l=2, angle=1.5, tilt=-2, k0=3, k1=1, k2=2 e1=2, e2=1,
     #   fint=3, fintx=2, hgap=1, h1=3, h2=2;  ! ditto
     rb1 = env['rb1/line']
     xo.assert_allclose(positions['rb1/line'], 17, atol=1e-14)
@@ -352,11 +662,12 @@ def test_rbend(example_sequence):
     assert rb1.k0 == 3
     assert rb1.h == h
     assert rb1.k1 == 1
+    assert rb1.k2 == 2.
     assert rb1.knl[0] == 0
     assert rb1.knl[1] == 0
-    assert rb1.knl[2] == 2 * l  # k2 * l
+    assert rb1.knl[2] == 0
     assert rb1.ksl[0] == 0
-    assert rb1.ksl[1] == 3 * l  # k1s * l
+    assert rb1.ksl[1] == 0
     assert rb1.edge_entry_angle == 2
     assert rb1.edge_exit_angle == 1
     assert rb1.edge_entry_fint == 3
@@ -380,13 +691,13 @@ def test_rbend_two_step(example_sequence):
     assert rb1.h == h
     assert rb1.edge_entry_angle == 0
     assert rb1.edge_exit_angle == 0
-    assert rb1.k0 == h
+    assert rb1._k0 == h
 
 def test_rbend_set_params_after_lattice(example_sequence):
     env, positions, _ = example_sequence
     rb1 = env['rx2']
-    assert positions['rx2'] < 35 # When changing the angle the position changes
-                                 # (the magnet shortens)
+    # When changing the angle the position of the center does not move
+    xo.assert_allclose(positions['rx2'], 35, atol=1e-12)
     assert isinstance(rb1, xt.RBend)
 
     angle = 1.5
@@ -399,7 +710,7 @@ def test_rbend_set_params_after_lattice(example_sequence):
     assert rb1.h == h
     assert rb1.edge_entry_angle == 0
     assert rb1.edge_exit_angle == 0
-    assert rb1.k0 == h
+    assert rb1._k0 == h
 
 
 def test_quadrupole(example_sequence):
@@ -448,12 +759,13 @@ def test_marker(example_sequence):
 
 def test_rfcavity(example_sequence):
     env, positions, _ = example_sequence
-    # rf: rfcavity, L=2, VOLT=1, LAG=2, FREQ=3, HARMON=2;  ! ignore N_BESSEL, NO_CAVITY_TOTALPATH
+    # rf: rfcavity, L=2, VOLT=1, LAG=2, FREQ=3;  ! ignore N_BESSEL, NO_CAVITY_TOTALPATH
     rf1 = env['rf1/line']
     xo.assert_allclose(positions['rf1/line'], 27, atol=1e-14)
     assert isinstance(rf1, xt.Cavity)
     assert rf1.voltage == 1e6
-    assert rf1.lag == 2 * 360
+    assert rf1.lag == 0
+    xo.assert_allclose(rf1.phase, 4 * math.pi, rtol=0, atol=1e-12)
     assert rf1.frequency == 3e6
 
 
@@ -564,11 +876,12 @@ def test_reversed_sbend(example_sequence):
     assert sb1.k0 == 3
     assert sb1.h == 2 / 2  # angle / l
     assert sb1.k1 == -1
+    assert sb1.k2 == 2.
     assert sb1.knl[0] == 0
     assert sb1.knl[1] == 0
-    assert sb1.knl[2] == 2 * 2  # k2 * l
+    assert sb1.knl[2] == 0
     assert sb1.ksl[0] == 0
-    assert sb1.ksl[1] == 3 * 2  # k1s * l
+    assert sb1.ksl[1] == 0
     assert sb1.edge_entry_angle == 1
     assert sb1.edge_exit_angle == 2
     assert sb1.edge_entry_fint == 2
@@ -578,7 +891,7 @@ def test_reversed_sbend(example_sequence):
 
 
 def test_reversed_rbend(example_sequence):
-    env, _, positions_reversed = example_sequence    # rb: rbend, l=2, angle=1.5, tilt=-2, k0=3, k1=1, k2=2, k1s=3, e1=2, e2=1,
+    env, _, positions_reversed = example_sequence    # rb: rbend, l=2, angle=1.5, tilt=-2, k0=3, k1=1, k2=2, e1=2, e2=1,
     #   fint=3, fintx=2, hgap=1, h1=3, h2=2;  ! ditto
     rb1 = env['rb1/line_reversed']
     xo.assert_allclose(positions_reversed['rb1/line_reversed'], 36 - 17, atol=1e-14)
@@ -594,11 +907,12 @@ def test_reversed_rbend(example_sequence):
     assert rb1.k0 == 3
     assert rb1.h == h
     assert rb1.k1 == -1
+    assert rb1.k2 == 2.
     assert rb1.knl[0] == 0
     assert rb1.knl[1] == 0
-    assert rb1.knl[2] == 2 * l  # k2 * l
+    assert rb1.knl[2] == 0
     assert rb1.ksl[0] == 0
-    assert rb1.ksl[1] == 3 * l  # k1s * l
+    assert rb1.ksl[1] == 0
     assert rb1.edge_entry_angle == 1
     assert rb1.edge_exit_angle == 2
     assert rb1.edge_entry_fint == 2
@@ -651,12 +965,13 @@ def test_reversed_marker(example_sequence):
 
 
 def test_reversed_rfcavity(example_sequence):
-    env, _, positions_reversed = example_sequence    # ma: marker;    # rf: rfcavity, L=2, VOLT=1, LAG=2, FREQ=3, HARMON=2;  ! ignore N_BESSEL, NO_CAVITY_TOTALPATH
+    env, _, positions_reversed = example_sequence    # ma: marker;    # rf: rfcavity, L=2, VOLT=1, LAG=2, FREQ=3;  ! ignore N_BESSEL, NO_CAVITY_TOTALPATH
     rf1 = env['rf1/line_reversed']
     xo.assert_allclose(positions_reversed['rf1/line_reversed'], 36 - 27, atol=1e-14)
     assert isinstance(rf1, xt.Cavity)
     assert rf1.voltage == 1e6
-    assert rf1.lag == 180 - 2 * 360
+    assert rf1.lag == 0
+    xo.assert_allclose(rf1.phase, math.pi - 4 * math.pi, rtol=0, atol=1e-12)
     assert rf1.frequency == 3e6
 
 
@@ -688,7 +1003,7 @@ def test_reversed_solenoid(example_sequence):
     assert so1.ks == -3
 
 
-def test_load_b2_with_bv_minus_one(tmp_path):
+def test_load_b2_with_bv_minus_one(sandbox_cwd):
     test_data_folder_str = str(test_data_folder)
 
     mad = Madx(stdout=False)
@@ -719,8 +1034,7 @@ def test_load_b2_with_bv_minus_one(tmp_path):
     mad.globals['kctx3.l1'] = 1e-5  # Check thin dodecapole expressions
     mad.globals['kctsx3.r1'] = 1e-5  # Check thin skew dodecapole expressions
 
-
-    tmp_seq_path = str(tmp_path / 'sequence.seq')
+    tmp_seq_path = str(sandbox_cwd / 'sequence.seq')
     mad.input('set, format=".20g";')
     mad.save(file=tmp_seq_path)
 
@@ -732,7 +1046,7 @@ def test_load_b2_with_bv_minus_one(tmp_path):
     )
     line2_ref.particle_ref = xt.Particles(mass0=xt.PROTON_MASS_EV, p0c=7000e9)
 
-    env = xt.load_madx_lattice(tmp_seq_path, reverse_lines=['lhcb2'])
+    env = xt.load(tmp_seq_path, reverse_lines=['lhcb2'])
     line2 = env['lhcb2']
 
     # Remove apertures, they are not supported in the cpymadloader
@@ -779,9 +1093,16 @@ def test_load_b2_with_bv_minus_one(tmp_path):
         is_rbend = isinstance(e4, xt.RBend)
 
         for kk in d2.keys():
+
+            if kk == 'prototype':
+                continue  # is always None from cpymad
+
             if kk in ('__class__', 'model', 'side'):
                 assert d2[kk] == d4[kk]
                 continue
+
+            if kk in ('isthick', '_isthick') and e2.length == 0:
+                continue  # Skip the check for zero-length elements
 
             if kk in {
                 'order',  # Always assumed to be 5, not always the same
@@ -813,7 +1134,7 @@ def test_line_syntax():
     el1: drift, l=1;
     el2: drift, l=2;
     el3: drift, l=3;
-    
+
     l1: line = (el1, el2, el3);
     l2: line = (-l1);
     l3: line = (3 * el1, 2 * el2);
@@ -825,6 +1146,13 @@ def test_line_syntax():
     loader = MadxLoader()
     loader.load_string(sequence)
     env = loader.env
+
+    env['l1'].end_compose()
+    env['l2'].end_compose()
+    env['l3'].end_compose()
+    env['l4'].end_compose()
+    env['l5'].end_compose()
+    env['l6'].end_compose()
 
     l1 = env['l1']
     assert l1.name == 'l1'
@@ -851,6 +1179,27 @@ def test_line_syntax():
     assert l6.element_names == 4 * ['el1', 'el2']
 
 
+def test_line_syntax_inserts_apertures():
+    sequence = """
+    m1: marker, apertype="circle", aperture={.2};
+    d1: drift, l=1;
+
+    l1: line = (m1, 3 * m1, d1);
+    """
+
+    loader = MadxLoader()
+    loader.load_string(sequence)
+    env = loader.env
+
+    env['l1'].end_compose()
+
+    l1 = env['l1']
+    assert l1.name == 'l1'
+    assert l1.element_names == 4 * ['m1_aper', 'm1'] + ['d1']
+    assert l1['m1'].name_associated_aperture == 'm1_aper'
+    assert isinstance(l1['m1_aper'], xt.LimitEllipse)
+
+
 def test_refer_and_thin_elements():
     sequence = """
     mb: sbend, l = 3;
@@ -868,9 +1217,7 @@ def test_refer_and_thin_elements():
     endsequence;
     """
 
-    loader = MadxLoader()
-    loader.load_string(sequence)
-    env = loader.env
+    env = xt.load(string=sequence, format='madx')
 
     seq1 = env['seq1']
     seq1.merge_consecutive_drifts()
@@ -899,9 +1246,9 @@ def test_import_seq_length():
     env = xt.load(string=sequence, format='madx')
 
     tt = env.line.get_table()
-    assert np.all(tt.name == np.array(['drift_1', 'qu1', 'drift_2', '_end_point']))
+    assert np.all(tt.name == np.array(['||drift_1', 'qu1', '||drift_2', '_end_point']))
     xo.assert_allclose(tt['s'], np.array([ 0., 18., 20., 30.]), rtol=0, atol=1e-15)
-    assert env.line.builder.length == 30
+    assert env.line.composer.length == 30
 
 
 def test_repeated_element_mad_behaviour():
@@ -925,32 +1272,18 @@ def test_repeated_element_mad_behaviour():
     assert env.seq2['ee'] == element
 
 
-@pytest.mark.parametrize('aper_config', ['attached_to_marker', 'standalone'])
-def test_apertures_on_markers(aper_config):
-    if aper_config == 'attached_to_marker':
-        sequence = """
-            ! Attached to a marker
-            m_circle: marker, apertype="circle", aperture={.2};
-            m_ellipse: marker, apertype="ellipse", aperture={.2, .1};
-            m_rectangle: marker, apertype="rectangle", aperture={.07, .05};
-            m_rectellipse: marker, apertype="rectellipse", aperture={.2, .4, .25, .45};
-            m_racetrack: marker, apertype="racetrack", aperture={.6,.4,.2,.1};
-            m_octagon: marker, apertype="octagon", aperture={.4, .5, 0.5, 1.};
-            m_polygon: marker, apertype="circle", aper_vx={+5.800e-2,+5.800e-2,-8.800e-2}, aper_vy={+3.500e-2,-3.500e-2,+0.000e+0};
-            """
-    else:
-        sequence = """
-            ! Standalone
-            m_circle: circle, aperture={.2};
-            m_ellipse: ellipse, aperture={.2, .1};
-            m_rectangle: rectangle, aperture={.07, .05};
-            m_rectellipse: rectellipse, aperture={.2, .4, .25, .45};
-            m_racetrack: racetrack, aperture={.6,.4,.2,.1};
-            m_octagon: octagon, aperture={.4, .5, 0.5, 1.};
-            m_polygon: circle, aper_vx={+5.800e-2,+5.800e-2,-8.800e-2}, aper_vy={+3.500e-2,-3.500e-2,+0.000e+0};
-            """
+def test_apertures_on_markers():
 
-    sequence += """
+    sequence = """
+        ! Attached to a marker
+        m_circle: marker, apertype="circle", aperture={.2};
+        m_ellipse: marker, apertype="ellipse", aperture={.2, .1};
+        m_rectangle: marker, apertype="rectangle", aperture={.07, .05};
+        m_rectellipse: marker, apertype="rectellipse", aperture={.2, .4, .25, .45};
+        m_racetrack: marker, apertype="racetrack", aperture={.6,.4,.2,.1};
+        m_octagon: marker, apertype="octagon", aperture={.4, .5, 0.5, 1.};
+        m_polygon: marker, apertype="circle", aper_vx={+5.800e-2,+5.800e-2,-8.800e-2}, aper_vy={+3.500e-2,-3.500e-2,+0.000e+0};
+
         line: sequence, l=1;
             m_circle, at=0;
             m_ellipse, at=0.01;
@@ -1044,14 +1377,17 @@ def test_aperture_setting():
     sequence = """
     m_ellipse: marker, apertype="ellipse", aperture={.2, .1};
     m_aper: marker, apertype="rectangle", aperture={.3, .4};
-    
+    m_inferred: marker, aperture=.5;  ! no apertype, should infer circle
+
     line: sequence, l=1;
         m_ellipse, at=0;
         m_aper, at=0.1;
+        m_inferred, at=0.2;
     endsequence;
-    
+
     m_ellipse, aperture={.3, .2};  ! no apertype
     m_aper, apertype="ellipse", aperture={.5, .6};  ! change apertype
+    m_inferred, aperture={.8};
     """
 
     env = xt.load(string=sequence, format='madx')
@@ -1062,6 +1398,8 @@ def test_aperture_setting():
 
     assert line['m_aper_aper'].a == .5
     assert line['m_aper_aper'].b == .6
+
+    assert line['m_inferred_aper'].a == .8
 
 
 def test_import_thick_with_apertures_and_slice():
@@ -1116,12 +1454,13 @@ def test_import_thick_with_apertures_and_slice():
         'drift_elm..2',                 # drift 2
         'elm_aper..3',                  # exit edge aperture
         'elm..exit_map',                # exit edge (+transform)
+        'elm_aper..4',                  # downstream closing aperture
         'elm_exit',                     # exit marker
     ])
 
     line.build_tracker(compile=False) # To resolve parents
 
-    for i in range(4):
+    for i in range(5):
         _assert_eq(line[f'elm_aper..{i}'].resolve(line).rot_s_rad, 0.1)
         _assert_eq(line[f'elm_aper..{i}'].resolve(line).shift_x, 0.2)
         _assert_eq(line[f'elm_aper..{i}'].resolve(line).shift_y, 0.3)
@@ -1132,3 +1471,183 @@ def test_import_thick_with_apertures_and_slice():
 
     for i in range(2):
         _assert_eq(line[f'elm..{i}']._parent.rot_s_rad, 0.2)
+
+
+def test_solenoid_zero_length():
+
+    mad_str = """
+        sol1: solenoid, l=1.0, ks=0.5;
+        sol2: sol1, lrad=0.2;
+        sol3: sol2;
+
+        sol4: solenoid, l=0, ks=1.0;
+        sol5: sol4, lrad=0.1;
+        sol6: sol5;
+    """
+
+    env = xt.load(string=mad_str, format='madx')
+
+    assert isinstance(env['sol1'], xt.UniformSolenoid)
+    assert isinstance(env['sol2'], xt.UniformSolenoid)
+    assert isinstance(env['sol3'], xt.UniformSolenoid)
+    assert isinstance(env['sol4'], xt.UniformSolenoid)
+    assert isinstance(env['sol5'], xt.UniformSolenoid)
+    assert isinstance(env['sol6'], xt.UniformSolenoid)
+
+    xo.assert_allclose(env['sol1'].length, 1.0, rtol=0, atol=1e-12)
+    xo.assert_allclose(env['sol2'].length, 1.0, rtol=0, atol=1e-12)
+    xo.assert_allclose(env['sol3'].length, 1.0, rtol=0, atol=1e-12)
+    xo.assert_allclose(env['sol4'].length, 0.0, rtol=0, atol=1e-12)
+    xo.assert_allclose(env['sol5'].length, 0.0, rtol=0, atol=1e-12)
+    xo.assert_allclose(env['sol6'].length, 0.0, rtol=0, atol=1e-12)
+
+
+def test_bend_k0_neq_h():
+
+    mad_src = """
+        a = 0.1;
+        b1: sbend, l=2.0, angle:=a, k0:=0.2*a, e1=0.02, e2=0.03, fint=1.5, hgap=0.04;
+        seq: sequence, l=2.0;
+        b1: b1, at=1;
+        endsequence;
+    """
+
+    mad = Madx()
+    mad.input(mad_src)
+    mad.beam()
+    mad.use('seq')
+
+    lmad = xt.Line.from_madx_sequence(mad.sequence.seq, deferred_expressions=True)
+    env = xt.load(string=mad_src, format='madx')
+    lenv = env['seq']
+
+    xo.assert_allclose(lenv['b1'].length,
+                    lmad['b1'].length, rtol=0, atol=1e-12)
+    xo.assert_allclose(lenv['b1'].angle,
+                    lmad['b1'].angle, rtol=0, atol=1e-12)
+    xo.assert_allclose(lenv['b1'].k0,
+                    lmad['b1'].k0, rtol=0, atol=1e-12)
+    xo.assert_allclose(lenv['b1'].h,
+                    lmad['b1'].h, rtol=0, atol=1e-12)
+    xo.assert_allclose(lenv['b1'].edge_entry_angle,
+                    lmad['b1'].edge_entry_angle, rtol=0, atol=1e-12)
+    xo.assert_allclose(lenv['b1'].edge_exit_angle,
+                    lmad['b1'].edge_exit_angle, rtol=0, atol=1e-12)
+    xo.assert_allclose(lenv['b1'].edge_entry_fint,
+                    lmad['b1'].edge_entry_fint, rtol=0, atol=1e-12)
+    xo.assert_allclose(lenv['b1'].edge_exit_fint,
+                        lmad['b1'].edge_exit_fint, rtol=0, atol=1e-12)
+    xo.assert_allclose(lenv['b1'].edge_entry_hgap,
+                        lmad['b1'].edge_entry_hgap, rtol=0, atol=1e-12)
+    xo.assert_allclose(lenv['b1'].edge_exit_hgap,
+                        lmad['b1'].edge_exit_hgap, rtol=0, atol=1e-12)
+    xo.assert_allclose(lenv['b1'].edge_entry_angle_fdown,
+                    lmad['b1'].edge_entry_angle_fdown, rtol=0, atol=1e-12)
+    xo.assert_allclose(lenv['b1'].edge_exit_angle_fdown,
+                    lmad['b1'].edge_exit_angle_fdown, rtol=0, atol=1e-12)
+
+
+def test_redefined_apertures():
+    """Check that the following MAD-X behaviour is supported, and note that in both cases MAD-X complains.
+
+    In both cases it ignores the new settings. With "ip1: omk, at = ..." we get:
+
+        ++++++ warning: implicit element re-definition ignored: ip1
+
+    With "ip, at = ..." we get:
+
+        ++++++ warning: Not possible to update attribute for element in sequence definition:  ip1
+        ++++++ warning: Not possible to update attribute for element in sequence definition:  ip1
+        ++++++ warning: Not possible to update attribute for element in sequence definition:  ip1
+
+    In both cases:
+
+        >>> m.sequence.line1.elements['ip1'].aperture
+        [0.029]
+        >>> m.sequence.line2.elements['ip1'].aperture
+        [0.029]
+    """
+
+    mad_src_clone = """
+        l.omk = 0;
+        omk: marker, l := l.omk;
+        ip1: omk, apertype = "circle", aperture := {0.029}, aper_tol := {0.011};
+        
+        line1: sequence, l = 1;
+            ip1: omk, at = 0, apertype = "circle", aperture := {42}, aper_tol := {0.87};
+        endsequence;
+    """
+
+    mad_src_place = """
+        l.omk = 0;
+        omk: marker, l := l.omk;
+        ip1: omk, apertype = "circle", aperture := {0.029}, aper_tol := {0.011};
+
+        line2: sequence, l = 1;
+            ip1: omk, at = 0, apertype = "circle", aperture := {42}, aper_tol := {0.87};
+        endsequence;
+    """
+
+    with pytest.warns(MADLoaderWarning, match='redefinition ignored'):
+        env1 = xt.load(string=mad_src_clone, format='madx')
+    aper1 = env1.line1['ip1_aper']
+    assert isinstance(aper1, xt.LimitEllipse)
+    assert np.allclose([aper1.a, aper1.b], 0.029, atol=1e-12, rtol=0)
+
+    with pytest.warns(MADLoaderWarning, match='redefinition ignored'):
+        env2 = xt.load(string=mad_src_place, format='madx')
+    aper2 = env2.line2['ip1_aper']
+    assert isinstance(aper2, xt.LimitEllipse)
+    assert np.allclose([aper2.a, aper2.b], 0.029, atol=1e-12, rtol=0)
+
+def test_native_loader_srotation():
+
+    mad_src = """
+    angle=0.2;
+    rot: srotation,angle:=angle;
+
+    ss: sequence, l=1; rot: rot, at=0; endsequence;
+
+    """
+
+    env = xt.load(string=mad_src, format='madx')
+    line = env.ss
+
+    assert isinstance(line[0], xt.Rotation)
+    line.vars['angle'] = 2.0
+    assert line[0].rot_s_rad == line.vars['angle']._value
+
+
+def test_native_loader_xrotation():
+
+    mad_src = """
+    angle=0.2;
+    rot: xrotation,angle:=angle;
+
+    ss: sequence, l=1; rot: rot, at=0; endsequence;
+
+    """
+
+    env = xt.load(string=mad_src, format='madx')
+    line = env.ss
+
+    assert isinstance(line[0], xt.Rotation)
+    line.vars['angle'] = 2.0
+    assert line[0].rot_x_rad == line.vars['angle']._value
+
+def test_native_loader_yrotation():
+
+    mad_src = """
+    angle=0.2;
+    rot: yrotation,angle:=angle;
+
+    ss: sequence, l=1; rot: rot, at=0; endsequence;
+
+    """
+
+    env = xt.load(string=mad_src, format='madx')
+    line = env.ss
+
+    assert isinstance(line[0], xt.Rotation)
+    line.vars['angle'] = 2.0
+    assert line[0].rot_y_rad == line.vars['angle']._value

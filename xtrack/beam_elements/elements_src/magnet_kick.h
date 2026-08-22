@@ -6,8 +6,8 @@
 #ifndef XTRACK_MAGNET_KICK_H
 #define XTRACK_MAGNET_KICK_H
 
-#include <headers/track.h>
-#include <beam_elements/elements_src/track_magnet_kick.h>
+#include "xtrack/headers/track.h"
+#include "xtrack/beam_elements/elements_src/track_magnet_kick.h"
 
 
 GPUFUN

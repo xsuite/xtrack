@@ -15,9 +15,18 @@ def compensate_radiation_energy_loss(line, delta0='zero_mean', rtol_eneloss=1e-1
     assert line.particle_ref is not None, "Particle reference is not set"
     assert np.abs(line.particle_ref.q0) == 1, "Only |q0| = 1 is supported (for now)"
 
-    if len(set(line.element_names)) != len(line.element_names):
+    enames_no_autodrift = [nn for nn in line.element_names if not nn.startswith('||drift_')]
+    if len(set(enames_no_autodrift)) != len(enames_no_autodrift):
         raise ValueError("Line must not contain repeated elements to use "
                          "`compensate_radiation_energy_loss(...)`. ")
+
+    ele_type = line.tracker._tracker_data_base._line_table.element_type
+    ele_type_set = set(ele_type)
+    for et in ele_type_set:
+        if 'SliceCavity' in et:
+            raise ValueError(
+                f"Element type '{et}' is not supported for radiation energy "
+                "loss compensation.")
 
     if 'record_iterations' in kwargs:
         record_iterations = kwargs['record_iterations']
@@ -29,8 +38,11 @@ def compensate_radiation_energy_loss(line, delta0='zero_mean', rtol_eneloss=1e-1
     if verbose: _print("Compensating energy loss.")
 
     line.config.XTRACK_MULTIPOLE_NO_SYNRAD = True
-    with xt.freeze_longitudinal(line):
-        particle_on_co = line.find_closed_orbit(co_search_at=co_search_at)
+    with xt.line._preserve_track_flags(line):
+        line.tracker.track_flags.XS_FLAG_KILL_CAVITY_KICK = True
+        particle_on_co = line.find_closed_orbit(co_search_at=co_search_at,
+                                                delta0=0 # 4d search
+                                                )
     line.config.XTRACK_MULTIPOLE_NO_SYNRAD = False
 
     beta0 = float(particle_on_co._xobject.beta0[0])
@@ -46,26 +58,36 @@ def compensate_radiation_energy_loss(line, delta0='zero_mean', rtol_eneloss=1e-1
         return
 
     # save voltages
-    v_setter = line.attr._cache['voltage'].multisetter
-    f_setter = line.attr._cache['frequency'].multisetter
-    lag_setter = line.attr._cache['lag'].multisetter
-    lag_taper_setter = line.attr._cache['lag_taper'].multisetter
+    # Can do "own" as cavity slices are not supported here (see assert above)
+    v_setter = line.attr._cache['_own_voltage'].multisetter
+    f_setter = line.attr._cache['_own_frequency'].multisetter
+    h_setter = line.attr._cache['_own_harmonic'].multisetter
+    lag_setter = line.attr._cache['_own_lag'].multisetter
+    phase_setter = line.attr._cache['_own_phase'].multisetter
+    phase_taper_setter = line.attr._cache['_own_phase_taper'].multisetter
 
     v0 = v_setter.get_values()
     f0 = f_setter.get_values()
+    h0 = h_setter.get_values()
     lag_zero = lag_setter.get_values()
+    phase_zero = phase_setter.get_values()
 
+    # Legacy, deprecated, clean up if used
+    lag_taper_setter = line.attr._cache['_own_lag_taper'].multisetter
+    lag_taper_setter.set_values(0 * phase_zero)
+
+    f0_all = f0 + h0 / (line.tracker._tracker_data_base.line_length / beta0 / clight)
     eneloss_partitioning = v0 / v0.sum()
 
     # Put all cavities on crest and at zero frequency
-    lag_taper_setter.set_values(90. - lag_zero)
+    phase_taper_setter.set_values(np.pi/2 - np.deg2rad(lag_zero) - phase_zero)
     v_setter.set_values(np.zeros_like(v_setter.get_values()))
     f_setter.set_values(np.zeros_like(f_setter.get_values()))
+    h_setter.set_values(np.zeros_like(h_setter.get_values()))
 
     if verbose: _print("Share energy loss among cavities (repeat until energy loss is zero)")
-    with xt.line._preserve_config(line):
-        line.config.XTRACK_MULTIPOLE_TAPER = True
-        line.config.XTRACK_DIPOLEEDGE_TAPER = True
+    with xt.line._preserve_track_flags(line):
+        line.tracker.track_flags.XS_FLAG_SR_TAPER = True
 
         if delta0 == 'zero_mean':
             num_rounds = 2
@@ -117,7 +139,7 @@ def compensate_radiation_energy_loss(line, delta0='zero_mean', rtol_eneloss=1e-1
     if verbose: _print("  - Restore cavity voltage and frequency. Set cavity lag")
     v_synchronous = v_setter.get_values()
 
-    mask_cav = line.attr._cache['voltage'].mask
+    mask_cav = line.attr._cache['_own_voltage'].mask
     zeta_at_cav = np.atleast_1d(np.squeeze(mon.zeta[0, :-1]))[mask_cav]
     mask_active_cav = np.abs(v0) > 0
     v_ratio = v0 * 0
@@ -125,12 +147,13 @@ def compensate_radiation_energy_loss(line, delta0='zero_mean', rtol_eneloss=1e-1
     assert np.all(np.abs(v_ratio[mask_active_cav]) < 1)
     inst_phase = np.arcsin(v_ratio)
 
-    total_lag = 360.*(inst_phase / (2 * np.pi) - f0 * zeta_at_cav / beta0 / clight)
-    total_lag = 180. - total_lag # we are above transition
-    lag_taper = total_lag - lag_zero
-    lag_taper[~mask_active_cav] = 0
+    total_phase = (inst_phase - (2 * np.pi) * f0_all * zeta_at_cav / beta0 / clight)
+    total_phase = np.pi - total_phase # we are above transition
+    phase_taper = total_phase - np.deg2rad(lag_zero) - phase_zero
+    phase_taper[~mask_active_cav] = 0
 
     v_setter.set_values(v0)
     f_setter.set_values(f0)
-    lag_taper_setter.set_values(lag_taper)
-
+    h_setter.set_values(h0)
+    lag_taper_setter.set_values(0 * phase_taper)
+    phase_taper_setter.set_values(phase_taper)

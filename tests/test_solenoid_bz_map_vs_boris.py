@@ -5,11 +5,14 @@ from scipy.constants import epsilon_0 as eps0
 
 import xobjects as xo
 import xtrack as xt
-from xobjects.test_helpers import for_all_test_contexts
+from xobjects.test_helpers import (
+    allow_kernel_compilation, for_all_test_contexts)
 from xtrack._temp.boris_and_solenoid_map.solenoid_field import SolenoidField
 
 
+@allow_kernel_compilation
 def test_solenoid_bz_map_vs_boris():
+
     ctx = xo.ContextCpu()
 
     boris_knl_description = xo.Kernel(

@@ -4,13 +4,18 @@
 # ######################################### #
 import numpy as np
 import pytest
+from scipy.constants import c as clight
+from xobjects.test_helpers import allow_kernel_compilation
 
 import xtrack as xt
 import xobjects as xo
 import xpart as xp
 
 
+@allow_kernel_compilation
 def test_check_is_active_sorting_openmp():
+
+
     test_context = xo.ContextCpu(omp_num_threads=5)
 
     class TestElement(xt.BeamElement):
@@ -19,18 +24,19 @@ def test_check_is_active_sorting_openmp():
         }
 
         _extra_c_sources = ["""
+            #include "xtrack/headers/track.h"
             #define XT_OMP_SKIP_REORGANIZE
 
-            /*gpufun*/
+            GPUFUN
             void TestElement_track_local_particle(
                 TestElementData el,
                 LocalParticle* part0
             ) {
-                //start_per_particle_block (part0->part)
+                START_PER_PARTICLE_BLOCK(part0, part);
                     int64_t state = check_is_active(part);
                     int64_t id = LocalParticle_get_particle_id(part);
                     TestElementData_set_states(el, id, state);
-                //end_per_particle_block
+                END_PER_PARTICLE_BLOCK;
             }
         """]
 
@@ -88,23 +94,28 @@ def test_check_is_active_sorting_openmp():
         xo.ContextCpu(omp_num_threads=4),
     ]
 )
+@allow_kernel_compilation
 def test_check_is_active_sorting_cpu_default(test_context):
+
+
     class TestElement(xt.BeamElement):
         _xofields = {
             'states': xo.Int64[:],
         }
 
         _extra_c_sources = ["""
-            /*gpufun*/
+            #include "xtrack/headers/track.h"
+
+            GPUFUN
             void TestElement_track_local_particle(
                 TestElementData el,
                 LocalParticle* part0
             ) {
-                //start_per_particle_block (part0->part)
+                START_PER_PARTICLE_BLOCK(part0, part);
                     int64_t state = check_is_active(part);
                     int64_t id = LocalParticle_get_particle_id(part);
                     TestElementData_set_states(el, id, state);
-                //end_per_particle_block
+                END_PER_PARTICLE_BLOCK;
             }
         """]
 
@@ -135,7 +146,7 @@ def test_check_is_active_sorting_cpu_default(test_context):
     assert set(particles.particle_id[8:]) == {1, 3, 5, 6, 7, 8, 9, 10, 12, 17}
 
 def test_particles_energy_coordinates():
-    p = xt.Particles(mass0=xt.PROTON_MASS_EV, q0=1,
+    p = xt.Particles(mass0=xt.PROTON_MASS_EV, q0=2,
                     kinetic_energy0=50e6, delta=0.1)
 
     beta0 = p.beta0[0]
@@ -144,6 +155,7 @@ def test_particles_energy_coordinates():
     energy0 = p.energy0[0]
     energy = p.energy[0]
     p0c = p.p0c[0]
+    rigidity0 = p.rigidity0[0]
 
     delta = p.delta[0]
     ptau = p.ptau[0]
@@ -156,6 +168,7 @@ def test_particles_energy_coordinates():
     xo.assert_allclose(gamma, 1 / np.sqrt(1 - beta**2), rtol=0, atol=1e-14)
     xo.assert_allclose(energy, mass0_ev * gamma, rtol=0, atol=1e-6) # 1e-6 eV
     xo.assert_allclose(energy0, mass0_ev * gamma0, rtol=0, atol=1e-6) # 1e-6 eV
+    xo.assert_allclose(rigidity0, p0c / clight / p.q0, rtol=0, atol=1e-14)
 
     Pc = p0c * (1 + delta)
     xo.assert_allclose(Pc, mass0_ev * gamma * beta, rtol=0, atol=1e-6) # 1e-6 eV
@@ -187,3 +200,44 @@ def test_particles_energy_coordinates():
     xo.assert_allclose(delta_small, ptau_small/beta0, rtol=0, atol=1e-8)
     xo.assert_allclose(delta_small, pzeta_small, rtol=0, atol=1e-8)
     xo.assert_allclose(beta_small, beta0 + (1 - beta0**2) * ptau_small, rtol=0, atol=1e-8)
+
+def test_energy0_setter():
+
+    p = xt.Particles('electron', beta0=[0.6, 0.7, 0.8])
+    xo.assert_allclose(p.q0, -1, rtol=0, atol=1e-15)
+    xo.assert_allclose(p.mass0, xt.ELECTRON_MASS_EV, rtol=0, atol=1e-15)
+
+    beta0_expected = np.array([0.6, 0.7, 0.8])
+    gamma0_expected = 1 / np.sqrt(1 - beta0_expected**2)
+    energy0_expected = p.mass0 * gamma0_expected
+    kin_energy0_expected = energy0_expected - p.mass0
+    p0c_expected = p.mass0 * gamma0_expected * beta0_expected
+    xo.assert_allclose(p.beta0, beta0_expected, rtol=1e-14, atol=1e-14)
+    xo.assert_allclose(p.gamma0, gamma0_expected, rtol=1e-14, atol=1e-14)
+    xo.assert_allclose(p.energy0, energy0_expected, rtol=1e-14, atol=1e-14)
+    xo.assert_allclose(p.kinetic_energy0, kin_energy0_expected, rtol=1e-14, atol=1e-14)
+    xo.assert_allclose(p.p0c, p0c_expected, rtol=1e-14, atol=1e-14)
+
+    p.energy0[:1] = p.energy0[1]
+    beta0_expected = np.array([0.7, 0.7, 0.8])
+    gamma0_expected = 1 / np.sqrt(1 - beta0_expected**2)
+    energy0_expected = p.mass0 * gamma0_expected
+    kin_energy0_expected = energy0_expected - p.mass0
+    p0c_expected = p.mass0 * gamma0_expected * beta0_expected
+    xo.assert_allclose(p.beta0, beta0_expected, rtol=1e-14, atol=1e-14)
+    xo.assert_allclose(p.gamma0, gamma0_expected, rtol=1e-14, atol=1e-14)
+    xo.assert_allclose(p.energy0, energy0_expected, rtol=1e-14, atol=1e-14)
+    xo.assert_allclose(p.kinetic_energy0, kin_energy0_expected, rtol=1e-14, atol=1e-14)
+    xo.assert_allclose(p.p0c, p0c_expected, rtol=1e-14, atol=1e-14)
+
+    p.kinetic_energy0[2:] = p.kinetic_energy0[1]
+    beta0_expected = np.array([0.7, 0.7, 0.7])
+    gamma0_expected = 1 / np.sqrt(1 - beta0_expected**2)
+    energy0_expected = p.mass0 * gamma0_expected
+    kin_energy0_expected = energy0_expected - p.mass0
+    p0c_expected = p.mass0 * gamma0_expected * beta0_expected
+    xo.assert_allclose(p.beta0, beta0_expected, rtol=1e-14, atol=1e-14)
+    xo.assert_allclose(p.gamma0, gamma0_expected, rtol=1e-14, atol=1e-14)
+    xo.assert_allclose(p.energy0, energy0_expected, rtol=1e-14, atol=1e-14)
+    xo.assert_allclose(p.kinetic_energy0, kin_energy0_expected, rtol=1e-14, atol=1e-14)
+    xo.assert_allclose(p.p0c, p0c_expected, rtol=1e-14, atol=1e-14)

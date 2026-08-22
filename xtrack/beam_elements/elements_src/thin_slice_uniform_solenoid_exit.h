@@ -9,9 +9,9 @@
 #ifndef XTRACK_EXIT_SLICE_UNIFORM_SOLENOID_H
 #define XTRACK_EXIT_SLICE_UNIFORM_SOLENOID_H
 
-#include <headers/track.h>
-#include <beam_elements/elements_src/track_magnet.h>
-#include <beam_elements/elements_src/default_magnet_config.h>
+#include "xtrack/headers/track.h"
+#include "xtrack/beam_elements/elements_src/track_magnet.h"
+#include "xtrack/beam_elements/elements_src/default_magnet_config.h"
 
 GPUFUN
 void ThinSliceUniformSolenoidExit_track_local_particle(
@@ -27,6 +27,11 @@ void ThinSliceUniformSolenoidExit_track_local_particle(
         /*inv_factorial_order*/   ThinSliceUniformSolenoidExitData_get__parent_inv_factorial_order(el),
         /*knl*/                   ThinSliceUniformSolenoidExitData_getp1__parent_knl(el, 0),
         /*ksl*/                   ThinSliceUniformSolenoidExitData_getp1__parent_ksl(el, 0),
+        /*order_rel*/             -1,
+      /*inv_factorial_order_rel*/ 0,
+        /*knl_rel*/               NULL,
+        /*ksl_rel*/               NULL,
+        /*rel_ref_strength*/      0.,
         /*num_multipole_kicks*/   0, // unused
         /*model*/                 0, // unused
         /*default_model*/         0, // unused
@@ -51,7 +56,10 @@ void ThinSliceUniformSolenoidExit_track_local_particle(
         /*x0_solenoid*/           ThinSliceUniformSolenoidExitData_get__parent_x0(el),
         /*y0_solenoid*/           ThinSliceUniformSolenoidExitData_get__parent_y0(el),
         /*rbend_model*/           -1, // not rbend
-        /*rbend_shift*/           0.,
+     /*rbend_compensate_sagitta*/ 0,  // not rbend
+        /*rbend_shift*/           0., // not rbend
+        /*rbend_angle_diff*/      0., // not rbend
+        /*length_straight*/       0., // not rbend
         /*body_active*/           0, // disabled
         /*edge_entry_active*/     0,
         /*edge_exit_active*/      ThinSliceUniformSolenoidExitData_get__parent_edge_exit_active(el),

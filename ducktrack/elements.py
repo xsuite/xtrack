@@ -4,6 +4,7 @@
 # ######################################### #
 
 import numpy as np
+import xtrack as xt
 from scipy.constants import c as clight
 from scipy.constants import epsilon_0
 from scipy.constants import mu_0
@@ -45,12 +46,14 @@ _factorial = np.array(
     ]
 )
 
+
 class Marker(Element):
 
     _description = []
 
     def track(self, p):
         pass
+
 
 class Drift(Element):
     """Drift in expanded form"""
@@ -172,8 +175,8 @@ class RFMultipole(Element):
     """
     H= -l sum   Re[ (kn[n](zeta) + i ks[n](zeta) ) (x+iy)**(n+1)/ n ]
 
-    kn[n](z) = k_n cos(2pi w tau + pn/180*pi)
-    ks[n](z) = k_n cos(2pi w tau + pn/180*pi)
+    kn[n](z) = k_n cos(2pi w tau + pn/180*pi + phase_n)
+    ks[n](z) = k_n cos(2pi w tau + ps/180*pi + phase_s)
 
     """
 
@@ -181,15 +184,22 @@ class RFMultipole(Element):
         ("voltage", "volt", "Voltage", 0),
         ("frequency", "hertz", "Frequency", 0),
         ("lag", "degree", "Delay in the cavity sin(lag - w tau)", 0),
+        ("phase", "rad", "Phase of the cavity", 0),
         ("knl", "", "...", lambda: [0]),
         ("ksl", "", "...", lambda: [0]),
         ("pn", "", "...", lambda: [0]),
         ("ps", "", "...", lambda: [0]),
+        ("phase_n", "rad", "...", lambda: [0]),
+        ("phase_s", "rad", "...", lambda: [0]),
     ]
 
     @property
     def order(self):
-        return max(len(self.knl), len(self.ksl)) - 1
+        return max(
+            len(self.knl), len(self.ksl),
+            len(self.pn), len(self.ps),
+            len(self.phase_n), len(self.phase_s),
+        ) - 1
 
     def track(self, p):
         sin = p._m.sin
@@ -204,6 +214,8 @@ class RFMultipole(Element):
         ksl = _arrayofsize(self.ksl, order + 1)
         pn = _arrayofsize(self.pn, order + 1) * deg2rad
         ps = _arrayofsize(self.ps, order + 1) * deg2rad
+        phase_n = _arrayofsize(self.phase_n, order + 1)
+        phase_s = _arrayofsize(self.phase_s, order + 1)
         x = p.x
         y = p.y
         dpx = 0
@@ -212,8 +224,8 @@ class RFMultipole(Element):
         zre = 1
         zim = 0
         for ii in range(order + 1):
-            pn_ii = pn[ii] - ktau
-            ps_ii = ps[ii] - ktau
+            pn_ii = pn[ii] + phase_n[ii] - ktau
+            ps_ii = ps[ii] + phase_s[ii] - ktau
             cn = cos(pn_ii)
             sn = sin(pn_ii)
             cs = cos(ps_ii)
@@ -235,7 +247,7 @@ class RFMultipole(Element):
         chi = p.chi
         p.px += -chi * dpx
         p.py += chi * dpy
-        dv0 = self.voltage * sin(self.lag * deg2rad - ktau)
+        dv0 = self.voltage * sin(self.phase + self.lag * deg2rad - ktau)
         p.add_to_energy(p.charge_ratio * p.q0 * (dv0 - p.p0c * k * dptr))
 
 
@@ -246,6 +258,7 @@ class Cavity(Element):
         ("voltage", "V", "Integrated energy change", 0),
         ("frequency", "Hz", "Frequency of the cavity", 0),
         ("lag", "degree", "Delay in the cavity sin(lag - w tau)", 0),
+        ("phase", "rad", "Phase of the cavity", 0),
     ]
 
     def track(self, p):
@@ -253,7 +266,7 @@ class Cavity(Element):
         pi = p._m.pi
         k = 2 * pi * self.frequency / clight
         tau = p.zeta / p.beta0
-        phase = self.lag * pi / 180 - k * tau
+        phase = self.phase + self.lag * pi / 180 - k * tau
         p.add_to_energy(p.charge_ratio * p.q0 * self.voltage * sin(phase))
 
 
@@ -287,8 +300,17 @@ class XYShift(Element):
         p.x -= self.dx
         p.y -= self.dy
 
+class Translation(Element):
+    """shift of the reference"""
 
+    _description = [
+        ("shift_x", "m", "Horizontal shift", 0),
+        ("shift_y", "m", "Vertical shift", 0),
+    ]
 
+    def track(self, p):
+        p.x -= self.shift_x
+        p.y -= self.shift_y
 
 class Elens(Element):
     """Hollow Electron Lens"""
@@ -382,6 +404,216 @@ class Elens(Element):
         p.py = yp/p.rpp
 
 
+class Misalignment(Element):
+    _description = [
+        ("dx", "m", "Misalignment in x", 0),
+        ("dy", "m", "Misalignment in y", 0),
+        ("ds", "m", "Misalignment in s", 0),
+        ("theta", "rad", "Rotation around the y axis (positive s to x)", 0),
+        ("phi", "rad", "Rotation around the x axis (positive s to y)", 0),
+        ("psi", "rad", "Rotation around the s axis (positive y to x)", 0),
+        ("anchor", "", "Reference point, anchor, of the misalignment "
+                       "(0 for entry, 0.5 for middle, 1 for exit, etc.)", 0),
+        ("length", "m", "Length of the element to which the misalignment applies", 0),
+        ("angle", "rad", "Angle of bending if applicable (0 for straight)", 0),
+        ("tilt", "rad", "Tilt of the element (0 for no tilt, positive for tilt towards x)", 0),
+        ("is_exit", "", "Whether we are at the exit of the element", False),
+    ]
+
+    def track(self, particles):
+        if not self.is_exit:
+            if self.angle:
+                self.track_bent_entry(particles)
+            else:
+                self.track_straight_entry(particles)
+        else:
+            if self.angle:
+                self.track_bent_exit(particles)
+            else:
+                self.track_straight_exit(particles)
+
+    def track_bent_entry(self, particles):
+        dx, dy, ds = self.dx, self.dy, self.ds
+        theta, phi, psi = self.theta, self.phi, self.psi
+        f, length, angle, tilt = self.anchor, self.length, self.angle, self.tilt
+
+        s_phi, c_phi = np.sin(phi), np.cos(phi)
+        s_theta, c_theta = np.sin(theta), np.cos(theta)
+        s_psi, c_psi = np.sin(psi), np.cos(psi)
+        misalignment_matrix = np.array([
+            [-s_phi * s_psi * s_theta + c_psi * c_theta, -c_psi * s_phi * s_theta - c_theta * s_psi, c_phi * s_theta, dx],
+            [c_phi * s_psi, c_phi * c_psi, s_phi, dy],
+            [-c_theta * s_phi * s_psi - c_psi * s_theta, -c_psi * c_theta * s_phi + s_psi * s_theta, c_phi * c_theta, ds],
+            [0, 0, 0, 1],
+        ])
+
+        rho = length / angle
+        matrix_first_half = np.array([
+            [
+                (np.cos(f * angle) - 1) * np.cos(tilt) ** 2 + 1,
+                (np.cos(f * angle) - 1) * np.cos(tilt) * np.sin(tilt),
+                -np.cos(tilt) * np.sin(f * angle),
+                rho * (np.cos(f * angle) - 1) * np.cos(tilt),
+            ],
+            [
+                (np.cos(f * angle) - 1) * np.cos(tilt) * np.sin(tilt),
+                (np.cos(f * angle) - 1) * np.sin(tilt) ** 2 + 1,
+                -np.sin(f * angle) * np.sin(tilt),
+                rho * (np.cos(f * angle) - 1) * np.sin(tilt),
+            ],
+            [
+                np.cos(tilt) * np.sin(f * angle),
+                np.sin(f * angle) * np.sin(tilt),
+                np.cos(f * angle),
+                rho * np.sin(f * angle),
+            ],
+            [0, 0, 0, 1],
+        ])
+
+        inv_matrix_first_half = np.linalg.inv(matrix_first_half)
+
+        temp = matrix_first_half @ misalignment_matrix
+
+        misaligned_entry = temp @ inv_matrix_first_half
+
+        mis_x, mis_y, mis_s = misaligned_entry[:3, 3]
+        rot_theta = np.arctan2(misaligned_entry[0, 2], misaligned_entry[2, 2])
+        rot_phi = np.arctan2(misaligned_entry[1, 2], np.sqrt(misaligned_entry[1, 0] ** 2 + misaligned_entry[1, 1] ** 2))
+        rot_psi = np.arctan2(misaligned_entry[1, 0], misaligned_entry[1, 1])
+
+        line = xt.Line(
+            elements=[
+                xt.XYShift(dx=mis_x, dy=mis_y),
+                xt.DriftExact(length=mis_s),
+                xt.YRotation(angle=np.rad2deg(rot_theta)),
+                xt.XRotation(angle=np.rad2deg(-rot_phi)),  # flipped angle convention
+                xt.SRotation(angle=np.rad2deg(rot_psi)),
+            ]
+        )
+
+        particles.zeta -= mis_s
+        particles.s -= mis_s
+        line.track(particles)
+
+    def track_straight_entry(self, particles):
+        dx, dy, ds = self.dx, self.dy, self.ds
+        theta, phi, psi = self.theta, self.phi, self.psi
+        f, length, angle = self.anchor, self.length, self.angle
+
+        mis_x = dx - f * length * np.cos(phi) * np.sin(theta)
+        mis_y = dy - f * length * np.sin(phi)
+        mis_s = ds - f * length * (np.cos(phi) * np.cos(theta) - 1)
+
+        line = xt.Line(
+            elements=[
+                xt.XYShift(dx=mis_x, dy=mis_y),
+                xt.Solenoid(length=mis_s),
+                xt.YRotation(angle=np.rad2deg(theta)),
+                xt.XRotation(angle=np.rad2deg(-phi)),  # flipped angle convention
+                xt.SRotation(angle=np.rad2deg(psi)),
+            ]
+        )
+
+        particles.zeta -= mis_s
+        particles.s -= mis_s
+        line.track(particles)
+
+    def track_bent_exit(self, particles):
+        dx, dy, ds = self.dx, self.dy, self.ds
+        theta, phi, psi = self.theta, self.phi, self.psi
+        f, length, angle, tilt = self.anchor, self.length, self.angle, self.tilt
+
+        s_phi, c_phi = np.sin(phi), np.cos(phi)
+        s_theta, c_theta = np.sin(theta), np.cos(theta)
+        s_psi, c_psi = np.sin(psi), np.cos(psi)
+        misalignment_matrix = np.array([
+            [-s_phi * s_psi * s_theta + c_psi * c_theta, -c_psi * s_phi * s_theta - c_theta * s_psi, c_phi * s_theta, dx],
+            [c_phi * s_psi, c_phi * c_psi, s_phi, dy],
+            [-c_theta * s_phi * s_psi - c_psi * s_theta, -c_psi * c_theta * s_phi + s_psi * s_theta, c_phi * c_theta, ds],
+            [0, 0, 0, 1],
+        ])
+
+        m00, m01, m02, m03 = misalignment_matrix[0, :]
+        m10, m11, m12, m13 = misalignment_matrix[1, :]
+        m20, m21, m22, m23 = misalignment_matrix[2, :]
+        inv_misalignment_matrix = np.array([
+            [m00, m10, m20, -m00 * m03 - m10 * m13 - m20 * m23],
+            [m01, m11, m21, -m01 * m03 - m11 * m13 - m21 * m23],
+            [m02, m12, m22, -m02 * m03 - m12 * m13 - m22 * m23],
+            [0, 0, 0, 1],
+        ])
+
+        f_compl = 1 - f
+        rho = length / angle
+        matrix_second_half = np.array([
+            [
+                (np.cos(f_compl * angle) - 1) * np.cos(tilt) ** 2 + 1,
+                (np.cos(f_compl * angle) - 1) * np.cos(tilt) * np.sin(tilt),
+                np.cos(tilt) * -np.sin(f_compl * angle),
+                rho * (np.cos(f_compl * angle) - 1) * np.cos(tilt),
+            ],
+            [
+                (np.cos(f_compl * angle) - 1) * np.cos(tilt) * np.sin(tilt),
+                (np.cos(f_compl * angle) - 1) * np.sin(tilt) ** 2 + 1,
+                -np.sin(f_compl * angle) * np.sin(tilt),
+                rho * (np.cos(f_compl * angle) - 1) * np.sin(tilt),
+            ],
+            [
+                -np.cos(tilt) * -np.sin(f_compl * angle),
+                np.sin(f_compl * angle) * np.sin(tilt),
+                np.cos(f_compl * angle),
+                rho * np.sin(f_compl * angle),
+            ],
+            [0, 0, 0, 1],
+        ])
+
+        inv_matrix_second_half = np.linalg.inv(matrix_second_half)
+
+        realign = inv_matrix_second_half @ inv_misalignment_matrix @ matrix_second_half
+
+        mis_x, mis_y, mis_s = realign[:3, 3]
+        rot_theta = np.arctan2(realign[0, 2], realign[2, 2])
+        rot_phi = np.arctan2(realign[1, 2], np.sqrt(realign[1, 0] ** 2 + realign[1, 1] ** 2))
+        rot_psi = np.arctan2(realign[1, 0], realign[1, 1])
+
+        line = xt.Line(
+            elements=[
+                xt.XYShift(dx=mis_x, dy=mis_y),
+                xt.Solenoid(length=mis_s),
+                xt.YRotation(angle=np.rad2deg(rot_theta)),
+                xt.XRotation(angle=np.rad2deg(-rot_phi)),  # flipped angle convention
+                xt.SRotation(angle=np.rad2deg(rot_psi)),
+            ]
+        )
+
+        particles.zeta -= mis_s
+        particles.s -= mis_s
+        line.track(particles)
+
+    def track_straight_exit(self, particles):
+        dx, dy, ds = self.dx, self.dy, self.ds
+        theta, phi, psi = self.theta, self.phi, self.psi
+        f, length, angle = self.anchor, self.length, self.angle
+
+        mis_x = (f - 1) * length * np.cos(phi) * np.sin(theta) - dx
+        mis_y = (f - 1) * length * np.sin(phi) - dy
+        mis_s = (f - 1) * length * (np.cos(phi) * np.cos(theta) - 1) - ds
+
+        line = xt.Line(
+            elements=[
+                xt.SRotation(angle=np.rad2deg(-psi)),
+                xt.XRotation(angle=np.rad2deg(phi)),  # flipped angle convention
+                xt.YRotation(angle=np.rad2deg(-theta)),
+                xt.Solenoid(length=mis_s),
+                xt.XYShift(dx=mis_x, dy=mis_y),
+            ]
+        )
+
+        particles.zeta -= mis_s
+        particles.s -= mis_s
+        line.track(particles)
+
+
 class Wire(Element):
     """Current-carrying wire"""
 
@@ -442,6 +674,24 @@ class SRotation(Element):
         p.px = xn
         p.py = yn
 
+class Rotation(Element):
+    """Rotation of the reference frame"""
+
+    _description = [
+        ("rot_s_rad", "rad", "Rotation angle around s axis (positive y to x)", 0)
+    ]
+
+    def track(self, p):
+        cz = p._m.cos(self.rot_s_rad)
+        sz = p._m.sin(self.rot_s_rad)
+        xn = cz * p.x + sz * p.y
+        yn = -sz * p.x + cz * p.y
+        p.x = xn
+        p.y = yn
+        xn = cz * p.px + sz * p.py
+        yn = -sz * p.px + cz * p.py
+        p.px = xn
+        p.py = yn
 
 class LimitRect(Element):
     _description = [

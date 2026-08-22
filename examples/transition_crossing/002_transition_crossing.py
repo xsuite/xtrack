@@ -28,7 +28,7 @@ h_rf = 40
 
 f_rf = h_rf * f_rev
 v_rf = 100e3
-lag_rf = 180. if eta > 0. else 0.
+phase_rf = np.pi if eta > 0. else 0.
 
 # Compute momentum increment using auxiliary particle
 dp0c_eV = energy_ref_increment / particle_ref.beta0[0]
@@ -36,12 +36,12 @@ dp0c_eV = energy_ref_increment / particle_ref.beta0[0]
 if compensate_phase:
     phi_below = np.arcsin(dp0c_eV * particle_ref.beta0[0] / v_rf)
     phi_above = np.pi - phi_below
-    lag_rf_above = np.rad2deg(phi_above)
-    lag_rf_below = np.rad2deg(phi_below)
+    phase_rf_above = phi_above
+    phase_rf_below = phi_below
     if eta > 0:
-        lag_rf = lag_rf_above
+        phase_rf = phase_rf_above
     else:
-        lag_rf = lag_rf_below
+        phase_rf = phase_rf_below
 
 otm = xt.LineSegmentMap(
     betx=1., bety=1,
@@ -50,7 +50,7 @@ otm = xt.LineSegmentMap(
     longitudinal_mode="nonlinear",
     voltage_rf=v_rf,
     frequency_rf=f_rf,
-    lag_rf=lag_rf,
+    phase_rf=phase_rf,
     length=circumference,
     energy_ref_increment=energy_ref_increment
 )
@@ -91,7 +91,7 @@ while p.at_turn[0] < num_turns:
     # Phase jump
     if p.gamma0[0] > gamma_transition and not jumped:
         print(f'Jumped at turn: {p.at_turn[0]}')
-        line['otm'].lag_rf = lag_rf_above
+        line['otm'].phase_rf = phase_rf_above
         i_jumped = p.at_turn[0]
         jumped = True
 
@@ -110,7 +110,7 @@ delta_separatrix = []
 for i_sep in np.arange(0, num_turns, 100):
     print(f'Separatrix {i_sep}/{num_turns}            ', end='\r', flush=True)
     line.particle_ref.gamma0 = mon.gamma0[i_sep//log_every, 0, 0]
-    line['otm'].lag_rf = lag_rf_above if i_sep >= i_jumped else lag_rf_below
+    line['otm'].phase_rf = phase_rf_above if i_sep >= i_jumped else phase_rf_below
     try:
         rfb = line._get_bucket()
         i_separatrix.append(i_sep)
@@ -150,7 +150,7 @@ def update_plot(i_log, fig):
     if np.abs(i_turn - i_jumped) < 100:
         plot_separatrix = False
 
-    phi_rf_deg = np.rad2deg(phi_above) if i_turn >= i_jumped else np.rad2deg(phi_below)
+    phi_rf_rad = phase_rf_above if i_turn >= i_jumped else phase_rf_below
     plt.clf()
     plt.plot(mon.zeta[i_log, :], mon.delta[i_log, :], '.', markersize=1)
     if plot_separatrix:
@@ -164,7 +164,7 @@ def update_plot(i_log, fig):
               r'$\sigma_\zeta = $' f'{sigma_z_rms[i_log]:.2f}\n'
               r'$\gamma_0 = $' f'{mon.gamma0[i_log, 0, 0]:.2f} '
               r'$\gamma_t = $' f'{gamma_transition:.2f} '
-              r'$\phi_{\mathrm{rf}} = $' f'{phi_rf_deg:.2f}')
+              r'$\phi_{\mathrm{rf}} = $' f'{phi_rf_rad:.2f}')
     plt.subplots_adjust(left=0.2, top=0.82)
     plt.grid(alpha=0.5)
 

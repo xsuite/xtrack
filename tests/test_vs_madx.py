@@ -3,6 +3,7 @@
 # Copyright (c) CERN, 2021.                 #
 # ######################################### #
 
+import math
 import pathlib
 
 import numpy as np
@@ -209,10 +210,14 @@ def test_twiss_and_survey(
 
             nemitt_x = mad_ref.sequence[seq_name].beam.exn
             nemitt_y = mad_ref.sequence[seq_name].beam.eyn
-            Sigmas = twtst.get_betatron_sigmas(nemitt_x, nemitt_y)
+            Sigmas = twtst.get_beam_covariance(nemitt_x, nemitt_y)
 
             for nn in twtst._col_names:
-                assert len(twtst[nn]) == len(twtst['name'])
+                if nn in twtst._DEPRECATED_FIELDS:
+                    # Avoid triggering the warning on the deprecated field
+                    assert len(twtst._data[nn]) == len(twtst._data['name'])
+                else:
+                    assert len(twtst[nn]) == len(twtst['name'])
 
             test_at_elements = []
             test_at_elements.extend(['mbxf.4l1..1', 'mbxf.4l5..1'])
@@ -351,12 +356,6 @@ def test_twiss_and_survey(
                     xo.assert_allclose(survxt.theta[ixt], survmad['theta'][imad], atol=1e-10)
                     xo.assert_allclose(survxt.psi[ixt], survmad['psi'][imad], atol=1e-10)
 
-                    # angle and tilt are associated to the element itself (ixt - 1)
-                    # For now not checking the sign of the angles, convetion in mad-X to be calrified
-                    xo.assert_allclose(np.abs(survxt.angle[ixt-1]),
-                            np.abs(survmad['angle'][imad]), atol=1e-10)
-                    xo.assert_allclose(survxt.rot_s_rad[ixt-1], survmad['tilt'][imad], atol=1e-10)
-
         # Check to_pandas (not extensively for now)
         dftw = twtst.to_pandas()
         dfsurv = survxt.to_pandas()
@@ -366,16 +365,18 @@ def test_twiss_and_survey(
         # Test custom s locations
         if not reverse:
             s_test = [2e3, 1e3, 3e3, 10e3]
-            twats = line.twiss(at_s = s_test)
+            line.cut_at_s(s_test)
+            tw = line.twiss()
+            tw_at_s = tw.rows[np.searchsorted(tw.s, s_test)]
             for ii, ss in enumerate(s_test):
-                xo.assert_allclose(twats['s'][ii], ss, rtol=0, atol=1e-14)
-                xo.assert_allclose(twats['alfx'][ii], np.interp(ss, twxt['s'], twxt['alfx']),
+                xo.assert_allclose(tw_at_s['s'][ii], ss, rtol=0, atol=1e-14)
+                xo.assert_allclose(tw_at_s['alfx'][ii], np.interp(ss, twxt['s'], twxt['alfx']),
                                 rtol=1e-5, atol=0)
-                xo.assert_allclose(twats['alfy'][ii], np.interp(ss, twxt['s'], twxt['alfy']),
+                xo.assert_allclose(tw_at_s['alfy'][ii], np.interp(ss, twxt['s'], twxt['alfy']),
                                 rtol=1e-5, atol=0)
-                xo.assert_allclose(twats['dpx'][ii], np.interp(ss, twxt['s'], twxt['dpx']),
+                xo.assert_allclose(tw_at_s['dpx'][ii], np.interp(ss, twxt['s'], twxt['dpx']),
                                 rtol=1e-5, atol=0)
-                xo.assert_allclose(twats['dpy'][ii], np.interp(ss, twxt['s'], twxt['dpy']),
+                xo.assert_allclose(tw_at_s['dpy'][ii], np.interp(ss, twxt['s'], twxt['dpy']),
                                 rtol=1e-5, atol=0)
 
 
@@ -383,7 +384,7 @@ def norm(x):
     return np.sqrt(np.sum(np.array(x) ** 2))
 
 
-@for_all_test_contexts
+@for_all_test_contexts(excluding=('ContextCupy', 'ContextPyopencl'))
 def test_line_import_from_madx(test_context, mad_with_errors):
 
     mad = mad_with_errors
@@ -428,10 +429,13 @@ def test_line_import_from_madx(test_context, mad_with_errors):
 
     assert (ltest.get_length() - lref.get_length()) < 1e-6
 
-    for ii, (ee_test, ee_six, nn_test, nn_six) in enumerate(
-        zip(ltest.elements, lref.elements,
-            ltest.element_names, lref.element_names)
+    for ii, (nn_test, nn_six) in enumerate(
+        zip(ltest.element_names, lref.element_names)
     ):
+
+        ee_test = ltest.get(nn_test)
+        ee_six = lref.get(nn_six)
+
         assert type(ee_test) == type(ee_six)
 
         dtest = ee_test.to_dict()
@@ -463,8 +467,14 @@ def test_line_import_from_madx(test_context, mad_with_errors):
 
         for kk in dtest.keys():
 
+            if kk == 'prototype':
+                continue # always None from cpymad
+
             if skip_order and kk in ('order', 'knl', 'ksl'):
                 continue
+
+            if kk in ['_isthick', 'isthick']:
+                continue # the one with an expression on the length is loaded
 
             # Check if they are identical
             if np.isscalar(dref[kk]) and dtest[kk] == dref[kk]:
@@ -517,51 +527,41 @@ def test_line_import_from_madx(test_context, mad_with_errors):
     line.vars['kqtf.b1'] = -2e-4
     xo.assert_allclose(line.twiss()['qx'], 62.2834, rtol=0, atol=1e-4)
 
-    xo.assert_allclose(line.element_dict['acsca.b5l4.b1'].voltage,
+    xo.assert_allclose(line['acsca.b5l4.b1'].voltage,
                       2e6, rtol=0, atol=1e-14)
     line.vars['vrf400'] = 8
-    xo.assert_allclose(line.element_dict['acsca.b5l4.b1'].voltage,
+    xo.assert_allclose(line['acsca.b5l4.b1'].voltage,
                       1e6, rtol=0, atol=1e-14)
-
-    xo.assert_allclose(line.element_dict['acsca.b5l4.b1'].lag, 180,
+    xo.assert_allclose(line['acsca.b5l4.b1'].lag, 0,
+                    rtol=0, atol=1e-14)
+    xo.assert_allclose(line['acsca.b5l4.b1'].phase, math.pi,
                     rtol=0, atol=1e-14)
     line.vars['lagrf400.b1'] = 0.75
-    xo.assert_allclose(line.element_dict['acsca.b5l4.b1'].lag, 270,
+    xo.assert_allclose(line['acsca.b5l4.b1'].phase, 0.75*2*math.pi,
                     rtol=0, atol=1e-14)
 
-    assert np.abs(
-        line.element_dict['acfcav.bl5.b1'].to_dict()['ksl'][0]) > 0
+    assert np.abs(line['acfcav.bl5.b1'].crab_voltage) > 0
+    xo.assert_allclose(line['acfcav.bl5.b1'].rot_s_rad, np.pi/2, atol=1e-14, rtol=0)
     line.vars['on_crab5'] = 0
-    assert np.abs(
-        line.element_dict['acfcav.bl5.b1'].to_dict()['ksl'][0]) == 0
+    assert np.abs(line['acfcav.bl5.b1'].crab_voltage) == 0
 
-    xo.assert_allclose(
-        line.element_dict['acfcav.bl5.b1'].to_dict()['ps'][0], 90,
-        rtol=0, atol=1e-14)
+    xo.assert_allclose(line['acfcav.bl5.b1'].phase, 0, rtol=0, atol=1e-14)
     line.vars['phi_crab_l5b1'] = 0.5
-    xo.assert_allclose(
-        line.element_dict['acfcav.bl5.b1'].to_dict()['ps'][0], 270,
-                    rtol=0, atol=1e-14)
+    xo.assert_allclose(line['acfcav.bl5.b1'].phase, math.pi, rtol=0, atol=1e-14)
 
-    assert np.abs(
-        line.element_dict['acfcah.bl1.b1'].to_dict()['knl'][0]) > 0
+    assert np.abs(line['acfcah.bl1.b1'].crab_voltage) > 0
     line.vars['on_crab1'] = 0
-    assert np.abs(
-        line.element_dict['acfcah.bl1.b1'].to_dict()['knl'][0]) == 0
+    assert np.abs(line['acfcah.bl1.b1'].crab_voltage) == 0
 
-    xo.assert_allclose(
-        line.element_dict['acfcah.bl1.b1'].to_dict()['pn'][0], 90,
-        rtol=0, atol=1e-14)
+    xo.assert_allclose(line['acfcah.bl1.b1'].phase, 0, rtol=0, atol=1e-14)
     line.vars['phi_crab_l1b1'] = 0.5
-    xo.assert_allclose(
-        line.element_dict['acfcah.bl1.b1'].to_dict()['pn'][0], 270,
-        rtol=0, atol=1e-14)
+    xo.assert_allclose(line['acfcah.bl1.b1'].phase, math.pi, rtol=0, atol=1e-14)
 
-    assert np.abs(line.element_dict['acfcah.bl1.b1'].frequency) > 0
-    assert np.abs(line.element_dict['acfcav.bl5.b1'].frequency) > 0
+    assert np.abs(line['acfcah.bl1.b1'].frequency) > 0
+    assert np.abs(line['acfcav.bl5.b1'].frequency) > 0
     line.vars['crabrf'] = 0.
-    assert np.abs(line.element_dict['acfcah.bl1.b1'].frequency) == 0
-    assert np.abs(line.element_dict['acfcav.bl5.b1'].frequency) == 0
+    assert np.abs(line['acfcah.bl1.b1']._xobject.frequency) == 0
+    assert np.abs(line['acfcav.bl5.b1']._xobject.frequency) == 0
 
 
 @for_all_test_contexts
@@ -578,17 +578,17 @@ def test_orbit_knobs(test_context, mad_b12_no_errors):
     line.build_tracker(_context=test_context)
 
     line.vars['on_x1'] = 250
-    xo.assert_allclose(line.twiss(at_elements=['ip1'])['px'][0], 250e-6,
+    xo.assert_allclose(line.twiss()['px', 'ip1'], 250e-6,
                 atol=1e-6, rtol=0)
     line.vars['on_x1'] = -300
-    xo.assert_allclose(line.twiss(at_elements=['ip1'])['px'][0], -300e-6,
+    xo.assert_allclose(line.twiss()['px', 'ip1'], -300e-6,
                 atol=1e-6, rtol=0)
 
     line.vars['on_x5'] = 130
-    xo.assert_allclose(line.twiss(at_elements=['ip5'])['py'][0], 130e-6,
+    xo.assert_allclose(line.twiss()['py', 'ip5'], 130e-6,
                 atol=1e-6, rtol=0)
     line.vars['on_x5'] = -270
-    xo.assert_allclose(line.twiss(at_elements=['ip5'])['py'][0], -270e-6,
+    xo.assert_allclose(line.twiss()['py', 'ip5'], -270e-6,
                 atol=1e-6, rtol=0)
 
 

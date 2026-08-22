@@ -2,7 +2,7 @@ import xobjects as xo
 
 from ..base_element import BeamElement
 from ..random import RandomUniformAccurate, RandomExponential
-from .elements import SynchrotronRadiationRecord
+from ._common import SynchrotronRadiationRecord
 
 ID_RADIATION_FROM_PARENT = 10
 
@@ -10,7 +10,15 @@ COMMON_SLICE_XO_FIELDS = {
     'radiation_flag': xo.Field(xo.Int64, default=ID_RADIATION_FROM_PARENT),
     'delta_taper': xo.Float64,
     'weight': xo.Float64,
+    'slice_offset': xo.Float64,
 }
+
+def _raise_if_parent_has_transverse_rotation(parent):
+    if parent.rot_x_rad != 0 or parent.rot_y_rad != 0:
+        raise ValueError(
+            'Equivalent elements do not support parent `rot_x_rad` or '
+            '`rot_y_rad` different from zero.')
+
 
 class _SliceBase:
 

@@ -6,9 +6,10 @@
 #ifndef XTRACK_RBEND_H
 #define XTRACK_RBEND_H
 
-#include <headers/track.h>
-#include <beam_elements/elements_src/track_magnet.h>
-#include <beam_elements/elements_src/default_magnet_config.h>
+#include "xtrack/headers/track.h"
+#include "xtrack/headers/factorial.h"
+#include "xtrack/beam_elements/elements_src/track_magnet.h"
+#include "xtrack/beam_elements/elements_src/default_magnet_config.h"
 
 GPUFUN
 void RBend_track_local_particle(
@@ -24,6 +25,11 @@ void RBend_track_local_particle(
         /*inv_factorial_order*/   RBendData_get_inv_factorial_order(el),
         /*knl*/                   RBendData_getp1_knl(el, 0),
         /*ksl*/                   RBendData_getp1_ksl(el, 0),
+        /*order_rel*/             RBendData_len_knl_rel(el) - 1, // order_rel is derived from the length of knl_rel and ksl_rel arrays
+      /*inv_factorial_order_rel*/ one_over_factorial(RBendData_len_knl_rel(el) - 1), // 1 / (order_rel)!
+        /*knl_rel*/               RBendData_getp1_knl_rel(el, 0),
+        /*ksl_rel*/               RBendData_getp1_ksl_rel(el, 0),
+        /*rel_ref_strength*/      RBendData_get_k0(el) * RBendData_get_length(el),
         /*num_multipole_kicks*/   RBendData_get_num_multipole_kicks(el),
         /*model*/                 RBendData_get_model(el),
         /*default_model*/         RBEND_DEFAULT_MODEL,
@@ -37,7 +43,7 @@ void RBend_track_local_particle(
         /*hxl*/                   0.,
         /*k0*/                    RBendData_get_k0(el),
         /*k1*/                    RBendData_get_k1(el),
-        /*k2*/                    0.,
+        /*k2*/                    RBendData_get_k2(el),
         /*k3*/                    0.,
         /*k0s*/                   0.,
         /*k1s*/                   0.,
@@ -48,7 +54,10 @@ void RBend_track_local_particle(
         /*x0_solenoid*/           0.,
         /*y0_solenoid*/           0.,
         /*rbend_model*/           RBendData_get_rbend_model(el),
+     /*rbend_compensate_sagitta*/ RBendData_get_rbend_compensate_sagitta(el),
         /*rbend_shift*/           RBendData_get_rbend_shift(el),
+        /*rbend_angle_diff*/      RBendData_get_rbend_angle_diff(el),
+        /*length_straight*/       RBendData_get_length_straight(el),
         /*body_active*/           1,
         /*edge_entry_active*/     RBendData_get_edge_entry_active(el),
         /*edge_exit_active*/      RBendData_get_edge_exit_active(el),

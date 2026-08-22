@@ -25,9 +25,9 @@ assert line_sel['aaa'] == 1e-6
 assert line['aaa'] == 1e-6
 
 line_sel.ref['mcbch.7r1.b1'].knl[0] += line.ref['aaa']
-assert (str(line.ref['mcbch.7r1.b1'].knl[0]._expr)
+assert (str(line.ref['mcbch.7r1.b1'].knl[0].xdeps.expr)
         == "((-vars['acbch7.r1b1']) + vars['aaa'])")
-assert (str(line_sel.ref['mcbch.7r1.b1'].knl[0]._expr)
+assert (str(line_sel.ref['mcbch.7r1.b1'].knl[0].xdeps.expr)
         == "((-vars['acbch7.r1b1']) + vars['aaa'])")
 assert line_sel.get('mcbch.7r1.b1').knl[0] == 1e-6
 assert line.get('mcbch.7r1.b1').knl[0] == 1e-6

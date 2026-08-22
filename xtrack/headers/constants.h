@@ -58,4 +58,20 @@
     #define MASS_ELECTRON (9.1093837e-31)
 #endif /* !defined( MASS_ELECTRON ) */
 
+#if !defined( SQRT3 )
+    #define SQRT3 1.732050807568877
+#endif /* !defined( SQRT3 ) */
+
+#if !defined( SQRT2 )
+    #define SQRT2 (1.414213562373095048801688724209698078569671875376948073176679738)
+#endif /* !defined( SQRT2 ) */
+
+#if !defined( TWO_OVER_SQRT_PI )
+    #define TWO_OVER_SQRT_PI (1.128379167095512573896158903121545171688101258657997713688171443418)
+#endif /* !defined( TWO_OVER_SQRT_PI ) */
+
+#if !defined( ALPHA_EM )
+    #define ALPHA_EM 0.0072973525693
+#endif /* !defined( ALPHA_EM ) */
+
 #endif /* XTRACK_CONSTANTS_H */

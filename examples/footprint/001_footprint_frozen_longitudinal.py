@@ -10,11 +10,10 @@ nemitt_y = 1e-6
 
 line = xt.load(
     '../../test_data/hllhc15_noerrors_nobb/line_w_knobs_and_particle.json')
-line.particle_ref = xt.Particles(mass0=xt.PROTON_MASS_EV, p0c=7e12)
-line.build_tracker()
+line.set_particle_ref('proton', p0c=7e12)
 
 # Some octupoles and chromaticity to see the footprint moving
-line.vars['i_oct_b1'] = 500
+line['i_oct_b1'] = 500
 line.match(
     targets=[xt.TargetList(['dqx', 'dqy'], value=10, tol=0.01)],
     vary=[xt.VaryList(['ksf.b1', 'ksd.b1'], step=1e-3)])

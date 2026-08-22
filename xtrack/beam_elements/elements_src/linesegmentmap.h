@@ -6,7 +6,7 @@
 #ifndef XTRACK_LINESEGMENTMAP_H
 #define XTRACK_LINESEGMENTMAP_H
 
-#include <headers/track.h>
+#include "xtrack/headers/track.h"
 
 
 GPUFUN
@@ -204,6 +204,8 @@ void longitudinal_motion(LocalParticle *part0,
         double const bucket_length = LineSegmentMapData_get_bucket_length(el)*LocalParticle_get_beta0(part0)*C_LIGHT;
         double const sin_s = sin(2 * PI * qs);
         double const cos_s = cos(2 * PI * qs);
+        uint8_t kill_energy_kick = LocalParticle_check_track_flag(
+                    part0, XS_FLAG_KILL_CAVITY_KICK);
         START_PER_PARTICLE_BLOCK(part0, part);
             // We set cos_s = 999 if long map is to be skipped
             double shift = 0.0;
@@ -215,7 +217,9 @@ void longitudinal_motion(LocalParticle *part0,
             double const new_pzeta = sin_s * LocalParticle_get_zeta(part) / bets + cos_s * LocalParticle_get_pzeta(part);
 
             LocalParticle_set_zeta(part, new_zeta+shift);
-            LocalParticle_update_pzeta(part, new_pzeta);
+            if (!kill_energy_kick){
+                LocalParticle_update_pzeta(part, new_pzeta);
+            }
         END_PER_PARTICLE_BLOCK;
     }
     else if (mode_flag==2){ // non-linear motion
@@ -238,6 +242,7 @@ void longitudinal_motion(LocalParticle *part0,
             double const v_rf = LineSegmentMapData_get_voltage_rf(el,i_rf);
             double const f_rf = LineSegmentMapData_get_frequency_rf(el,i_rf);
             double const lag_rf = LineSegmentMapData_get_lag_rf(el,i_rf);
+            double const phase_rf = LineSegmentMapData_get_phase_rf(el,i_rf);
 
             if (f_rf == 0) continue;
 
@@ -248,7 +253,7 @@ void longitudinal_motion(LocalParticle *part0,
                 double const   q      = fabs(LocalParticle_get_q0(part))
                                         * LocalParticle_get_charge_ratio(part);
                 double const   tau    = zeta / beta0;
-                double const   phase  = DEG2RAD  * lag_rf - K_FACTOR * f_rf * tau;
+                double const   phase  = DEG2RAD  * lag_rf + phase_rf - K_FACTOR * f_rf * tau;
                 double const energy   = q * v_rf * sin(phase);
                 LocalParticle_add_to_energy(part, energy, 1);
             END_PER_PARTICLE_BLOCK;
@@ -325,6 +330,8 @@ GPUFUN
 void correlated_radiation_damping(LocalParticle *part0,
             LineSegmentMapData el){
 
+    uint8_t kill_energy_kick = LocalParticle_check_track_flag(
+                    part0, XS_FLAG_KILL_CAVITY_KICK);
     START_PER_PARTICLE_BLOCK(part0, part);
         double in[6];
         in[0] = LocalParticle_get_x(part);
@@ -345,7 +352,8 @@ void correlated_radiation_damping(LocalParticle *part0,
         LocalParticle_set_y(part, out[2]);
         LocalParticle_set_py(part, out[3]);
         LocalParticle_set_zeta(part, out[4]);
-        LocalParticle_update_pzeta(part,out[5]);
+        if (!kill_energy_kick){
+            LocalParticle_update_pzeta(part,out[5]);}
     END_PER_PARTICLE_BLOCK;
 }
 

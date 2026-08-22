@@ -15,37 +15,20 @@ from xtrack.slicing import Teapot, Strategy
 test_data_folder = pathlib.Path(
         __file__).parent.joinpath('../test_data').absolute()
 
-@for_all_test_contexts
+@for_all_test_contexts(excluding=('ContextCupy', 'ContextPyopencl'))
 def test_psb_chicane(test_context):
     mad = Madx(stdout=False)
 
-    # Load mad model and apply element shifts
-    mad.input(f'''
-    call, file = '{str(test_data_folder)}/psb_chicane/psb.seq';
-    call, file = '{str(test_data_folder)}/psb_chicane/psb_fb_lhc.str';
+    env = xt.load([test_data_folder / 'psb_chicane/psb.seq',
+                   test_data_folder / 'psb_chicane/psb_fb_lhc.str'])
+    line = env.psb1
+    line.set_particle_ref('proton', p0c=0.5708301551893517e9)
 
-    beam, particle=PROTON, pc=0.5708301551893517;
-    use, sequence=psb1;
+    line['bi1.bsw1l1.1'].shift_x = -0.0442
+    line['bi1.bsw1l1.2'].shift_x = -0.0442
+    line['bi1.bsw1l1.3'].shift_x = -0.0442
+    line['bi1.bsw1l1.4'].shift_x = -0.0442
 
-    select,flag=error,clear;
-    select,flag=error,pattern=bi1.bsw1l1.1*;
-    ealign, dx=-0.0057;
-
-    select,flag=error,clear;
-    select,flag=error,pattern=bi1.bsw1l1.2*;
-    select,flag=error,pattern=bi1.bsw1l1.3*;
-    select,flag=error,pattern=bi1.bsw1l1.4*;
-    ealign, dx=-0.0442;
-
-    twiss;
-    ''')
-
-    line = xt.Line.from_madx_sequence(mad.sequence.psb1,
-                                allow_thick=True,
-                                enable_align_errors=True,
-                                deferred_expressions=True)
-    line.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV,
-                                gamma0=mad.sequence.psb1.beam.gamma)
     line.twiss_default['method'] = '4d'
     line.configure_bend_model(core='adaptive')
 
@@ -59,10 +42,10 @@ def test_psb_chicane(test_context):
 
     # Build knob to model eddy currents (k2)
     line.vars['bsw_k2l'] = 0
-    line.element_refs['bi1.bsw1l1.1'].knl[2] = line.vars['bsw_k2l']
-    line.element_refs['bi1.bsw1l1.2'].knl[2] = -line.vars['bsw_k2l']
-    line.element_refs['bi1.bsw1l1.3'].knl[2] = -line.vars['bsw_k2l']
-    line.element_refs['bi1.bsw1l1.4'].knl[2] = line.vars['bsw_k2l']
+    line['bi1.bsw1l1.1'].knl[2] = line.vars['bsw_k2l']
+    line['bi1.bsw1l1.2'].knl[2] = -line.vars['bsw_k2l']
+    line['bi1.bsw1l1.3'].knl[2] = -line.vars['bsw_k2l']
+    line['bi1.bsw1l1.4'].knl[2] = line.vars['bsw_k2l']
 
     # Test to_dict roundtrip
     line = xt.Line.from_dict(line.to_dict())
@@ -161,7 +144,7 @@ def test_psb_chicane(test_context):
 
     # Correct tunes and beta beat
     line.discard_tracker()
-    line.insert_element(element=xt.Marker(), name='mker_match', at_s=79.874)
+    line.insert(obj=xt.Marker(), what='mker_match', at=79.874)
     line.build_tracker(_context=test_context)
 
     line.vars['on_chicane_k0'] = 0
@@ -370,7 +353,7 @@ def test_psb_chicane(test_context):
     # Install monitor at foil
     monitor = xt.ParticlesMonitor(start_at_turn=0, stop_at_turn=6000, num_particles=1)
     line.discard_tracker()
-    line.insert_element(index='bi1.tstr1l1', element=monitor, name='monitor_at_foil')
+    line.insert('monitor_at_foil', at=0, from_='bi1.tstr1l1', obj=monitor)
     line.build_tracker(_context=test_context)
 
     p = line.build_particles(x=0, px=0, y=0, py=0, delta=0, zeta=0)
@@ -423,11 +406,11 @@ def test_psb_chicane(test_context):
                                                 num_particles_to_inject=7)
 
         line.discard_tracker()
-        line.insert_element(index='bi1.tstr1l1', element=p_injection, name='injection')
+        line.insert('injection', at=0, from_='bi1.tstr1l1', obj=p_injection)
 
         # Add monitor at end line
         monitor = xt.ParticlesMonitor(start_at_turn=0, stop_at_turn=10, num_particles=100)
-        line.insert_element(index='p16ring1$end', element=monitor, name='monitor_at_end')
+        line.append('monitor_at_end', monitor)
         line.build_tracker()
 
         p = line.build_particles(_capacity=100, x=0)
@@ -446,4 +429,4 @@ def test_psb_chicane(test_context):
                     line.element_names.index('monitor_at_end'))
 
         xo.assert_allclose(monitor.s[monitor.state > 0],
-                        line.get_s_position('monitor_at_end'), atol=1e-12)
+                        line.get_table()['s', 'monitor_at_end'], atol=1e-12)

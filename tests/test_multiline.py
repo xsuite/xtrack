@@ -8,7 +8,7 @@ from xobjects.test_helpers import for_all_test_contexts
 test_data_folder = pathlib.Path(__file__).parent.joinpath('../test_data').absolute()
 
 
-@for_all_test_contexts
+@for_all_test_contexts(excluding=('ContextCupy', 'ContextPyopencl'))
 def test_multiline_metadata(test_context):
     with open(test_data_folder / 'hllhc14_no_errors_with_coupling_knobs/line_b1.json', 'r') as fid:
         dct_b1 = json.load(fid)

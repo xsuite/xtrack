@@ -10,8 +10,8 @@
     #ifndef XTRACK_DRIFT_SLICE_QUADRUPOLE_H
     #define XTRACK_DRIFT_SLICE_QUADRUPOLE_H
 
-    #include <headers/track.h>
-    #include <beam_elements/elements_src/track_drift.h>
+    #include "xtrack/headers/track.h"
+    #include "xtrack/beam_elements/elements_src/track_drift.h"
 
 
     GPUFUN
@@ -21,12 +21,13 @@
     ) {
 
         double weight = DriftSliceQuadrupoleData_get_weight(el);
-
-        #ifndef XSUITE_BACKTRACK
-            double const length = weight * DriftSliceQuadrupoleData_get__parent_length(el); // m
-        #else
-            double const length = -weight * DriftSliceQuadrupoleData_get__parent_length(el); // m
-        #endif
+        double length;
+        if (LocalParticle_check_track_flag(part0, XS_FLAG_BACKTRACK)) {
+            length = -weight * DriftSliceQuadrupoleData_get__parent_length(el); // m
+        }
+        else {
+            length = weight * DriftSliceQuadrupoleData_get__parent_length(el); // m
+        }
 
         START_PER_PARTICLE_BLOCK(part0, part);
             Drift_single_particle(part, length);

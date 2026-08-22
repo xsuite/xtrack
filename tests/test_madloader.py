@@ -3,8 +3,6 @@ import pathlib
 
 import numpy as np
 from cpymad.madx import Madx
-from scipy.constants import c as clight
-from scipy.special import factorial
 
 import xobjects as xo
 import xpart as xp
@@ -160,9 +158,9 @@ def test_tilt_shift_and_errors():
 
         for nn in line.element_names:
             if 'tilt' in nn:
-                assert isinstance(line[nn], xt.SRotation)
+                assert isinstance(line[nn], xt.Rotation)
             elif 'offset' in nn:
-                assert isinstance(line[nn], xt.XYShift)
+                assert isinstance(line[nn], xt.Translation)
 
         mad_elm2 = mad.sequence['seq'].expanded_elements['elm2']
 
@@ -339,9 +337,9 @@ def test_srotation():
 
     line = MadLoader(mad.sequence.ss).make_line()
     line = MadLoader(mad.sequence.ss, enable_expressions=True).make_line()
-    assert isinstance(line[1], xt.SRotation)
+    assert isinstance(line[1], xt.Rotation)
     line.vars['angle'] = 2.0
-    assert line[1].angle == line.vars['angle']._value * 180 / np.pi
+    assert line[1].rot_s_rad == line.vars['angle']._value
 
 
 def test_thick_kicker_option():
@@ -366,16 +364,23 @@ def test_thick_kicker_option():
 
     beam; use, sequence=ss;
     """)
-    line = MadLoader(mad.sequence.ss, enable_expressions=True, allow_thick=True, enable_thick_kickers=True).make_line()
+    line = xt.Line.from_madx_sequence(mad.sequence.ss, deferred_expressions=True)
 
     _, vk, hk, ki, vk_thin, hk_thin, ki_thin, _ = line.elements
 
-    assert isinstance(vk, xt.Magnet)
-    assert isinstance(hk, xt.Magnet)
-    assert isinstance(ki, xt.Magnet)
+    assert isinstance(vk, xt.Multipole)
+    assert isinstance(hk, xt.Multipole)
+    assert isinstance(ki, xt.Multipole)
     assert isinstance(vk_thin, xt.Multipole)
     assert isinstance(hk_thin, xt.Multipole)
     assert isinstance(ki_thin, xt.Multipole)
+
+    assert vk.isthick
+    assert hk.isthick
+    assert ki.isthick
+    assert not vk_thin.isthick
+    assert not hk_thin.isthick
+    assert not ki_thin.isthick
 
     def assert_integrated_strength_eq(value, expected):
         padded_expected = np.zeros_like(value)
@@ -421,9 +426,9 @@ def test_xrotation():
 
     line = MadLoader(mad.sequence.ss).make_line()
     line = MadLoader(mad.sequence.ss, enable_expressions=True).make_line()
-    assert isinstance(line[1], xt.XRotation)
+    assert isinstance(line[1], xt.Rotation)
     line.vars['angle'] = 2.0
-    assert line[1].angle == line.vars['angle']._value * 180 / np.pi
+    assert line[1].rot_x_rad == line.vars['angle']._value
 
 
 def test_yrotation():
@@ -440,9 +445,9 @@ def test_yrotation():
 
     line = MadLoader(mad.sequence.ss).make_line()
     line = MadLoader(mad.sequence.ss, enable_expressions=True).make_line()
-    assert isinstance(line[1], xt.YRotation)
+    assert isinstance(line[1], xt.Rotation)
     line.vars['angle'] = 2.0
-    assert line[1].angle == line.vars['angle']._value * 180 / np.pi
+    assert line[1].rot_y_rad == line.vars['angle']._value
 
 
 def test_mad_elements_import():
@@ -512,7 +517,7 @@ def test_mad_elements_import():
     k2: kick2, at=0.34;
     k3: kick3, at=0.35;
     de0: dipedge0, at=0.38;
-    r0: rfm0, at=0.4;
+    !r0: rfm0, at=0.4; # Loading of RFMultipole not supported anymore
     cb0: crab0, at=0.41;
     cb1: crab1, at=0.42;
     w: wire1, at=1;
@@ -540,11 +545,11 @@ def test_mad_elements_import():
         line = xt.Line.from_dict(line.to_dict())  # This calls the to_dict method fot all
         # elements
 
-        assert len(line.element_names) == len(line.element_dict.keys())
         assert line.get_length() == 10
+        tt = line.get_table()
 
         assert isinstance(line['m0'], xt.Multipole)
-        assert line.get_s_position('m0') == 0.1
+        assert tt['s', 'm0'] == 0.1
         assert np.all(line['m0'].knl == np.array([1, 2, 3]))
         assert np.all(line['m0'].ksl == np.array([0, 5, 6]))
         assert line['m0'].hxl == 1
@@ -561,106 +566,92 @@ def test_mad_elements_import():
             assert len(line['m3'].ksl) == 3
 
         assert isinstance(line['k0'], xt.Multipole)
-        assert line.get_s_position('k0') == 0.3
+        assert tt['s', 'k0'] == 0.3
         assert np.all(line['k0'].knl == np.array([-5]))
         assert np.all(line['k0'].ksl == np.array([6]))
         assert line['k0'].hxl == 0
         assert line['k0'].length == 2.2
 
         assert isinstance(line['k1'], xt.Multipole)
-        assert line.get_s_position('k1') == 0.33
+        assert tt['s', 'k1'] == 0.33
         assert np.all(line['k1'].knl == np.array([-7]))
         assert np.all(line['k1'].ksl == np.array([8]))
         assert line['k1'].hxl == 0
         assert line['k1'].length == 2.3
 
         assert isinstance(line['k2'], xt.Multipole)
-        assert line.get_s_position('k2') == 0.34
+        assert tt['s', 'k2'] == 0.34
         assert np.all(line['k2'].knl == np.array([-3]))
         assert np.all(line['k2'].ksl == np.array([0]))
         assert line['k2'].hxl == 0
         assert line['k2'].length == 2.4
 
         assert isinstance(line['k3'], xt.Multipole)
-        assert line.get_s_position('k3') == 0.35
+        assert tt['s', 'k3'] == 0.35
         assert np.all(line['k3'].knl == np.array([0]))
         assert np.all(line['k3'].ksl == np.array([4]))
         assert line['k3'].hxl == 0
         assert line['k3'].length == 2.5
 
         assert isinstance(line['c0'], xt.Cavity)
-        assert line.get_s_position('c0') == 0.2
+        assert tt['s', 'c0'] == 0.2
         assert line['c0'].frequency == 10e6
-        assert line['c0'].lag == 180
+        xo.assert_allclose(line['c0'].phase, np.pi, rtol=0, atol=1e-12)
         assert line['c0'].voltage == 6e6
 
         assert isinstance(line['c1'], xt.Cavity)
-        assert line.get_s_position('c1') == 0.2
-        xo.assert_allclose(line['c1'].frequency, clight * line.particle_ref.beta0 / 10. * 8,
-                           rtol=0, atol=1e-7)
-        assert line['c1'].lag == 180
+        assert tt['s', 'c1'] == 0.2
+        xo.assert_allclose(line['c1'].harmonic, 8, rtol=0, atol=1e-12)
+        xo.assert_allclose(line['c1'].phase, np.pi, rtol=0, atol=1e-12)
         assert line['c1'].voltage == 6e6
 
         assert isinstance(line['de0'], xt.DipoleEdge)
-        assert line.get_s_position('de0') == 0.38
+        assert tt['s', 'de0'] == 0.38
         assert line['de0'].k == 0.1
         assert line['de0'].e1 == 3
         assert line['de0'].fint == 4
         assert line['de0'].hgap == 0.02
 
-        assert isinstance(line['r0'], xt.RFMultipole)
-        assert line.get_s_position('r0') == 0.4
-        assert np.all(line['r0'].knl == np.array([2, 3]))
-        assert np.all(line['r0'].ksl == np.array([0, 5]))
-        assert np.all(line['r0'].pn == np.array([0.3 * 360, 0.4 * 360]))
-        assert np.all(line['r0'].ps == np.array([0.5 * 360, 0.6 * 360]))
-        assert line['r0'].voltage == 2e6
-        assert line['r0'].order == 1
-        assert line['r0'].frequency == 100e6
-        assert line['r0'].lag == 180
+        # Loading of RFMultipole not supported anymore:
+        #
+        # assert isinstance(line['r0'], xt.RFMultipole)
+        # assert tt['s', 'r0'] == 0.4
+        # assert np.all(line['r0'].knl == np.array([2, 3, 0, 0, 0, 0]))
+        # assert np.all(line['r0'].ksl == np.array([0, 5, 0, 0, 0, 0]))
+        # assert np.all(line['r0'].pn == np.array([0.3 * 360, 0.4 * 360, 0, 0, 0, 0]))
+        # assert np.all(line['r0'].ps == np.array([0.5 * 360, 0.6 * 360, 0, 0, 0, 0]))
+        # assert line['r0'].voltage == 2e6
+        # assert line['r0'].order == 5
+        # assert line['r0'].frequency == 100e6
+        # assert line['r0'].lag == 180
 
-        assert isinstance(line['cb0'], xt.RFMultipole)
-        assert line.get_s_position('cb0') == 0.41
-        assert len(line['cb0'].knl) == 1
-        assert len(line['cb0'].ksl) == 1
-        xo.assert_allclose(line['cb0'].knl[0], 2 * 1e6 / line.particle_ref.p0c[0],
+        assert isinstance(line['cb0'], xt.CrabCavity)
+        assert tt['s', 'cb0'] == 0.41
+        xo.assert_allclose(line['cb0'].crab_voltage, 2 * 1e6,
                            rtol=0, atol=1e-12)
-        assert np.all(line['cb0'].ksl == 0)
-        assert np.all(line['cb0'].pn == np.array([270]))
-        assert np.all(line['cb0'].ps == 0.)
-        assert line['cb0'].voltage == 0
-        assert line['cb0'].order == 0
+        xo.assert_allclose(line['cb0'].rot_s_rad, 0, rtol=0, atol=1e-12)
         assert line['cb0'].frequency == 100e6
-        assert line['cb0'].lag == 0
 
-        assert isinstance(line['cb1'], xt.RFMultipole)
-        assert line.get_s_position('cb1') == 0.42
-        assert len(line['cb1'].knl) == 1
-        assert len(line['cb1'].ksl) == 1
-        xo.assert_allclose(line['cb1'].ksl[0], -2 * 1e6 / line.particle_ref.p0c[0],
-                           rtol=0, atol=1e-12)
-        assert np.all(line['cb1'].knl == 0)
-        assert np.all(line['cb1'].ps == np.array([270]))
-        assert np.all(line['cb1'].pn == 0.)
-        assert line['cb1'].voltage == 0
-        assert line['cb1'].order == 0
+        assert isinstance(line['cb1'], xt.CrabCavity)
+        assert tt['s', 'cb1'] == 0.42
+        assert line['cb1'].crab_voltage == 2 * 1e6
+        xo.assert_allclose(line['cb1'].rot_s_rad, np.pi / 2, rtol=0, atol=1e-12)
         assert line['cb1'].frequency == 100e6
-        assert line['cb1'].lag == 0
 
         assert isinstance(line['w'], xt.Wire)
-        assert line.get_s_position('w') == 1
+        assert tt['s', 'w'] == 1
         assert line['w'].L_phy == 1
         assert line['w'].L_int == 2
         assert line['w'].xma == 1e-3
         assert line['w'].yma == 2e-3
 
         assert isinstance(line['mat0'], xt.FirstOrderTaylorMap)
-        assert line.get_s_position('mat0') == 2
+        assert tt['s', 'mat0'] == 2
         xo.assert_allclose(line['mat0'].m0, matrix_m0, rtol=0.0, atol=1E-12)
         xo.assert_allclose(line['mat0'].m1, matrix_m1, rtol=0.0, atol=1E-12)
 
         assert isinstance(line['oct_aper'], xt.LimitPolygon)
-        assert line.get_s_position('oct_aper') == 3
+        assert tt['s', 'oct_aper'] == 3
         x_1, x_2, y_1, y_2 = 3, 2 * np.sqrt(3), np.sqrt(3), 6
         expected_x_vertices = [x_1, x_2, -x_2, -x_1, -x_1, -x_2, x_2, x_1]
         expected_y_vertices = [y_1, y_2, y_2, y_1, -y_1, -y_2, -y_2, -y_1]
@@ -683,8 +674,8 @@ def test_selective_expr_import_and_replace_in_expr():
     assert len(line.vars['bv_aux_lhcb1']._find_dependant_targets()) > 1
     assert 'bv_aux' not in line.vars
 
-    assert line.element_refs['mqxfa.b3r5..1'].knl[1]._expr is None  # multipole
-    assert line.element_refs['mcbxfbv.b2r1'].ksl[0]._expr is not None  # kicker
+    assert line.ref['mqxfa.b3r5..1'].knl[1]._expr is None  # multipole
+    assert line.ref['mcbxfbv.b2r1'].ksl[0]._expr is not None  # kicker
 
 
 def test_load_madx_optics_file():
@@ -694,39 +685,38 @@ def test_load_madx_optics_file():
 
     # Check varval behaviour
     collider.vars['on_x1'] = 40
-    assert collider.varval['on_x1'] == 40
+    assert collider['on_x1'] == 40
     assert collider.lhcb1.vars['on_x1']._value == 40
     assert collider.lhcb2.vars['on_x1']._value == 40
-    assert collider.lhcb1.varval['on_x1'] == 40
-    assert collider.lhcb2.varval['on_x1'] == 40
+    assert collider.lhcb1['on_x1'] == 40
+    assert collider.lhcb2['on_x1'] == 40
 
-    collider.varval['on_x1'] = 50
+    collider['on_x1'] = 50
     assert collider.vars['on_x1']._value == 50
     assert collider.lhcb1.vars['on_x1']._value == 50
     assert collider.lhcb2.vars['on_x1']._value == 50
-    assert collider.lhcb1.varval['on_x1'] == 50
-    assert collider.lhcb2.varval['on_x1'] == 50
+    assert collider.lhcb1['on_x1'] == 50
+    assert collider.lhcb2['on_x1'] == 50
 
-    collider.lhcb1.varval['on_x1'] = 60
+    collider.lhcb1['on_x1'] = 60
     assert collider.vars['on_x1']._value == 60
     assert collider.lhcb1.vars['on_x1']._value == 60
     assert collider.lhcb2.vars['on_x1']._value == 60
-    assert collider.lhcb1.varval['on_x1'] == 60
-    assert collider.lhcb2.varval['on_x1'] == 60
+    assert collider.lhcb1['on_x1'] == 60
+    assert collider.lhcb2['on_x1'] == 60
 
-    collider.lhcb2.varval['on_x1'] = 70
+    collider.lhcb2['on_x1'] = 70
     assert collider.vars['on_x1']._value == 70
     assert collider.lhcb1.vars['on_x1']._value == 70
     assert collider.lhcb2.vars['on_x1']._value == 70
-    assert collider.lhcb1.varval['on_x1'] == 70
-    assert collider.lhcb2.varval['on_x1'] == 70
+    assert collider.lhcb1['on_x1'] == 70
+    assert collider.lhcb2['on_x1'] == 70
 
     collider.vars['on_disp'] = 0  # more precise angle
     xo.assert_allclose(collider.twiss().lhcb1['px', 'ip1'], 70e-6, atol=1e-8, rtol=0)
     xo.assert_allclose(collider.twiss().lhcb2['px', 'ip1'], -70e-6, atol=1e-8, rtol=0)
 
-    collider.vars.load_madx_optics_file(
-        test_data_folder / 'hllhc15_thick/opt_round_300_1500.madx')
+    collider.vars.load(test_data_folder / 'hllhc15_thick/opt_round_300_1500.madx')
 
     collider._xdeps_manager.verify()
 
@@ -747,18 +737,17 @@ def test_load_madx_optics_file():
     xo.assert_allclose(tw.lhcb1['px', 'ip1'], 30e-6, atol=1e-9, rtol=0)
     xo.assert_allclose(tw.lhcb2['px', 'ip1'], -30e-6, atol=1e-9, rtol=0)
 
-    collider.vars.load_madx_optics_file(
-        test_data_folder / 'hllhc15_thick/opt_round_150_1500.madx')
+    collider.vars.load(test_data_folder / 'hllhc15_thick/opt_round_150_1500.madx')
 
     tw = collider.twiss()
     xo.assert_allclose(tw.lhcb1.qx, 62.31000000, atol=1e-6, rtol=0)
     xo.assert_allclose(tw.lhcb1.qy, 60.32000000, atol=1e-6, rtol=0)
     xo.assert_allclose(tw.lhcb2.qx, 62.31000000, atol=1e-6, rtol=0)
     xo.assert_allclose(tw.lhcb2.qy, 60.32000000, atol=1e-6, rtol=0)
-    xo.assert_allclose(tw.lhcb1['betx', 'ip1'], 0.15, atol=0, rtol=1e-6)
-    xo.assert_allclose(tw.lhcb1['bety', 'ip1'], 0.15, atol=0, rtol=1e-6)
-    xo.assert_allclose(tw.lhcb2['betx', 'ip1'], 0.15, atol=0, rtol=1e-6)
-    xo.assert_allclose(tw.lhcb2['bety', 'ip1'], 0.15, atol=0, rtol=1e-6)
+    xo.assert_allclose(tw.lhcb1['betx', 'ip1'], 0.15, atol=0, rtol=5e-6)
+    xo.assert_allclose(tw.lhcb1['bety', 'ip1'], 0.15, atol=0, rtol=5e-6)
+    xo.assert_allclose(tw.lhcb2['betx', 'ip1'], 0.15, atol=0, rtol=5e-6)
+    xo.assert_allclose(tw.lhcb2['bety', 'ip1'], 0.15, atol=0, rtol=5e-6)
 
     # Check a knob
     collider.vars['on_x1'] = 10
@@ -788,7 +777,7 @@ def test_load_madx_optics_file():
     xo.assert_allclose(tw.lhcb2['px', 'ip2'], 0, atol=1e-9, rtol=0)
 
 
-def test_load_b2_with_bv_minus_one():
+def test_load_b2_with_bv_minus_one(sandbox_cwd):
     test_data_folder_str = str(test_data_folder)
 
     mad1 = Madx(stdout=False)

@@ -5,7 +5,7 @@ from xobjects.test_helpers import for_all_test_contexts
 @for_all_test_contexts
 def test_is_aperture(test_context):
     elements={
-        'e0': xt.Bend(k0=0.4, h=0.3, length=1),
+        'e0': xt.Bend(k0=0.4, angle=0.3, length=1),
         'e1': xt.Replica(parent_name='e0'),
         'e2': xt.Replica(parent_name='e1'),
         'a0': xt.LimitRect(),
@@ -29,7 +29,7 @@ def test_is_aperture(test_context):
 @for_all_test_contexts
 def test_has_backtrack(test_context):
     elements={
-        'e0': xt.Bend(k0=0.4, h=0.3, length=1),
+        'e0': xt.Bend(k0=0.4, angle=0.3, length=1),
         'e1': xt.Replica(parent_name='e0'),
         'e2': xt.Replica(parent_name='e1'),
         'a0': xt.Drift(),
@@ -59,7 +59,7 @@ def test_has_backtrack(test_context):
 
 def test_is_drift_behaves_like_drift():
 
-    bend = xt.Bend(k0=0.4, h=0.3, length=1)
+    bend = xt.Bend(k0=0.4, angle=0.3, length=1)
 
     line = xt.Line(
         elements=[bend, xt.Replica(parent_name='e0'), xt.Replica(parent_name='e1'),
@@ -121,8 +121,9 @@ def test_is_drift_behaves_like_drift():
 
     line.cut_at_s([0.6, 1.5])
     assert_allclose(length, line.get_length(), rtol=0, atol=1e-15)
-    assert_allclose(line.get_s_position('drift_e0..2..1'), 0.6, rtol=0, atol=1e-15)
-    assert_allclose(line.get_s_position('e1..1..1'), 1.5, rtol=0, atol=1e-15)
+    tt = line.get_table()
+    assert_allclose(tt['s', 'drift_e0..2..1'], 0.6, rtol=0, atol=1e-15)
+    assert_allclose(tt['s', 'e1..1..1'], 1.5, rtol=0, atol=1e-15)
 
     assert _is_drift(line['drift_e0..2..1'], line)
     assert _behaves_like_drift(line['drift_e0..2..1'], line)
@@ -165,7 +166,7 @@ def test_is_drift_behaves_like_drift():
 
 def test_replica_loops():
 
-    bend = xt.Bend(k0=0.4, h=0.3, length=1)
+    bend = xt.Bend(k0=0.4, angle=0.3, length=1)
 
     elements = {
         # correct case

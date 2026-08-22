@@ -12,7 +12,8 @@ from cpymad.madx import Madx
 import xobjects as xo
 import xpart as xp
 import xtrack as xt
-from xobjects.test_helpers import for_all_test_contexts, fix_random_seed
+from xobjects.test_helpers import (
+    allow_kernel_compilation, fix_random_seed, for_all_test_contexts)
 
 test_data_folder = pathlib.Path(
     __file__).parent.joinpath('../test_data').absolute()
@@ -69,7 +70,7 @@ def test_cycle(test_context):
     d0 = xt.Drift()
     c0 = xt.Cavity()
     d1 = xt.Drift()
-    r0 = xt.SRotation()
+    r0 = xt.Rotation()
     particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV, gamma0=1.05)
 
     for collective in [True, False]:
@@ -97,7 +98,7 @@ def test_cycle(test_context):
             assert cline.element_names[3] == 'e1'
 
             assert isinstance(cline.elements[0], xt.Drift)
-            assert isinstance(cline.elements[1], xt.SRotation)
+            assert isinstance(cline.elements[1], xt.Rotation)
             assert isinstance(cline.elements[2], xt.Drift)
             assert isinstance(cline.elements[3], xt.Cavity)
 
@@ -126,6 +127,14 @@ def test_synrad_configuration(test_context):
         line.configure_radiation(model='quantum')
         for ee in line.elements:
             assert ee.radiation_flag == 2
+        p = xp.Particles(x=[0.01, 0.02], _context=test_context)
+        line.track(p)
+        p.move(_context=xo.ContextCpu())
+        assert np.all(p._rng_s1 + p._rng_s2 + p._rng_s3 + p._rng_s4 > 0)
+
+        line.configure_radiation(model='quantum-kick')
+        for ee in line.elements:
+            assert ee.radiation_flag == 3
         p = xp.Particles(x=[0.01, 0.02], _context=test_context)
         line.track(p)
         p.move(_context=xo.ContextCpu())
@@ -353,7 +362,10 @@ def test_tracker_hashable_config():
     assert line.tracker._hashable_config() == expected
 
 
+@allow_kernel_compilation
 def test_tracker_config_to_headers():
+
+
     line = xt.Line([])
     line.build_tracker()
 
@@ -375,18 +387,23 @@ def test_tracker_config_to_headers():
 
 
 @for_all_test_contexts
+@allow_kernel_compilation
 def test_tracker_config(test_context):
     class TestElement(xt.BeamElement):
+
+
         _xofields = {
             'dummy': xo.Float64,
         }
         _extra_c_sources = ["""
-            /*gpufun*/
+            #include "xtrack/headers/track.h"
+
+            GPUFUN
             void TestElement_track_local_particle(
                     TestElementData el,
                     LocalParticle* part0)
             {
-                //start_per_particle_block (part0->part)
+                START_PER_PARTICLE_BLOCK(part0, part);
 
                     #if TEST_FLAG == 2
                     LocalParticle_set_x(part, 7);
@@ -396,7 +413,7 @@ def test_tracker_config(test_context):
                     LocalParticle_set_y(part, 42);
                     #endif
 
-                //end_per_particle_block
+                END_PER_PARTICLE_BLOCK;
             }
             """]
 
@@ -460,17 +477,17 @@ def test_optimize_for_tracking(test_context, multiline):
     num_turns = 10
 
     line.track(p_no_optimized, num_turns=num_turns, time=True)
-    df_before_optimize = line.to_pandas()
+    df_before_optimize = line.get_table().to_pandas()
     n_markers_before_optimize = (df_before_optimize.element_type == 'Marker').sum()
     assert n_markers_before_optimize > 4 # There are at least the IPs
 
     line.optimize_for_tracking(keep_markers=True)
-    df_optimize_keep_markers = line.to_pandas()
+    df_optimize_keep_markers = line.get_table().to_pandas()
     n_markers_optimize_keep = (df_optimize_keep_markers.element_type == 'Marker').sum()
     assert n_markers_optimize_keep == n_markers_before_optimize
 
     line.optimize_for_tracking(keep_markers=['ip1', 'ip5'])
-    df_optimize_ip15 = line.to_pandas()
+    df_optimize_ip15 = line.get_table().to_pandas()
     n_markers_optimize_ip15 = (df_optimize_ip15.element_type == 'Marker').sum()
     assert n_markers_optimize_ip15 == 2
 
@@ -479,7 +496,7 @@ def test_optimize_for_tracking(test_context, multiline):
     assert type(line['mb.b10l3.b1..1']) is xt.SimpleThinBend
     assert type(line['mq.10l3.b1..1']) is xt.SimpleThinQuadrupole
 
-    df_optimize = line.to_pandas()
+    df_optimize = line.get_table().to_pandas()
     n_markers_optimize = (df_optimize.element_type == 'Marker').sum()
     assert n_markers_optimize == 0
 
@@ -584,33 +601,16 @@ def test_tbt_monitor_with_progress(test_context, ele_start, ele_stop, expected_x
     xo.assert_allclose(recorded_x, expected_x, atol=1e-16)
 
 
-@pytest.fixture
-def pimms_mad():
-    pimms_path = test_data_folder / 'pimms/PIMMS.seq'
-    mad = Madx(stdout=False)
-    mad.option(echo=False)
-    mad.call(str(pimms_path))
-    mad.beam()
-    mad.use('pimms')
-    return mad
-
-
 @for_all_test_contexts
 @fix_random_seed(784239)
-def test_track_log_and_merit_function(pimms_mad, test_context):
-    line = xt.Line.from_madx_sequence(
-        pimms_mad.sequence.pimms,
-        deferred_expressions=True,
-    )
-    line.particle_ref = xt.Particles(
-        q0=1,
-        mass0=xt.PROTON_MASS_EV,
-        kinetic_energy0=200e6, # eV
-    )
-    line.insert_element(
-        name='septum_aperture',
-        element=xt.LimitRect(min_x=-0.1, max_x=0.1, min_y=-0.1, max_y=0.1),
-        at='extr_septum',
+def test_track_log_and_merit_function(test_context):
+    env = xt.load(test_data_folder / 'pimms/PIMMS.seq')
+    line = env.pimms
+    line.set_particle_ref('proton', kinetic_energy0=200e6)
+    line.insert(
+        'septum_aperture',
+        xt.LimitRect(min_x=-0.1, max_x=0.1, min_y=-0.1, max_y=0.1),
+        at=0, from_='extr_septum',
     )
     line['septum_aperture'].max_x = 0.035
     line.configure_bend_model(edge='full', core='adaptive', num_multipole_kicks=1)
@@ -660,8 +660,9 @@ def test_track_log_and_merit_function(pimms_mad, test_context):
     xo.assert_allclose(merit_function.get_x_limits(), expected_limits, atol=1e-14)
 
     # Below numbers obtained by first only matching the tunes, then the above
-    x_optimized = [-1.40251213, 0.81823393, 0.31196667, 0.52478984, -0.052393429]
+    x_optimized = [-1.40280327,  0.81538019,  0.31203146,  0.52495916, -0.05239972]
     merit_function.set_x(x_optimized)
+    opt.solve()
     assert np.all(opt.target_status(ret=True)['tol_met'])
 
     # Now prepare to track and to log intensity and sextupole strength
@@ -684,12 +685,12 @@ def test_track_log_and_merit_function(pimms_mad, test_context):
     # Define time-dependent behaviour of the quadrupoles
     line.functions['fun_kqfa'] = xt.FunctionPieceWiseLinear(
         x=[0, 0.5e-3],
-        y=[line.vv['kqfa'], 0.313],
+        y=[line['kqfa'], 0.313],
     )
     line.vars['kqfa'] = line.functions['fun_kqfa'](line.vars['t_turn_s'])
     line.vars['kse2'] = 9
 
-    kqfa_before = line.vv['kqfa']
+    kqfa_before = line['kqfa']
 
     def measure_intensity(_, particles):
         ctx2np = particles._context.nparray_from_context_array
@@ -717,7 +718,7 @@ def test_track_log_and_merit_function(pimms_mad, test_context):
     assert slope > 0
     assert residual < 1e-28
     xo.assert_allclose(line.log_last_track['kqfa'][0], kqfa_before, atol=1e-14, rtol=0)
-    xo.assert_allclose(line.log_last_track['kqfa'][-1], line.vv['kqfa'], atol=1e-14, rtol=0)
+    xo.assert_allclose(line.log_last_track['kqfa'][-1], line['kqfa'], atol=1e-14, rtol=0)
 
     # Check that intensity is decreasing
     intensity = np.array(line.log_last_track['intensity'])
@@ -728,7 +729,10 @@ def test_track_log_and_merit_function(pimms_mad, test_context):
 
 
 @for_all_test_contexts
+@allow_kernel_compilation
 def test_init_io_buffer(test_context):
+
+
     class TestElementRecord(xo.HybridClass):
         _xofields = {
             '_index': xt.RecordIndex,
@@ -745,7 +749,9 @@ def test_init_io_buffer(test_context):
 
         _extra_c_sources = [
             r'''
-            /*gpufun*/
+            #include "xtrack/headers/track.h"
+            
+            GPUFUN
             void TestElement_track_local_particle(TestElementData el, LocalParticle* part0){
                 // Extract the record and record_index
                 TestElementRecordData record = TestElementData_getp_internal_record(el, part0);
@@ -756,7 +762,7 @@ def test_init_io_buffer(test_context):
 
                 int64_t elem_field = TestElementData_get_element_field(el);
 
-                //start_per_particle_block (part0->part)
+                START_PER_PARTICLE_BLOCK(part0, part);
                     if (record) {  // Record exists
                         // Get a slot in the record (this is thread safe)
                         int64_t i_slot = RecordIndex_get_slot(record_index);
@@ -774,7 +780,7 @@ def test_init_io_buffer(test_context):
                             );
                         }
                     }
-                //end_per_particle_block
+                END_PER_PARTICLE_BLOCK;
             }
             '''
         ]

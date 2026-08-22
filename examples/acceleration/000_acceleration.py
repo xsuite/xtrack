@@ -6,14 +6,13 @@
 import numpy as np
 import xtrack as xt
 
-T_rev = 23e-6 # 23 us
-Delta_p0c = 450e9 / 10 * T_rev
+t_rev = 23e-6 # 23 us
+Delta_p0c = 450e9 / 10 * t_rev
 
 line = xt.load('../../test_data/sps_w_spacecharge/line_no_spacecharge.json')
 
 energy_increase = xt.ReferenceEnergyIncrease(Delta_p0c=Delta_p0c)
-line.append_element(energy_increase, 'energy_increase')
-line.build_tracker()
+line.append('energy_increase', energy_increase)
 
 particles = xt.Particles(p0c=26e9, zeta=np.linspace(-1, 1, 40))
 
@@ -38,8 +37,9 @@ plt.ylabel(r'$\Delta p / p_0$')
 from scipy.constants import c as clight
 
 # Assume only first cavity is active
-frequency = line.get_elements_of_type(xt.Cavity)[0][0].frequency
-voltage = line.get_elements_of_type(xt.Cavity)[0][0].voltage
+tt_cav = line.get_table().rows.match(element_type='Cavity')
+frequency = line[tt_cav.name[0]].frequency
+voltage = line[tt_cav.name[0]].voltage
 #Assuming proton and beta=1
 stable_z = np.arcsin(Delta_p0c/voltage)/frequency/2/np.pi*clight
 

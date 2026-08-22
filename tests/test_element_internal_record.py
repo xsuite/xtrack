@@ -3,17 +3,25 @@
 # Copyright (c) CERN, 2021.                 #
 # ######################################### #
 
+import pathlib
+
 import numpy as np
 import json
 
 import xtrack as xt
 import xpart as xp
 import xobjects as xo
-from xobjects.test_helpers import for_all_test_contexts
+from xobjects.test_helpers import (
+    allow_kernel_compilation, for_all_test_contexts)
+
+TEST_DATA_FOLDER = pathlib.Path(__file__).parent / '../../xtrack/test_data'
 
 
 @for_all_test_contexts
+@allow_kernel_compilation
 def test_record_single_table(test_context):
+
+
     class TestElementRecord(xo.HybridClass):
         _xofields = {
             '_index': xt.RecordIndex,
@@ -26,7 +34,9 @@ def test_record_single_table(test_context):
     extra_src = []
 
     extra_src.append(r'''
-        /*gpufun*/
+        #include "xtrack/headers/track.h"
+
+        GPUFUN
         void TestElement_track_local_particle(TestElementData el, LocalParticle* part0){
 
             // Extract the record and record_index
@@ -39,8 +49,7 @@ def test_record_single_table(test_context):
             int64_t n_kicks = TestElementData_get_n_kicks(el);
             //printf("n_kicks %d\n", (int)n_kicks);
 
-            //start_per_particle_block (part0->part)
-
+            START_PER_PARTICLE_BLOCK(part0, part);
                 for (int64_t i = 0; i < n_kicks; i++) {
                     double rr = 1e-6 * RandomUniform_generate(part);
                     LocalParticle_add_to_px(part, rr);
@@ -61,9 +70,7 @@ def test_record_single_table(test_context):
                         }
                     }
                 }
-
-
-            //end_per_particle_block
+            END_PER_PARTICLE_BLOCK;
         }
         ''')
 
@@ -192,7 +199,10 @@ def test_record_single_table(test_context):
 
 
 @for_all_test_contexts
+@allow_kernel_compilation
 def test_record_with_twiss(test_context):
+
+
     class TestElementRecord(xo.HybridClass):
         _xofields = {
             '_index': xt.RecordIndex,
@@ -205,7 +215,9 @@ def test_record_with_twiss(test_context):
     extra_src = []
 
     extra_src.append(r'''
-        /*gpufun*/
+        #include "xtrack/headers/track.h"
+
+        GPUFUN
         void TestElement_track_local_particle(TestElementData el, LocalParticle* part0){
 
             // Extract the record and record_index
@@ -218,8 +230,7 @@ def test_record_with_twiss(test_context):
             int64_t n_kicks = TestElementData_get_n_kicks(el);
             //printf("n_kicks %d\n", (int)n_kicks);
 
-            //start_per_particle_block (part0->part)
-
+            START_PER_PARTICLE_BLOCK(part0, part);
                 for (int64_t i = 0; i < n_kicks; i++) {
                     // We don't apply the kick, otherwise the twiss fails
                     double rr = 1e-6 * RandomUniform_generate(part);
@@ -240,9 +251,7 @@ def test_record_with_twiss(test_context):
                         }
                     }
                 }
-
-
-            //end_per_particle_block
+            END_PER_PARTICLE_BLOCK;
         }
         ''')
 
@@ -260,27 +269,29 @@ def test_record_with_twiss(test_context):
     n_kicks0 = 5
     n_kicks1 = 3
 
-    path_line_particles = xt._pkg_root.parent / 'test_data' / 'hllhc15_noerrors_nobb/line_and_particle.json'
+    path_line_particles = TEST_DATA_FOLDER / 'hllhc15_noerrors_nobb/line_and_particle.json'
 
     with open(path_line_particles, 'r') as fid:
         input_data = json.load(fid)
     line = xt.Line.from_dict(input_data['line'])
     line.particle_ref = xp.Particles.from_dict(input_data['particle'])
-    line.insert_element(element=TestElement(n_kicks=n_kicks0), name='test0', at_s=line.get_s_position('ip1'))
-    line.insert_element(element=TestElement(n_kicks=n_kicks1), name='test1', at_s=line.get_s_position('ip5'))
+    tt = line.get_table()
+    line.insert(obj=TestElement(n_kicks=n_kicks0), what='test0', at=tt['s', 'ip1'])
+    line.insert(obj=TestElement(n_kicks=n_kicks1), what='test1', at=tt['s', 'ip5'])
 
     line._needs_rng = True
     line.build_tracker(_context=test_context)
-    record = line.start_internal_logging_for_elements_of_type(
-                                                        TestElement, capacity=10000)
+    _ = line.start_internal_logging_for_elements_of_type(TestElement, capacity=10000)
     line.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV, q0=1, p0c=6.5e12)
-    io_buffer = line.tracker.io_buffer
-    line.twiss(at_s=np.linspace(0, line.get_length(), 500))
-    
+    line.cut_at_s(np.linspace(0, line.get_length(), 500))
+    line.twiss()
 
 
 @for_all_test_contexts
+@allow_kernel_compilation
 def test_record_multiple_tables(test_context):
+
+
     class Table1(xo.HybridClass):
         _xofields = {
             '_index': xt.RecordIndex,
@@ -309,7 +320,9 @@ def test_record_multiple_tables(test_context):
     extra_src = []
 
     extra_src.append(r'''
-        /*gpufun*/
+        #include "xtrack/headers/track.h"
+
+        GPUFUN
         void TestElement_track_local_particle(TestElementData el, LocalParticle* part0){
 
             // Extract the record and record_index
@@ -328,8 +341,7 @@ def test_record_multiple_tables(test_context):
             int64_t n_kicks = TestElementData_get_n_kicks(el);
             // printf("n_kicks %d\n", (int)n_kicks);
 
-            //start_per_particle_block (part0->part)
-
+            START_PER_PARTICLE_BLOCK(part0, part);
                 // Record in table1 info about the ingoing particle
                 if (record){
                     // Get a slot in table1
@@ -373,8 +385,7 @@ def test_record_multiple_tables(test_context):
                         }
                     }
                 }
-
-            //end_per_particle_block
+            END_PER_PARTICLE_BLOCK;
         }
         ''')
 
@@ -536,7 +547,9 @@ def test_record_multiple_tables(test_context):
 
 
 @for_all_test_contexts
+@allow_kernel_compilation
 def test_record_standalone_mode(test_context):
+
 
     class Table1(xo.HybridClass):
         _xofields = {
@@ -566,7 +579,9 @@ def test_record_standalone_mode(test_context):
     extra_src = []
 
     extra_src.append(r'''
-        /*gpufun*/
+        #include "xtrack/headers/track.h"
+
+        GPUFUN
         void TestElement_track_local_particle(TestElementData el, LocalParticle* part0){
 
             // Extract the record and record_index
@@ -585,8 +600,7 @@ def test_record_standalone_mode(test_context):
             int64_t n_kicks = TestElementData_get_n_kicks(el);
             // printf("n_kicks %d\n", (int)n_kicks);
 
-            //start_per_particle_block (part0->part)
-
+            START_PER_PARTICLE_BLOCK(part0, part);
                 // Record in table1 info about the ingoing particle
                 if (record){
                     // Get a slot in table1
@@ -630,8 +644,7 @@ def test_record_standalone_mode(test_context):
                         }
                     }
                 }
-
-            //end_per_particle_block
+            END_PER_PARTICLE_BLOCK;
         }
         ''')
 

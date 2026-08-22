@@ -1,0 +1,131 @@
+# copyright ############################### #
+# This file is part of the Xtrack package.  #
+# Copyright (c) CERN, 2025.                 #
+# ######################################### #
+
+from ..beam_elements import *
+from ..monitors import *
+from ..multisetter import MultiSetter
+from ..random import *
+from ..aperture.structures import ApertureModel, Profile, Polygon, SurveyData
+
+
+ONLY_XTRACK_ELEMENTS = [
+    Drift,
+    Multipole,
+    Bend,
+    RBend,
+    Quadrupole,
+    Sextupole,
+    Octupole,
+    Magnet,
+    MagnetEdge,
+    Wedge,
+    SecondOrderTaylorMap,
+    Marker,
+    ReferenceEnergyIncrease,
+    ReferenceEnergyChange,
+    Cavity,
+    CrabCavity,
+    Elens,
+    ElectronCooler,
+    Wire,
+    Solenoid,
+    VariableSolenoid,
+    UniformSolenoid,
+    RFMultipole,
+    DipoleEdge,
+    MultipoleEdge,
+    SimpleThinBend,
+    SimpleThinQuadrupole,
+    LineSegmentMap,
+    FirstOrderTaylorMap,
+    NonLinearLens,
+    DriftExact,
+    Misalignment,
+    SplineBoris,
+    # Drift Slices
+    DriftSlice,
+    DriftExactSlice,
+    DriftSliceBend,
+    DriftSliceRBend,
+    DriftSliceOctupole,
+    DriftSliceQuadrupole,
+    DriftSliceSextupole,
+    DriftSliceCavity,
+    DriftSliceCrabCavity,
+    DriftSliceMultipole,
+    # Thick slices
+    ThickSliceBend,
+    ThickSliceRBend,
+    ThickSliceOctupole,
+    ThickSliceQuadrupole,
+    ThickSliceSextupole,
+    ThickSliceUniformSolenoid,
+    ThickSliceCavity,
+    ThickSliceCrabCavity,
+    ThickSliceMultipole,
+    # Thin slices
+    ThinSliceBend,
+    ThinSliceRBend,
+    ThinSliceOctupole,
+    ThinSliceQuadrupole,
+    ThinSliceSextupole,
+    ThinSliceCavity,
+    ThinSliceCrabCavity,
+    ThinSliceMultipole,
+    # Edge slices
+    ThinSliceBendEntry,
+    ThinSliceBendExit,
+    ThinSliceRBendEntry,
+    ThinSliceRBendExit,
+    ThinSliceQuadrupoleEntry,
+    ThinSliceQuadrupoleExit,
+    ThinSliceSextupoleEntry,
+    ThinSliceSextupoleExit,
+    ThinSliceUniformSolenoidEntry,
+    ThinSliceUniformSolenoidExit,
+    ThinSliceOctupoleEntry,
+    ThinSliceOctupoleExit,
+    # Transformations
+    Rotation,
+    Translation,
+    TimeDelay,
+    XYShift,
+    ZetaShift,
+    XRotation,
+    SRotation,
+    YRotation,
+    # Apertures
+    LimitEllipse,
+    LimitRectEllipse,
+    LimitRect,
+    LimitRacetrack,
+    LimitPolygon,
+    LongitudinalLimitRect,
+    # Monitors
+    BeamPositionMonitor,
+    BeamSizeMonitor,
+    BeamProfileMonitor,
+    BeamStatsMonitor,
+    LastTurnsMonitor,
+    ParticlesMonitor,
+    MultiElementMonitor,
+    ACDipole,
+]
+
+NO_SYNRAD_ELEMENTS = [
+    Exciter,
+]
+
+NON_TRACKING_ELEMENTS = [
+    RandomUniform,
+    RandomExponential,
+    RandomNormal,
+    RandomRutherford,
+    MultiSetter,
+    ApertureModel,
+    Profile,
+    SurveyData,
+    Polygon,
+]

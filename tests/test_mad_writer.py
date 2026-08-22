@@ -29,7 +29,6 @@ def test_mad_writer(case):
     mad_seq = line.to_madx_sequence(sequence_name='myseq')
 
     mad = Madx(stdout=True)
-    mad.options.rbarc = False
     mad.input(mad_seq)
     mad.beam(particle='proton', energy=7000e9)
     mad.use('myseq')
@@ -43,10 +42,10 @@ def test_mad_writer(case):
         ll.vars['on_x1'] = 100 # Check kicker expressions
         ll.vars['on_sep2'] = 2 # Check kicker expressions
         ll.vars['on_x5'] = 123 # Check kicker expressions
-        ll.vv['kqtf.b1'] += 1e-5 # Check quad expressions
-        ll.vv['ksf.b1'] += 1e-3  # Check sext expressions
-        ll.vv['kqs.l4b1'] += 1e-4 # Check skew expressions
-        ll.vv['kof.a34b1'] = 3 # Check oct expressions
+        ll['kqtf.b1'] += 1e-5 # Check quad expressions
+        ll['ksf.b1'] += 1e-3  # Check sext expressions
+        ll['kqs.l4b1'] += 1e-4 # Check skew expressions
+        ll['kof.a34b1'] = 3 # Check oct expressions
         ll.vars['on_crab1'] = -190 # Check cavity expressions
         ll.vars['on_crab5'] = -130 # Check cavity expressions
 
@@ -70,3 +69,33 @@ def test_mad_writer(case):
 
     xo.assert_allclose(tw2.qs, tw.qs, rtol=1e-4, atol=0)
     xo.assert_allclose(tw2.ddqx, tw.ddqx, rtol=1e-3, atol=0)
+
+def test_mad_writer_bend():
+    env = xt.Environment()
+    line = env.new_line(components=[
+        env.new('b0', 'Bend', length=1.0, angle=0.1,),
+        env.new('b1', 'Bend', length=1.0, angle=0.1, k0=0.01),
+        env.new('b2', 'RBend', length_straight=1.0, angle=0.1,),
+        env.new('b3', 'RBend', length_straight=1.0, angle=0.1, k0=0.01),
+        ])
+
+    mad_src = line.to_madx_sequence('seq')
+
+    env2 = xt.load(string=mad_src, format='madx')
+    line2 = env2.lines['seq']
+
+    for nn in ['b0', 'b1', 'b2', 'b3']:
+        el1 = line[nn]
+        el2 = line2[nn]
+        assert el1.length == el2.length
+        assert el1.angle == el2.angle
+        assert el1.k0 == el2.k0
+
+
+def test_mad_writer_rfmultipole_not_supported():
+    line = xt.Line(elements={'rfm': xt.RFMultipole(knl=[1])},
+                   element_names=['rfm'])
+
+    with pytest.raises(NotImplementedError,
+                       match='Conversion of xtrack RFMultipole to mad-x not supported'):
+        line.to_madx_sequence('seq')

@@ -1,19 +1,30 @@
+from warnings import warn
 import xtrack as xt
-_print = xt.general._print
+
 
 class PipelineBranch:
     def __init__(self, line=None, particles=None, tracker=None):
+        """Create a new pipeline branch.
 
+        Parameters
+        ----------
+        line : Line
+            Line of the branch.
+        particles : Particles
+            Particles to be passed to the branch.
+        tracker : Tracker
+            Deprecated: use `line` instead.
+        """
         if tracker is not None:
-            _print( 'Warning! '
-                "The argument tracker is deprecated. Please use line instead.")
+            warn('The argument tracker is deprecated. Please use line instead.', FutureWarning)
             assert line is None
             line = tracker.line
 
         if isinstance(line, xt.Tracker):
-            _print('Warning! '
-                "The use of Tracker as argument of `PipelineBranch` is deprecated."
-                " Please use Line instead.")
+            warn(
+                'The use of Tracker as argument of `PipelineBranch` is deprecated. Please use Line instead.',
+                FutureWarning
+            )
             line = line.line
 
         self.line = line
@@ -58,15 +69,13 @@ class PipelineMultiTracker:
                             'info': branch.pipeline_status.data['status_from_element'].info
                         })
                     if self.verbose:
-                        print(
+                        xt._print(
                             f"Pipeline hold at branch {i_branch} "
                             f"at turn {branch.pipeline_status.data['tt']} "
                             f"by element {branch.line.tracker._part_names[branch.pipeline_status.data['ipp']]} "
                             f"with info: {branch.pipeline_status.data['status_from_element'].info}")
 
-                    branch.pipeline_status = branch.line.tracker.resume(
-                                                        branch.pipeline_status)
+                    branch.pipeline_status = branch.line.tracker.resume(branch.pipeline_status)
                     need_resume = True
-
 
 

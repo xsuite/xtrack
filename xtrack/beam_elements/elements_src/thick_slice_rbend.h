@@ -9,9 +9,10 @@
 #ifndef XTRACK_THICK_SLICE_RBEND_H
 #define XTRACK_THICK_SLICE_RBEND_H
 
-#include <headers/track.h>
-#include <beam_elements/elements_src/track_magnet.h>
-#include <beam_elements/elements_src/default_magnet_config.h>
+#include "xtrack/headers/track.h"
+#include "xtrack/headers/factorial.h"
+#include "xtrack/beam_elements/elements_src/track_magnet.h"
+#include "xtrack/beam_elements/elements_src/default_magnet_config.h"
 
 GPUFUN
 void ThickSliceRBend_track_local_particle(
@@ -27,6 +28,11 @@ void ThickSliceRBend_track_local_particle(
         /*inv_factorial_order*/   ThickSliceRBendData_get__parent_inv_factorial_order(el),
         /*knl*/                   ThickSliceRBendData_getp1__parent_knl(el, 0),
         /*ksl*/                   ThickSliceRBendData_getp1__parent_ksl(el, 0),
+        /*order_rel*/             ThickSliceRBendData_len__parent_knl_rel(el) - 1, // order_rel is derived from the length of knl_rel and ksl_rel arrays
+      /*inv_factorial_order_rel*/ one_over_factorial(ThickSliceRBendData_len__parent_knl_rel(el) - 1), // 1 / (order_rel)!
+        /*knl_rel*/               ThickSliceRBendData_getp1__parent_knl_rel(el, 0),
+        /*ksl_rel*/               ThickSliceRBendData_getp1__parent_ksl_rel(el, 0),
+        /*rel_ref_strength*/      ThickSliceRBendData_get__parent_k0(el) * ThickSliceRBendData_get__parent_length(el),
         /*num_multipole_kicks*/   ThickSliceRBendData_get__parent_num_multipole_kicks(el),
         /*model*/                 ThickSliceRBendData_get__parent_model(el),
         /*default_model*/         RBEND_DEFAULT_MODEL,
@@ -40,7 +46,7 @@ void ThickSliceRBend_track_local_particle(
         /*hxl*/                   0.,
         /*k0*/                    ThickSliceRBendData_get__parent_k0(el),
         /*k1*/                    ThickSliceRBendData_get__parent_k1(el),
-        /*k2*/                    0.,
+        /*k2*/                    ThickSliceRBendData_get__parent_k2(el),
         /*k3*/                    0.,
         /*k0s*/                   0.,
         /*k1s*/                   0.,
@@ -51,7 +57,10 @@ void ThickSliceRBend_track_local_particle(
         /*x0_solenoid*/           0.,
         /*y0_solenoid*/           0.,
         /*rbend_model*/           ThickSliceRBendData_get__parent_rbend_model(el),
+     /*rbend_compensate_sagitta*/ ThickSliceRBendData_get__parent_rbend_compensate_sagitta(el),
         /*rbend_shift*/           ThickSliceRBendData_get__parent_rbend_shift(el),
+        /*rbend_angle_diff*/      ThickSliceRBendData_get__parent_rbend_angle_diff(el),
+        /*length_straight*/       ThickSliceRBendData_get__parent_length_straight(el),
         /*body_active*/           1,
         /*edge_entry_active*/     0,
         /*edge_exit_active*/      0,

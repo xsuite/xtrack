@@ -31,10 +31,10 @@ def s_s(x):
     integral, abs_error = integrate.quad(bessel_5_3, x, upper_limit)
     return factor * x * integral
 
-def compute_power_single(gamma, rho):
+def get_power_single(gamma, rho):
     return e**2 / (4*np.pi*epsilon_0) * 2*c*gamma**4 / (3*rho**2)
 
-def compute_critical_energy_eV(gamma, rho):
+def get_critical_energy_eV(gamma, rho):
     return 3*c*h*gamma**3 / (4*np.pi*rho) / e
 
 @accept_arrays
@@ -48,7 +48,7 @@ def integral(x_min, verbose=False):
 @accept_arrays
 def photon_spectrum(energy, gamma, rho):
     # Implements Hofmann, Eq. 5.48b
-    ps = compute_power_single(gamma, rho)
-    ec = compute_critical_energy_eV(gamma, rho)
+    ps = get_power_single(gamma, rho)
+    ec = get_critical_energy_eV(gamma, rho)
     return ps / e /ec  / energy * s_s(energy/ec)
 

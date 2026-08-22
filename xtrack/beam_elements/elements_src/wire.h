@@ -5,7 +5,7 @@
 #ifndef XTRACK_WIRE_H
 #define XTRACK_WIRE_H
 
-#include <headers/track.h>
+#include "xtrack/headers/track.h"
 
 
 GPUFUN

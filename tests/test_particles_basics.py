@@ -9,7 +9,8 @@ import xobjects as xo
 import xtrack as xt
 import xpart as xp
 
-from xobjects.test_helpers import for_all_test_contexts
+from xobjects.test_helpers import (
+    allow_kernel_compilation, for_all_test_contexts)
 
 
 def _check_consistency_energy_variables(particles):
@@ -194,6 +195,8 @@ def test_sort():
 
     line = xt.Line(elements=[xt.Cavity()])
     line.build_tracker()
+    # This test deliberately uses x values beyond the global safety aperture.
+    line.tracker.track_flags.XS_FLAG_IGNORE_GLOBAL_APERTURE = True
     line.track(p)
 
     assert np.all(p.particle_id == np.array([6, 1, 2, 5, 4, 3, 0,
@@ -338,21 +341,26 @@ def test_python_delta_setter(test_context):
 
 
 @for_all_test_contexts
+@allow_kernel_compilation
 def test_LocalParticle_add_to_energy(test_context):
+
+
     class TestElement(xt.BeamElement):
         _xofields={
             'value': xo.Float64,
             'pz_only': xo.Int64,
             }
         _extra_c_sources = ['''
-            /*gpufun*/
+            #include "xtrack/headers/track.h"
+            
+            GPUFUN
             void TestElement_track_local_particle(
                     TestElementData el, LocalParticle* part0){
                 double const value = TestElementData_get_value(el);
                 int const pz_only = (int) TestElementData_get_pz_only(el);
-                //start_per_particle_block (part0->part)
+                START_PER_PARTICLE_BLOCK(part0, part);
                     LocalParticle_add_to_energy(part, value, pz_only);
-                //end_per_particle_block
+                END_PER_PARTICLE_BLOCK;
             }
             ''']
 
@@ -412,20 +420,25 @@ def test_LocalParticle_add_to_energy(test_context):
 
 
 @for_all_test_contexts
+@allow_kernel_compilation
 def test_LocalParticle_update_delta(test_context):
+
+
     class TestElement(xt.BeamElement):
         _xofields={
             'value': xo.Float64,
             }
 
         _extra_c_sources =['''
-            /*gpufun*/
+            #include "xtrack/headers/track.h"
+
+            GPUFUN
             void TestElement_track_local_particle(
                     TestElementData el, LocalParticle* part0){
                 double const value = TestElementData_get_value(el);
-                //start_per_particle_block (part0->part)
+                START_PER_PARTICLE_BLOCK(part0, part);
                     LocalParticle_update_delta(part, value);
-                //end_per_particle_block
+                END_PER_PARTICLE_BLOCK;
             }
             ''']
 
@@ -453,20 +466,25 @@ def test_LocalParticle_update_delta(test_context):
 
 
 @for_all_test_contexts
+@allow_kernel_compilation
 def test_LocalParticle_update_ptau(test_context):
+
+
     class TestElement(xt.BeamElement):
         _xofields={
             'value': xo.Float64,
             }
 
         _extra_c_sources = ['''
-            /*gpufun*/
+            #include "xtrack/headers/track.h"
+
+            GPUFUN
             void TestElement_track_local_particle(
                     TestElementData el, LocalParticle* part0){
                 double const value = TestElementData_get_value(el);
-                //start_per_particle_block (part0->part)
+                START_PER_PARTICLE_BLOCK(part0, part);
                     LocalParticle_update_ptau(part, value);
-                //end_per_particle_block
+                END_PER_PARTICLE_BLOCK;
             }
             ''']
 
@@ -494,20 +512,25 @@ def test_LocalParticle_update_ptau(test_context):
 
 
 @for_all_test_contexts
+@allow_kernel_compilation
 def test_LocalParticle_update_pzeta(test_context):
+
+
     class TestElement(xt.BeamElement):
         _xofields={
             'value': xo.Float64,
             }
         _extra_c_sources = ['''
-            /*gpufun*/
+            #include "xtrack/headers/track.h"
+
+            GPUFUN
             void TestElement_track_local_particle(
                     TestElementData el, LocalParticle* part0){
                 double const value = TestElementData_get_value(el);
-                //start_per_particle_block (part0->part)
+                START_PER_PARTICLE_BLOCK(part0, part);
                     double const pzeta = LocalParticle_get_pzeta(part);
                     LocalParticle_update_pzeta(part, pzeta+value);
-                //end_per_particle_block
+                END_PER_PARTICLE_BLOCK;
             }
             ''']
 
@@ -537,19 +560,24 @@ def test_LocalParticle_update_pzeta(test_context):
 
 
 @for_all_test_contexts
+@allow_kernel_compilation
 def test_LocalParticle_update_p0c(test_context):
+
+
     class TestElement(xt.BeamElement):
         _xofields={
             'value': xo.Float64,
             }
         _extra_c_sources = ['''
-            /*gpufun*/
+            #include "xtrack/headers/track.h"
+
+            GPUFUN
             void TestElement_track_local_particle(
                     TestElementData el, LocalParticle* part0){
                 double const value = TestElementData_get_value(el);
-                //start_per_particle_block (part0->part)
+                START_PER_PARTICLE_BLOCK(part0, part);
                     LocalParticle_update_p0c(part, value);
-                //end_per_particle_block
+                END_PER_PARTICLE_BLOCK;
             }
             ''']
 
@@ -581,7 +609,10 @@ def test_LocalParticle_update_p0c(test_context):
 
 
 @for_all_test_contexts
+@allow_kernel_compilation
 def test_LocalParticle_angles(test_context):
+
+
     class ScaleAng(xt.BeamElement):
         _xofields={
             'scale_x':   xo.Float64,
@@ -590,18 +621,20 @@ def test_LocalParticle_angles(test_context):
             'scale_y2':  xo.Float64,
             }
         _extra_c_sources = ['''
-            /*gpufun*/
+            #include "xtrack/headers/track.h"
+
+            GPUFUN
             void ScaleAng_track_local_particle(
                     ScaleAngData el, LocalParticle* part0){
                 double const scale_x = ScaleAngData_get_scale_x(el);
                 double const scale_y = ScaleAngData_get_scale_y(el);
                 double const scale_x2 = ScaleAngData_get_scale_x2(el);
                 double const scale_y2 = ScaleAngData_get_scale_y2(el);
-                //start_per_particle_block (part0->part)
+                START_PER_PARTICLE_BLOCK(part0, part);
                     LocalParticle_scale_xp(part, scale_x);
                     LocalParticle_scale_yp(part, scale_y);
                     LocalParticle_scale_xp_yp(part, scale_x2, scale_y2);
-                //end_per_particle_block
+                END_PER_PARTICLE_BLOCK;
             }
             ''']
 
@@ -613,18 +646,20 @@ def test_LocalParticle_angles(test_context):
             'kick_y2': xo.Float64,
             }
         _extra_c_sources = ['''
-            /*gpufun*/
+            #include "xtrack/headers/track.h"
+            
+            GPUFUN
             void KickAng_track_local_particle(
                     KickAngData el, LocalParticle* part0){
                 double const kick_x = KickAngData_get_kick_x(el);
                 double const kick_y = KickAngData_get_kick_y(el);
                 double const kick_x2 = KickAngData_get_kick_x2(el);
                 double const kick_y2 = KickAngData_get_kick_y2(el);
-                //start_per_particle_block (part0->part)
+                START_PER_PARTICLE_BLOCK(part0, part);
                     LocalParticle_add_to_xp(part, kick_x);
                     LocalParticle_add_to_yp(part, kick_y);
                     LocalParticle_add_to_xp_yp(part, kick_x2, kick_y2);
-                //end_per_particle_block
+                END_PER_PARTICLE_BLOCK;
             }
             ''']
 
@@ -648,18 +683,20 @@ def test_LocalParticle_angles(test_context):
             'scale_y2':  xo.Float64,
             }
         _extra_c_sources = ['''
-            /*gpufun*/
+            #include "xtrack/headers/track.h"
+
+            GPUFUN
             void ScaleAngExact_track_local_particle(
                     ScaleAngExactData el, LocalParticle* part0){
                 double const scale_x = ScaleAngExactData_get_scale_x(el);
                 double const scale_y = ScaleAngExactData_get_scale_y(el);
                 double const scale_x2 = ScaleAngExactData_get_scale_x2(el);
                 double const scale_y2 = ScaleAngExactData_get_scale_y2(el);
-                //start_per_particle_block (part0->part)
+                START_PER_PARTICLE_BLOCK(part0, part);
                     LocalParticle_scale_exact_xp(part, scale_x);
                     LocalParticle_scale_exact_yp(part, scale_y);
                     LocalParticle_scale_exact_xp_yp(part, scale_x2, scale_y2);
-                //end_per_particle_block
+                END_PER_PARTICLE_BLOCK;
             }
             ''']
 
@@ -671,18 +708,20 @@ def test_LocalParticle_angles(test_context):
             'kick_y2': xo.Float64,
             }
         _extra_c_sources = ['''
-            /*gpufun*/
+            #include "xtrack/headers/track.h"
+            
+            GPUFUN
             void KickAngExact_track_local_particle(
                     KickAngExactData el, LocalParticle* part0){
                 double const kick_x = KickAngExactData_get_kick_x(el);
                 double const kick_y = KickAngExactData_get_kick_y(el);
                 double const kick_x2 = KickAngExactData_get_kick_x2(el);
                 double const kick_y2 = KickAngExactData_get_kick_y2(el);
-                //start_per_particle_block (part0->part)
+                START_PER_PARTICLE_BLOCK(part0, part);
                     LocalParticle_add_to_exact_xp(part, kick_x);
                     LocalParticle_add_to_exact_yp(part, kick_y);
                     LocalParticle_add_to_exact_xp_yp(part, kick_x2, kick_y2);
-                //end_per_particle_block
+                END_PER_PARTICLE_BLOCK;
             }
             ''']
 
@@ -697,3 +736,12 @@ def test_LocalParticle_angles(test_context):
     particles.move(_context=xo.ContextCpu())
     xo.assert_allclose(particles.px, [23.99302e-3, 18.01805e-3], atol=1e-14, rtol=5e-7)
     xo.assert_allclose(particles.py, [-1.81976e-3, -4.73529e-3], atol=1e-14, rtol=5e-7)
+
+
+@for_all_test_contexts
+def test_update_rigidity0(test_context):
+    p = xt.Particles("proton",p0c=7000e9)
+    pb82 = xt.Particles("Pb208",q0=82,rigidity0=p.rigidity0)
+    assert np.allclose(pb82.p0c/82,p.p0c)
+    pb82.rigidity0=p.rigidity0
+    assert np.allclose(pb82.p0c/82,p.p0c)

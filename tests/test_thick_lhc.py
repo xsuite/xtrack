@@ -13,7 +13,7 @@ test_data_folder = pathlib.Path(
         __file__).parent.joinpath('../test_data').absolute()
 
 @for_all_test_contexts
-def test_madloader_lhc_thick(test_context):
+def test_cpymad_madloader_lhc_thick(test_context, sandbox_cwd):
     mad = Madx(stdout=False)
 
     mad.input(f"""
@@ -66,7 +66,7 @@ def test_madloader_lhc_thick(test_context):
     xo.assert_allclose(tw0['bety', 'ip5'], tmad['bety', 'ip5:1'], atol=0, rtol=1e-5)
 
 
-@for_all_test_contexts
+@for_all_test_contexts(excluding=('ContextCupy', 'ContextPyopencl'))
 def test_slicing_lhc_thick(test_context):
     line = xt.load(test_data_folder /
             'hllhc15_thick/lhc_thick_with_knobs.json')

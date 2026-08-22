@@ -8,21 +8,21 @@ collider = xt.load(
 )
 collider.build_trackers()
 
-collider.vars['vrf400'] = 16
-collider.vars['on_crab1'] = -190
-collider.vars['on_crab5'] = -190
+collider['vrf400'] = 16
+collider['on_crab1'] = -190
+collider['on_crab5'] = -190
 
 line = collider.lhcb1
 
 tw6d_rf_on = line.twiss()
 tw4d_rf_on = line.twiss(method='4d')
 
-collider.vars['vrf400'] = 0
+collider['vrf400'] = 0
 tw4d_rf_off = line.twiss(method='4d')
 
-collider.vars['vrf400'] = 16
-collider.vars['on_crab1'] = 0
-collider.vars['on_crab5'] = 0
+collider['vrf400'] = 16
+collider['on_crab1'] = 0
+collider['on_crab5'] = 0
 
 line = collider.lhcb1
 

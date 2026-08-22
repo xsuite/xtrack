@@ -39,7 +39,7 @@ tt.show(cols=['s_start', 's_center', 's_end'])
 
 
 # The elements can also be created directly in the line definition:
-myline = env.new_line(name='myline', components=[
+myline2 = env.new_line(name='myline2', components=[
     env.new('q10', xt.Quadrupole, length=1.0, k1='kquad',
             # Place element center at s = 3.0
             at=3.0),
@@ -55,7 +55,7 @@ myline = env.new_line(name='myline', components=[
     env.new('s40', xt.Sextupole, length=0.1) # Placed right after previous
     ])
 
-tt = myline.get_table()
+tt = myline2.get_table()
 tt.show(cols=['s_start', 's_center', 's_end'])
 # is:
 # name             s_start      s_center         s_end

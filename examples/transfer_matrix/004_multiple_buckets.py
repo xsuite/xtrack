@@ -61,7 +61,7 @@ if linear_fixed_rf:
             longitudinal_mode='linear_fixed_rf',
             voltage_rf = voltage*10,
             frequency_rf = f_RF/10,
-            lag_rf = 180.0,
+            phase_rf = np.pi,
             slippage_length = circumference,
             momentum_compaction_factor = momentumCompaction)
 else:
@@ -95,7 +95,7 @@ if linear_fixed_rf:
             longitudinal_mode='linear_fixed_rf',
             voltage_rf = voltage,
             frequency_rf = f_RF,
-            lag_rf = 180.0,
+            phase_rf = np.pi,
             slippage_length = circumference,
             momentum_compaction_factor = momentumCompaction)
 else:
@@ -111,7 +111,7 @@ mon = line2.record_last_track
 
 plt.plot(mon.zeta/(bucket_length*constants.c*betar),mon.delta/sigma_delta,'.b')
 plt.xlabel(r'$z$ [bucket_lenght$\cdot c\beta_r$]')
-plt.ylabel('$\delta$ [$\sigma_{\delta}$]')
+plt.ylabel(r'$\delta$ [$\sigma_{\delta}$]')
 plt.show()
 
 

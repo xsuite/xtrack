@@ -5,8 +5,8 @@
 #ifndef XTRACK_TRACK_SOLENOID_H
 #define XTRACK_TRACK_SOLENOID_H
 
-#include <headers/track.h>
-#include <beam_elements/elements_src/track_legacy_solenoid_radiation.h>
+#include "xtrack/headers/track.h"
+#include "xtrack/beam_elements/elements_src/track_legacy_solenoid_radiation.h"
 
 #define IS_ZERO(X) (fabs(X) < 1e-9)
 

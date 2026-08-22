@@ -24,7 +24,7 @@ line.set(tt_bend.rows['wgl.*'], model='drift-kick-drift-expanded',
 tw_after = line.twiss4d()
 
 line.configure_radiation(model='mean')
-tw_rad = line.twiss(eneloss_and_damping=True, strengths=True)
+tw_rad = line.twiss(radiation_analysis=True, strengths=True)
 
 p = line.build_particles(x=np.linspace(-1e-3, 1e-3, 1000))
 line.track(p, num_turns=5, with_progress=1, time=True)

@@ -5,7 +5,7 @@ import xtrack as xt
 import xobjects as xo
 from xobjects.test_helpers import for_all_test_contexts
 
-from xtrack.beam_elements.magnets import Magnet, MagnetEdge
+from xtrack import Magnet, MagnetEdge
 
 
 def make_particles(context):
@@ -27,7 +27,7 @@ def test_magnet_expanded_drift(test_context):
         length=2.0,
         k0=0.0,
         k1=0.0,
-        h=0.0,
+        angle=0.0,
         integrator='teapot',
         model='drift-kick-drift-expanded',
         _context=test_context,
@@ -64,7 +64,7 @@ def test_magnet_exact_drift(test_context):
         length=2.0,
         k0=0.0,
         k1=0.0,
-        h=0.0,
+        angle=0.0,
         integrator='teapot',
         model='drift-kick-drift-exact',
         _context=test_context,
@@ -378,7 +378,7 @@ def test_magnet_quadrupole(test_context, integrator):
 def test_magnet_curved_quad(test_context):
     magnet = Magnet(
         length=2.0,
-        h=0.05,
+        angle=0.05 * 2.0,
         k1=-0.3,
         num_multipole_kicks=15,
         integrator='yoshida4',
@@ -389,7 +389,8 @@ def test_magnet_curved_quad(test_context):
     bend = xt.Bend(
         length=2.0,
         k1=-0.3,
-        h=0.05,
+        angle=0.05*2.0,
+        model='rot-kick-rot',
         num_multipole_kicks=15,
         _context=test_context,
     )
@@ -431,7 +432,8 @@ def test_magnet_curved_quad(test_context):
 def test_magnet_bend_auto_no_kicks(test_context):
     magnet = Magnet(
         length=2.0,
-        h=0.05,
+        angle=0.05 * 2.0,
+        k0=0,
         k1=0,
         model='bend-kick-bend',
         integrator='yoshida4',
@@ -441,7 +443,8 @@ def test_magnet_bend_auto_no_kicks(test_context):
 
     eref = xt.Bend(
         length=2.0,
-        h=0.05,
+        angle=0.05 * 2.0,
+        k0=0,
         num_multipole_kicks=0,
         _context=test_context,
     )
@@ -486,15 +489,17 @@ def test_magnet_bend_auto_quad_kick(test_context):
         model='bend-kick-bend',
         integrator='yoshida4',
         num_multipole_kicks=1,
-        h=0.05,
+        angle=0.05 * 2.0,
+        k0=0,
         k1=0.3,
         _context=test_context,
     )
 
     bend = xt.Bend(
         length=2.0,
-        h=0.05,
+        angle=0.05 * 2.0,
         k1=0.3,
+        k0=0,
         model='bend-kick-bend',
         num_multipole_kicks=1,
         edge_entry_active=False,
@@ -542,7 +547,7 @@ def test_magnet_bend_dip_quad_kick(model, test_context):
         length=2.0,
         k0=0.2,
         k1=0.3,
-        h=0.1,
+        angle=0.1 * 2.0,
         integrator='yoshida4',
         num_multipole_kicks=10,
         _context=test_context,
@@ -550,7 +555,7 @@ def test_magnet_bend_dip_quad_kick(model, test_context):
 
     bend = xt.Bend(
         length=2.0,
-        h=0.1,
+        angle=0.1 * 2.0,
         k1=0.3,
         k0=0.2,
         num_multipole_kicks=10,
@@ -600,7 +605,7 @@ def test_magnet_bend_dip_quad_kick(model, test_context):
 def test_magnet_bend_dip_quad_kick_with_multipoles(model, test_context):
     magnet = Magnet(
         length=2.0,
-        h=0.1,
+        angle=0.1 * 2.0,
         k0=0.2,
         k1=0.3,
         k2=0.1,
@@ -618,7 +623,7 @@ def test_magnet_bend_dip_quad_kick_with_multipoles(model, test_context):
 
     bend = xt.Bend(
         length=2.0,
-        h=0.1,
+        angle=0.1 * 2.0,
         k1=0.3,
         k0=0.2,
         num_multipole_kicks=10,
@@ -671,7 +676,7 @@ def test_magnet_bend_dip_quad_kick_with_multipoles(model, test_context):
 
 @for_all_test_contexts
 def test_check_uniform_integrator(test_context):
-    mm1 = Magnet(h=0.1, k1=0.3, k0=0.2, length=2.0, _context=test_context)
+    mm1 = Magnet(angle=0.1 * 2.0, k1=0.3, k0=0.2, length=2.0, _context=test_context)
     mm2 = mm1.copy()
 
     mm1.edge_entry_active = False
@@ -942,6 +947,49 @@ def test_edge_multipole_fringe_without_dipole_component(test_context):
     xo.assert_allclose(p_test_cpu.delta, p_ref_cpu.delta, atol=1e-15, rtol=0)
 
 
+def test_multipole_edge_scales_with_chi():
+    test_context = xo.ContextCpu()
+    chi = 0.7
+    kn = [0, 1.3, -0.4]
+    ks = [0, 0.2, 0.6]
+
+    edge = xt.MultipoleEdge(kn=kn, ks=ks, order=2, _context=test_context)
+    edge_ref = xt.MultipoleEdge(
+        kn=[kk * chi for kk in kn],
+        ks=[kk * chi for kk in ks],
+        order=2,
+        _context=test_context,
+    )
+
+    p0 = xt.Particles(
+        p0c=1e9,
+        x=2e-2,
+        px=1e-3,
+        y=-1.5e-2,
+        py=-2e-3,
+        zeta=3e-2,
+        delta=0.03,
+        _context=test_context,
+    )
+
+    p_test = p0.copy()
+    p_ref = p0.copy()
+    p_test.chi = chi
+
+    edge.track(p_test)
+    edge_ref.track(p_ref)
+
+    p_test_cpu = p_test.copy(_context=xo.ContextCpu())
+    p_ref_cpu = p_ref.copy(_context=xo.ContextCpu())
+
+    xo.assert_allclose(p_test_cpu.x, p_ref_cpu.x, atol=1e-15, rtol=0)
+    xo.assert_allclose(p_test_cpu.y, p_ref_cpu.y, atol=1e-15, rtol=0)
+    xo.assert_allclose(p_test_cpu.zeta, p_ref_cpu.zeta, atol=1e-15, rtol=0)
+    xo.assert_allclose(p_test_cpu.px, p_ref_cpu.px, atol=1e-15, rtol=0)
+    xo.assert_allclose(p_test_cpu.py, p_ref_cpu.py, atol=1e-15, rtol=0)
+    xo.assert_allclose(p_test_cpu.delta, p_ref_cpu.delta, atol=1e-15, rtol=0)
+
+
 @for_all_test_contexts(excluding='ContextPyopencl')
 def test_edge_full_model_with_dipole_component_no_angle(test_context):
     e_test = MagnetEdge(
@@ -988,7 +1036,7 @@ def test_edge_full_model_with_dipole_component_and_angle(test_context):
         half_gap=0.4, k_order=2, _context=test_context
     )
     e_ref = [
-        xt.YRotation(angle=np.rad2deg(-0.2)),
+        xt.Rotation(rot_y_rad=-0.2),
         # The rotation is also the other way than in the underlying map :'(
         xt.DipoleEdge(model='full', k=3, fint=0.3, hgap=0.4),
         xt.MultipoleEdge(kn=[0, 4, 5], order=2),
@@ -1033,7 +1081,7 @@ def test_edge_full_model_with_dipole_component_and_angle_exit(test_context):
         xt.Wedge(angle=-0.2, k=3, k1=4),
         xt.MultipoleEdge(kn=[0, 4, 5], is_exit=True, order=2),
         xt.DipoleEdge(model='full', k=-3, fint=0.3, hgap=0.4),
-        xt.YRotation(angle=np.rad2deg(-0.2)),
+        xt.Rotation(rot_y_rad=-0.2),
     ]
 
     p0 = xt.Particles(
@@ -1102,7 +1150,7 @@ def test_edge_linear_edge_exit(test_context):
 @for_all_test_contexts
 def test_magnet_and_edge_only_linear(test_context):
     bb = xt.Bend(
-        h=0.1, k0=0.11, length=0,
+        angle=0.1, k0=0.11, length=0,
         edge_entry_angle=0.02, edge_exit_angle=0.03,
         edge_entry_hgap=0.04, edge_exit_hgap=0.05,
         edge_entry_fint=0.1, edge_exit_fint=0.2,
@@ -1115,7 +1163,7 @@ def test_magnet_and_edge_only_linear(test_context):
     bb.num_multipole_kicks = 10
 
     mm = Magnet(
-        h=0.1, k0=0.11, length=0,
+        angle=0.1, k0=0.11, length=0,
         edge_entry_angle=0.02, edge_exit_angle=0.03,
         edge_entry_hgap=0.04, edge_exit_hgap=0.05,
         edge_entry_fint=0.1, edge_exit_fint=0.2,
@@ -1160,7 +1208,7 @@ def test_magnet_and_edge_only_linear(test_context):
 @for_all_test_contexts
 def test_magnet_and_edge_exit_alone(test_context):
     bb = xt.Bend(
-        h=0.1, k0=0.11, length=0,
+        angle=0.1, k0=0.11, length=0,
         edge_entry_angle=0.02, edge_exit_angle=0.03,
         edge_entry_hgap=0.04, edge_exit_hgap=0.05,
         edge_entry_fint=0.1, edge_exit_fint=0.2,
@@ -1173,7 +1221,7 @@ def test_magnet_and_edge_exit_alone(test_context):
     bb.num_multipole_kicks = 10
 
     mm = Magnet(
-        h=0.1, k0=0.11, length=0,
+        angle=0.1, k0=0.11, length=0,
         edge_entry_angle=0.02, edge_exit_angle=0.03,
         edge_entry_hgap=0.04, edge_exit_hgap=0.05,
         edge_entry_fint=0.1, edge_exit_fint=0.2,
@@ -1219,7 +1267,7 @@ def test_magnet_and_edge_exit_alone(test_context):
 @for_all_test_contexts
 def test_magnet_and_edge_full_bend_linear_edges(test_context):
     bb = xt.Bend(
-        h=0.1, k0=0.11, length=10,
+        angle=0.1*10, k0=0.11, length=10,
         edge_entry_angle=0.02, edge_exit_angle=0.03,
         edge_entry_hgap=0.04, edge_exit_hgap=0.05,
         edge_entry_fint=0.1, edge_exit_fint=0.2,
@@ -1234,7 +1282,7 @@ def test_magnet_and_edge_full_bend_linear_edges(test_context):
     bb.edge_exit_model = 'linear'
 
     mm = Magnet(
-        h=0.1, k0=0.11, length=10,
+        angle=0.1*10, k0=0.11, length=10,
         edge_entry_angle=0.02, edge_exit_angle=0.03,
         edge_entry_hgap=0.04, edge_exit_hgap=0.05,
         edge_entry_fint=0.1, edge_exit_fint=0.2,
@@ -1282,7 +1330,7 @@ def test_magnet_and_edge_full_bend_linear_edges(test_context):
 @for_all_test_contexts
 def test_magnet_and_edge_nonlinear_entry_alone(test_context):
     bb = xt.Bend(
-        h=0.1, k0=0.11, length=0,
+        angle=0.1, k0=0.11, length=0,
         edge_entry_angle=0.02, edge_exit_angle=0.03,
         edge_entry_hgap=0.04, edge_exit_hgap=0.05,
         edge_entry_fint=0.1, edge_exit_fint=0.2,
@@ -1296,7 +1344,7 @@ def test_magnet_and_edge_nonlinear_entry_alone(test_context):
     bb.edge_entry_model = 'full'
 
     mm = Magnet(
-        h=0.1, k0=0.11, length=0,
+        angle=0.1, k0=0.11, length=0,
         edge_entry_angle=0.02, edge_exit_angle=0.03,
         edge_entry_hgap=0.04, edge_exit_hgap=0.05,
         edge_entry_fint=0.1, edge_exit_fint=0.2,
@@ -1330,7 +1378,7 @@ def test_magnet_and_edge_nonlinear_entry_alone(test_context):
 @for_all_test_contexts
 def test_magnet_and_edge_nonlinear_exit_alone(test_context):
     bb = xt.Bend(
-        h=0.1, k0=0.11, length=0,
+        angle=0.1, k0=0.11, length=0,
         edge_entry_angle=0.02, edge_exit_angle=0.03,
         edge_entry_hgap=0.04, edge_exit_hgap=0.05,
         edge_entry_fint=0.1, edge_exit_fint=0.2,
@@ -1344,7 +1392,7 @@ def test_magnet_and_edge_nonlinear_exit_alone(test_context):
     bb.edge_exit_model = 'full'
 
     mm = Magnet(
-        h=0.1, k0=0.11, length=0,
+        angle=0.1, k0=0.11, length=0,
         edge_entry_angle=0.02, edge_exit_angle=0.03,
         edge_entry_hgap=0.04, edge_exit_hgap=0.05,
         edge_entry_fint=0.1, edge_exit_fint=0.2,
@@ -1378,7 +1426,7 @@ def test_magnet_and_edge_nonlinear_exit_alone(test_context):
 @for_all_test_contexts
 def test_magnet_and_edge_nonlinear_both_edges(test_context):
     bb = xt.Bend(
-        h=0.1, k0=0.11, length=10,
+        angle=0.1, k0=0.11, length=10,
         edge_entry_angle=0.02, edge_exit_angle=0.03,
         edge_entry_hgap=0.04, edge_exit_hgap=0.05,
         edge_entry_fint=0.1, edge_exit_fint=0.2,
@@ -1393,7 +1441,7 @@ def test_magnet_and_edge_nonlinear_both_edges(test_context):
     bb.edge_exit_model = 'full'
 
     mm = Magnet(
-        h=0.1, k0=0.11, length=10,
+        angle=0.1, k0=0.11, length=10,
         edge_entry_angle=0.02, edge_exit_angle=0.03,
         edge_entry_hgap=0.04, edge_exit_hgap=0.05,
         edge_entry_fint=0.1, edge_exit_fint=0.2,
@@ -1545,7 +1593,7 @@ def test_magnet_and_edge_octupole_nonlinear_fringes(test_context):
 
 def test_bend_convergence_on_axis():
 
-    bb = xt.Bend(k0=0.001, h=0.001, length=2)
+    bb = xt.Bend(k0=0.001, angle=0.001*2.0, length=2.0)
     bb.integrator = 'yoshida4'
     bb.num_multipole_kicks = 20
 
@@ -1608,7 +1656,7 @@ def test_bend_convergence_on_axis():
 
 def test_convergence_mat_kick_mat():
 
-    magnet = xt.Magnet(k0=0.02, h=0.01, k1=0.01, length=2.,
+    magnet = xt.Magnet(k0=0.02, angle=0.01*2, k1=0.01, length=2.,
                     k2=0.005, k3=0.03,
                     k1s=0.01, k2s=0.005, k3s=0.05,
                     knl=[0.003, 0.001, 0.01, 0.02, 4., 6e2, 7e6],
@@ -1668,9 +1716,10 @@ def test_convergence_mat_kick_mat():
     xo.assert_allclose(p_ref.zeta, p_yoshida.zeta, rtol=0, atol=1e-13)
     xo.assert_allclose(p_ref.delta, p_yoshida.delta, rtol=0, atol=1e-13)
 
-def test_convergence_rot_kick_rot():
+@pytest.mark.parametrize('model_to_test', ['rot-kick-rot', 'rot-kick-rot-low-order'])
+def test_convergence_rot_kick_rot(model_to_test):
 
-    magnet = xt.Magnet(k0=0.02, h=0.01, k1=0.01, length=2.,
+    magnet = xt.Magnet(k0=0.02, angle=0.01*2, k1=0.01, length=2.,
                     k2=0.005, k3=0.03,
                     k1s=0.01, k2s=0.005, k3s=0.05,
                     knl=[0.003, 0.001, 0.01, 0.02, 4., 6e2, 7e6],
@@ -1679,8 +1728,6 @@ def test_convergence_rot_kick_rot():
     magnet.num_multipole_kicks = 50
 
     p0 = xt.Particles(x=1e-2, y=2e-2, py=1e-3, delta=3e-2)
-
-    model_to_test = 'rot-kick-rot'
 
     m_ref = magnet.copy()
     m_ref.model = 'bend-kick-bend'
@@ -1735,7 +1782,7 @@ def test_convergence_rot_kick_rot():
 
 def test_convergence_drift_kick_drift_exact():
 
-    magnet = xt.Magnet(k0=0.02, h=0., k1=0.01, length=2.,
+    magnet = xt.Magnet(k0=0.02, angle=0., k1=0.01, length=2.,
                     k2=0.005, k3=0.03,
                     k1s=0.01, k2s=0.005, k3s=0.05,
                     knl=[0.003, 0.001, 0.01, 0.02, 4., 6e2, 7e6],
@@ -1799,7 +1846,7 @@ def test_convergence_drift_kick_drift_exact():
 
 def test_bend_expanded_exact_small_px():
 
-    magnet = xt.Magnet(k0=0.002, h=0.002, k1=0.02, length=2)
+    magnet = xt.Magnet(k0=0.002, angle=0.002*2, k1=0.02, length=2)
 
     m_exact = magnet.copy()
     m_exact.model = 'bend-kick-bend'

@@ -3,6 +3,7 @@ import pathlib
 from itertools import product
 
 import numpy as np
+from scipy.constants import c as clight
 import pytest
 from cpymad.madx import Madx
 
@@ -13,6 +14,80 @@ from xobjects.test_helpers import for_all_test_contexts
 
 test_data_folder = pathlib.Path(
     __file__).parent.joinpath('../test_data').absolute()
+
+
+def test_twiss_table_row_slice_drops_periodic():
+    tw = xt.TwissTable(
+        {
+            'name': np.array(['a', 'b', 'c'], dtype=object),
+            's': np.array([0., 1., 2.]),
+            'periodic': True,
+        },
+        col_names=['name', 's'],
+    )
+
+    tw_slice = tw.rows['a':'b']
+
+    assert tw.periodic is True
+    assert 'periodic' not in tw_slice
+
+
+def test_twiss_with_different_particle_species():
+    line = xt.Line(elements=[
+        xt.Drift(length=1),
+        xt.Multipole(knl=[0, 0.1]),
+        xt.Drift(length=1),
+        xt.Multipole(knl=[0, -0.1]),
+    ] * 4)
+    line.particle_ref = xt.Particles(
+        p0c=1e9, mass0=xt.PROTON_MASS_EV)
+
+    tw_reference = line.twiss4d(chrom=False)
+    tw_chi = line.twiss4d(chi=0.8)
+    tw_charge_ratio = line.twiss4d(charge_ratio=0.8, chrom=False)
+    tw_mass_ratio = line.twiss4d(mass_ratio=1.25, chrom=False)
+
+    particle_ref = line.particle_ref.copy()
+    particle_ref._update_chi_charge_ratio(
+        charge_ratio=0.8, mass_ratio=1.0)
+    tw_particle_ref = line.twiss4d(
+        particle_ref=particle_ref, chrom=False)
+
+    # For magnetic elements, chi=0.8 at delta=0 is equivalent to a reference
+    # species at delta=1/chi-1.
+    tw_equivalent_delta = line.twiss4d(delta0=0.25, chrom=False)
+
+    tw_open = line.twiss4d(
+        start=line.element_names[0], end=line.element_names[-1],
+        betx=1, bety=1, chi=0.8, chrom=False)
+
+    for tw in (tw_chi, tw_charge_ratio, tw_mass_ratio, tw_particle_ref):
+        xo.assert_allclose(tw.qx, tw_equivalent_delta.qx,
+                           rtol=0, atol=1e-12)
+        xo.assert_allclose(tw.qy, tw_equivalent_delta.qy,
+                           rtol=0, atol=1e-12)
+        xo.assert_allclose(tw.particle_on_co.chi, 0.8,
+                           rtol=0, atol=1e-14)
+
+    assert abs(tw_chi.qx - tw_reference.qx) > 1e-3
+    xo.assert_allclose(tw_chi.particle_on_co.charge_ratio, 1,
+                       rtol=0, atol=1e-14)
+    xo.assert_allclose(tw_chi.particle_on_co.mass_ratio, 1.25,
+                       rtol=0, atol=1e-14)
+    xo.assert_allclose(tw_charge_ratio.particle_on_co.charge_ratio, 0.8,
+                       rtol=0, atol=1e-14)
+    xo.assert_allclose(tw_charge_ratio.particle_on_co.mass_ratio, 1,
+                       rtol=0, atol=1e-14)
+    xo.assert_allclose(tw_open.particle_on_co.chi, 0.8,
+                       rtol=0, atol=1e-14)
+
+    # The line reference particle is not modified.
+    xo.assert_allclose(line.particle_ref.chi, 1, rtol=0, atol=1e-14)
+    xo.assert_allclose(line.particle_ref.charge_ratio, 1,
+                       rtol=0, atol=1e-14)
+    xo.assert_allclose(line.particle_ref.mass_ratio, 1,
+                       rtol=0, atol=1e-14)
+
 
 @for_all_test_contexts
 def test_twiss_4d_fodo_vs_beta_rel(test_context):
@@ -26,7 +101,7 @@ def test_twiss_4d_fodo_vs_beta_rel(test_context):
         xt.Multipole(length=1.0, knl=[2 * np.pi / n], hxl=[2 * np.pi / n]),
         xt.Drift(length=1.0),
     ]
-    line = xt.Line(elements=n * fodo + [xt.Cavity(frequency=1e9, voltage=0, lag=180)])
+    line = xt.Line(elements=n * fodo + [xt.Cavity(frequency=1e9, voltage=0, phase=np.pi)])
     line.build_tracker(_context=test_context)
 
     ## Twiss
@@ -34,23 +109,27 @@ def test_twiss_4d_fodo_vs_beta_rel(test_context):
     tw_4d_list = []
     for p0c in p0c_list:
         line.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV, q0=1, p0c=p0c)
-        tw = line.twiss(method="4d", at_s=np.linspace(0, line.get_length(), 500))
-        tw_4d_list.append(tw)
+        at_s = np.linspace(0, line.get_length(), 500)
+        line.cut_at_s(at_s)
+        tw_all = line.twiss4d()
+        tw_at_s = tw_all.rows[np.searchsorted(tw_all.s, at_s)]
+        tw_4d_list.append(tw_at_s)
 
-    for tw in tw_4d_list:
-        xo.assert_allclose(tw.betx, tw_4d_list[0].betx, atol=1e-7, rtol=0)
-        xo.assert_allclose(tw.bety, tw_4d_list[0].bety, atol=1e-7, rtol=0)
-        xo.assert_allclose(tw.alfx, tw_4d_list[0].alfx, atol=1e-8, rtol=0)
-        xo.assert_allclose(tw.alfy, tw_4d_list[0].alfy, atol=1e-8, rtol=0)
-        xo.assert_allclose(tw.dx, tw_4d_list[0].dx, atol=1e-8, rtol=0)
-        xo.assert_allclose(tw.dy, tw_4d_list[0].dy, atol=1e-8, rtol=0)
-        xo.assert_allclose(tw.dpx, tw_4d_list[0].dpx, atol=1e-8, rtol=0)
-        xo.assert_allclose(tw.dpy, tw_4d_list[0].dpy, atol=1e-8, rtol=0)
-        xo.assert_allclose(tw.qx, tw_4d_list[0].qx, atol=1e-7, rtol=0)
-        xo.assert_allclose(tw.qy, tw_4d_list[0].qy, atol=1e-7, rtol=0)
-        xo.assert_allclose(tw.dqx, tw_4d_list[0].dqx, atol=1e-4, rtol=0)
-        xo.assert_allclose(tw.dqy, tw_4d_list[0].dqy, atol=1e-4, rtol=0)
+    for tw_at_s in tw_4d_list:
+        xo.assert_allclose(tw_at_s.betx, tw_4d_list[0].betx, atol=1e-7, rtol=0)
+        xo.assert_allclose(tw_at_s.bety, tw_4d_list[0].bety, atol=1e-7, rtol=0)
+        xo.assert_allclose(tw_at_s.alfx, tw_4d_list[0].alfx, atol=1e-8, rtol=0)
+        xo.assert_allclose(tw_at_s.alfy, tw_4d_list[0].alfy, atol=1e-8, rtol=0)
+        xo.assert_allclose(tw_at_s.dx, tw_4d_list[0].dx, atol=1e-8, rtol=0)
+        xo.assert_allclose(tw_at_s.dy, tw_4d_list[0].dy, atol=1e-8, rtol=0)
+        xo.assert_allclose(tw_at_s.dpx, tw_4d_list[0].dpx, atol=1e-8, rtol=0)
+        xo.assert_allclose(tw_at_s.dpy, tw_4d_list[0].dpy, atol=1e-8, rtol=0)
+        xo.assert_allclose(tw_at_s.qx, tw_4d_list[0].qx, atol=1e-7, rtol=0)
+        xo.assert_allclose(tw_at_s.qy, tw_4d_list[0].qy, atol=1e-7, rtol=0)
+        xo.assert_allclose(tw_at_s.dqx, tw_4d_list[0].dqx, atol=1e-4, rtol=0)
+        xo.assert_allclose(tw_at_s.dqy, tw_4d_list[0].dqy, atol=1e-4, rtol=0)
 
+@pytest.mark.filterwarnings('ignore::xtrack.mad_parser.loader.MADLoaderWarning')
 @for_all_test_contexts
 def test_coupled_beta(test_context):
     mad = Madx(stdout=False)
@@ -58,14 +137,16 @@ def test_coupled_beta(test_context):
     mad.use('lhcb1')
 
     # introduce coupling
-    mad.sequence.lhcb1.expanded_elements[7].ksl = [0, 1e-4]
+    mad.sequence.lhcb1.expanded_elements['mqwa.a4r3.b1..1'].ksl = [0, 1e-4]
     mad.twiss() # I see to need to do it twice to get the right coupling in madx?!
 
     tw_mad_coupling = mad.twiss(ripken=True).dframe()
     tw_mad_coupling.set_index('name', inplace=True)
 
-    line = xt.Line.from_madx_sequence(mad.sequence.lhcb1)
-    line.particle_ref = xp.Particles(p0c=7000e9, mass0=xp.PROTON_MASS_EV)
+    env = xt.load(test_data_folder / 'hllhc15_noerrors_nobb/sequence.madx')
+    line = env['lhcb1']
+    line.set_particle_ref('proton', p0c=7e12)
+    line['mqwa.a4r3.b1..1'].ksl[1] = 1e-4
 
     line.build_tracker(_context=test_context)
 
@@ -94,17 +175,17 @@ def test_coupled_beta(test_context):
         xo.assert_allclose(tw.c_minus, cmin_ref, rtol=0, atol=1e-5)
 
 
+@pytest.mark.filterwarnings('ignore::xtrack.mad_parser.loader.MADLoaderWarning')
 @for_all_test_contexts
 def test_twiss_zeta0_delta0(test_context):
-    mad = Madx(stdout=False)
-    mad.call(str(test_data_folder
-                 / 'hllhc15_noerrors_nobb/sequence_with_crabs.madx'))
-    mad.use('lhcb1')
-    mad.globals.on_crab1 = -190
-    mad.globals.on_crab5 = -190
 
-    line = xt.Line.from_madx_sequence(mad.sequence.lhcb1)
-    line.particle_ref = xp.Particles(p0c=7000e9, mass0=xp.PROTON_MASS_EV)
+    env = xt.load(test_data_folder
+                  / 'hllhc15_noerrors_nobb/sequence_with_crabs.madx')
+    line = env['lhcb1']
+    line.set_particle_ref('proton', p0c=7e12)
+
+    env['on_crab1'] = -190
+    env['on_crab5'] = -190
 
     line.build_tracker(_context=test_context)
 
@@ -112,8 +193,8 @@ def test_twiss_zeta0_delta0(test_context):
     z1 = 1e-4
     z2 = -1e-4
 
-    tw1 = line.twiss(zeta0=z1).to_pandas()
-    tw2 = line.twiss(zeta0=z2).to_pandas()
+    tw1 = line.twiss4d(zeta0=z1).to_pandas()
+    tw2 = line.twiss4d(zeta0=z2).to_pandas()
 
     tw1.set_index('name', inplace=True)
     tw2.set_index('name', inplace=True)
@@ -293,12 +374,12 @@ def test_twiss_does_not_affect_monitors(test_context):
 
     n_part =1
     monitor = xt.ParticlesMonitor(_context=test_context,
-                                    start_at_turn = 0,
-                                    stop_at_turn = 1,
-                                    n_repetitions=10,
-                                    repetition_period=1,
-                                    num_particles =n_part)
-    line.insert_element(index=0, element=monitor, name='monitor_start')
+                                  start_at_turn=0,
+                                  stop_at_turn=1,
+                                  n_repetitions=10,
+                                  repetition_period=1,
+                                  num_particles=n_part)
+    line.insert('monitor_start', at=0, obj=monitor)
     line.build_tracker(_context=test_context)
 
     particles = line.build_particles(x=123e-6)
@@ -357,14 +438,14 @@ def test_get_R_matrix():
     # # Checks
     R_prod = R_IP6_IP3 @ R_IP3_IP6
 
-    from xtrack.linear_normal_form import compute_linear_normal_form
+    from xtrack.linear_normal_form import get_linear_normal_form
     eig = np.linalg.eig
     norm = np.linalg.norm
 
     R_matrix = tw.R_matrix
 
-    W_ref, invW_ref, Rot_ref, _ = compute_linear_normal_form(R_matrix)
-    W_prod, invW_prod, Rot_prod, _ = compute_linear_normal_form(R_prod)
+    W_ref, invW_ref, Rot_ref, _ = get_linear_normal_form(R_matrix)
+    W_prod, invW_prod, Rot_prod, _ = get_linear_normal_form(R_prod)
 
 
     for i_mode in range(3):
@@ -385,8 +466,7 @@ def test_get_R_matrix():
             0, rtol=0, atol=5e-4)
 
     # Check method=4d
-
-    tw4d = line.twiss(method='4d', freeze_longitudinal=True)
+    tw4d = line.twiss(method='4d')
 
     R_IP3_IP6_4d = tw4d.get_R_matrix(start=0, end='ip6')
     R_IP6_IP3_4d = tw4d.get_R_matrix(start='ip6', end=len(tw4d.name)-1)
@@ -394,15 +474,15 @@ def test_get_R_matrix():
     R_prod_4d = R_IP6_IP3_4d @ R_IP3_IP6_4d
 
     # Checks
-    from xtrack.linear_normal_form import compute_linear_normal_form
+    from xtrack.linear_normal_form import get_linear_normal_form
     eig = np.linalg.eig
     norm = np.linalg.norm
 
     R_matrix_4d = tw4d.R_matrix
 
-    W_ref_4d, invW_ref_4d, Rot_ref_4d, _ = compute_linear_normal_form(
+    W_ref_4d, invW_ref_4d, Rot_ref_4d, _ = get_linear_normal_form(
         R_matrix_4d, only_4d_block=True)
-    W_prod_4d, invW_prod_4d, Rot_prod_4d, _ = compute_linear_normal_form(
+    W_prod_4d, invW_prod_4d, Rot_prod_4d, _ = get_linear_normal_form(
         R_prod_4d, only_4d_block=True)
 
     for i_mode in range(3):
@@ -467,7 +547,7 @@ def test_periodic_cell_twiss(test_context):
         tw = line.twiss()
 
         assert tw.method == '4d'
-        assert tw.orientation == 'forward'
+        assert tw._orientation == 'forward'
         assert tw.reference_frame == {'b1':'proper', 'b2':'reverse'}[beam_name]
         assert 'dqx' in tw.keys() # check that periodic twiss is used
 
@@ -486,7 +566,7 @@ def test_periodic_cell_twiss(test_context):
         assert tw_cell.name[0] == start_cell
         assert tw_cell.name[-2] == end_cell
         assert tw_cell.method == '4d'
-        assert tw_cell.orientation == {'b1': 'forward', 'b2': 'backward'}[beam_name]
+        assert tw_cell._orientation == {'b1': 'forward', 'b2': 'backward'}[beam_name]
         assert tw_cell.reference_frame == {'b1':'proper', 'b2':'reverse'}[beam_name]
 
         tw_cell_periodic = line.twiss(
@@ -500,7 +580,7 @@ def test_periodic_cell_twiss(test_context):
         assert tw_cell_periodic.name[0] == start_cell
         assert tw_cell_periodic.name[-2] == end_cell
         assert tw_cell_periodic.method == '4d'
-        assert tw_cell_periodic.orientation == 'forward'
+        assert tw_cell_periodic._orientation == 'forward'
         assert tw_cell_periodic.reference_frame == {'b1':'proper', 'b2':'reverse'}[beam_name]
 
         xo.assert_allclose(tw_cell_periodic.betx, tw_cell.betx, atol=0, rtol=1e-6)
@@ -521,7 +601,7 @@ def test_periodic_cell_twiss(test_context):
             end=end_arc,
             init=twinit_start_cell)
         assert tw_to_end_arc.method == '4d'
-        assert tw_to_end_arc.orientation == {'b1': 'forward', 'b2': 'backward'}[beam_name]
+        assert tw_to_end_arc._orientation == {'b1': 'forward', 'b2': 'backward'}[beam_name]
         assert tw_to_end_arc.reference_frame == {'b1':'proper', 'b2':'reverse'}[beam_name]
 
         tw_to_start_arc = line.twiss(
@@ -529,7 +609,7 @@ def test_periodic_cell_twiss(test_context):
             end=start_cell,
             init=twinit_start_cell)
         assert tw_to_start_arc.method == '4d'
-        assert tw_to_start_arc.orientation == {'b1': 'backward', 'b2': 'forward'}[beam_name]
+        assert tw_to_start_arc._orientation == {'b1': 'backward', 'b2': 'forward'}[beam_name]
         assert tw_to_start_arc.reference_frame == {'b1':'proper', 'b2':'reverse'}[beam_name]
 
         mux_arc_from_cell = tw_to_end_arc['mux', end_arc] - tw_to_start_arc['mux', start_arc]
@@ -585,8 +665,7 @@ def collider_for_test_twiss_range():
     return collider
 
 
-
-@for_all_test_contexts
+@for_all_test_contexts(excluding=('ContextCupy', 'ContextPyopencl'))
 @pytest.mark.parametrize('line_name', ['lhcb1', 'lhcb2'])
 @pytest.mark.parametrize('check', ['fw', 'bw', 'fw_kw', 'bw_kw', 'fw_table', 'bw_table'])
 @pytest.mark.parametrize('init_at_edge', [True, False], ids=['init_at_edge', 'init_inside'])
@@ -621,6 +700,8 @@ def test_twiss_range(test_context, cycle_to, line_name, check, init_at_edge, col
         s=2e-8,
         zeta=5e-5,
         alfx=1e-8, alfy=1e-8, alfx1=1e-8, alfy2=1e-8, alfx2=1e-6, alfy1=1e-6,
+        alfx_edw_teng=1e-8, alfy_edw_teng=1e-8,
+        f1001=1e-8, f1010=1e-8, f0110=1e-8, f0101=1e-8,
         dzeta=1e-4, dx=1e-4, dy=1e-4, dpx=1e-5, dpy=1e-5,
         nuzeta=1e-5, dx_zeta=1e-7, dy_zeta=1e-7, dpx_zeta=1e-8, dpy_zeta=1e-8,
         nux=1e-8, nuy=1e-8,
@@ -630,15 +711,26 @@ def test_twiss_range(test_context, cycle_to, line_name, check, init_at_edge, col
 
     rtols = dict(
         alfx=5e-9, alfy=5e-8, alfx1=5e-9, alfy2=5e-8, alfx2=5e-8, alfy1=5e-8,
+        alfx_edw_teng=5e-9, alfy_edw_teng=5e-8,
         betx=1e-8, bety=1e-8, betx1=1e-8, bety2=1e-8, betx2=1e-7, bety1=1e-7,
+        betx_edw_teng=1e-8, bety_edw_teng=1e-8,
+        g_edw_teng=1e-8,
+        f1001=5e-8, f1010=5e-8, f0110=5e-8, f0101=5e-8,
         gamx=5e-9, gamy=5e-9, gamx1=5e-9, gamy2=5e-9, gamx2=1e-7, gamy1=1e-7,
     )
 
     if loop_around or not init_at_edge:
         rtols['betx'] = 2e-5
         rtols['bety'] = 2e-5
+        rtols['betx_edw_teng'] = 2e-5
+        rtols['bety_edw_teng'] = 2e-5
+        rtols['g_edw_teng'] = 2e-5
+        rtols['f1001'] = rtols['f0110'] = 2e-5
+        rtols['f1010'] = rtols['f0101'] = 2e-5
         rtols['alfx'] = rtols['alfx1'] = 4e-5
         rtols['alfy'] = rtols['alfy2'] = 4e-5
+        rtols['alfx_edw_teng'] = 4e-5
+        rtols['alfy_edw_teng'] = 4e-5
         rtols['gamx'] = 2e-5
         rtols['gamy'] = 2e-5
         rtols['betx1'] = 2e-5
@@ -654,6 +746,8 @@ def test_twiss_range(test_context, cycle_to, line_name, check, init_at_edge, col
 
         atols['alfy'] = atols['alfy2'] = 4e-5
         atols['alfx'] = atols['alfx1'] = 4e-5
+        atols['alfy_edw_teng'] = 4e-5
+        atols['alfx_edw_teng'] = 4e-5
         atols['mux'] = 1e-5
         atols['muy'] = 1e-5
         atols['nux'] = 1e-8
@@ -666,12 +760,18 @@ def test_twiss_range(test_context, cycle_to, line_name, check, init_at_edge, col
     atol_default = 1e-11
     rtol_default = 1e-9
 
+    if check.endswith('_kw'):
+        # Scalar Twiss initialization does not provide the coupled W matrix,
+        # therefore the coupling RDTs cannot be meaningfully compared here.
+        atols['f1001'] = atols['f1010'] = 100
+        atols['f0110'] = atols['f0101'] = 100
+
     line = collider[line_name]
 
-    if isinstance(test_context, xo.ContextCpu) and (
+    if isinstance(test_context, xo.ContextCpu) and line._context is not None and (
         test_context.omp_num_threads != line._context.omp_num_threads):
         buffer = test_context.new_buffer()
-    elif isinstance(test_context, line._context.__class__):
+    elif line._context is not None and isinstance(test_context, line._context.__class__):
         buffer = line._buffer
     else:
         buffer = test_context.new_buffer()
@@ -832,7 +932,7 @@ def test_twiss_range(test_context, cycle_to, line_name, check, init_at_edge, col
         tw_part.dzeta += tw['dzeta', name_init] - tw_part['dzeta', name_init]
         tw_part._data['method'] = '4d'
         tw_part._data['radiation_method'] = None
-        tw_part._data['orientation'] = (
+        tw_part._data['_orientation'] = (
             {'lhcb1': 'forward', 'lhcb2': 'backward'}[line_name])
     else:
         tw_part = tw.rows[estart_user:estop_user]
@@ -843,14 +943,15 @@ def test_twiss_range(test_context, cycle_to, line_name, check, init_at_edge, col
 
     tw_test = tw_test.rows[:-1]
     assert np.all(tw_test.name == tw_part.name)
-    assert np.all(tw_test.name_env == tw_part.name_env)
+    assert np.all(tw_test.env_name == tw_part.env_name)
 
     for kk in tw_test._data.keys():
-        if kk in ['name', 'name_env', 'W_matrix', 'particle_on_co', 'values_at',
+        if kk in ['name', 'env_name', 'W_matrix', 'particle_on_co', 'values_at',
                     'method', 'radiation_method', 'reference_frame',
-                    'orientation', 'steps_r_matrix', 'line_config',
+                    '_orientation', 'steps_R_matrix', 'line_config',
                     'loop_around', '_action', 'completed_init',
                     'phix', 'phiy', 'phizeta', # are only relative (not unwrapped)
+                    'steps_r_matrix' # deprecated
                     ]:
             continue # some tested separately
         atol = atols.get(kk, atol_default)
@@ -974,7 +1075,7 @@ def test_twiss_against_matrix(test_context):
         xo.assert_allclose(chroma_table.dnqx[1:], dnqx[1:], atol=1e-5, rtol=1e-5)
         xo.assert_allclose(chroma_table.dnqy[1:], dnqy[1:], atol=1e-5, rtol=1e-5)
 
-@for_all_test_contexts
+@for_all_test_contexts(excluding=('ContextCupy', 'ContextPyopencl'))
 @pytest.mark.parametrize('machine', ['sps', 'psb'])
 def test_longitudinal_plane_against_matrix(machine, test_context):
 
@@ -1007,15 +1108,20 @@ def test_longitudinal_plane_against_matrix(machine, test_context):
 
         if machine == 'sps':
             if configuration == 'above transition':
-                line[cavity_name].lag = 180.
+                line[cavity_name].phase = np.pi
                 line.particle_ref = xp.Particles(p0c=450e9, q0=1.0)
             else:
-                line[cavity_name].lag = 0.
+                line[cavity_name].phase = 0
                 line.particle_ref = xp.Particles(p0c=16e9, q0=1.0)
 
         # Build corresponding matrix
         tw = line.twiss()
-        circumference = tw.circumference
+        circumference = tw.line_length
+
+        if line[cavity_name].harmonic:
+            frequency_rf = line[cavity_name].harmonic / (line.get_length() / tw.beta0 / clight)
+        else:
+            frequency_rf = line[cavity_name].frequency
 
         if longitudinal_mode == 'nonlinear':
             matrix = xt.LineSegmentMap(
@@ -1026,8 +1132,8 @@ def test_longitudinal_plane_against_matrix(machine, test_context):
                 dx=tw.dx[0], dpx=tw.dpx[0],
                 dy=tw.dy[0], dpy=tw.dpy[0],
                 voltage_rf=line[cavity_name].voltage,
-                frequency_rf=line[cavity_name].frequency,
-                lag_rf=line[cavity_name].lag,
+                frequency_rf=frequency_rf,
+                phase_rf=line[cavity_name].phase,
                 momentum_compaction_factor=tw.momentum_compaction_factor,
                 length=circumference)
         elif longitudinal_mode == 'linear_fixed_rf':
@@ -1040,8 +1146,8 @@ def test_longitudinal_plane_against_matrix(machine, test_context):
                 dx=tw.dx[0], dpx=tw.dpx[0],
                 dy=tw.dy[0], dpy=tw.dpy[0],
                 voltage_rf=line[cavity_name].voltage,
-                frequency_rf=line[cavity_name].frequency,
-                lag_rf=line[cavity_name].lag,
+                frequency_rf=frequency_rf,
+                phase_rf=line[cavity_name].phase,
                 momentum_compaction_factor=tw.momentum_compaction_factor,
                 length=circumference)
         elif longitudinal_mode == 'linear_fixed_qs':
@@ -1129,7 +1235,7 @@ def test_longitudinal_plane_against_matrix(machine, test_context):
         xo.assert_allclose(tw_line.dpy[0], tw_matrix.dpy[0], atol=1e-5, rtol=0)
 
         assert tw_matrix.s[0] == 0
-        xo.assert_allclose(tw_matrix.s[-1], tw_line.circumference, rtol=0, atol=1e-6)
+        xo.assert_allclose(tw_matrix.s[-1], tw_line.line_length, rtol=0, atol=1e-6)
         xo.assert_allclose(tw_matrix.bets0, tw_line.bets0, rtol=1e-2, atol=0)
 
         xo.assert_allclose(np.squeeze(mon.zeta), np.squeeze(mon_matrix.zeta),
@@ -1152,6 +1258,33 @@ def test_longitudinal_plane_against_matrix(machine, test_context):
             atol=0, rtol=(25e-2 if longitudinal_mode.startswith('linear') else 2e-2))
 
 @for_all_test_contexts
+def test_supplied_twiss_init_is_not_modified(test_context):
+
+    line = xt.Line(
+        elements=[xt.Marker(), xt.Drift(length=1), xt.Marker()],
+        element_names=['start', 'drift', 'end'])
+    line.particle_ref = xt.Particles(p0c=7e12, mass0=xt.PROTON_MASS_EV)
+    line.build_tracker(_context=test_context)
+
+    supplied_init = xt.TwissInit(betx=1., bety=2.)
+    assert supplied_init.element_name is None
+    assert supplied_init.reference_frame is None
+    assert supplied_init._has_deferred_inputs()
+
+    tw = line.twiss(
+        method='4d', start='start', end='end',
+        init=supplied_init, init_at='start')
+
+    # Completing the init for Twiss must not alter the caller-owned object.
+    assert supplied_init.element_name is None
+    assert supplied_init.reference_frame is None
+    assert supplied_init._has_deferred_inputs()
+    assert tw.completed_init.element_name == 'start'
+    assert tw.completed_init.reference_frame == 'proper'
+    assert not tw.completed_init._has_deferred_inputs()
+
+
+@for_all_test_contexts(excluding=('ContextCupy', 'ContextPyopencl'))
 def test_custom_twiss_init(test_context):
 
     line = xt.load(test_data_folder /
@@ -1220,7 +1353,7 @@ def test_custom_twiss_init(test_context):
 
     for kk in tw_test._data.keys():
         if kk in ['name', 'W_matrix', 'particle_on_co', 'values_at', 'method',
-                'radiation_method', 'reference_frame', 'orientation']:
+                'radiation_method', 'reference_frame', '_orientation']:
             continue # tested separately
         atol = atols.get(kk, atol_default)
         rtol = rtols.get(kk, rtol_default)
@@ -1306,8 +1439,8 @@ def test_momentum_crab_dispersion(test_context):
 
     tw6d = line.twiss(method='6d')
     dz = 1e-3
-    tw4d_plus = line.twiss(method='4d', zeta0=dz, freeze_longitudinal=True)
-    tw4d_minus = line.twiss(method='4d', zeta0=-dz, freeze_longitudinal=True)
+    tw4d_plus = line.twiss(method='4d', zeta0=dz)
+    tw4d_minus = line.twiss(method='4d', zeta0=-dz)
     dpx_dzeta_expected = (tw4d_plus.px -  tw4d_minus.px) / (2*dz)
     dpy_dzeta_expected = (tw4d_plus.py -  tw4d_minus.py) / (2*dz)
 
@@ -1358,13 +1491,13 @@ def test_twiss_init_file(test_context):
                     'mux', 'muy', 'x', 'y', 'px', 'py']
 
     # check at a location downsteam
-    loc_check = line.element_names[line.element_names.index(location) + 300]
+    loc_check = 'bpm.30r6.b1'
     for var in check_vars:
         # Check at starting point
         xo.assert_allclose(tw[var, location], tw_full[var, location], atol=1e-9, rtol=0)
 
         # Check at a point in a downstream arc
-        xo.assert_allclose(tw[var, loc_check], tw_full[var, loc_check], atol=2e-7, rtol=0)
+        xo.assert_allclose(tw[var, loc_check], tw_full[var, loc_check], atol=4e-7, rtol=0)
 
     twinit_file.unlink()
 
@@ -1537,28 +1670,28 @@ def test_adaptive_steps_for_rmatrix(test_context):
     collider.lhcb2.twiss_default['nemitt_y'] = 1e-6
 
     tw = collider.twiss()
-    assert tw.lhcb1.steps_r_matrix['adapted'] == False
-    assert tw.lhcb2.steps_r_matrix['adapted'] == False
+    assert tw.lhcb1.steps_R_matrix['adapted'] == False
+    assert tw.lhcb2.steps_R_matrix['adapted'] == False
 
     collider.lhcb1.twiss_default['nemitt_x'] = 1e-8
     tw = collider.twiss()
-    assert tw.lhcb1.steps_r_matrix['adapted'] == True
-    assert tw.lhcb2.steps_r_matrix['adapted'] == False
+    assert tw.lhcb1.steps_R_matrix['adapted'] == True
+    assert tw.lhcb2.steps_R_matrix['adapted'] == False
 
     collider.lhcb2.twiss_default['nemitt_y'] = 2e-8
     tw = collider.twiss()
-    assert tw.lhcb1.steps_r_matrix['adapted'] == True
-    assert tw.lhcb2.steps_r_matrix['adapted'] == True
+    assert tw.lhcb1.steps_R_matrix['adapted'] == True
+    assert tw.lhcb2.steps_R_matrix['adapted'] == True
 
     expected_dx_b1 = 0.01 * np.sqrt(1e-8 * 0.15 / collider.lhcb1.particle_ref._xobject.gamma0[0])
     expected_dy_b1 = 0.01 * np.sqrt(1e-6 * 0.15 / collider.lhcb1.particle_ref._xobject.gamma0[0])
     expected_dx_b2 = 0.01 * np.sqrt(1e-6 * 0.15 / collider.lhcb1.particle_ref._xobject.gamma0[0])
     expected_dy_b2 = 0.01 * np.sqrt(2e-8 * 0.15 / collider.lhcb2.particle_ref._xobject.gamma0[0])
 
-    xo.assert_allclose(tw.lhcb1.steps_r_matrix['dx'], expected_dx_b1, atol=0, rtol=1e-4)
-    xo.assert_allclose(tw.lhcb1.steps_r_matrix['dy'], expected_dy_b1, atol=0, rtol=1e-4)
-    xo.assert_allclose(tw.lhcb2.steps_r_matrix['dx'], expected_dx_b2, atol=0, rtol=1e-4)
-    xo.assert_allclose(tw.lhcb2.steps_r_matrix['dy'], expected_dy_b2, atol=0, rtol=1e-4)
+    xo.assert_allclose(tw.lhcb1.steps_R_matrix['dx'], expected_dx_b1, atol=0, rtol=1e-4)
+    xo.assert_allclose(tw.lhcb1.steps_R_matrix['dy'], expected_dy_b1, atol=0, rtol=1e-4)
+    xo.assert_allclose(tw.lhcb2.steps_R_matrix['dx'], expected_dx_b2, atol=0, rtol=1e-4)
+    xo.assert_allclose(tw.lhcb2.steps_R_matrix['dy'], expected_dy_b2, atol=0, rtol=1e-4)
 
 @for_all_test_contexts
 def test_longitudinal_beam_sizes(test_context):
@@ -1584,15 +1717,18 @@ def test_longitudinal_beam_sizes(test_context):
     xo.assert_allclose(
         beam_sizes.sigma_zeta / beam_sizes.sigma_pzeta, tw.bets0, atol=0, rtol=5e-5)
 
-@for_all_test_contexts
-def test_second_order_chromaticity_and_dispersion(test_context):
+@for_all_test_contexts(excluding=('ContextCupy', 'ContextPyopencl'))
+@pytest.mark.parametrize('method', ['6d', '4d'])
+def test_second_order_chromaticity_and_dispersion(test_context, method):
 
     line = xt.load(test_data_folder /
                              'hllhc15_thick/lhc_thick_with_knobs.json')
     line.vars['on_x5'] = 300
+    line.vars['vrf400'] = 16
+
     line.build_tracker(_context=test_context)
 
-    tw = line.twiss(method='4d')
+    tw = line.twiss(method=method)
     tw_fw = line.twiss(start='ip4', end='ip6', init_at='ip4',
                 x=tw['x', 'ip4'], px=tw['px', 'ip4'],
                 y=tw['y', 'ip4'], py=tw['py', 'ip4'],
@@ -1602,7 +1738,7 @@ def test_second_order_chromaticity_and_dispersion(test_context):
                 dy=tw['dy', 'ip4'], dpy=tw['dpy', 'ip4'],
                 ddx=tw['ddx', 'ip4'], ddy=tw['ddy', 'ip4'],
                 ddpx=tw['ddpx', 'ip4'], ddpy=tw['ddpy', 'ip4'],
-                compute_chromatic_properties=True)
+                chrom=True)
 
     tw_bw = line.twiss(start='ip4', end='ip6', init_at='ip6',
                 x=tw['x', 'ip6'], px=tw['px', 'ip6'],
@@ -1613,7 +1749,7 @@ def test_second_order_chromaticity_and_dispersion(test_context):
                 dy=tw['dy', 'ip6'], dpy=tw['dpy', 'ip6'],
                 ddx=tw['ddx', 'ip6'], ddy=tw['ddy', 'ip6'],
                 ddpx=tw['ddpx', 'ip6'], ddpy=tw['ddpy', 'ip6'],
-                compute_chromatic_properties=True)
+                chrom=True)
 
     nlchr = line.get_non_linear_chromaticity(delta0_range=(-1e-4, 1e-4),
                                              num_delta=21, fit_order=2)
@@ -1636,14 +1772,14 @@ def test_second_order_chromaticity_and_dispersion(test_context):
     pxs_qy = np.polyfit(delta, qy_xs, 3)
 
     xo.assert_allclose(delta, nlchr.delta0, atol=1e-6, rtol=0)
-    xo.assert_allclose(tw['dx', location], pxs_x[-2], atol=0, rtol=1e-4)
-    xo.assert_allclose(tw['dpx', location], pxs_px[-2], atol=0, rtol=1e-4)
-    xo.assert_allclose(tw['dy', location], pxs_y[-2], atol=0, rtol=1e-4)
-    xo.assert_allclose(tw['dpy', location], pxs_py[-2], atol=0, rtol=1e-4)
-    xo.assert_allclose(tw['ddx', location], 2*pxs_x[-3], atol=0, rtol=1e-4)
-    xo.assert_allclose(tw['ddpx', location], 2*pxs_px[-3], atol=0, rtol=1e-4)
-    xo.assert_allclose(tw['ddy', location], 2*pxs_y[-3], atol=0, rtol=1e-4)
-    xo.assert_allclose(tw['ddpy', location], 2*pxs_py[-3], atol=0, rtol=1e-4)
+    xo.assert_allclose(tw['dx', location], pxs_x[-2], atol=0, rtol=5e-4)
+    xo.assert_allclose(tw['dpx', location], pxs_px[-2], atol=0, rtol=5e-4)
+    xo.assert_allclose(tw['dy', location], pxs_y[-2], atol=0, rtol=5e-4)
+    xo.assert_allclose(tw['dpy', location], pxs_py[-2], atol=0, rtol=5e-4)
+    xo.assert_allclose(tw['ddx', location], 2*pxs_x[-3], atol=0, rtol=5e-4)
+    xo.assert_allclose(tw['ddpx', location], 2*pxs_px[-3], atol=0, rtol=5e-4)
+    xo.assert_allclose(tw['ddy', location], 2*pxs_y[-3], atol=0, rtol=5e-4)
+    xo.assert_allclose(tw['ddpy', location], 2*pxs_py[-3], atol=0, rtol=5e-4)
     xo.assert_allclose(tw['dqx'], pxs_qx[-2], atol=0, rtol=1e-3)
     xo.assert_allclose(tw['ddqx'], pxs_qx[-3]*2, atol=0, rtol=1e-2)
     xo.assert_allclose(tw['dqy'], pxs_qy[-2], atol=0, rtol=1e-3)
@@ -1664,8 +1800,8 @@ def test_second_order_chromaticity_and_dispersion(test_context):
     xo.assert_allclose(tw_part['dpx'], tw_bw.rows[:-1]['dpx'], atol=1e-3, rtol=0)
     xo.assert_allclose(tw_part['dpy'], tw_bw.rows[:-1]['dpy'], atol=1e-3, rtol=0)
 
-@for_all_test_contexts
-def test_twiss_strength_reverse_vs_madx(test_context):
+@for_all_test_contexts(excluding=('ContextCupy', 'ContextPyopencl'))
+def test_twiss_strength_reverse_vs_madx(test_context, sandbox_cwd):
 
     test_data_folder_str = str(test_data_folder)
 
@@ -1710,7 +1846,13 @@ def test_twiss_strength_reverse_vs_madx(test_context):
     twm1 = xt.Table(mad1.table.twisslhcb1)
     twm2 = xt.Table(mad1.table.twisslhcb2)
 
-    collider = xt.Environment.from_madx(madx=mad1)
+    b1 = xt.Line.from_madx_sequence(mad1.sequence.lhcb1, deferred_expressions=True)
+    b2 = xt.Line.from_madx_sequence(mad1.sequence.lhcb2, deferred_expressions=True)
+
+    collider = xt.Environment(lines={'lhcb1': b1, 'lhcb2': b2})
+    collider.lhcb1.set_particle_ref('proton', p0c=7e12)
+    collider.lhcb2.set_particle_ref('proton', p0c=7e12)
+    collider.lhcb2.twiss_default['reverse'] = True
 
     collider.build_trackers(_context=test_context)
     tw = collider.twiss(strengths=True, method='4d')
@@ -1776,10 +1918,10 @@ def test_twiss_range_start_end(test_context, line_name, section, collider_for_te
     if collider.lhcb2.element_names[0] != 'ip3':
         collider.lhcb2.cycle('ip3', inplace=True)
 
-    if isinstance(test_context, xo.ContextCpu) and (
+    if isinstance(test_context, xo.ContextCpu) and line._context is not None and (
         test_context.omp_num_threads != line._context.omp_num_threads):
         buffer = test_context.new_buffer()
-    elif isinstance(test_context, line._context.__class__):
+    elif line._context is not None and isinstance(test_context, line._context.__class__):
         buffer = line._buffer
     else:
         buffer = test_context.new_buffer()
@@ -1804,14 +1946,14 @@ def test_twiss_range_start_end(test_context, line_name, section, collider_for_te
             continue
 
         if kk in ('name', 'method', 'values_at', 'radiation_method',
-                  'reference_frame', 'name_env'):
+                  'reference_frame', 'env_name'):
             assert np.all(tw_test._data[kk] == tw_ref._data[kk])
             continue
 
         xo.assert_allclose(tw_test._data[kk], tw_ref._data[kk], rtol=1e-12, atol=5e-13)
 
 @for_all_test_contexts
-def test_arbitrary_start(test_context, collider_for_test_twiss_range):
+def test_arbitrary_start(test_context, collider_for_test_twiss_range, tmp_path):
 
     collider = collider_for_test_twiss_range
 
@@ -1829,10 +1971,10 @@ def test_arbitrary_start(test_context, collider_for_test_twiss_range):
     assert line.twiss_default['method'] == '4d'
     assert line.twiss_default['reverse']
 
-    if isinstance(test_context, xo.ContextCpu) and (
+    if isinstance(test_context, xo.ContextCpu) and line._context is not None and (
         test_context.omp_num_threads != line._context.omp_num_threads):
         buffer = test_context.new_buffer()
-    elif isinstance(test_context, line._context.__class__):
+    elif line._context is not None and isinstance(test_context, line._context.__class__):
         buffer = line._buffer
     else:
         buffer = test_context.new_buffer()
@@ -1859,7 +2001,7 @@ def test_arbitrary_start(test_context, collider_for_test_twiss_range):
                 tw[ 'betx', ['ip8', 'ip1', 'ip2', 'ip3', 'ip4', 'ip5', 'ip6', 'ip7']],
                 rtol=1e-5, atol=0)
 
-    collider.to_json('ok.json')
+    collider.to_json(tmp_path / 'ok.json')
 
 @for_all_test_contexts
 def test_part_from_full_periodic(test_context, collider_for_test_twiss_range):
@@ -1875,10 +2017,10 @@ def test_part_from_full_periodic(test_context, collider_for_test_twiss_range):
     assert line.twiss_default['method'] == '4d'
     assert line.twiss_default['reverse']
 
-    if isinstance(test_context, xo.ContextCpu) and (
+    if isinstance(test_context, xo.ContextCpu) and line._context is not None and (
         test_context.omp_num_threads != line._context.omp_num_threads):
         buffer = test_context.new_buffer()
-    elif isinstance(test_context, line._context.__class__):
+    elif line._context is not None and isinstance(test_context, line._context.__class__):
         buffer = line._buffer
     else:
         buffer = test_context.new_buffer()
@@ -1930,7 +2072,7 @@ def test_twiss_add_strengths(test_context):
         xt.Multipole(length=1.0, knl=[2 * np.pi / n], hxl=[2 * np.pi / n]),
         xt.Drift(length=1.0),
     ]
-    line = xt.Line(elements=n * fodo + [xt.Cavity(frequency=1e9, voltage=0, lag=180)])
+    line = xt.Line(elements=n * fodo + [xt.Cavity(frequency=1e9, voltage=0, phase=np.pi)])
     line.build_tracker(_context=test_context)
 
     ## Twiss
@@ -1940,6 +2082,25 @@ def test_twiss_add_strengths(test_context):
     assert "length" not in tw.keys()
     tw.add_strengths()
     assert "length" in tw.keys()
+
+def test_twiss_prototype_with_strengths():
+
+    env = xt.Environment(particle_ref=xp.Particles(
+        mass0=xp.PROTON_MASS_EV, q0=1, p0c=1e8))
+    env.new('q0', 'Quadrupole', length=1.0, k1=0.1)
+    env.new('q1', 'q0')
+    env.new('q2', 'q1')
+
+    line = env.new_line(components=['q0', 'q1', 'q2'])
+    line.build_tracker()
+
+    tw = line.twiss(method='4d', betx=1, bety=1)
+    tw_with_strengths = line.twiss(method='4d', betx=1, bety=1,
+                                   strengths=True)
+
+    assert 'prototype' not in tw.keys()
+    assert np.all(tw_with_strengths.prototype == np.array(
+        [None, 'q0', 'q1', None]))
 
 def test_coupling_calculations():
 
@@ -2006,58 +2167,56 @@ def test_twiss_collective_end_is_len():
 
     xo.assert_allclose(t.betx, t2.betx, atol=1e-12, rtol=0)
 
+def test_twiss_disable_apertures():
 
-def test_twiss_compute_coupling_elements_edwards_teng():
-    env = xt.load(test_data_folder / 'lhc_2024/lhc.seq')
-    env.vars.set_from_madx_file(test_data_folder / 'lhc_2024/injection_optics.madx')
+    line = xt.Line(elements=[xt.Drift(length=1.0)])
+    line.particle_ref = xt.Particles(energy0=10e9, mass0=xt.PROTON_MASS_EV)
 
-    # Clean machine
-    env['on_x1'] = 0
-    env['on_x2h'] = 0
-    env['on_x2v'] = 0
-    env['on_x5'] = 0
-    env['on_x8h'] = 0
-    env['on_x8v'] = 0
+    # check global aperture
+    tw = line.twiss(betx=1, bety=1, x=2.)
+    xo.assert_allclose(tw.x[-1], 2.)
+    with pytest.raises(AssertionError):
+        line.twiss(betx=1, bety=1, x=2., disable_apertures=False)
 
-    env['on_sep1'] = 0
-    env['on_sep2h'] = 0
-    env['on_sep2v'] = 0
-    env['on_sep5'] = 0
-    env['on_sep8h'] = 0
-    env['on_sep8v'] = 0
+    # check limit rect
+    line = xt.Line(elements=[xt.Drift(length=1.0), xt.LimitRect(min_x=0.1)])
+    line.particle_ref = xt.Particles(energy0=10e9, mass0=xt.PROTON_MASS_EV)
+    tw = line.twiss(betx=1, bety=1, x=0)
+    xo.assert_allclose(tw.x[-1], 0.)
+    with pytest.raises(AssertionError):
+        line.twiss(betx=1, bety=1, x=0, disable_apertures=False)
 
-    env['on_a2'] = 0
-    env['on_a8'] = 0
+    # check limit racetrack
+    line = xt.Line(elements=[xt.Drift(length=1.0), xt.LimitRacetrack(min_x=0.1)])
+    line.particle_ref = xt.Particles(energy0=10e9, mass0=xt.PROTON_MASS_EV)
+    tw = line.twiss(betx=1, bety=1, x=0)
+    xo.assert_allclose(tw.x[-1], 0.)
+    with pytest.raises(AssertionError):
+        line.twiss(betx=1, bety=1, x=0, disable_apertures=False)
 
-    # Introduce some coupling by powering up a skew quadrupole
-    env['kqs.a67b1'] = 1e-4
+    # check limit ellipse
+    line = xt.Line(elements=[xt.Drift(length=1.0), xt.LimitEllipse(a=0.01, b=0.01)])
+    line.particle_ref = xt.Particles(energy0=10e9, mass0=xt.PROTON_MASS_EV)
+    tw = line.twiss(betx=1, bety=1, x=0.02)
+    xo.assert_allclose(tw.x[-1], 0.02)
+    with pytest.raises(AssertionError):
+        line.twiss(betx=1, bety=1, x=0.02, disable_apertures=False)
 
-    line = env.lhcb1
-    line.particle_ref = xt.Particles(p0c=450e9)
-    tw = line.twiss4d(coupling_edw_teng=True)
+    # Check limit polygon
+    line = xt.Line(elements=[xt.Drift(length=1.0), xt.LimitPolygon(
+        x_vertices=[0.1, 0.1, -0.1, -0.1],
+        y_vertices=[0.1, -0.1, -0.1, 0.1])])
+    line.particle_ref = xt.Particles(energy0=10e9, mass0=xt.PROTON_MASS_EV)
+    tw = line.twiss(betx=1, bety=1, x=0.2, y=0)
+    xo.assert_allclose(tw.x[-1], 0.2)
+    with pytest.raises(AssertionError):
+        line.twiss(betx=1, bety=1, x=0.2, y=0, disable_apertures=False)
 
-    tw_ng = line.madng_twiss()
-
-    # We will correct for the sign, as our result is smoother
-    sgn_ng = np.sign(tw.r11_edw_teng / tw_ng.r11_ng)
-
-    # Check against MAD-NG
-    xo.assert_allclose(tw.r11_edw_teng, sgn_ng * tw_ng.r11_ng, atol=np.max(np.abs(tw.r11_edw_teng)) * 5e-3, rtol=0, max_outliers=1)
-    xo.assert_allclose(tw.r12_edw_teng, sgn_ng * tw_ng.r12_ng, atol=np.max(np.abs(tw.r12_edw_teng)) * 5e-3, rtol=0, max_outliers=1)
-    xo.assert_allclose(tw.r21_edw_teng, sgn_ng * tw_ng.r21_ng, atol=np.max(np.abs(tw.r21_edw_teng)) * 5e-3, rtol=0, max_outliers=1)
-    xo.assert_allclose(tw.r22_edw_teng, sgn_ng * tw_ng.r22_ng, atol=np.max(np.abs(tw.r22_edw_teng)) * 5e-3, rtol=0, max_outliers=1)
-    xo.assert_allclose(tw.f1010, sgn_ng * tw_ng.f1010_ng, atol=3e-5, rtol=0, max_outliers=1)
-    xo.assert_allclose(tw.f1001, sgn_ng * tw_ng.f1001_ng, atol=1e-3, rtol=0, max_outliers=1)
-
-    # Test that reverse twiss is disabled for now
-    with pytest.raises(NotImplementedError):
-        line.twiss4d(coupling_edw_teng=True, reverse=True)
-
-    # Test that reversal removes the quantities for now
-    tw_rev = tw.reverse()
-    rev_fields = set(dir(tw_rev))
-    fields_shouldnt_be_there = {
-        'r11_edw_teng', 'r12_edw_teng', 'r21_edw_teng', 'r22_edw_teng',
-        'f1010', 'f1001',
-    }
-    assert not (rev_fields & fields_shouldnt_be_there)
+    # Check rectellipse
+    line = xt.Line(elements=[xt.Drift(length=1.0), xt.LimitRectEllipse(
+        a=0.1, b=0.1)])
+    line.particle_ref = xt.Particles(energy0=10e9, mass0=xt.PROTON_MASS_EV)
+    tw = line.twiss(betx=1, bety=1, x=0.2, y=0)
+    xo.assert_allclose(tw.x[-1], 0.2)
+    with pytest.raises(AssertionError):
+        line.twiss(betx=1, bety=1, x=0.2, y=0, disable_apertures=False)

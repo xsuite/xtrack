@@ -6,8 +6,8 @@
 #ifndef XTRACK_MAGNET_EDGE_H
 #define XTRACK_MAGNET_EDGE_H
 
-#include <headers/track.h>
-#include <beam_elements/elements_src/track_magnet_edge.h>
+#include "xtrack/headers/track.h"
+#include "xtrack/beam_elements/elements_src/track_magnet_edge.h"
 
 GPUFUN
 void MagnetEdge_track_local_particle(MagnetEdgeData el, LocalParticle* part0)
@@ -27,11 +27,12 @@ void MagnetEdge_track_local_particle(MagnetEdgeData el, LocalParticle* part0)
     const double face_angle_feed_down = MagnetEdgeData_get_face_angle_feed_down(el);
     const double fringe_integral = MagnetEdgeData_get_fringe_integral(el);
 
-    #ifdef XSUITE_BACKTRACK
-    const double factor_for_backtrack = -1;
-    #else
-    const double factor_for_backtrack = 1;
-    #endif
+    double factor_for_backtrack;
+    if (LocalParticle_check_track_flag(part0, XS_FLAG_BACKTRACK)) {
+        factor_for_backtrack = -1;
+    } else {
+        factor_for_backtrack = 1;
+    }
 
     track_magnet_edge_particles(
         part0,
@@ -45,6 +46,10 @@ void MagnetEdge_track_local_particle(MagnetEdgeData el, LocalParticle* part0)
         ksl,
         /* factor_knl_ksl */ 1,
         kl_order,
+        NULL, // knl_rel not supported yet in MagnetEdge
+        NULL, // ksl_rel not supported yet in MagnetEdge
+        /* factor_knl_ksl_rel */ 0,
+        -1, // order_rel not supported yet in MagnetEdge
         ks,
         0., // x0_solenoid
         0., // y0_solenoid

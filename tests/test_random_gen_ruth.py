@@ -7,9 +7,11 @@ from pathlib import Path
 
 import numpy as np
 import copy
+import pytest
 
 import xobjects as xo
-from xobjects.test_helpers import for_all_test_contexts
+from xobjects.test_helpers import (
+    allow_kernel_compilation, for_all_test_contexts)
 import xtrack as xt
 import xpart as xp
 
@@ -22,8 +24,10 @@ rA = 0.0012306225579197868
 rB = 53.50625
 iterations = 7
 
-@for_all_test_contexts(excluding=('ContextCupy', 'ContextPyopencl'))
-def test_random_generation(test_context):
+@for_all_test_contexts(excluding=('ContextPyopencl',))
+@allow_kernel_compilation
+def test_random_generation_ruth(test_context):
+
 
     part = xp.Particles(_context=test_context, p0c=6.5e12, x=[1,2,3])
     part._init_random_number_generator()
@@ -36,14 +40,16 @@ def test_random_generation(test_context):
 
         _extra_c_sources = [
             '''
-                /*gpufun*/
+                #include "xtrack/headers/track.h"
+
+                GPUFUN
                 void TestElement_track_local_particle(
                         TestElementData el, LocalParticle* part0){
                     RandomRutherfordData rng = TestElementData_getp_rng(el);
-                    //start_per_particle_block (part0->part)
+                    START_PER_PARTICLE_BLOCK(part0, part);
                         double rr = RandomRutherford_generate(rng, part);
                         LocalParticle_set_x(part, rr);
-                    //end_per_particle_block
+                    END_PER_PARTICLE_BLOCK;
                 }
             '''
         ]
@@ -78,7 +84,7 @@ def test_random_generation(test_context):
         np.allclose(hstgm[:-10], ruth[:-10], rtol=5e-2, atol=1)
 
 
-@for_all_test_contexts(excluding=('ContextCupy', 'ContextPyopencl'))
+@for_all_test_contexts(excluding=('ContextPyopencl',))
 def test_direct_sampling(test_context):
     n_seeds = 3
     n_samples = 3e6
@@ -100,7 +106,7 @@ def test_direct_sampling(test_context):
         np.allclose(hstgm[:-10], ruth[:-10], rtol=5e-2, atol=1)
 
 
-@for_all_test_contexts(excluding=('ContextCupy', 'ContextPyopencl'))
+@for_all_test_contexts(excluding=('ContextPyopencl',))
 def test_reproducibility(test_context):
     # 1e8 samples in total
     n_seeds = int(1e5)
@@ -126,3 +132,30 @@ def test_reproducibility(test_context):
         results2 = test_context.nparray_from_context_array(results2)
         assert np.all(results1 == results2)
 
+
+def test_cpu_gpu_distribution_match():
+    # The Rutherford sampler must produce the *same distribution* on CPU and
+    # on GPU (Cupy). Parallel RNG streams + floating-point ordering differ
+    # between contexts, so we do NOT expect a per-particle bitwise match;
+    # instead we compare 3e6 samples with the two-sample Kolmogorov-Smirnov
+    # statistic (distributional agreement).
+    cupy = pytest.importorskip('cupy')  # noqa: F841
+    from scipy.stats import ks_2samp
+
+    def _sample(ctx):
+        ran = xt.RandomRutherford(_context=ctx)
+        ran.A = rA
+        ran.B = rB
+        ran.lower_val = t0
+        ran.upper_val = t1
+        ran.Newton_iterations = iterations
+        samples = ran.generate(n_samples=int(3e6), n_seeds=3000)
+        return np.asarray(ctx.nparray_from_context_array(samples)).ravel()
+
+    cpu_samples = _sample(xo.ContextCpu())
+    gpu_samples = _sample(xo.ContextCupy())
+
+    ks = ks_2samp(cpu_samples, gpu_samples)
+    assert ks.statistic < 0.01, (
+        f"CPU-vs-GPU Rutherford distributions disagree: "
+        f"KS={ks.statistic:.4f} (p={ks.pvalue:.3g})")

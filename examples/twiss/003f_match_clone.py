@@ -1,15 +1,8 @@
-import json
-
 import numpy as np
 import xtrack as xt
 import xobjects as xo
 
-with open('../../test_data/hllhc14_no_errors_with_coupling_knobs/line_b1.json',
-            'r') as fid:
-    dct = json.load(fid)
-line = xt.Line.from_dict(dct)
-
-line.build_tracker()
+line = xt.load('../../test_data/hllhc14_no_errors_with_coupling_knobs/line_b1.json')
 
 tw_before = line.twiss()
 
@@ -54,6 +47,7 @@ opt2.solve()
 #!end-doc-part
 
 tw = line.twiss()
+tt = line.get_table()
 
 import matplotlib.pyplot as plt
 plt.close('all')
@@ -62,20 +56,20 @@ ax = fig.add_subplot(111)
 ax.plot(tw_before.s, tw_before.y*1000, label='y')
 ax.plot(tw.s, tw.y*1000, label='y')
 # Target
-ax.axvline(x=line.get_s_position('mb.b26l8.b1'), color='r', linestyle='--', alpha=0.5)
+ax.axvline(x=tt['s', 'mb.b26l8.b1'], color='r', linestyle='--', alpha=0.5)
 # Correctors
-ax.axvline(x=line.get_s_position('mcbv.32l8.b1'), color='k', linestyle='--', alpha=0.5)
-ax.axvline(x=line.get_s_position('mcbv.28l8.b1'), color='k', linestyle='--', alpha=0.5)
-ax.axvline(x=line.get_s_position('mcbv.26l8.b1'), color='k', linestyle='--', alpha=0.5)
-ax.axvline(x=line.get_s_position('mcbv.24l8.b1'), color='k', linestyle='--', alpha=0.5)
-ax.axvline(x=line.get_s_position('mcbv.22l8.b1'), color='k', linestyle='--', alpha=0.5)
-ax.axvline(x=line.get_s_position('mcbv.18l8.b1'), color='k', linestyle='--', alpha=0.5)
+ax.axvline(x=tt['s', 'mcbv.32l8.b1'], color='k', linestyle='--', alpha=0.5)
+ax.axvline(x=tt['s', 'mcbv.28l8.b1'], color='k', linestyle='--', alpha=0.5)
+ax.axvline(x=tt['s', 'mcbv.26l8.b1'], color='k', linestyle='--', alpha=0.5)
+ax.axvline(x=tt['s', 'mcbv.24l8.b1'], color='k', linestyle='--', alpha=0.5)
+ax.axvline(x=tt['s', 'mcbv.22l8.b1'], color='k', linestyle='--', alpha=0.5)
+ax.axvline(x=tt['s', 'mcbv.18l8.b1'], color='k', linestyle='--', alpha=0.5)
 # Boundaries
-ax.axvline(x=line.get_s_position('mq.33l8.b1'), color='g', linestyle='--', alpha=0.5)
-ax.axvline(x=line.get_s_position('mq.17l8.b1'), color='g', linestyle='--', alpha=0.5)
+ax.axvline(x=tt['s', 'mq.33l8.b1'], color='g', linestyle='--', alpha=0.5)
+ax.axvline(x=tt['s', 'mq.17l8.b1'], color='g', linestyle='--', alpha=0.5)
 ax.axhline(y=-1, color='b', linestyle='--', alpha=0.5)
-ax.set_xlim(line.get_s_position('mq.33l8.b1') - 10,
-            line.get_s_position('mq.17l8.b1') + 10)
+ax.set_xlim(tt['s', 'mq.33l8.b1'] - 10,
+            tt['s', 'mq.17l8.b1'] + 10)
 ax.set_xlabel('s [m]')
 ax.set_ylabel('y [mm]')
 ax.set_ylim(-10, 10)
@@ -91,4 +85,4 @@ assert np.isclose(tw['y', 'mb.b26l8.b1'], 3e-3, atol=1e-6, rtol=0)
 assert np.isclose(tw['py', 'mb.b26l8.b1'], 0, atol=1e-8, rtol=0)
 
 assert np.isclose(tw['y', 'mq.30l8.b1'], -1e-3, atol=1e-6, rtol=0)
-assert np.isclose(line.vars['acbv22.l8b1']._value, 38e-6, atol=0, rtol=0.02)
+assert np.isclose(line['acbv22.l8b1'], 38e-6, atol=0, rtol=0.02)

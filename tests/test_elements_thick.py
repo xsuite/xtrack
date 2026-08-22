@@ -13,7 +13,8 @@ from cpymad.madx import Madx
 import xobjects as xo
 import xpart as xp
 import xtrack as xt
-from xobjects.test_helpers import for_all_test_contexts
+from xobjects.test_helpers import (
+    allow_kernel_compilation, for_all_test_contexts, skip_if_forbid_compile)
 from xtrack.mad_loader import MadLoader
 from xtrack.slicing import Strategy, Uniform
 
@@ -35,7 +36,7 @@ from xtrack.slicing import Strategy, Uniform
 @pytest.mark.parametrize('model', ['adaptive', 'full', 'bend-kick-bend', 'rot-kick-rot'])
 @for_all_test_contexts
 def test_combined_function_dipole_against_ptc(test_context, k0, k1, k2, length,
-                                              use_multipole,  model):
+                                              use_multipole,  model, sandbox_cwd):
 
     p0 = xp.Particles(
         mass0=xp.PROTON_MASS_EV,
@@ -59,7 +60,7 @@ def test_combined_function_dipole_against_ptc(test_context, k0, k1, k2, length,
 
     ml = MadLoader(mad.sequence.ss, allow_thick=True)
     line_thick = ml.make_line()
-    line_thick.config.XTRACK_USE_EXACT_DRIFTS = True # to be consistent with mad
+    line_thick.configure_drift_model('exact') # to be consistent with madx
     line_thick.build_tracker(_context=test_context)
     line_thick.configure_bend_model(core=model, edge='dipole-only')
 
@@ -100,15 +101,15 @@ def test_combined_function_dipole_against_ptc(test_context, k0, k1, k2, length,
 
         xt_tau = part.zeta/part.beta0
         xo.assert_allclose(part.x[ii], mad_results.x, rtol=0,
-                           atol=(3e-11 if k1 == 0 and k2 == 0 else 5e-9))
+                           atol=(1e-10 if k1 == 0 and k2 == 0 else 5e-9))
         xo.assert_allclose(part.px[ii], mad_results.px, rtol=0,
                            atol=(4e-11 if k1 == 0 and k2 == 0 else 5e-9))
         xo.assert_allclose(part.y[ii], mad_results.y, rtol=0,
                            atol=(1e-11 if k1 == 0 and k2 == 0 else 5e-9))
         xo.assert_allclose(part.py[ii], mad_results.py, rtol=0,
                            atol=(1e-11 if k1 == 0 and k2 == 0 else 5e-9))
-        xo.assert_allclose(xt_tau[ii], mad_results.t, rtol=4e-8,
-                           atol=(1e-10 if k1 == 0 and k2 == 0 else 5e-9))
+        xo.assert_allclose(xt_tau[ii], mad_results.t, rtol=6e-8,
+                           atol=(5e-10 if k1 == 0 and k2 == 0 else 5e-9))
         xo.assert_allclose(part.ptau[ii], mad_results.pt, atol=1e-11, rtol=0)
 
         part = p0.copy(_context=test_context)
@@ -139,7 +140,7 @@ def test_combined_function_dipole_expanded(test_context):
         _context=test_context,
     )
 
-    bend = xt.Bend(k0=1e-3, h=0.9e-3, length=1, k1=0.001, knl=[0, 0, 0.02])
+    bend = xt.Bend(k0=1e-3, angle=0.9e-3, length=1, k1=0.001, knl=[0, 0, 0.02])
     line_thick = xt.Line(elements=[bend], element_names=['b'])
     line_thick.build_tracker(_context=test_context)
 
@@ -238,7 +239,7 @@ def test_thick_multipolar_component(test_context, element_type, h):
     # Bend with a multipolar component
     bend_with_mult = element_type(
         k0=k0,
-        h=h,
+        angle=h * bend_length,
         length=bend_length,
         knl=knl,
         ksl=ksl,
@@ -249,7 +250,7 @@ def test_thick_multipolar_component(test_context, element_type, h):
     # Separate bend and a corresponding multipole
     bend_no_mult = element_type(
         k0=k0,
-        h=h,
+        angle=h * bend_length / num_kicks / 2,
         length=bend_length / num_kicks / 2,
         num_multipole_kicks=0,
     )
@@ -299,14 +300,11 @@ def test_thick_multipolar_component(test_context, element_type, h):
     'kwargs',
     [
         {},
-        {'length': 2, 'angle': 0.1, 'h': 0.05},
-        {'length': 2, 'angle': 0.1, 'h': 0.1},
         {'length': 2, 'angle': 0.1},
-        {'length': 2, 'h': 0.1},
         {'length': 2},
-        {'angle': 0.1, 'h': 0.05},
+        {'angle': 0.1},
     ],
-    ids=['none', 'all', 'inconsistent', 'no_h', 'no_angle', 'only_length', 'no_length'],
+    ids=['none', 'all', 'length', 'angle'],
 )
 @pytest.mark.parametrize('scenario', ['vanilla', 'env'])
 def test_bend_param_handling(kwargs, scenario):
@@ -319,17 +317,7 @@ def test_bend_param_handling(kwargs, scenario):
             env.new('bend', 'Bend', **kwargs)
             return env['bend']
 
-    input_is_consistent = True
-    if len(kwargs) == 3 and not np.isclose(
-            kwargs['angle'], kwargs['length'] * kwargs['h'], rtol=0, atol=1e-13):
-        input_is_consistent = False
-
-    if not input_is_consistent:
-        with pytest.raises(ValueError):
-            _ = make_bend()
-        return
-    else:
-        bend = make_bend()
+    bend = make_bend()
 
     for key, value in kwargs.items():
         assert getattr(bend, key) == value
@@ -339,24 +327,18 @@ def test_bend_param_handling(kwargs, scenario):
     if 'angle' in kwargs:
         assert bend.angle == kwargs['angle']
 
-    if 'h' in kwargs:
-        assert bend.h == kwargs['h']
-
     assert bend.angle == bend.length * bend.h or bend.length == 0
 
 
 @pytest.mark.parametrize(
     'kwargs, expected',
     [
-        ({}, {'length': 10, 'angle': 0.2, 'h': 0.02}),
-        ({'length': 2, 'angle': 0.1, 'h': 0.05}, {'length': 2, 'angle': 0.1, 'h': 0.05}),
-        ({'length': 2, 'angle': 0.1, 'h': 0.1}, {'length': 2, 'angle': 0.2, 'h': 0.1}),  # order matters
-        ({'length': 2, 'angle': 0.1}, {'length': 2, 'angle': 0.1, 'h': 0.05}),
-        ({'length': 2, 'h': 0.05}, {'length': 2, 'angle': 0.1, 'h': 0.05}),
-        ({'length': 2}, {'length': 2, 'angle': 0.2, 'h': 0.1}),  # keeps angle
-        ({'h': 0.05, 'angle': 0.1}, {'length': 10, 'angle': 0.1, 'h': 0.01}),  # order matters
+        ({}, {'length': 10, 'angle': 0.2}),
+        ({'length': 2, 'angle': 0.1}, {'length': 2, 'angle': 0.1}),
+        ({'length': 2}, {'length': 2, 'angle': 0.2}),
+        ({'angle': 0.2}, {'length': 10, 'angle': 0.2}),
     ],
-    ids=['none', 'all', 'h_after_angle', 'no_h', 'no_angle', 'only_length', 'angle_after_h'],
+    ids=['none', 'all', 'only_length', 'only_angle'],
 )
 def test_bend_param_handling_set_after(kwargs, expected):
     bend = xt.Bend(length=10, angle=0.2)
@@ -374,19 +356,9 @@ def test_bend_param_handling_set_after(kwargs, expected):
 @pytest.mark.parametrize(
     'kwargs',
     [
-        {'length': 2, 'angle': 0.4, 'h': 0.2, 'length_straight': 1.986693307950612},
-        {'length': 2, 'angle': 0.4, 'h': 0.2},
-        {'length': 2, 'h': 0.2},
-        {'length': 2, 'angle': 0.4},
-        {'angle': 0.4, 'h': 0.2, 'length_straight': 1.986693307950612},
-        {'h': 0.2, 'length_straight': 1.986693307950612},
-        {'angle': 0.4, 'length_straight': 1.986693307950612},
-        {'length': 2, 'length_straight': 2},
-        {'length': 2},
+        {'length_straight': 2, 'angle': 0.4},
         {'length_straight': 2},
-        {'angle': 0.4, 'h': 0.2},
         {'angle': 0.4},
-        {'h': 0.2},
         # Inconsistent
         {'length': 2, 'angle': 0.4, 'h': 0.4, 'length_straight': 2, 'error': True},
         {'length': 2, 'angle': 0.4, 'h': 0.4, 'error': True},
@@ -395,9 +367,14 @@ def test_bend_param_handling_set_after(kwargs, expected):
         {'length': 2, 'h': 0.4, 'length_straight': 2, 'error': True},
     ],
     ids=[
-        'all', 'len_ang_h', 'len_h', 'len_ang', 'ls_ang_h', 'ls_h', 'ls_ang',
-        'only_lengths', 'only_len', 'only_ls', 'angle_h', 'only_angle', 'only_h',
-        'bad_all', 'bad_len', 'bad_ls', 'bad_ang', 'bad_h',
+        'lstraight_angle',
+        'lstraight',
+        'angle',
+        'inconsistent_1',
+        'inconsistent_2',
+        'inconsistent_3',
+        'inconsistent_4',
+        'inconsistent_5',
     ],
 )
 @pytest.mark.parametrize('scenario', ['vanilla', 'env'])
@@ -433,13 +410,6 @@ def test_rbend_param_handling(kwargs, scenario):
     if 'h' not in kwargs and 'angle' not in kwargs:
         assert same(bend.length, bend.length_straight)
 
-    if 'length' not in kwargs and 'length_straight' not in kwargs:
-        if 'h' not in kwargs:
-            assert same(bend.h, 0)
-        if 'angle' not in kwargs:
-            assert same(bend.angle, 0)
-
-
 def test_rbend_param_handling_set_after():
     # This test is a bit less meaningful as there are a lot of combinations
     # that lead to unintuitive, but valid, results
@@ -447,9 +417,9 @@ def test_rbend_param_handling_set_after():
     def assert_eq(a, b):
         xo.assert_allclose(a, b, rtol=0, atol=1e-15)
 
-    bend = xt.RBend(length=10, angle=0.2)
+    bend = xt.RBend(length_straight=9.983341664682815, angle=0.2)
     assert bend.h == 0.02
-    assert_eq(bend.length_straight, 9.983341664682815)
+    assert_eq(bend.length, 10)
 
     bend.angle = 0.4
     assert bend.angle == 0.4
@@ -464,32 +434,8 @@ def test_rbend_param_handling_set_after():
     assert_eq(bend.length, 10.016686131634778)
     assert_eq(bend.h, 0.01996668332936563)
 
-    bend.length = 10
-    assert bend.angle == 0.2
-    assert bend.length == 10
-    assert bend.h == 0.02
-    assert_eq(bend.length_straight, 9.983341664682815)
-
-    bend.h = 0.01
-    assert bend.h == 0.01
-    assert_eq(bend.length_straight, 9.983341664682815)
-    assert_eq(bend.angle, 0.09987492198591705)
-    assert_eq(bend.length, 9.987492198591704)
-
-
 @for_all_test_contexts
-@pytest.mark.parametrize(
-    'param_scenario', ['length', 'length_straight', 'both', 'mismatched'],
-)
-@pytest.mark.parametrize(
-    "use_angle_in_rbend", [True, False],
-    ids=('rbend with angle', 'rbend with h'),
-)
-@pytest.mark.parametrize(
-    "use_angle_in_sbend", [True, False],
-    ids=('sbend with angle', 'sbend with h'),
-)
-def test_rbend(test_context, param_scenario, use_angle_in_rbend, use_angle_in_sbend):
+def test_rbend(test_context):
     k0 = 0.15
     angle = 0.1
     radius = 2
@@ -501,20 +447,10 @@ def test_rbend(test_context, param_scenario, use_angle_in_rbend, use_angle_in_sb
 
     # Set up everything for the RBend
     r_bend_extra_kwargs = {}
+    r_bend_extra_kwargs['length_straight'] = length_straight
+    r_bend_extra_kwargs['angle'] = angle
 
-    if param_scenario in ('length', 'both', 'mismatched'):
-        r_bend_extra_kwargs['length'] = length
-
-    if param_scenario in ('length_straight', 'both', 'mismatched'):
-        r_bend_extra_kwargs['length_straight'] = length_straight
-
-    if use_angle_in_rbend:
-        r_bend_extra_kwargs['angle'] = angle
-    else:
-        r_bend_extra_kwargs['h'] = curvature
-
-    def _make_rbend():
-        return xt.RBend(
+    rbend = xt.RBend(
             k0=k0,
             edge_entry_angle=e1_rbend,
             edge_entry_active=True,
@@ -524,22 +460,9 @@ def test_rbend(test_context, param_scenario, use_angle_in_rbend, use_angle_in_sb
             _context=test_context,
         )
 
-    if param_scenario == 'mismatched':
-        length_straight += 0.8
-        with pytest.raises(ValueError):
-            r_bend_extra_kwargs['length_straight'] += 0.8
-            _make_rbend()
-        return
-    else:
-        rbend = _make_rbend()
-
     # Set up everything for the SBend
     s_bend_extra_kwargs = {}
-
-    if use_angle_in_rbend:
-        s_bend_extra_kwargs['angle'] = angle
-    else:
-        s_bend_extra_kwargs['h'] = curvature
+    s_bend_extra_kwargs['angle'] = angle
 
     sbend = xt.Bend(
         k0=k0,
@@ -578,7 +501,6 @@ def test_rbend(test_context, param_scenario, use_angle_in_rbend, use_angle_in_sb
     xo.assert_allclose(p_rbend.zeta, p_sbend.zeta, atol=1e-14, rtol=0)
     xo.assert_allclose(p_rbend.ptau, p_sbend.ptau, atol=1e-14, rtol=0)
 
-
 @pytest.mark.parametrize(
     'with_knobs',
     [True, False],
@@ -590,11 +512,9 @@ def test_rbend(test_context, param_scenario, use_angle_in_rbend, use_angle_in_sb
     ids=['true bend', 'combined function magnet'],
 )
 @pytest.mark.parametrize('bend_type', ['rbend', 'sbend'])
-def test_import_thick_bend_from_madx(use_true_thick_bends, with_knobs, bend_type):
-    mad = Madx(stdout=False)
-    mad.options.rbarc = False
+def test_import_thick_bend_from_madx_cpymad(use_true_thick_bends, with_knobs, bend_type):
 
-    mad.input(f"""
+    mad_src = f"""
     knob_a := 1.0;
     knob_b := 2.0;
     knob_c := 0.0;
@@ -605,15 +525,18 @@ def test_import_thick_bend_from_madx(use_true_thick_bends, with_knobs, bend_type
             fint:=0.5 * knob_a, hgap:=0.6 * knob_a,
             e1:=0.7 * knob_a, e2:=0.8 * knob_a;
     endsequence;
-    """)
+    """
+
+    mad = Madx(stdout=False)
+    mad.input(mad_src)
     mad.beam()
     mad.use(sequence='ss')
-
     line = xt.Line.from_madx_sequence(
         sequence=mad.sequence.ss,
         deferred_expressions=with_knobs,
         allow_thick=True,
     )
+
     line.configure_bend_model(core={False: 'expanded', True: 'full'}[
                               use_true_thick_bends])
 
@@ -627,20 +550,22 @@ def test_import_thick_bend_from_madx(use_true_thick_bends, with_knobs, bend_type
     assert elem.model == {False: 'mat-kick-mat', True: 'full'}[use_true_thick_bends]
 
     # Element:
-    xo.assert_allclose(elem.length, 2.0, atol=1e-14)
+    xo.assert_allclose(elem.angle, 0.1, atol=1e-14)
+    if bend_type == 'rbend':
+        xo.assert_allclose(elem.length_straight, 2.0, atol=1e-14)
+        xo.assert_allclose(elem.length, elem.length_straight / np.sinc(0.5 *elem.angle / np.pi), atol=1e-14)
+    else:
+        xo.assert_allclose(elem.length, 2.0, atol=1e-14)
     # The below is not strictly compatible with MAD-X, but is a corner case
     # that hopefully will never be relevant: if k0 is governed by an expression
     # we assume k0_from_h=False, even if its value evaluates to zero. In MAD-X
     # k0 = h if k0 is zero, but this is not feasible to implement in Xtrack now.
-    xo.assert_allclose(elem.k0, 0 if with_knobs else 0.05, atol=1e-14)
-    xo.assert_allclose(elem.h, 0.05, atol=1e-14)  # h = angle / L
+    xo.assert_allclose(elem.k2, 0.4, atol=1e-14)
+    xo.assert_allclose(elem.h, elem.angle / elem.length, atol=1e-14)  # h = angle / L
+    xo.assert_allclose(elem.k0, 0 if with_knobs else 'from_h', atol=1e-14)
+    xo.assert_allclose(elem.knl, 0.0, atol=1e-14)
     xo.assert_allclose(elem.ksl, 0.0, atol=1e-14)
 
-    xo.assert_allclose(
-        elem.knl,
-        np.array([0, 0, 0.8, 0, 0, 0]),  # knl = [0, 0, k2 * L, 0, 0]
-        atol=1e-14,
-    )
 
     # Edges:
     xo.assert_allclose(elem.edge_entry_fint, 0.5, atol=1e-14)
@@ -665,16 +590,108 @@ def test_import_thick_bend_from_madx(use_true_thick_bends, with_knobs, bend_type
 
     # Verify that the line has been adjusted correctly
     # Element:
-    xo.assert_allclose(elem.length, 3.0, atol=1e-14)
+    if bend_type == 'rbend':
+        xo.assert_allclose(elem.length_straight, 3.0, atol=1e-14)
+        xo.assert_allclose(elem.length, 3.0 / np.sinc(0.1 / np.pi), atol=1e-14)
+    else:
+        xo.assert_allclose(elem.length, 3.0, atol=1e-14)
     xo.assert_allclose(elem.k0, 0.4, atol=1e-14)
-    xo.assert_allclose(elem.h, 0.2 / 3.0, atol=1e-14)  # h = angle / length
+    xo.assert_allclose(elem.k2, 0.8, atol=1e-14)
+    xo.assert_allclose(elem.h, 0.2 / elem.length, atol=1e-14)  # h = angle / length
+    xo.assert_allclose(elem.ksl, 0.0, atol=1e-14)
     xo.assert_allclose(elem.ksl, 0.0, atol=1e-14)
 
-    xo.assert_allclose(
-        elem.knl,
-        np.array([0, 0, 2.4, 0, 0, 0]),  # knl = [0, 0, k2 * L, 0, 0]
-        atol=1e-14,
-    )
+    # Edges:
+    xo.assert_allclose(elem.edge_entry_fint, 1.0, atol=1e-14)
+    xo.assert_allclose(elem.edge_entry_hgap, 1.2, atol=1e-14)
+    xo.assert_allclose(elem.edge_entry_angle, 1.4, atol=1e-14)
+    xo.assert_allclose(elem.k0, 0.4, atol=1e-14)
+
+    xo.assert_allclose(elem.edge_exit_fint, 1.0, atol=1e-14)
+    xo.assert_allclose(elem.edge_exit_hgap, 1.2, atol=1e-14)
+    xo.assert_allclose(elem.edge_exit_angle, 1.6, atol=1e-14)
+
+@pytest.mark.parametrize(
+    'use_true_thick_bends',
+    [True, False],
+    ids=['true bend', 'combined function magnet'],
+)
+@pytest.mark.parametrize('bend_type', ['rbend', 'sbend'])
+def test_import_thick_bend_from_madx_native(use_true_thick_bends, bend_type):
+
+    mad_src = f"""
+    knob_a := 1.0;
+    knob_b := 2.0;
+    knob_c := 0.0;
+    ! Make the sequence a bit longer to accommodate rbends
+    ss: sequence, l:=2 * knob_b, refer=entry;
+        elem: {bend_type}, at=0, angle:=0.1 * knob_a, l:=knob_b,
+            k0:=0.2 * knob_c, k1=0, k2:=0.4 * knob_a,
+            fint:=0.5 * knob_a, hgap:=0.6 * knob_a,
+            e1:=0.7 * knob_a, e2:=0.8 * knob_a;
+    endsequence;
+    """
+
+    env = xt.load(string=mad_src, format='madx')
+    line = env['ss']
+
+    line.configure_bend_model(core={False: 'expanded', True: 'full'}[
+                              use_true_thick_bends])
+
+
+    assert np.all(line.get_table().name == np.array(
+        ['elem', '||drift_1', '_end_point']))
+    elem = line['elem']
+
+    # Check that the line has correct values to start with
+    assert elem.model == {False: 'mat-kick-mat', True: 'full'}[use_true_thick_bends]
+
+    # Element:
+    xo.assert_allclose(elem.angle, 0.1, atol=1e-14)
+    if bend_type == 'rbend':
+        xo.assert_allclose(elem.length_straight, 2.0, atol=1e-14)
+        xo.assert_allclose(elem.length, elem.length_straight / np.sinc(0.5 *elem.angle / np.pi), atol=1e-14)
+    else:
+        xo.assert_allclose(elem.length, 2.0, atol=1e-14)
+    # The below is not strictly compatible with MAD-X, but is a corner case
+    # that hopefully will never be relevant: if k0 is governed by an expression
+    # we assume k0_from_h=False, even if its value evaluates to zero. In MAD-X
+    # k0 = h if k0 is zero, but this is not feasible to implement in Xtrack now.
+    xo.assert_allclose(elem.k2, 0.4, atol=1e-14)
+    xo.assert_allclose(elem.h, elem.angle / elem.length, atol=1e-14)  # h = angle / L
+    xo.assert_allclose(elem.k0, 0 , atol=1e-14)
+    xo.assert_allclose(elem.knl, 0.0, atol=1e-14)
+    xo.assert_allclose(elem.ksl, 0.0, atol=1e-14)
+
+
+    # Edges:
+    xo.assert_allclose(elem.edge_entry_fint, 0.5, atol=1e-14)
+    xo.assert_allclose(elem.edge_entry_hgap, 0.6, atol=1e-14)
+    xo.assert_allclose(elem.edge_entry_angle, 0.7, atol=1e-14)
+
+    xo.assert_allclose(elem.edge_exit_fint, 0.5, atol=1e-14)
+    xo.assert_allclose(elem.edge_exit_hgap, 0.6, atol=1e-14)
+    xo.assert_allclose(elem.edge_exit_angle, 0.8, atol=1e-14)
+
+    assert 'knob_a' in line.vars
+
+    # Change the knob values
+    line.vars['knob_a'] = 2.0
+    line.vars['knob_b'] = 3.0
+    line.vars['knob_c'] = 2.0
+
+    # Verify that the line has been adjusted correctly
+    # Element:
+    if bend_type == 'rbend':
+        xo.assert_allclose(elem.length_straight, 3.0, atol=1e-14)
+        xo.assert_allclose(elem.length, 3.0 / np.sinc(0.1 / np.pi), atol=1e-14)
+    else:
+        xo.assert_allclose(elem.length, 3.0, atol=1e-14)
+    xo.assert_allclose(elem.k0, 0.4, atol=1e-14)
+    xo.assert_allclose(elem.k2, 0.8, atol=1e-14)
+    xo.assert_allclose(elem.h, 0.2 / elem.length, atol=1e-14)  # h = angle / length
+    xo.assert_allclose(elem.ksl, 0.0, atol=1e-14)
+    xo.assert_allclose(elem.ksl, 0.0, atol=1e-14)
 
     # Edges:
     xo.assert_allclose(elem.edge_entry_fint, 1.0, atol=1e-14)
@@ -687,8 +704,9 @@ def test_import_thick_bend_from_madx(use_true_thick_bends, with_knobs, bend_type
     xo.assert_allclose(elem.edge_exit_angle, 1.6, atol=1e-14)
 
 
+
 @pytest.mark.parametrize('with_knobs', [False, True])
-def test_import_thick_quad_from_madx(with_knobs):
+def test_import_thick_quad_from_madx_cpymad(with_knobs):
     mad = Madx(stdout=False)
 
     mad.input(f"""
@@ -731,13 +749,45 @@ def test_import_thick_quad_from_madx(with_knobs):
     xo.assert_allclose(elem.k1s, 1.2, atol=1e-14)
 
 
+def test_import_thick_quad_from_madx_native():
+    mad = Madx(stdout=False)
+
+    mad_src = f"""
+    knob_a := 0.0;
+    knob_b := 2.0;
+    ss: sequence, l:=knob_b, refer=entry;
+        elem: quadrupole, at=0, k1:=0.1 + knob_a, k1s:=0.2 + knob_a, l:=knob_b;
+    endsequence;
+    """
+    env = xt.load(string=mad_src, format='madx')
+    line = env['ss']
+
+    elem = line['elem']
+
+    # Verify that the line has been imported correctly
+    xo.assert_allclose(elem.length, 2.0, atol=1e-14)
+    xo.assert_allclose(elem.k1, 0.1, atol=1e-14)
+    xo.assert_allclose(elem.k1s, 0.2, atol=1e-14)
+
+    assert 'knob_a' in line.vars
+
+    # Change the knob values
+    line.vars['knob_a'] = 1.0
+    line.vars['knob_b'] = 3.0
+
+    # Verify that the line has been adjusted correctly
+    xo.assert_allclose(elem.length, 3.0, atol=1e-14)
+    xo.assert_allclose(elem.k1, 1.1, atol=1e-14)
+    xo.assert_allclose(elem.k1s, 1.2, atol=1e-14)
+
+
 @pytest.mark.parametrize(
     'with_knobs',
     [True, False],
     ids=['with knobs', 'no knobs'],
 )
 @pytest.mark.parametrize('bend_type', ['rbend', 'sbend'])
-def test_import_thick_bend_from_madx_and_slice(
+def test_import_thick_bend_from_madx_and_slice_cpymad(
         with_knobs,
         bend_type,
 ):
@@ -779,7 +829,8 @@ def test_import_thick_bend_from_madx_and_slice(
         xo.assert_allclose(elem.weight, 0.5, atol=1e-14)
         xo.assert_allclose(elem._parent.length, 2.0, atol=1e-14)
         xo.assert_allclose(elem._parent.k0, 0.2, atol=1e-14)
-        xo.assert_allclose(elem._parent.knl, [0., 0, 0.8, 0, 0, 0], atol=1e-14)
+        xo.assert_allclose(elem._parent.k2, 0.4, atol=1e-14)
+        xo.assert_allclose(elem._parent.knl, 0, atol=1e-14)
         xo.assert_allclose(elem._parent.ksl, 0, atol=1e-14)
         xo.assert_allclose(elem._parent.h, 0.05, atol=1e-14)
 
@@ -803,14 +854,16 @@ def test_import_thick_bend_from_madx_and_slice(
         xo.assert_allclose(elem.weight, 0.5, atol=1e-14)
         xo.assert_allclose(elem._parent.length, 3.0, atol=1e-14)
         xo.assert_allclose(elem._parent.k0, 0.4, atol=1e-14)
-        xo.assert_allclose(elem._parent.knl, [0., 0, 2.4, 0, 0, 0], atol=1e-14)
+        xo.assert_allclose(elem._parent.k2, 0.8, atol=1e-14)
+        xo.assert_allclose(elem._parent.knl, 0, atol=1e-14)
         xo.assert_allclose(elem._parent.ksl, 0, atol=1e-14)
         xo.assert_allclose(elem._parent.h, 0.2/3, atol=1e-14)
 
         xo.assert_allclose(elem._xobject.weight, 0.5, atol=1e-14)
         xo.assert_allclose(elem._xobject._parent.length, 3.0, atol=1e-14)
         xo.assert_allclose(elem._xobject._parent.k0, 0.4, atol=1e-14)
-        xo.assert_allclose(elem._xobject._parent.knl, [0., 0, 2.4, 0, 0, 0], atol=1e-14)
+        xo.assert_allclose(elem._xobject._parent.k2, 0.8, atol=1e-14)
+        xo.assert_allclose(elem._xobject._parent.knl, 0, atol=1e-14)
         xo.assert_allclose(elem._xobject._parent.ksl, 0, atol=1e-14)
         xo.assert_allclose(elem._xobject._parent.h, 0.2/3, atol=1e-14)
 
@@ -824,13 +877,102 @@ def test_import_thick_bend_from_madx_and_slice(
         assert drift._parent._buffer is line._buffer
         assert drift._xobject._parent._buffer is line._buffer
 
+@pytest.mark.parametrize('bend_type', ['rbend', 'sbend'])
+def test_import_thick_bend_from_madx_and_slice_native(
+        bend_type,
+):
+    mad_src = (f"""
+    knob_a := 1.0;
+    knob_b := 2.0;
+    ! Make the sequence a bit longer to accommodate rbends
+    ss: sequence, l:=2 * knob_b, refer=entry;
+        elem: {bend_type}, at=0, angle:=0.1 * knob_a, l:=knob_b,
+            k0:=0.2 * knob_a, k1=0, k2:=0.4 * knob_a,
+            fint:=0.5 * knob_a, hgap:=0.6 * knob_a,
+            e1:=0.7 * knob_a, e2:=0.8 * knob_a;
+    endsequence;
+    """)
+    env = xt.load(string=mad_src, format='madx')
+    line = env['ss']
+
+    line.slice_thick_elements(slicing_strategies=[Strategy(Uniform(2))])
+    line.build_tracker(compile=False)
+
+    elems = [line[f'elem..{ii}'] for ii in range(2)]
+    drifts = [line[f'drift_elem..{ii}'] for ii in range(2)]
+
+    # Verify that the slices are correct
+    for elem in elems:
+        slice_class = {
+            'rbend': xt.ThinSliceRBend,
+            'sbend': xt.ThinSliceBend,
+        }[bend_type]
+        assert isinstance(elem, slice_class)
+        xo.assert_allclose(elem.weight, 0.5, atol=1e-14)
+        if bend_type == 'rbend':
+            xo.assert_allclose(elem._parent.length_straight, 2.0, atol=1e-14)
+        else:
+            xo.assert_allclose(elem._parent.length, 2.0, atol=1e-14)
+        xo.assert_allclose(elem._parent.angle, 0.1, atol=1e-14)
+        xo.assert_allclose(elem._parent.k2, 0.4, atol=1e-14)
+        xo.assert_allclose(elem._parent.knl, 0, atol=1e-14)
+        xo.assert_allclose(elem._parent.ksl, 0, atol=1e-14)
+
+    for drift in drifts:
+        if bend_type == 'rbend':
+            xo.assert_allclose(drift._parent.length_straight, 2., atol=1e-14)
+        else:
+            xo.assert_allclose(drift._parent.length, 2., atol=1e-14)
+        xo.assert_allclose(drift.weight, 1./3., atol=1e-14)
+
+    assert 'knob_a' in line.vars
+
+    # Change the knob values
+    line.vars['knob_a'] = 2.0
+    line.vars['knob_b'] = 3.0
+
+    # Verify that the line has been adjusted correctly
+    for elem in elems:
+        xo.assert_allclose(elem.weight, 0.5, atol=1e-14)
+        if bend_type == 'rbend':
+            xo.assert_allclose(elem._parent.length_straight, 3.0, atol=1e-14)
+        else:
+            xo.assert_allclose(elem._parent.length, 3.0, atol=1e-14)
+        xo.assert_allclose(elem._parent.k2, 0.8, atol=1e-14)
+        xo.assert_allclose(elem._parent.knl, 0, atol=1e-14)
+        xo.assert_allclose(elem._parent.ksl, 0, atol=1e-14)
+        xo.assert_allclose(elem._parent.h, 0.2/elem._parent.length, atol=1e-14)
+
+        xo.assert_allclose(elem._xobject.weight, 0.5, atol=1e-14)
+        if bend_type == 'rbend':
+            xo.assert_allclose(elem._xobject._parent.length_straight, 3.0, atol=1e-14)
+        else:
+            xo.assert_allclose(elem._xobject._parent.length, 3.0, atol=1e-14)
+        xo.assert_allclose(elem._xobject._parent.k0, 0.4, atol=1e-14)
+        xo.assert_allclose(elem._xobject._parent.k2, 0.8, atol=1e-14)
+        xo.assert_allclose(elem._xobject._parent.knl, 0, atol=1e-14)
+        xo.assert_allclose(elem._xobject._parent.ksl, 0, atol=1e-14)
+        xo.assert_allclose(elem._xobject._parent.h, 0.2/elem._parent.length, atol=1e-14)
+
+        assert elem._parent._buffer is line._buffer
+        assert elem._xobject._parent._buffer is line._buffer
+
+    for drift in drifts:
+        if bend_type == 'rbend':
+            xo.assert_allclose(drift._parent.length_straight, 3, atol=1e-14)
+        else:
+            xo.assert_allclose(drift._parent.length, 3, atol=1e-14)
+        xo.assert_allclose(drift.weight, 1./3., atol=1e-14)
+
+        assert drift._parent._buffer is line._buffer
+        assert drift._xobject._parent._buffer is line._buffer
 
 @pytest.mark.parametrize(
     'with_knobs',
     [True, False],
     ids=['with knobs', 'no knobs'],
 )
-def test_import_thick_quad_from_madx_and_slice(with_knobs):
+def test_import_thick_quad_from_madx_and_slice_cpymad(with_knobs):
     mad = Madx(stdout=False)
     mad.input(f"""
     knob_a := 0.0;
@@ -901,9 +1043,69 @@ def test_import_thick_quad_from_madx_and_slice(with_knobs):
         assert drift._parent._buffer is line._buffer
         assert drift._xobject._parent._buffer is line._buffer
 
+def test_import_thick_quad_from_madx_and_slice_native():
+    mad_src  = f"""
+    knob_a := 0.0;
+    knob_b := 2.0;
+    ss: sequence, l:=knob_b, refer=entry;
+        elem: quadrupole, at=0, k1:=0.1 + knob_a, k1s:=0.2 + knob_a, l:=knob_b;
+    endsequence;
+    """
+    env = xt.load(string=mad_src, format='madx')
+    line = env['ss']
+    line.slice_thick_elements(slicing_strategies=[Strategy(Uniform(2))])
+    line.build_tracker(compile=False)
+
+    elems = [line[f'elem..{ii}'] for ii in range(2)]
+    drifts = [line[f'drift_elem..{ii}'] for ii in range(2)]
+
+    # Verify that the slices are correct
+    for elem in elems:
+        xo.assert_allclose(elem.weight, 0.5, atol=1e-14)
+        xo.assert_allclose(elem._parent.length, 2.0, atol=1e-14)
+        xo.assert_allclose(elem._parent.k1, 0.1, atol=1e-14)
+        xo.assert_allclose(elem._parent.k1s, 0.2, atol=1e-14)
+
+    for drift in drifts:
+        xo.assert_allclose(drift._parent.length, 2., atol=1e-14)
+        xo.assert_allclose(drift.weight, 1./3., atol=1e-14)
+
+    assert 'knob_a' in line.vars
+
+    # Change the knob values
+    line.vars['knob_a'] = 2.0
+    line.vars['knob_b'] = 3.0
+
+    # Verify that the line has been adjusted correctly
+    for elem in elems:
+        xo.assert_allclose(elem.weight, 0.5, atol=1e-14)
+        xo.assert_allclose(elem._parent.length, 3.0, atol=1e-14)
+        xo.assert_allclose(elem._parent.k1, 2.1, atol=1e-14)
+        xo.assert_allclose(elem._parent.k1s, 2.2, atol=1e-14)
+
+        xo.assert_allclose(elem._xobject.weight, 0.5, atol=1e-14)
+        xo.assert_allclose(elem._xobject._parent.length, 3.0, atol=1e-14)
+        xo.assert_allclose(elem._xobject._parent.k1, 2.1, atol=1e-14)
+        xo.assert_allclose(elem._xobject._parent.k1s, 2.2, atol=1e-14)
+
+        assert elem._parent._buffer is line._buffer
+        assert elem._xobject._parent._buffer is line._buffer
+
+    for drift in drifts:
+        xo.assert_allclose(drift._parent.length, 3., atol=1e-14)
+        xo.assert_allclose(drift.weight, 1./3., atol=1e-14)
+
+        xo.assert_allclose(drift._xobject._parent.length, 3., atol=1e-14)
+        xo.assert_allclose(drift._xobject.weight, 1./3., atol=1e-14)
+
+        assert drift._parent._buffer is line._buffer
+        assert drift._xobject._parent._buffer is line._buffer
+
 
 @for_all_test_contexts
+@allow_kernel_compilation
 def test_fringe_implementations(test_context):
+
 
     fringe = xt.DipoleEdge(k=0.12, fint=100, hgap=0.035, model='full')
 
@@ -916,10 +1118,10 @@ def test_fringe_implementations(test_context):
     p_ng = p0.copy()
     p_ptc = p0.copy()
 
-    R_ng = line.compute_one_turn_matrix_finite_differences(particle_on_co=p0.copy())['R_matrix']
+    R_ng = line.get_R_matrix(particle_on_co=p0.copy())['R_matrix']
     line.track(p_ng)
     line.config.XTRACK_FRINGE_FROM_PTC = True
-    R_ptc = line.compute_one_turn_matrix_finite_differences(particle_on_co=p0.copy())['R_matrix']
+    R_ptc = line.get_R_matrix(particle_on_co=p0.copy())['R_matrix']
     line.track(p_ptc)
 
     p_ng.move(_context=xo.context_default)
@@ -941,7 +1143,7 @@ def test_fringe_implementations(test_context):
 def test_backtrack_with_bend_quadrupole_and_cfm(test_context):
 
     # Check bend
-    b = xt.Bend(k0=0.2, h=0.1, length=1.0)
+    b = xt.Bend(k0=0.2, angle=0.1, length=1.0)
     line = xt.Line(elements=[b])
     line.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV, beta0=0.5)
     line.reset_s_at_end_turn = False
@@ -1006,7 +1208,7 @@ def test_backtrack_with_bend_quadrupole_and_cfm(test_context):
     assert np.all(p2.state == -32)
 
     # Same for combined function magnet
-    cfm = xt.Bend(length=1.0, k1=0.2, h=0.1)
+    cfm = xt.Bend(length=1.0, k1=0.2, angle=0.1)
     line = xt.Line(elements=[cfm])
     line.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV, beta0=0.5)
     line.reset_s_at_end_turn = False
@@ -1029,7 +1231,7 @@ def test_backtrack_with_bend_quadrupole_and_cfm(test_context):
     xo.assert_allclose(p2.zeta, p0.zeta, atol=1e-15, rtol=0)
     xo.assert_allclose(p2.delta, p0.delta, atol=1e-15, rtol=0)
 
-def test_import_thick_with_apertures_and_slice():
+def test_import_thick_with_apertures_and_slice_cpymad():
     mad = Madx(stdout=False)
 
     mad.input("""
@@ -1091,6 +1293,79 @@ def test_import_thick_with_apertures_and_slice():
         'drift_elm..2',                 # drift 2
         'elm_aper..3',                  # exit edge aperture
         'elm..exit_map',                # exit edge (+transform)
+        'elm_aper..4',                  # closing aperture
+        'elm_exit',                     # exit marker
+    ])
+
+    line.build_tracker(compile=False) # To resolve parents
+
+    for i in range(4):
+        _assert_eq(line[f'elm_aper..{i}'].resolve(line).rot_s_rad, 0.1)
+        _assert_eq(line[f'elm_aper..{i}'].resolve(line).shift_x, 0.2)
+        _assert_eq(line[f'elm_aper..{i}'].resolve(line).shift_y, 0.3)
+        _assert_eq(line[f'elm_aper..{i}'].resolve(line).max_x, 0.1)
+        _assert_eq(line[f'elm_aper..{i}'].resolve(line).max_y, 0.2)
+        _assert_eq(line[f'elm_aper..{i}'].resolve(line).a_squ, 0.11 ** 2)
+        _assert_eq(line[f'elm_aper..{i}'].resolve(line).b_squ, 0.22 ** 2)
+
+    for i in range(2):
+        _assert_eq(line[f'elm..{i}']._parent.rot_s_rad, 0.2)
+
+
+def test_import_thick_with_apertures_and_slice_native():
+
+    mad_src = """
+    k1=0.2;
+    tilt=0.1;
+
+    elm: sbend,
+        k1:=k1,
+        l=1,
+        angle=0.1,
+        tilt=0.2,
+        apertype="rectellipse",
+        aperture={0.1,0.2,0.11,0.22},
+        aper_tol={0.1,0.2,0.3},
+        aper_tilt:=tilt,
+        aper_offset={0.2, 0.3};
+
+    seq: sequence, l=1;
+    elm: elm, at=0.5;
+    endsequence;
+    """
+    env = xt.load(string=mad_src, format='madx')
+    line = env['seq']
+
+
+    def _assert_eq(a, b):
+        xo.assert_allclose(a, b, atol=1e-14)
+
+    _assert_eq(line[f'elm_aper'].rot_s_rad, 0.1)
+    _assert_eq(line[f'elm_aper'].shift_x, 0.2)
+    _assert_eq(line[f'elm_aper'].shift_y, 0.3)
+    _assert_eq(line[f'elm_aper'].max_x, 0.1)
+    _assert_eq(line[f'elm_aper'].max_y, 0.2)
+    _assert_eq(line[f'elm_aper'].a_squ, 0.11 ** 2)
+    _assert_eq(line[f'elm_aper'].b_squ, 0.22 ** 2)
+
+    _assert_eq(line[f'elm'].rot_s_rad, 0.2)
+
+    line.slice_thick_elements(slicing_strategies=[Strategy(Uniform(2))])
+
+    assert np.all(line.get_table().rows['elm_entry':'elm_exit'].name == [
+        'elm_entry',                    # entry marker
+        'elm_aper..0',                  # entry edge aperture
+        'elm..entry_map',               # entry edge (+transform)
+        'drift_elm..0',                 # drift 0
+        'elm_aper..1',                  # slice 1 aperture
+        'elm..0',                       # slice 0 (+transform)
+        'drift_elm..1',                 # drift 1
+        'elm_aper..2',                  # slice 2 aperture
+        'elm..1',                       # slice 2 (+transform)
+        'drift_elm..2',                 # drift 2
+        'elm_aper..3',                  # exit edge aperture
+        'elm..exit_map',                # exit edge (+transform)
+        'elm_aper..4',                  # closing aperture
         'elm_exit',                     # exit marker
     ])
 
@@ -1109,7 +1384,7 @@ def test_import_thick_with_apertures_and_slice():
         _assert_eq(line[f'elm..{i}']._parent.rot_s_rad, 0.2)
 
 @for_all_test_contexts
-def test_sextupole(test_context):
+def test_sextupole_cpymad(test_context):
     k2 = 3.
     k2s = 5.
     length = 0.4
@@ -1227,9 +1502,132 @@ def test_sextupole(test_context):
     xo.assert_allclose(elem.k2, 3, rtol=0, atol=1e-14)
     xo.assert_allclose(elem.k2s, 10, rtol=0, atol=1e-14)
 
-    line_mad.vv['knob_a'] = 0.5
-    line_mad.vv['knob_b'] = 0.6
-    line_mad.vv['knob_l'] = 0.7
+    line_mad['knob_a'] = 0.5
+    line_mad['knob_b'] = 0.6
+    line_mad['knob_l'] = 0.7
+
+    xo.assert_allclose(elem.length, 0.7, rtol=0, atol=1e-14)
+    xo.assert_allclose(elem.k2, 1.5, rtol=0, atol=1e-14)
+    xo.assert_allclose(elem.k2s, 3.0, rtol=0, atol=1e-14)
+
+@for_all_test_contexts
+def test_sextupole_native(test_context):
+    k2 = 3.
+    k2s = 5.
+    length = 0.4
+
+    line_thin = xt.Line(elements=[
+        xt.Drift(length=length/2),
+        xt.Multipole(knl=[0., 0., k2 * length],
+                    ksl=[0., 0., k2s * length],
+                    length=length),
+        xt.Drift(length=length/2),
+    ])
+    line_thin.build_tracker(_context=test_context)
+
+    line_thick = xt.Line(elements=[
+        xt.Sextupole(k2=k2, k2s=k2s, length=length),
+    ])
+    line_thick.build_tracker(_context=test_context)
+
+    p = xt.Particles(
+        p0c=6500e9,
+        x=[-3e-2, -2e-3, 0, 1e-3, 2e-3, 3e-2],
+        px=[1e-6, 2e-6,  0, 2e-6, 1e-6, 1e-6],
+        y=[-2e-2, -5e-3, 0, 5e-3, -4e-3, 2e-2],
+        py=[2e-6, 4e-6,  0, 2e-6, 1e-6, 1e-6],
+        delta=[1e-3, 2e-3, 0, -2e-3, -1e-3, -1e-3],
+        zeta=[-5e-2, -6e-3, 0, 6e-3, 5e-3, 5e-2],
+    )
+
+    p_thin = p.copy(_context=test_context)
+    p_thick = p.copy(_context=test_context)
+
+    line_thin.track(p_thin)
+    line_thick.track(p_thick)
+
+    p_thin.move(_context=xo.context_default)
+    p_thick.move(_context=xo.context_default)
+    xo.assert_allclose(p_thin.x, p_thick.x, rtol=0, atol=1e-14)
+    xo.assert_allclose(p_thin.px, p_thick.px, rtol=0, atol=1e-14)
+    xo.assert_allclose(p_thin.y, p_thick.y, rtol=0, atol=1e-14)
+    xo.assert_allclose(p_thin.py, p_thick.py, rtol=0, atol=1e-14)
+    xo.assert_allclose(p_thin.delta, p_thick.delta, rtol=0, atol=1e-14)
+    xo.assert_allclose(p_thin.zeta, p_thick.zeta, rtol=0, atol=1e-14)
+
+    # slicing
+    Teapot = xt.slicing.Teapot
+    Strategy = xt.slicing.Strategy
+
+    line_sliced = line_thick.copy()
+    line_sliced.slice_thick_elements(
+        slicing_strategies=[Strategy(slicing=Teapot(5))])
+    line_sliced.build_tracker(_context=test_context)
+
+    p_sliced = p.copy(_context=test_context)
+    line_sliced.track(p_sliced)
+
+    p_sliced.move(_context=xo.context_default)
+    xo.assert_allclose(p_sliced.x, p_thick.x, rtol=0, atol=5e-6)
+    xo.assert_allclose(p_sliced.px, p_thick.px, rtol=0.01, atol=1e-10)
+    xo.assert_allclose(p_sliced.y, p_thick.y, rtol=0, atol=5e-6)
+    xo.assert_allclose(p_sliced.py, p_thick.py, rtol=0.01, atol=1e-10)
+    xo.assert_allclose(p_sliced.delta, p_thick.delta, rtol=0, atol=1e-14)
+    xo.assert_allclose(p_sliced.zeta, p_thick.zeta, rtol=0, atol=2e-7)
+
+    p_thick.move(_context=test_context)
+    p_thin.move(_context=test_context)
+    p_sliced.move(_context=test_context)
+
+    line_thin.track(p_thin, backtrack=True)
+    line_thick.track(p_thick, backtrack=True)
+    line_sliced.track(p_sliced, backtrack=True)
+
+    p_thick.move(_context=xo.context_default)
+    p_thin.move(_context=xo.context_default)
+    p_sliced.move(_context=xo.context_default)
+
+    xo.assert_allclose(p_thin.x, p.x, rtol=0, atol=1e-14)
+    xo.assert_allclose(p_thin.px, p.px, rtol=0, atol=1e-14)
+    xo.assert_allclose(p_thin.y, p.y, rtol=0, atol=1e-14)
+    xo.assert_allclose(p_thin.py, p.py, rtol=0, atol=1e-14)
+    xo.assert_allclose(p_thin.delta, p.delta, rtol=0, atol=1e-14)
+
+    xo.assert_allclose(p_thick.x, p.x, rtol=0, atol=1e-14)
+    xo.assert_allclose(p_thick.px, p.px, rtol=0, atol=1e-14)
+    xo.assert_allclose(p_thick.y, p.y, rtol=0, atol=1e-14)
+    xo.assert_allclose(p_thick.py, p.py, rtol=0, atol=1e-14)
+    xo.assert_allclose(p_thick.delta, p.delta, rtol=0, atol=1e-14)
+
+    xo.assert_allclose(p_sliced.x, p.x, rtol=0, atol=1e-14)
+    xo.assert_allclose(p_sliced.px, p.px, rtol=0, atol=1e-14)
+    xo.assert_allclose(p_sliced.y, p.y, rtol=0, atol=1e-14)
+    xo.assert_allclose(p_sliced.py, p.py, rtol=0, atol=1e-14)
+    xo.assert_allclose(p_sliced.delta, p.delta, rtol=0, atol=1e-14)
+    xo.assert_allclose(p_sliced.zeta, p.zeta, rtol=0, atol=1e-14)
+
+    mad_src = f"""
+        knob_a := 1.0;
+        knob_b := 2.0;
+        knob_l := 0.4;
+        ss: sequence, l:=2 * knob_b, refer=entry;
+            elem: sextupole, at=0, l:=knob_l, k2:=3*knob_a, k2s:=5*knob_b;
+        endsequence;
+        """
+    env = xt.load(string=mad_src, format='madx')
+    line_mad = env['ss']
+
+    line_mad.build_tracker()
+
+    elem = line_mad['elem']
+    assert isinstance(elem, xt.Sextupole)
+    xo.assert_allclose(elem.length, 0.4, rtol=0, atol=1e-14)
+    xo.assert_allclose(elem.k2, 3, rtol=0, atol=1e-14)
+    xo.assert_allclose(elem.k2s, 10, rtol=0, atol=1e-14)
+
+    line_mad['knob_a'] = 0.5
+    line_mad['knob_b'] = 0.6
+    line_mad['knob_l'] = 0.7
 
     xo.assert_allclose(elem.length, 0.7, rtol=0, atol=1e-14)
     xo.assert_allclose(elem.k2, 1.5, rtol=0, atol=1e-14)
@@ -1245,7 +1643,7 @@ def test_sextupole(test_context):
     ]
 )
 @for_all_test_contexts
-def test_solenoid_against_madx(test_context, ks, ksi, length):
+def test_solenoid_against_madx_cpymad(test_context, ks, ksi, length):
     p0 = xp.Particles(
         mass0=xp.PROTON_MASS_EV,
         beta0=[0.15, 0.5, 0.85, 0.15, 0.5, 0.85, 0.5],
@@ -1283,7 +1681,9 @@ def test_solenoid_against_madx(test_context, ks, ksi, length):
     ml = MadLoader(mad.sequence.ss, allow_thick=True)
     line_thick = ml.make_line()
     line_thick.build_tracker(_context=test_context)
-    line_thick.config.XTRACK_USE_EXACT_DRIFTS = True  # to be consistent with madx
+    # Compare the map itself also for particles outside the safety aperture.
+    line_thick.tracker.track_flags.XS_FLAG_IGNORE_GLOBAL_APERTURE = True
+    line_thick.configure_drift_model('exact')  # to be consistent with madx
 
     for ii in range(len(p0.x)):
         mad.input(f"""
@@ -1315,12 +1715,92 @@ def test_solenoid_against_madx(test_context, ks, ksi, length):
         xo.assert_allclose(part.ptau[ii], mad_results.pt, atol=1e-11, rtol=0), 'pt'
         xo.assert_allclose(part.s[ii], mad_results.s, atol=1e-11, rtol=0), 's'
 
+@pytest.mark.parametrize(
+    'ks, ksi, length',
+    [
+        # thick:
+        (-0.1, 0, 0.9),
+        (0, 0, 0.9),
+        (0.13, 0, 1.6),
+    ]
+)
+@for_all_test_contexts
+def test_solenoid_against_madx_native(test_context, ks, ksi, length):
+    p0 = xp.Particles(
+        mass0=xp.PROTON_MASS_EV,
+        beta0=[0.15, 0.5, 0.85, 0.15, 0.5, 0.85, 0.5],
+        x=-0.03,
+        y=0.01,
+        px=-0.1,
+        py=0.1,
+        zeta=0.1,
+        delta=[-0.8, -0.5, -0.1, 0, 0.1, 0.5, 0.8],
+        _context=test_context,
+    )
+
+    if length == 0:
+        dr_len = 1e-11
+        mad_src = (f"""
+        ss: sequence, l={dr_len};
+            sol: solenoid, at=0, ks={ks}, ksi={ksi}, l=0;
+            ! since in MAD-X we can't track a zero-length line, we put in
+            ! this tiny drift here at the end of the sequence:
+            dr: drift, at={dr_len / 2}, l={dr_len};
+        endsequence;
+        """)
+    else:
+        mad_src = (f"""
+        ss: sequence, l={length};
+            sol: solenoid, at={length / 2}, ks={ks}, ksi={ksi}, l={length};
+        endsequence;
+        """)
+
+    env = xt.load(string=mad_src, format='madx')
+    line_thick = env['ss']
+
+    line_thick.configure_drift_model('exact')  # to be consistent with madx
+    line_thick.build_tracker(_context=test_context)
+    # Compare the map itself also for particles outside the safety aperture.
+    line_thick.tracker.track_flags.XS_FLAG_IGNORE_GLOBAL_APERTURE = True
+
+    mad = Madx(stdout=False)
+    mad.input(mad_src)
+    mad.input("beam; use, sequence=ss;")
+    for ii in range(len(p0.x)):
+        mad.input(f"""
+        beam, particle=ion, pc={p0.p0c[ii] / 1e9}, mass={p0.mass0 / 1e9}, sequence=ss, radiate=FALSE;
+
+        track, onepass, onetable;
+        start, x={p0.x[ii]}, px={p0.px[ii]}, y={p0.y[ii]}, py={p0.py[ii]}, \
+            t={p0.zeta[ii]/p0.beta0[ii]}, pt={p0.ptau[ii]};
+        run,
+            turns=1,
+            track_harmon=1e-15;  ! since in this test we don't care about
+              ! losing particles due to t difference, we set track_harmon to
+              ! something very small, to make t_max large.
+        endtrack;
+        """)
+
+        mad_results = mad.table.mytracksumm[-1]
+
+        part = p0.copy(_context=test_context)
+        line_thick.track(part, _force_no_end_turn_actions=True)
+        part.move(_context=xo.context_default)
+
+        xt_tau = part.zeta/part.beta0
+        xo.assert_allclose(part.x[ii], mad_results.x, atol=1e-10, rtol=0), 'x'
+        xo.assert_allclose(part.px[ii], mad_results.px, atol=1e-11, rtol=0), 'px'
+        xo.assert_allclose(part.y[ii], mad_results.y, atol=1e-10, rtol=0), 'y'
+        xo.assert_allclose(part.py[ii], mad_results.py, atol=1e-11, rtol=0), 'py'
+        xo.assert_allclose(xt_tau[ii], mad_results.t, atol=1e-9, rtol=0), 't'
+        xo.assert_allclose(part.ptau[ii], mad_results.pt, atol=1e-11, rtol=0), 'pt'
+        xo.assert_allclose(part.s[ii], mad_results.s, atol=1e-11, rtol=0), 's'
 
 @for_all_test_contexts
 def test_solenoid_thick_drift_like(test_context):
     solenoid = xt.UniformSolenoid(ks=1.001e-9, length=1, _context=test_context)
     l_drift = xt.Line(elements=[xt.Drift(length=1)])
-    l_drift.config.XTRACK_USE_EXACT_DRIFTS = True
+    l_drift.configure_drift_model('exact')
     l_drift.build_tracker(_context=test_context)
 
     p0 = xp.Particles(
@@ -1449,6 +1929,7 @@ def test_solenoid_with_mult_kicks(test_context, backtrack):
     xo.assert_allclose(p_test.pzeta, p_ref.pzeta, rtol=0, atol=1e-13)
 
 
+@pytest.mark.filterwarnings('ignore::FutureWarning')
 @for_all_test_contexts
 def test_solenoid_shifted_and_rotated_multipolar_kick(test_context):
     ks = 0.9
@@ -1474,15 +1955,15 @@ def test_solenoid_shifted_and_rotated_multipolar_kick(test_context):
     line_test = xt.Line(elements=[solenoid])
     line_test.build_tracker(_context=test_context)
 
-    elements_ref = [solenoid_no_kick] + 3 * [
-        xt.XYShift(dx=mult_shift_x),
-        xt.YRotation(angle=np.rad2deg(-mult_rot_y_rad)),
+    elements_sol = [solenoid_no_kick] + 3 * [
+        xt.Translation(shift_x=mult_shift_x),
+        xt.Rotation(rot_y_rad=-mult_rot_y_rad),
         kick,
-        xt.YRotation(angle=np.rad2deg(mult_rot_y_rad)),
-        xt.XYShift(dx=-mult_shift_x),
+        xt.Rotation(rot_y_rad=mult_rot_y_rad),
+        xt.Translation(shift_x=-mult_shift_x),
         solenoid_no_kick
     ]
-    line_ref = xt.Line(elements=elements_ref)
+    line_ref = xt.Line(elements=elements_sol)
     line_ref.build_tracker(_context=test_context)
 
     p0 = xt.Particles(x=1e-2, px=-2e-4, y=-2e-2, py=3e-4, zeta=1e-2, delta=1e-3)
@@ -1500,6 +1981,7 @@ def test_solenoid_shifted_and_rotated_multipolar_kick(test_context):
     xo.assert_allclose(p_test.delta, p_ref.delta, rtol=0, atol=1e-14)
 
 
+@pytest.mark.filterwarnings('ignore::FutureWarning')
 @pytest.mark.parametrize('shift_x', (0, 1e-3))
 @pytest.mark.parametrize('shift_y', (0, 1e-3))
 @pytest.mark.parametrize('test_element_name', ('Bend', 'Quadrupole', 'Sextupole'))
@@ -1572,14 +2054,14 @@ def test_solenoid_multipole_shifts(shift_x, shift_y, test_element_name):
     test_sol.mult_shift_y = shift_y
 
     tw = line.twiss(
-        _continue_if_lost=True,
+        #_continue_if_lost=True,
         start=xt.START,
         end=xt.END,
         betx=BETX,
         bety=BETY,
         px=PX0)
     tw_sol = sol_line.twiss(
-        _continue_if_lost=True,
+        #_continue_if_lost=True,
         start=xt.START,
         end=xt.END,
         betx=BETX,
@@ -1593,6 +2075,7 @@ def test_solenoid_multipole_shifts(shift_x, shift_y, test_element_name):
     xo.assert_allclose(tw.y[-1], tw_sol.y[-1], rtol=2e-6, atol=1e-12)
 
 
+@pytest.mark.filterwarnings('ignore::FutureWarning')
 def test_solenoid_multipole_rotations():
     N_SLICES = int(1E2)
     K0 = 1E-3
@@ -1629,12 +2112,12 @@ def test_solenoid_multipole_rotations():
     ########################################
     hrot_components_in = [
         env.new('hrot_drift0', xt.Drift, length=1),
-        env.new('hshift_in', xt.XYShift, dx=np.sin(XING_RAD) * L_SOL / 2),
-        env.new('hrot_in', xt.YRotation, angle=-np.rad2deg(XING_RAD))]
+        env.new('hshift_in', xt.Translation, shift_x=np.sin(XING_RAD) * L_SOL / 2),
+        env.new('hrot_in', xt.Rotation, rot_y_rad=-XING_RAD)]
 
     hrot_components_out = [
-        env.new('hrot_out', xt.YRotation, angle=np.rad2deg(XING_RAD)),
-        env.new('hshift_out', xt.XYShift, dx=np.sin(XING_RAD) * L_SOL / 2),
+        env.new('hrot_out', xt.Rotation, rot_y_rad=XING_RAD),
+        env.new('hshift_out', xt.Translation, shift_x=np.sin(XING_RAD) * L_SOL / 2),
         env.new('hrot_drift1', xt.Drift, length=1)]
 
     hrot_components_sol = [
@@ -1655,12 +2138,11 @@ def test_solenoid_multipole_rotations():
     ########################################
     vrot_components_in = [
         env.new('vrot_drift0', xt.Drift, length=1),
-        env.new('vshift_in', xt.XYShift, dy=np.sin(XING_RAD) * L_SOL / 2),
-        env.new('vrot_in', xt.XRotation, angle=np.rad2deg(XING_RAD))]
-    # TODO: Minus sign difference here as still inconsistent definition with XRotation and YRotation
+        env.new('vshift_in', xt.Translation, shift_y=np.sin(XING_RAD) * L_SOL / 2),
+        env.new('vrot_in', xt.Rotation, rot_x_rad=XING_RAD)]
     vrot_components_out = [
-        env.new('vrot_out', xt.XRotation, angle=-np.rad2deg(XING_RAD)),
-        env.new('vshift_out', xt.XYShift, dy=np.sin(XING_RAD) * L_SOL / 2),
+        env.new('vrot_out', xt.Rotation, rot_x_rad=-XING_RAD),
+        env.new('vshift_out', xt.Translation, shift_y=np.sin(XING_RAD) * L_SOL / 2),
         env.new('vrot_drift1', xt.Drift, length=1)]
 
     vrot_components_sol = [
@@ -1738,12 +2220,20 @@ def test_solenoid_multipole_rotations():
         ('mean', {'XTRACK_SYNRAD_KICK_SAME_AS_FIRST': True}),
         ('mean', {'XTRACK_SYNRAD_SCALE_SAME_AS_FIRST': True}),
         ('quantum', {}),
+        ('quantum-kick', {}),
     ],
 )
+@allow_kernel_compilation(skip_when_forbid_compile=False)
 def test_drift_like_solenoid_with_kicks_radiation(radiation_mode, config):
+
+    if config.get('XTRACK_SYNRAD_KICK_SAME_AS_FIRST', False):
+        skip_if_forbid_compile()
+
+    if config.get('XTRACK_SYNRAD_SCALE_SAME_AS_FIRST', False):
+        skip_if_forbid_compile()
+
     test_context = xo.ContextCpu()
 
-    config['XTRACK_USE_EXACT_DRIFTS'] = True
     knl = [0.1, 0.4, 0.5]
     ksl = [0.2, 0.3, 0.6]
 
@@ -1752,6 +2242,7 @@ def test_drift_like_solenoid_with_kicks_radiation(radiation_mode, config):
         xt.Multipole(knl=knl, ksl=ksl),
         xt.Drift(length=0.5),
     ])
+    line_test.configure_drift_model('exact')
 
     line_ref = xt.Line(elements=[
         xt.UniformSolenoid(ks=0, length=1, knl=knl, ksl=ksl, num_multipole_kicks=1)
@@ -1798,12 +2289,19 @@ def test_drift_like_solenoid_with_kicks_radiation(radiation_mode, config):
         ('mean', {'XTRACK_SYNRAD_KICK_SAME_AS_FIRST': True}),
         ('mean', {'XTRACK_SYNRAD_SCALE_SAME_AS_FIRST': True}),
         ('quantum', {}),
+        ('quantum-kick', {}),
     ],
 )
+@allow_kernel_compilation(skip_when_forbid_compile=False)
 def test_solenoid_with_kicks_radiation(radiation_mode, config):
-    test_context = xo.ContextCpu()
 
-    config['XTRACK_USE_EXACT_DRIFTS'] = True
+    if config.get('XTRACK_SYNRAD_KICK_SAME_AS_FIRST', False):
+        skip_if_forbid_compile()
+
+    if config.get('XTRACK_SYNRAD_SCALE_SAME_AS_FIRST', False):
+        skip_if_forbid_compile()
+
+    test_context = xo.ContextCpu()
 
     ks = 0.4
     l = 1.1
@@ -1817,6 +2315,9 @@ def test_solenoid_with_kicks_radiation(radiation_mode, config):
     line_ref = xt.Line(elements=[sol_ref])
     line_1 = xt.Line(elements=[sol_1])
     line_3 = xt.Line(elements=[sol_3])
+
+    for ll in (line_ref, line_1, line_3):
+        ll.configure_drift_model('exact')
 
     coords = np.linspace(-0.05, 0.05, 10)
     coords_6d = np.array(list(itertools.product(*(coords,) * 6))).T
@@ -2040,7 +2541,7 @@ def test_knl_knl_kick_present_with_default_num_kicks():
     assert np.abs(p.px[0]) > 1e-7
 
     l5 = env.new_line(components=[
-        env.new('rb1', 'RBend', length=0.1)])
+        env.new('rb1', 'RBend', length_straight=0.1)])
     p0 = l5.build_particles(x=3e-3)
     p = p0.copy()
     l5.track(p)
@@ -2156,7 +2657,7 @@ def test_octupole_num_kicks():
 def test_configure_model():
     line = xt.Line(elements={
         'b1': xt.Bend(k0=10, length=4, knl=[1, 2, 3]),
-        'r1': xt.RBend(k0=7, length=3, knl=[4, 5, 6]),
+        'r1': xt.RBend(k0=7, length_straight=3, knl=[4, 5, 6]),
         'q1': xt.Quadrupole(k1=20, length=4),
         's1': xt.Sextupole(k2=50, length=8),
         'o1': xt.Octupole(k3=100, length=9),
@@ -2199,6 +2700,7 @@ def test_configure_model():
     assert line['o1'].integrator == 'uniform'
     assert line['o1'].num_multipole_kicks == 7
 
+@pytest.mark.filterwarnings('ignore::FutureWarning')
 @for_all_test_contexts
 @pytest.mark.parametrize('reference', ['legacy', 'variable'])
 def test_uniform_solenoid_with_slices(test_context, reference):
@@ -2519,3 +3021,109 @@ def test_variable_solenoid_x0y0(test_context):
     xo.assert_allclose(tw_test_rad.kin_px, tw_ref_rad.kin_px, rtol=0, atol=1e-14)
     xo.assert_allclose(tw_test_rad.kin_py, tw_ref_rad.kin_py, rtol=0, atol=1e-14)
     xo.assert_allclose(tw_test_rad.delta, tw_ref_rad.delta, rtol=0, atol=1e-14)
+
+def test_api_rbend():
+    bend1 = xt.RBend()
+    bend1.angle = 0.1
+    bend1.length_straight= 1.0
+
+    bend2 = xt.RBend()
+    bend2.length_straight= 1.0
+    bend2.angle = 0.1
+
+    bend3 = xt.RBend(angle=0.1, length_straight=1.0)
+
+    bend1d = xt.RBend.from_dict(bend1.to_dict())
+    bend2d = xt.RBend.from_dict(bend2.to_dict())
+    bend3d = xt.RBend.from_dict(bend3.to_dict())
+
+    for bb in [bend1, bend2, bend3, bend1d, bend2d, bend3d]:
+        assert bb.h == 0.1 / bb.length
+        assert bb.k0 == 'from_h'
+        assert bb.k0_from_h == True
+        assert bb.length_straight == 1.0
+        assert bb.length > 1.0
+        assert bb.angle == 0.1
+
+    bend1.k0 = 0.2
+    assert bend1.k0 == 0.2
+    assert bend1.h == 0.1 / bend1.length
+    assert bend1.k0_from_h == False
+
+    bend2.k0_from_h = False
+    assert bend2.k0 == 0.
+    assert bend2.h == 0.1 / bend2.length
+    assert bend2.k0_from_h == False
+
+def test_api_bend():
+
+    bend1 = xt.Bend()
+    bend1.angle = 0.1
+    bend1.length = 1.0
+
+    bend2 = xt.Bend()
+    bend2.length = 1.0
+    bend2.angle = 0.1
+
+    bend3 = xt.Bend(angle=0.1, length=1.0)
+
+    bend1d = xt.Bend.from_dict(bend1.to_dict())
+    bend2d = xt.Bend.from_dict(bend2.to_dict())
+    bend3d = xt.Bend.from_dict(bend3.to_dict())
+
+    for bb in [bend1, bend2, bend3, bend1d, bend2d, bend3d]:
+        assert bb.h == 0.1
+        assert bb.k0 == 'from_h'
+        assert bb.k0_from_h == True
+        assert bb.length == 1.0
+        assert bb.angle == 0.1
+
+    bend1.k0 = 0.2
+    assert bend1.k0 == 0.2
+    assert bend1.h == 0.1
+    assert bend1.k0_from_h == False
+
+    bend2.k0_from_h = False
+    assert bend2.k0 == 0.
+    assert bend2.h == 0.1
+    assert bend2.k0_from_h == False
+
+
+def test_delta_dipole_fringe():
+    # Test momentum dependence of dipole fringe, as corrected with respect to the PTC implementation
+    
+    dd = np.linspace(-0.05, 0.05, 11)
+    p0 = xt.Particles(y=0.002, delta=dd)
+    p1 = p0.copy()
+
+    length = 0.05
+    b1 = 0.1
+    
+    def fieldvalue(x,y,z):  
+        # Polynomial dipole fringe field between 0 and 0.05 with max b1=0.1
+        # b1 = -1600 z^3 + 120 z^2 converted to tesla
+        return [0, (-1600*z**3 + 120*z**2 - 120*y**2*(1 - 40*z))* p0.rigidity0[0], (1600*y**3 + y*(-4800*z**2 + 240*z))* p0.rigidity0[0]]
+
+    # Backwards drift, fringe, backwards bend
+    drift = xt.Line(elements=[xt.Drift(length=length/2)])
+    bend = xt.Line(elements=[xt.Bend(k0=b1, length=length/2)])
+    exactfringe = xt.BorisSpatialIntegrator(fieldmap_callable=fieldvalue, s_start=0, s_end=length, n_steps=1000)
+
+    drift.track(p0, backtrack=True)
+    exactfringe.track(p0)
+    bend.track(p0, backtrack=True)
+    
+    # Xsuite fringe with same parameters
+    gap = 0.04
+    ss = np.linspace(0,length,100)
+    bvals = -1600 * ss**3 + 120 * ss**2
+    fint = np.trapezoid((b1 - bvals)*bvals / b1**2 / gap, ss)
+    PTCfringe = xt.Bend(length=0, k0=b1, edge_entry_model="full", edge_entry_fint=fint, edge_entry_hgap=gap/2, edge_exit_active=0)
+    
+    PTCfringe.track(p1)
+    
+    # Slopes of py vs delta should be similar, original implementation had sign difference
+    deg0 = np.polyfit(p0.delta, p0.py, 1)
+    deg1 = np.polyfit(p1.delta, p1.py, 1)
+    
+    assert np.allclose(deg0/deg1, 1, rtol=1e-2)

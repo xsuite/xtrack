@@ -1,19 +1,25 @@
 import xobjects as xo
 
-from ..general import _pkg_root
-from ..base_element import BeamElement
+from .bend import Bend
+from .cavity import Cavity
+from .crab_cavity import CrabCavity
+from .drift import Drift
+from .drift_exact import DriftExact
+from .multipole import Multipole
+from .octupole import Octupole
+from .quadrupole import Quadrupole
+from .rbend import RBend
+from .sextupole import Sextupole
 from .slice_base import _SliceBase, COMMON_SLICE_XO_FIELDS
-from .elements import (
-    SynchrotronRadiationRecord, Bend, Quadrupole, Sextupole,
-    Octupole, Solenoid, Drift, RBend, UniformSolenoid
-)
+from ..base_element import BeamElement
 from ..survey import advance_element as survey_advance_element
 
-class _DriftSliceElementBase(_SliceBase):
 
+class _DriftSliceElementBase(_SliceBase):
+    allow_rot_and_shift = False
     rot_and_shift_from_parent = False
     allow_loss_refinement = True
-    isthick=True
+    isthick = True
     _inherit_strengths = False
 
 class DriftSliceBend(_DriftSliceElementBase, BeamElement):
@@ -21,7 +27,7 @@ class DriftSliceBend(_DriftSliceElementBase, BeamElement):
     _xofields = {'_parent': xo.Ref(Bend), **COMMON_SLICE_XO_FIELDS}
 
     _extra_c_sources = [
-        '#include <beam_elements/elements_src/drift_slice_bend.h>'
+        '#include "xtrack/beam_elements/elements_src/drift_slice_bend.h"'
     ]
 
     def get_equivalent_element(self):
@@ -34,7 +40,7 @@ class DriftSliceRBend(_DriftSliceElementBase, BeamElement):
     _xofields = {'_parent': xo.Ref(RBend), **COMMON_SLICE_XO_FIELDS}
 
     _extra_c_sources = [
-        '#include <beam_elements/elements_src/drift_slice_rbend.h>'
+        '#include "xtrack/beam_elements/elements_src/drift_slice_rbend.h"'
     ]
 
     def get_equivalent_element(self):
@@ -72,7 +78,7 @@ class DriftSliceQuadrupole(_DriftSliceElementBase, BeamElement):
     _xofields = {'_parent': xo.Ref(Quadrupole), **COMMON_SLICE_XO_FIELDS}
 
     _extra_c_sources = [
-        '#include <beam_elements/elements_src/drift_slice_quadrupole.h>'
+        '#include "xtrack/beam_elements/elements_src/drift_slice_quadrupole.h"'
     ]
 
     def get_equivalent_element(self):
@@ -85,7 +91,7 @@ class DriftSliceSextupole(_DriftSliceElementBase, BeamElement):
     _xofields = {'_parent': xo.Ref(Sextupole), **COMMON_SLICE_XO_FIELDS}
 
     _extra_c_sources = [
-        '#include <beam_elements/elements_src/drift_slice_sextupole.h>'
+        '#include "xtrack/beam_elements/elements_src/drift_slice_sextupole.h"'
     ]
 
     def get_equivalent_element(self):
@@ -98,7 +104,46 @@ class DriftSliceOctupole(_DriftSliceElementBase, BeamElement):
     _xofields = {'_parent': xo.Ref(Octupole), **COMMON_SLICE_XO_FIELDS}
 
     _extra_c_sources = [
-        '#include <beam_elements/elements_src/drift_slice_octupole.h>'
+        '#include "xtrack/beam_elements/elements_src/drift_slice_octupole.h"'
+    ]
+
+    def get_equivalent_element(self):
+        out = Drift(length=self._parent.length * self.weight,
+                     _buffer=self._buffer)
+        return out
+
+class DriftSliceCavity(_DriftSliceElementBase, BeamElement):
+
+    _xofields = {'_parent': xo.Ref(Cavity), **COMMON_SLICE_XO_FIELDS}
+
+    _extra_c_sources = [
+        '#include "xtrack/beam_elements/elements_src/drift_slice_cavity.h"'
+    ]
+
+    def get_equivalent_element(self):
+        out = Drift(length=self._parent.length * self.weight,
+                     _buffer=self._buffer)
+        return out
+
+class DriftSliceMultipole(_DriftSliceElementBase, BeamElement):
+
+    _xofields = {'_parent': xo.Ref(Multipole), **COMMON_SLICE_XO_FIELDS}
+
+    _extra_c_sources = [
+        '#include "xtrack/beam_elements/elements_src/drift_slice_multipole.h"'
+    ]
+
+    def get_equivalent_element(self):
+        out = Drift(length=self._parent.length * self.weight,
+                     _buffer=self._buffer)
+        return out
+
+class DriftSliceCrabCavity(_DriftSliceElementBase, BeamElement):
+
+    _xofields = {'_parent': xo.Ref(CrabCavity), **COMMON_SLICE_XO_FIELDS}
+
+    _extra_c_sources = [
+        '#include "xtrack/beam_elements/elements_src/drift_slice_crab_cavity.h"'
     ]
 
     def get_equivalent_element(self):
@@ -107,13 +152,27 @@ class DriftSliceOctupole(_DriftSliceElementBase, BeamElement):
         return out
 
 class DriftSlice(_DriftSliceElementBase, BeamElement):
+
     _xofields = {'_parent': xo.Ref(Drift), **COMMON_SLICE_XO_FIELDS}
 
     _extra_c_sources = [
-        '#include <beam_elements/elements_src/drift_slice.h>'
+        '#include "xtrack/beam_elements/elements_src/drift_slice.h"'
     ]
 
     def get_equivalent_element(self):
         out = Drift(length=self._parent.length * self.weight,
                      _buffer=self._buffer)
+        return out
+
+class DriftExactSlice(_DriftSliceElementBase, BeamElement):
+
+    _xofields = {'_parent': xo.Ref(DriftExact), **COMMON_SLICE_XO_FIELDS}
+
+    _extra_c_sources = [
+        '#include "xtrack/beam_elements/elements_src/drift_exact_slice.h"'
+    ]
+
+    def get_equivalent_element(self):
+        out = DriftExact(length=self._parent.length * self.weight,
+                         _buffer=self._buffer)
         return out

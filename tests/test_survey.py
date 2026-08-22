@@ -7,11 +7,6 @@ import xobjects as xo
 
 assert_allclose = np.testing.assert_allclose
 
-slice_mode = 'thin'
-tilted = True
-orientation = 'acw'
-transform_to_actual_elements = True
-
 if hasattr(np, 'trapezoid'): # numpy >= 2.0
     trapz = np.trapezoid
 else:
@@ -53,28 +48,28 @@ def test_survey_slicing(test_context, slice_mode, tilted, orientation,
 
     line.vars['l_drift'] = 999.
     line.vars['l_bend'] = 999.
-    line.vars['h_bend'] = 999.
+    line.vars['angle_bend'] = 999.
     line.vars['tilt_bend_deg'] = 999.
 
 
-    line.element_refs['e0'].length = line.vars['l_drift']
-    line.element_refs['e1'].length = line.vars['l_bend']
-    line.element_refs['e2'].length = line.vars['l_drift']
-    line.element_refs['e3'].length = line.vars['l_bend']
-    line.element_refs['e4'].length = line.vars['l_drift']
-    line.element_refs['e5'].length = line.vars['l_bend']
-    line.element_refs['e6'].length = line.vars['l_drift']
-    line.element_refs['e7'].length = line.vars['l_bend']
+    line['e0'].length = line.vars['l_drift']
+    line['e1'].length = line.vars['l_bend']
+    line['e2'].length = line.vars['l_drift']
+    line['e3'].length = line.vars['l_bend']
+    line['e4'].length = line.vars['l_drift']
+    line['e5'].length = line.vars['l_bend']
+    line['e6'].length = line.vars['l_drift']
+    line['e7'].length = line.vars['l_bend']
 
-    line.element_refs['e1'].h = line.vars['h_bend']
-    line.element_refs['e3'].h = line.vars['h_bend']
-    line.element_refs['e5'].h = line.vars['h_bend']
-    line.element_refs['e7'].h = line.vars['h_bend']
+    line['e1'].angle = line.vars['angle_bend']
+    line['e3'].angle = line.vars['angle_bend']
+    line['e5'].angle = line.vars['angle_bend']
+    line['e7'].angle = line.vars['angle_bend']
 
-    line.element_refs['e1'].rot_s_rad = line.vars['tilt_bend_deg'] * np.pi / 180
-    line.element_refs['e3'].rot_s_rad = line.vars['tilt_bend_deg'] * np.pi / 180
-    line.element_refs['e5'].rot_s_rad = line.vars['tilt_bend_deg'] * np.pi / 180
-    line.element_refs['e7'].rot_s_rad = line.vars['tilt_bend_deg'] * np.pi / 180
+    line['e1'].rot_s_rad = line.vars['tilt_bend_deg'] * np.pi / 180
+    line['e3'].rot_s_rad = line.vars['tilt_bend_deg'] * np.pi / 180
+    line['e5'].rot_s_rad = line.vars['tilt_bend_deg'] * np.pi / 180
+    line['e7'].rot_s_rad = line.vars['tilt_bend_deg'] * np.pi / 180
 
     if slice_mode is not None:
         line.slice_thick_elements(
@@ -84,9 +79,9 @@ def test_survey_slicing(test_context, slice_mode, tilted, orientation,
     line.vars['l_drift'] = 1
     line.vars['l_bend'] = 1
     if orientation == 'cw':
-        line.vars['h_bend'] = np.pi/2 / line.vars['l_bend']
+        line.vars['angle_bend'] = np.pi/2
     elif orientation == 'acw':
-        line.vars['h_bend'] = -np.pi/2 / line.vars['l_bend']
+        line.vars['angle_bend'] = -np.pi/2
 
     if tilted:
         line.vars['tilt_bend_deg'] = 90
@@ -128,80 +123,43 @@ def test_survey_with_ref_transformations():
     env = xt.Environment(particle_ref=xt.Particles(p0c = 1E9))
 
     line = env.new_line(length=10, components=[
-        env.new('r1', xt.YRotation, angle=30,  at=1),
-        env.new('r2', xt.YRotation, angle=-30, at=2),
-        env.new('r3', xt.YRotation, angle=-30, at=8),
-        env.new('r4', xt.YRotation, angle=30,  at=9),
+        env.new('r1', xt.Rotation, rot_y_rad=np.deg2rad(30),  at=1),
+        env.new('r2', xt.Rotation, rot_y_rad=np.deg2rad(-30), at=2),
+        env.new('r3', xt.Rotation, rot_y_rad=np.deg2rad(-30), at=8),
+        env.new('r4', xt.Rotation, rot_y_rad=np.deg2rad(30),  at=9),
 
-        env.new('rx1', xt.XRotation, angle=20,  at=3),
-        env.new('rx2', xt.XRotation, angle=-20, at=4),
-        env.new('rx3', xt.XRotation, angle=-20, at=6),
-        env.new('rx4', xt.XRotation, angle=20,  at=7),
+        env.new('rx1', xt.Rotation, rot_x_rad=np.deg2rad(20),  at=3),
+        env.new('rx2', xt.Rotation, rot_x_rad=np.deg2rad(-20), at=4),
+        env.new('rx3', xt.Rotation, rot_x_rad=np.deg2rad(-20), at=6),
+        env.new('rx4', xt.Rotation, rot_x_rad=np.deg2rad(20),  at=7),
 
-        env.new('rs1', xt.SRotation, angle=60.,  at=4.5),
-        env.new('rs2', xt.SRotation, angle=-60, at=5.5),
+        env.new('rs1', xt.Rotation, rot_s_rad=np.deg2rad(60),  at=4.5),
+        env.new('rs2', xt.Rotation, rot_s_rad=np.deg2rad(-60), at=5.5),
 
-        env.new('sxy1', xt.XYShift, dx=0.1, dy=0.2, at=4.8),
-        env.new('sxy2', xt.XYShift, dx=-0.1, dy=-0.2, at=5.2),
+        env.new('sxy1', xt.Translation, shift_x=0.1, shift_y=0.2, at=4.8),
+        env.new('sxy2', xt.Translation, shift_x=-0.1, shift_y=-0.2, at=5.2),
 
         env.new('mid', xt.Marker, at=5.0),
         env.new('right', xt.Marker, at=9.5)
 
     ])
 
-    line.config.XTRACK_GLOBAL_XY_LIMIT = None
-    line.config.XTRACK_USE_EXACT_DRIFTS = True
+    line.configure_drift_model('exact')
     tw = line.twiss4d(_continue_if_lost=True, betx=1, bety=1, x=1e-3, y=2e-3)
 
     sv_no_arg = line.survey()
     assert np.all(sv_no_arg.name == np.array([
-        'drift_1', 'r1', 'drift_2', 'r2', 'drift_3', 'rx1', 'drift_4',
-        'rx2', 'drift_5', 'rs1', 'drift_6', 'sxy1', 'drift_7', 'mid',
-        'drift_8', 'sxy2', 'drift_9', 'rs2', 'drift_10', 'rx3', 'drift_11',
-        'rx4', 'drift_12', 'r3', 'drift_13', 'r4', 'drift_14', 'right',
-        'drift_15', '_end_point']))
-
-    xo.assert_allclose(sv_no_arg.ref_shift_x, np.array([
-        0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,
-        0.1,  0. ,  0. ,  0. , -0.1,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,
-        0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ]), atol=1e-14)
-
-    xo.assert_allclose(sv_no_arg.ref_shift_y, np.array([
-        0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,
-        0.2,  0. ,  0. ,  0. , -0.2,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,
-        0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ]), atol=1e-14)
-
-    xo.assert_allclose(sv_no_arg.ref_rot_x_rad, np.array([
-        0.        , -0.        ,  0.        ,  0.        ,  0.        ,
-        0.34906585,  0.        , -0.34906585,  0.        ,  0.        ,
-        0.        ,  0.        ,  0.        ,  0.        ,  0.        ,
-        0.        ,  0.        , -0.        ,  0.        , -0.34906585,
-        0.        ,  0.34906585,  0.        ,  0.        ,  0.        ,
-    -0.        ,  0.        ,  0.        ,  0.        ,  0.        ]), atol=1e-8)
-
-    xo.assert_allclose(sv_no_arg.ref_rot_y_rad, np.array([
-        0.        , -0.52359878,  0.        ,  0.52359878,  0.        ,
-        0.        ,  0.        , -0.        ,  0.        ,  0.        ,
-        0.        ,  0.        ,  0.        ,  0.        ,  0.        ,
-        0.        ,  0.        , -0.        ,  0.        , -0.        ,
-        0.        ,  0.        ,  0.        ,  0.52359878,  0.        ,
-    -0.52359878,  0.        ,  0.        ,  0.        ,  0.        ]), atol=1e-8)
-
-    xo.assert_allclose(sv_no_arg.ref_rot_s_rad, np.array([
-        0.        , -0.        ,  0.        ,  0.        ,  0.        ,
-        0.        ,  0.        , -0.        ,  0.        ,  1.04719755,
-        0.        ,  0.        ,  0.        ,  0.        ,  0.        ,
-        0.        ,  0.        , -1.04719755,  0.        , -0.        ,
-        0.        ,  0.        ,  0.        ,  0.        ,  0.        ,
-    -0.        ,  0.        ,  0.        ,  0.        ,  0.        ]), atol=1e-8)
+        '||drift_1::0', 'r1', '||drift_1::1', 'r2', '||drift_1::2', 'rx1',
+       '||drift_1::3', 'rx2', '||drift_2::0', 'rs1', '||drift_3::0',
+       'sxy1', '||drift_4::0', 'mid', '||drift_4::1', 'sxy2',
+       '||drift_3::1', 'rs2', '||drift_2::1', 'rx3', '||drift_1::4',
+       'rx4', '||drift_1::5', 'r3', '||drift_1::6', 'r4', '||drift_2::2',
+       'right', '||drift_2::3', '_end_point']))
 
     xo.assert_allclose(sv_no_arg.drift_length, np.array([
         1. , 0. , 1. , 0. , 1. , 0. , 1. , 0. , 0.5, 0. , 0.3, 0. , 0.2,
         0. , 0.2, 0. , 0.3, 0. , 0.5, 0. , 1. , 0. , 1. , 0. , 1. , 0. ,
         0.5, 0. , 0.5, 0. ]), atol=1e-14)
-
-    xo.assert_allclose(sv_no_arg.angle, np.zeros(30), atol=1e-14)
-    xo.assert_allclose(sv_no_arg.rot_s_rad, np.zeros(30), atol=1e-14)
 
     xo.assert_allclose(
         sv_no_arg.s,
@@ -211,7 +169,7 @@ def test_survey_with_ref_transformations():
         atol=1e-14
     )
 
-    p_no_arg = tw.x[:, None] * sv_no_arg.ex + tw.y[:, None] * sv_no_arg.ey + sv_no_arg.p0
+    p_no_arg = tw.x[:, None] * sv_no_arg.ex + tw.y[:, None] * sv_no_arg.ey + sv_no_arg.XYZ
 
     xo.assert_allclose(p_no_arg[:, 0], 1e-3, atol=1e-14)
     xo.assert_allclose(p_no_arg[:, 1], 2e-3, atol=1e-14)
@@ -236,9 +194,8 @@ def test_survey_with_ref_transformations():
                                 psi0=sv_no_arg['psi', 'right'])
 
     cols_to_check = [
-        'X', 'Y', 'Z', 'theta', 'phi', 'psi', 's', 'drift_length', 'angle', 'rot_s_rad',
-        'ref_shift_x', 'ref_shift_y', 'ref_rot_x_rad', 'ref_rot_y_rad', 'ref_rot_s_rad',
-        'ex', 'ey', 'ez', 'p0',
+        'X', 'Y', 'Z', 'theta', 'phi', 'psi', 's', 'drift_length',
+        'ex', 'ey', 'ez', 'XYZ',
     ]
 
     assert sv_mid_with_init.element0 == 13
@@ -257,10 +214,26 @@ def test_survey_with_ref_transformations():
                                 init_at='mid')
 
     p_mid_no_init = tw_init_at_mid.x[:, None] * sv_mid_no_init.ex + \
-                    tw_init_at_mid.y[:, None] * sv_mid_no_init.ey + sv_mid_no_init.p0
+                    tw_init_at_mid.y[:, None] * sv_mid_no_init.ey + sv_mid_no_init.XYZ
 
     xo.assert_allclose(p_mid_no_init[:, 0], 1e-3, atol=1e-14)
     xo.assert_allclose(p_mid_no_init[:, 1], 2e-3, atol=1e-14)
+
+def test_survey_prototype():
+
+    env = xt.Environment()
+    env.new('q0', 'Quadrupole', length=1.0)
+    env.new('q1', 'q0')
+    env.new('q2', 'q1')
+
+    line = env.new_line(components=['q0', 'q1', 'q2'])
+
+    sv = line.survey()
+    sv_rev = sv.reverse()
+
+    assert np.all(sv.name == np.array(['q0', 'q1', 'q2', '_end_point']))
+    assert np.all(sv.prototype == np.array([None, 'q0', 'q1', None]))
+    assert np.all(sv_rev.prototype == np.array(['q1', 'q0', None, None]))
 
 def test_survey_with_h_and_v_bends():
 
@@ -272,77 +245,39 @@ def test_survey_with_h_and_v_bends():
         env.new('r3', xt.Bend, length=0.1, angle=-np.deg2rad(30), k0_from_h=False, at=8),
         env.new('r4', xt.Bend, length=0.1, angle=np.deg2rad(30), k0_from_h=False, at=9),
 
-        env.new('rx1', xt.Bend, length=0.1, rot_s_rad=np.pi/2, angle=np.deg2rad(20), k0_from_h=False, at=3),
-        env.new('rx2', xt.Bend, length=0.1, rot_s_rad=np.pi/2, angle=-np.deg2rad(20), k0_from_h=False, at=4),
-        env.new('rx3', xt.Bend, length=0.1, rot_s_rad=np.pi/2, angle=-np.deg2rad(20), k0_from_h=False, at=6),
-        env.new('rx4', xt.Bend, length=0.1, rot_s_rad=np.pi/2, angle=np.deg2rad(20), k0_from_h=False, at=7),
+        env.new('rx1', xt.Bend, length=0.1, rot_x_rad=np.deg2rad(20), k0_from_h=False, at=3),
+        env.new('rx2', xt.Bend, length=0.1, rot_x_rad=np.deg2rad(-20), k0_from_h=False, at=4),
+        env.new('rx3', xt.Bend, length=0.1, rot_x_rad=np.deg2rad(-20), k0_from_h=False, at=6),
+        env.new('rx4', xt.Bend, length=0.1, rot_x_rad=np.deg2rad(20), k0_from_h=False, at=7),
 
-        env.new('rs1', xt.SRotation, angle=60.,  at=4.5),
-        env.new('rs2', xt.SRotation, angle=-60, at=5.5),
+        env.new('rs1', xt.Rotation, rot_s_rad=np.deg2rad(60),  at=4.5),
+        env.new('rs2', xt.Rotation, rot_s_rad=np.deg2rad(-60), at=5.5),
 
-        env.new('sxy1', xt.XYShift, dx=0.1, dy=0.2, at=4.8),
-        env.new('sxy2', xt.XYShift, dx=-0.1, dy=-0.2, at=5.2),
+        env.new('sxy1', xt.Translation, shift_x=0.1, shift_y=0.2, at=4.8),
+        env.new('sxy2', xt.Translation, shift_x=-0.1, shift_y=-0.2, at=5.2),
 
         env.new('mid', xt.Marker, at=5.0),
         env.new('right', xt.Marker, at=9.5)
 
     ])
 
-    line.config.XTRACK_GLOBAL_XY_LIMIT = None
-    line.config.XTRACK_USE_EXACT_DRIFTS = True
+    line.configure_drift_model('exact')
     tw = line.twiss4d(_continue_if_lost=True, betx=1, bety=1, x=1e-3, y=2e-3)
 
     sv_no_arg = line.survey()
 
     assert np.all(sv_no_arg.name == np.array([
-        'drift_1', 'r1', 'drift_2', 'r2', 'drift_3', 'rx1', 'drift_4',
-        'rx2', 'drift_5', 'rs1', 'drift_6', 'sxy1', 'drift_7', 'mid',
-        'drift_8', 'sxy2', 'drift_9', 'rs2', 'drift_10', 'rx3', 'drift_11',
-        'rx4', 'drift_12', 'r3', 'drift_13', 'r4', 'drift_14', 'right',
-        'drift_15', '_end_point']))
-
-    xo.assert_allclose(sv_no_arg.ref_shift_x, np.array([
-        0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,
-        0.1,  0. ,  0. ,  0. , -0.1,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,
-        0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ]), atol=1e-14)
-
-    xo.assert_allclose(sv_no_arg.ref_shift_y, np.array([
-        0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,
-        0.2,  0. ,  0. ,  0. , -0.2,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,
-        0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ]), atol=1e-14)
-
-    xo.assert_allclose(sv_no_arg.ref_rot_x_rad, 0, atol=1e-14)
-    xo.assert_allclose(sv_no_arg.ref_rot_y_rad, 0, atol=1e-14)
-
-    xo.assert_allclose(sv_no_arg.ref_rot_s_rad, np.array([
-        0.        , -0.        ,  0.        ,  0.        ,  0.        ,
-        0.        ,  0.        , -0.        ,  0.        ,  1.04719755,
-        0.        ,  0.        ,  0.        ,  0.        ,  0.        ,
-        0.        ,  0.        , -1.04719755,  0.        , -0.        ,
-        0.        ,  0.        ,  0.        ,  0.        ,  0.        ,
-    -0.        ,  0.        ,  0.        ,  0.        ,  0.        ]), atol=1e-8)
+        '||drift_1', 'r1', '||drift_2::0', 'r2', '||drift_3::0', 'rx1',
+       '||drift_2::1', 'rx2', '||drift_4::0', 'rs1', '||drift_5::0',
+       'sxy1', '||drift_6::0', 'mid', '||drift_6::1', 'sxy2',
+       '||drift_5::1', 'rs2', '||drift_4::1', 'rx3', '||drift_3::1',
+       'rx4', '||drift_3::2', 'r3', '||drift_7', 'r4', '||drift_8',
+       'right', '||drift_9', '_end_point']))
 
     xo.assert_allclose(sv_no_arg.drift_length, np.array([
         0.95, 0.1 , 0.9 , 0.1 , 0.9 , 0.1 , 0.9 , 0.1 , 0.45, 0.  , 0.3 ,
         0.  , 0.2 , 0.  , 0.2 , 0.  , 0.3 , 0.  , 0.45, 0.1 , 0.9 , 0.1 ,
         0.9 , 0.1 , 0.9 , 0.1 , 0.45, 0.  , 0.5 , 0.   ]), atol=1e-14)
-
-    xo.assert_allclose(sv_no_arg.angle, np.array(
-        [ 0.        ,  0.52359878,  0.        , -0.52359878,  0.        ,
-            0.34906585,  0.        , -0.34906585,  0.        ,  0.        ,
-            0.        ,  0.        ,  0.        ,  0.        ,  0.        ,
-            0.        ,  0.        ,  0.        ,  0.        , -0.34906585,
-            0.        ,  0.34906585,  0.        , -0.52359878,  0.        ,
-            0.52359878,  0.        ,  0.        ,  0.        ,  0.        ]), atol=1e-8)
-
-    xo.assert_allclose(sv_no_arg.rot_s_rad, np.array([
-        0.        , 0.        , 0.        , 0.        , 0.        ,
-        1.57079633, 0.        , 1.57079633, 0.        , 0.        ,
-        0.        , 0.        , 0.        , 0.        , 0.        ,
-        0.        , 0.        , 0.        , 0.        , 1.57079633,
-        0.        , 1.57079633, 0.        , 0.        , 0.        ,
-        0.        , 0.        , 0.        , 0.        , 0.
-    ]), atol=1e-8)
 
     xo.assert_allclose(
         sv_no_arg.s,
@@ -352,10 +287,10 @@ def test_survey_with_h_and_v_bends():
             9.5 ,  9.5 , 10.   ]),   atol=1e-14
     )
 
-    p_no_arg = tw.x[:, None] * sv_no_arg.ex + tw.y[:, None] * sv_no_arg.ey + sv_no_arg.p0
+    p_no_arg = tw.x[:, None] * sv_no_arg.ex + tw.y[:, None] * sv_no_arg.ey + sv_no_arg.XYZ
 
-    xo.assert_allclose(p_no_arg[:, 0], 1e-3, atol=1e-14)
-    xo.assert_allclose(p_no_arg[:, 1], 2e-3, atol=1e-14)
+    xo.assert_allclose(p_no_arg[:, 0], 1e-3, atol=5e-14)
+    xo.assert_allclose(p_no_arg[:, 1], 2e-3, atol=5e-14)
 
     assert sv_no_arg.element0 == 0
 
@@ -376,9 +311,8 @@ def test_survey_with_h_and_v_bends():
                                 psi0=sv_no_arg['psi', 'right'])
 
     cols_to_check = [
-        'X', 'Y', 'Z', 'theta', 'phi', 'psi', 's', 'drift_length', 'angle',
-        'ref_shift_x', 'ref_shift_y', 'ref_rot_x_rad', 'ref_rot_y_rad', 'ref_rot_s_rad',
-        'ex', 'ey', 'ez', 'p0',
+        'X', 'Y', 'Z', 'theta', 'phi', 'psi', 's', 'drift_length',
+        'ex', 'ey', 'ez', 'XYZ',
     ]
 
     assert sv_mid_with_init.element0 == 13
@@ -397,12 +331,12 @@ def test_survey_with_h_and_v_bends():
                                 init_at='mid')
 
     p_mid_no_init = tw_init_at_mid.x[:, None] * sv_mid_no_init.ex + \
-                    tw_init_at_mid.y[:, None] * sv_mid_no_init.ey + sv_mid_no_init.p0
+                    tw_init_at_mid.y[:, None] * sv_mid_no_init.ey + sv_mid_no_init.XYZ
 
     xo.assert_allclose(p_mid_no_init[:, 0], 1e-3, atol=1e-14)
     xo.assert_allclose(p_mid_no_init[:, 1], 2e-3, atol=1e-14)
 
-def test_survey_against_madx():
+def test_survey_against_madx_cpymad_loader(sandbox_cwd):
     from cpymad.madx import Madx
 
     mad = Madx()
@@ -462,13 +396,12 @@ def test_survey_against_madx():
     sv_mad = xt.Table(mad.table.survey)
     tw_ptc = xt.Table(mad.table.ptc_twiss)
 
-    line.config.XTRACK_GLOBAL_XY_LIMIT = None
-    line.config.XTRACK_USE_EXACT_DRIFTS = True
+    line.configure_drift_model('exact')
 
     sv = line.survey()
     tw = line.twiss(betx=1, bety=1, x=1e-3, y=2e-3)
 
-    p = tw.x[:, None] * sv.ex + tw.y[:, None] * sv.ey + sv.p0
+    p = tw.x[:, None] * sv.ex + tw.y[:, None] * sv.ey + sv.XYZ
 
     assert (tw.name == np.array([
         'ss$start', 'drift_0', 'rs2', 'drift_1', 'rx1', 'drift_2', 'rx2',
@@ -494,6 +427,112 @@ def test_survey_against_madx():
     xo.assert_allclose(sv.Z[1:], sv_mad.z, atol=1e-14, rtol=0)
 
     xo.assert_allclose(sv.s[1:], sv_mad.s, atol=1e-14, rtol=0)
+
+    xo.assert_allclose(p[:, 0], 1e-3, atol=1e-14)
+    xo.assert_allclose(p[:, 1], 2e-3, atol=1e-14)
+
+def test_survey_transforms_native_loader(sandbox_cwd):
+
+    from cpymad.madx import Madx
+
+    seq_src = ("""
+
+        on_srot = 1;
+        pi = 3.14159265358979323846;
+
+        tr1: translation, dx=1e-2, dy=2e-2;
+
+        rs2: srotation, angle=-1.04*on_srot;
+
+        r3: yrotation, angle=-0.1;
+        r4: yrotation, angle=0.1;
+
+        rx1 : xrotation, angle=0.1;
+        rx2 : xrotation, angle=-0.1;
+
+        bh1 : sbend, angle=0.1, k0=1e-22, l=0.1;
+        bh2 : sbend, angle=-0.1, k0=1e-22, l=0.1;
+
+        bv1: sbend, tilt=pi/2, angle=0.2, k0=1e-22, l=0.1;
+        bv2: sbend, tilt=pi/2, angle=-0.2, k0=1e-22, l=0.1;
+
+        ss: sequence,l=20;
+            tr1, at=5;
+            rs2, at=5.5;
+            rx1, at=6;
+            rx2, at=7;
+            r3, at=8;
+            r4, at=9;
+            bh1, at=10;
+            bh2, at=11;
+            bv1, at=12;
+            bv2, at=14;
+            end: marker, at=16;
+        endsequence;
+    """)
+
+    mad = Madx()
+    mad.input(seq_src)
+
+    mad.input("""
+        beam;
+        use,sequence=ss;
+        twiss,betx=1,bety=1,x=1e-3,y=2e-3;
+        survey;
+
+        ptc_create_universe;
+        ptc_create_layout, model=1, method=6, exact=True, NST=100;
+        ptc_align;
+        ptc_twiss, icase=56, betx=1., bety=1., betz=1,x=1e-3, y=2e-3;
+
+        """)
+
+    line = xt.load(string=seq_src, format='madx').ss
+    line.particle_ref = xt.Particles(p0c=1E9)
+
+    line['bh1'].k0_from_h = False
+    line['bh2'].k0_from_h = False
+    line['bh1'].k0 = 0
+    line['bh2'].k0 = 0
+
+    sv_mad = xt.Table(mad.table.survey)
+    tw_ptc = xt.Table(mad.table.ptc_twiss)
+
+    line.build_tracker()
+
+    line.tracker.track_flags.XS_FLAG_IGNORE_GLOBAL_APERTURE = True
+    line.configure_drift_model(model='exact')
+
+    sv = line.survey()
+    tw = line.twiss(betx=1, bety=1, x=1e-3, y=2e-3)
+
+    p = tw.x[:, None] * sv.ex + tw.y[:, None] * sv.ey + sv.XYZ
+    X = p[:, 0]
+    Y = p[:, 1]
+    Z = p[:, 2]
+
+    assert (tw.name == np.array(
+       ['||drift_1', 'tr1', '||drift_2::0', 'rs2', '||drift_2::1', 'rx1',
+       '||drift_3::0', 'rx2', '||drift_3::1', 'r3', '||drift_3::2', 'r4',
+       '||drift_4', 'bh1', '||drift_5::0', 'bh2', '||drift_5::1', 'bv1',
+       '||drift_6', 'bv2', '||drift_7', 'end', '||drift_8', '_end_point'],
+       dtype=object)).all()
+
+    assert (tw_ptc.name == np.array(['ss$start:1', 'drift_0:0', 'tr1:1', 'drift_1:0', 'rs2:1',
+        'drift_2:0', 'rx1:1', 'drift_3:0', 'rx2:1', 'drift_4:0', 'r3:1',
+        'drift_5:0', 'r4:1', 'drift_6:0', 'bh1:1', 'drift_7:0', 'bh2:1',
+        'drift_8:0', 'bv1:1', 'drift_9:0', 'bv2:1', 'drift_10:0', 'end:1',
+        'drift_11:0', 'ss$end:1'], dtype=object)).all()
+
+    # MAD gives results at the end of the element
+    xo.assert_allclose(tw.x[1:], tw_ptc.x[1:-1], atol=1e-14, rtol=0)
+    xo.assert_allclose(tw.y[1:], tw_ptc.y[1:-1], atol=1e-14, rtol=0)
+
+    xo.assert_allclose(sv.X[1:], sv_mad.x[1:-1], atol=1e-14, rtol=0)
+    xo.assert_allclose(sv.Y[1:], sv_mad.y[1:-1], atol=1e-14, rtol=0)
+    xo.assert_allclose(sv.Z[1:], sv_mad.z[1:-1], atol=1e-14, rtol=0)
+
+    xo.assert_allclose(sv.s[1:], sv_mad.s[1:-1], atol=1e-14, rtol=0)
 
     xo.assert_allclose(p[:, 0], 1e-3, atol=1e-14)
     xo.assert_allclose(p[:, 1], 2e-3, atol=1e-14)

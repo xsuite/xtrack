@@ -14,7 +14,8 @@ import ducktrack as dtk
 import xobjects as xo
 import xpart as xp
 import xtrack as xt
-from xobjects.test_helpers import for_all_test_contexts
+from xobjects.test_helpers import (
+    allow_kernel_compilation, for_all_test_contexts)
 
 test_data_folder = pathlib.Path(
     __file__).parent.joinpath('../test_data').absolute()
@@ -151,7 +152,10 @@ def test_full_rings(
                           rtol=0, atol=5e-11)
 
 @for_all_test_contexts
+@allow_kernel_compilation
 def test_freeze_vars(test_context):
+
+
     test_data_folder.joinpath('hllhc_14/line_and_particle.json'),
 
     fname_line_particles = test_data_folder.joinpath(

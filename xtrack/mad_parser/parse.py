@@ -8,6 +8,8 @@ from lark import Lark, Transformer, v_args, Token
 
 from xdeps.refs import BaseRef, is_ref
 
+from ..general import _print
+
 grammar = Path(__file__).with_name('madx.lark').read_text()
 
 
@@ -42,6 +44,7 @@ ElementType = Union[TypedDict('ElementType', {'parent': str}), Dict[str, VarType
 class MadxOutputType(TypedDict):
     elements: Dict[str, ElementType]
     lines: Dict[str, LineType]
+    beams: List[Dict[str, VarType]]
     parameters: Dict[str, ElementType]
 
 
@@ -64,7 +67,7 @@ def make_op_handler(op_func):
 
 
 def warn(warning):
-    print(f'Warning: {warning}')
+    _print(f'Warning: {warning}')
 
 
 @v_args(inline=True)
@@ -73,6 +76,7 @@ class MadxTransformer(Transformer):
         super().__init__()
         self.elements: Dict[str, ElementType] = {}
         self.lines: Dict[str, LineType] = {}
+        self.beams = []
         self.parameters = {}
         self.vars = vars
         self.functions = functions
@@ -84,15 +88,30 @@ class MadxTransformer(Transformer):
             statement = ''
         if statement.startswith('return'):
             return
+        if statement.startswith('beam'):
+            return
         if statement == '':
             return
         warn(f'Ignoring statement: `{statement}`')
+
+    def ignored_beta0(self, name, *args):
+        warn(f'Ignoring beta0 statement: `{name}`')
+        return
+
+    def top_level_beam(self, arglist):
+        if hasattr(arglist, 'children'):
+            arglist = arglist.children[0]
+        self.beams.append(dict(arglist))
 
     def assign_defer(self, name, value) -> Tuple[str, VarType]:
         return name.value.lower(), value
 
     def assign_value(self, name, value) -> Tuple[str, VarType]:
-        if is_ref(value):
+        # Keep expressions alive for beam kinematics, but still resolve them
+        # eagerly for ordinary scalar assignments.
+        if is_ref(value) and name.value.lower() not in {
+            'mass', 'charge', 'energy', 'pc', 'brho', 'gamma', 'beta',
+        }:
             value = value._get_value()
         return name.value.lower(), value
 
@@ -110,7 +129,7 @@ class MadxTransformer(Transformer):
         return self.vars[field]
 
     def number(self, value):
-        float_value = float(value)
+        float_value = float(''.join(str(value).split()))
         return float_value
 
     def string_literal(self, string):
@@ -123,8 +142,8 @@ class MadxTransformer(Transformer):
         field = name_token.value.lower()
         return self.functions[field]
 
-    def command(self, name_token, arglist):
-        command = name_token.value
+    def command(self, name, arglist):
+        command = name.value
         arglist = arglist if isinstance(arglist, list) else [arglist]
         return command.lower(), arglist
 
@@ -138,8 +157,8 @@ class MadxTransformer(Transformer):
     def reset_flag(self, name_token):
         return name_token.value.lower(), False
 
-    def sequence(self, name_token, arglist, *clones) -> Tuple[str, LineType]:
-        return name_token.value.lower(), {
+    def sequence(self, name, _sequence, arglist, *clones) -> Tuple[str, LineType]:
+        return name.lower(), {
             'parent': 'sequence',
             **dict(arglist),
             'elements': list(clones),
@@ -170,11 +189,11 @@ class MadxTransformer(Transformer):
         name, body = sequence
         self.lines[name] = body
 
-    def clone(self, name_token, command_token, arglist) -> Tuple[str, ElementType]:
+    def clone(self, name, command, arglist) -> Tuple[str, ElementType]:
         args = dict(arglist)
-        parent = command_token.value.lower()
+        parent = command.lower()
 
-        return name_token.value.lower(), {
+        return name.lower(), {
             'parent': parent,
             **args,
         }
@@ -183,8 +202,8 @@ class MadxTransformer(Transformer):
         name, body = clone
         self.elements[name] = body
 
-    def command_stmt(self, command_token, arglist):
-        return command_token.value.lower(), dict(arglist)
+    def command_stmt(self, command, arglist):
+        return command.lower(), dict(arglist)
 
     def top_level_command(self, command):
         name, arglist = command
@@ -209,8 +228,8 @@ class MadxTransformer(Transformer):
     def line_element(self, modifiers, line_item) -> Tuple[str, ElementType]:
         name = None
         body = modifiers.to_dict()
-        if isinstance(line_item, Token):
-            name = line_item.value.lower()
+        if isinstance(line_item, str):
+            name = line_item.lower()
         elif isinstance(line_item, dict):
             body.update(line_item)
         else:
@@ -223,8 +242,8 @@ class MadxTransformer(Transformer):
             'elements': elements,
         }
 
-    def line(self, name_token, anonymous_line) -> Tuple[str, LineType]:
-        return name_token.value.lower(), anonymous_line
+    def line(self, name, anonymous_line) -> Tuple[str, LineType]:
+        return name.lower(), anonymous_line
 
     def top_level_line(self, line):
         name, body = line
@@ -238,14 +257,16 @@ class MadxTransformer(Transformer):
         return {
             'elements': self.elements,
             'lines': self.lines,
+            'beams': self.beams,
             'parameters': self.parameters,
         }
 
     def op_arrow(self, a, b):
         a, b = a.lower(), b.lower()
-        if b == 'l':
-            b = 'length'
-        return f'{a}->{b}'
+        if b != 'l':
+            raise ValueError(f'Unsupported arrow operation: {a}->{b}')
+        self.vars['_length__' + a] = 999.
+        return self.vars['_length__' + a]
 
     op_lt = staticmethod(operator.lt)
     op_gt = staticmethod(operator.gt)
@@ -297,7 +318,7 @@ if __name__ == '__main__':
     def main(file_name, output, test):
         t0 = time.time()
         out = MadxParser().parse_file(file_name)
-        print(f"Parsed `{file_name}` in {time.time() - t0} s")
+        _print(f"Parsed `{file_name}` in {time.time() - t0} s")
 
         # This output is for visualisation purposes only: dict ordering is not guaranteed
         # out of the box by the YAML standard (should use !!omap, but it's not supported by PyYAML)

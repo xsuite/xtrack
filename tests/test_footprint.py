@@ -6,13 +6,18 @@ import pytest
 import xobjects as xo
 import xpart as xp
 import xtrack as xt
-from xobjects.test_helpers import for_all_test_contexts
+from xobjects.test_helpers import (
+    allow_kernel_compilation, for_all_test_contexts, skip_if_forbid_compile)
 
 test_data_folder = pathlib.Path(__file__).parent.joinpath('../test_data').absolute()
 
 @for_all_test_contexts
 @pytest.mark.parametrize('freeze_longitudinal', [True, False])
+@allow_kernel_compilation(skip_when_forbid_compile=False)
 def test_footprint(test_context, freeze_longitudinal):
+
+    if freeze_longitudinal:
+        skip_if_forbid_compile()
 
     if isinstance(test_context, xo.ContextPyopencl):
         pytest.skip('Pyopencl not yet supported for footprint')
@@ -193,7 +198,9 @@ def test_footprint(test_context, freeze_longitudinal):
     xo.assert_allclose((fp60k.qy - fp50k.qy)/(fp600.qy-fp500.qy), 100, rtol=0, atol=1e-2)
 
 @for_all_test_contexts
+@allow_kernel_compilation
 def test_footprint_delta0(test_context):
+
 
     if isinstance(test_context, xo.ContextPyopencl):
         pytest.skip('Pyopencl not yet supported for footprint')
@@ -226,4 +233,3 @@ def test_footprint_delta0(test_context):
     # It is 12, 9 instead of 10, 10 because of non-linear chromaticity
     xo.assert_allclose((np.max(fp2.qx) - np.max(fp1.qx))/1e-4, 12, atol=0.5, rtol=0)
     xo.assert_allclose((np.max(fp2.qy) - np.max(fp1.qy))/1e-4, 9, atol=0.5, rtol=0)
-

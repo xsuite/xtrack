@@ -6,6 +6,8 @@
 import pathlib
 import pickle
 import math
+import sys
+import types
 
 import numpy as np
 import pytest
@@ -13,7 +15,8 @@ import pytest
 import xobjects as xo
 import xpart as xp
 import xtrack as xt
-from xobjects.test_helpers import for_all_test_contexts
+from xobjects.test_helpers import (
+    allow_kernel_compilation, for_all_test_contexts)
 from xtrack import Line, Node, Multipole
 
 test_data_folder = pathlib.Path(
@@ -30,20 +33,20 @@ def test_simplification_methods():
         )
 
     # Test merging of drifts
-    line.insert_element(element=xt.Cavity(), name='cav', at_s=3.3)
+    line.insert(obj=xt.Cavity(), what='cav', at=3.3)
     assert isinstance(line['e4..0'], xt.DriftSlice)
     line._replace_with_equivalent_elements()
     assert isinstance(line['e4..0'], xt.Drift)
     line.merge_consecutive_drifts(inplace=True)
     assert len(line.element_names) == 3
-    assert line.get_length() == line.get_s_elements(mode='downstream')[-1] == 5
+    assert line.get_length() == line.get_table().s_end[-1] == 5
     xo.assert_allclose(line[line.element_names[0]].length, 3.3, rtol=0, atol=1e-12)
     assert isinstance(line[line.element_names[1]], xt.Cavity)
     xo.assert_allclose(line[line.element_names[2]].length, 1.7, rtol=0, atol=1e-12)
 
     # Test merging of drifts, while keeping one
-    line.insert_element(element=xt.Drift(length=1), name='drift1', at_s=1.2)
-    line.insert_element(element=xt.Drift(length=1), name='drift2', at_s=2.2)
+    line.insert(obj=xt.Drift(length=1), what='drift1', at=1.2)
+    line.insert(obj=xt.Drift(length=1), what='drift2', at=2.2)
     line._replace_with_equivalent_elements()
     line.merge_consecutive_drifts(inplace=True, keep=['drift2'])
     assert len(line.element_names) == 5
@@ -53,8 +56,8 @@ def test_simplification_methods():
     line.merge_consecutive_drifts(inplace=True)
 
     # Test removing of zero-length drifts
-    line.insert_element(element=xt.Drift(length=0), name='dzero1', at_s=3.3)
-    line.insert_element(element=xt.Drift(length=0), name='dzero2', at_s=3.3)
+    line.insert(obj=xt.Drift(length=0), what='dzero1', at=3.3)
+    line.insert(obj=xt.Drift(length=0), what='dzero2', at=3.3)
     assert len(line.element_names) == 5
     line._replace_with_equivalent_elements()
     line.remove_zero_length_drifts(inplace=True, keep='dzero2')
@@ -65,11 +68,11 @@ def test_simplification_methods():
     line.remove_zero_length_drifts(inplace=True)
 
     # Test merging of multipoles
-    line._var_management = None
-    line.insert_element(element=xt.Multipole(knl=[1, 0, 3], ksl=[0, 20, 0]), name='m1', at_s=3.3)
-    line.insert_element(element=xt.Multipole(knl=[4, 2], ksl=[10, 40]), name='m2', at_s=3.3)
-    line.insert_element(element=xt.Multipole(knl=[0, 3, 8], ksl=[2, 0, 17]), name='m3', at_s=3.3)
-    line.insert_element(element=xt.Multipole(knl=[2, 0, 0], ksl=[40]), name='m4', at_s=3.3)
+    line.env._var_management = None
+    line.insert(obj=xt.Multipole(knl=[1, 0, 3], ksl=[0, 20, 0]), what='m1', at=3.3)
+    line.insert(obj=xt.Multipole(knl=[4, 2], ksl=[10, 40]), what='m2', at=3.3)
+    line.insert(obj=xt.Multipole(knl=[0, 3, 8], ksl=[2, 0, 17]), what='m3', at=3.3)
+    line.insert(obj=xt.Multipole(knl=[2, 0, 0], ksl=[40]), what='m4', at=3.3)
     assert len(line.element_names) == 7
     line._replace_with_equivalent_elements()
     line.merge_consecutive_multipoles(inplace=True, keep='m3')
@@ -90,8 +93,8 @@ def test_simplification_methods():
     xo.assert_allclose(line[line.element_names[1]].ksl, [52,60,17], rtol=0, atol=1e-15)
 
     # Test removing inactive multipoles
-    line.insert_element(element=xt.Multipole(knl=[0, 8, 1], ksl=[0, 20, 30]), name='m5', at_s=3.3)
-    line.insert_element(element=xt.Multipole(knl=[2, 0, 3], ksl=[10, 34, 15]), name='m6', at_s=3.3)
+    line.insert(obj=xt.Multipole(knl=[0, 8, 1], ksl=[0, 20, 30]), what='m5', at=3.3)
+    line.insert(obj=xt.Multipole(knl=[2, 0, 3], ksl=[10, 34, 15]), what='m6', at=3.3)
     line.remove_inactive_multipoles(inplace=True)
     assert len(line.element_names) == 6
     line['m5'].knl[:] = 0
@@ -105,16 +108,16 @@ def test_simplification_methods():
     assert 'm6' not in line.element_names
 
     # Test removing markers
-    line.insert_element(element=xt.Marker(), name='marker1', at_s=3.3)
-    line.insert_element(element=xt.Marker(), name='marker2', at_s=3.3)
+    line.insert(obj=xt.Marker(), what='marker1', at=3.3)
+    line.insert(obj=xt.Marker(), what='marker2', at=3.3)
     assert 'marker1' in line.element_names
     assert 'marker2' in line.element_names
     line._replace_with_equivalent_elements()
     line.remove_markers(keep='marker2')
     assert 'marker1' not in line.element_names
     assert 'marker2' in line.element_names
-    line.insert_element(element=xt.Marker(), name='marker4', at_s=3.3)
-    line.insert_element(element=xt.Marker(), name='marker3', at_s=3.3)
+    line.insert(obj=xt.Marker(), what='marker4', at=3.3)
+    line.insert(obj=xt.Marker(), what='marker3', at=3.3)
     assert 'marker2' in line.element_names
     assert 'marker3' in line.element_names
     assert 'marker4' in line.element_names
@@ -123,6 +126,125 @@ def test_simplification_methods():
     assert 'marker2' not in line.element_names
     assert 'marker3' not in line.element_names
     assert 'marker4' not in line.element_names
+
+
+def test_line_xcoll_facade(monkeypatch):
+
+    class FakeScatteringAPI:
+        def __init__(self, line):
+            self.line = line
+
+    class FakeCollimatorAPI:
+        def __init__(self, line):
+            self.line = line
+
+    class FakeXcollLineAPI:
+        def __init__(self, line):
+            self.line = line
+
+        @property
+        def scattering(self):
+            if not hasattr(self.line, '_scattering') or self.line._scattering is None:
+                self.line._scattering = FakeScatteringAPI(line=self.line)
+            return self.line._scattering
+
+        @property
+        def collimators(self):
+            if not hasattr(self.line, '_collimators') or self.line._collimators is None:
+                self.line._collimators = FakeCollimatorAPI(line=self.line)
+            return self.line._collimators
+
+    xcoll_module = types.ModuleType('xcoll')
+    line_tools_module = types.ModuleType('xcoll.line_tools')
+    line_tools_module.XcollLineAPI = FakeXcollLineAPI
+    line_tools_module.XcollScatteringAPI = FakeScatteringAPI
+    line_tools_module.XcollCollimatorAPI = FakeCollimatorAPI
+    xcoll_module.line_tools = line_tools_module
+    monkeypatch.setitem(sys.modules, 'xcoll', xcoll_module)
+    monkeypatch.setitem(sys.modules, 'xcoll.line_tools', line_tools_module)
+
+    line = xt.Line(elements=[], element_names=[])
+
+    assert isinstance(line.xcoll, FakeXcollLineAPI)
+    assert line.xcoll is line.xcoll
+
+    assert isinstance(line.xcoll.scattering, FakeScatteringAPI)
+    assert line.xcoll.scattering is line.xcoll.scattering
+    assert line.xcoll.scattering.line is line
+
+    assert isinstance(line.xcoll.collimators, FakeCollimatorAPI)
+    assert line.xcoll.collimators is line.xcoll.collimators
+    assert line.xcoll.collimators.line is line
+
+    with pytest.warns(
+            FutureWarning,
+            match=r'`Line\.scattering` is deprecated'):
+        assert line.scattering is line.xcoll.scattering
+
+    with pytest.warns(
+            FutureWarning,
+            match=r'`Line\.collimators` is deprecated'):
+        assert line.collimators is line.xcoll.collimators
+
+
+def test_line_xpart_facade(monkeypatch):
+
+    class FakeXpartLineAPI:
+        def __init__(self, line):
+            self.line = line
+
+    xpart_module = types.ModuleType('xpart')
+    line_tools_module = types.ModuleType('xpart.line_tools')
+    line_tools_module.XpartLineAPI = FakeXpartLineAPI
+    xpart_module.line_tools = line_tools_module
+    monkeypatch.setitem(sys.modules, 'xpart', xpart_module)
+    monkeypatch.setitem(sys.modules, 'xpart.line_tools', line_tools_module)
+
+    line = xt.Line(elements=[], element_names=[])
+
+    assert isinstance(line.xpart, FakeXpartLineAPI)
+    assert line.xpart is line.xpart
+    assert line.xpart.line is line
+
+
+def test_line_xfields_facade_and_deprecated_ibs_configure(monkeypatch):
+
+    calls = {}
+
+    class FakeXfieldsLineAPI:
+        def __init__(self, line):
+            self.line = line
+
+        def ibs_configure(self, **kwargs):
+            calls['line'] = self.line
+            calls.update(kwargs)
+            return 'configured'
+
+    xfields_module = types.ModuleType('xfields')
+    line_tools_module = types.ModuleType('xfields.line_tools')
+    line_tools_module.XfieldsLineAPI = FakeXfieldsLineAPI
+    xfields_module.line_tools = line_tools_module
+    monkeypatch.setitem(sys.modules, 'xfields', xfields_module)
+    monkeypatch.setitem(sys.modules, 'xfields.line_tools', line_tools_module)
+
+    line = xt.Line(elements=[], element_names=[])
+
+    assert isinstance(line.xfields, FakeXfieldsLineAPI)
+    assert line.xfields is line.xfields
+    assert line.xfields.line is line
+
+    with pytest.warns(
+            FutureWarning,
+            match=r'`Line\.configure_intrabeam_scattering\(\.\.\.\)` '
+                  r'is deprecated'):
+        result = line.configure_intrabeam_scattering(
+            element='ibs_kick', update_every=10, at=0)
+
+    assert result == 'configured'
+    assert calls['line'] is line
+    assert calls['element'] == 'ibs_kick'
+    assert calls['update_every'] == 10
+    assert calls['at'] == 0
 
 
 def test_remove_redundant_apertures():
@@ -143,7 +265,8 @@ def test_remove_redundant_apertures():
     # Test removing all consecutive middle apertures
     assert len(line.element_names) == 20
     all_aper = [nn for nn in line.element_names if xt._is_aperture(line[nn], line)]
-    all_aper_pos = [line.get_s_position(ap) for ap in all_aper]
+    tt = line.get_table()
+    all_aper_pos = [tt['s', ap] for ap in all_aper]
     line.remove_redundant_apertures()
     line.remove_markers()
     line.merge_consecutive_drifts()
@@ -152,7 +275,8 @@ def test_remove_redundant_apertures():
     # Verify that only the first and last aperture are kept
     new_aper = [nn for nn in line.element_names if xt._is_aperture(line[nn], line)]
     assert new_aper == [all_aper[0], all_aper[-1]]
-    new_aper_pos = [line.get_s_position(ap) for ap in new_aper]
+    tt = line.get_table()
+    new_aper_pos = [tt['s', ap] for ap in new_aper]
     assert new_aper_pos == [all_aper_pos[0], all_aper_pos[-1]]
 
     # Test removing all consecutive middle apertures, but
@@ -160,7 +284,8 @@ def test_remove_redundant_apertures():
     line = original_line.copy()
     assert len(line.element_names) == 20
     all_aper = [nn for nn in line.element_names if xt._is_aperture(line[nn], line)]
-    all_aper_pos = [line.get_s_position(ap) for ap in all_aper]
+    tt = line.get_table()
+    all_aper_pos = [tt['s', ap] for ap in all_aper]
     line.remove_redundant_apertures(keep=all_aper[3])
     line.remove_markers()
     line.merge_consecutive_drifts()
@@ -169,7 +294,8 @@ def test_remove_redundant_apertures():
     # Verify that only the first, fourth, and last aperture are kept
     new_aper = [nn for nn in line.element_names if xt._is_aperture(line[nn], line)]
     assert new_aper == [all_aper[0], all_aper[3], all_aper[-1]]
-    new_aper_pos = [line.get_s_position(ap) for ap in new_aper]
+    tt = line.get_table()
+    new_aper_pos = [tt['s', ap] for ap in new_aper]
     assert new_aper_pos == [all_aper_pos[0], all_aper_pos[3], all_aper_pos[-1]]
 
     # Test removing all consecutive middle apertures, but
@@ -178,7 +304,8 @@ def test_remove_redundant_apertures():
     line = original_line.copy()
     assert len(line.element_names) == 20
     all_aper = [nn for nn in line.element_names if xt._is_aperture(line[nn], line)]
-    all_aper_pos = [line.get_s_position(ap) for ap in all_aper]
+    tt = line.get_table()
+    all_aper_pos = [tt['s', ap] for ap in all_aper]
     all_drifts = [nn for nn in line.element_names if xt._is_drift(line[nn], line)]
     line.remove_redundant_apertures(drifts_that_need_aperture=all_drifts[8])
     line.remove_markers()
@@ -188,7 +315,8 @@ def test_remove_redundant_apertures():
     # Verify that only the first, fourth, and last aperture are kept
     new_aper = [nn for nn in line.element_names if xt._is_aperture(line[nn], line)]
     assert new_aper == [all_aper[0], all_aper[3], all_aper[-1]]
-    new_aper_pos = [line.get_s_position(ap) for ap in new_aper]
+    tt = line.get_table()
+    new_aper_pos = [tt['s', ap] for ap in new_aper]
     assert new_aper_pos == [all_aper_pos[0], all_aper_pos[3], all_aper_pos[-1]]
 
     # All apertures are different, none should be removed
@@ -232,60 +360,68 @@ def test_insert():
     )
 
     line = line0.copy()
-    assert np.all(np.array([0,1,2,3,4]) == np.array(line.get_s_elements()))
-    assert np.all(np.array([0,1,2,3,4]) == np.array(line.get_s_elements(mode='upstream')))
-    assert np.all(np.array([1,2,3,4,5]) == np.array(line.get_s_elements(mode='downstream')))
+    tt = line.get_table()
+    assert np.all(np.array([0,1,2,3,4]) == tt.s[:-1])
+    assert np.all(np.array([0,1,2,3,4]) == tt.s_start[:-1])
+    assert np.all(np.array([1,2,3,4,5]) == tt.s_end[:-1])
 
-    assert line.get_s_position(at_elements='e3') == 3.
-    assert np.isscalar(line.get_s_position(at_elements='e3'))
-    assert len(line.get_s_position(at_elements=['e3'])) == 1
-    assert np.all(np.array([4,2]) == np.array(line.get_s_position(at_elements=['e4', 'e2'])))
+    assert tt['s', 'e3'] == 3.
+    assert np.isscalar(tt['s', 'e3'])
+    assert len([tt['s', 'e3']]) == 1
+    assert np.all(np.array([4,2]) == np.array([tt['s', 'e4'], tt['s', 'e2']]))
 
-    line.insert_element(element=xt.Cavity(), name="cav", at_s=3.3)
-    assert line.get_length() == line.get_s_elements(mode='downstream')[-1] == 5
-    assert line.get_s_position('cav') == 3.3
+    line.insert(obj=xt.Cavity(), what="cav", at=3.3)
+    tt = line.get_table()
+    assert line.get_length() == tt.s_end[-1] == 5
+    assert tt['s', 'cav'] == 3.3
     assert len(line.elements) == 7
 
     line = line0.copy()
-    line.insert_element(element=xt.Drift(length=0.2), at_s=0.11, name='inserted_drift')
-    assert line.get_s_position('inserted_drift') == 0.11
+    line.insert(obj=xt.Drift(length=0.2), at=0.11, what='inserted_drift', anchor='start')
+    tt = line.get_table()
+    assert tt['s', 'inserted_drift'] == 0.11
     assert len(line.elements) == 7
     assert np.all([nn==nnref for nn, nnref in list(zip(line.element_names,
                 ['e0..0', 'inserted_drift', 'e0..2', 'e1', 'e2', 'e3', 'e4']))])
-    assert line.get_length() == line.get_s_elements(mode='downstream')[-1] == 5
+    assert line.get_length() == tt.s_end[-1] == 5
 
     line = line0.copy()
-    line.insert_element(element=xt.Drift(length=0.2), at_s=0.95, name='inserted_drift')
-    assert line.get_s_position('inserted_drift') == 0.95
+    line.insert(obj=xt.Drift(length=0.2), at=0.95, what='inserted_drift', anchor='start')
+    tt = line.get_table()
+    assert tt['s', 'inserted_drift'] == 0.95
     assert len(line.elements) == 6
     assert np.all([nn==nnref for nn, nnref in list(zip(line.element_names,
                 ['e0..0', 'inserted_drift', 'e1..1', 'e2', 'e3', 'e4']))])
-    assert line.get_length() == line.get_s_elements(mode='downstream')[-1] == 5
+    assert line.get_length() == tt.s_end[-1] == 5
 
     line = line0.copy()
-    line.insert_element(element=xt.Drift(length=0.2), at_s=1.0, name='inserted_drift')
-    assert line.get_s_position('inserted_drift') == 1.
+    line.insert(obj=xt.Drift(length=0.2), at=1.0, what='inserted_drift', anchor='start')
+    tt = line.get_table()
+    assert tt['s', 'inserted_drift'] == 1.
     assert len(line.elements) == 6
     assert np.all([nn==nnref for nn, nnref in list(zip(line.element_names,
                 ['e0', 'inserted_drift', 'e1..1', 'e2', 'e3', 'e4']))])
-    assert line.get_length() == line.get_s_elements(mode='downstream')[-1] == 5
+    assert line.get_length() == tt.s_end[-1] == 5
 
     line = line0.copy()
-    line.insert_element(element=xt.Drift(length=0.2), at_s=0.8, name='inserted_drift')
-    assert line.get_s_position('inserted_drift') == 0.8
+    line.insert(obj=xt.Drift(length=0.2), at=0.8, what='inserted_drift', anchor='start')
+    tt = line.get_table()
+    assert tt['s', 'inserted_drift'] == 0.8
     assert len(line.elements) == 6
     assert np.all([nn==nnref for nn, nnref in list(zip(line.element_names,
                 ['e0..0', 'inserted_drift', 'e1', 'e2', 'e3', 'e4']))])
-    assert line.get_length() == line.get_s_elements(mode='downstream')[-1] == 5
+    assert line.get_length() == tt.s_end[-1] == 5
 
     line = line0.copy()
-    line.insert_element(element=xt.LimitEllipse(a=1, b=1), at_s=2.1, name='aper')
-    assert line.get_s_position('aper') == 2.1
-    assert line.get_length() == line.get_s_elements(mode='downstream')[-1] == 5
+    line.insert(obj=xt.LimitEllipse(a=1, b=1), at=2.1, what='aper')
+    tt = line.get_table()
+    assert tt['s', 'aper'] == 2.1
+    assert line.get_length() == tt.s_end[-1] == 5
     assert np.all([nn==nnref for nn, nnref in list(zip(line.element_names,
                 ['e0', 'e1', 'e2..0', 'aper', 'e2..1', 'e3', 'e4']))])
-    line.insert_element(element=xt.Drift(length=0.8), at_s=1.9, name="newdrift")
-    assert line.get_s_position('newdrift') == 1.9
+    line.insert(obj=xt.Drift(length=0.8), at=1.9, what="newdrift", anchor='start')
+    tt = line.get_table()
+    assert tt['s', 'newdrift'] == 1.9
     assert np.all([nn==nnref for nn, nnref in list(zip(line.element_names,
                 ['e0', 'e1..0', 'newdrift', 'e2..1..1', 'e3', 'e4']))])
 
@@ -300,34 +436,65 @@ def test_insert():
         enames.append(f'm{ii}')
 
     line = xt.Line(elements=elements, element_names=enames)
-    line.insert_element(element=xt.Drift(length=1.), at_s=1.0, name='inserted_drift')
-    assert line.get_s_position('inserted_drift') == 1.
+    line.insert(obj=xt.Drift(length=1.), at=1.0, what='inserted_drift', anchor='start')
+    tt = line.get_table()
+    assert tt['s', 'inserted_drift'] == 1.
     assert len(line.elements) == 10
     assert np.all([nn==nnref for nn, nnref in list(zip(line.element_names,
         ['d0', 'm0', 'inserted_drift', 'm1', 'd2', 'm2', 'd3', 'm3', 'd4', 'm4']))])
-    assert line.get_length() == line.get_s_elements(mode='downstream')[-1] == 5
+    assert line.get_length() == tt.s_end[-1] == 5
 
-    line.insert_element(element=xt.Cavity(), at_s=3.0, name='cav0')
-    line.insert_element(element=xt.Cavity(), at_s=3.0, name='cav1')
+    line.insert(obj=xt.Cavity(), at=3.0, what='cav0')
+    line.insert(obj=xt.Cavity(), at=3.0, what='cav1')
     assert len(line.elements) == 12
     assert np.all([nn==nnref for nn, nnref in list(zip(line.element_names,
         ['d0', 'm0', 'inserted_drift', 'm1', 'd2', 'cav1', 'cav0', 'm2', 'd3',
         'm3', 'd4', 'm4']))])
-    assert line.get_length() == line.get_s_elements(mode='downstream')[-1] == 5
-    assert line.get_s_position('cav0') == 3.
-    assert line.get_s_position('cav1') == 3.
+    tt = line.get_table()
+    assert line.get_length() == tt.s_end[-1] == 5
+    assert tt['s', 'cav0'] == 3.
+    assert tt['s', 'cav1'] == 3.
 
     line = xt.Line(elements=elements, element_names=enames)
-    line.insert_element(element=xt.Drift(length=0.2), at_s=0.95, name='inserted_drift')
-    assert line.get_s_position('inserted_drift') == 0.95
+    line.insert(obj=xt.Drift(length=0.2), at=0.95, what='inserted_drift', anchor='start')
+    tt = line.get_table()
+    assert tt['s', 'inserted_drift'] == 0.95
     assert len(line.elements) == 10
     assert np.all([nn==nnref for nn, nnref in list(zip(line.element_names,
                 ['d0..0', 'inserted_drift', 'd1..1', 'm1', 'd2', 'm2', 'd3',
                 'm3', 'd4', 'm4']))])
-    assert line.get_length() == line.get_s_elements(mode='downstream')[-1] == 5
+    assert line.get_length() == tt.s_end[-1] == 5
 
 
+def test_get_s_methods_are_deprecated():
+
+    line = xt.Line(elements=[xt.Drift(length=1), xt.Drift(length=2)])
+
+    with pytest.warns(FutureWarning, match='`Line.get_s_elements`'):
+        assert line.get_s_elements() == [0, 1]
+
+    with pytest.warns(FutureWarning, match='`Line.get_s_position`'):
+        assert line.get_s_position('e1') == 1
+
+
+def test_get_elements_of_type_is_deprecated():
+
+    line = xt.Line(
+        elements=[xt.Drift(length=1), xt.Cavity()],
+        element_names=['d0', 'cav'],
+    )
+
+    with pytest.warns(FutureWarning, match='`Line.get_elements_of_type`'):
+        elements, names = line.get_elements_of_type(xt.Cavity)
+
+    assert elements == [line['cav']]
+    assert names == ['cav']
+
+
+@allow_kernel_compilation
 def test_insert_omp():
+
+
     ctx = xo.ContextCpu(omp_num_threads='auto')
     buffer = ctx.new_buffer()
 
@@ -335,7 +502,7 @@ def test_insert_omp():
     multipole = xt.Multipole(knl=[1], _buffer=buffer)
 
     line = xt.Line(elements=[drift], element_names=['dr'])
-    line.insert_element(element=multipole, at_s=1, name='mp')
+    line.insert('mp', obj=multipole, at=1)
     line.build_tracker()
 
     assert line._buffer is line['dr..0']._buffer
@@ -348,11 +515,13 @@ def test_to_pandas():
     line = xt.Line(elements=[
         xt.Drift(length=1), xt.Cavity(), xt.Drift(length=1)])
 
-    df = line.to_pandas()
+    with pytest.warns(FutureWarning, match='Line.to_pandas'):
+        df = line.to_pandas()
 
     assert tuple(df.columns) == (
         's', 'element_type', 'name', 'isthick', 'isreplica', 'parent_name',
-       'iscollective', 'element', 's_start', 's_center', 's_end')
+       'parent_type', 'prototype', 'iscollective', 'element', 's_start',
+       's_center', 's_end')
     assert len(df) == 4
 
 def test_check_aperture():
@@ -512,7 +681,7 @@ def test_from_dict_current():
     assert isinstance(d1, xt.Drift)
     assert d1.length == 4
 
-    assert d2 is d1
+    assert d2._obj is d1._obj  # they are views
 
     assert line.metadata == test_dict['metadata']
 
@@ -571,26 +740,27 @@ def test_from_sequence():
     assert line.get_length() == 20
     assert len(line.elements) == 18
 
-    assert line.get_s_position()[line.element_names.index('section_1')] == 0
+    tt = line.get_table()
+    assert tt['s', 'section_1'] == 0
     assert isinstance(line.elements[line.element_names.index('section_1')], xt.Marker)
-    assert line.get_s_position()[line.element_names.index('section_1_quad')] == 1
+    assert tt['s', 'section_1_quad'] == 1
     assert line.elements[line.element_names.index('section_1_quad')] == elements['quad']
-    assert line.get_s_position()[line.element_names.index('section_1_bend')] == 5
+    assert tt['s', 'section_1_bend'] == 5
     assert line.elements[line.element_names.index('section_1_bend')] == elements['bend']
 
-    assert line.get_s_position()[line.element_names.index('section_2')] == 10
+    assert tt['s', 'section_2'] == 10
     assert isinstance(line.elements[line.element_names.index('section_2')], xt.Marker)
-    assert line.get_s_position()[line.element_names.index('section_2_quad')] == 11
+    assert tt['s', 'section_2_quad'] == 11
     assert line.elements[line.element_names.index('section_2_quad')] == elements['quad']
-    assert line.get_s_position()[line.element_names.index('section_2_bend')] == 15
+    assert tt['s', 'section_2_bend'] == 15
     assert line.elements[line.element_names.index('section_2_bend')] == elements['bend']
 
-    assert line.get_s_position()[line.element_names.index('sext')] == 13
+    assert tt['s', 'sext'] == 13
     assert line.elements[line.element_names.index('sext')] == sext
 
-    assert line.get_s_position()[line.element_names.index('section_3')] == 16
+    assert tt['s', 'section_3'] == 16
     assert isinstance(line.elements[line.element_names.index('section_3')], xt.Marker)
-    assert line.get_s_position()[line.element_names.index('section_3_quad')] == 17
+    assert tt['s', 'section_3_quad'] == 17
     assert line.elements[line.element_names.index('section_3_quad')] == elements['quad']
 
     # test negative drift
@@ -625,7 +795,7 @@ def test_from_sequence_with_thick(refer):
         offset = -1
 
     xo.assert_allclose(
-        line.get_s_position(line.element_names),
+        line.get_table().s[:-1],
         [
             0,             # drift
             1.2 + offset,  # my_drift
@@ -668,11 +838,11 @@ def test_optimize_multipoles(test_context):
 
     for nn in test_line.element_names:
         if nn in ('d1', 'd2'):
-            assert type(test_line.element_dict[nn]) is xt.SimpleThinBend
+            assert type(test_line.get(nn)) is xt.SimpleThinBend
         elif nn == 'q1' or nn == 'q3':
-            assert type(test_line.element_dict[nn]) is xt.SimpleThinQuadrupole
+            assert type(test_line.get(nn)) is xt.SimpleThinQuadrupole
         else:
-            assert type(test_line.element_dict[nn]) is xt.Multipole
+            assert type(test_line.get(nn)) is xt.Multipole
 
 def test_from_json_to_json(tmp_path):
 
@@ -691,7 +861,7 @@ def test_from_json_to_json(tmp_path):
     line.metadata = example_metadata
 
     def asserts():
-        assert len(result.element_dict.keys()) == 2
+        assert len(result.env.elements) == 2
         assert result.element_names == ['m', 'd', 'm', 'd']
 
         assert isinstance(result['m'], xt.Multipole)
@@ -736,7 +906,10 @@ def test_from_json_to_json(tmp_path):
 
 
 @for_all_test_contexts
+@allow_kernel_compilation
 def test_config_propagation(test_context):
+
+
     line = xt.Line(elements=10*[xt.Drift(length=1)])
     line.config.TEST1 = True
     line.config.TEST2 = 33.3
@@ -829,7 +1002,7 @@ def test_line_attr():
         elements=[
             xt.Drift(length=1),
             xt.Multipole(knl=[2, 3, 4], hxl=8),
-            xt.Bend(k0=5, h=0.5, length=6, knl=[7, 8, 9]),
+            xt.Bend(k0=5, angle=0.5 * 6, length=6, knl=[7, 8, 9]),
             xt.Drift(length=10),
             xt.Quadrupole(k1=11, length=12),
         ]
@@ -840,7 +1013,82 @@ def test_line_attr():
     assert np.all(line.attr['length'] == [1, 0, 6, 10, 12])
     assert np.all(line.attr['k0l'] == [0, 2, 5 * 6 + 7, 0, 0])
     assert np.all(line.attr['k1l'] == [0, 3, 8, 0, 11 * 12])
-    assert np.all(line.attr['angle_rad'] == [0, 8, 0.5 * 6, 0, 0])
+    assert np.all(line.attr['angle'] == [0, 8, 0.5 * 6, 0, 0])
+
+
+def test_line_attr_ks():
+    line = xt.Line(
+        elements=[
+            xt.Drift(length=1),
+            xt.UniformSolenoid(length=2, ks=0.3),
+            xt.VariableSolenoid(length=3, ks_profile=[0.2, 0.8]),
+            xt.VariableSolenoid(length=4, ks_profile=[0, 0]),
+        ],
+        element_names=['drift', 'uniform_sol', 'var_sol', 'var_sol_expr'],
+    )
+
+    line.vars['ks_entry'] = 0.4
+    line.vars['ks_exit'] = 1.0
+    line['var_sol_expr'].ks_profile[0] = line.vars['ks_entry']
+    line['var_sol_expr'].ks_profile[1] = line.vars['ks_exit']
+
+    line.build_tracker()
+
+    xo.assert_allclose(
+        line.attr['ks'],
+        [0, 0.3, 0.5 * (0.2 + 0.8), 0.5 * (0.4 + 1.0)],
+        rtol=0,
+        atol=1e-14,
+    )
+
+    line['var_sol'].ks_profile[0] = 0.6
+    line['var_sol'].ks_profile[1] = 1.4
+    line.vars['ks_entry'] = 0.8
+    line.vars['ks_exit'] = 1.6
+
+    xo.assert_allclose(
+        line.attr['ks'],
+        [0, 0.3, 0.5 * (0.6 + 1.4), 0.5 * (0.8 + 1.6)],
+        rtol=0,
+        atol=1e-14,
+    )
+
+
+def test_line_attr_splineboris_bs():
+    from xtrack.twiss import OTHER_FIELDS_FROM_ATTR
+
+    assert 'bs' in OTHER_FIELDS_FROM_ATTR
+
+    line = xt.Line(
+        elements=[
+            xt.Drift(length=1),
+            xt.SplineBoris(
+                length=2,
+                bs=xt.Spline4(1, 2, 3, 4, 5),
+                scale_b=1.7,
+            ),
+        ],
+    )
+
+    line.build_tracker()
+
+    xo.assert_allclose(
+        line.attr['bs'],
+        [0, 5 * 1.7],
+        rtol=0,
+        atol=1e-14,
+    )
+
+    line[1].bs[4] = 7
+    line[1].scale_b = 2.5
+
+    xo.assert_allclose(
+        line.attr['bs'],
+        [0, 7 * 2.5],
+        rtol=0,
+        atol=1e-14,
+    )
+
 
 @for_all_test_contexts
 def test_insert_thin_elements_at_s_basic(test_context):
@@ -867,7 +1115,7 @@ def test_insert_thin_elements_at_s_basic(test_context):
     assert t1.s[-2] == 5.
     assert t1.s[-3] == 5.
 
-@for_all_test_contexts
+@for_all_test_contexts(excluding=('ContextCupy', 'ContextPyopencl'))
 def test_insert_thin_elements_at_s_lhc(test_context):
 
     line = xt.load(test_data_folder /
@@ -898,8 +1146,9 @@ def test_insert_thin_elements_at_s_lhc(test_context):
     e0 = 'mq.28r3.b1_entry'
     e1 = 'mq.29r3.b1_exit'
 
-    s0 = line.get_s_position(e0)
-    s1 = line.get_s_position(e1)
+    tt = line.get_table()
+    s0 = tt['s', e0]
+    s1 = tt['s', e1]
     s2 = line.get_length()
 
     elements_to_insert = [
@@ -947,9 +1196,9 @@ def test_insert_thin_elements_at_s_lhc(test_context):
             == np.array(
                 ['m1_at_c', 'm2_at_c', 'mq.29r3.b1..exit_map', 'mq.29r3.b1_exit']))
 
-    assert np.all(tt.rows['m0_at_d':'m0_at_d>>4'].name
+    assert np.all(tt.rows['m0_at_d':'m0_at_d>>3'].name
                 == np.array(['m0_at_d', 'm1_at_d', 'm2_at_d',
-                            'lhcb1ip7_p_', '_end_point']))
+                            '_end_point']))
 
     xo.assert_allclose(line.get_length(), tw0.s[-1], atol=1e-6)
 
@@ -1037,26 +1286,24 @@ def test_slicing_at_custom_s():
     xo.assert_allclose(tab.rows[r'e6\.\.\d*'].s, [7, 7.8, 7.9], atol=1e-16)
 
 def test_insert_thick_element_reuse_marker_name():
-
-    assert_allclose = xo.assert_allclose
-
     elements = {
         'd1': xt.Drift(length=1),
         'm1': xt.Marker(),
         'd2': xt.Drift(length=1),
     }
 
-    line=xt.Line(elements=elements,
-                element_names=list(elements.keys()))
+    line = xt.Line(elements=elements, element_names=list(elements.keys()))
 
     # Note that the name is reused
-    line.insert_element(element=xt.Bend(length=1.), name='m1', at_s=0.5)
+    line.remove('m1') # remove from the line
+    line.env.remove('m1') # remove from the environment
+    line.insert('m1', obj=xt.Bend(length=1.), at=0.5, anchor='start')
 
     tt = line.get_table()
 
     assert np.all(tt.name == ['d1..0', 'm1', 'd2..1', '_end_point'])
     assert np.all(tt.parent_name == ['d1', None, 'd2', None])
-    assert_allclose(tt.s, [0. , 0.5, 1.5, 2. ], rtol=0, atol=1e-14)
+    xo.assert_allclose(tt.s, [0. , 0.5, 1.5, 2. ], rtol=0, atol=1e-14)
 
 def test_multiple_thick_elements():
     line = xt.Line(
@@ -1102,7 +1349,7 @@ def test_get_strengths(test_context):
             -str_table_rev['k0l', 'mbw.a6l3.b2'] / str_table_rev['length', 'mbw.a6l3.b2'],
             rtol=0, atol=1e-14)
     xo.assert_allclose(line['mbw.a6l3.b2'].h,
-            -str_table_rev['angle_rad', 'mbw.a6l3.b2'] / str_table_rev['length', 'mbw.a6l3.b2'],
+            -str_table_rev['angle', 'mbw.a6l3.b2'] / str_table_rev['length', 'mbw.a6l3.b2'],
             rtol=0, atol=1e-14)
 
     str_table = line.get_strengths(reverse=False) # Takes reverse from twiss_default
@@ -1110,24 +1357,24 @@ def test_get_strengths(test_context):
             str_table['k0l', 'mbw.a6l3.b2'] / str_table['length', 'mbw.a6l3.b2'],
             rtol=0, atol=1e-14)
     xo.assert_allclose(line['mbw.a6l3.b2'].h,
-            str_table['angle_rad', 'mbw.a6l3.b2'] / str_table['length', 'mbw.a6l3.b2'],
+            str_table['angle', 'mbw.a6l3.b2'] / str_table['length', 'mbw.a6l3.b2'],
             rtol=0, atol=1e-14)
 
 
 
+@pytest.mark.filterwarnings('ignore::FutureWarning')
 def test_insert_repeated_names():
 
     line = xt.Line(
         elements=([xt.Drift(length=0)] # Start line marker
-                    + [xt.Drift(length=1) for _ in range(5)]
-                    + [xt.Drift(length=0)] # End line marker
-            ),
+                  + [xt.Drift(length=1) for _ in range(5)]
+                  + [xt.Drift(length=0)]), # End line marker
         element_names=['d']*7
         )
-    line.insert_element("m1",xt.Marker(),at="d::3")
-    assert line.element_names[3]=="m1"
-    line.insert_element("m2",xt.Marker(),at="d")
-    assert line.element_names[0]=="m2"
+    line.insert_element("m1", xt.Marker(), at="d::3")
+    assert line.element_names[3] == "m1"
+    line.insert_element("m2", xt.Marker(), at="d")
+    assert line.element_names[0] == "m2"
 
 def test_line_table_unique_names():
     line = xt.Line(
@@ -1140,6 +1387,33 @@ def test_line_table_unique_names():
     for name, env_name in zip(table.name, table.env_name):
         if name == '_end_point': continue
         assert line[name] == line[env_name]
+
+
+def test_extend():
+
+    env = xt.Environment()
+    env.new('d1', xt.Drift, length=1)
+    env.new('d2', xt.Drift, length=2)
+    env.new('d3', xt.Drift, length=3)
+
+    line = env.new_line(components=['d1'])
+    other_line = env.new_line(components=['d2'])
+
+    line.extend(other_line)
+    assert line.element_names == ['d1', 'd2']
+
+    line.extend(['d3', 'd1'])
+    assert line.element_names == ['d1', 'd2', 'd3', 'd1']
+
+    other_env = xt.Environment()
+    other_env.new('d4', xt.Drift, length=4)
+    line_from_other_env = other_env.new_line(components=['d4'])
+
+    with pytest.raises(ValueError, match='same environment'):
+        line.extend(line_from_other_env)
+
+    with pytest.raises(ValueError, match='list of strings'):
+        line.extend(['d2', 3])
 
 
 def test_extend_knl_ksl():
@@ -1292,11 +1566,11 @@ def test_extend_knl_ksl():
                        0., 0., 0., 0., 0., 0., 0., 0.], rtol=0, atol=1e-15)
     xo.assert_allclose(line['u1'].knl, [3., 2., 1., 0.,
                        0., 0., 0., 0., 0., 0., 0., 0.], rtol=0, atol=1e-15)
-    xo.assert_allclose(line['v1'].ksl, [4., 5., 6., 0.,
+    xo.assert_allclose(line['u1'].ksl, [4., 5., 6., 0.,
                        0., 0., 0., 0., 0., 0., 0., 0.], rtol=0, atol=1e-15)
     xo.assert_allclose(line['v1'].knl, [3., 2., 1., 0.,
                        0., 0., 0., 0., 0., 0., 0., 0.], rtol=0, atol=1e-15)
-    xo.assert_allclose(line['u1'].ksl, [4., 5., 6., 0.,
+    xo.assert_allclose(line['v1'].ksl, [4., 5., 6., 0.,
                        0., 0., 0., 0., 0., 0., 0., 0.], rtol=0, atol=1e-15)
     xo.assert_allclose(line['m1'].knl, [3., 2., 1., 0.,
                        0., 0., 0., 0., 0., 0., 0., 0.], rtol=0, atol=1e-15)
@@ -1313,3 +1587,135 @@ def test_extend_knl_ksl():
                        0., 0., 0., 0., 0., 0., 0., 0.], rtol=0, atol=1e-15)
 
 
+
+def test_extend_knl_rel_ksl_rel():
+
+    classes_to_check = ['Bend', 'Quadrupole', 'Sextupole', 'Octupole', 'Multipole']
+
+    for cc in classes_to_check:
+
+        nn1 = 'test1_'+cc.lower()
+        nn2 = 'test2_'+cc.lower()
+        env = xt.Environment()
+        env.new(nn1, cc, length=10, order=5, knl_rel=[
+                1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], ksl_rel=[3, 2, 1])
+        env.new(nn2, cc, length=10, order=5, ksl_rel=[
+                1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], knl_rel=[3, 2, 1])
+
+        assert env[nn1].__class__.__name__ == cc
+        assert env[nn1].order == 5 # Default on untouched knl, ksl
+        assert len(env[nn1].knl_rel) == 12
+        assert len(env[nn1].ksl_rel) == 12
+        xo.assert_allclose(env[nn1].knl_rel, [1, 2, 3, 4, 5,
+                           6, 7, 8, 9, 10, 11, 12], rtol=0, atol=1e-15)
+        xo.assert_allclose(env[nn1].ksl_rel, [3, 2, 1, 0, 0,
+                           0, 0, 0, 0, 0, 0, 0], rtol=0, atol=1e-15)
+        xo.assert_allclose(env[nn1].inv_factorial_order,
+                           1/math.factorial(5), rtol=0, atol=1e-15)
+
+        assert env[nn2].__class__.__name__ == cc
+        assert env[nn2].order == 5 # Default on untouched knl, ksl
+        assert len(env[nn2].ksl_rel) == 12
+        assert len(env[nn2].knl_rel) == 12
+        xo.assert_allclose(env[nn2].ksl_rel, [1, 2, 3, 4, 5,
+                           6, 7, 8, 9, 10, 11, 12], rtol=0, atol=1e-15)
+        xo.assert_allclose(env[nn2].knl_rel, [3, 2, 1, 0, 0,
+                           0, 0, 0, 0, 0, 0, 0], rtol=0, atol=1e-15)
+        xo.assert_allclose(env[nn2].inv_factorial_order,
+                           1/math.factorial(5), rtol=0, atol=1e-15)
+
+    env.vars.default_to_zero = True
+    line = env.new_line(components=[
+        env.new('b1', xt.Bend, length=1, order=9,knl_rel=[
+                'a', 'b', 'c'], ksl_rel=['d', 'e', 'f']),
+        env.new('q1', xt.Quadrupole, length=1, order=9,knl_rel=[
+                'a', 'b', 'c'], ksl_rel=['d', 'e', 'f']),
+        env.new('s1', xt.Sextupole, length=1, order=9,knl_rel=[
+                'a', 'b', 'c'], ksl_rel=['d', 'e', 'f']),
+        env.new('o1', xt.Octupole, length=1, order=9,knl_rel=[
+                'a', 'b', 'c'], ksl_rel=['d', 'e', 'f']),
+        env.new('m1', xt.Multipole, length=1, order=9,knl_rel=[
+                'a', 'b', 'c'], ksl_rel=['d', 'e', 'f']),
+    ])
+
+    env['a'] = 3.
+    env['b'] = 2.
+    env['c'] = 1.
+    env['d'] = 4.
+    env['e'] = 5.
+    env['f'] = 6.
+
+    element_names = ['b1', 'q1']
+    order = 10
+
+    line.extend_knl_rel_ksl_rel(order=order, element_names=element_names)
+
+    # Absolute order untouched
+    xo.assert_allclose(line['b1'].inv_factorial_order,
+                       1/math.factorial(9), rtol=0, atol=1e-15)
+    xo.assert_allclose(line['q1'].inv_factorial_order,
+                       1/math.factorial(9), rtol=0, atol=1e-15)
+    xo.assert_allclose(line['s1'].inv_factorial_order,
+                       1/math.factorial(9), rtol=0, atol=1e-15)
+    xo.assert_allclose(line['o1'].inv_factorial_order,
+                       1/math.factorial(9), rtol=0, atol=1e-15)
+    xo.assert_allclose(line['m1'].inv_factorial_order,
+                       1/math.factorial(9), rtol=0, atol=1e-15)
+
+    xo.assert_allclose(line['b1'].knl_rel, [3., 2., 1., 0.,
+                       0., 0., 0., 0., 0., 0., 0.], rtol=0, atol=1e-15)
+    xo.assert_allclose(line['b1'].ksl_rel, [4., 5., 6., 0.,
+                       0., 0., 0., 0., 0., 0., 0.], rtol=0, atol=1e-15)
+    xo.assert_allclose(line['q1'].knl_rel, [3., 2., 1., 0.,
+                       0., 0., 0., 0., 0., 0., 0.], rtol=0, atol=1e-15)
+    xo.assert_allclose(line['q1'].ksl_rel, [4., 5., 6., 0.,
+                       0., 0., 0., 0., 0., 0., 0.], rtol=0, atol=1e-15)
+    xo.assert_allclose(line['s1'].knl_rel, [3., 2., 1.], rtol=0, atol=1e-15)
+    xo.assert_allclose(line['s1'].ksl_rel, [4., 5., 6.], rtol=0, atol=1e-15)
+    xo.assert_allclose(line['o1'].knl_rel, [3., 2., 1.], rtol=0, atol=1e-15)
+    xo.assert_allclose(line['o1'].ksl_rel, [4., 5., 6.], rtol=0, atol=1e-15)
+    xo.assert_allclose(line['m1'].knl_rel, [3., 2., 1.], rtol=0, atol=1e-15)
+    xo.assert_allclose(line['m1'].ksl_rel, [4., 5., 6.], rtol=0, atol=1e-15)
+
+    line.extend_knl_rel_ksl_rel(order=11)
+
+    # Absolute order untouched
+    assert line['b1'].order == 9
+    assert line['q1'].order == 9
+    assert line['s1'].order == 9
+    assert line['o1'].order == 9
+    assert line['m1'].order == 9
+    assert line['b1'].inv_factorial_order == 1/math.factorial(9)
+    assert line['q1'].inv_factorial_order == 1/math.factorial(9)
+    assert line['s1'].inv_factorial_order == 1/math.factorial(9)
+    assert line['o1'].inv_factorial_order == 1/math.factorial(9)
+    assert line['m1'].inv_factorial_order == 1/math.factorial(9)
+    xo.assert_allclose(line['b1'].knl_rel, [3., 2., 1., 0.,
+                       0., 0., 0., 0., 0., 0., 0., 0.], rtol=0, atol=1e-15)
+    xo.assert_allclose(line['b1'].ksl_rel, [4., 5., 6., 0.,
+                       0., 0., 0., 0., 0., 0., 0., 0.], rtol=0, atol=1e-15)
+    xo.assert_allclose(line['q1'].knl_rel, [3., 2., 1., 0.,
+                       0., 0., 0., 0., 0., 0., 0., 0.], rtol=0, atol=1e-15)
+    xo.assert_allclose(line['q1'].ksl_rel, [4., 5., 6., 0.,
+                       0., 0., 0., 0., 0., 0., 0., 0.], rtol=0, atol=1e-15)
+    xo.assert_allclose(line['s1'].knl_rel, [3., 2., 1., 0.,
+                       0., 0., 0., 0., 0., 0., 0., 0.], rtol=0, atol=1e-15)
+    xo.assert_allclose(line['s1'].ksl_rel, [4., 5., 6., 0.,
+                       0., 0., 0., 0., 0., 0., 0., 0.], rtol=0, atol=1e-15)
+    xo.assert_allclose(line['o1'].knl_rel, [3., 2., 1., 0.,
+                       0., 0., 0., 0., 0., 0., 0., 0.], rtol=0, atol=1e-15)
+    xo.assert_allclose(line['o1'].ksl_rel, [4., 5., 6., 0.,
+                       0., 0., 0., 0., 0., 0., 0., 0.], rtol=0, atol=1e-15)
+    xo.assert_allclose(line['m1'].knl_rel, [3., 2., 1., 0.,
+                       0., 0., 0., 0., 0., 0., 0., 0.], rtol=0, atol=1e-15)
+    xo.assert_allclose(line['m1'].ksl_rel, [4., 5., 6., 0.,
+                       0., 0., 0., 0., 0., 0., 0., 0.], rtol=0, atol=1e-15)
+
+    # test an expression
+    line['b'] = 100
+    line['f'] = 200
+
+    xo.assert_allclose(line['o1'].knl_rel, [3., 100., 1., 0.,
+                       0., 0., 0., 0., 0., 0., 0., 0.], rtol=0, atol=1e-15)
+    xo.assert_allclose(line['o1'].ksl_rel, [4., 5., 200., 0.,
+                       0., 0., 0., 0., 0., 0., 0., 0.], rtol=0, atol=1e-15)

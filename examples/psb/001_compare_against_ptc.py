@@ -123,13 +123,13 @@ t_ptc = xd.Table(mad.table.ptc_twiss)
 line_thick = xt.load('psb_03_with_chicane_corrected.json')
 line_thick.build_tracker()
 line_thick.configure_bend_model(core='full', edge='full')
-line_thick.vars['on_chicane_beta_corr'] = 0
-line_thick.vars['on_chicane_tune_corr'] = 0
+line_thick['on_chicane_beta_corr'] = 0
+line_thick['on_chicane_tune_corr'] = 0
 
 line_thin = xt.load('psb_04_with_chicane_corrected_thin.json')
 line_thin.build_tracker()
-line_thin.vars['on_chicane_beta_corr'] = 0
-line_thin.vars['on_chicane_tune_corr'] = 0
+line_thin['on_chicane_beta_corr'] = 0
+line_thin['on_chicane_tune_corr'] = 0
 
 t_test = np.linspace(0, 6e-3, 100)
 
@@ -151,8 +151,8 @@ dqy_ptc = []
 bety_at_scraper_ptc = []
 for ii, tt in enumerate(t_test):
     print(f'Twiss at t = {tt*1e3:.2f} ms   ', end='\r', flush=True)
-    line_thick.vars['t_turn_s'] = tt
-    line_thin.vars['t_turn_s'] = tt
+    line_thick['t_turn_s'] = tt
+    line_thin['t_turn_s'] = tt
 
     tw_thick = line_thick.twiss()
     bety_at_scraper_thick.append(tw_thick['bety', 'br.stscrap22'])
@@ -168,8 +168,8 @@ for ii, tt in enumerate(t_test):
     dqx_thin.append(tw_thin.dqx)
     dqy_thin.append(tw_thin.dqy)
 
-    mad.globals.bsw_k0l = line_thick.vars['bsw_k0l']._value
-    mad.globals.bsw_k2l = line_thick.vars['bsw_k2l']._value
+    mad.globals.bsw_k0l = line_thick['bsw_k0l']
+    mad.globals.bsw_k2l = line_thick['bsw_k2l']
 
     mad.input('''
     SELECT,FLAG=ERROR,CLEAR;

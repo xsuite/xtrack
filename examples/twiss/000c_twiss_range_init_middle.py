@@ -5,9 +5,7 @@
 
 import xtrack as xt
 
-collider = xt.load(
-    '../../test_data/hllhc15_thick/hllhc15_collider_thick.json')
-collider.build_trackers()
+collider = xt.load('../../test_data/hllhc15_thick/hllhc15_collider_thick.json')
 
 collider.lhcb1.twiss_default['method'] = '4d'
 collider.lhcb2.twiss_default['method'] = '4d'

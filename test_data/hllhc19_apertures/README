@@ -1,0 +1,5 @@
+In order to re-generate these test files:
+
+1. Clone or link to `acc-models-lhc` in the current directory
+2. Switch it to branch `hl19`
+2. Run `make_files.py`

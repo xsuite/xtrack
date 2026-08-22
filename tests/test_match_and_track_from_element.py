@@ -17,7 +17,7 @@ test_data_folder = pathlib.Path(
         __file__).parent.joinpath('../test_data').absolute()
 
 
-@for_all_test_contexts
+@for_all_test_contexts(excluding=('ContextCupy', 'ContextPyopencl'))
 def test_match_and_track_from_element(test_context):
     # Load machine model (from pymask)
     filename = test_data_folder.joinpath('lhc_no_bb/line_and_particle.json')
@@ -40,7 +40,7 @@ def test_match_and_track_from_element(test_context):
                     nemitt_x=2.5e-6, nemitt_y=2.5e-6,
                     at_element=at_element)
 
-    tw = line.twiss(at_elements=[at_element])
+    tw = line.twiss().rows[at_element]
 
     particles.move(_context=xo.context_default) # To easily do the checks with numpy
     xo.assert_allclose(
@@ -57,7 +57,7 @@ def test_match_and_track_from_element(test_context):
     assert np.all(mon.at_element[:, -1] == len(line.element_names))
 
     # Check that distribution is matched at the end of the turn
-    tw0 = line.twiss(at_elements=[0])
+    tw0 = line.twiss().rows[0]
     particles.move(_context=xo.context_default)
     xo.assert_allclose(
         np.sqrt(tw0['betx'][0]*2.5e-6/particles.beta0[0]/particles.gamma0[0]),
@@ -70,7 +70,7 @@ def test_match_and_track_from_element(test_context):
                     nemitt_x=2.5e-6, nemitt_y=2.5e-6,
                     at_element=at_element)
 
-    tw = line.twiss(at_elements=[at_element])
+    tw = line.twiss().rows[at_element]
 
     particles.move(_context=xo.context_default)
     xo.assert_allclose(
@@ -80,7 +80,7 @@ def test_match_and_track_from_element(test_context):
 
     line.track(particles, num_turns=3)
 
-    tw0 = line.twiss(at_elements=[0])
+    tw0 = line.twiss().rows[0]
     particles.move(_context=xo.context_default)
     xo.assert_allclose(
         np.sqrt(tw0['betx'][0]*2.5e-6/particles.beta0[0]/particles.gamma0[0]),
@@ -91,8 +91,8 @@ def test_match_and_track_from_element(test_context):
     # Check collective case
     line_w_collective = xt.Line.from_dict(input_data['line'])
     for ip in range(8):
-        line_w_collective.element_dict[f'ip{ip+1}'].iscollective = True
-        line_w_collective.element_dict[f'ip{ip+1}'].move(_context=test_context)
+        line_w_collective[f'ip{ip+1}'].iscollective = True
+        line_w_collective[f'ip{ip+1}'].move(_context=test_context)
     line_w_collective.build_tracker(_context=test_context)
     line_w_collective.reset_s_at_end_turn = False
 
@@ -106,7 +106,7 @@ def test_match_and_track_from_element(test_context):
                     nemitt_x=2.5e-6, nemitt_y=2.5e-6,
                     at_element=at_element)
 
-    tw = line_w_collective.twiss(at_elements=[at_element])
+    tw = line_w_collective.twiss().rows[at_element]
 
     particles.move(_context=xo.context_default)
     xo.assert_allclose(
@@ -116,7 +116,7 @@ def test_match_and_track_from_element(test_context):
 
     line_w_collective.track(particles, num_turns=3)
 
-    tw0 = line_w_collective.twiss(at_elements=[0])
+    tw0 = line_w_collective.twiss().rows[0]
     particles.move(_context=xo.context_default)
     xo.assert_allclose(
         np.sqrt(tw0['betx'][0]*2.5e-6/particles.beta0[0]/particles.gamma0[0]),
@@ -130,10 +130,10 @@ def test_match_and_track_from_element(test_context):
                     x_norm=r_sigma*np.cos(theta), px_norm=r_sigma*np.sin(theta),
                     nemitt_x=2.5e-6, nemitt_y=2.5e-6,
                     at_element=at_element,
-                    match_at_s=line_w_collective.get_s_position('ip6') + 100
+                    match_at_s=line_w_collective.get_table()['s', 'ip6'] + 100
                     )
 
-    tw = line_w_collective.twiss(at_elements=[at_element])
+    tw = line_w_collective.twiss().rows[at_element]
 
     particles.move(_context=xo.context_default)
     xo.assert_allclose(
@@ -145,9 +145,10 @@ def test_match_and_track_from_element(test_context):
                 1j*(particles.x[0]  * tw['alfx'][0] / np.sqrt(tw['betx'][0]) +
                         particles.px[0] * np.sqrt(tw['betx'][0])))
 
-    mu_at_s = line_w_collective.twiss(
-        at_s=line_w_collective.get_s_position('ip6') + 100)['mux'][0]
-    mu_at_element = line_w_collective.twiss(at_elements=[at_element])['mux'][0]
+    line_w_collective.insert('ip6_plus_100', obj=xt.Marker(),
+                             at=line_w_collective.get_table()['s', 'ip6'] + 100)
+    mu_at_s = line_w_collective.twiss().rows['ip6_plus_100']['mux']
+    mu_at_element = line_w_collective.twiss().rows[at_element]['mux'][0]
 
     xo.assert_allclose(phasex_first_part, (mu_at_element - mu_at_s)*2*np.pi,
                     atol=0, rtol=0.02)
@@ -155,7 +156,7 @@ def test_match_and_track_from_element(test_context):
 
     line_w_collective.track(particles, num_turns=3)
 
-    tw0 = line_w_collective.twiss(at_elements=[0])
+    tw0 = line_w_collective.twiss().rows[0]
     particles.move(_context=xo.context_default)
     xo.assert_allclose(
         np.sqrt(tw0['betx'][0]*2.5e-6/particles.beta0[0]/particles.gamma0[0]),

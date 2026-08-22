@@ -29,10 +29,8 @@ line = env.new_line(components=[
     env.new('mb2.2', xt.Bend, length=lbend, k0=pi / 2 / lbend, h=pi / 2 / lbend),
     env.new('d4.2',  xt.Drift, length=1),
 ])
+line.set_particle_ref('proton', p0c=1.2e9)
 
-# Build the ring
-line.particle_ref = xt.Particles(p0c=1.2e9, mass0=xt.PROTON_MASS_EV)
-line.build_tracker()
 
 # Inspect the line
 tab = line.get_table()

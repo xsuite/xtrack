@@ -3,75 +3,6 @@ import numpy as np
 import xobjects as xo
 import xtrack as xt
 
-source = """
-
-/*gpukern*/
-void get_values_at_offsets_float64(
-    MultiSetterData data,
-    /*gpuglmem*/ int8_t* buffer,
-    /*gpuglmem*/ double* out){
-
-    int64_t num_offsets = MultiSetterData_len_offsets(data);
-
-    for (int64_t ii = 0; ii < num_offsets; ii++) { //vectorize_over ii num_offsets
-        int64_t offs = MultiSetterData_get_offsets(data, ii);
-
-        double val = *((/*gpuglmem*/ double*)(buffer + offs));
-        out[ii] = val;
-    } //end_vectorize
-}
-
-/*gpukern*/
-void get_values_at_offsets_int64(
-    MultiSetterData data,
-    /*gpuglmem*/ int8_t* buffer,
-    /*gpuglmem*/ int64_t* out){
-
-    int64_t num_offsets = MultiSetterData_len_offsets(data);
-
-    for (int64_t ii = 0; ii < num_offsets; ii++) { //vectorize_over ii num_offsets
-        int64_t offs = MultiSetterData_get_offsets(data, ii);
-
-        int64_t val = *((/*gpuglmem*/ int64_t*)(buffer + offs));
-        out[ii] = val;
-    } //end_vectorize
-}
-
-/*gpukern*/
-void set_values_at_offsets_float64(
-    MultiSetterData data,
-    /*gpuglmem*/ int8_t* buffer,
-    /*gpuglmem*/ double* input){
-
-    int64_t num_offsets = MultiSetterData_len_offsets(data);
-
-    for (int64_t ii = 0; ii < num_offsets; ii++) {  //vectorize_over ii num_offsets
-        int64_t offs = MultiSetterData_get_offsets(data, ii);
-
-        double val = input[ii];
-        *((/*gpuglmem*/ double*)(buffer + offs)) = val;
-    } //end_vectorize
-}
-
-/*gpukern*/
-void set_values_at_offsets_int64(
-    MultiSetterData data,
-    /*gpuglmem*/ int8_t* buffer,
-    /*gpuglmem*/ int64_t* input){
-
-    int64_t num_offsets = MultiSetterData_len_offsets(data);
-
-    for (int64_t ii = 0; ii < num_offsets; ii++) {  //vectorize_over ii num_offsets
-        int64_t offs = MultiSetterData_get_offsets(data, ii);
-
-        int64_t val = input[ii];
-        *((/*gpuglmem*/ int64_t*)(buffer + offs)) = val;
-    } //end_vectorize
-}
-
-
-
-"""
 
 class MultiSetter(xo.HybridClass):
     _xofields = {
@@ -79,7 +10,7 @@ class MultiSetter(xo.HybridClass):
     }
 
     _extra_c_sources = [
-        source,
+        '#include "xtrack/multisetter/multisetter.h"',
     ]
 
     _kernels = {
@@ -99,6 +30,14 @@ class MultiSetter(xo.HybridClass):
                 xo.Arg(xo.Int64, pointer=True, name='out'),
             ],
         ),
+        'get_values_at_offsets_int32': xo.Kernel(
+            c_name='get_values_at_offsets_int32',
+            args=[
+                xo.Arg(xo.ThisClass, name='data'),
+                xo.Arg(xo.Int8, pointer=True, name='buffer'),
+                xo.Arg(xo.Int32, pointer=True, name='out'),
+            ],
+        ),
         'set_values_at_offsets_float64': xo.Kernel(
             c_name='set_values_at_offsets_float64',
             args=[
@@ -115,9 +54,18 @@ class MultiSetter(xo.HybridClass):
                 xo.Arg(xo.Int64, pointer=True, name='input'),
             ],
         ),
+        'set_values_at_offsets_int32': xo.Kernel(
+            c_name='set_values_at_offsets_int32',
+            args=[
+                xo.Arg(xo.ThisClass, name='data'),
+                xo.Arg(xo.Int8, pointer=True, name='buffer'),
+                xo.Arg(xo.Int32, pointer=True, name='input'),
+            ],
+        ),
     }
 
-    def __init__(self, line, elements, field, index=None):
+    def __init__(self, line, elements, field, index=None, dtype=np.float64,
+                skip_inconsistent_type_check=False):
         """Create object to efficiently set and get values of a specific field of
         several elements of a line.
 
@@ -166,17 +114,19 @@ class MultiSetter(xo.HybridClass):
         dd = getattr(inner_obj.copy(_context=xo.context_default)._xobject, inner_name)
         if index is not None:
             dd = dd[index]
-        self.dtype = type(dd)
+        self.dtype = type(dd) if dtype is None else dtype
         self.xodtype = {
             np.float64: xo.Float64,
             np.int64: xo.Int64,
+            np.int32: xo.Int32,
         }[self.dtype]
 
-        assert self.dtype in [np.float64, np.int64], (
-            'Only float64 and int64 are supported for now')
+        assert self.dtype in [np.float64, np.int64, np.int32], (
+            'Only float64, int64, and int32 are supported for now')
 
-        assert np.all([line[nn]._buffer is tracker_buffer for nn in elements])
-        offsets = [_extract_offset(line[nn], field, index, self.dtype, self.xodtype)
+        assert np.all([line.get(nn)._buffer is tracker_buffer for nn in elements])
+        offsets = [_extract_offset(line.get(nn), field, index, self.dtype, self.xodtype,
+                                   skip_inconsistent_type_check=skip_inconsistent_type_check)
                    for nn in elements]
 
         self.xoinitialize(_context=context, offsets=offsets)
@@ -189,11 +139,13 @@ class MultiSetter(xo.HybridClass):
         self._get_kernel = {
             np.float64: self._context.kernels.get_values_at_offsets_float64,
             np.int64: self._context.kernels.get_values_at_offsets_int64,
+            np.int32: self._context.kernels.get_values_at_offsets_int32,
         }[self.dtype]
 
         self._set_kernel = {
             np.float64: self._context.kernels.set_values_at_offsets_float64,
             np.int64: self._context.kernels.set_values_at_offsets_int64,
+            np.int32: self._context.kernels.set_values_at_offsets_int32,
         }[self.dtype]
 
     def get_values(self):
@@ -221,31 +173,8 @@ class MultiSetter(xo.HybridClass):
         self._set_kernel(data=self, buffer=self._tracker_buffer.buffer,
                input=xt.BeamElement._arr2ctx(self, values))
 
-    def compile_kernels(self, only_if_needed=True):
-        context = self._buffer.context
-        if context.allow_prebuilt_kernels and only_if_needed:
-            try:
-                from xsuite import (
-                    get_suitable_kernel,
-                    XSK_PREBUILT_KERNELS_LOCATION,
-                )
-                kernel_info = get_suitable_kernel({}, ())
-            except ImportError:
-                kernel_info = None
 
-            if kernel_info:
-                module_name, _ = kernel_info
-                kernels = context.kernels_from_file(
-                    module_name=module_name,
-                    containing_dir=XSK_PREBUILT_KERNELS_LOCATION,
-                    kernel_descriptions=self._kernels,
-                )
-                context.kernels.update(kernels)
-
-        super().compile_kernels(only_if_needed=only_if_needed)
-
-
-def _extract_offset(obj, field_name, index, dtype, xodtype):
+def _extract_offset(obj, field_name, index, dtype, xodtype, skip_inconsistent_type_check=False):
 
     if isinstance(field_name, (list, tuple)):
         inner_obj = obj
@@ -257,10 +186,19 @@ def _extract_offset(obj, field_name, index, dtype, xodtype):
         inner_name = field_name
 
     if index is None:
-        assert isinstance(getattr(inner_obj._xobject, inner_name), dtype), (
-            "Inconsistent types")
+        inconsistent_type = not isinstance(getattr(inner_obj._xobject, inner_name), dtype)
+        if inconsistent_type:
+            if skip_inconsistent_type_check:
+                return -1
+            else:
+                assert not inconsistent_type, "Inconsistent types"
         return inner_obj._xobject._get_offset(inner_name)
     else:
-        assert getattr(inner_obj._xobject, inner_name)._itemtype is xodtype, (
-            "Inconsistent types")
-        return getattr(inner_obj._xobject, inner_name)._get_offset(index)
+        obj = getattr(inner_obj._xobject, inner_name)
+        inconsistent_type = not hasattr(obj, "_itemtype") or obj._itemtype is not xodtype
+        if inconsistent_type:
+            if skip_inconsistent_type_check:
+                return -1
+            else:
+                assert not inconsistent_type, "Inconsistent types"
+        return obj._get_offset(index)

@@ -3,75 +3,79 @@
 # Copyright (c) CERN, 2023.                 #
 # ######################################### #
 
-import math
-import json
+import copy
 import logging
 from collections import defaultdict
-from weakref import WeakSet
 from collections.abc import Iterable
-
 from contextlib import contextmanager
-from copy import deepcopy
 from pprint import pformat
-from typing import List, Literal, Optional, Dict
-from pathlib import Path
+from typing import Dict, List, Literal, Optional, Container
+from warnings import warn
 
 import numpy as np
-from scipy.constants import c as clight
-
-from xdeps.refs import is_ref
-from . import json as json_utils
-
-import xobjects as xo
-import xtrack as xt
 import xdeps as xd
-from .beam_elements.magnets import (
-    MagnetEdge, _MODEL_TO_INDEX_CURVED,
+import xobjects as xo
+from scipy.constants import c as clight
+from xdeps.refs import is_ref
+
+import xtrack as xt
+from xtrack.aperture_meas import measure_aperture
+from xtrack.twiss import (DEFAULT_MATRIX_RESPONSIVENESS_TOL,
+                          DEFAULT_MATRIX_STABILITY_TOL,
+                          get_R_matrix,
+                          get_T_matrix_line, find_closed_orbit_line,
+                          get_non_linear_chromaticity, twiss_line)
+
+from .api_categorization import GroupedAPICollector, doc_group, property_with_doc_group
+from . import beam_elements
+from . import json as json_utils
+from .beam_elements import (BeamElement, Drift, Marker, Multipole,
+                            element_classes)
+from .beam_elements._common import (
     _EDGE_MODEL_TO_INDEX,
+    _MODEL_TO_INDEX_CURVED,
+    _MODEL_TO_INDEX_DRIFT,
 )
+from .beam_elements.slice_base import ID_RADIATION_FROM_PARENT
+from .composer.composer import (
+    _all_places,
+    _flatten_components,
+    _generate_element_names_with_drifts,
+)
+from .composer.ordering import _sort_places
+from .composer.resolve_positions import _resolve_s_positions
+from .footprint import Footprint, _footprint_with_linear_rescale
+from .general import _print, DEPRECATION_INFO_PREP_1_0
+from .internal_record import (start_internal_logging_for_elements_of_type,
+                              stop_internal_logging,
+                              stop_internal_logging_for_elements_of_type)
+from .mad_loader import MadLoader
+from .mad_writer import to_madx_sequence
+from .madng_interface import (_survey_ng, _tw_ng, build_madng_model,
+                              discard_madng_model, line_to_madng,
+                              regen_madng_model)
+from .match import Action, closed_orbit_correction, match_knob_line, match_line
 from .progress_indicator import progress
 from .slicing import Custom, Slicer, Strategy
-from .mad_writer import to_madx_sequence
-from .madng_interface import (build_madng_model, discard_madng_model,
-                              regen_madng_model, _tw_ng, line_to_madng,
-                              _survey_ng)
-
 from .survey import survey_from_line
-from xtrack.twiss import (compute_one_turn_matrix_finite_differences,
-                          find_closed_orbit_line, twiss_line,
-                          compute_T_matrix_line,
-                          get_non_linear_chromaticity,
-                          DEFAULT_MATRIX_STABILITY_TOL,
-                          DEFAULT_MATRIX_RESPONSIVENESS_TOL)
-from xtrack.aperture_meas import measure_aperture
-from .match import match_line, closed_orbit_correction, match_knob_line, Action
+from .table import Table
 from .tapering import compensate_radiation_energy_loss
-from .mad_loader import MadLoader
-from .beam_elements import element_classes
-from . import beam_elements
-from .beam_elements import Drift, BeamElement, Marker, Multipole
-from .beam_elements.slice_base import ID_RADIATION_FROM_PARENT
-from .footprint import Footprint, _footprint_with_linear_rescale
-from .internal_record import (start_internal_logging_for_elements_of_type,
-                              stop_internal_logging_for_elements_of_type,
-                              stop_internal_logging)
 from .trajectory_correction import TrajectoryCorrection
-
-from .general import _print
 
 log = logging.getLogger(__name__)
 
-
-_ALLOWED_ELEMENT_TYPES_IN_NEW = [xt.Drift, xt.Bend, xt.Quadrupole, xt.Sextupole,
-                                 xt.Octupole, xt.Cavity, xt.Multipole,
-                                 xt.UniformSolenoid, xt.Solenoid, xt.VariableSolenoid,
-                                 xt.Marker, xt.Replica, xt.XYShift, xt.XRotation,
-                                 xt.YRotation, xt.SRotation, xt.ZetaShift,
-                                 xt.LimitRacetrack, xt.LimitRectEllipse,
-                                 xt.LimitRect, xt.LimitEllipse,
-                                 xt.LimitPolygon, xt.RFMultipole, xt.RBend,
-                                 xt.Magnet]
-
+_ALLOWED_ELEMENT_TYPES_IN_NEW = [
+    xt.Drift, xt.DriftExact,
+    xt.Magnet, xt.Replica, xt.Marker,
+    xt.Bend, xt.RBend, xt.Quadrupole, xt.Sextupole, xt.Octupole, xt.Multipole,
+    xt.UniformSolenoid, xt.Solenoid, xt.VariableSolenoid,
+    xt.Cavity, xt.RFMultipole, xt.CrabCavity, xt.ReferenceEnergyIncrease,
+    xt.ReferenceEnergyChange,
+    xt.Translation, xt.Rotation, xt.TimeDelay,
+    xt.XYShift, xt.XRotation, xt.YRotation, xt.SRotation, xt.ZetaShift,
+    xt.LimitRacetrack, xt.LimitRectEllipse, xt.LimitRect, xt.LimitEllipse,
+    xt.LimitPolygon, xt.DipoleEdge, xt.LongitudinalLimitRect, xt.FirstOrderTaylorMap,
+    xt.SecondOrderTaylorMap]
 
 _ALLOWED_ELEMENT_TYPES_DICT = {
     cc.__name__: cc for cc in _ALLOWED_ELEMENT_TYPES_IN_NEW}
@@ -79,9 +83,31 @@ _ALLOWED_ELEMENT_TYPES_DICT = {
 _STR_ALLOWED_ELEMENT_TYPES_IN_NEW = ', '.join([tt.__name__ for tt in _ALLOWED_ELEMENT_TYPES_IN_NEW])
 
 
+
+LINE_DOC_GROUP_ORDER = (
+    "Line Editing",
+    "Compose Mode",
+    "Inspection, Variables and Configuration",
+    "Reference Particle and Particle Generation",
+    "Tracking and Analysis",
+    "Matching and Corrections",
+    "Magnet Model Configuration",
+    "Radiation, Spin and Intra-Beam Scattering",
+    "Energy & Longitudinal State",
+    "Tracker Setup",
+    "Constructors and Serialization",
+    "Element Internal Logging",
+    "Cleanup and Simplification",
+    "MAD-NG Integration",
+    "Deprecated",
+    "Upcoming Deprecations",
+)
+
+_LINE_DOC_GROUP_COLLECTOR = GroupedAPICollector(LINE_DOC_GROUP_ORDER)
+
 def find_index_repeated(item, lst,count=0):
     res=[ii for ii, nn in enumerate(lst) if nn == item]
-    print(item)
+    _print(item)
     if count>=len(res):
         raise ValueError(f'Item {item} not found')
     return res[count]
@@ -98,17 +124,30 @@ def find_index_repeated2(item, lst,count=0):
 class Line:
 
     """
-    Beam line object. `Line.element_names` contains the ordered list of beam
-    elements, `Line.element_dict` is a dictionary associating to each name the
-    corresponding beam element object.
+    Ordered sequence of beam elements used for tracking, optics calculations,
+    matching, and lattice manipulation.
+
+    A line stores the sequence of element names in ``line.element_names`` and
+    resolves these names in its associated environment, available as
+    ``line.env``. The environment owns the named elements, variables, particles,
+    and other lines that can be shared across lattice descriptions. The
+    dictionary ``line.element_dict`` maps element names to the corresponding
+    element objects.
+
+    A line can be in normal mode or in compose mode, as indicated by
+    ``line.mode``. In compose mode, elements are placed with
+    ``line.place(...)`` and ``line.new(...)`` by their longitudinal position
+    and/or relative to each other; the line is resolved later with
+    ``line.end_compose()``.
     """
 
-    _element_dict = None
-    config = None
-
-    def __init__(self, elements=(), element_names=None, particle_ref=None,
-                 energy_program=None, env=None):
+    def __init__(self, elements=None, element_names=None, particle_ref=None,
+                 energy_program=None, env=None, compose=False,
+                 components=None, length=None, refer=None, mirror=None, s_tol=None):
         """
+        Create a line. Every line has an associated environment, available as
+        ``line.env``.
+
         Parameters
         ----------
         elements : dict or list of beam elements
@@ -123,12 +162,123 @@ class Line:
             used for building particles distributions, computing twiss parameters
             and matching.
         energy_program: EnergyProgram
-            (optional) Energy program used to update the reference energy during the tracking.
+            (optional) Energy program used to update the reference energy during
+            the tracking.
         env : Environment
             Environment object to which the line belongs. If not provided, a new
             environment is created.
+        compose : bool, optional
+            Whether to instantiate the line in ``compose`` mode, which allows
+            the components to be added to the line after creation.
+        components : list, optional
+            List of components to be added to the line. It can include strings,
+            place objects, and lines. Can only be given if ``compose`` is true.
+        length : float | str, optional
+            Length of the line to be built by the composer. Can be an expression.
+            If not specified, the length will be the minimum length that can
+            fit all the components. Can only be given if ``compose`` is true.
+        refer : str, optional
+            Specifies which part of the component the ``at`` position will refer
+            to. Allowed values are ``start``, ``center`` (default; also allowed
+            is ``centre``), and ``end``. Can only be given if ``compose`` is true.
+        mirror : bool, optional
+            Whether the line should be mirrored after creation. Can only be given
+            if ``compose`` is true.
+        s_tol : float, optional
+            Difference between two s positions below which they should be
+            treated as the same location. Can only be given if ``compose`` is true.
 
+        Notes
+        -----
+        For most new lattices it is more convenient to create an
+        :class:`xtrack.Environment` and build lines with
+        ``env.new_line(...)``. The environment keeps variables, elements,
+        particles, and lines in one namespace and provides helpers for element
+        creation and placement.
+
+        Examples
+        --------
+        Build a line through the line constructor:
+
+        .. code-block:: python
+
+            import xtrack as xt
+
+            line = xt.Line(
+                elements={
+                    'qf': xt.Quadrupole(length=0.5, k1=0.2),
+                    'd1': xt.Drift(length=1.0),
+                    'qd': xt.Quadrupole(length=0.5, k1=-0.2),
+                },
+                element_names=['qf', 'd1', 'qd'],
+            )
+
+            line.get_table().show()
+            # name         s element_type isthick ...
+            # qf           0 Quadrupole      True
+            # d1         0.5 Drift           True
+            # qd         1.5 Quadrupole      True
+            # _end_point   2                False
+
+        Build a line through an environment:
+
+        .. code-block:: python
+
+            import xtrack as xt
+
+            env = xt.Environment()
+            env['kq'] = 0.2
+
+            line = env.new_line(components=[
+                env.new('qf', 'Quadrupole', length=0.5, k1='kq'),
+                env.new('d1', 'Drift', length=1.0),
+                env.new('qd', 'Quadrupole', length=0.5, k1='-kq'),
+            ])
+
+            line.element_names
+            # ['qf', 'd1', 'qd']
+
+            line.env is env
+            # True
+
+        Elements that are not supported by ``env.new(...)`` can be
+        instantiated explicitly, added to ``env.elements``, and then used by
+        name when building the line:
+
+        .. code-block:: python
+
+            import xtrack as xt
+
+            class MyElement:
+                def __init__(self, myparam=0):
+                    self.myparam = myparam
+
+                def track(self, particles):
+                    pass
+
+            env = xt.Environment()
+            env['a'] = 2.0
+            env.elements['myelem'] = MyElement(myparam=0)
+            env['myelem'].myparam = '3*a'
+
+            line = env.new_line(components=[
+                env.new('mk0', 'Marker'),
+                'myelem',
+                env.new('mk1', 'Marker'),
+            ])
+
+            line['myelem'].myparam
+            # 6.0
         """
+
+        self._composer = None
+        self._config = None
+        self._env = None
+        self._metadata = None
+        self._tracker = None
+        self._xcoll = None
+        self._xfields = None
+        self._xpart = None
 
         self.config = xt.tracker.TrackerConfig()
         self.config.XTRACK_MULTIPOLE_NO_SYNRAD = True
@@ -158,35 +308,66 @@ class Line:
         self._extra_config['steering_correctors_y'] = None
         self._extra_config['corrector_limits_x'] = None
         self._extra_config['corrector_limits_y'] = None
+        self._extra_config['end_compose_on_reload'] = True
 
-        if env is None:
-            env = xt.Environment()
+        if elements is None and env is None:
+            elements = []
+
+        if compose:
+            assert element_names is None, (
+                "If compose=True, element_names must be None")
+            element_names = '__COMPOSE__'
+            self._mode = 'compose'
+        else:
+            self.composer = None
+            assert length is None, (
+                "length can be provided only if compose=True")
+            assert refer is None, (
+                "refer can be provided only if compose=True")
+            assert mirror is None, (
+                "mirror can be provided only if compose=True")
+            assert s_tol is None, (
+                "s_tol can be provided only if compose=True")
+            assert components is None, (
+                "components can be provided only if compose=True")
+            self._mode='normal'
+
+        if env is not None:
+            assert elements is None, "If env is provided, elements must be None"
+        else:
+            element_dict = None
+            if isinstance(elements, dict):
+                element_dict = elements
+                if element_names is None:
+                    element_names = list(element_dict.keys())
+            elif element_names != '__COMPOSE__':
+                if element_names is None:
+                    element_names = [f"e{ii}" for ii in range(len(elements))]
+
+                assert len(element_names) == len(elements), (
+                    "`elements` and `element_names` should have the same length"
+                )
+                element_dict = dict(zip(element_names, elements))
+            env = xt.Environment(element_dict=element_dict)
 
         self.env = env
-        self._element_dict = env.element_dict # Avoid copying (the property setter would do that)
-        self._var_management = env._var_management
+
         self.env._lines_weakrefs.add(self)
 
         if particle_ref is None:
-            particle_ref = env.particle_ref
+            particle_ref = self.env._particle_ref
 
-        if isinstance(elements, dict):
-            element_dict = elements
+        if not compose:
             if element_names is None:
-                element_names = list(element_dict.keys())
+                element_names = []
+            self.element_names = list(element_names).copy()
         else:
-            if element_names is None:
-                element_names = [f"e{ii}" for ii in range(len(elements))]
+            self.composer = xt.Composer(env, mirror=mirror, length=length,
+                                       refer=refer, s_tol=s_tol or 1e-6,
+                                       components=components)
+            self.element_names = element_names
 
-            assert len(element_names) == len(elements), (
-                "`elements` and `element_names` should have the same length"
-            )
-            element_dict = dict(zip(element_names, elements))
-
-        self.element_dict.update(element_dict)
-        self.element_names = list(element_names).copy()
-
-        self.particle_ref = particle_ref
+        self._particle_ref = particle_ref
 
         if energy_program is not None:
             self.energy_program = energy_program # setter will take care of completing
@@ -197,11 +378,11 @@ class Line:
 
         self._line_before_slicing_cache = None
         self._element_names_before_slicing = None
-        self.ref = xt.environment.EnvRef(self)
 
+    @doc_group("Constructors and Serialization")
     @classmethod
     def from_dict(cls, dct, _context=None, _buffer=None, classes=(),
-                  env=None, verbose=True):
+                  verbose=True, _env=None, with_progress=True):
 
         """
         Create a Line object from a dictionary.
@@ -219,6 +400,9 @@ class Line:
         classes : list of classes, optional
             List of classes to be used for deserializing the elements. If not
             provided, the default classes are used.
+        with_progress : bool, optional
+            Whether to show progress while deserializing elements. Defaults to
+            ``True``.
 
         Returns
         -------
@@ -227,45 +411,74 @@ class Line:
 
         """
 
-        class_dict = mk_class_namespace(classes)
+        if "xtrack_version" in dct:
+            version = dct["xtrack_version"]
+            if xt.general._compare_versions(version, xt.__version__) > 0:
+                _print(f'Warning: The line you are loading was created '
+                      f'with xtrack version {version}, which is more recent '
+                      f'than the current version {xt.__version__}. '
+                      'Some features may not be available or '
+                      f'may not work correctly. Please update your xsuite '
+                      f'package to the latest version.')
+
+        # When env is given it means that the line is being reloaded as part of
+        # and env. In that case the element_dict, vars and xdeps stuff come through
+        # the environment and should not be in the dictionary
+
+        if cls_str := dct.get('__class__', None):
+            if cls_str != 'Line':
+                raise ValueError(f"Expected __class__ to be 'Line', got {cls_str!r}")
 
         _buffer = xo.get_a_buffer(context=_context, buffer=_buffer,size=8)
 
-        if env is not None:
-            elements = env.element_dict
-        elif isinstance(dct['elements'], dict):
-            elements = {}
-            for ii, (kk, ee) in enumerate(
-                    progress(dct['elements'].items(), desc='Loading line from dict')):
-                elements[kk] = _deserialize_element(ee, class_dict, _buffer)
-        elif isinstance(dct['elements'], list):
-            elements = []
-            for ii, ee in enumerate(
-                    progress(dct['elements'], desc='Loading line from dict')):
-                elements.append(_deserialize_element(ee, class_dict, _buffer))
+        if '_var_manager' in dct.keys():
+            var_management_dict = dct
         else:
-            raise ValueError('Field `elements` must be a dict or a list')
+            var_management_dict = None
+
+        if _env is not None:
+            assert 'elements' not in dct.keys(), (
+                'When _env is provided, elements should not be in the dictionary')
+            assert '_var_manager' not in dct.keys(), (
+                'When _env is provided, _var_manager should not be in the dictionary')
+            env = _env
+        else:
+
+            if isinstance(dct['elements'], list):
+                # Ancient format
+                assert 'element_names' in dct
+                assert len(dct['elements']) == len(dct['element_names'])
+                ele_list = dct['elements']
+                dct['elements'] = {
+                    nn: ee for nn, ee in zip(dct['element_names'], ele_list)}
+
+            elements = xt.environment._deserialize_elements(dct=dct, classes=classes,
+                                             _buffer=_buffer, _context=_context,
+                                             with_progress=with_progress)
+            env = xt.Environment(
+                element_dict=elements,
+                _var_management_dct=var_management_dict)
+
+            if 'env_particles' in dct:
+                for nn, ppd in dct['env_particles'].items():
+                   env._particles[nn] = xt.Particles.from_dict(ppd, _context=_context)
 
         element_names = dct.get('element_names', [])
-        self = cls(elements=elements, element_names=element_names)
+        self = cls(env=env, element_names=element_names)
 
         if 'particle_ref' in dct.keys():
-            self.particle_ref = xt.Particles.from_dict(dct['particle_ref'],
-                                    _context=_buffer.context)
-
-        if env is not None:
-            self.env = env
-            self._var_management = env._var_management
-            self._element_dict = env.element_dict # __init__ makes a copy of the dict
-        elif '_var_manager' in dct.keys():
-            # reinit env and var management
-            self.env = None
-            self._var_management = None
-            self._init_var_management(dct=dct)
+            particle_ref = dct['particle_ref']
+            if not isinstance(particle_ref, str):
+                particle_ref = xt.Particles.from_dict(particle_ref,
+                                                      _context=_buffer.context)
+            self.particle_ref = particle_ref
 
         if 'config' in dct.keys():
             self.config.clear()
             self.config.data.update(dct['config'])
+
+        if 'mode' in dct.keys():
+            self._mode = dct['mode']
 
         if '_extra_config' in dct.keys():
             self._extra_config.update(dct['_extra_config'])
@@ -276,24 +489,31 @@ class Line:
         self._element_names_before_slicing = dct.get(
             '_element_names_before_slicing', None)
 
-        if ('energy_program' in self.element_dict
-             and self.element_dict['energy_program'] is not None):
+        if 'composer' in dct.keys() and dct['composer'] is not None:
+            self.composer = xt.Composer.from_dict(dct['composer'], env=self.env)
+
+        if ('energy_program' in self._element_dict
+             and self._element_dict['energy_program'] is not None):
             self.energy_program.line = self
+
+        if (self._extra_config.get('end_compose_on_reload', True)
+            and self.mode == 'compose'):
+            self.end_compose()
 
         if verbose:
             _print('Done loading line from dict.           ')
 
         return self
 
+    @doc_group("Constructors and Serialization")
     @classmethod
     def from_json(cls, file, **kwargs):
-
-        """Constructs a line from a json file.
+        """Constructs a line from a JSON file.
 
         Parameters
         ----------
         file : str or file-like object
-            Path to the json file or file-like object.
+            Path to the JSON file or file-like object.
             If filename ends with '.gz' file is decompressed.
         **kwargs : dict
             Additional keyword arguments passed to `Line.from_dict`.
@@ -302,9 +522,7 @@ class Line:
         -------
         line : Line
             Line object.
-
         """
-
         dct = json_utils.load(file)
 
         if 'line' in dct.keys():
@@ -314,6 +532,7 @@ class Line:
 
         return cls.from_dict(dct_line, **kwargs)
 
+    @doc_group("Constructors and Serialization")
     @classmethod
     def from_sequence(cls, nodes=None, length=None, elements=None,
                       sequences=None, copy_elements=False,
@@ -448,35 +667,13 @@ class Line:
 
         return cls(elements=element_objects, element_names=element_names, **kwargs)
 
+    @doc_group("Deprecated")
     @classmethod
     def from_sixinput(cls, sixinput, classes=()):
-        """
-        Build a Line from a Sixtrack input object. N.B. This is a convenience
-        function that calls sixinput.generate_xtrack_line(). It is used only for
-        testing and will be removed in future versions.
+        """``Line.from_sixinput`` has been removed in favour of ``sixinput.generate_xtrack_line()``."""
+        raise NotImplementedError(__doc__)
 
-        Parameters
-        ----------
-
-        sixinput : SixInput
-            Sixtrack input object
-        classes : tuple
-            Tuple of classes to be used for the elements. If empty, the default
-            classes are used.
-
-        Returns
-        -------
-        line : Line
-            Line object.
-
-        """
-
-        log.warning("\n"
-            "WARNING: xtrack.Line.from_sixinput(sixinput) will be removed in future versions.\n"
-            "Please use sixinput.generate_xtrack_line()\n")
-        line = sixinput.generate_xtrack_line(classes=classes)
-        return line
-
+    @doc_group("Constructors and Serialization")
     @classmethod
     def from_madx_sequence(
         cls,
@@ -496,9 +693,9 @@ class Line:
         allow_thick=None,
         name_prefix=None,
         enable_layout_data=False,
-        enable_thick_kickers=False,
+        enable_thick_kickers=True,
+        with_progress=True,
     ):
-
         """
         Build a line from a MAD-X sequence.
 
@@ -507,8 +704,7 @@ class Line:
         sequence : madx.Sequence
             MAD-X sequence object or name of the sequence
         deferred_expressions : bool, optional
-            If true, deferred expressions from MAD-X are imported and can be
-            accessed in `Line.vars` and `Line.element_refs`.
+            If true, deferred expressions from MAD-X are imported.
         install_apertures : bool, optional
             If true, aperture information is installed in the line.
         apply_madx_errors : bool, optional
@@ -538,13 +734,18 @@ class Line:
             if a thick element is encountered.
         enable_layout_data: bool, optional
             If true, the layout data is imported.
+        with_progress : bool, optional
+            Whether to show progress while converting elements. Defaults to
+            ``True``.
 
         Returns
         -------
         line : Line
             Line object.
-
         """
+
+        if not enable_thick_kickers:
+            raise "On-the-fly kicker slicing not supported anymore"
 
         class_namespace = mk_class_namespace(classes)
 
@@ -566,12 +767,13 @@ class Line:
             allow_thick=allow_thick,
             name_prefix=name_prefix,
             enable_layout_data=enable_layout_data,
-            enable_thick_kickers=enable_thick_kickers,
         )
-        line = loader.make_line()
+        line = loader.make_line(with_progress=with_progress)
         return line
 
-    def to_dict(self, include_var_management=True, include_element_dict=True):
+    @doc_group("Constructors and Serialization")
+    def to_dict(self, include_var_management=True, include_element_dict=True,
+                include_version=False):
 
         '''
         Returns a dictionary representation of the line.
@@ -589,18 +791,29 @@ class Line:
         '''
 
         out = {}
+        out['__class__'] = self.__class__.__name__
+
+        if include_version:
+            out["xtrack_version"] = xt.__version__
+
         if include_element_dict:
-            out["elements"] = {k: el.to_dict() for k, el in self.element_dict.items()}
+            out["elements"] = {k: el.to_dict() for k, el in self._element_dict.items()}
         out["element_names"] = self.element_names[:]
         out['config'] = self.config.data.copy()
         out['_extra_config'] = self._extra_config.copy()
+        out['mode'] = self.mode
+        if self.composer is not None:
+            out['composer'] = self.composer.to_dict()
 
         if self._element_names_before_slicing is not None:
             out['_element_names_before_slicing'] = self._element_names_before_slicing
 
-        if self.particle_ref is not None:
-            out['particle_ref'] = self.particle_ref.to_dict()
-        if self._var_management is not None and include_var_management:
+        if self._particle_ref is not None:
+            if isinstance(self._particle_ref, str):
+                out['particle_ref'] = self._particle_ref
+            else:
+                out['particle_ref'] = self._particle_ref.to_dict()
+        if self.env._var_management is not None and include_var_management:
             if hasattr(self, '_in_multiline') and self._in_multiline is not None:
                 raise ValueError('The line is part ot a MultiLine object. '
                     'To save without expressions please use '
@@ -608,12 +821,15 @@ class Line:
                     'To save also the deferred expressions please save the '
                     'entire multiline.\n ')
 
-            out.update(self._var_management_to_dict())
+            out.update(self.env._var_management_to_dict())
 
-        out["metadata"] = deepcopy(self.metadata)
+        out['env_particles'] = {k: pp.to_dict() for k, pp in self.env._particles.items()}
+
+        out["metadata"] = copy.deepcopy(self.metadata)
 
         return out
 
+    @doc_group("Constructors and Serialization")
     def to_madx_sequence(self, sequence_name, mode='sequence'):
         '''
         Return a MAD-X sequence corresponding to the line.
@@ -630,6 +846,7 @@ class Line:
         '''
         return to_madx_sequence(self, sequence_name, mode=mode)
 
+    @doc_group("Constructors and Serialization")
     def to_madng(self, sequence_name='seq', temp_fname=None, keep_files=False,
                  **kwargs):
 
@@ -654,18 +871,22 @@ class Line:
                              **kwargs)
 
 
-    build_madng_model = build_madng_model
-    discard_madng_model = discard_madng_model
-    regen_madng_model = regen_madng_model
-    madng_twiss = _tw_ng
-    madng_survey = _survey_ng
-
     def __repr__(self):
         if hasattr(self, '_name'):
             name = self._name
         else:
             name = ''
-        return f'<{self.__class__.__name__} {name} at {id(self)}>'
+        tokens = []
+        if hasattr(self, '_name') and self._name:
+            tokens.append(f'name={self._name}')
+        tokens.append(f'mode={self.mode}')
+        if self.mode == 'normal':
+            tokens.append(f'{len(self.element_names)} elements')
+        elif self.mode == 'compose':
+            tokens.append(f'{len(self.composer.components)} components')
+
+        out = 'Line(' + ', '.join(tokens) + ')'
+        return out
 
     def __getstate__(self):
         out = self.__dict__.copy()
@@ -674,7 +895,7 @@ class Line:
     def __setstate__(self, state):
         self.__dict__.update(state)
 
-
+    @doc_group("Constructors and Serialization")
     def to_json(self, file, indent=1, **kwargs):
         '''Save the line to a json file.
 
@@ -688,43 +909,64 @@ class Line:
 
         '''
 
+        if 'inlude_version' not in kwargs:
+            kwargs['include_version'] = True
+
         json_utils.dump(self.to_dict(**kwargs), file, indent=indent)
 
     def _to_table_dict(self):
 
-        elements = list(self.elements)
-        s_elements = np.array(list(self.get_s_elements()) + [self.get_length()])
-        length_elements = np.diff(s_elements, append=s_elements[-1]) # only think elements have length here
-        s_start = s_elements
-        s_end = s_elements + length_elements
-        s_center = s_start + 0.5 * length_elements
+        if self.mode == 'compose':
+            self._full_elements_from_composer()
+
+        elements = list(self._elements)
 
         isthick = []
         iscollective = []
         element_types = []
         isreplica = []
         parent_name = []
+        parent_type = []
+        prototype = []
         for ee in elements:
             ee_pname = None
+            ee_ptype = None
             if isinstance(ee, xt.Replica):
                 ee_pname = ee.parent_name
+                ee_ptype = self[ee.parent_name].__class__.__name__
                 ee = ee.resolve(self)
                 isreplica.append(True)
             else:
                 isreplica.append(False)
                 if hasattr(ee, 'parent_name'):
                     ee_pname = ee.parent_name
+                    ee_ptype = self[ee.parent_name].__class__.__name__
             isthick.append(_is_thick(ee, self))
             iscollective.append(_is_collective(ee, self))
             element_types.append(ee.__class__.__name__)
             parent_name.append(ee_pname)
+            parent_type.append(ee_ptype)
+            prototype.append(getattr(ee, 'prototype', None))
         isthick = np.array(isthick + [False])
         iscollective = np.array(iscollective + [False])
         isreplica = np.array(isreplica + [False])
         element_types = np.array(element_types + [''])
         parent_name = np.array(parent_name + [None])
+        parent_type = np.array(parent_type + [None])
+        prototype = np.array(prototype + [None])
 
         elements += [None]
+
+        if self._has_valid_tracker() and not self.tracker.iscollective:
+            s_elements = np.zeros(len(self.element_names) + 1)
+            s_elements[1:] = np.cumsum(self.attr['length'] * isthick[:-1])
+        else:
+            s_elements = np.array(list(self._get_s_elements()) + [self.get_length()])
+
+        length_elements = np.diff(s_elements, append=s_elements[-1]) # only think elements have length here
+        s_start = s_elements
+        s_end = s_elements + length_elements
+        s_center = s_start + 0.5 * length_elements
 
         out = {
             's': s_elements,
@@ -733,6 +975,8 @@ class Line:
             'isthick': isthick,
             'isreplica': isreplica,
             'parent_name': parent_name,
+            'parent_type': parent_type,
+            'prototype': prototype,
             'iscollective': iscollective,
             'element': elements,
             's_start': s_start,
@@ -742,32 +986,72 @@ class Line:
 
         return out
 
+    @doc_group("Deprecated")
     def to_pandas(self):
         '''
         Return a pandas DataFrame with the elements of the line.
+
+        .. warning:: This method is deprecated and will be removed in a future version.
+                A similar functionality is provided by the method `Line.get_table()`.
 
         Returns
         -------
         line_df : pandas.DataFrame
             DataFrame with the elements of the line.
         '''
+
+        warn('`Line.to_pandas` is deprecated and will be removed in a future version. '
+             'A similar functionality is provided by the method `Line.get_table()`.'
+             + DEPRECATION_INFO_PREP_1_0, FutureWarning, stacklevel=2)
+
         import pandas as pd
 
         elements_df = pd.DataFrame(self._to_table_dict())
         return elements_df
 
+    @doc_group("Inspection, Variables and Configuration")
     def get_table(self, attr=False):
+        '''
+        Return a table with line element information and longitudinal positions.
+
+        Parameters
+        ----------
+        attr : bool, optional
+            If ``True``, include element attribute columns from ``line.attr``.
+
+        Returns
+        -------
+        table : LineTable
+            Table containing one row per element plus the ``'_end_point'`` row.
+
+        Examples
+        --------
+        >>> env = xt.Environment()
+        >>> line = env.new_line(length=10, components=[
+        ...    env.new('qf', 'Quadrupole', at=2.5),
+        ...    env.new('qd', 'Quadrupole', at=7.5)])
+        >>> line.get_table().cols['s_start s_center s_end']
+        Table: 6 rows, 4 cols
+        name               s_start      s_center         s_end
+        ||drift_1::0             0          1.25           2.5
+        qf                     2.5           2.5           2.5
+        ||drift_2              2.5             5           7.5
+        qd                     7.5           7.5           7.5
+        ||drift_1::1           7.5          8.75            10
+        _end_point              10            10            10
+        '''
 
         data = self._to_table_dict()
         data.pop('element')
 
         if attr:
-            for kk in self.attr.keys():
-                this_attr = self.attr[kk]
-                if hasattr(this_attr, 'get'):
-                    this_attr = this_attr.get() # bring to cpu
-                # Add zero at the end (there is _end_point)
-                data[kk] = np.concatenate((this_attr, [this_attr[-1]*0]))
+            with self.attr._cache_values():
+                for kk in self.attr.keys():
+                    this_attr = self.attr[kk]
+                    if hasattr(this_attr, 'get'):
+                        this_attr = this_attr.get() # bring to cpu
+                    # Add zero at the end (there is _end_point)
+                    data[kk] = np.concatenate((this_attr, [this_attr[-1]*0]))
 
         for kk in data.keys():
             data[kk] = np.array(data[kk])
@@ -776,10 +1060,46 @@ class Line:
         names_unique = names_table.cols.get_index_unique()
         data['env_name'] = data['name']
         data['name'] = names_unique
-        out = xd.Table(data=data, sep_count='::::')
+        out = LineTable(data=data, sep_count='::::')
         return out
 
+    @doc_group("Inspection, Variables and Configuration")
     def get_strengths(self, reverse=None):
+        '''
+        Return integrated magnet strengths as a table.
+
+        Parameters
+        ----------
+        reverse : bool, optional
+            If ``True``, return strengths in reverse reference frame. If
+            ``None``, the value is taken from ``line.twiss_default['reverse']``
+            (default ``False``).
+
+        Returns
+        -------
+        strengths : xtrack.Table
+            Table with one row per element plus ``'_end_point'``, including
+            integrated strengths (for example ``k0l``, ``k1l``, ``k2l``,
+            ``k3l``) and other twiss strength fields.
+
+        Examples
+        --------
+        >>> env = xt.Environment()
+        >>> line = env.new_line(length=10, components=[
+        ...    env.new('qf', 'Quadrupole', length=1., k1=2., at=2.5),
+        ...    env.new('qd', 'Quadrupole', length=1., k1=-2., at=7.5)])
+        >>> line.get_strengths()
+        Table: 6 rows, 20 cols
+        name                   k0l           k1l           k2l           k3l ...
+        ||drift_1::0             0             0             0             0
+        qf                       0             2             0             0
+        ||drift_2                0             0             0             0
+        qd                       0            -2             0             0
+        ||drift_1::1             0             0             0             0
+        _end_point               0             0             0             0
+        '''
+
+        self._method_incompatible_with_compose()
 
         if reverse is None:
             reverse = self.twiss_default.get('reverse', False)
@@ -808,6 +1128,7 @@ class Line:
             True: 'reverse', False: 'proper'}[reverse]
         return tab
 
+    @doc_group("Upcoming Deprecations")
     def get_aperture_table(self, dx=1e-3, dy=1e-3, x_range=(-0.1, 0.1),
                            y_range=(-0.1, 0.1)):
         '''
@@ -841,9 +1162,12 @@ class Line:
             of the line.
         '''
 
+        self._method_incompatible_with_compose()
+
         return xt.aperture_meas.measure_aperture(self,
             dx=1e-3, dy=1e-3, x_range=(-0.1, 0.1), y_range=(-0.1, 0.1))
 
+    @doc_group("Line Editing")
     def copy(self, shallow=False, _context=None, _buffer=None):
         '''
         Return a copy of the line.
@@ -852,7 +1176,7 @@ class Line:
         ----------
         shallow : bool, optional
             If False (default), a deep copy is returned.
-            If True, a shallow copy is returned, i.e. the line is plced in the
+            If True, a shallow copy is returned, i.e. the line is placed in the
             same environment and shares variables and elements with the original.
         _context: xobjects.Context
             xobjects context to be used for the copy
@@ -863,28 +1187,57 @@ class Line:
         -------
         line_copy : Line
             Copy of the line.
+
+        Examples
+        --------
+        .. code-block:: python
+
+            import xtrack as xt
+
+            env = xt.Environment()
+            env['kq'] = 0.2
+            line = env.new_line(components=[
+                env.new('qf', 'Quadrupole', length=0.5, k1='kq'),
+            ])
+
+            line_copy = line.copy()
+            line_copy['qf'].k1 = 0.4
+
+            line['qf'].k1
+            # 0.2
         '''
 
         if shallow==True:
             assert _context is None and _buffer is None, (
                 'Shallow copy with _context or _buffer is not supported')
-            out = self.select()
+            out = xt.Line(env=self.env, element_names=copy.copy(self.element_names))
+            if self.mode == 'compose':
+                out._mode = 'compose'
+                out.composer = self.composer.copy()
         else:
             elements = {nn: ee.copy(_context=_context, _buffer=_buffer)
-                                        for nn, ee in self.element_dict.items()}
+                                        for nn, ee in self._element_dict.items()}
             element_names = [nn for nn in self.element_names]
-            out = self.__class__(elements=elements, element_names=element_names)
 
-            if self._var_management is not None:
-                # reinit env and var management
-                out.env = None
-                out._var_management = None
-                out._init_var_management(dct=self._var_management_to_dict())
-                out._env_if_needed()
+            var_management_dict = None
+            if hasattr(self.env, '_var_management'):
+                var_management_dict = self.env._var_management_to_dict()
 
-        if self.particle_ref is not None:
-            out.particle_ref = self.particle_ref.copy(
-                                        _context=_context, _buffer=_buffer)
+            env = xt.Environment(element_dict=elements,
+                                  _var_management_dct=var_management_dict)
+
+            if isinstance(self._particle_ref, str):
+                env.particles[self._particle_ref] = self.particle_ref.copy()
+
+            out = self.__class__(element_names=element_names,
+                                 env=env)
+
+        if self._particle_ref is not None:
+            if isinstance(self._particle_ref, str):
+                out._particle_ref = self._particle_ref
+            else:
+                out._particle_ref = self._particle_ref.copy(
+                                            _context=_context, _buffer=_buffer)
 
         out.config.clear()
         out.config.update(self.config.copy())
@@ -897,6 +1250,290 @@ class Line:
 
         return out
 
+    @doc_group("Line Editing")
+    def select(self, start=None, end=None, name=None):
+
+        """
+        Select a part of the line and return it as a new line (shallow copy,
+        i.e. the elements are in common with the original line).
+
+        Parameters
+        ----------
+        start : str
+            Name of the starting point
+        end : str
+            Name of the ending point
+        name : str
+            Name of the new line (default: None)
+
+        Returns
+        -------
+        out : Line
+            New line containing the selected portion.
+
+        Examples
+        --------
+        .. code-block:: python
+
+            import xtrack as xt
+
+            env = xt.Environment()
+            line = env.new_line(components=[
+                env.new('qf', 'Quadrupole', length=0.5),
+                env.new('mk', 'Marker'),
+                env.new('qd', 'Quadrupole', length=0.5),
+            ])
+
+            subline = line.select(start='mk')
+            subline.element_names
+            # ['mk', 'qd']
+        """
+
+        self._method_incompatible_with_compose()
+
+        if self.mode == 'compose':
+            self._full_elements_from_composer()
+
+        if start is xt.START:
+            start = None
+
+        if end is xt.END:
+            end = None
+
+        tt = self.get_table().rows[start:end]
+        if tt.name[-1] == '_end_point':
+            tt = tt.rows[:-1]
+
+        out = self.env.new_line(components=list(tt.env_name), name=name)
+        out.particle_ref = self.particle_ref.copy() if self.particle_ref else None
+
+        if hasattr(self, '_in_multiline') and self._in_multiline is not None:
+            out.env._var_management = None
+            out._var_management = None
+            out.env._in_multiline = self._in_multiline
+            out._in_multiline = self._in_multiline
+            out.env._name_in_multiline = self._name_in_multiline
+            out._name_in_multiline = self._name_in_multiline
+
+        return out
+
+    @doc_group("Compose Mode")
+    def end_compose(self, diagnostics=False):
+        """
+        Resolve compose-mode placements and switch the line back to normal mode.
+
+        Parameters
+        ----------
+        diagnostics : bool, optional
+            If true, analyze unresolved placement dependencies before raising.
+
+        Returns
+        -------
+        None
+            This method updates the line in place.
+
+        Examples
+        --------
+        .. code-block:: python
+
+            import xtrack as xt
+
+            env = xt.Environment()
+            env.new('qf', 'Quadrupole', length=0.5, k1=0.2)
+
+            line = env.new_line(length=5.0, compose=True)
+            line.place('qf', at=1.0)
+            line.new('qd', 'Quadrupole', length=0.5, k1=-0.2, at=3.0)
+
+            line.mode
+            # 'compose'
+
+            line.end_compose()
+
+            line.mode
+            # 'normal'
+
+            line.get_table().cols['name s_center'].show()
+            # name            s_center
+            # ||drift_1          0.375
+            # qf                     1
+            # ||drift_2              2
+            # qd                     3
+            # ||drift_3          4.125
+            # _end_point             5
+        """
+        if self.mode != 'compose':
+            raise ValueError('Line is not in compose mode')
+        self.discard_tracker()
+        self._full_elements_from_composer(diagnostics=diagnostics)
+        self._mode = 'normal'
+
+    def _full_elements_from_composer(self, diagnostics=False):
+        if self._mode != 'compose':
+            raise ValueError('Line is not in compose mode')
+        self.composer.build(
+            line=self,
+            diagnostics=diagnostics,
+        )
+
+    @doc_group("Compose Mode")
+    def regenerate_from_composer(self):
+        """
+        Re-enter compose mode using the attached composer.
+
+        Any modification done in normal mode is lost.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+            This method switches the line state in place.
+
+        Examples
+        --------
+        .. code-block:: python
+
+            import xtrack as xt
+
+            env = xt.Environment()
+            env.new('qf', 'Quadrupole', length=0.5, k1=0.2)
+
+            line = env.new_line(length=5.0, compose=True)
+            line.place('qf', at=1.0)
+            line.new('qd', 'Quadrupole', length=0.5, k1=-0.2, at=3.0)
+            line.end_compose()
+
+            line.mode
+            # 'normal'
+
+            line.regenerate_from_composer()
+
+            line.mode
+            # 'compose'
+
+            line.composer.components
+            # [Place(qf, at=1.0), Place(qd, at=3.0)]
+        """
+        self._element_names = '__COMPOSE__'
+        self._mode = 'compose'
+        self.discard_tracker()
+
+    @doc_group("Compose Mode")
+    def place(self, *args, **kwargs):
+        """
+        Place an existing object or name in the compose-mode component list.
+
+        Parameters
+        ----------
+        name : str
+            Name assigned to the placed component.
+        obj : object, optional
+            Existing object to place. If omitted, ``name`` is resolved in the environment.
+        at : float or str, optional
+            Placement position.
+        from_ : str, optional
+            Reference element used to define the placement position.
+        anchor : str, optional
+            Anchor on the placed object used for positioning.
+        from_anchor : str, optional
+            Anchor on the reference element used for positioning.
+
+        Returns
+        -------
+        None
+            This method appends the placement to the composer in place.
+
+        Examples
+        --------
+        .. code-block:: python
+
+            import xtrack as xt
+
+            env = xt.Environment()
+            env.new('qf', 'Quadrupole', length=0.5, k1=0.2)
+
+            line = env.new_line(length=5.0, compose=True)
+            line.place('qf', at=1.0)
+
+            line.composer.components
+            # [Place(qf, at=1.0)]
+
+            line.end_compose()
+
+            line.get_table().cols['name s_center'].show()
+            # name            s_center
+            # ||drift_1          0.375
+            # qf                     1
+            # ||drift_2          3.125
+            # _end_point             5
+        """
+        if self.mode != 'compose':
+            raise ValueError('Line is not in compose mode')
+        self.discard_tracker()
+        self.composer.place(*args, **kwargs)
+
+    @doc_group("Compose Mode")
+    def new(self, *args, **kwargs):
+        """
+        Create a new element and append it to the compose-mode component list.
+
+        Parameters
+        ----------
+        name : str
+            Name of the new element.
+        prototype : str or class
+            Element type or prototype element name when cloning/replicating.
+        at : float or str, optional
+            Position at which the created element is placed.
+        from_ : str, optional
+            Name of the reference element used to define the placement position.
+        extra : dict, optional
+            Extra metadata associated with the created element.
+        force : bool, optional
+            If ``True``, allow replacing an existing element with the same name.
+        cls : str or class, optional
+            Deprecated alias for ``prototype``.
+        parent : str or class, optional
+            Deprecated alias for ``prototype``.
+        **kwargs
+            Element attributes forwarded to ``Environment.new(...)``.
+
+        Returns
+        -------
+        str or Place
+            Name of the created element, or a ``Place`` object when placement
+            arguments are provided.
+
+        Examples
+        --------
+        .. code-block:: python
+
+            import xtrack as xt
+
+            env = xt.Environment()
+            line = env.new_line(length=5.0, compose=True)
+
+            place = line.new(
+                'qf', 'Quadrupole', length=0.5, k1=0.2, at=1.0)
+
+            place
+            # Place(qf, at=1.0)
+
+            'qf' in line.env.elements
+            # True
+
+            line.composer.components
+            # [Place(qf, at=1.0)]
+        """
+        if self.mode != 'compose':
+            raise ValueError('Line is not in compose mode')
+        self.discard_tracker()
+        return self.composer.new(*args, **kwargs)
+
+    @doc_group("Tracker Setup")
     def build_tracker(
             self,
             _context=None,
@@ -933,15 +1570,36 @@ class Line:
         enable_pipeline_hold: bool, optional
             If True, the pipeline hold mechanism is enabled.
 
+        Examples
+        --------
+
+        .. code-block:: python
+
+            ## Choose a context
+            context = xo.ContextCpu()                         # For CPU (single thread)
+            # context = xo.ContextCpu(omp_num_threads=4)      # For CPU (4 thread)
+            # context = xo.ContextCpu(omp_num_threads='auto') # For CPU (max. thread)
+            # context = xo.ContextCupy()                      # For CUDA GPUs
+            # context = xo.ContextPyopencl()                  # For OpenCL GPUs
+
+            line.build_tracker(_context=context)
+
         """
 
-        if self.tracker is not None:
+        if self.mode == 'compose':
+            self._full_elements_from_composer()
+
+        if self.tracker is not None and (_context is None or _context == self._context) \
+           and (_buffer is None or _buffer == self._buffer):
             _print('The line already has an associated tracker')
             return self.tracker
 
-        if (len(self.element_names) == 0 and hasattr(self, 'builder')
-            and self.builder is not None):
+        if (len(self.element_names) == 0 and hasattr(self, 'composer')
+            and self.composer is not None):
             self.rebuild()
+
+        if _context is None and _buffer is None:
+            _context = self.env._last_context
 
         self.tracker = xt.Tracker(
                                 line=self,
@@ -956,17 +1614,141 @@ class Line:
         if hasattr(self, 'env') and self.env is not None:
             self.env._ensure_tracker_consistency(buffer=self._buffer)
 
+        self.env._last_context = self._context
+
         return self.tracker
 
-    def rebuild(self):
-        if not hasattr(self, 'builder') or self.builder is None:
-            raise ValueError('The line does not have a builder')
+    @property_with_doc_group("Compose Mode")
+    def mode(self):
+        """
+        Current line mode.
 
-        temp = self.builder.build()
-        self.element_names = temp.element_names
+        Returns
+        -------
+        str
+            ``'normal'`` or ``'compose'``.
 
-    @property
+        Examples
+        --------
+        .. code-block:: python
+
+            import xtrack as xt
+
+            env = xt.Environment()
+            line = env.new_line(length=5.0, compose=True)
+
+            line.mode
+            # 'compose'
+
+            line.end_compose()
+
+            line.mode
+            # 'normal'
+        """
+        return self._mode
+
+    @property_with_doc_group("Deprecated")
+    def builder(self):
+        """
+        Deprecated alias for ``line.composer``.
+
+        Returns
+        -------
+        Composer or None
+            Compose-mode builder object associated with the line.
+        """
+        warn("`Line.builder` is deprecated and will be removed in a future version. '"
+             "Please use `Line.composer` instead." + DEPRECATION_INFO_PREP_1_0,
+             FutureWarning, stacklevel=2)
+        return self.composer
+
+    @builder.setter
+    def builder(self, value):
+        self.composer = value
+
+    @property_with_doc_group("Compose Mode")
+    def composer(self):
+        """
+        Builder used when the line is in ``compose`` mode.
+
+        Returns
+        -------
+        Composer
+            Compose-mode builder object associated with the line.
+
+        Examples
+        --------
+        .. code-block:: python
+
+            import xtrack as xt
+
+            env = xt.Environment()
+            env.new('qf', 'Quadrupole', length=0.5, k1=0.2)
+
+            line = env.new_line(length=5.0, compose=True)
+            line.place('qf', at=1.0)
+
+            line.composer.components
+            # [Place(qf, at=1.0)]
+        """
+        return self._composer
+
+    @composer.setter
+    def composer(self, value):
+        self._composer = value
+
+    @property_with_doc_group("Tracker Setup")
+    def config(self):
+        """Tracking configuration flags and options."""
+        return self._config
+
+    @config.setter
+    def config(self, value):
+        self._config = value
+
+    @property_with_doc_group("Inspection, Variables and Configuration")
+    def env(self):
+        """Environment to which this line belongs."""
+        return self._env
+
+    @env.setter
+    def env(self, value):
+        self._env = value
+
+    @property_with_doc_group("Inspection, Variables and Configuration")
+    def metadata(self):
+        """User metadata associated with the line."""
+        return self._metadata
+
+    @metadata.setter
+    def metadata(self, value):
+        self._metadata = value
+
+    @property_with_doc_group("Tracker Setup")
+    def tracker(self):
+        """Tracker associated with this line, if built."""
+        return self._tracker
+
+    @tracker.setter
+    def tracker(self, value):
+        self._tracker = value
+
+    @property_with_doc_group("Inspection, Variables and Configuration")
     def attr(self):
+        """
+        Line-attribute accessor.
+
+        Examples
+        --------
+        >>> env = xt.Environment()
+        >>> line = env.new_line(length=10, components=[
+        ...    env.new('qf', 'Quadrupole', length=1., k1=2., at=2.5),
+        ...    env.new('qd', 'Quadrupole', length=1., k1=-2., at=7.5)])
+        >>> line.attr['k1l']
+        array([ 0.,  2.,  0., -2.,  0.])
+        >>> line.attr['length']
+        array([2., 1., 4., 1., 2.])
+        """
 
         if not self._has_valid_tracker():
             self.build_tracker()
@@ -977,43 +1759,128 @@ class Line:
 
         return self.tracker._tracker_data_base.cache['attr']
 
-    @property
+    @doc_group("Reference Particle and Particle Generation")
+    def set_particle_ref(self, *args, **kwargs):
+        """
+        Set the reference particle of the line. See `particle_ref` property.
+        """
+        if len(args)==1 and isinstance(args[0], xt.Particles):
+            self.particle_ref = args[0].copy()
+        elif len(args)==1 and isinstance(args[0], str):
+            name = args[0]
+            if name in self.env.particles:
+                self.particle_ref = name
+            else:
+                self.particle_ref = xt.Particles(*args, **kwargs)
+        else:
+            self.particle_ref = xt.Particles(*args, **kwargs)
+
+    @property_with_doc_group("Reference Particle and Particle Generation")
     def particle_ref(self):
-        return self._particle_ref
+        """
+        Reference particle used by the line for optics and tracking defaults.
+
+        Returns
+        -------
+        particle_ref : xtrack.Particles or None
+            Reference particle, if set.
+        """
+        if self._particle_ref is None:
+            return None
+        return LineParticleRef(self)
 
     @particle_ref.setter
     def particle_ref(self, particle_ref):
+        if isinstance(particle_ref, LineParticleRef):
+            particle_ref = particle_ref.line._particle_ref
         self._particle_ref = particle_ref
-        if self.particle_ref is not None and self.particle_ref.t_sim == 0:
+        # This looks a bit dangerous, when working with coasting beams in environments.
+        # If the particle is shared with other lines, t_sim might be wrong.
+        if (self.particle_ref is not None and self.particle_ref.t_sim == 0.
+            and self.mode == 'normal'):
             self.particle_ref.t_sim = (
                 self.get_length() / self.particle_ref._xobject.beta0[0] / clight)
 
-    @property
+    @property_with_doc_group("Radiation, Spin and Intra-Beam Scattering")
+    def xcoll(self):
+        """Xcoll-specific helpers associated with this line."""
+        if self._xcoll is None:
+            try:
+                from xcoll.line_tools import XcollLineAPI
+                self._xcoll = XcollLineAPI(self)
+            except ImportError as error:
+                raise ImportError("Please install Xcoll to use this feature.") from error
+        return self._xcoll
+
+    @property_with_doc_group("Radiation, Spin and Intra-Beam Scattering")
+    def xfields(self):
+        """Xfields-specific helpers associated with this line."""
+        if self._xfields is None:
+            try:
+                from xfields.line_tools import XfieldsLineAPI
+                self._xfields = XfieldsLineAPI(self)
+            except ImportError as error:
+                raise ImportError("Please install Xfields to use this feature.") from error
+        return self._xfields
+
+    @property_with_doc_group("Reference Particle and Particle Generation")
+    def xpart(self):
+        """Xpart particle-generation helpers associated with this line."""
+        if self._xpart is None:
+            try:
+                from xpart.line_tools import XpartLineAPI
+                self._xpart = XpartLineAPI(self)
+            except ImportError as error:
+                raise ImportError("Please install Xpart to use this feature.") from error
+        return self._xpart
+
+    @property_with_doc_group("Deprecated")
     def scattering(self):
-        if not hasattr(self, '_scattering') or self._scattering is None:
-            try:
-                from xcoll.line_tools import XcollScatteringAPI
-                self._scattering = XcollScatteringAPI(line=self)
-            except ImportError as error:
-                raise ImportError("Please install Xcoll to use this feature.") from error
+        """
+        Deprecated alias for ``line.xcoll.scattering``.
 
-        return self._scattering
+        .. warning::
+            This property is deprecated and will be removed in a future version.
+            Use ``line.xcoll.scattering`` instead. This deprecation is part of
+            the interface cleanup in view of the 1.0 release.
 
-    @property
+        Returns
+        -------
+        scattering : object
+            Xcoll scattering API bound to this line.
+        """
+        warn('`Line.scattering` is deprecated and will be removed in a future version. '
+             'Please use `Line.xcoll.scattering` instead.'
+             + DEPRECATION_INFO_PREP_1_0,
+             FutureWarning, stacklevel=2)
+        return self.xcoll.scattering
+
+    @property_with_doc_group("Deprecated")
     def collimators(self):
-        if not hasattr(self, '_collimators') or self._collimators is None:
-            try:
-                from xcoll.line_tools import XcollCollimatorAPI
-                self._collimators = XcollCollimatorAPI(line=self)
-            except ImportError as error:
-                raise ImportError("Please install Xcoll to use this feature.") from error
+        """
+        Deprecated alias for ``line.xcoll.collimators``.
 
-        return self._collimators
+        .. warning::
+            This property is deprecated and will be removed in a future version.
+            Use ``line.xcoll.collimators`` instead. This deprecation is part of
+            the interface cleanup in view of the 1.0 release.
+
+        Returns
+        -------
+        collimators : object
+            Xcoll collimator API bound to this line.
+        """
+        warn('`Line.collimators` is deprecated and will be removed in a future version. '
+             'Please use `Line.xcoll.collimators` instead.'
+             + DEPRECATION_INFO_PREP_1_0,
+             FutureWarning, stacklevel=2)
+        return self.xcoll.collimators
 
     def _get_bucket(self):
         import xpart as xp
         return xp.longitudinal.get_bucket(self)
 
+    @doc_group("Tracker Setup")
     def discard_tracker(self):
 
         """
@@ -1021,12 +1888,17 @@ class Line:
         (elements can be inserted or removed again).
 
         """
-        if not isinstance(self._element_names, list):
+        if self.mode == 'compose' and self.element_names != '__COMPOSE__':
+            self.regenerate_from_composer()
+
+        if (not isinstance(self._element_names, list)
+                and self._element_names != '__COMPOSE__'):
             self._element_names = list(self._element_names)
         if hasattr(self, 'tracker') and self.tracker is not None:
             self.tracker._invalidate()
             self.tracker = None
 
+    @doc_group("Tracking and Analysis")
     def track(
         self,
         particles,
@@ -1035,6 +1907,7 @@ class Line:
         num_elements=None, # defaults to full lattice
         num_turns=None,    # defaults to 1
         turn_by_turn_monitor=None,
+        multi_element_monitor_at=None,
         freeze_longitudinal=False,
         time=False,
         with_progress=False,
@@ -1070,6 +1943,10 @@ class Line:
             it is used directly. If the string `ONE_TURN_EBE` is provided, the
             particles coordinates are recorded at each element (one turn).
             The recorded data can be retrieved in `line.record_last_track`.
+        multi_element_monitor_at: list of str, optional
+            If provided, a multi-element monitor is created and coordinates of the
+            trcked particles are recorded at the elements whose names are in the list.
+            The recorded data can be retrieved in `line.record_multi_element_last_track`.
         freeze_longitudinal: bool, optional
             If True, the longitudinal coordinates are frozen during tracking.
         time: bool, optional
@@ -1112,9 +1989,247 @@ class Line:
             freeze_longitudinal=freeze_longitudinal,
             time=time,
             with_progress=with_progress,
+            multi_element_monitor_at=multi_element_monitor_at,
             **kwargs)
 
-    def slice_thick_elements(self, slicing_strategies):
+    @doc_group("Tracking and Analysis")
+    def get_local_momentum_acceptance(
+        self,
+        *,
+        elements=None,
+        twiss=None,
+        scattering='off',
+        x_offset: float = 0.0,
+        y_offset: float = 0.0,
+        x_norm_offset: float = 0.0,
+        y_norm_offset: float = 0.0,
+        nemitt_x=None,
+        nemitt_y=None,
+        delta_negative_limit: float = -0.10,
+        delta_positive_limit: float = +0.10,
+        delta_step_size: float = 0.01,
+        n_turns: int = 512,
+        with_progress: bool | int = False,
+        verbose: bool = False,
+        **kwargs):
+        """
+        Compute the local momentum acceptance (LMA) along the line by tracking a
+        grid of momentum offsets (δ) from the **entrance** of selected
+        elements and reporting the surviving negative and positive δ limits.
+
+        The δ grid is centered on the local closed orbit at each element, and offsets
+        can be applied (either physical x/y or normalized x/y in σ units).
+
+        Parameters
+        ----------
+        elements : list of str or array-like of str, optional
+            Names of the elements at whose entrance the LMA is evaluated.
+            If ``None`` (default), all elements in the line are used.
+            If multiple elements share the same ``s``, only the first encountered
+            is used.
+        twiss : xt.TwissTable, optional
+            Twiss table to define the closed orbit and optics. By default,
+            a 6D solution is computed with `self.twiss(method='6d')`. You can
+            override the method with `method=...` in `**kwargs`.
+        scattering : str, optional
+            Wheter scattering has been enabled or not (`'on'` or `'off'`).
+        x_offset : float, default 0.0
+            Horizontal physical offset in meters. Mutually exclusive with
+            `x_norm_offset`.
+        y_offset : float, default 0.0
+            Vertical physical offset in meters. Mutually exclusive with
+            `y_norm_offset`.
+        x_norm_offset : float, default 0.0
+            Horizontal normalized offset in units of σx (rms). Mutually exclusive
+            with `x_offset`.
+        y_norm_offset : float, default 0.0
+            Vertical normalized offset in units of σy (rms). Mutually exclusive
+            with `y_offset`.
+        nemitt_x : float
+            Horizontal normalized emittance (m·rad, rms).
+        nemitt_y : float
+            Vertical normalized emittance (m·rad, rms).
+        delta_negative_limit : float, default -0.10
+            Lower bound of the δ scan (inclusive). Must be < 0.
+        delta_positive_limit : float, default +0.10
+            Upper bound of the δ scan (inclusive). Must be > 0.
+        delta_step_size : float, default 0.01
+            Step for the δ grid. Must be > 0. The positive end is included
+            with a half-step guard to reduce floating-point exclusion.
+        n_turns : int, default 512
+            Number of turns to track.
+        with_progress : bool | int, default False
+            If truthy, shows a per-element progress bar.
+        verbose : bool, default False
+            If True, enables tracker progress for each element scan.
+        **kwargs
+            Passed through to `self.twiss` and `build_particles`.
+
+        Selection semantics
+        -------------------
+        - LMA is evaluated at the **entrance** of each element.
+        - If multiple elements share the same `s`, only the first encountered is used.
+
+        Algorithm (per selected element)
+        --------------------------------
+        1. Build particles on closed orbit with the requested (normalized or physical) offsets.
+        2. Apply the δ grid by shifting the initial δ around `delta_co`.
+        3. Track for `n_turns` turns from the element to itself.
+        4. Among surviving particles, report:
+        - `delta_neg` = min of the *initial* δ of survivors,
+        - `delta_pos` = max of the *initial* δ of survivors.
+        If none survive, `delta_neg` = `delta_pos` = 0.0
+
+        Returns
+        -------
+        xt.Table
+            Table indexed by `'name'` with columns:
+            - `name` (str): Element name.
+            - `s` (float): Element entrance position (m).
+            - `delta_neg` (float): Surviving negative δ limit (may be 0).
+            - `delta_pos` (float): Surviving positive δ limit (may be 0).
+        """
+        if self.particle_ref is None:
+            raise ValueError("Line.particle_ref must be set to build probe particles.")
+
+        # Mutual exclusivity: physical vs normalized offsets
+        if x_offset != 0.0 and x_norm_offset != 0.0:
+            raise ValueError("Provide either x_offset or x_norm_offset, not both.")
+        if y_offset != 0.0 and y_norm_offset != 0.0:
+            raise ValueError("Provide either y_offset or y_norm_offset, not both.")
+
+        if nemitt_x is None or nemitt_y is None:
+            raise ValueError("nemitt_x and nemitt_y must be provided.")
+
+        if delta_negative_limit >= 0:
+            raise ValueError("delta_negative_limit must be < 0")
+        if delta_positive_limit <= 0:
+            raise ValueError("delta_positive_limit must be > 0")
+        if delta_step_size <= 0:
+            raise ValueError("delta_step_size must be > 0")
+        if n_turns <= 0:
+            raise ValueError("n_turns must be > 0")
+
+        if elements is not None:
+            if not hasattr(elements, '__iter__') or isinstance(elements, str):
+                raise ValueError("`elements` must be an iterable of strings, not a scalar.")
+            elements = list(elements)
+            if not all(isinstance(e, str) for e in elements):
+                raise ValueError("All entries in `elements` must be strings.")
+            invalid = [e for e in elements if e not in self.element_names]
+            if invalid:
+                raise ValueError(
+                    f"The following elements were not found in the line: {invalid}")
+
+        if not self._has_valid_tracker():
+            self.build_tracker()
+
+        # Compute twiss (use 6D by default, overridable via kwargs['method'])
+        twiss_method = kwargs.pop('method', '6d')
+        if twiss is None:
+            if scattering == 'on':
+                self.scattering.disable()
+            twiss = self.twiss(method=twiss_method, reverse=False)
+            if scattering == 'on':
+                self.scattering.enable()
+
+        if elements is None:
+            tt = self.get_table()
+            elements = tt.name
+
+        # Delta grid
+        deltas = np.arange(delta_negative_limit, delta_positive_limit + 0.5 * delta_step_size,
+                           delta_step_size)
+        n_part = len(deltas)
+
+        rows = []
+        seen_s = set()
+
+        iterable = progress(elements, desc="Local Momentum Acceptance") if with_progress else elements
+
+        for ii, ee in enumerate(iterable):
+            s_here = float(twiss['s', ee])
+
+            # Some elements may share the same s
+            if s_here in seen_s:
+                continue
+            seen_s.add(s_here)
+
+            ## Prepare test particles
+            # The longitudinal closed orbit need to be manually supplied
+            zeta_co = twiss['zeta', ee]
+            delta_co = twiss['delta', ee]
+
+            if scattering == 'on':
+                self.scattering.disable()
+
+            # Extract W_matrix and particle_on_co from the already-computed twiss
+            tw_init = twiss.get_twiss_init(at_element=ee)
+
+            idx_at_element = self.element_names.index(ee)
+
+            # On-momentum, matched, test particles
+            particles = self.build_particles(
+                _context=self._context,
+                num_particles=n_part,
+                x_norm=x_norm_offset,
+                y_norm=y_norm_offset,
+                zeta=zeta_co,
+                delta=delta_co,
+                nemitt_x=nemitt_x,
+                nemitt_y=nemitt_y,
+                W_matrix=tw_init.W_matrix,
+                particle_on_co=tw_init.particle_on_co,
+            )
+            particles.at_element[:] = idx_at_element
+            particles.s[:] = s_here
+            particles.start_tracking_at_element = -1
+
+            if scattering == 'on':
+                self.scattering.enable()
+
+            # Add the delta grid
+            delta_temp = particles.delta.copy()
+            delta_temp += deltas
+            particles.update_delta(delta_temp)
+
+            initial_deltas = particles.delta.copy()
+
+            # Apply absolute offsets, if any
+            particles.x += x_offset
+            particles.y += y_offset
+
+            _print(f"\nTrack test particles from reference point #{ii}")
+            self.track(
+                particles,
+                ele_start=ee,
+                ele_stop=ee,
+                num_turns=n_turns,
+                with_progress=1 if verbose else 0
+            )
+
+            mask_alive = (particles.state == 1)
+            if np.any(mask_alive):
+                surviving_pids = particles.filter(mask_alive).particle_id
+                delta_neg = float(np.min(initial_deltas[surviving_pids]))
+                delta_pos = float(np.max(initial_deltas[surviving_pids]))
+            else:
+                delta_neg = float(0.0)
+                delta_pos = float(0.0)
+
+            rows.append({
+                'name': ee,
+                's': s_here,
+                'delta_neg': delta_neg,
+                'delta_pos': delta_pos
+            })
+
+        cols = {k: np.array([r[k] for r in rows]) for k in rows[0].keys()}
+
+        return xt.Table(cols, index='name')
+
+    @doc_group("Line Editing")
+    def slice_thick_elements(self, slicing_strategies, with_progress=True):
         """
         Slice thick elements in the line. Slicing is done in place.
 
@@ -1123,6 +2238,8 @@ class Line:
         slicing_strategies : list
             List of slicing Strategy objects. In case multiple strategies
             apply to the same element, the last one takes precedence)
+        with_progress : bool, optional
+            Whether to show progress while slicing. Defaults to ``True``.
 
         Examples
         --------
@@ -1144,6 +2261,8 @@ class Line:
 
         """
 
+        self._method_incompatible_with_compose()
+
         self.build_tracker(compile=False) # ensure elements are in the same buffer
         self.discard_tracker()
 
@@ -1151,8 +2270,9 @@ class Line:
         self._element_names_before_slicing = list(self.element_names).copy()
 
         slicer = Slicer(self, slicing_strategies)
-        return slicer.slice_in_place()
+        return slicer.slice_in_place(with_progress=with_progress)
 
+    @doc_group("Reference Particle and Particle Generation")
     def build_particles(
         self,
         particle_ref=None,
@@ -1184,7 +2304,8 @@ class Line:
         particle_ref : Particle object
             Reference particle defining the reference quantities (mass0, q0, p0c,
             gamma0, etc.). Its coordinates (x, py, y, py, zeta, delta) are ignored
-            unless `mode`='shift' is selected.
+            unless `mode`='shift' is selected. If this is None (default), the
+            reference particle associated with this line is used.
         num_particles : int
             Number of particles to be generated (used if provided coordinates are
             all scalar).
@@ -1298,20 +2419,19 @@ class Line:
             include_collective=include_collective,
             **kwargs)
 
+    @doc_group("Tracking and Analysis")
     def twiss(self, particle_ref=None, method=None,
         particle_on_co=None, R_matrix=None, W_matrix=None,
-        delta0=None, zeta0=None,
-        r_sigma=None, nemitt_x=None, nemitt_y=None,
+        delta0=None, zeta0=None, zeta_shift=None,
+        nemitt_x=None, nemitt_y=None, step_W_sigma=None,
         delta_disp=None, delta_chrom=None, zeta_disp=None,
-        co_guess=None, steps_r_matrix=None,
-        co_search_settings=None, at_elements=None, at_s=None,
+        co_guess=None, steps_R_matrix=None,
+        co_search_settings=None,
         continue_on_closed_orbit_error=None,
-        freeze_longitudinal=None,
-        freeze_energy=None,
         values_at_element_exit=None,
         radiation_method=None,
-        eneloss_and_damping=None,
         radiation_integrals=None,
+        radiation_analysis=None,
         start=None, end=None, init=None,
         num_turns=None,
         skip_global_quantities=None,
@@ -1328,10 +2448,10 @@ class Line:
         only_markers=None,
         only_orbit=None,
         spin=None,
-        polarization=None,
+        polarization_analysis=None,
         compute_R_element_by_element=None,
         compute_lattice_functions=None,
-        compute_chromatic_properties=None,
+        chrom=None,
         coupling_edw_teng=False,
         init_at=None,
         x=None, px=None, y=None, py=None, zeta=None, delta=None,
@@ -1344,6 +2464,7 @@ class Line:
         zero_at=None,
         co_search_at=None,
         include_collective=None,
+        disable_apertures=None,
         _continue_if_lost=None,
         _keep_tracking_data=None,
         _keep_initial_particles=None,
@@ -1352,9 +2473,20 @@ class Line:
         ele_start='__discontinued__',
         ele_stop='__discontinued__',
         ele_init='__discontinued__',
-        twiss_init='__discontinued__'
-        ):
-
+        twiss_init='__discontinued__',
+        # deprecated
+        compute_chromatic_properties=None,
+        at_s=None,
+        at_elements=None,
+        r_sigma=None,
+        freeze_longitudinal=None,
+        freeze_energy=None,
+        polarization=None,
+        eneloss_and_damping=None,
+        steps_r_matrix=None, *,
+        with_progress=True,
+        chi=None, charge_ratio=None, mass_ratio=None,
+    ):
         if not self._has_valid_tracker():
             self.build_tracker()
 
@@ -1375,15 +2507,33 @@ class Line:
 
     twiss.__doc__ = twiss_line.__doc__
 
+    @doc_group("Tracking and Analysis")
     def twiss4d(self, **kwargs):
 
         """
         Compute the 4D Twiss parameters. Equivalent to `twiss` with `method='4d'`.
-        """
 
+        See :ref:`Line.twiss method documentation<twiss_method_label>` for all
+        available options.
+        """
+        assert 'method' not in kwargs, 'method cannot be provided as argument to twiss4d'
         kwargs['method'] = '4d'
         return self.twiss(**kwargs)
 
+    @doc_group("Tracking and Analysis")
+    def twiss6d(self, **kwargs):
+
+        """
+        Compute the 6D Twiss parameters. Equivalent to `twiss` with `method='6d'`.
+
+        See :ref:`Line.twiss method documentation<twiss_method_label>` for all
+        available options.
+        """
+        assert 'method' not in kwargs, 'method cannot be provided as argument to twiss6d'
+        kwargs['method'] = '6d'
+        return self.twiss(**kwargs)
+
+    @doc_group("Matching and Corrections")
     def match(self, vary, targets, solve=True, assert_within_tol=True,
                   compensate_radiation_energy_loss=False,
                   solver_options={}, allow_twiss_failure=True,
@@ -1403,7 +2553,7 @@ class Line:
             List of targets to be matched.
         solve : bool
             If True (default), the matching is performed immediately. If not an
-            Optimize object is returnd, which can be used for advanced matching.
+            Optimize object is returned, which can be used for advanced matching.
         assert_within_tol : bool
             If True (default), an exception is raised if the matching fails.
         compensate_radiation_energy_loss : bool
@@ -1509,6 +2659,7 @@ class Line:
                         check_limits=check_limits, **kwargs)
 
 
+    @doc_group("Matching and Corrections")
     def match_knob(self, knob_name, vary, targets,
                    knob_value_start=0, knob_value_end=1,
                    **kwargs):
@@ -1532,6 +2683,48 @@ class Line:
         knob_value_end : float
             Value of the knob after the matching. Defaults to 1.
 
+        Returns
+        -------
+        KnobOptimizer
+            Returned :class:`xtrack.match.KnobOptimizer` used to match and
+            generate the knob. It exposes the underlying
+            :class:`xdeps.Optimize` methods, and provides
+            :meth:`generate_knob` to install the matched knob expression.
+
+        Examples
+        --------
+        .. code-block:: python
+
+            import xpart as xp
+            import xtrack as xt
+
+            env = xt.Environment()
+            env['kqf'] = 0.20
+            env['kqd'] = -0.20
+            env.new('qf', xt.Multipole, knl=[0, 'kqf'], length=0.1)
+            env.new('qd', xt.Multipole, knl=[0, 'kqd'], length=0.1)
+            env.new('dr', xt.Drift, length=1.0)
+
+            line = env.new_line(components=['dr', 'qf', 'dr', 'qd'] * 8)
+            line.particle_ref = xp.Particles(
+                p0c=7e9, mass0=xp.PROTON_MASS_EV)
+            line.build_tracker()
+            tw0 = line.twiss(method='4d')
+
+            opt = line.match_knob(
+                knob_name='qx_knob',
+                knob_value_start=tw0.qx,
+                knob_value_end=tw0.qx + 1e-3,
+                method='4d', verbose=False, run=False,
+                vary=xt.Vary('kqf', step=1e-6),
+                targets=xt.Target('qx', tw0.qx + 1e-3, tol=1e-6))
+            opt.solve()
+            opt.generate_knob()
+
+            line['qx_knob'] = tw0.qx + 5e-4
+            tw = line.twiss(method='4d')
+            assert abs(tw.qx - (tw0.qx + 5e-4)) < 1e-6
+
         '''
         if not self._has_valid_tracker():
             self.build_tracker()
@@ -1543,45 +2736,102 @@ class Line:
         return opt
 
 
+    @doc_group("Tracking and Analysis")
     def survey(self,X0=0,Y0=0,Z0=0,theta0=0, phi0=0, psi0=0,
                element0=0, reverse=None):
 
         """
-        Returns a survey of the beamline (based on MAD-X survey command).
+        Compute the geometrical layout, i.e. the coordinates of all beam line
+        elements in the global reference system.
+
+        For detailed definitions of the involved quantities please refer to the
+        Xsuite Physics Guide (https://xsuite.readthedocs.io/en/latest/physicsguide.html)
 
         Parameters
         ----------
         X0 : float
-            Initial X coordinate in meters.
+            Initial X coordinate in meters. Default is 0.
         Y0 : float
-            Initial Y coordinate in meters.
+            Initial Y coordinate in meters. Default is 0.
         Z0 : float
-            Initial Z coordinate in meters.
+            Initial Z coordinate in meters. Default is 0.
         theta0 : float
-            Initial theta coordinate in radians.
+            Initial theta coordinate in radians. Default is 0.
         phi0 : float
-            Initial phi coordinate in radians.
+            Initial phi coordinate in radians. Default is 0.
         psi0 : float
-            Initial psi coordinate in radians.
+            Initial psi coordinate in radians. Default is 0.
         element0 : int or str
-            Element at which the given coordinates are defined.
+            Element at which the given coordinates are defined. Default is the
+            first element in the beam line.
 
         Returns
         -------
         survey : SurveyTable
             Survey table.
+
+        Notes
+        -----
+
+        The output survey table contains the following columns:
+
+        - ``name``: element name (with occurrence counts for repeated names).
+        - ``element_type``: type of the element (e.g. Drift, Marker, Bend).
+        - ``prototype``: name of the element prototype, when present.
+        - ``s``: longitudinal coordinate at the element entrance [m].
+        - ``X``, ``Y``, ``Z``: position of the element entrance in the global frame [m].
+        - ``theta``, ``phi``, ``psi``: orientation angles of the local frame
+          (azimuth, elevation, roll) unwrapped along the line [rad].
+        - ``ex``, ``ey``, ``ez``: unit vectors of the local frame expressed in
+          the global frame (they are the columns of ``E_matrix``).
+        - ``E_matrix``: 3x3 rotation matrices describing the local frame at each
+          element entrance.
+        - ``XYZ``: position vectors stacked as ``[X, Y, Z]``.
+        - ``isthick``: ``True`` for thick elements, ``False`` for markers.
+        - ``drift_length``: length used while advancing the survey (zero for
+          thin elements) [m].
+        - ``length``: physical length of the element [m].
+
+        Examples
+        --------
+        .. code-block:: python
+
+            import xtrack as xt
+
+            # Create a simple line
+            env = xt.Environment(particle_ref=xt.Particles(p0c=1e9))
+            line = env.new_line(length=6, components=[
+                env.new('b1', xt.Bend, length=0.2, angle=0.1, at=1),
+                env.new('q1', xt.Quadrupole, length=0.1, k1=0.5, at=2),
+                env.new('b2', xt.Bend, length=0.2, angle=-0.1, at=3),
+                env.new('q2', xt.Quadrupole, length=0.1, k1=-0.5, at=4),
+            ])
+
+            # Compute the survey
+            sv = line.survey()
+            # sv.X, sv.Y, sv.Z contain the coordinates of the reference
+            # trajectory in the global frame
+
+            # Compute the trajectory of a particle entering with x=1 mm and y=2 mm
+            tw = line.twiss4d(betx=1, bety=1, x=1e-3, y=2e-3)
+            # tw.x, tw.y contain the coordinates of the particle in the local frame
+
+            # Compute the trajectory of the particle in the global frame
+            p_global = tw.x[:, None] * sv.ex + tw.y[:, None] * sv.ey + sv.XYZ
+
+            X_trajectory = p_global[:, 0]
+            Y_trajectory = p_global[:, 1]
+            Z_trajectory = p_global[:, 2]
+
         """
 
         if not self._has_valid_tracker():
             self.build_tracker()
 
-        if reverse is None:
-            reverse = self.twiss_default.get('reverse', False)
-
         return survey_from_line(self, X0=X0, Y0=Y0, Z0=Z0, theta0=theta0,
-                                   phi0=phi0, psi0=psi0, element0=element0,
-                                   reverse=reverse)
+                                   phi0=phi0, psi0=psi0, element0=element0)
 
+    @doc_group("Matching and Corrections")
     def correct_trajectory(self, run=True, n_iter='auto', start=None, end=None,
                  twiss_table=None, planes=None,
                  monitor_names_x=None, corrector_names_x=None,
@@ -1654,6 +2904,9 @@ class Line:
             Trajectory correction object.
 
         '''
+
+        if not self._has_valid_tracker():
+            self.build_tracker()
 
         correction = TrajectoryCorrection(line=self,
                  start=start, end=end, twiss_table=twiss_table,
@@ -1733,14 +2986,17 @@ class Line:
 
         """
 
+        self._method_incompatible_with_compose()
 
-        closed_orbit_correction(self, reference, correction_config,
+        opts = closed_orbit_correction(self, reference, correction_config,
                                 solver=solver, verbose=verbose,
                                 restore_if_fail=restore_if_fail)
+        return opts
 
+    @doc_group("Tracking and Analysis")
     def find_closed_orbit(self, co_guess=None, particle_ref=None,
-                          co_search_settings={}, delta_zeta=0,
-                          delta0=None, zeta0=None,
+                          co_search_settings={},
+                          delta0=None, zeta0=None, zeta_shift=0,
                           continue_on_closed_orbit_error=False,
                           freeze_longitudinal=False,
                           start=None, end=None,
@@ -1819,8 +3075,9 @@ class Line:
             line = self
 
         return find_closed_orbit_line(line, co_guess=co_guess,
-                                 particle_ref=particle_ref, delta0=delta0, zeta0=zeta0,
-                                 co_search_settings=co_search_settings, delta_zeta=delta_zeta,
+                                 particle_ref=particle_ref,
+                                 delta0=delta0, zeta0=zeta0, zeta_shift=zeta_shift,
+                                 co_search_settings=co_search_settings,
                                  continue_on_closed_orbit_error=continue_on_closed_orbit_error,
                                  start=start, end=end, num_turns=num_turns,
                                  co_search_at=co_search_at,
@@ -1829,8 +3086,11 @@ class Line:
                                  num_turns_search_t_rev=num_turns_search_t_rev,
                                  symmetrize=symmetrize)
 
-    def compute_T_matrix(self, start=None, end=None,
-                         particle_on_co=None, steps_t_matrix=None):
+    @doc_group("Tracking and Analysis")
+    def get_T_matrix(self, start=None, end=None,
+                         particle_on_co=None, steps=None,
+                         steps_t_matrix=None # deprecated
+                         ):
 
         """
         Compute the second order tensor of the beamline.
@@ -1843,7 +3103,7 @@ class Line:
             Element at which the computation stops.
         particle_on_co : Particle
             Particle at the closed orbit (optional).
-        steps_r_matrix : int
+        steps : dict
             Finite difference step for computing the second order tensor.
 
         Returns
@@ -1855,10 +3115,32 @@ class Line:
 
         self._check_valid_tracker()
 
-        return compute_T_matrix_line(self, start=start, end=end,
-                                particle_on_co=particle_on_co,
-                                steps_t_matrix=steps_t_matrix)
+        if steps_t_matrix is not None:
+            warn("`steps_t_matrix` is deprecated, please use `steps` instead"
+                 + DEPRECATION_INFO_PREP_1_0, FutureWarning)
 
+        return get_T_matrix_line(self, start=start, end=end,
+                                particle_on_co=particle_on_co,
+                                steps=steps)
+
+    @doc_group("Deprecated")
+    def compute_T_matrix(self, *args, **kwargs):
+        """
+        Compute the second order tensor of the beamline.
+
+        .. warning:: This method is deprecated and will be removed in future versions. Please use `get_T_matrix()` instead.
+
+        """
+
+        warn(
+            '`Line.compute_T_matrix()` is deprecated and will be removed in '
+            'future versions. Please use `Line.get_T_matrix()` instead.'
+            + DEPRECATION_INFO_PREP_1_0,
+            FutureWarning,
+        )
+        return self.get_T_matrix(*args, **kwargs)
+
+    @doc_group("Tracking and Analysis")
     def get_footprint(self, nemitt_x=None, nemitt_y=None, n_turns=256, n_fft=2**18,
             mode='polar', r_range=None, theta_range=None, n_r=None, n_theta=None,
             x_norm_range=None, y_norm_range=None, n_x_norm=None, n_y_norm=None,
@@ -1930,6 +3212,8 @@ class Line:
 
         '''
 
+        self._method_incompatible_with_compose()
+
         kwargs = locals()
         kwargs.pop('self')
         kwargs.pop('linear_rescale_on_knobs')
@@ -1945,12 +3229,13 @@ class Line:
                         delta0=delta0, zeta0=zeta0)
         else:
             fp = Footprint(**kwargs)
-            fp._compute_footprint(self,
+            fp._get_footprint(self,
                 freeze_longitudinal=freeze_longitudinal,
                 delta0=delta0, zeta0=zeta0)
 
         return fp
 
+    @doc_group("Tracking and Analysis")
     def get_amplitude_detuning_coefficients(self, nemitt_x=1e-6, nemitt_y=1e-6,
                 num_turns=256, a0_sigmas=0.01, a1_sigmas=0.1, a2_sigmas=0.2):
 
@@ -1985,6 +3270,8 @@ class Line:
         det_yx : float
             Amplitude detuning coefficient dQy / dJx.
         '''
+
+        self._method_incompatible_with_compose()
 
         import nafflib as nl
 
@@ -2032,14 +3319,37 @@ class Line:
         return {'det_xx': det_xx, 'det_yy': det_yy,
                 'det_xy': det_xy, 'det_yx': det_yx}
 
-    def compute_one_turn_matrix_finite_differences(
+
+    @doc_group("Deprecated")
+    def compute_one_turn_matrix_finite_differences(self, *args, **kwargs):
+
+        """Deprecated. Compute the one turn matrix using finite differences.
+
+        .. warning:: This function is deprecated and will be removed in a future
+           version. Please use Line.get_R_matrix(...) instead.
+        """
+
+        warn(
+            '`Line.compute_one_turn_matrix_finite_differences()` is deprecated '
+            'and will be removed in future versions. Please use '
+            '`Line.get_R_matrix()` instead.'
+            + DEPRECATION_INFO_PREP_1_0,
+            FutureWarning,
+        )
+
+        return self.get_R_matrix(*args, **kwargs)
+
+    @doc_group("Tracking and Analysis")
+    def get_R_matrix(
             self, particle_on_co,
-            steps_r_matrix=None,
+            steps=None,
             start=None, end=None,
             num_turns=1,
             element_by_element=False, only_markers=False,
             symmetrize=False,
-            include_collective=False):
+            include_collective=False,
+            steps_r_matrix=None # deprecated
+            ):
 
         '''Compute the one turn matrix using finite differences.
 
@@ -2047,7 +3357,7 @@ class Line:
         ----------
         particle_on_co : Particle
             Particle at the closed orbit.
-        steps_r_matrix : float
+        steps : float
             Step size for finite differences. In not given, default step sizes
             are used.
         start : str
@@ -2064,7 +3374,14 @@ class Line:
 
         '''
 
-        self._check_valid_tracker()
+        if steps_r_matrix is not None:
+            warn("`steps_r_matrix` is deprecated, please use `steps` instead"
+                 + DEPRECATION_INFO_PREP_1_0,
+                 FutureWarning)
+            steps = steps_r_matrix
+
+        if not self._has_valid_tracker():
+            self.build_tracker()
 
         if self.iscollective and not include_collective:
             log.warning(
@@ -2075,13 +3392,31 @@ class Line:
         else:
             line = self
 
-        return compute_one_turn_matrix_finite_differences(line, particle_on_co,
-                        steps_r_matrix, start=start, end=end,
+        return get_R_matrix(line, particle_on_co,
+                        steps, start=start, end=end,
                         num_turns=num_turns,
                         element_by_element=element_by_element,
                         only_markers=only_markers,
                         symmetrize=symmetrize)
 
+    @doc_group("Deprecated")
+    def compute_R_matrix(self, *args, **kwargs):
+
+        '''Compute the one turn matrix using finite differences.
+
+        .. warning:: This function is deprecated and will be removed in a future version. Please use Line.get_R_matrix(...) instead.
+
+        '''
+
+        warn(
+            '`Line.compute_R_matrix()` is deprecated and will be removed in '
+            'future versions. Please use `Line.get_R_matrix()` instead.'
+            + DEPRECATION_INFO_PREP_1_0,
+            FutureWarning,
+        )
+        return self.get_R_matrix(*args, **kwargs)
+
+    @doc_group("Tracking and Analysis")
     def get_non_linear_chromaticity(self,
                         delta0_range=(-1e-3, 1e-3), num_delta=5, fit_order=3, **kwargs):
 
@@ -2103,22 +3438,25 @@ class Line:
 
         '''
 
+        self._method_incompatible_with_compose()
+
         return get_non_linear_chromaticity(self, delta0_range, num_delta,
                                            fit_order, **kwargs)
 
-    def get_length(self):
+    @doc_group("Inspection, Variables and Configuration")
+    def get_length(self) -> float:
 
         '''Get total length of the line'''
 
         ll = 0
-        for ee in self.elements:
+        for ee in self._elements:
             if _is_thick(ee, self):
                 this_length = _length(ee, self)
                 ll += this_length
 
         return ll
 
-    def get_s_elements(self, mode="upstream"):
+    def _get_s_elements(self, mode="upstream"):
 
         '''Get s position for all elements
 
@@ -2134,9 +3472,35 @@ class Line:
             s position for all elements
         '''
 
-        return self.get_s_position(mode=mode)
+        return self._get_s_position(mode=mode)
 
-    def get_s_position(self, at_elements=None, mode="upstream"):
+    @doc_group("Deprecated")
+    def get_s_elements(self, mode="upstream"):
+
+        '''Get s position for all elements
+
+        .. warning:: This method is deprecated and will be removed in a future version.
+                Use ``tt = line.get_table()`` and then ``tt.s`` instead.
+
+        Parameters
+        ----------
+
+        mode : str
+            "upstream" or "downstream" (default: "upstream")
+
+        Returns
+        -------
+        s : list of float
+            s position for all elements
+        '''
+
+        warn('`Line.get_s_elements` is deprecated and will be removed in a future version. '
+             'Use `tt = line.get_table()` and then `tt.s` to get all s positions.'
+             + DEPRECATION_INFO_PREP_1_0, FutureWarning, stacklevel=2)
+
+        return self._get_s_elements(mode=mode)
+
+    def _get_s_position(self, at_elements=None, mode="upstream"):
 
         '''Get s position for given elements
 
@@ -2156,7 +3520,7 @@ class Line:
         assert mode in ["upstream", "downstream"]
         s_prev = 0.
         s = []
-        for ee in self.elements:
+        for ee in self._elements:
             if mode == "upstream":
                 s.append(s_prev)
             if _is_thick(ee, line=self):
@@ -2179,9 +3543,38 @@ class Line:
         else:
             return s
 
+    @doc_group("Deprecated")
+    def get_s_position(self, at_elements=None, mode="upstream"):
+
+        '''Get s position for given elements
+
+        .. warning:: This method is deprecated and will be removed in a future version.
+                Use ``tt = line.get_table()`` and then ``tt.s`` to get all s positions
+                or ``tt['s', 'myelem']`` for one specific s position.
+
+        Parameters
+        ----------
+        at_elements : str or list of str
+            Name of the element(s) to get s position for (default: all elements)
+        mode : str
+            "upstream" or "downstream" (default: "upstream")
+
+        Returns
+        -------
+        s : float or list of float
+            s position for given element(s)
+        '''
+
+        warn('`Line.get_s_position` is deprecated and will be removed in a future version. '
+             'Use `tt = line.get_table()` and then `tt.s` to get all s positions '
+             "or `tt['s', 'myelem']` for one specific s position."
+             + DEPRECATION_INFO_PREP_1_0, FutureWarning, stacklevel=2)
+
+        return self._get_s_position(at_elements=at_elements, mode=mode)
+
     def _elements_intersecting_s(
             self,
-            s: List[float],
+            s: Iterable[float],
             s_tol=1e-6,
     ) -> Dict[str, List[float]]:
         """Given a list of s positions, return a list of elements 'cut' by s.
@@ -2244,8 +3637,60 @@ class Line:
 
         return cuts_for_element
 
-    def cut_at_s(self, s: List[float], s_tol=1e-6, return_slices=False):
-        """Slice the line so that positions in s never fall inside an element."""
+    @doc_group("Line Editing")
+    def cut_at_s(self, s: Iterable[float], s_tol=1e-6, return_slices=False,
+                 with_progress=True):
+        """
+        Slice the line in place at positions ``s``.
+
+        Parameters
+        ----------
+        s : iterable of float
+            Longitudinal positions where element boundaries are required.
+        s_tol : float, optional
+            Tolerance used when deciding whether a cut already coincides with
+            an existing boundary.
+        return_slices : bool, optional
+            If ``True``, return the slice information produced by the slicer.
+        with_progress : bool, optional
+            Whether to show progress while slicing. Defaults to ``True``.
+
+        Returns
+        -------
+        object or None
+            Slice information when ``return_slices`` is ``True``; otherwise
+            ``None``. The line is modified in place.
+
+        Notes
+        -----
+        This method fails if any element that needs to be cut does not support
+        slicing.
+
+        Examples
+        --------
+        .. code-block:: python
+
+            import xtrack as xt
+
+            env = xt.Environment()
+            line = env.new_line(components=[
+                env.new('qf', 'Quadrupole', length=2.0),
+            ])
+
+            line.cut_at_s([1.0])
+
+            line.get_table().cols['s_start s_center s_end'].show()
+            # name                s_start s_center s_end
+            # qf_entry                  0        0     0
+            # qf..entry_map             0        0     0
+            # qf..0                     0      0.5     1
+            # qf..1                     1      1.5     2
+            # qf..exit_map              2        2     2
+            # qf_exit                   2        2     2
+            # _end_point                2        2     2
+        """
+
+        self._method_incompatible_with_compose()
 
         if not self._has_valid_tracker():
             self.build_tracker(compile=False) # To resolve replicas and slices
@@ -2261,11 +3706,12 @@ class Line:
             strategies.append(strategy)
 
         slicer = Slicer(self, slicing_strategies=strategies)
-        slices = slicer.slice_in_place()
+        slices = slicer.slice_in_place(with_progress=with_progress)
 
         if return_slices:
             return slices
 
+    @doc_group("Line Editing")
     def append(self, what, obj=None):
 
         """
@@ -2307,6 +3753,8 @@ class Line:
 
         """
 
+        self._method_incompatible_with_compose()
+
         self.discard_tracker()
 
         if not isinstance(what, (str, xt.Line, Iterable)):
@@ -2314,9 +3762,9 @@ class Line:
 
         if obj is not None:
             assert isinstance(what, str)
-            self.env.element_dict[what] = obj
+            self.env.elements[what] = obj
 
-        if isinstance(what, str) in self.element_dict:
+        if isinstance(what, str) and what in self._element_dict:
             # Is an element and not a line or an iterable
             self.element_names.append(what)
             return
@@ -2334,11 +3782,14 @@ class Line:
         self.element_names.clear()
         self.element_names.extend(ln_extended.element_names)
 
+    @doc_group("Line Editing")
     def insert(self, what, obj=None, at=None, from_=None, anchor=None,
-               from_anchor=None, s_tol=1e-10):
-
+               from_anchor=None, s_tol=1e-10, with_progress=True):
         """
         Insert elements in the line.
+
+        If there are multiple valid options for the insertion (which is sometimes the
+        case for thin elements), the first suitable place will usually be chosen.
 
         Parameters
         ----------
@@ -2349,8 +3800,11 @@ class Line:
             Object to be inserted (if not already present in the environment).
             It can be specified only when `what` is a string.
         at : str or float (optional)
-            Location of the insertion (s position). It can be absolute or relative
-            to another element (specified by `from_`).
+            Location of the insertion. If a string is given, it will first be interpreted
+            as a name of the element in the line: if one exits the behaviour will be the
+            same as with ``at=0, from_=at``. Otherwise, ``at`` will be treated as an expression
+            evaluating to the s position. The s positions can be absolute or relative to
+            another element (specified by `from_`).
         from_ : str (optional)
             Element with respect to which `at` is defined.
         anchor : str (optional)
@@ -2359,13 +3813,24 @@ class Line:
         from_anchor : str (optional)
             Location within the element specified by `from_` for which `at` is defined.
             It can be 'start', 'end' or 'center'. Default is 'center'.
+        with_progress : bool, optional
+            Whether to show progress while slicing at insertion boundaries.
+            Defaults to ``True``.
 
         Example
         -------
 
         .. code-block:: python
 
-            ## Insertion of elements from the environment
+            import xtrack as xt
+
+            env = xt.Environment()
+            line = env.new_line(components=[
+                env.new('q0', xt.Quadrupole, length=1.0, at=2.0),
+                env.new('m0', xt.Marker, at=5.0),
+                env.new('q1', xt.Quadrupole, length=1.0, at=8.0),
+                env.new('end', xt.Marker, at=10.0),
+            ])
 
             # Create a set of new elements to be placed
             env.new('s1', xt.Sextupole, length=0.1, k2=0.2)
@@ -2376,39 +3841,38 @@ class Line:
 
             # Insert the new elements in the line
             line.insert([
-                env.place('s1', at=5.),
-                env.place('s2', anchor='end', at=-5., from_='start@q1'),
-                env.place(['m1', 'm2'], at='start@m0'),
-                env.place('m3', at='end@m0'),
-                ])
+                env.place('s1', at=1.0),
+                env.place('s2', anchor='end', at=-0.5, from_='q1@start'),
+                env.place(['m1', 'm2'], at='m0@start'),
+                env.place('m3', at='m0@end'),
+            ])
 
-        .. code-block:: python
-
-            ## Insertion of elements instantiated by the user using the class
-            ## constructor
-
-            # Instantiate elements using the class directly
-            mysext =  xt.Sextupole(length=0.1, k2=0.2)
-            myaperture =  xt.LimitEllipse(a=0.01, b=0.02)
+            # Elements can also be instantiated directly by the user
+            mysext = xt.Sextupole(length=0.1, k2=0.2)
+            myaperture = xt.LimitEllipse(a=0.01, b=0.02)
 
             # Insert the element in the line and, contextually, define its name:
-            line.insert('s1', mysext, at=5., from_='q1')
+            line.insert('s3', mysext, at=0.75, from_='q1@end')
 
             # Alternatively, add the element to the environment and then do the insertion:
             env.elements['ap1'] = myaperture
-            line.insert('ap1', at='start@q0')
+            line.insert('ap1', at='q0@start')
 
         """
 
+        self._method_incompatible_with_compose()
 
         self.discard_tracker()
         env = self.env
 
-        _all_places = xt.environment._all_places
-        _resolve_s_positions = xt.environment._resolve_s_positions
-        _flatten_components = xt.environment._flatten_components
-        _sort_places = xt.environment._sort_places
-        _generate_element_names_with_drifts = xt.environment._generate_element_names_with_drifts
+        if at in self.element_names:
+            if from_ is not None:
+                raise ValueError(
+                    'If `at` is an element name in the line, it represents an absolute position, '
+                    'so no `from_` can be given'
+                )
+            from_ = at
+            at = 0
 
         need_place_instantiation = False
         for nn, vv in {'at': at, 'from_': from_, 'anchor': anchor,
@@ -2428,7 +3892,7 @@ class Line:
             what = [what]
 
         # Resolve s positions of insertions and sort them
-        what = _flatten_components(what)
+        what = _flatten_components(self.env, what)
         what = _all_places(what)
         what = [ww.copy() for ww in what]
 
@@ -2450,7 +3914,9 @@ class Line:
         s_cuts = list(tab_insertions['s_start']) + list(tab_insertions['s_end'])
         s_cuts = list(set(s_cuts))
 
-        self.cut_at_s(s_cuts, s_tol=1e-06, return_slices=True)
+        self.cut_at_s(
+            s_cuts, s_tol=s_tol, return_slices=True,
+            with_progress=with_progress)
 
         tt_after_cut = self.get_table()
         tt_after_cut['length'] = np.diff(tt_after_cut.s, append=tt_after_cut.s[-1])
@@ -2480,7 +3946,7 @@ class Line:
         tt_keep = tt_keep.rows[:-1]
 
         # Unsorted table with all elements for the new line
-        tab_unsorted_with_insertions = xt.Table.concatenate([tt_keep, tab_insertions])
+        tab_unsorted_with_insertions = xt.Table.concatenate([tab_insertions,  tt_keep])
 
         # Sort elements
         tab_sorted = _sort_places(tab_unsorted_with_insertions,
@@ -2494,6 +3960,7 @@ class Line:
         self.element_names.clear()
         self.element_names.extend(element_names)
 
+    @doc_group("Line Editing")
     def remove(self, name, s_tol=1e-10):
 
         """
@@ -2508,7 +3975,26 @@ class Line:
             If the element is shorter than `s_tol`, it is removed without creating
             a replacement drift. Default is 1e-10.
 
+        Examples
+        --------
+        .. code-block:: python
+
+            import xtrack as xt
+
+            env = xt.Environment()
+            line = env.new_line(components=[
+                env.new('qf', 'Quadrupole', length=0.5),
+                env.new('mk', 'Marker'),
+                env.new('qd', 'Quadrupole', length=0.5),
+            ])
+
+            line.remove('mk')
+            line.element_names
+            # ['qf', 'qd']
+
         """
+
+        self._method_incompatible_with_compose()
 
         self.discard_tracker()
 
@@ -2540,6 +4026,7 @@ class Line:
             self.element_names = [nn for ii, nn in enumerate(self.element_names)
                                 if ii not in idx_remove]
 
+    @doc_group("Line Editing")
     def replace(self, name, new_name, s_tol=1e-10):
 
         """
@@ -2554,16 +4041,34 @@ class Line:
         s_tol : float (optional)
             Tolerance for the length of the elements. If the difference in length
             is larger than `s_tol`, the replacement is not performed and an
-            error is raised.error is raised. Default is 1e-10.
+            error is raised. Default is 1e-10.
+
+        Examples
+        --------
+        .. code-block:: python
+
+            import xtrack as xt
+
+            env = xt.Environment()
+            line = env.new_line(components=[
+                env.new('qf', 'Quadrupole', length=0.5, k1=0.2),
+            ])
+            env.new('qd', 'Quadrupole', length=0.5, k1=-0.2)
+
+            line.replace('qf', 'qd')
+            line.element_names
+            # ['qd']
 
         """
+
+        self._method_incompatible_with_compose()
 
         self.discard_tracker()
 
         tt_replace = self._name_match(name)
 
-        if _is_thick(self.element_dict[new_name], self):
-            l_new = _length(self.element_dict[new_name], self)
+        if _is_thick(self._element_dict[new_name], self):
+            l_new = _length(self._element_dict[new_name], self)
         else:
             l_new = 0
 
@@ -2604,13 +4109,12 @@ class Line:
         return tt_match
 
     # To be deprecated in favor of Line.insert
+    @doc_group("Deprecated")
     def insert_element(self, name, element=None, at=None, index=None, at_s=None,
-                       s_tol=1e-6):
+                       s_tol=1e-6, with_progress=True):
+        """Insert an element in the line.
 
-        """
-        NOTE: This method is deprecated. Use `Line.insert` instead.
-
-        Insert an element in the line.
+        .. warning:: This method is deprecated. Use :meth:`Line.insert` instead.
 
         Parameters
         ----------
@@ -2620,13 +4124,19 @@ class Line:
             Element to be inserted. If not given, the element of the given name
             already present in the line is used.
         at: int or string, optional
-            Index or name of the element in the line. If `index` is provided, `at_s` must be None.
+            Index or name of the element in the line. If ``index`` is provided, ``at_s`` must be None.
         at_s: float, optional
-            Position of the element in the line in meters. If `at_s` is provided, `index`
+            Position of the element in the line in meters. If ``at_s`` is provided, ``index``
             must be None.
         s_tol: float, optional
             Tolerance for the position of the element in the line in meters.
+        with_progress : bool, optional
+            Whether to show progress while slicing at insertion boundaries.
+            Defaults to ``True``.
         """
+        warn('Line.insert_element is deprecated. Use Line.insert instead.'
+             + DEPRECATION_INFO_PREP_1_0, FutureWarning)
+        self._method_incompatible_with_compose()
 
         if at is not None:
             assert index is None
@@ -2646,15 +4156,15 @@ class Line:
                     raise ValueError(f'Element {index} not found in the line.')
 
         if element is None:
-            if name not in self.element_dict.keys():
+            if name not in self._element_dict.keys():
                 raise ValueError(
                     f'Element {name} not found in the line. You must either '
                     f'give an `element` or a name of an element already '
                     f'present in the line.'
                 )
-            element = self.element_dict[name]
+            element = self._element_dict[name]
 
-        if isinstance(element, xd.madxutils.View):
+        if isinstance(element, xt.view.View):
             element = element._get_viewed_object()
 
         self.discard_tracker()
@@ -2670,18 +4180,19 @@ class Line:
         # Insert by name or index
         if index is not None:
             self.element_names.insert(index, name)
-            self.element_dict[name] = element
+            self.env.elements[name] = element
             return
 
         # Insert by s position
-        s_vect_upstream = np.array(self.get_s_position(mode='upstream'))
+        s_vect_upstream = np.array(self._get_s_position(mode='upstream'))
 
         # Shortcut in case ot thin element and no cut needed
         if not _is_thick(element, self) or np.abs(_length(element, self)) == 0:
             i_closest = np.argmin(np.abs(s_vect_upstream - at_s))
             if np.abs(s_vect_upstream[i_closest] - at_s) < s_tol:
                 return self.insert_element(
-                    index=i_closest, element=element, name=name)
+                    index=i_closest, element=element, name=name,
+                    with_progress=with_progress)
 
         s_start_ele = at_s
         if _is_thick(element, self) and np.abs(_length(element, self)) > 0:
@@ -2689,9 +4200,10 @@ class Line:
         else:
             s_end_ele = s_start_ele
 
-        self.cut_at_s([s_start_ele, s_end_ele])
+        self.cut_at_s(
+            [s_start_ele, s_end_ele], with_progress=with_progress)
 
-        s_vect_upstream = np.array(self.get_s_position(mode='upstream'))
+        s_vect_upstream = np.array(self._get_s_position(mode='upstream'))
         if _is_thick(element, self) and _length(element, self) > 0:
             i_first_removal = np.where(np.abs(s_vect_upstream - s_start_ele) < s_tol)[0][-1]
             i_last_removal = np.where(np.abs(s_vect_upstream - s_end_ele) < s_tol)[0][0] - 1
@@ -2705,18 +4217,17 @@ class Line:
             self.element_names.insert(i_closest, name)
 
         if element is None:
-            assert name in self.element_dict.keys()
+            assert name in self.env.elements
         else:
-            self.element_dict[name] = element
+            self.env.elements[name] = element
 
         return self
 
+    @doc_group("Deprecated")
     def append_element(self, element, name):
+        """Append element to the end of the lattice
 
-        """
-        NOTE: This method is deprecated. Use `Line.append` instead.
-
-        Append element to the end of the lattice
+        .. warning:: This method is deprecated. Use :meth:`Line.append` instead.
 
         Parameters
         ----------
@@ -2725,17 +4236,24 @@ class Line:
         name : str
             Name of the element to append
         """
+        warn('Line.append_element is deprecated. Use Line.append'
+             + DEPRECATION_INFO_PREP_1_0, FutureWarning)
+        self._method_incompatible_with_compose()
 
-        if isinstance(element, xd.madxutils.View):
+        if isinstance(element, xt.view.View):
             element = element._get_viewed_object()
 
         self.discard_tracker()
-        if element in self.element_dict and element is not self.element_dict[name]:
+        if element in self._element_dict and element is not self._element_dict[name]:
             raise ValueError('Element already present in the line')
-        self.element_dict[name] = element
+        if name in self.env.elements:
+            assert self.env.elements[name] == element
+        else:
+            self.env.elements[name] = element
         self.element_names.append(name)
         return self
 
+    @doc_group("Upcoming Deprecations")
     def filter_elements(self, mask=None, exclude_types_starting_with=None):
         """
         Return a new line with only the elements satisfying a given condition.
@@ -2759,19 +4277,21 @@ class Line:
 
         """
 
+        self._method_incompatible_with_compose()
+
         if mask is None:
             assert exclude_types_starting_with is not None
 
         if exclude_types_starting_with is not None:
             assert mask is None
             mask = [not(ee.__class__.__name__.startswith(exclude_types_starting_with))
-                    for ee in self.elements]
+                    for ee in self._elements]
 
-        new_elements = self.element_dict.copy()
-        assert len(mask) == len(self.elements)
+        new_elements = self._element_dict.copy()
+        assert len(mask) == len(self._elements)
         for ff, nn in zip(mask, self.element_names):
             if not ff:
-                ee = self.element_dict[nn]
+                ee = self._element_dict[nn]
                 if hasattr(ee, '_buffer'):
                     _buffer = ee._buffer
                 else:
@@ -2794,6 +4314,7 @@ class Line:
 
         return new_line
 
+    @doc_group("Line Editing")
     def cycle(self, index_first_element=None, name_first_element=None,
               inplace=True):
 
@@ -2811,10 +4332,33 @@ class Line:
 
         Returns
         -------
-        new_line: Line
-            A new line with the elements cycled.
+        line : Line
+            The line itself, after cycling.
+
+        Examples
+        --------
+        .. code-block:: python
+
+            import xtrack as xt
+
+            env = xt.Environment()
+            line = env.new_line(components=[
+                env.new('qf', 'Quadrupole', length=0.5),
+                env.new('d1', 'Drift', length=1.0),
+                env.new('qd', 'Quadrupole', length=0.5),
+                env.new('d2', 'Drift', length=1.0),
+            ])
+
+            line.element_names
+            # ['qf', 'd1', 'qd', 'd2']
+
+            line.cycle('qd')
+            line.element_names
+            # ['qd', 'd2', 'qf', 'd1']
 
         """
+
+        self._method_incompatible_with_compose()
 
         if not inplace:
             raise ValueError('`inplace=False` is not anymore supported')
@@ -2850,12 +4394,12 @@ class Line:
             track_kernel = None
 
         if inplace:
-            self.unfreeze()
+            self.discard_tracker()
             self.element_names = new_element_names
             new_line = self
         else:
             new_line = self.__class__(
-                elements=self.element_dict,
+                elements=self._element_dict,
                 element_names=new_element_names,
                 particle_ref=self.particle_ref,
             )
@@ -2867,6 +4411,7 @@ class Line:
 
         return new_line
 
+    @doc_group("Energy & Longitudinal State")
     def freeze_energy(self, state=True, force=False):
 
         """
@@ -2878,6 +4423,8 @@ class Line:
             If True, energy is frozen. If False, it is unfrozen.
 
         """
+
+        self._method_incompatible_with_compose()
 
         assert state in (True, False)
         if not force:
@@ -2895,6 +4442,7 @@ class Line:
                 return False
         return True
 
+    @doc_group("Energy & Longitudinal State")
     def freeze_longitudinal(self, state=True):
 
         """
@@ -2906,6 +4454,10 @@ class Line:
             If True, longitudinal coordinates are frozen. If False, they are unfrozen.
 
         """
+        self._method_incompatible_with_compose()
+
+        if not self._has_valid_tracker():
+            self.build_tracker()
 
         assert state in (True, False)
         assert self.iscollective is False, ('Cannot freeze longitudinal '
@@ -2915,6 +4467,7 @@ class Line:
         else:
             self.unfreeze_vars(xt.Particles.part_energy_varnames() + ['zeta'])
 
+    @doc_group("Upcoming Deprecations")
     def freeze_vars(self, variable_names):
 
         """
@@ -2927,12 +4480,15 @@ class Line:
 
         """
 
+        self._method_incompatible_with_compose()
+
         for name in variable_names:
             self.config[f'FREEZE_VAR_{name}'] = True
 
     def _var_is_frozen(self, variable_name):
         return self.config[f'FREEZE_VAR_{variable_name}'] == True
 
+    @doc_group("Upcoming Deprecations")
     def unfreeze_vars(self, variable_names):
 
         """
@@ -2945,9 +4501,37 @@ class Line:
 
         """
 
+        self._method_incompatible_with_compose()
+
         for name in variable_names:
             self.config[f'FREEZE_VAR_{name}'] = False
 
+    @doc_group("Magnet Model Configuration")
+    def configure_drift_model(self, model=None):
+
+        """
+        Configure the method used to track drifts.
+
+        See documentation of ``xt.Drift`` for more details on the values of the
+        models used below.
+
+        Parameters
+        ----------
+        model: str
+            Model to be used for the drifts. Can be 'adaptive', 'exact' or
+            'expanded'.
+        """
+
+        self._method_incompatible_with_compose()
+
+        if model is not None and model not in _MODEL_TO_INDEX_DRIFT:
+            raise ValueError(f'Unknown drift model {model}')
+
+        for ee in self._element_dict.values():
+            if model is not None and isinstance(ee, xt.Drift):
+                ee.model = model
+
+    @doc_group("Magnet Model Configuration")
     def configure_bend_model(
             self,
             core=None,
@@ -2978,13 +4562,15 @@ class Line:
             'yoshida4', or 'uniform'.
         """
 
+        self._method_incompatible_with_compose()
+
         if core is not None and core not in _MODEL_TO_INDEX_CURVED:
             raise ValueError(f'Unknown bend model {core}')
 
         if edge is not None and edge not in _EDGE_MODEL_TO_INDEX:
             raise ValueError(f'Unknown bend edge model {edge}')
 
-        for ee in self.element_dict.values():
+        for ee in self._element_dict.values():
             if core is not None and isinstance(ee, (xt.Bend, xt.RBend)):
                 ee.model = core
 
@@ -3014,20 +4600,23 @@ class Line:
         Parameters
         ----------
         edge: str
-            None to disable, 'full' to enable.
+            None or 'suppressed' to disable, 'full' to enable.
         num_multipole_kicks: int
             Number of multipole kicks to consider.
         integrator: str
             Integration scheme to be used. Can be 'adaptive', 'teapot',
             'yoshida4', or 'uniform'.
         """
+
+        self._method_incompatible_with_compose()
+
         if edge not in [None, 'full', 'suppressed']:
             raise ValueError(f'Unknown edge model {edge}: only None or '
                              f'"full" are supported.')
 
         enable_fringes = edge == 'full'
 
-        for ee in self.element_dict.values():
+        for ee in self._element_dict.values():
             if not isinstance(ee, element_type):
                 continue
             if edge is not None:
@@ -3040,12 +4629,35 @@ class Line:
             if model is not None:
                 ee.model = model
 
+    @doc_group("Magnet Model Configuration")
     def configure_quadrupole_model(self,
             model: Optional[str] = None,
             edge: Optional[Literal['full']] = None,
             num_multipole_kicks: Optional[int] = None,
             integrator: Optional[str] = None,
     ):
+        '''
+        Configure the model for all quadrupoles in the line.
+
+        Parameters
+        ----------
+        model : str, optional
+            Magnet model to assign to all quadrupole elements.
+        edge : {'full', None}, optional
+            Edge-fringe configuration. Use ``'full'`` to enable fringes and
+            ``None`` to leave edge settings unchanged.
+        num_multipole_kicks : int, optional
+            Number of multipole kicks to assign to quadrupole elements.
+        integrator : str, optional
+            Integrator to assign to quadrupole elements.
+
+        Returns
+        -------
+        None
+            This method modifies matching elements in place.
+        '''
+
+        self._method_incompatible_with_compose()
         self._configure_mult(
             xt.Quadrupole,
             model=model,
@@ -3054,6 +4666,7 @@ class Line:
             integrator=integrator,
         )
 
+    @doc_group("Magnet Model Configuration")
     def configure_sextupole_model(
             self,
             model: Optional[str] = None,
@@ -3061,6 +4674,27 @@ class Line:
             num_multipole_kicks: Optional[int] = None,
             integrator: Optional[str] = None,
     ):
+        '''
+        Configure the model for all sextupoles in the line.
+
+        Parameters
+        ----------
+        model : str, optional
+            Magnet model to assign to all sextupole elements.
+        edge : {'full', None}, optional
+            Edge-fringe configuration. Use ``'full'`` to enable fringes and
+            ``None`` to leave edge settings unchanged.
+        num_multipole_kicks : int, optional
+            Number of multipole kicks to assign to sextupole elements.
+        integrator : str, optional
+            Integrator to assign to sextupole elements.
+
+        Returns
+        -------
+        None
+            This method modifies matching elements in place.
+        '''
+        self._method_incompatible_with_compose()
         self._configure_mult(
             xt.Sextupole,
             model=model,
@@ -3069,6 +4703,7 @@ class Line:
             integrator=integrator,
         )
 
+    @doc_group("Magnet Model Configuration")
     def configure_octupole_model(
             self,
             model: Optional[str] = None,
@@ -3076,6 +4711,27 @@ class Line:
             num_multipole_kicks: Optional[int] = None,
             integrator: Optional[str] = None,
     ):
+        '''
+        Configure the model for all octupoles in the line.
+
+        Parameters
+        ----------
+        model : str, optional
+            Magnet model to assign to all octupole elements.
+        edge : {'full', None}, optional
+            Edge-fringe configuration. Use ``'full'`` to enable fringes and
+            ``None`` to leave edge settings unchanged.
+        num_multipole_kicks : int, optional
+            Number of multipole kicks to assign to octupole elements.
+        integrator : str, optional
+            Integrator to assign to octupole elements.
+
+        Returns
+        -------
+        None
+            This method modifies matching elements in place.
+        '''
+        self._method_incompatible_with_compose()
         self._configure_mult(
             xt.Octupole,
             model=model,
@@ -3084,6 +4740,7 @@ class Line:
             integrator=integrator,
         )
 
+    @doc_group("Radiation, Spin and Intra-Beam Scattering")
     def configure_radiation(self, model=None, model_beamstrahlung=None,
                             model_bhabha=None, mode='deprecated'):
 
@@ -3093,12 +4750,19 @@ class Line:
         Parameters
         ----------
         model: str
-            Radiation model to use. Can be 'mean', 'quantum' or None.
+            Radiation model to use. Can be 'mean', 'quantum', 'quantum-kick'
+            or None. ``'mean'`` applies the average radiation energy loss.
+            ``'quantum'`` samples individual emitted photons, which can be
+            captured through internal radiation logging. ``'quantum-kick'``
+            samples the equivalent stochastic total radiation kick without
+            generating individual photon records.
         model_beamstrahlung: str
             Beamstrahlung model to use. Can be 'mean', 'quantum' or None.
         model_bhabha: str
             Bhabha model to use. Can be 'quantum' or None.
         """
+
+        self._method_incompatible_with_compose()
 
         if mode != 'deprecated':
             raise NameError('mode is deprecated, use model instead')
@@ -3106,7 +4770,7 @@ class Line:
         if not self._has_valid_tracker():
             self.build_tracker(compile=False)
 
-        assert model in [None, 'mean', 'quantum']
+        assert model in [None, 'mean', 'quantum', 'quantum-kick']
         assert model_beamstrahlung in [None, 'mean', 'quantum']
         assert model_bhabha in [None, 'quantum']
 
@@ -3116,6 +4780,9 @@ class Line:
         elif model == 'quantum':
             radiation_flag = 2
             self._radiation_model = 'quantum'
+        elif model == 'quantum-kick':
+            radiation_flag = 3
+            self._radiation_model = 'quantum-kick'
         else:
             radiation_flag = 0
             self._radiation_model = None
@@ -3137,23 +4804,30 @@ class Line:
             bhabha_flag = 0
             self._bhabha_model = None
 
-        for kk, ee in self.element_dict.items():
+        for kk, ee in self._element_dict.items():
             if hasattr(ee, 'radiation_flag'):
                 ee.radiation_flag = radiation_flag
 
-        for kk, ee in self.element_dict.items():
+        for kk, ee in self._element_dict.items():
             if hasattr(ee, 'flag_beamstrahlung'):
                 ee.flag_beamstrahlung = beamstrahlung_flag
             if hasattr(ee, 'flag_bhabha'):
                 ee.flag_bhabha = bhabha_flag
 
-        if radiation_flag == 2 or beamstrahlung_flag == 2 or bhabha_flag == 1:
+        if radiation_flag in (2, 3) or beamstrahlung_flag == 2 or bhabha_flag == 1:
             self._needs_rng = True
 
         self.config.XFIELDS_BB3D_NO_BEAMSTR = (beamstrahlung_flag == 0)
         self.config.XFIELDS_BB3D_NO_BHABHA = (bhabha_flag == 0)
 
         self._update_synrad_compile_flag()
+
+        if (not self.config.get('XFIELDS_BB3D_NO_BEAMSTR', False)
+            or not self.config.get('XFIELDS_BB3D_NO_BHABHA', False)):
+            # To use precompiled kernel
+            self.config.XFIELDS_BB3D_NO_BEAMSTR = False
+            self.config.XFIELDS_BB3D_NO_BHABHA = False
+            self.config.XTRACK_MULTIPOLE_NO_SYNRAD = False
 
     def _update_synrad_compile_flag(self):
 
@@ -3162,16 +4836,17 @@ class Line:
         else:
             self.config.XTRACK_MULTIPOLE_NO_SYNRAD = True
 
-    def configure_spin(self, spin_model=None):
-
+    @doc_group("Radiation, Spin and Intra-Beam Scattering")
+    def configure_spin(self, spin_model: Literal[True, False, None, 'auto'] = None):
         """
         Configure the spin model for the line.
 
         Parameters
         ----------
         spin_model: str
-            Spin model to use. Can be None, 'auto', 'True', 'False'
+            Spin model to use. Can be None, 'auto', True, False.
         """
+        self._method_incompatible_with_compose()
 
         assert spin_model in [None, 'auto', 'True', 'False']
         if spin_model is False:
@@ -3183,13 +4858,19 @@ class Line:
 
         self._update_synrad_compile_flag()
 
+    @doc_group("Deprecated")
     def configure_intrabeam_scattering(
         self, element = None,
         update_every: int = None,
         **kwargs,
     ) -> None:
         """
-        Configures the IBS kick element in the line for tracking.
+        Deprecated alias for ``line.xfields.ibs_configure(...)``.
+
+        .. warning::
+            This method is deprecated and will be removed in a future version.
+            Use ``line.xfields.ibs_configure(...)`` instead. This deprecation
+            is part of the interface cleanup in view of the 1.0 release.
 
         Notes
         -----
@@ -3200,8 +4881,6 @@ class Line:
 
         Parameters
         ----------
-        line : xtrack.Line
-            The line in which the IBS kick element was inserted.
         element : IBSKick, optional
             If provided, the element is first inserted in the line,
             before proceeding to configuration. In this case the keyword
@@ -3212,8 +4891,8 @@ class Line:
             tracking, and then every `update_every` turns afterwards.
         **kwargs : dict, optional
             Required if an element is provided. Keyword arguments are
-            passed to the `line.insert_element()` method according to
-            `line.insert_element(element=element, **kwargs)`.
+            passed to the `line.insert()` method according to
+            `line.insert(obj=element, **kwargs)`.
 
         Raises
         ------
@@ -3228,14 +4907,16 @@ class Line:
             If the element is an `IBSSimpleKick` and the line is operating
             below transition energy.
         """
-        try:
-            from xfields.ibs import configure_intrabeam_scattering
-        except ImportError as error:
-            raise ImportError("Please install xfields to use this feature.") from error
-        configure_intrabeam_scattering(
-            self, element=element, update_every=update_every, **kwargs
-        )
+        self._method_incompatible_with_compose()
+        warn('`Line.configure_intrabeam_scattering(...)` is deprecated and '
+             'will be removed in a future version. Please use '
+             '`Line.xfields.ibs_configure(...)` instead.'
+             + DEPRECATION_INFO_PREP_1_0,
+             FutureWarning, stacklevel=2)
+        return self.xfields.ibs_configure(
+            element=element, update_every=update_every, **kwargs)
 
+    @doc_group("Radiation, Spin and Intra-Beam Scattering")
     def compensate_radiation_energy_loss(self, delta0='zero_mean', rtol_eneloss=1e-10,
                                     max_iter=100, **kwargs):
 
@@ -3257,6 +4938,7 @@ class Line:
             Additional keyword arguments passed to the twiss method.
 
         """
+        self._method_incompatible_with_compose()
 
         all_kwargs = locals().copy()
         all_kwargs.pop('self')
@@ -3265,6 +4947,7 @@ class Line:
         self._check_valid_tracker()
         compensate_radiation_energy_loss(self, **all_kwargs)
 
+    @doc_group("Cleanup and Simplification")
     def optimize_for_tracking(self, compile=True, verbose=True, keep_markers=False):
 
         """
@@ -3282,6 +4965,7 @@ class Line:
             If True, all markers are kept.
 
         """
+        self._method_incompatible_with_compose()
 
         if self.iscollective:
             raise NotImplementedError("Optimization is not implemented for "
@@ -3290,7 +4974,7 @@ class Line:
         self.tracker.track_kernel.clear() # Remove all kernels
 
         if verbose: _print("Disable xdeps expressions")
-        self._var_management = None # Disable expressions
+        self.env._var_management = None # Disable expressions for the entire env
         if hasattr(self, '_in_multiline') and self._in_multiline is not None:
             self._in_multiline._var_sharing = None
 
@@ -3341,6 +5025,7 @@ class Line:
         if compile:
             _ = self.tracker.get_track_kernel_and_data_for_present_config()
 
+    @doc_group("Element Internal Logging")
     def start_internal_logging_for_elements_of_type(self,
                                                     element_type, capacity):
         """
@@ -3348,9 +5033,9 @@ class Line:
 
         Parameters
         ----------
-        element_type: str
+        element_type: str | type
             Type of the elements for which internal logging is started.
-        capacity: int
+        capacity: int | dict[str, int]
             Capacity of the internal record.
 
         Returns
@@ -3359,10 +5044,11 @@ class Line:
             Record object containing the elements internal logging.
 
         """
+        self._method_incompatible_with_compose()
         self._check_valid_tracker()
-        return start_internal_logging_for_elements_of_type(self.tracker,
-                                                    element_type, capacity)
+        return start_internal_logging_for_elements_of_type(self.tracker, element_type, capacity)
 
+    @doc_group("Element Internal Logging")
     def stop_internal_logging_for_all_elements(self, reinitialize_io_buffer=False):
         """
         Stop internal logging for all elements.
@@ -3373,12 +5059,14 @@ class Line:
             If True, the IO buffer is reinitialized (default: False).
 
         """
+        self._method_incompatible_with_compose()
         self._check_valid_tracker()
-        stop_internal_logging(elements=self.elements)
+        stop_internal_logging(elements=self._elements)
 
         if reinitialize_io_buffer:
             self.tracker._init_io_buffer()
 
+    @doc_group("Element Internal Logging")
     def stop_internal_logging_for_elements_of_type(self, element_type):
 
         """
@@ -3390,10 +5078,11 @@ class Line:
             Type of the elements for which internal logging is stopped.
 
         """
-
+        self._method_incompatible_with_compose()
         self._check_valid_tracker()
         stop_internal_logging_for_elements_of_type(self.tracker, element_type)
 
+    @doc_group("Line Editing")
     def extend_knl_ksl(self, order, element_names=None):
 
         """
@@ -3408,8 +5097,7 @@ class Line:
             and `ksl` attributes are extended.
 
         """
-
-        self.discard_tracker()
+        self._method_incompatible_with_compose()
 
         if element_names is None:
             element_names = []
@@ -3417,27 +5105,34 @@ class Line:
                 if hasattr(self.get(nn), 'knl'):
                     element_names.append(nn)
 
-        for nn in element_names:
-            if self.get(nn).order > order:
-                raise ValueError(f'Order of element {nn} is smaller than {order}')
+        self.env.extend_knl_ksl(order, element_names)
 
-        for nn in element_names:
-            ee = self.get(nn)
+    @doc_group("Line Editing")
+    def extend_knl_rel_ksl_rel(self, order, element_names=None):
 
-            if ee.order == order:
-                continue
+        """
+        Extend the order of the knl_rel and ksl_rel attributes of the elements.
 
-            new_knl = [vv for vv in ee.knl] + [0] * (order - len(ee.knl) + 1)
-            new_ksl = [vv for vv in ee.ksl] + [0] * (order - len(ee.ksl) + 1)
+        Parameters
+        ----------
+        order: int
+            New order of the knl_rel and ksl_rel attributes.
+        element_names: list of str
+            Names of the elements to extend. If None, all elements having `knl_rel`
+            and `ksl_rel` attributes are extended.
 
-            dct = ee.to_dict()
-            dct.pop('order', None)
-            dct['knl'] = new_knl
-            dct['ksl'] = new_ksl
+        """
+        self._method_incompatible_with_compose()
 
-            new_ee = ee.__class__.from_dict(dct, _buffer=ee._buffer)
-            self.env.elements[nn] = new_ee
+        if element_names is None:
+            element_names = []
+            for nn in self.element_names:
+                if hasattr(self.get(nn), 'knl_rel'):
+                    element_names.append(nn)
 
+        self.env.extend_knl_rel_ksl_rel(order, element_names)
+
+    @doc_group("Cleanup and Simplification")
     def remove_markers(self, inplace=True, keep=None):
         """
         Remove markers from the line
@@ -3449,6 +5144,7 @@ class Line:
         keep : str or list of str
             Name of the markers to keep (default: None)
         """
+        self._method_incompatible_with_compose()
         self._frozen_check()
 
         if keep is None:
@@ -3456,20 +5152,20 @@ class Line:
         elif isinstance(keep, str):
             keep = [keep]
 
-        newline = Line(elements=[], element_names=[])
+        newline = self.env.new_line()
 
-        for ee, nn in zip(self.elements, self.element_names):
+        for ee, nn in zip(self._elements, self.element_names):
             if isinstance(ee, Marker) and nn not in keep:
                 continue
-            newline.append_element(ee, nn)
+            newline.append(nn)
 
         if inplace:
             self.element_names = newline.element_names
-            self.element_dict.update(newline.element_dict)
             return self
         else:
             return newline
 
+    @doc_group("Cleanup and Simplification")
     def remove_inactive_multipoles(self, inplace=True, keep=None):
 
         '''
@@ -3489,7 +5185,7 @@ class Line:
             Line with inactive multipoles removed
 
         '''
-
+        self._method_incompatible_with_compose()
         if not _vars_unused(self):
             raise NotImplementedError('`remove_inactive_multipoles` not'
                                       ' available when deferred expressions are'
@@ -3502,27 +5198,26 @@ class Line:
         elif isinstance(keep, str):
             keep = [keep]
 
-        newline = Line(elements=[], element_names=[])
+        newline = self.env.new_line()
 
-        for ee, nn in zip(self.elements, self.element_names):
-            if isinstance(ee, Multipole) and nn not in keep:
-                ctx2np = ee._context.nparray_from_context_array
-                aux = ([ee.hxl]
-                        + list(ctx2np(ee.knl)) + list(ctx2np(ee.ksl)))
+        for ee, nn in zip(self._elements, self.element_names):
+            if (isinstance(ee, Multipole) and nn not in keep and
+                not(ee.isthick and ee.length != 0)):
+                knl, ksl = ee.get_total_knl_ksl()
+                aux = [ee.hxl, ee.rot_x_rad, ee.rot_y_rad, *knl, *ksl]
                 if np.sum(np.abs(np.array(aux))) == 0.0:
                     continue
-            newline.append_element(ee, nn)
+            newline.append(nn)
 
         if inplace:
             self.element_names = newline.element_names
-            self.element_dict.update(newline.element_dict)
             return self
         else:
             return newline
 
+    @doc_group("Cleanup and Simplification")
     def remove_zero_length_drifts(self, inplace=True, keep=None):
-
-        '''
+        """
         Remove zero length drifts from the line
 
         Parameters
@@ -3537,9 +5232,8 @@ class Line:
         -------
         line : Line
             Line with zero length drifts removed
-
-        '''
-
+        """
+        self._method_incompatible_with_compose()
         if not _vars_unused(self):
             raise NotImplementedError('`remove_zero_length_drifts` not'
                                       ' available when deferred expressions are'
@@ -3552,24 +5246,23 @@ class Line:
         elif isinstance(keep, str):
             keep = [keep]
 
-        newline = Line(elements=[], element_names=[])
+        newline = self.env.new_line()
 
-        for ee, nn in zip(self.elements, self.element_names):
+        for ee, nn in zip(self._elements, self.element_names):
             if _is_drift(ee, self) and nn not in keep:
                 if _length(ee, self) == 0.0:
                     continue
-            newline.append_element(ee, nn)
+            newline.append(nn)
 
         if inplace:
             self.element_names = newline.element_names
-            self.element_dict.update(newline.element_dict)
             return self
         else:
             return newline
 
+    @doc_group("Cleanup and Simplification")
     def merge_consecutive_drifts(self, inplace=True, keep=None):
-
-        '''
+        """
         Merge consecutive drifts into a single drift
 
         Parameters
@@ -3584,44 +5277,43 @@ class Line:
         -------
         line : Line
             Line with consecutive drifts merged
-
-        '''
-
+        """
+        self._method_incompatible_with_compose()
         assert inplace is True, 'Only inplace is supported for now'
 
+        if self.mode == 'compose':
+            raise NotImplementedError('Merging drifts not implemented for'
+                                      ' `compose` mode. Please call line.end_compose().')
+
         self._frozen_check()
-        self.replace_all_repeated_elements()
+        self.replace_all_repeated_elements(replace_generated_drifts=True)
 
         if keep is None:
             keep = []
         elif isinstance(keep, str):
             keep = [keep]
 
-        newline = Line(elements=[], element_names=[])
+        newline = self.env.new_line()
 
-        for ii, (ee, nn) in enumerate(zip(self.elements, self.element_names)):
+        for ii, (ee, nn) in enumerate(zip(self._elements, self.element_names)):
             if ii == 0:
-                newline.append_element(ee, nn)
+                newline.append(nn)
                 continue
 
-            this_ee = ee if inplace else ee.copy()
             if _is_drift(ee, self) and not nn in keep:
                 prev_nn = newline.element_names[-1]
-                prev_ee = newline.element_dict[prev_nn]
+                prev_ee = newline._element_dict[prev_nn]
                 if _is_drift(prev_ee, self) and not prev_nn in keep:
                     prev_ee.length += ee.length
                 else:
-                    newline.append_element(this_ee, nn)
+                    newline.append(nn)
             else:
-                newline.append_element(this_ee, nn)
+                newline.append(nn)
 
-        if inplace:
-            self.element_names = newline.element_names
-            self.element_dict.update(newline.element_dict)
-            return self
-        else:
-            return newline
+        self.element_names = newline.element_names
+        return self
 
+    @doc_group("Cleanup and Simplification")
     def remove_redundant_apertures(self, inplace=True, keep=None,
                                   drifts_that_need_aperture=[]):
 
@@ -3644,6 +5336,7 @@ class Line:
             Line with redundant apertures removed
 
         '''
+        self._method_incompatible_with_compose()
 
         if not inplace:
             raise NotImplementedError('`remove_redundant_apertures` only'
@@ -3673,7 +5366,7 @@ class Line:
         # aperture before previous in loop (-2)
         aper_m2 = None
 
-        for ee, nn in zip(self.elements, self.element_names):
+        for ee, nn in zip(self._elements, self.element_names):
             if _is_aperture(ee, self):
             # We encountered a new aperture, shift all previous
                 aper_m2 = aper_m1
@@ -3688,9 +5381,9 @@ class Line:
                 aper_m2 = None
             if (aper_m2 is not None
                 and _apertures_equal(
-                    self.element_dict[aper_0], self.element_dict[aper_m1], self)
+                    self._element_dict[aper_0], self._element_dict[aper_m1], self)
                 and _apertures_equal(
-                    self.element_dict[aper_m1], self.element_dict[aper_m2], self)
+                    self._element_dict[aper_m1], self._element_dict[aper_m2], self)
                 ):
                 # We found three consecutive apertures (with only Drifts and Markers
                 # in between) that are the same, hence the middle one can be removed
@@ -3710,43 +5403,54 @@ class Line:
 
         return newline
 
+    @doc_group("Cleanup and Simplification")
     def use_simple_quadrupoles(self):
         '''
         Replace multipoles having only the normal quadrupolar component
         with quadrupole elements. The element is not replaced when synchrotron
         radiation is active.
         '''
+        self._method_incompatible_with_compose()
         self._frozen_check()
 
-        for name, element in self.element_dict.items():
+        for name, element in self._element_dict.items():
             if _is_simple_quadrupole(element):
+                knl, _ = element.get_total_knl_ksl()
                 fast_quad = beam_elements.SimpleThinQuadrupole(
-                    knl=element.knl[:2],
+                    knl=knl[:2],
                     _context=element._context,
                 )
-                self.element_dict[name] = fast_quad
+                self._element_dict[name] = fast_quad
 
+    @doc_group("Cleanup and Simplification")
     def use_simple_bends(self):
         '''
         Replace multipoles having only the horizontal dipolar component
         with dipole elements. The element is not replaced when synchrotron
         radiation is active.
         '''
+        self._method_incompatible_with_compose()
         self._frozen_check()
 
-        for name, element in self.element_dict.items():
+        for name, element in self._element_dict.items():
             if _is_simple_dipole(element):
+                knl, _ = element.get_total_knl_ksl()
                 fast_di = beam_elements.SimpleThinBend(
-                    knl=element.knl[:1],
+                    knl=knl[:1],
                     hxl=element.hxl,
                     length=element.length,
                     _context=element._context,
                 )
-                self.element_dict[name] = fast_di
+                self._element_dict[name] = fast_di
 
+    @doc_group("Deprecated")
     def get_elements_of_type(self, types):
 
         '''Get all elements of given type(s)
+
+        .. warning:: This method is deprecated and will be removed in a future version.
+                Use ``tt = line.get_table()`` and then
+                ``tt.rows.match(element_type='MyType')`` instead.
 
         Parameters
         ----------
@@ -3761,7 +5465,11 @@ class Line:
             List of names of elements of given type(s)
 
         '''
+        warn('`Line.get_elements_of_type` is deprecated and will be removed in a future version. '
+             "Use `tt = line.get_table()` and then `tt.rows.match(element_type='MyType')`."
+             + DEPRECATION_INFO_PREP_1_0, FutureWarning, stacklevel=2)
 
+        self._method_incompatible_with_compose()
         if not hasattr(types, "__iter__"):
             type_list = [types]
         else:
@@ -3769,7 +5477,7 @@ class Line:
 
         names = []
         elements = []
-        for ee, nn in zip(self.elements, self.element_names):
+        for ee, nn in zip(self._elements, self.element_names):
             for tt in type_list:
                 if isinstance(ee, tt):
                     names.append(nn)
@@ -3777,7 +5485,8 @@ class Line:
 
         return elements, names
 
-    def check_aperture(self, needs_aperture=[]):
+    @doc_group("Upcoming Deprecations")
+    def check_aperture(self, needs_aperture=[], with_progress=True):
 
         '''Check that all active elements have an associated aperture.
 
@@ -3785,6 +5494,9 @@ class Line:
         ----------
         needs_aperture : list of str
             Names of inactive elements that also need an aperture.
+        with_progress : bool, optional
+            Whether to show progress while checking elements. Defaults to
+            ``True``.
 
         Returns
         -------
@@ -3792,12 +5504,16 @@ class Line:
             DataFrame with information about the apertures associated with
             each active element.
         '''
-
-        elements_df = self.to_pandas()
+        self._method_incompatible_with_compose()
+        elements_df = self.get_table().to_pandas()
+        elements_df['name'] = elements_df['env_name']
+        elements_df.drop(columns='env_name', inplace=True)
+        names = elements_df['name'].values[:-1]  # exclude `_end_point`
+        elements_df['element'] = [self.get(nn) for nn in names] + [None]
 
         elements_df['is_aperture'] = elements_df.name.map(
                 lambda nn: nn == '_end_point'
-                    or  _is_aperture(self.element_dict[nn], self))
+                    or  _is_aperture(self._element_dict[nn], self))
 
         if not elements_df.name.values[-1] == '_end_point':
             elements_df['is_aperture'][-1] = False
@@ -3813,7 +5529,7 @@ class Line:
         for name in elements_df['name']:
             if name == '_end_point':
                 continue
-            ee = self.element_dict[name]
+            ee = self._element_dict[name]
             if isinstance(ee, xt.Replica):
                 ee = ee.resolve(self)
             if _allow_loss_refinement(ee, self) and not name in needs_aperture:
@@ -3835,7 +5551,12 @@ class Line:
         i_prev_aperture = elements_df[elements_df['is_aperture']].index[0]
         i_next_aperture = 0
 
-        for iee in progress(range(i_prev_aperture, num_elements), desc='Checking aperture'):
+        element_indices = range(i_prev_aperture, num_elements)
+        if with_progress:
+            element_indices = progress(
+                element_indices, desc='Checking aperture')
+
+        for iee in element_indices:
             if elements_df.loc[iee, 'is_aperture']:
                 i_prev_aperture = iee
                 continue
@@ -3888,6 +5609,7 @@ class Line:
 
         return elements_df
 
+    @doc_group("Cleanup and Simplification")
     def merge_consecutive_multipoles(self, inplace=True, keep=None):
         '''
         Merge consecutive multipoles into one multipole.
@@ -3906,6 +5628,7 @@ class Line:
         line : Line
             The modified line.
         '''
+        self._method_incompatible_with_compose()
 
         if not _vars_unused(self):
             raise NotImplementedError('`merge_consecutive_multipoles` not'
@@ -3920,78 +5643,105 @@ class Line:
         elif isinstance(keep, str):
             keep = [keep]
 
-        newline = Line(elements=[], element_names=[])
+        newline = self.env.new_line()
 
-        for ee, nn in zip(self.elements, self.element_names):
+        for ee, nn in zip(self._elements, self.element_names):
             if len(newline.element_names) == 0:
-                newline.append_element(ee, nn)
+                newline.append(nn)
                 continue
 
-            if isinstance(ee, Multipole) and nn not in keep:
+            if isinstance(ee, Multipole) and nn not in keep and not ee.isthick:
                 prev_nn = newline.element_names[-1]
-                prev_ee = newline.element_dict[prev_nn]
+                prev_ee = newline._element_dict[prev_nn]
                 if (isinstance(prev_ee, Multipole)
-                    and prev_ee.hxl==ee.hxl==0
+                    and not prev_ee.isthick
+                    and prev_ee.hxl == ee.hxl == 0
+                    and not _has_transverse_rotation(ee)
+                    and not _has_transverse_rotation(prev_ee)
                     and prev_nn not in keep
-                    ):
-
-                    oo=max(len(prev_ee.knl), len(prev_ee.ksl),
-                           len(ee.knl), len(ee.ksl))
-                    knl=np.zeros(oo,dtype=float)
-                    ksl=np.zeros(oo,dtype=float)
-                    for ii,kk in enumerate(prev_ee._xobject.knl):
-                        knl[ii]+=kk
-                    for ii,kk in enumerate(ee._xobject.knl):
-                        knl[ii]+=kk
-                    for ii,kk in enumerate(prev_ee._xobject.ksl):
-                        ksl[ii]+=kk
-                    for ii,kk in enumerate(ee._xobject.ksl):
-                        ksl[ii]+=kk
+                ):
+                    prev_knl, prev_ksl = prev_ee.get_total_knl_ksl()
+                    ee_knl, ee_ksl = ee.get_total_knl_ksl()
+                    oo = max(len(prev_knl), len(prev_ksl),
+                           len(ee_knl), len(ee_ksl))
+                    knl = np.zeros(oo,dtype=float)
+                    ksl = np.zeros(oo,dtype=float)
+                    knl[:len(prev_knl)] += prev_knl
+                    knl[:len(ee_knl)] += ee_knl
+                    ksl[:len(prev_ksl)] += prev_ksl
+                    ksl[:len(ee_ksl)] += ee_ksl
+                    knl, ksl = _trim_common_trailing_zeros(knl, ksl)
                     newee = Multipole(
-                            knl=knl, ksl=ksl, hxl=prev_ee.hxl,
-                            length=prev_ee.length,
-                            radiation_flag=prev_ee.radiation_flag)
+                        knl=knl, ksl=ksl, hxl=prev_ee.hxl,
+                        length=prev_ee.length,
+                        radiation_flag=prev_ee.radiation_flag,
+                    )
                     prev_nn += ('_' + nn)
-                    newline.element_dict[prev_nn] = newee
+                    self.env.elements[prev_nn] = newee
                     newline.element_names[-1] = prev_nn
                 else:
-                    newline.append_element(ee, nn)
+                    newline.append(nn)
             else:
-                newline.append_element(ee, nn)
+                newline.append(nn)
 
         if inplace:
             self.element_names = newline.element_names
-            self.element_dict.update(newline.element_dict)
+            self._element_dict.update(newline._element_dict)
             return self
         else:
             return newline
 
+    @doc_group("Tracking and Analysis")
     def get_line_with_second_order_maps(self, split_at):
 
         '''
-        Return a new lines with segments definded by the elements in `split_at`
+        Return a new line with segments defined by the elements in `split_at`
         replaced by second order maps.
 
         Parameters
         ----------
         split_at : list of str
-            Names of elements at which to split the line.
+            Names of elements at which to split the line. These elements are
+            kept as they are in the new line and are excluded from the maps:
+            each map spans from the exit of one split element to the
+            entrance of the next. Hence also thick and/or nonlinear elements
+            can be preserved exactly by splitting at them (e.g. octupoles,
+            to retain their amplitude detuning). Repeated elements are
+            referred to by their disambiguated name 'name::N' (as shown in
+            the line table and in the twiss table); the same names are used
+            in the returned line.
 
         Returns
         -------
         line_maps : Line
             Line with segments replaced by second order maps.
         '''
+        self._method_incompatible_with_compose()
+
+        if not self._has_valid_tracker():
+            self.build_tracker()
+
+        # element names disambiguated for repeated elements ('name::N', as
+        # in the line table and in the twiss table); for non-repeated
+        # elements they coincide with the plain element names
+        ele_names = self._element_names_unique
+
+        missing = set(split_at) - set(ele_names)
+        if missing:
+            raise ValueError(f'Elements {sorted(missing)} are not present in the line')
+
+        ele_idx = {nn: ii for ii, nn in enumerate(ele_names)}
 
         ele_cut_ext = split_at.copy()
-        if self.element_names[0] not in ele_cut_ext:
-            ele_cut_ext.insert(0, self.element_names[0])
-        if self.element_names[-1] not in ele_cut_ext:
-            ele_cut_ext.append(self.element_names[-1])
+        if ele_names[0] not in ele_cut_ext:
+            ele_cut_ext.insert(0, ele_names[0])
+        if ele_names[-1] not in ele_cut_ext:
+            ele_cut_ext.append(ele_names[-1])
 
+        ele_cut_set = set(ele_cut_ext)
         ele_cut_sorted = []
-        for ee in self.element_names:
-            if ee in ele_cut_ext:
+        for ee in ele_names:
+            if ee in ele_cut_set:
                 ele_cut_sorted.append(ee)
 
         elements_map_line = []
@@ -4000,10 +5750,21 @@ class Line:
 
         for ii in range(len(ele_cut_sorted)-1):
             names_map_line.append(ele_cut_sorted[ii])
-            elements_map_line.append(self.get(ele_cut_sorted[ii]))
+            # element object by its unique name: `element_names` and
+            # `self.element_names` are index-aligned (all occurrences of a
+            # repeated element share the same object)
+            elements_map_line.append(self.get(self.element_names[ele_idx[ele_cut_sorted[ii]]]))
+
+            # the split element is placed in the new line as it is, hence it
+            # is excluded from the map: the map starts at its exit, i.e. at
+            # the entrance of the following element (relevant for thick
+            # split elements)
+            map_start = ele_names[ele_idx[ele_cut_sorted[ii]] + 1]
+            if map_start == ele_cut_sorted[ii+1]:
+                continue  # nothing between this element and the next cut
 
             smap = xt.SecondOrderTaylorMap.from_line(
-                                    self, start=ele_cut_sorted[ii],
+                                    self, start=map_start,
                                     end=ele_cut_sorted[ii+1],
                                     twiss_table=tw,
                                     _buffer=self._buffer)
@@ -4011,27 +5772,73 @@ class Line:
             elements_map_line.append(smap)
 
         names_map_line.append(ele_cut_sorted[-1])
-        elements_map_line.append(self[ele_cut_sorted[-1]])
+        elements_map_line.append(self.get(self.element_names[ele_idx[ele_cut_sorted[-1]]]))
 
         line_maps = Line(elements=elements_map_line, element_names=names_map_line)
         line_maps.particle_ref = self.particle_ref.copy()
 
         return line_maps
 
+    @doc_group("Matching and Corrections")
     def target(self, tar, value, **kwargs):
+        """
+        Create a target object for line-level matching expressions.
+
+        Parameters
+        ----------
+        tar : callable
+            Target expression evaluated on the line action, for example
+            ``lambda ll: ll['qf'].k1``.
+        value : object
+            Desired target value or constraint object (for example
+            ``xt.GreaterThan(...)`` / ``xt.LessThan(...)``).
+        **kwargs
+            Additional keyword arguments forwarded to ``xt.Target`` (for example
+            weighting or tolerance options).
+
+        Returns
+        -------
+        target : xt.Target
+            Target object to be passed to matching routines such as ``line.match``.
+
+        Examples
+        --------
+        >>> env = xt.Environment()
+        >>> env['kqf'] = 0.1
+        >>> line = env.new_line(components=[
+        ...     env.new('qf', 'Quadrupole', length=1.0, k1='kqf')])
+        >>> opt = line.match(
+        ...     solve=False,
+        ...     vary=xt.Vary('kqf', step=1e-8, limits=[-1, 1]),
+        ...     targets=[
+        ...         line.target(lambda ll: ll['qf'].k1, xt.GreaterThan(0.0)),
+        ...     ])
+        """
 
         action = ActionLine(line=self)
         return xt.Target(action=action, tar=tar, value=value, **kwargs)
 
     def _freeze(self):
+        if self._isfrozen():
+            return
         self.element_names = tuple(self.element_names)
 
+    @doc_group("Deprecated")
     def unfreeze(self):
+        """Use :meth:`Line.discard_tracker` instead.
 
-        # Unfreeze the line. This is useful if you want to modify the line
-        # after it has been frozen (most likely by calling `build_tracker`).
-
+        .. warning:: This function is deprecated.
+        """
+        warn(
+            '`Line.unfreeze()` is deprecated and will be removed in future '
+            'versions. Please use `Line.discard_tracker()` instead.'
+            + DEPRECATION_INFO_PREP_1_0,
+            FutureWarning,
+        )
         self.discard_tracker()
+
+    def _isfrozen(self):
+        return isinstance(self.element_names, tuple)
 
     def _frozen_check(self):
         if isinstance(self.element_names, tuple):
@@ -4039,127 +5846,285 @@ class Line:
                 'This action is not allowed as the line is frozen! '
                 'You can unfreeze the line by calling the `discard_tracker()` method.')
 
-    def transform_compound(self, *args, **kwargs):
-        raise NotImplementedError('`transform_compound` is not anymore supported. '
-            'Tilt and shifts can be applied directly to the elements.\n'
-            'For more details, see: '
-            'https://xsuite.readthedocs.io/en/latest/line.html#apply-transformations-tilt-shift-to-elements'
-        )
-
+    @doc_group("Line Editing")
     def mirror(self, inplace=True):
+        """
+        Reverse the order of elements in the line.
+
+        Parameters
+        ----------
+        inplace : bool, optional
+            If ``True`` (default), the line is modified in place.
+            If ``False``, a mirrored shallow copy is returned.
+            Default is ``True``.
+
+        Returns
+        -------
+        Line or None
+            Mirrored line when ``inplace=False``, otherwise ``None``.
+
+        Notes
+        -----
+        The unary minus operator, ``-line``, is a shortcut for
+        ``line.mirror(inplace=False)``.
+
+        Examples
+        --------
+        .. code-block:: python
+
+            import xtrack as xt
+
+            env = xt.Environment()
+            line = env.new_line(components=[
+                env.new('qf', 'Quadrupole', length=0.5),
+                env.new('d1', 'Drift', length=1.0),
+                env.new('qd', 'Quadrupole', length=0.5),
+            ])
+
+            line_mirror = line.mirror(inplace=False)
+
+            line.element_names
+            # ['qf', 'd1', 'qd']
+            line_mirror.element_names
+            # ['qd', 'd1', 'qf']
+
+            (-line).element_names
+            # ['qd', 'd1', 'qf']
+
+            line.mirror()
+            line.element_names
+            # ['qd', 'd1', 'qf']
+        """
         assert inplace in [True, False]
         if inplace == False:
-            out = self.select()
+            out = self.copy(shallow=True)
             out.mirror(inplace=True)
             return out
-        else:
-            self._frozen_check()
+
+        if self.mode == 'normal':
+            self.discard_tracker()
             self.element_names = list(reversed(self.element_names))
+        elif self.mode == 'compose':
+            self.discard_tracker()
+            self.composer.mirror = not self.composer.mirror
+        else:
+            raise ValueError("mode must be 'normal' or 'compose'")
 
     def __neg__(self):
         return self.mirror(inplace=False)
 
     def __rmul__(self, other):
-        self._env_if_needed()
         assert isinstance(other, int), 'Only integer multiplication is supported'
         assert other > 0, 'Only positive integer multiplication is supported'
-        ele_names = list(self.element_names)
-        out = self.env.new_line()
-        out.element_names = ele_names * other
+        if self.mode == 'compose':
+            out = self.copy(shallow=True)
+            if other > 1:
+                out.composer.components = [self] * other
+        elif self.mode == 'normal':
+            ele_names = list(self.element_names)
+            out = self.env.new_line()
+            out.element_names = ele_names * other
         return out
 
     def __add__(self, other):
-        self._env_if_needed
         #assert isinstance(other, Line), 'Only Line can be added to Line'
         assert other.__class__.__name__=="Line", 'Only Line can be added to Line'
         assert other.env is self.env, 'Lines must be in the same environment'
-        out = self.env.new_line(
-            components=list(self.element_names) + list(other.element_names))
+
+        out = self.env.new_line(compose=True)
+        out.place(self)
+        out.place(other)
+
+        if self.mode == 'normal' and other.mode == 'normal':
+            out.end_compose()
+
         return out
 
     def __sub__(self, other):
         return self + (-other)
 
-    def replicate(self, name, mirror=False):
+    @doc_group("Line Editing")
+    def replicate(self, suffix, mirror=False):
+        """
+        Create a replicated copy of the line with renamed elements.
 
-        self._env_if_needed()
+        Elements that are not autogenerated drifts are added to the
+        environment as ``xt.Replica`` objects pointing to the original
+        elements.
+
+        Parameters
+        ----------
+        suffix : str
+            Suffix appended to each element name in the replicated line.
+        mirror : bool, optional
+            If ``True``, the replicated line is mirrored before being returned.
+
+        Returns
+        -------
+        Line
+            New line containing ``xt.Replica`` references to the original
+            elements (except shared drift entries).
+        """
+
+        self._method_incompatible_with_compose()
 
         new_element_names = []
         for nn in self.element_names:
-            new_nn = nn + '.' + name
-            self.element_dict[new_nn] = xt.Replica(nn)
+            if nn.startswith('||drift_'):
+                new_nn = nn
+            else:
+                new_nn = nn + '.' + suffix
+                self.env.elements[new_nn] = xt.Replica(nn)
             new_element_names.append(new_nn)
 
-        out = self.env.new_line(components=new_element_names, name=name)
+        out = self.env.new_line(components=new_element_names)
 
         if mirror:
             out.mirror()
 
         return out
 
-    def clone(self, name, mirror=False):
-        out = self.replicate(name=name, mirror=mirror)
-        out.replace_all_replicas()
-        return out
+    @doc_group("Line Editing")
+    def clone(self, suffix, mirror=False):
+        """
+        Create a cloned copy of the line with renamed independent elements.
 
-    def replace_replica(self, name):
-        name_parent = self.element_dict[name].resolve(self, get_name=True)
-        self.copy_element_from(name_parent, self, new_name=name)
-
-    def copy_element_from(self, name, source, new_name=None):
-        """Copy an element from another environment.
+        Elements are cloned with the new name and expressions on element
+        attributes are preserved.
 
         Parameters
         ----------
-        name: str
-            Name of the element to copy.
-        source: Environment | Line
-            Environment or line where the element is located.
-        new_name: str, optional
-            Rename the element in the new line/environment. If not provided, the
-            element is copied with the same name.
+        suffix : str
+            Suffix appended to each cloned element name.
+        mirror : bool, optional
+            If ``True``, the cloned line is mirrored before being returned.
+
+        Returns
+        -------
+        Line
+            New line containing independent element copies.
+
+        Examples
+        --------
+        .. code-block:: python
+
+            import xtrack as xt
+
+            env = xt.Environment()
+            env['kq'] = 0.2
+            line = env.new_line(components=[
+                env.new('qf', 'Quadrupole', length=0.5, k1='kq'),
+                env.new('d1', 'Drift', length=1.0),
+            ])
+
+            line_b = line.clone(suffix='b')
+            line_b.element_names
+            # ['qf.b', 'd1.b']
+
+            line_b.ref['qf.b'].k1.xdeps.expr
+            # vars['kq']
+
+            env['kq'] = 0.3
+            line['qf'].k1
+            # 0.3
+            line_b['qf.b'].k1
+            # 0.3
+
+            line_b['qf.b'].k1 = 0.4
+            line['qf'].k1
+            # 0.3
+            line_b['qf.b'].k1
+            # 0.4
         """
-        new_name_input = new_name if new_name != name else None
-        new_name = new_name or name
-        cls = type(source.element_dict[name])
+        self._method_incompatible_with_compose()
+        out = self.replicate(suffix=suffix, mirror=mirror)
+        out.replace_all_replicas()
+        return out
 
-        if (cls not in _ALLOWED_ELEMENT_TYPES_IN_NEW + [xt.DipoleEdge] # No issue in copying DipoleEdge while creating it requires handling properties which are strings.
-            and 'ThickSlice' not in cls.__name__ and 'ThinSlice' not in cls.__name__
-            and 'DriftSlice' not in cls.__name__):
-            raise ValueError(
-                f'Only {_STR_ALLOWED_ELEMENT_TYPES_IN_NEW} elements are '
-                f'allowed in `copy_from_env` for now.'
-            )
+    @doc_group("Line Editing")
+    def replace_replica(self, name):
+        """
+        Replace a replica element a clone of its parent element. Expressions
+        on element attributes are preserved.
 
-        self.element_dict[new_name] = source.element_dict[name].copy()
+        Parameters
+        ----------
+        name : str
+            Name of the replica element to replace.
 
-        pars_with_expr = list(
-            source._xdeps_manager.tartasks[source.element_refs[name]].keys())
+        Returns
+        -------
+        None
+            This method modifies the line environment in place.
+        """
+        self._method_incompatible_with_compose()
+        self.env.replace_replica(name)
 
-        formatter = xd.refs.CompactFormatter(scope=None)
+    def _copy_element_from(self, name, source, new_name=None):
+        """
+        Copies an element from ``source`` into this line's environment and
+        optionally renames it.
 
-        for rr in pars_with_expr:
-            # Assign expressions by string to avoid having to deal with the
-            # fact that they come from a different manager!
-            expr_string = rr._expr._formatted(formatter)
+        Parameters
+        ----------
+        name : str
+            Name of the element to copy from ``source``.
+        source : Environment or Line
+            Object containing the element.
+        new_name : str, optional
+            Name to assign in this line's environment. If omitted, ``name`` is used.
 
-            if isinstance(rr, xd.refs.AttrRef):
-                setattr(self[new_name], rr._key, expr_string)
-            elif isinstance(rr, xd.refs.ItemRef):
-                getattr(self[new_name], rr._owner._key)[rr._key] = expr_string
-            else:
-                raise ValueError('Only AttrRef and ItemRef are supported for now')
+        Returns
+        -------
+        None
+            The destination environment is modified in place.
+        """
+        return self.env._copy_element_from(name, source, new_name)
 
-        return new_name
-
+    @doc_group("Line Editing")
     def replace_all_replicas(self):
+        """
+        Replace all replica elements found in the line with clones of their
+        parent elements. Expressions on element attributes are preserved.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+            This method modifies the line and its environment in place.
+        """
+        self._method_incompatible_with_compose()
         for nn in self.element_names:
-            if isinstance(self.element_dict[nn], xt.Replica):
+            if isinstance(self._element_dict[nn], xt.Replica):
                 self.replace_replica(nn)
 
-    def replace_all_repeated_elements(self, separator='.', mode='clone'):
+    @doc_group("Line Editing")
+    def replace_all_repeated_elements(self, separator='.', mode='clone',
+                                      replace_generated_drifts=False):
+        """
+        Replace repeated element occurrences with newly named elements.
 
-        self._env_if_needed()
+        Parameters
+        ----------
+        separator : str, optional
+            Separator inserted between the original element name and the
+            generated index in the new element names. Default is '.'.
+        mode : str, optional
+            Creation mode passed to ``env.new(...)`` when generating each new
+            element from the repeated source element.
+        replace_generated_drifts : bool, optional
+            If ``False``, elements whose names start with ``'||drift_'`` are
+            skipped. If ``True``, repeated generated drifts are also replaced.
+
+        Returns
+        -------
+        None
+            This method modifies the line in place.
+        """
+        self._method_incompatible_with_compose()
         env = self.env
 
         self.discard_tracker()
@@ -4169,146 +6134,20 @@ class Line:
             aux_dict[nn].append(ii)
 
         for nn in unique_names:
+            if not replace_generated_drifts and nn.startswith('||drift_'):
+                continue
             if len(aux_dict[nn]) > 1:
                 i_rep = 0
                 for ii in aux_dict[nn]:
-                    while (new_name := nn + separator + str(i_rep)) in self.element_dict:
+                    while ((new_name := nn.replace('||drift_', 'drift_') + separator + str(i_rep))
+                           in self._element_dict):
                         i_rep += 1
                     env.new(new_name, nn, mode=mode)
                     self.element_names[ii] = new_name
 
-    def select(self, start=None, end=None, name=None):
 
-        if start is xt.START:
-            start = None
 
-        if end is xt.END:
-            end = None
 
-        tt = self.get_table().rows[start:end]
-        if tt.name[-1] == '_end_point':
-            tt = tt.rows[:-1]
-
-        self._env_if_needed()
-
-        out = self.env.new_line(components=list(tt.env_name), name=name)
-        out.particle_ref = self.particle_ref.copy() if self.particle_ref else None
-
-        if hasattr(self, '_in_multiline') and self._in_multiline is not None:
-            out.env._var_management = None
-            out._var_management = None
-            out.env._in_multiline = self._in_multiline
-            out._in_multiline = self._in_multiline
-            out.env._name_in_multiline = self._name_in_multiline
-            out._name_in_multiline = self._name_in_multiline
-
-        return out
-
-    def set(self, name, *args, **kwargs):
-        '''
-        Set the values or expressions of variables or element properties.
-
-        Parameters
-        ----------
-        name : str
-            Name(s) of the variable or element.
-        value: float or str
-            Value or expression of the variable to set. Can be provided only
-            if the name is associated to a variable.
-        **kwargs, float or str
-            Attributes to set. Can be provided only if the name is associated
-            to an element.
-
-        Examples
-        --------
-        >>> line.set('a', 0.1)
-        >>> line.set('k1', '3*a')
-        >>> line.set('quad', k1=0.1, k2='3*a')
-        >>> line.set(['quad1', 'quad2'], k1=0.1, k2='3*a')
-        >>> line.set(['c', 'd'], 0.1)
-        >>> line.set(['e', 'f'], '3*a')
-
-        '''
-        if hasattr(name, 'env_name'):
-            name = name.env_name
-        elif hasattr(name, 'name'):
-            name = name.name
-
-        if isinstance(name, Iterable) and not isinstance(name, str):
-            for nn in name:
-                self.set(nn, *args, **kwargs)
-            return
-
-        _eval = self._xdeps_eval.eval
-
-        if hasattr(self, 'lines') and name in self.lines:
-            raise ValueError('Cannot set a line')
-
-        if name in self.element_dict:
-            if len(args) > 0:
-                raise ValueError(f'Only kwargs are allowed when setting element attributes')
-
-            extra = kwargs.pop('extra', None)
-
-            ref_kwargs, value_kwargs = xt.environment._parse_kwargs(
-                type(self.element_dict[name]), kwargs, _eval)
-            xt.environment._set_kwargs(
-                name=name, ref_kwargs=ref_kwargs, value_kwargs=value_kwargs,
-                element_dict=self.element_dict, element_refs=self.element_refs)
-            if extra is not None:
-                assert isinstance(extra, dict), (
-                    'Description must be a dictionary')
-                if (not hasattr(self.element_dict[name], 'extra')
-                    or not isinstance(self.element_dict[name].extra, dict)):
-                    self.element_dict[name].extra = {}
-                self.element_dict[name].extra.update(extra)
-        else:
-            if len(kwargs) > 0:
-                raise ValueError(f'Only a single value is allowed when setting variable')
-            if len(args) != 1:
-                raise ValueError(f'A value must be provided when setting a variable')
-            value = args[0]
-            if 'extra' in kwargs and kwargs['extra'] is not None:
-                raise ValueError(f'Extra is only allowed for elements')
-            if isinstance(value, str):
-                self.vars[name] = _eval(value)
-            else:
-                self.vars[name] = value
-
-    def get(self, key):
-        '''
-        Get an element or the value of a variable.
-
-        Parameters
-        ----------
-        key : str
-            Name of the element or variable.
-
-        Returns
-        -------
-        element : Element or float
-            Element or value of the variable.
-
-        '''
-
-        if key in self.element_dict:
-            return self.element_dict[key]
-        elif key in self.vars:
-            return self._xdeps_vref._owner[key]
-        else:
-            raise KeyError(f'Element or variable {key} not found')
-
-    def info(self, key, limit=30):
-        """
-            Get information about an element or a variable.
-        """
-
-        if key in self.element_dict:
-            return self[key].get_info()
-        elif key in self.vars:
-            return self.vars.info(key, limit=limit)
-        else:
-            raise KeyError(f'Element or variable {key} not found')
 
 #    def get_value(self, key):
 #        if key in self.element_dict:
@@ -4318,10 +6157,7 @@ class Line:
 #        else:
 #            raise KeyError(f'Element or variable {key} not found')
 
-    @property
-    def ref_manager(self):
-        return self._xdeps_manager
-
+    @doc_group("Inspection, Variables and Configuration")
     def eval(self, expr):
         '''
         Get the value of an expression
@@ -4335,75 +6171,82 @@ class Line:
         -------
         value : float
             Value of the expression.
+
+        Examples
+        --------
+        .. code-block:: python
+
+            import xtrack as xt
+
+            env = xt.Environment()
+            line = env.new_line()
+            line['a'] = 2.0
+
+            line.eval('3*a + 1')
+            # 7.0
         '''
 
         return self.vars.eval(expr)
 
-    def new_expr(self, expr):
-        '''
-        Create a new expression
+    @doc_group("Upcoming Deprecations")
+    def extend(self, what):
+        """
+        Append existing element names to this line.
 
         Parameters
         ----------
-        expr : str
-            Expression to create.
+        what : Line or list of str
+            If a line, append its sequence of element names. The source line
+            must belong to the same environment as this line. If a list, append
+            the provided element names directly.
 
         Returns
         -------
-        expr : Expression
-            New expression.
-        '''
-        return self.vars.new_expr(expr)
+        None
+            This method modifies the line in place.
 
-    def get_expr(self, var):
-        '''
-        Get expression associated to a variable
+        Notes
+        -----
+        This method only extends the sequence of names; it does not import or
+        copy elements from another environment.
+        """
+        self._method_incompatible_with_compose()
 
-        Parameters
-        ----------
-        var: str
-            Name of the variable
+        if isinstance(what, xt.Line):
+            if what.env is not self.env:
+                raise ValueError('Line must be in the same environment')
+            element_names = what.element_names
+        elif isinstance(what, list) and all(isinstance(nn, str) for nn in what):
+            element_names = what
+        else:
+            raise ValueError('`what` must be a Line or a list of strings')
 
-        Returns
-        -------
-        expr : Expression
-            Expression associated to the variable
-        '''
-
-        return self.vars.get_expr(var)
-
-    def _env_if_needed(self):
-        if not hasattr(self, 'env') or self.env is None:
-            self.env = xt.Environment(element_dict=self.element_dict,
-                                      particle_ref=self.particle_ref,
-                                      _var_management=self._var_management)
-            self.env._lines_weakrefs.add(self)
-
-            # Temporary solution to keep consistency in multiline
-            if hasattr(self, '_in_multiline') and self._in_multiline is not None:
-                self.env._var_management = None
-                self.env._in_multiline = self._in_multiline
-                self.env._name_in_multiline = self._name_in_multiline
-
-    def extend(self, line):
-        self.element_names.extend(line.element_names)
+        self.element_names.extend(element_names)
 
     def __len__(self):
+        if self.mode == 'compose':
+            return 0
         return len(self.element_names)
 
+    @doc_group("Inspection, Variables and Configuration")
     def items(self):
-        for name in self.element_names:
-            yield name, self.element_dict[name]
+        """
+        Iterate over line elements in sequence.
 
-    def _var_management_to_dict(self):
-        out = {}
-        out['_var_management_data'] = deepcopy(self._var_management['data'])
-        for kk in out['_var_management_data'].keys():
-            if hasattr(out['_var_management_data'][kk], 'to_dict'):
-                out['_var_management_data'][kk] = (
-                    out['_var_management_data'][kk].to_dict())
-        out['_var_manager'] = self._var_management['manager'].dump()
-        return out
+        Parameters
+        ----------
+        None
+
+        Yields
+        ------
+        name : str
+            Element name in line order.
+        element_view : View
+            Element view associated with ``name``.
+        """
+        self._method_incompatible_with_compose()
+        for name in self.element_names:
+            yield name, self.env.elements[name]
 
     def _has_valid_tracker(self):
 
@@ -4421,7 +6264,7 @@ class Line:
                 "This line does not have a valid tracker. "
                 "Please build the tracke using `line.build_tracker(...)`.")
 
-    @property
+    @property_with_doc_group("Inspection, Variables and Configuration")
     def name(self):
         '''Name of the line (if it is part of a `MultiLine`)'''
         if hasattr(self, '_in_multiline') and self._in_multiline is not None:
@@ -4431,120 +6274,505 @@ class Line:
         else:
             return getattr(self, '_name', None)
 
-    @property
+    @property_with_doc_group("Tracker Setup")
     def iscollective(self):
+        """
+        Whether the built tracker runs in collective mode.
+
+        Returns
+        -------
+        iscollective : bool
+            ``True`` if the tracker is collective, ``False`` otherwise.
+        """
         if not self._has_valid_tracker():
             raise RuntimeError(
-                '`Line.iscollective` con only be called after `Line.build_tracker`')
+                '`Line.iscollective` can only be called after `Line.build_tracker`')
         return self.tracker.iscollective
 
     @property
     def _buffer(self):
         if not self._has_valid_tracker():
             raise RuntimeError(
-                '`Line._buffer` con only be called after `Line.build_tracker`')
+                '`Line._buffer` can only be called after `Line.build_tracker`')
         return self.tracker._buffer
 
     @property
     def _context(self):
         if not self._has_valid_tracker():
-            raise RuntimeError(
-                '`Line._context` con only be called after `Line.build_tracker`')
+            return None
         return self.tracker._context
-
-    def _init_var_management(self, dct=None):
-
-        self._var_management = _make_var_management(element_dict=self.element_dict,
-                                               dct=dct)
-
-        if not hasattr(self, 'env') or self.env is None:
-            self._env_if_needed()
-            self.env._line_vars = LineVars(self.env)
 
     @property
     def _line_vars(self):
         return self.env._line_vars
 
-    @property
+    @property_with_doc_group("Tracking and Analysis")
     def record_last_track(self):
+        """
+        Particle coordinates recorded during the most recent ``track(...)`` call.
+
+        Returns
+        -------
+        record : object
+            Track record object from the last call to ``track(...)``.
+        """
         self._check_valid_tracker()
         return self.tracker.record_last_track
 
-    @property
+    @property_with_doc_group("Tracking and Analysis")
+    def record_multi_element_last_track(self):
+        """
+        Particle coordinates recorded for selected elements in the most recent
+        ``track(...)`` call.
+
+        Returns
+        -------
+        record : object
+            Multi-element track record object from the last call to ``track(...)``.
+        """
+        self._check_valid_tracker()
+        return self.tracker.record_multi_element_last_track
+
+    @property_with_doc_group("Inspection, Variables and Configuration")
     def vars(self):
+        """
+        Variables container associated with the line environment.
+
+        The container provides variable-management utilities such as
+        ``keys()``, ``get_table()``, ``load()`` (JSON and MAD-X files),
+        ``remove()``, ``rename()``, and ``update()``.
+
+        Returns
+        -------
+        vars : xtrack.environment.EnvVars
+            Dictionary-like container of variables.
+
+        Examples
+        --------
+        .. code-block:: python
+
+            import xtrack as xt
+
+            env = xt.Environment()
+            line = env.new_line()
+            line.vars['a'] = 2.0
+            line.vars['b'] = '3*a'
+
+            line.vars.get_table().show()
+            # name       value expr
+            # t_turn_s       0 None
+            # a              2 None
+            # b              6 (3.0 * a)
+        """
         if hasattr(self, '_in_multiline') and self._in_multiline is not None:
             return self._in_multiline.vars
         else:
-            return self._line_vars
+            return self.env.vars
 
-    @property
+    @property_with_doc_group("Inspection, Variables and Configuration")
+    def ref(self):
+        """
+        xdeps reference container for variables and element fields.
+
+        Returns
+        -------
+        ref : object
+            Dictionary-like container of references used in expressions.
+
+        Examples
+        --------
+        >>> env = xt.Environment()
+        >>> env['a'] = 3
+        >>> line = env.new_line(length=10, components=[
+        ...     env.new('qf', 'Quadrupole', length=1, k1='2*a', at=2.5),
+        ...     env.new('qd', 'Quadrupole', length=1, k1='-2*a', at=7.5)])
+        >>> line.ref['a']._info()
+        #  vars['a']._get_value()
+           vars['a'] = 3
+        #
+        #  vars['a']._expr is None
+        #
+        #  vars['a']._find_dependant_targets()
+           element_refs['qd'].k1
+           element_refs['qf'].k1
+        >>> line.ref['qd'].k1._info()
+        #  element_refs['qd'].k1._get_value()
+           element_refs['qd'].k1 = -6.0
+        #
+        #  element_refs['qd'].k1._expr
+           element_refs['qd'].k1 = (-2.0 * vars['a'])
+        #
+        #  element_refs['qd'].k1._expr._get_dependencies()
+           vars['a'] = 3
+        #
+        #  element_refs['qd'].k1 does not influence any target
+        >>> line.ref['qd'].k1._expr
+        (-2.0 * vars['a'])
+        >>> env['b'] = line.functions.sqrt(line.ref['a'])
+        >>> env.ref['b']._info()
+        #  vars['b']._get_value()
+           vars['b'] = 1.7320508075688772
+        #
+        #  vars['b']._expr
+           vars['b'] = f.sqrt(vars['a'])
+        #
+        #  vars['b']._expr._get_dependencies()
+           vars['a'] = 3
+           f.sqrt = <built-in function sqrt>
+        #
+        #  vars['b'] does not influence any target
+        """
+        return self.env.ref
+
+    @property_with_doc_group("Deprecated")
     def varval(self):
+        """
+        Convenience accessor to variable values.
+
+        .. warning::
+           ``Line.varval[...]`` is deprecated and will be removed
+           in a future version. To access the value of a variable you can simply use
+           ``Line[...]``.
+
+        Equivalent to ``line.vars.val``.
+
+        Returns
+        -------
+        values : object
+            Mapping-like view exposing variable values.
+        """
+
+        warn("`Line.varval[...]` is deprecated and will be removed in a future version. "
+             "To access the value of a variable you can simply use Line[...]. "
+             "Line.vars.val[...] is also available."
+             + DEPRECATION_INFO_PREP_1_0, FutureWarning)
         return self.vars.val
 
-    @property
+    @property_with_doc_group("Deprecated")
     def vv(self): # Shorter alias
+
+        """
+        Short alias for variable values.
+
+        .. warning::
+           ``Line.vv[...]`` is deprecated and will be removed
+           in a future version. To access the value of a variable you can simply use
+           ``Line[...]``.
+
+        Equivalent to ``line.varval`` (or ``line.vars.val``).
+
+        Returns
+        -------
+        values : object
+            Mapping-like view exposing variable values.
+        """
+
+        warn("`Line.vv[...]` is deprecated and will be removed in a future version. "
+             "To access the value of a variable you can simply use Line[...]. "
+             "Line.vars.val[...] is also available."
+             + DEPRECATION_INFO_PREP_1_0, FutureWarning)
+
         return self.vars.val
 
-    @property
+    @doc_group("Inspection, Variables and Configuration")
+    def set(self, name, *args, **kwargs):
+        '''
+        Set the values or expressions of variables or element properties.
+        A single call can set one or multiple variables or elements.
+
+        Parameters
+        ----------
+        name : str or iterable of str
+            Name or names of the variable(s) or element(s).
+        value: float or str
+            Value or expression of the variable to set. Can be provided only
+            if the name is associated to a variable.
+        **kwargs, float or str
+            Attributes to set. Can be provided only if the name is associated
+            to an element.
+
+        Examples
+        --------
+        >>> line.set('a', 0.1)
+        >>> line.set('k1', '3*a')
+        >>> line.set('quad', k1=0.1, k2='3*a')
+        >>> line.set(['quad1', 'quad2'], k1=0.1, k2='3*a')
+        >>> line.set(['c', 'd'], 0.1)
+        >>> line.set(['e', 'f'], '3*a')
+
+        '''
+        self.env.set(name, *args, **kwargs)
+
+    @doc_group("Inspection, Variables and Configuration")
+    def get(self, key):
+        '''
+        Get an element or the value of a variable.
+
+        Parameters
+        ----------
+        key : str
+            Name of the element or variable.
+
+        Returns
+        -------
+        element : Element or float
+            Element or value of the variable.
+
+        Examples
+        --------
+        .. code-block:: python
+
+            import xtrack as xt
+
+            env = xt.Environment()
+            line = env.new_line(components=[
+                env.new('qf', 'Quadrupole', length=1.0, k1=0.2),
+            ])
+            line['a'] = 3.0
+
+            line.get('qf')
+            # Quadrupole(...)
+
+            line.get('a')
+            # 3.0
+        '''
+        return self.env.get(key)
+
+    @doc_group("Inspection, Variables and Configuration")
+    def info(self, key, limit=30):
+        '''
+        Get information about an element or a variable.
+
+        Parameters
+        ----------
+        key : str
+            Name of the element or variable.
+        limit : int, optional
+            Maximum number of expression terms shown for variable info.
+
+        Returns
+        -------
+        None
+            This method displays information and does not return a value.
+        '''
+        self.env.info(key, limit=limit)
+
+    @classmethod
+    def _get_doc_groups_dict(cls):
+        """Return doc-grouped API methods as a dictionary of lists."""
+        return {
+            item['name']: list(item['methods'])
+            for item in cls.__doc_groups__
+        }
+
+    @classmethod
+    def _generate_doc_rst(
+        cls,
+        *,
+        title="Line API (Grouped)",
+        include_properties=True,
+        include_toc=False,
+        include_summary_table=True,
+    ):
+        """Generate grouped API documentation in RST format."""
+        from .api_docs import generate_grouped_class_rst
+
+        return generate_grouped_class_rst(
+            cls,
+            title=title,
+            include_properties=include_properties,
+            include_toc=include_toc,
+            include_summary_table=include_summary_table,
+        )
+
+    @doc_group("Inspection, Variables and Configuration")
+    def get_expr(self, var):
+        '''
+        Get expression associated to a variable
+
+        Parameters
+        ----------
+        var: str
+            Name of the variable
+
+        Returns
+        -------
+        expr : Expression
+            Expression associated to the variable
+
+        Examples
+        --------
+        .. code-block:: python
+
+            import xtrack as xt
+
+            env = xt.Environment()
+            line = env.new_line()
+            line['a'] = 2.0
+            line['b'] = '3*a'
+
+            line.get_expr('b')
+            # (3.0 * vars['a'])
+        '''
+        return self.env.get_expr(var)
+
+    @doc_group("Inspection, Variables and Configuration")
+    def new_expr(self, var):
+        """
+        Create a new xdeps expression object.
+
+        Parameters
+        ----------
+        expr : str
+            Expression to create.
+
+        Returns
+        -------
+        expr : Expression
+            New xdeps expression object.
+
+        Examples
+        --------
+        .. code-block:: python
+
+            import xtrack as xt
+
+            env = xt.Environment()
+            line = env.new_line()
+            line['a'] = 2.0
+
+            line['b'] = line.new_expr('3*a + 1')
+            line['b']
+            # 7.0
+        """
+        return self.env.new_expr(var)
+
+    @property_with_doc_group("Inspection, Variables and Configuration")
+    def ref_manager(self):
+        """
+        xdeps dependency manager for variables, element references, and expressions.
+
+        Returns
+        -------
+        ref_manager : object
+            Dependency manager used to register and update expression tasks.
+        """
+        return self.env.ref_manager
+
+    @property_with_doc_group("Inspection, Variables and Configuration")
     def functions(self):
+        """
+        xdeps function container used in expressions.
+
+        Returns
+        -------
+        functions : object
+            Dictionary-like container of functions available in expressions.
+
+        Examples
+        --------
+        .. code-block:: python
+
+            import xtrack as xt
+
+            env = xt.Environment()
+            line = env.new_line()
+            line['t_turn_s'] = 0.5
+            line.functions['ramp'] = xt.FunctionPieceWiseLinear(
+                x=[0, 1], y=[0.2, 0.4])
+            line['kq'] = line.functions['ramp'](line.ref['t_turn_s'])
+
+            line['kq']
+            # 0.30000000000000004
+        """
         return self._xdeps_fref
 
-    @property
-    def _xdeps_vref(self):
-        if hasattr(self, '_in_multiline') and self._in_multiline is not None:
-            return self._in_multiline._xdeps_vref
-        if self._var_management is not None:
-            return self._var_management['vref']
+    @property_with_doc_group("Line Editing")
+    def element_dict(self):
+        """
+        Dictionary-like container of elements in the line environment.
+
+        Returns
+        -------
+        element_dict : dict
+            Mapping from element names to element objects. The dictionary is
+            shared with the parent environment.
+
+        Examples
+        --------
+        .. code-block:: python
+
+            import xtrack as xt
+
+            env = xt.Environment()
+            line = env.new_line(components=[
+                env.new('qf', 'Quadrupole', length=1.0),
+            ])
+
+            line.element_dict['qf'].length
+            # 1.0
+        """
+        return self.env.element_dict
 
     @property
-    def _xdeps_fref(self):
-        if hasattr(self, '_in_multiline') and self._in_multiline is not None:
-            return self._in_multiline._xdeps_fref
-        if self._var_management is not None:
-            return self._var_management['fref']
+    def _element_dict(self):
+        return self.env._element_dict
 
-    @property
-    def _xdeps_manager(self):
-        if hasattr(self, '_in_multiline') and self._in_multiline is not None:
-            return self._in_multiline._xdeps_manager
-        if self._var_management is not None:
-            return self._var_management['manager']
-
-    @property
-    def _xdeps_eval(self):
-        try:
-            eva_obj = self._xdeps_eval_obj
-        except AttributeError:
-            eva_obj = xd.madxutils.MadxEval(variables=self._xdeps_vref,
-                                            functions=self._xdeps_fref,
-                                            elements=self.element_dict,
-                                            get='attr')
-            self._xdeps_eval_obj = eva_obj
-
-        return eva_obj
-
-    @property
+    @property_with_doc_group("Line Editing")
     def element_refs(self):
+        """Dictionary-like container of xdeps element references."""
         if hasattr(self, '_in_multiline'):
             var_sharing = self._in_multiline._var_sharing
             if var_sharing is not None:
                 return var_sharing._eref[self._name_in_multiline]
-        if self._var_management is not None:
-            return self._var_management['lref']
+        if self.env._var_management is not None:
+            return self.env.element_refs
 
     @property
-    def element_dict(self):
-        return self._element_dict
-
-    @element_dict.setter
-    def element_dict(self, value):
-        if self._element_dict is None:
-            self._element_dict = {}
-        self._element_dict.clear()
-        self._element_dict.update(value)
+    def _xdeps_vref(self):
+        return self.env._xdeps_vref
 
     @property
+    def _xdeps_eref(self):
+        return self.env._xdeps_eref
+
+    @property
+    def _xdeps_fref(self):
+        return self.env._xdeps_fref
+
+    @property
+    def _xdeps_manager(self):
+        return self.env._xdeps_manager
+
+    @property
+    def _xdeps_eval(self):
+        return self.env._xdeps_eval
+
+    @property_with_doc_group("Line Editing")
     def element_names(self):
+        """
+        Ordered list of element names defining the line sequence.
+
+        Returns
+        -------
+        element_names : list of str
+            Names of elements in line order.
+
+        Examples
+        --------
+        .. code-block:: python
+
+            import xtrack as xt
+
+            env = xt.Environment()
+            line = env.new_line(components=[
+                env.new('qf', 'Quadrupole', length=0.5),
+                env.new('mk', 'Marker'),
+            ])
+
+            line.element_names
+            # ['qf', 'mk']
+        """
         return self._element_names
 
     @element_names.setter
@@ -4554,36 +6782,99 @@ class Line:
         self._frozen_check()
         self._element_names = value
 
-    @property
+    @property_with_doc_group("Line Editing")
     def elements(self):
-        return tuple([self.element_dict[nn] for nn in self.element_names])
+        """
+        Tuple-like container of element-object views in line order.
+
+        Returns
+        -------
+        elements : tuple
+            Element views ordered according to ``line.element_names``.
+
+        Examples
+        --------
+        .. code-block:: python
+
+            import xtrack as xt
+
+            env = xt.Environment()
+            line = env.new_line(components=[
+                env.new('qf', 'Quadrupole', length=0.5, k1=0.2),
+                env.new('qd', 'Quadrupole', length=0.5, k1=-0.2),
+            ])
+
+            [ee.k1 for ee in line.elements]
+            # [0.2, -0.2]
+        """
+        return tuple([self.env.elements[nn] for nn in self.element_names])
 
     @property
+    def _elements(self):
+        return [self.env._element_dict[nn] for nn in self.element_names]
+
+    @property_with_doc_group("Tracker Setup")
     def skip_end_turn_actions(self):
+        """
+        Whether end-turn actions are skipped during tracking.
+
+        Default is ``False``.
+
+        Returns
+        -------
+        skip : bool
+            ``True`` to skip end-turn actions, ``False`` to execute them.
+        """
         return self._extra_config['skip_end_turn_actions']
 
     @skip_end_turn_actions.setter
     def skip_end_turn_actions(self, value):
         self._extra_config['skip_end_turn_actions'] = value
 
-    @property
+    @property_with_doc_group("Tracker Setup")
     def reset_s_at_end_turn(self):
+        """
+        Whether longitudinal position ``s`` is reset at the end of each turn.
+
+        Default is ``True``.
+
+        Returns
+        -------
+        reset : bool
+            ``True`` to reset ``s`` at end turn, ``False`` to keep cumulative ``s``.
+        """
         return self._extra_config['reset_s_at_end_turn']
 
     @reset_s_at_end_turn.setter
     def reset_s_at_end_turn(self, value):
         self._extra_config['reset_s_at_end_turn'] = value
 
-    @property
+    @property_with_doc_group("Tracking and Analysis")
     def matrix_responsiveness_tol(self):
+        """
+        Responsiveness tolerance used in finite-difference matrix computations.
+
+        Returns
+        -------
+        tol : float
+            Responsiveness tolerance.
+        """
         return self._extra_config['matrix_responsiveness_tol']
 
     @matrix_responsiveness_tol.setter
     def matrix_responsiveness_tol(self, value):
         self._extra_config['matrix_responsiveness_tol'] = value
 
-    @property
+    @property_with_doc_group("Tracking and Analysis")
     def matrix_stability_tol(self):
+        """
+        Stability tolerance used in finite-difference matrix computations.
+
+        Returns
+        -------
+        tol : float
+            Stability tolerance.
+        """
         return self._extra_config['matrix_stability_tol']
 
     @matrix_stability_tol.setter
@@ -4630,8 +6921,16 @@ class Line:
     def _needs_rng(self, value):
         self._extra_config['_needs_rng'] = value
 
-    @property
+    @property_with_doc_group("Tracking and Analysis")
     def enable_time_dependent_vars(self):
+        """
+        Flag controlling updates of time-dependent variables during tracking.
+
+        Returns
+        -------
+        enabled : bool
+            ``True`` to enable time-dependent variable updates, ``False`` otherwise.
+        """
         return self._extra_config['enable_time_dependent_vars']
 
     @enable_time_dependent_vars.setter
@@ -4639,8 +6938,16 @@ class Line:
         assert value in (True, False)
         self._extra_config['enable_time_dependent_vars'] = value
 
-    @property
+    @property_with_doc_group("Tracking and Analysis")
     def dt_update_time_dependent_vars(self):
+        """
+        Time interval between updates of time-dependent variables.
+
+        Returns
+        -------
+        dt : float
+            Update interval in seconds.
+        """
         return self._extra_config['dt_update_time_dependent_vars']
 
     @dt_update_time_dependent_vars.setter
@@ -4655,19 +6962,43 @@ class Line:
     def _t_last_update_time_dependent_vars(self, value):
         self._extra_config['_t_last_update_time_dependent_vars'] = value
 
-    @property
+    @property_with_doc_group("Tracking and Analysis")
     def time_last_track(self):
+        """
+        Execution time of the most recent ``track(...)`` call.
+
+        Returns
+        -------
+        dt : float
+            Elapsed tracking time in seconds.
+        """
         self._check_valid_tracker()
         return self.tracker.time_last_track
 
-    @property
+    @property_with_doc_group("Tracking and Analysis")
     def twiss_default(self):
+        """
+        Default options used by Twiss-related computations.
+
+        Returns
+        -------
+        twiss_default : dict
+            Dictionary of default keyword values used by Twiss methods.
+        """
         return self._extra_config['twiss_default']
 
-    @property
+    @property_with_doc_group("Tracking and Analysis")
     def energy_program(self):
+        """
+        Reference energy program to be followed during the simulation.
+
+        Returns
+        -------
+        energy_program : EnergyProgram or None
+            Attached energy program, or ``None`` if not set.
+        """
         try:
-            out = self.element_dict['energy_program']
+            out = self._element_dict['energy_program']
         except KeyError:
             out = None
         return out
@@ -4675,59 +7006,117 @@ class Line:
     @energy_program.setter
     def energy_program(self, value):
         if value is None:
-            if 'energy_program' in self.element_dict:
-                del self.element_dict['energy_program']
+            if 'energy_program' in self._element_dict:
+                del self._element_dict['energy_program']
             return
-        self.element_dict['energy_program'] = value
+        self.env.elements['energy_program'] = value
         assert self.vars is not None, (
             'Xdeps expression need to be enabled to use `energy_program`')
         if self.energy_program.needs_complete:
             self.energy_program.complete_init(self)
         self.energy_program.line = self
-        self.element_refs['energy_program'].t_turn_s_line = self.vars['t_turn_s']
+        self._xdeps_eref['energy_program'].t_turn_s_line = self.vars['t_turn_s']
 
-    @property
+    @property_with_doc_group("Matching and Corrections")
     def steering_monitors_x(self):
+        """
+        Names of horizontal trajectory monitors used by trajectory correction.
+
+        Any element can be used as a monitor.
+
+        Returns
+        -------
+        names : list of str or None
+            Horizontal monitor names, or ``None`` if not configured.
+        """
         return self._extra_config.get('steering_monitors_x', None)
 
     @steering_monitors_x.setter
     def steering_monitors_x(self, value):
         self._extra_config['steering_monitors_x'] = value
 
-    @property
+    @property_with_doc_group("Matching and Corrections")
     def steering_monitors_y(self):
+        """
+        Names of vertical trajectory monitors used by trajectory correction.
+
+        Any element can be used as a monitor.
+
+        Returns
+        -------
+        names : list of str or None
+            Vertical monitor names, or ``None`` if not configured.
+        """
         return self._extra_config.get('steering_monitors_y', None)
 
     @steering_monitors_y.setter
     def steering_monitors_y(self, value):
         self._extra_config['steering_monitors_y'] = value
 
-    @property
+    @property_with_doc_group("Matching and Corrections")
     def steering_correctors_x(self):
+        """
+        Names of horizontal steering correctors used by trajectory correction.
+
+        Any element with ``knl``/``ksl`` can be used as a corrector.
+
+        Returns
+        -------
+        names : list of str or None
+            Horizontal steering-corrector names, or ``None`` if not configured.
+        """
         return self._extra_config.get('steering_correctors_x', None)
 
     @steering_correctors_x.setter
     def steering_correctors_x(self, value):
         self._extra_config['steering_correctors_x'] = value
 
-    @property
+    @property_with_doc_group("Matching and Corrections")
     def steering_correctors_y(self):
+        """
+        Names of vertical steering correctors used by trajectory correction.
+
+        Any element with ``knl``/``ksl`` can be used as a corrector.
+
+        Returns
+        -------
+        names : list of str or None
+            Vertical steering-corrector names, or ``None`` if not configured.
+        """
         return self._extra_config.get('steering_correctors_y', None)
 
     @steering_correctors_y.setter
     def steering_correctors_y(self, value):
         self._extra_config['steering_correctors_y'] = value
 
-    @property
+    @property_with_doc_group("Matching and Corrections")
     def corrector_limits_x(self):
+        """
+        Horizontal steering-corrector limits used by trajectory correction.
+
+        Returns
+        -------
+        limits : tuple of 2 floats or None
+            Lower and upper limits for horizontal steering correctors, or ``None``
+            if no limits are set.
+        """
         return self._extra_config.get('corrector_limits_x', None)
 
     @corrector_limits_x.setter
     def corrector_limits_x(self, value):
         self._extra_config['corrector_limits_x'] = value
 
-    @property
+    @property_with_doc_group("Matching and Corrections")
     def corrector_limits_y(self):
+        """
+        Vertical steering-corrector limits used by trajectory correction.
+
+        Returns
+        -------
+        limits : tuple of 2 floats or None
+            Lower and upper limits for vertical steering correctors, or ``None``
+            if no limits are set.
+        """
         return self._extra_config.get('corrector_limits_y', None)
 
     @corrector_limits_y.setter
@@ -4738,20 +7127,19 @@ class Line:
         if np.issubdtype(key.__class__, np.integer):
             key = self.element_names[key]
         assert isinstance(key, str)
-        if key in self.element_dict:
-            if self.element_refs is None:
-                return self.element_dict[key]
-            return xd.madxutils.View(
-                self.element_dict[key], self.element_refs[key],
+        if key in self._element_dict:
+            if self.ref_manager is None:
+                return self._element_dict[key]
+            return xt.view.View(
+                self._element_dict[key], self._xdeps_eref[key],
                 evaluator=self._xdeps_eval.eval)
         elif key in self.vars:
-            return self.vv[key]
-        elif hasattr(self, 'lines') and key in self.lines: # Want to reuse the method for the env
-            return self.lines[key]
-        elif "::" in key and (env_name := key.split("::")[0]) in self.element_dict:
+            return self.vars.val[key]
+        elif "::" in key and (env_name := key.split("::")[0]) in self._element_dict:
             return self[env_name]
         else:
             raise KeyError(f'Name {key} not found')
+
 
     def __setitem__(self, key, value):
 
@@ -4760,7 +7148,7 @@ class Line:
             # Would need to make sure they refer to the same environment
 
         if np.isscalar(value) or xd.refs.is_ref(value):
-            if key in self.element_dict:
+            if key in self._element_dict:
                 raise ValueError(f'There is already an element with name {key}')
             self.vars[key] = value
         else:
@@ -4774,14 +7162,21 @@ class Line:
             out = Line.__new__(Line)
             out.__dict__.update(self.__dict__)
 
-            # Change the element dict (beware of the element_dict property)
-            out._element_dict = self.tracker._element_dict_non_collective
-
             # Shallow copy of the tracker
             out.tracker = self.tracker.__new__(self.tracker.__class__)
             out.tracker.__dict__.update(self.tracker.__dict__)
             out.tracker.iscollective = False
             out.tracker.line = out
+
+            # Shallow copy of the environment
+            out.env = self.env.__new__(self.env.__class__)
+            out.env.__dict__.update(self.env.__dict__)
+
+            # Change the element dict (beware of the element_dict property
+            # and of ef the env.elements container
+            out.env._element_dict = self.tracker._element_dict_non_collective
+            out.env._elements = xt.environment.EnvElements(out.env)
+            out.env._lines_weakrefs.add(out)
 
             return out
 
@@ -4789,121 +7184,160 @@ class Line:
         cache = LineAttr(
             line=self,
             fields={
-                'delta_taper': None, 'ks': None,
-                'voltage': None, 'frequency': None, 'lag': None,
-                'lag_taper': None,
+                'delta_taper': AttrDefinition(name='delta_taper'),
 
-                'weight': None,
+                'weight': AttrDefinition(name='weight'),
 
-                '_own_length': 'length',
+                '_own_length': AttrDefinition(name='length'),
 
-                '_own_sin_rot_s': '_sin_rot_s',
-                '_own_cos_rot_s': '_cos_rot_s',
-                '_own_shift_x': '_shift_x',
-                '_own_shift_y': '_shift_y',
-                '_own_shift_s': '_shift_s',
+                '_own_rot_s_rad': AttrDefinition(name='rot_s_rad'),
+                '_own_shift_x': AttrDefinition(name='shift_x'),
+                '_own_shift_y': AttrDefinition(name='shift_y'),
+                '_own_shift_s': AttrDefinition(name='shift_s'),
 
-                '_own_h': 'h',
-                '_own_hxl': 'hxl',
+                '_own_h': AttrDefinition(name='h'),
+                '_own_hxl': AttrDefinition(name='hxl'),
 
-                '_own_radiation_flag': 'radiation_flag',
+                '_own_voltage': AttrDefinition(name='voltage'),
+                '_own_lag': AttrDefinition(name='lag'),
+                '_own_phase': AttrDefinition(name='phase'),
+                '_own_lag_taper': AttrDefinition(name='lag_taper'),
+                '_own_phase_taper': AttrDefinition(name='phase_taper'),
+                '_own_frequency': AttrDefinition(name='frequency'),
+                '_own_harmonic': AttrDefinition(name='harmonic'),
 
-                '_own_k0': 'k0',
-                '_own_k1': 'k1',
-                '_own_k2': 'k2',
-                '_own_k3': 'k3',
-                '_own_k4': 'k4',
-                '_own_k5': 'k5',
+                '_own_radiation_flag': AttrDefinition(name='radiation_flag', dtype=np.int64),
 
-                '_own_k0s': 'k0s',
-                '_own_k1s': 'k1s',
-                '_own_k2s': 'k2s',
-                '_own_k3s': 'k3s',
-                '_own_k4s': 'k4s',
-                '_own_k5s': 'k5s',
+                '_own_ks': AttrDefinition(name='ks'),
+                '_own_ks_profile_0': AttrDefinition(name='ks_profile', index=0),
+                '_own_ks_profile_1': AttrDefinition(name='ks_profile', index=1),
+                '_own_bs_mean': AttrDefinition(name='bs', index=4),
+                '_own_scale_b': AttrDefinition(name='scale_b'),
 
-                '_own_k0l': ('knl', 0),
-                '_own_k1l': ('knl', 1),
-                '_own_k2l': ('knl', 2),
-                '_own_k3l': ('knl', 3),
-                '_own_k4l': ('knl', 4),
-                '_own_k5l': ('knl', 5),
+                '_own_k0': AttrDefinition(name='k0'),
+                '_own_k1': AttrDefinition(name='k1'),
+                '_own_k2': AttrDefinition(name='k2'),
+                '_own_k3': AttrDefinition(name='k3'),
+                '_own_k4': AttrDefinition(name='k4'),
+                '_own_k5': AttrDefinition(name='k5'),
 
-                '_own_k0sl': ('ksl', 0),
-                '_own_k1sl': ('ksl', 1),
-                '_own_k2sl': ('ksl', 2),
-                '_own_k3sl': ('ksl', 3),
-                '_own_k4sl': ('ksl', 4),
-                '_own_k5sl': ('ksl', 5),
+                '_own_k0s': AttrDefinition(name='k0s'),
+                '_own_k1s': AttrDefinition(name='k1s'),
+                '_own_k2s': AttrDefinition(name='k2s'),
+                '_own_k3s': AttrDefinition(name='k3s'),
+                '_own_k4s': AttrDefinition(name='k4s'),
+                '_own_k5s': AttrDefinition(name='k5s'),
 
-                # Handling of reference frame transformations
-                # (XYShift, XRotation, YRotation, SRotation)
-                # TODO: The dx, dy, etc labels come from the element level and should possibly be changed
-                '_own_ref_shift_x':         'dx',
-                '_own_ref_shift_y':         'dy',
-                '_own_ref_rot_sin_angle':   'sin_angle',
-                '_own_ref_rot_cos_angle':   'cos_angle',
-                '_own_ref_rot_sin_z':       'sin_z',
-                '_own_ref_rot_cos_z':       'cos_z',
+                '_own_k0l': AttrDefinition(name='knl', index=0),
+                '_own_k1l': AttrDefinition(name='knl', index=1),
+                '_own_k2l': AttrDefinition(name='knl', index=2),
+                '_own_k3l': AttrDefinition(name='knl', index=3),
+                '_own_k4l': AttrDefinition(name='knl', index=4),
+                '_own_k5l': AttrDefinition(name='knl', index=5),
 
-                '_parent_length': (('_parent', 'length'), None),
-                '_parent_sin_rot_s': (('_parent', '_sin_rot_s'), None),
-                '_parent_cos_rot_s': (('_parent', '_cos_rot_s'), None),
-                '_parent_shift_x': (('_parent', '_shift_x'), None),
-                '_parent_shift_y': (('_parent', '_shift_y'), None),
-                '_parent_shift_s': (('_parent', '_shift_s'), None),
+                '_own_k0sl': AttrDefinition(name='ksl', index=0),
+                '_own_k1sl': AttrDefinition(name='ksl', index=1),
+                '_own_k2sl': AttrDefinition(name='ksl', index=2),
+                '_own_k3sl': AttrDefinition(name='ksl', index=3),
+                '_own_k4sl': AttrDefinition(name='ksl', index=4),
+                '_own_k5sl': AttrDefinition(name='ksl', index=5),
 
-                '_parent_h': (('_parent', 'h'), None),
-                '_parent_hxl': (('_parent', 'hxl'), None),
-                '_parent_rbend_model': (('_parent', 'rbend_model'), None),
+                '_own_k0l_rel': AttrDefinition(name='knl_rel', index=0),
+                '_own_k1l_rel': AttrDefinition(name='knl_rel', index=1),
+                '_own_k2l_rel': AttrDefinition(name='knl_rel', index=2),
+                '_own_k3l_rel': AttrDefinition(name='knl_rel', index=3),
+                '_own_k4l_rel': AttrDefinition(name='knl_rel', index=4),
+                '_own_k5l_rel': AttrDefinition(name='knl_rel', index=5),
 
-                '_parent_radiation_flag': (('_parent', 'radiation_flag'), None),
+                '_own_k0sl_rel': AttrDefinition(name='ksl_rel', index=0),
+                '_own_k1sl_rel': AttrDefinition(name='ksl_rel', index=1),
+                '_own_k2sl_rel': AttrDefinition(name='ksl_rel', index=2),
+                '_own_k3sl_rel': AttrDefinition(name='ksl_rel', index=3),
+                '_own_k4sl_rel': AttrDefinition(name='ksl_rel', index=4),
+                '_own_k5sl_rel': AttrDefinition(name='ksl_rel', index=5),
 
-                '_parent_k0': (('_parent', 'k0'), None),
-                '_parent_k1': (('_parent', 'k1'), None),
-                '_parent_k2': (('_parent', 'k2'), None),
-                '_parent_k3': (('_parent', 'k3'), None),
-                '_parent_k4': (('_parent', 'k4'), None),
-                '_parent_k5': (('_parent', 'k5'), None),
+                '_own_main_order': AttrDefinition(name='main_order', dtype=np.int32),
+                '_own_main_is_skew': AttrDefinition(name='main_is_skew', dtype=np.int32),
 
-                '_parent_k0s': (('_parent', 'k0s'), None),
-                '_parent_k1s': (('_parent', 'k1s'), None),
-                '_parent_k2s': (('_parent', 'k2s'), None),
-                '_parent_k3s': (('_parent', 'k3s'), None),
-                '_parent_k4s': (('_parent', 'k4s'), None),
-                '_parent_k5s': (('_parent', 'k5s'), None),
+                '_parent_length': AttrDefinition(name=('_parent', 'length')),
+                '_parent_rot_s_rad': AttrDefinition(name=('_parent', 'rot_s_rad')),
+                '_parent_shift_x': AttrDefinition(name=('_parent', 'shift_x')),
+                '_parent_shift_y': AttrDefinition(name=('_parent', 'shift_y')),
+                '_parent_shift_s': AttrDefinition(name=('_parent', 'shift_s')),
 
-                '_parent_k0l': (('_parent', 'knl'), 0),
-                '_parent_k1l': (('_parent', 'knl'), 1),
-                '_parent_k2l': (('_parent', 'knl'), 2),
-                '_parent_k3l': (('_parent', 'knl'), 3),
-                '_parent_k4l': (('_parent', 'knl'), 4),
-                '_parent_k5l': (('_parent', 'knl'), 5),
+                '_parent_h': AttrDefinition(name=('_parent', 'h')),
+                '_parent_hxl': AttrDefinition(name=('_parent', 'hxl')),
+                '_parent_rbend_model': AttrDefinition(name=('_parent', 'rbend_model'), dtype=np.int64),
+                '_parent_rbend_angle_diff': AttrDefinition(name=('_parent', 'rbend_angle_diff')),
 
-                '_parent_k0sl': (('_parent', 'ksl'), 0),
-                '_parent_k1sl': (('_parent', 'ksl'), 1),
-                '_parent_k2sl': (('_parent', 'ksl'), 2),
-                '_parent_k3sl': (('_parent', 'ksl'), 3),
-                '_parent_k4sl': (('_parent', 'ksl'), 4),
-                '_parent_k5sl': (('_parent', 'ksl'), 5),
+                '_parent_voltage': AttrDefinition(name=('_parent', 'voltage')),
+                '_parent_lag': AttrDefinition(name=('_parent', 'lag')),
+                '_parent_phase': AttrDefinition(name=('_parent', 'phase')),
+                '_parent_lag_taper': AttrDefinition(name=('_parent', 'lag_taper')),
+                '_parent_phase_taper': AttrDefinition(name=('_parent', 'phase_taper')),
+                '_parent_frequency': AttrDefinition(name=('_parent', 'frequency')),
+                '_parent_harmonic': AttrDefinition(name=('_parent', 'harmonic')),
 
-                # Handling of reference frame transformations
-                # (XYShift, XRotation, YRotation, SRotation)
-                # TODO: The dx, dy, etc labels come from the element level and should possibly be changed
-                '_parent_ref_shift_x': (('_parent', 'dx'), None),
-                '_parent_ref_shift_y': (('_parent', 'dy'), None),
-                '_parent_ref_rot_sin_angle': (('_parent', 'sin_angle'), None),
-                '_parent_ref_rot_cos_angle': (('_parent', 'cos_angle'), None),
-                '_parent_ref_rot_sin_z': (('_parent', 'sin_z'), None),
-                '_parent_ref_rot_cos_z': (('_parent', 'cos_z'), None),
+                '_parent_radiation_flag': AttrDefinition(name=('_parent', 'radiation_flag'), dtype=np.int64),
+
+                '_parent_ks': AttrDefinition(name=('_parent', 'ks')),
+
+                '_parent_k0': AttrDefinition(name=('_parent', 'k0')),
+                '_parent_k1': AttrDefinition(name=('_parent', 'k1')),
+                '_parent_k2': AttrDefinition(name=('_parent', 'k2')),
+                '_parent_k3': AttrDefinition(name=('_parent', 'k3')),
+                '_parent_k4': AttrDefinition(name=('_parent', 'k4')),
+                '_parent_k5': AttrDefinition(name=('_parent', 'k5')),
+
+                '_parent_k0s': AttrDefinition(name=('_parent', 'k0s')),
+                '_parent_k1s': AttrDefinition(name=('_parent', 'k1s')),
+                '_parent_k2s': AttrDefinition(name=('_parent', 'k2s')),
+                '_parent_k3s': AttrDefinition(name=('_parent', 'k3s')),
+                '_parent_k4s': AttrDefinition(name=('_parent', 'k4s')),
+                '_parent_k5s': AttrDefinition(name=('_parent', 'k5s')),
+
+                '_parent_k0l': AttrDefinition(name=('_parent', 'knl'), index=0),
+                '_parent_k1l': AttrDefinition(name=('_parent', 'knl'), index=1),
+                '_parent_k2l': AttrDefinition(name=('_parent', 'knl'), index=2),
+                '_parent_k3l': AttrDefinition(name=('_parent', 'knl'), index=3),
+                '_parent_k4l': AttrDefinition(name=('_parent', 'knl'), index=4),
+                '_parent_k5l': AttrDefinition(name=('_parent', 'knl'), index=5),
+
+                '_parent_k0sl': AttrDefinition(name=('_parent', 'ksl'), index=0),
+                '_parent_k1sl': AttrDefinition(name=('_parent', 'ksl'), index=1),
+                '_parent_k2sl': AttrDefinition(name=('_parent', 'ksl'), index=2),
+                '_parent_k3sl': AttrDefinition(name=('_parent', 'ksl'), index=3),
+                '_parent_k4sl': AttrDefinition(name=('_parent', 'ksl'), index=4),
+                '_parent_k5sl': AttrDefinition(name=('_parent', 'ksl'), index=5),
+
+                '_parent_k0l_rel': AttrDefinition(name=('_parent', 'knl_rel'), index=0),
+                '_parent_k1l_rel': AttrDefinition(name=('_parent', 'knl_rel'), index=1),
+                '_parent_k2l_rel': AttrDefinition(name=('_parent', 'knl_rel'), index=2),
+                '_parent_k3l_rel': AttrDefinition(name=('_parent', 'knl_rel'), index=3),
+                '_parent_k4l_rel': AttrDefinition(name=('_parent', 'knl_rel'), index=4),
+                '_parent_k5l_rel': AttrDefinition(name=('_parent', 'knl_rel'), index=5),
+
+                '_parent_k0sl_rel': AttrDefinition(name=('_parent', 'ksl_rel'), index=0),
+                '_parent_k1sl_rel': AttrDefinition(name=('_parent', 'ksl_rel'), index=1),
+                '_parent_k2sl_rel': AttrDefinition(name=('_parent', 'ksl_rel'), index=2),
+                '_parent_k3sl_rel': AttrDefinition(name=('_parent', 'ksl_rel'), index=3),
+                '_parent_k4sl_rel': AttrDefinition(name=('_parent', 'ksl_rel'), index=4),
+                '_parent_k5sl_rel': AttrDefinition(name=('_parent', 'ksl_rel'), index=5),
+
+                '_parent_main_order': AttrDefinition(name=('_parent', 'main_order'), dtype=np.int32 ),
+                '_parent_main_is_skew': AttrDefinition(name=('_parent', 'main_is_skew'), dtype=np.int32 ),
 
             },
             derived_fields={
                 'length': lambda attr:
                     attr['_own_length'] + attr['_parent_length'] * attr['weight'],
                 '_angle_force_body': _angle_force_body_from_attr,
-                'angle_rad': _angle_rbend_correction_from_attr,
-                'rot_s_rad': _rot_s_from_attr,
+                'angle': _angle_rbend_correction_from_attr,
+                'angle_rad': _angle_rbend_correction_from_attr, # deprecated
+                '_main_strength': _main_strength_from_attr,
+                'rot_s_rad': lambda attr:
+                    attr['_own_rot_s_rad'] + attr['_parent_rot_s_rad']
+                    * attr._rot_and_shift_from_parent,
                 'shift_x': lambda attr:
                     attr['_own_shift_x'] + attr['_parent_shift_x']
                     * attr._rot_and_shift_from_parent,
@@ -4913,83 +7347,118 @@ class Line:
                 'shift_s': lambda attr:
                     attr['_own_shift_s'] + attr['_parent_shift_s']
                     * attr._rot_and_shift_from_parent,
+                'voltage': lambda attr:
+                    attr['_own_voltage'] + attr['_parent_voltage'] * attr['weight'] * attr._inherit_strengths,
+                'lag': lambda attr:
+                    attr['_own_lag'] + attr['_parent_lag'] * attr._inherit_strengths,
+                'phase': lambda attr:
+                    attr['_own_phase'] + attr['_parent_phase'] * attr._inherit_strengths,
+                'lag_taper': lambda attr:
+                    attr['_own_lag_taper'] + attr['_parent_lag_taper'] * attr._inherit_strengths,
+                'phase_taper': lambda attr:
+                    attr['_own_phase_taper'] + attr['_parent_phase_taper'] * attr._inherit_strengths,
+                'frequency': lambda attr:
+                    attr['_own_frequency'] + attr['_parent_frequency'] * attr._inherit_strengths,
+                'harmonic': lambda attr:
+                    attr['_own_harmonic'] + attr['_parent_harmonic'] * attr._inherit_strengths,
                 'radiation_flag': lambda attr:
                     attr['_own_radiation_flag'] * (attr['_own_radiation_flag'] != ID_RADIATION_FROM_PARENT)
                   + attr['_parent_radiation_flag'] * (attr['_own_radiation_flag'] == ID_RADIATION_FROM_PARENT),
-                'k0l': lambda attr: (
+                '_k0l_no_rel': lambda attr: (
                     attr['_own_k0l']
                     + attr['_own_k0'] * attr['_own_length']
                     + attr['_parent_k0l'] * attr['weight'] * attr._inherit_strengths
                     + attr['_parent_k0'] * attr['_parent_length'] * attr['weight'] * attr._inherit_strengths),
-                'k0sl': lambda attr: (
+                '_k0l_rel': lambda attr: attr['_own_k0l_rel'] + attr['_parent_k0l_rel'],
+                'k0l': lambda attr: attr['_k0l_no_rel'] + attr['_k0l_rel'] * attr['_main_strength'],
+                '_k0sl_no_rel': lambda attr: (
                     attr['_own_k0sl']
                     + attr['_own_k0s'] * attr['_own_length']
                     + attr['_parent_k0sl'] * attr['weight']* attr._inherit_strengths
                     + attr['_parent_k0s'] * attr['_parent_length'] * attr['weight'] * attr._inherit_strengths),
-                'k1l': lambda attr: (
+                '_k0sl_rel': lambda attr: attr['_own_k0sl_rel'] + attr['_parent_k0sl_rel'],
+                'k0sl': lambda attr: attr['_k0sl_no_rel'] + attr['_k0sl_rel'] * attr['_main_strength'],
+                '_k1l_no_rel': lambda attr: (
                     attr['_own_k1l']
                     + attr['_own_k1'] * attr['_own_length']
                     + attr['_parent_k1l'] * attr['weight'] * attr._inherit_strengths
                     + attr['_parent_k1'] * attr['_parent_length'] * attr['weight']* attr._inherit_strengths),
-                'k1sl': lambda attr: (
+                '_k1l_rel': lambda attr: attr['_own_k1l_rel'] + attr['_parent_k1l_rel'],
+                'k1l': lambda attr: attr['_k1l_no_rel'] + attr['_k1l_rel'] * attr['_main_strength'],
+                '_k1sl_no_rel': lambda attr: (
                     attr['_own_k1sl']
                     + attr['_own_k1s'] * attr['_own_length']
                     + attr['_parent_k1sl'] * attr['weight'] * attr._inherit_strengths
                     + attr['_parent_k1s'] * attr['_parent_length'] * attr['weight'] * attr._inherit_strengths),
-                'k2l': lambda attr: (
+                '_k1sl_rel': lambda attr: attr['_own_k1sl_rel'] + attr['_parent_k1sl_rel'],
+                'k1sl': lambda attr: attr['_k1sl_no_rel'] + attr['_k1sl_rel'] * attr['_main_strength'],
+                '_k2l_no_rel': lambda attr: (
                     attr['_own_k2l']
                     + attr['_own_k2'] * attr['_own_length']
                     + attr['_parent_k2l'] * attr['weight'] * attr._inherit_strengths
                     + attr['_parent_k2'] * attr['_parent_length'] * attr['weight'] * attr._inherit_strengths),
-                'k2sl': lambda attr: (
+                '_k2l_rel': lambda attr: attr['_own_k2l_rel'] + attr['_parent_k2l_rel'],
+                'k2l': lambda attr: attr['_k2l_no_rel'] + attr['_k2l_rel'] * attr['_main_strength'],
+                '_k2sl_no_rel': lambda attr: (
                     attr['_own_k2sl']
                     + attr['_own_k2s'] * attr['_own_length']
                     + attr['_parent_k2sl'] * attr['weight'] * attr._inherit_strengths
                     + attr['_parent_k2s'] * attr['_parent_length'] * attr['weight'] * attr._inherit_strengths),
-                'k3l': lambda attr: (
+                '_k2sl_rel': lambda attr: attr['_own_k2sl_rel'] + attr['_parent_k2sl_rel'],
+                'k2sl': lambda attr: attr['_k2sl_no_rel'] + attr['_k2sl_rel'] * attr['_main_strength'],
+                '_k3l_no_rel': lambda attr: (
                     attr['_own_k3l']
                     + attr['_own_k3'] * attr['_own_length']
                     + attr['_parent_k3l'] * attr['weight'] * attr._inherit_strengths
                     + attr['_parent_k3'] * attr['_parent_length'] * attr['weight'] * attr._inherit_strengths),
-                'k3sl': lambda attr: (
+                '_k3l_rel': lambda attr: attr['_own_k3l_rel'] + attr['_parent_k3l_rel'],
+                'k3l': lambda attr: attr['_k3l_no_rel'] + attr['_k3l_rel'] * attr['_main_strength'],
+                '_k3sl_no_rel': lambda attr: (
                     attr['_own_k3sl']
                     + attr['_own_k3s'] * attr['_own_length']
                     + attr['_parent_k3sl'] * attr['weight'] * attr._inherit_strengths
                     + attr['_parent_k3s'] * attr['_parent_length'] * attr['weight'] * attr._inherit_strengths),
-                'k4l': lambda attr: (
+                '_k3sl_rel': lambda attr: attr['_own_k3sl_rel'] + attr['_parent_k3sl_rel'],
+                'k3sl': lambda attr: attr['_k3sl_no_rel'] + attr['_k3sl_rel'] * attr['_main_strength'],
+                '_k4l_no_rel': lambda attr: (
                     attr['_own_k4l']
                     + attr['_own_k4'] * attr['_own_length']
                     + attr['_parent_k4l'] * attr['weight'] * attr._inherit_strengths
                     + attr['_parent_k4'] * attr['_parent_length'] * attr['weight'] * attr._inherit_strengths),
-                'k4sl': lambda attr: (
+                '_k4l_rel': lambda attr: attr['_own_k4l_rel'] + attr['_parent_k4l_rel'],
+                'k4l': lambda attr: attr['_k4l_no_rel'] + attr['_k4l_rel'] * attr['_main_strength'],
+                '_k4sl_no_rel': lambda attr: (
                     attr['_own_k4sl']
                     + attr['_own_k4s'] * attr['_own_length']
                     + attr['_parent_k4sl'] * attr['weight'] * attr._inherit_strengths
                     + attr['_parent_k4s'] * attr['_parent_length'] * attr['weight'] * attr._inherit_strengths),
-                'k5l': lambda attr: (
+                '_k4sl_rel': lambda attr: attr['_own_k4sl_rel'] + attr['_parent_k4sl_rel'],
+                'k4sl': lambda attr: attr['_k4sl_no_rel'] + attr['_k4sl_rel'] * attr['_main_strength'],
+                '_k5l_no_rel': lambda attr: (
                     attr['_own_k5l']
                     + attr['_own_k5'] * attr['_own_length']
                     + attr['_parent_k5l'] * attr['weight'] * attr._inherit_strengths
                     + attr['_parent_k5'] * attr['_parent_length'] * attr['weight'] * attr._inherit_strengths),
-                'k5sl': lambda attr: (
+                '_k5l_rel': lambda attr: attr['_own_k5l_rel'] + attr['_parent_k5l_rel'],
+                'k5l': lambda attr: attr['_k5l_no_rel'] + attr['_k5l_rel'] * attr['_main_strength'],
+                '_k5sl_no_rel': lambda attr: (
                     attr['_own_k5sl']
                     + attr['_own_k5s'] * attr['_own_length']
                     + attr['_parent_k5sl'] * attr['weight'] * attr._inherit_strengths
                     + attr['_parent_k5s'] * attr['_parent_length'] * attr['weight'] * attr._inherit_strengths),
-                'hkick': lambda attr: attr["angle_rad"] - attr["k0l"],
+                '_k5sl_rel': lambda attr: attr['_own_k5sl_rel'] + attr['_parent_k5sl_rel'],
+                'k5sl': lambda attr: attr['_k5sl_no_rel'] + attr['_k5sl_rel'] * attr['_main_strength'],
+                'ks': lambda attr: (attr['_own_ks'] + attr['_parent_ks'] * attr._inherit_strengths
+                                    + 0.5 * (attr['_own_ks_profile_0'] + attr['_own_ks_profile_1'])),
+                'bs': lambda attr: attr['_own_bs_mean'] * attr['_own_scale_b'],
+                'hkick': lambda attr: attr["angle"] - attr["k0l"],
                 'vkick': lambda attr: attr["k0sl"],
-                'ref_shift_x': lambda attr: attr['_own_ref_shift_x'] + attr['_parent_ref_shift_x'],
-                'ref_shift_y': lambda attr: attr['_own_ref_shift_y'] + attr['_parent_ref_shift_y'],
-                'ref_rot_angle_rad': lambda attr: np.arctan2(
-                    attr['_own_ref_rot_sin_angle'] + attr['_parent_ref_rot_sin_angle'] +\
-                    attr['_own_ref_rot_sin_z'] + attr['_parent_ref_rot_sin_z'],
-                    attr['_own_ref_rot_cos_angle'] + attr['_parent_ref_rot_cos_angle'] +\
-                    attr['_own_ref_rot_cos_z'] + attr['_parent_ref_rot_cos_z']),
             }
         )
         return cache
 
-    def _insert_thin_elements_at_s(self, elements_to_insert, s_tol=0.5e-6):
+    def _insert_thin_elements_at_s(self, elements_to_insert, s_tol=0.5e-6,
+                                   with_progress=True):
 
         '''
         Example:
@@ -5001,113 +7470,40 @@ class Line:
         ]
 
         '''
+        self._method_incompatible_with_compose()
 
-        self._frozen_check()
+        env = self.env
+        insertions = []
+        for ins in elements_to_insert:
+            ss = ins[0]
+            this_ins = []
+            for nn, ee in ins[1]:
+                env.elements[nn] = ee
+                this_ins.append(nn)
+            insertions.append(env.place(this_ins, at=ss))
 
-        s_cuts = [ee[0] for ee in elements_to_insert]
-        s_cuts = np.sort(s_cuts)
-
-        self.cut_at_s(s_cuts, s_tol=s_tol)
-
-        tt_after_cut = self.get_table()
-
-        # Names for insertions
-        ele_name_insertions = []
-        for s_insert, ee in progress(elements_to_insert, desc="Locate insertion points"):
-            # Find element_name for insertion
-            ii_ins = np.where(tt_after_cut['s'] >= s_insert - s_tol)[0][0]
-            ele_name_insertions.append(tt_after_cut['name'][ii_ins])
-            assert np.abs(s_insert - tt_after_cut['s'][ii_ins]) < s_tol
-
-        # Add all elements to self.element_dict
-        for s_insert, ee in elements_to_insert:
-            for nn, el in ee:
-                assert nn not in self.element_dict
-                self.element_dict[nn] = el
-
-        # Insert elements
-        for i_ins, (s_insert, ee) in enumerate(
-                    progress(elements_to_insert, desc="Inserting elements")):
-            ele_name_ins = ele_name_insertions[i_ins]
-
-            if ele_name_ins not in self.element_names:
-                assert ele_name_ins == '_end_point'
-                insert_at = None
-            else:
-                insert_at = self.element_names.index(ele_name_ins)
-            for nn, el in ee:
-
-                assert el.isthick == False
-                if insert_at is None:
-                    self.element_names.append(nn)
-                else:
-                    self.element_names.insert(insert_at, nn)
-
-                if insert_at is not None:
-                    insert_at += 1
+        self.insert(insertions, with_progress=with_progress)
 
     def _insert_thick_elements_at_s(self, element_names, elements,
-                                    at_s, s_tol=1e-6):
+                                    at_s, s_tol=1e-6, with_progress=True):
+
+        self._method_incompatible_with_compose()
 
         assert isinstance(element_names, (list, tuple))
         assert isinstance(elements, (list, tuple))
         assert isinstance(at_s, (list, tuple, np.ndarray))
         assert len(element_names) == len(elements) == len(at_s)
 
-        self._frozen_check()
+        insertions = []
+        for nn, ee, ss in zip(element_names, elements, at_s):
+            if nn in self.env.elements:
+                self.remove(nn, s_tol=s_tol) # replaces it with a drift if needed
+                del self.env.elements[nn]
+            self.env.elements[nn] = ee
+            insertions.append(self.env.place(nn, at=ss, anchor='start'))
 
-        s_insert = np.array(at_s)
-        l_insert = np.array([_length(ee, None) for ee in elements])
-        ele_insert = list(elements).copy()
-        name_insert = list(element_names).copy()
-
-        end_insert = np.array(s_insert) + np.array(l_insert)
-
-        self.cut_at_s(list(s_insert) + list(end_insert))
-
-        i_sorted = np.argsort(s_insert)
-        s_insert_sorted = s_insert[i_sorted]
-        ele_insert_sorted = [ele_insert[i] for i in i_sorted]
-        name_insert_sorted = [name_insert[i] for i in i_sorted]
-        end_insert_sorted = end_insert[i_sorted]
-
-        assert np.all(s_insert_sorted[:-1] < end_insert_sorted[1:]), (
-                    'Overlapping insertions')
-
-        old_element_names = self.element_names
-
-        s_tol = 1e-6
-
-        s_vect_upstream = np.array(self.get_s_position(mode='upstream'))
-
-        i_replace = np.zeros(len(s_vect_upstream), dtype=int)
-        mask_remove = np.zeros(len(s_vect_upstream), dtype=bool)
-
-        i_replace[:] = -1
-
-        for ii in range(len(s_insert_sorted)):
-            ss_start = s_insert_sorted[ii]
-            ss_end = end_insert_sorted[ii]
-
-            i_first_removal = np.where(np.abs(s_vect_upstream - ss_start) < s_tol)[0][-1]
-            i_last_removal = np.where(np.abs(s_vect_upstream - ss_end) < s_tol)[0][0] - 1
-
-            i_replace[i_first_removal] = ii
-            mask_remove[i_first_removal+1:i_last_removal+1] = True
-
-        new_element_names = []
-        for ii, nn in enumerate(old_element_names):
-            if mask_remove[ii]:
-                continue
-            if i_replace[ii] != -1:
-                new_element_names.append(name_insert_sorted[i_replace[ii]])
-            else:
-                new_element_names.append(nn)
-
-        for new_nn, new_ee in zip(name_insert_sorted, ele_insert_sorted):
-            self.element_dict[new_nn] = new_ee
-
-        self.element_names = new_element_names
+        self.insert(
+            insertions, s_tol=s_tol, with_progress=with_progress)
 
     @property
     def _line_before_slicing(self):
@@ -5126,97 +7522,107 @@ class Line:
 
     def _replace_with_equivalent_elements(self):
 
+        self._method_incompatible_with_compose()
+
         self._frozen_check()
 
-        for nn in self.element_names:
-            ee = self.element_dict[nn]
-            if hasattr(ee, 'get_equivalent_element'):
-                new_ee = ee.get_equivalent_element()
-                self.element_dict[nn] = new_ee
+        with xt.environment._disable_name_clash_checks(self.env):
+            for nn in self.element_names:
+                ee = self._element_dict[nn]
+                if hasattr(ee, 'get_equivalent_element'):
+                    new_ee = ee.get_equivalent_element()
+                    self.env.elements[nn] = new_ee
 
     @property
     def _element_names_unique(self):
         if not self._has_valid_tracker():
             raise RuntimeError(
-                '`Line._element_names_unique` con only be called after `Line.build_tracker`')
+                '`Line._element_names_unique` can only be called after `Line.build_tracker`')
         return self.tracker._tracker_data_base._element_names_unique
 
-def frac(x):
-    return x % 1
+    def _method_incompatible_with_compose(self):
+        if self.mode == 'compose':
+            raise RuntimeError(
+                'This method is incompatible with the line in `compose` mode. '
+                'To exit the compose mode, use `line.end_compose()`.'
+            )
 
-def sinc(x):
-    return np.sinc(x / np.pi)
+    build_madng_model = doc_group("MAD-NG Integration")(build_madng_model)
+    discard_madng_model = doc_group("MAD-NG Integration")(discard_madng_model)
+    regen_madng_model = doc_group("MAD-NG Integration")(regen_madng_model)
+    madng_twiss = doc_group("MAD-NG Integration")(_tw_ng)
+    madng_survey = doc_group("MAD-NG Integration")(_survey_ng)
 
-class Functions:
 
-    _mathfunctions = dict(
-        sqrt = math.sqrt,
-        log = math.log,
-        log10 = math.log10,
-        exp = math.exp,
-        sin = math.sin,
-        cos = math.cos,
-        tan = math.tan,
-        asin = math.asin,
-        acos = math.acos,
-        atan = math.atan,
-        atan2 = math.atan2,
-        sinh = math.sinh,
-        cosh = math.cosh,
-        tanh = math.tanh,
-        sinc = sinc,
-        abs = math.fabs,
-        erf = math.erf,
-        erfc = math.erfc,
-        floor = math.floor,
-        ceil = math.ceil,
-        round = np.round,
-        frac = frac,
-    )
+class LineTable(Table):
+    """
+    Table returned by :meth:`xtrack.Line.get_table`.
 
-    def __init__(self):
-        object.__setattr__(self, '_funcs', {})
+    ``LineTable`` stores one row per line element plus the ``'_end_point'`` row.
+    It summarizes the line layout: element names, element types, longitudinal
+    positions, lengths, thickness flags, and optional element attributes.
+    """
 
-    def __setitem__(self, name, value):
-        self._funcs[name] = value
+    def __init__(self, data, *args, **kwargs):
+        """
+        Create a line table.
 
-    def __getitem__(self, name):
-        if name in self._funcs:
-            return self._funcs[name]
-        elif name in self._mathfunctions:
-            return self._mathfunctions[name]
-        else:
-            raise KeyError(f'Unknown function {name}')
+        Parameters
+        ----------
+        data : mapping
+            Mapping containing line-table columns. Typical columns include
+            ``name``, ``element_type``, ``s``, ``length``, ``isthick``, and
+            optional element attributes.
+        *args
+            Additional positional arguments passed to :class:`xtrack.Table`.
+        **kwargs
+            Additional keyword arguments passed to :class:`xtrack.Table`.
 
-    def __getattr__(self, name):
-        if name == '_funcs':
-            return object.__getattribute__(self, '_funcs')
-        try:
-            return self[name]
-        except KeyError:
-            raise AttributeError(f'Unknown function {name}')
+        Examples
+        --------
+        Build a compact line table:
 
-    def update(self, other):
-        self._funcs.update(other._funcs)
+        >>> import numpy as np
+        >>> from xtrack.line import LineTable
+        >>> tab = LineTable({
+        ...     "name": np.array(["mqf.1", "d1.1", "mb1.1", "_end_point"],
+        ...                      dtype=object),
+        ...     "element_type": np.array(["Quadrupole", "Drift", "Bend", ""],
+        ...                              dtype=object),
+        ...     "s": np.array([0.0, 0.3, 1.3, 4.3]),
+        ...     "length": np.array([0.3, 1.0, 3.0, 0.0]),
+        ...     "isthick": np.array([True, True, True, False]),
+        ... })
+        >>> tab
+        LineTable: 4 rows, 5 cols
+        name       element_type             s        length isthick
+        mqf.1      Quadrupole               0           0.3    True
+        d1.1       Drift                  0.3             1    True
+        mb1.1      Bend                   1.3             3    True
+        _end_point                        4.3             0   False
 
-    def to_dict(self):
-        fdict = {}
-        for kk, ff in self._funcs.items():
-            fdict[kk] = ff.to_dict()
-            fdict[kk]['__class__'] = ff.__class__.__name__
-        out = {'_funcs': fdict}
-        return out
+        Select columns or rows:
 
-    @classmethod
-    def from_dict(cls, dct):
-        _funcs = {}
-        for kk, ff in dct['_funcs'].items():
-            ffcls = getattr(xd, ff.pop('__class__'))
-            _funcs[kk] = ffcls.from_dict(ff)
-        out = cls()
-        out._funcs.update(_funcs)
-        return out
+        >>> tab.cols["s length"]
+        LineTable: 4 rows, 3 cols
+        name                   s        length
+        mqf.1                  0           0.3
+        d1.1                 0.3             1
+        mb1.1                1.3             3
+        _end_point           4.3             0
+        >>> tab.rows.match(element_type="Drift|Bend")
+        LineTable: 2 rows, 5 cols
+        name  element_type             s        length isthick
+        d1.1  Drift                  0.3             1    True
+        mb1.1 Bend                   1.3             3    True
+        """
+        super().__init__(data, *args, **kwargs)
 
+    # Messages to be shown when accessing deprecated fields
+    _DEPRECATED_FIELDS = {
+        'angle_rad': ('`angle_rad` is deprecated, please use `angle` instead'
+                      + DEPRECATION_INFO_PREP_1_0),
+    }
 
 def _deserialize_element(el, class_dict, _buffer):
     eldct = el.copy()
@@ -5227,24 +7633,41 @@ def _deserialize_element(el, class_dict, _buffer):
         return eltype.from_dict(eldct)
 
 def _is_simple_quadrupole(el):
-    if not isinstance(el, Multipole):
+    if not isinstance(el, Multipole) or el.isthick:
         return False
+    knl, ksl = el.get_total_knl_ksl()
     return (el.radiation_flag == 0
-            and (el.order == 1 or len(el.knl) == 2 or not any(el.knl[2:]))
-            and el.knl[0] == 0
-            and not any(el.ksl)
+            and (len(knl) <= 2 or not any(knl[2:]))
+            and knl[0] == 0
+            and not any(ksl)
             and not el.hxl
+            and not _has_transverse_rotation(el)
             and el.shift_x == 0 and el.shift_y == 0 and el.shift_s == 0
             and np.abs(el.rot_s_rad) < 1e-12)
 
 def _is_simple_dipole(el):
-    if not isinstance(el, Multipole):
+    if not isinstance(el, Multipole) or el.isthick:
         return False
+    knl, ksl = el.get_total_knl_ksl()
     return (el.radiation_flag == 0
-            and (el.order == 0 or len(el.knl) == 1 or not any(el.knl[1:]))
-            and not any(el.ksl)
+            and (len(knl) <= 1 or not any(knl[1:]))
+            and not any(ksl)
+            and not _has_transverse_rotation(el)
             and el.shift_x == 0 and el.shift_y == 0 and el.shift_s == 0
             and np.abs(el.rot_s_rad) < 1e-12)
+
+def _has_transverse_rotation(el):
+    return el.rot_x_rad != 0 or el.rot_y_rad != 0
+
+def _trim_common_trailing_zeros(knl, ksl):
+    last_nonzero = 0
+    for ii, vv in enumerate(knl):
+        if vv != 0:
+            last_nonzero = ii
+    for ii, vv in enumerate(ksl):
+        if vv != 0:
+            last_nonzero = max(last_nonzero, ii)
+    return knl[:last_nonzero + 1], ksl[:last_nonzero + 1]
 
 @contextmanager
 def freeze_longitudinal(tracker):
@@ -5270,6 +7693,8 @@ def mk_class_namespace(extra_classes):
     except ImportError:
         all_classes = element_classes + extra_classes
         log.warning("Xfields not installed")
+    if hasattr(xt, 'monitor_classes'):
+        all_classes += xt.monitor_classes
     try:
         import xcoll as xc
         all_classes += xc.element_classes
@@ -5289,7 +7714,7 @@ def _length(element, line):
     if hasattr(element, 'length'):
         return element.length
     assert hasattr(element, 'parent_name')
-    return line.element_dict[element.parent_name].length * element.weight
+    return line._element_dict[element.parent_name].length * element.weight
 
 def _is_drift(element, line):
     if isinstance(element, xt.Replica):
@@ -5494,6 +7919,15 @@ def _preserve_config(ln_or_trk):
         ln_or_trk.config.clear()
         ln_or_trk.config.update(config)
 
+@contextmanager
+def _preserve_track_flags(line):
+    old_flags = line.tracker.track_flags.flags.copy()
+    try:
+        yield
+    finally:
+        line.tracker.track_flags.flags.clear()
+        line.tracker.track_flags.flags.update(old_flags)
+
 
 @contextmanager
 def freeze_longitudinal(ln_or_trk):
@@ -5511,323 +7945,37 @@ def freeze_longitudinal(ln_or_trk):
 
 @contextmanager
 def _temp_knobs(line_or_trk, knobs: dict):
-    old_values = {kk: line_or_trk.vars[kk]._value for kk in knobs.keys()}
+    '''
+    Context manager to temporarily set knobs in a line or tracker.
+    The state of the knobs is restored after leaving the context.
+    '''
+
+    old_expr_or_val = {}
+    for kk, vv in knobs.items():
+        rr = line_or_trk.vars[kk]
+        if rr._expr is not None:
+            old_expr_or_val[kk] = rr._expr
+        else:
+            old_expr_or_val[kk] = rr._value
     try:
         for kk, vv in knobs.items():
             line_or_trk.vars[kk] = vv
         yield
     finally:
-        for kk, vv in old_values.items():
+        for kk, vv in old_expr_or_val.items():
             line_or_trk.vars[kk] = vv
 
-class _DefaultFactory:
-    def __init__(self, default):
-        self.default = default
 
-    def __call__(self):
-        return self.default
+Line.__doc_groups__ = _LINE_DOC_GROUP_COLLECTOR.collect(Line)
+Line.__doc_groups_ungrouped__ = _LINE_DOC_GROUP_COLLECTOR.validate(Line, strict=False)
 
-class LineVars:
-
-    def __init__(self, line):
-        self.line = line
-        if '__vary_default' not in self.line._xdeps_vref._owner.keys():
-            self.line._xdeps_vref._owner['__vary_default'] = {}
-        self.val = VarValues(self)
-        self.vars_to_update = WeakSet()
-
-    def keys(self):
-        if self.line._xdeps_vref is None:
-            raise RuntimeError(
-                f'Cannot access variables as the line has no xdeps manager')
-        out = list(self.line._xdeps_vref._owner.keys()).copy()
-        return out
-
-    def __iter__(self):
-        raise NotImplementedError('Use keys() method') # Untested
-        return self.line._xdeps_vref._owner.__iter__()
-
-    def update(self, *args, **kwargs):
-        default_to_zero = kwargs.pop('default_to_zero', None)
-        old_default_to_zero = self.default_to_zero
-        if default_to_zero is not None:
-            self.default_to_zero = default_to_zero
-        try:
-            if self.line._xdeps_vref is None:
-                raise RuntimeError(
-                    f'Cannot access variables as the line has no xdeps manager')
-            if len(args) > 0:
-                assert len(args) == 1, 'update expected at most 1 positional argument'
-                other = args[0]
-                for kk in other.keys():
-                    self[kk] = other[kk]
-            for kk, vv in kwargs.items():
-                self[kk] = vv
-        except Exception as ee:
-            if default_to_zero is not None:
-                self.default_to_zero = old_default_to_zero
-            raise ee
-        if default_to_zero is not None:
-            self.default_to_zero = old_default_to_zero
-
-    def load(
-            self,
-            file=None,
-            string=None,
-            format: Literal['json', 'madx', 'python'] = None,
-            timeout=5.,
-        ):
-
-        if isinstance(file, Path):
-            file = str(file)
-
-        if (file is None) == (string is None):
-            raise ValueError('Must specify either file or string, but not both')
-
-        FORMATS = {'json', 'madx', 'python'}
-        if string and format not in FORMATS:
-            raise ValueError(f'Format must be specified to be one of {FORMATS} when '
-                            f'using string input')
-
-        if format is None and file is not None:
-            if file.endswith('.json') or file.endswith('.json.gz'):
-                format = 'json'
-            elif file.endswith('.str') or file.endswith('.madx'):
-                format = 'madx'
-            elif file.endswith('.py'):
-                format = 'python'
-
-        if file and (file.startswith('http://') or file.startswith('https://')):
-            string = xt.general.read_url(file, timeout=timeout)
-            file = None
-
-        if format == 'json':
-            ddd = xt.json.load(file=file, string=string)
-            self.update(ddd, default_to_zero=True)
-        elif format == 'madx':
-            return self.load_madx(file, string)
-        elif format == 'python':
-            if string is not None:
-                raise NotImplementedError('Loading from string not implemented for python format')
-            env = xt.Environment()
-            env.call(file)
-            self.update(env.vars.get_table().to_dict(), default_to_zero=True)
-            return env
-
-    @property
-    def vary_default(self):
-        if self.line._xdeps_vref is None:
-            raise RuntimeError(
-                f'Cannot access variables as the line has no xdeps manager')
-        return self.line._xdeps_vref._owner['__vary_default']
-
-    def get_table(self, compact=True):
-        if self.line._xdeps_vref is None:
-            raise RuntimeError(
-                f'Cannot access variables as the line has no xdeps manager')
-        name = np.array([kk for kk in list(self.keys()) if kk != '__vary_default'], dtype=object)
-        value = np.array([self.line._xdeps_vref[kk]._value for kk in name])
-
-        if compact:
-            formatter = xd.refs.CompactFormatter(scope=None)
-            expr = []
-            for kk in name:
-                ee = self.line._xdeps_vref[kk]._expr
-                if ee is None:
-                    expr.append(None)
-                else:
-                    expr.append(ee._formatted(formatter))
-        else:
-            expr  = [self.line._xdeps_vref[str(kk)]._expr for kk in name]
-            for ii, ee in enumerate(expr):
-                if ee is not None:
-                    expr[ii] = str(ee)
-
-        expr = np.array(expr)
-
-        return VarsTable({'name': name, 'value': value, 'expr': expr})
-
-    def new_expr(self, expr):
-        return self.line._xdeps_eval.eval(expr)
-
-    def eval(self, expr):
-        expr_or_value = self.new_expr(expr)
-        if is_ref(expr_or_value):
-            return expr_or_value._get_value()
-        return expr_or_value
-
-    def info(self, var, limit=10):
-        return self[var]._info(limit=limit)
-
-    def get_expr(self, var):
-        return self[var]._expr
-
-    def __contains__(self, key):
-        if self.line._xdeps_vref is None:
-            raise RuntimeError(
-                f'Cannot access variables as the line has no xdeps manager')
-        return key in self.line._xdeps_vref._owner
-
-    def get_independent_vars(self):
-
-        """
-        Returns the list of independent variables in the line.
-        """
-
-        out = []
-        for kk in self.keys():
-            if self[kk]._expr is None:
-                out.append(kk)
-        return out
-
-    def __getitem__(self, key):
-        if key not in self: # uses __contains__ method
-            raise KeyError(f'Variable `{key}` not found')
-        return self.line._xdeps_vref[key]
-
-    def __setitem__(self, key, value):
-        if isinstance(value, str):
-            value = self.line._xdeps_eval.eval(value)
-        self.line._xdeps_vref[key] = value
-        for cc in self.vars_to_update:
-            cc[key] = value
-
-    def __getstate__(self):
-        out = self.__dict__.copy()
-        out['vars_to_update'] = None
-        return out
-
-    def __setstate__(self, state):
-        self.__dict__.update(state)
-        self.vars_to_update = WeakSet()
-
-    def set_from_madx_file(self, filename=None, string=None):
-
-        '''
-        Set variables veluas of expression from a MAD-X file.
-
-        Parameters
-        ----------
-        filename : str or list of str
-            Path to the MAD-X file(s) to load.
-        '''
-        loader = xt.mad_parser.MadxLoader(env=self.line)
-        if filename is not None:
-            assert string is None, 'Cannot specify both filename and string'
-            loader.load_file(filename)
-        elif string is not None:
-            assert filename is None, 'Cannot specify both filename and string'
-            loader.load_string(string)
-
-    def load_madx_optics_file(self, filename=None, string=None):
-        self.set_from_madx_file(filename, string)
-
-    load_madx = load_madx_optics_file
-
-    def load_json(self, filename):
-
-        with open(filename, 'r') as fid:
-            data = json.load(fid)
-
-        _old_default_to_zero = self.default_to_zero
-        self.default_to_zero = True
-        self.update(data)
-        self.default_to_zero = _old_default_to_zero
-
-    def target(self, tar, value, **kwargs):
-        action = ActionVars(self.line)
-        return xt.Target(action=action, tar=tar, value=value, **kwargs)
-
-    def __call__(self, *args, **kwargs):
-        _eval = self.line._xdeps_eval.eval
-        if len(args) > 0:
-            assert len(kwargs) == 0
-            assert len(args) == 1
-            if isinstance(args[0], str):
-                return self[args[0]]
-            elif isinstance(args[0], dict):
-                kwargs.update(args[0])
-            else:
-                raise ValueError('Invalid argument')
-        for kk in kwargs:
-            if isinstance(kwargs[kk], str):
-                self[kk] = _eval(kwargs[kk])
-            else:
-                self[kk] = kwargs[kk]
-
-    def set(self, name, value):
-        if isinstance(value, str):
-            self[name] = self.line._xdeps_eval.eval(value)
-        else:
-            self[name] = value
-
-    def get(self, name):
-        return self[name]._value
-
-    @property
-    def default_to_zero(self):
-        default_factory = self.line._xdeps_vref._owner.default_factory
-        if default_factory is None:
-            return False
-        return default_factory.default == 0
-
-    @default_to_zero.setter
-    def default_to_zero(self, value):
-        assert value in (True, False)
-        if value:
-            self.line._xdeps_vref._owner.default_factory = _DefaultFactory(0.)
-        else:
-            self.line._xdeps_vref._owner.default_factory = None
-
-class VarsTable(xd.Table):
-
-    def to_dict(self):
-        out = {}
-        for nn, ee, vv in zip(self['name'], self['expr'], self['value']):
-            if ee is not None:
-                out[nn] = ee
-            else:
-                out[nn] = vv
-        return out
-
-class ActionVars(Action):
-
-    def __init__(self, line):
-        self.line = line
-
-    def run(self, **kwargs):
-        return self.line._xdeps_vref._owner
-
-class ActionLine(Action):
-
-    def __init__(self, line):
-        self.line = line
-
-    def run(self):
-        return self.line
-
-class VarValues:
-
-    def __init__(self, vars):
-        self.vars = vars
-
-    def __getitem__(self, key):
-        return self.vars[key]._value
-
-    def __setitem__(self, key, value):
-        self.vars[key] = value
-
-    def get(self,key, default=0):
-        if key in self.vars:
-            return self.vars[key]._value
-        else:
-            return default
 
 class LineAttrItem:
 
-    def __init__(self, name, index=None, line=None):
+    def __init__(self, name, index=None, line=None, dtype=None):
         self.name = name
         self.index = index
+        self.dtype = dtype
 
         assert line is not None
         self.line = line
@@ -5838,37 +7986,68 @@ class LineAttrItem:
         line = self.line
         name = self.name
         index = self.index
+        dtype = self.dtype
 
+        if not hasattr(line.tracker._tracker_data_base, '_cache_prepare_multisetter_len'):
+            line.tracker._tracker_data_base._cache_prepare_multisetter_len = {}
+            line.tracker._tracker_data_base._cache_prepare_multisetter_has_name = {}
+        cache_len = line.tracker._tracker_data_base._cache_prepare_multisetter_len
+        cache_has_name = line.tracker._tracker_data_base._cache_prepare_multisetter_has_name
+
+        if isinstance(name, str):
+            nn0 = name
+        else:
+            assert isinstance(name, (list, tuple))
+            nn0 = name[0]
+
+        # I cache the list of elements that have nn0, not to loop on all the elements
+        # every time this function is called.
         all_names = line.element_names
+        if nn0 in cache_has_name:
+            has_nn0 = cache_has_name[nn0]
+        else:
+            has_nn0 =[]
+            for ii in range(len(all_names)):
+                nn = all_names[ii]
+                ee = line._element_dict[nn]
+                if isinstance(ee, xt.Replica):
+                    nn = ee.resolve(line, get_name=True)
+                    ee = line._element_dict[nn]
+                if hasattr(ee, nn0):
+                    has_nn0.append((ii, nn, ee))
+            cache_has_name[nn0] = has_nn0
+
         mask = np.zeros(len(all_names), dtype=bool)
         setter_names = []
-        for ii, nn in enumerate(all_names):
-            ee = line.element_dict[nn]
-            if isinstance(ee, xt.Replica):
-                nn = ee.resolve(line, get_name=True)
-                ee = line.element_dict[nn]
-            if isinstance(name, (list, tuple)):
+        for ii, nn, ee in has_nn0:
+            has_name = True
+            if isinstance(name, str):
+                inner_obj = ee
+                inner_name = name
+            else:
+                assert isinstance(name, (list, tuple))
                 inner_obj = ee
                 inner_name = name[-1]
-                has_name = True
                 for nn_inner in name[:-1]:
                     if not hasattr(inner_obj, nn_inner):
                         has_name = False
                         break
                     inner_obj = getattr(inner_obj, nn_inner)
-                if not has_name:
-                    continue
-            else:
-                inner_obj = ee
-                inner_name = name
-            if hasattr(inner_obj, '_xobject') and hasattr(inner_obj._xobject, inner_name):
-                if index is not None and index >= len(getattr(inner_obj, inner_name)):
-                    continue
+
+            if has_name and hasattr(inner_obj, '_xofields') and inner_name in inner_obj._xofields:
+                if index is not None:
+                    this_len = cache_len.get(tuple(name)+(nn,), None)
+                    if this_len is None:
+                        this_len = len(getattr(inner_obj, inner_name))
+                        cache_len[tuple(name)+(nn,)] = this_len
+                    if index >= this_len:
+                        continue
                 mask[ii] = True
                 setter_names.append(nn)
 
         multisetter = xt.MultiSetter(line=line, elements=setter_names,
-                                     field=name, index=index)
+                                     field=name, index=index, dtype=dtype,
+                                     skip_inconsistent_type_check=True)
         self.names = setter_names
         self._multisetter = multisetter
         self._mask = mask
@@ -5926,12 +8105,13 @@ class LineAttr:
         self.fields = fields
         self.derived_fields = derived_fields or {}
         self._cache = {}
+        self._value_cache = None
 
         # Build _inherit_strengths and _rot_and_shift_from_parent
         _inherit_strengths = np.zeros(len(line.element_names), dtype=np.float64)
         _rot_and_shift_from_parent = np.zeros(len(line.element_names), dtype=np.float64)
         for ii, nn in enumerate(line.element_names):
-            ee = line.element_dict[nn]
+            ee = line._element_dict[nn]
             if hasattr(ee, '_inherit_strengths') and ee._inherit_strengths:
                 _inherit_strengths[ii] = 1.
             if hasattr(ee, 'rot_and_shift_from_parent') and ee.rot_and_shift_from_parent:
@@ -5940,21 +8120,36 @@ class LineAttr:
         self._rot_and_shift_from_parent = _rot_and_shift_from_parent
 
         for fn, fa in zip(field_names, field_access):
-            if isinstance(fa, str):
-                access = fa
-                index = None
-            else:
-                access, index = fa
-            self._cache[fn] = LineAttrItem(name=access, index=index, line=line)
+            name=fa.name
+            index=fa.index
+            dtype=fa.dtype
+            self._cache[fn] = LineAttrItem(name=name, index=index, line=line, dtype=dtype)
 
     def __getitem__(self, key):
-        if key in self.derived_fields:
-            return self.derived_fields[key](self)
 
-        return self._cache[key].get_full_array()
+        if self._value_cache is not None and key in self._value_cache:
+            return self._value_cache[key]
+
+        if key in self.derived_fields:
+            out=  self.derived_fields[key](self)
+        else:
+            out = self._cache[key].get_full_array()
+
+        if self._value_cache is not None:
+            self._value_cache[key] = out
+
+        return out
 
     def keys(self):
         return list(self.derived_fields.keys()) + list(self.fields)
+
+    @contextmanager
+    def _cache_values(self):
+        self._value_cache = {}
+        try:
+            yield
+        finally:
+            self._value_cache = None
 
 
 class EnergyProgram:
@@ -6073,14 +8268,14 @@ class EnergyProgram:
 
         beta0 = self.get_beta0_at_t_s(t_s)
         circumference = self.line.get_length()
-        T_rev = circumference / (beta0 * clight)
-        out = 0.5 * (self.get_p0c_at_t_s(t_s + T_rev)
-                     - self.get_p0c_at_t_s(t_s - T_rev))
+        t_rev = circumference / (beta0 * clight)
+        out = 0.5 * (self.get_p0c_at_t_s(t_s + t_rev)
+                     - self.get_p0c_at_t_s(t_s - t_rev))
 
-        mask_zero_neg = t_s - T_rev < 0
+        mask_zero_neg = t_s - t_rev < 0
         if np.any(mask_zero_neg):
             out[mask_zero_neg] = (
-                self.get_p0c_at_t_s(t_s[mask_zero_neg] + T_rev[mask_zero_neg])
+                self.get_p0c_at_t_s(t_s[mask_zero_neg] + t_rev[mask_zero_neg])
                 - self.get_p0c_at_t_s(t_s[mask_zero_neg]))
 
         if ts_scalar:
@@ -6097,14 +8292,12 @@ class EnergyProgram:
         p0c = self.get_p0c_at_t_s(value)
         self.line.particle_ref.update_p0c_and_energy_deviations(
                                                     p0c=p0c, update_pxpy=True)
-
     def to_dict(self):
         assert not self.needs_complete, 'EnergyProgram not completed'
         return {
             '__class__': self.__class__.__name__,
             't_at_turn_interpolator': self.t_at_turn_interpolator.to_dict(),
             'p0c_interpolator': self.p0c_interpolator.to_dict()}
-
     @classmethod
     def from_dict(cls, dct):
         self = cls.__new__(cls)
@@ -6114,7 +8307,6 @@ class EnergyProgram:
                                         dct['p0c_interpolator'])
         self.needs_complete = False
         return self
-
     def copy(self, _context=None, _buffer=None, _offeset=None):
         return self.from_dict(self.to_dict())
 
@@ -6159,80 +8351,141 @@ def _angle_rbend_correction_from_attr(attr):
     # Retrieve element_type from tracker cache (remove _end_point)
     element_type = attr.line.tracker._tracker_data_base._line_table.element_type[:-1]
 
-    mask_rbend_edges = ((element_type == 'ThinSliceRBendEntry')
-                        | (element_type == 'ThinSliceRBendExit'))
+    mask_rbend_edge_entry = (element_type == 'ThinSliceRBendEntry')
+    mask_rbend_edge_exit = (element_type == 'ThinSliceRBendExit')
+
     mask_rbend_body_slices = ((element_type == 'ThinSliceRBend')
                             | (element_type == 'ThickSliceRBend'))
     mask_parent_is_rbend_straigth_body = (attr['_parent_rbend_model'] == 2)
-    mask_rbend_edges_straight_body = (mask_rbend_edges
-                                      & mask_parent_is_rbend_straigth_body)
+    mask_rbend_edges_entry_straight_body = (mask_rbend_edge_entry
+                                            & mask_parent_is_rbend_straigth_body)
+    mask_rbend_edges_exit_straight_body = (mask_rbend_edge_exit
+                                            & mask_parent_is_rbend_straigth_body)
 
     angle[mask_parent_is_rbend_straigth_body & mask_rbend_body_slices] = 0
-    angle[mask_rbend_edges_straight_body] = 0.5 * (
-        attr['_parent_h'][mask_rbend_edges_straight_body]
-        * attr['_parent_length'][mask_rbend_edges_straight_body])
+
+    # angle_in
+    angle[mask_rbend_edges_entry_straight_body] = 0.5 * ((
+        attr['_parent_h'][mask_rbend_edges_entry_straight_body]
+        * attr['_parent_length'][mask_rbend_edges_entry_straight_body])
+        - attr['_parent_rbend_angle_diff'][mask_rbend_edges_entry_straight_body])
+
+    # angle_out
+    angle[mask_rbend_edges_exit_straight_body] = 0.5 * ((
+        attr['_parent_h'][mask_rbend_edges_exit_straight_body]
+        * attr['_parent_length'][mask_rbend_edges_exit_straight_body])
+        + attr['_parent_rbend_angle_diff'][mask_rbend_edges_exit_straight_body])
 
     return angle
 
-def _rot_s_from_attr(attr):
 
-    own_sin_rot_s = attr['_own_sin_rot_s'].copy()
-    own_cos_rot_s = attr['_own_cos_rot_s'].copy()
-    parent_sin_rot_s = attr['_parent_sin_rot_s'].copy()
-    parent_cos_rot_s = attr['_parent_cos_rot_s'].copy()
+class LineParticleRef:
 
-    has_own_rot = (own_cos_rot_s !=0) | (own_sin_rot_s != 0)
-    mask_own_rot_inactive = own_sin_rot_s < -2.
-    own_cos_rot_s[mask_own_rot_inactive] = 1.
-    own_sin_rot_s[mask_own_rot_inactive] = 0.
+    def __init__(self, line):
+        self.line = line
 
-    has_parent_rot = (parent_cos_rot_s !=0) | (parent_sin_rot_s != 0)
-    mask_parent_rot_inactive = parent_sin_rot_s < -2.
-    parent_cos_rot_s[mask_parent_rot_inactive] = 1.
-    parent_sin_rot_s[mask_parent_rot_inactive] = 0.
+    @property
+    def _resolved(self):
+        _particle_ref = self.line._particle_ref
+        if isinstance(_particle_ref, str):
+            return self.line.env[_particle_ref]
+        else:
+            return _particle_ref
 
-    rot_s_rad = 0. * own_sin_rot_s
-    rot_s_rad[has_own_rot] = np.arctan2(own_sin_rot_s[has_own_rot],
-                                        own_cos_rot_s[has_own_rot])
-    rot_s_rad[has_parent_rot] = np.arctan2(parent_sin_rot_s[has_parent_rot],
-        parent_cos_rot_s[has_parent_rot]) * attr._rot_and_shift_from_parent[has_parent_rot]
+    @property
+    def name(self):
+        _particle_ref = self.line._particle_ref
+        if isinstance(_particle_ref, str):
+            return _particle_ref
+        else:
+            return None
 
-    return rot_s_rad
+    def __getattr__(self, key):
+        return getattr(self._resolved, key)
 
+    def __setattr__(self, key, value):
+        if key == 'line':
+            object.__setattr__(self, key, value)
+        else:
+            setattr(self._resolved, key, value)
+    def copy(self, **kwargs):
+        return self._resolved.copy(**kwargs)
 
-def _make_var_management(element_dict, dct=None):
+    def __repr__(self):
+        name = None
+        if isinstance(self.line._particle_ref, str):
+            name = self.line._particle_ref
+        return ('LineParticleRef('
+                f'name={name}, '
+                f'{str(self._resolved)}'
+                ')')
 
-    from collections import defaultdict
+class ActionLine(Action):
 
-    _var_values = defaultdict(lambda: 0)
-    _var_values.default_factory = None
+    def __init__(self, line):
+        self.line = line
 
-    functions = Functions()
+    def run(self):
+        return self.line
 
-    manager = xd.Manager()
-    _vref = manager.ref(_var_values, 'vars')
-    _fref = manager.ref(functions, 'f')
-    _lref = manager.ref(element_dict, 'element_refs')
+def _main_strength_from_attr(attr):
 
-    _var_management = {}
-    _var_management['data'] = {}
-    _var_management['data']['var_values'] = _var_values
-    _var_management['data']['functions'] = functions
+    line = attr.line
 
-    _var_management['manager'] = manager
-    _var_management['lref'] = _lref
-    _var_management['vref'] = _vref
-    _var_management['fref'] = _fref
+    if not line._has_valid_tracker():
+        line.build_tracker()
 
-    _vref['t_turn_s'] = 0.0
+    main_order = attr['_own_main_order'] + attr['_parent_main_order']
 
-    if dct is not None:
-        manager = _var_management['manager']
-        for kk in dct['_var_management_data'].keys():
-            data_item = dct['_var_management_data'][kk]
-            if kk == 'functions':
-                data_item = Functions.from_dict(data_item)
-            _var_management['data'][kk].update(data_item)
-        manager.load(dct['_var_manager'])
+    mask_take_main_order = attr._cache['_own_main_order']._mask | attr._cache['_parent_main_order']._mask
 
-    return _var_management
+    _main_strength_normal = np.zeros(len(main_order), dtype=np.float64)
+    _main_strength_skew = np.zeros(len(main_order), dtype=np.float64)
+
+    element_type = line.tracker._tracker_data_base._line_table.element_type[:-1] # remove _end_point
+    parent_type = line.tracker._tracker_data_base._line_table.parent_type[:-1] # remove _end_point
+
+    MAX_ORDER = 5
+    for ii in range(MAX_ORDER+1):
+
+        # Bends, RBends, Quadrupoles, and Sextupoles, Octupoles have implicit main order
+        mask_type = None
+        if ii == 0:
+            mask_type = ((element_type == 'RBend') | (element_type == 'Bend')
+                        | (parent_type == 'RBend') | (parent_type == 'Bend'))
+        elif ii == 1:
+            mask_type = ((element_type == 'Quadrupole') | (parent_type == 'Quadrupole'))
+        elif ii == 2:
+            mask_type = ((element_type == 'Sextupole') | (parent_type == 'Sextupole'))
+        elif ii == 3:
+            mask_type = ((element_type == 'Octupole') | (parent_type == 'Octupole'))
+
+        if mask_type is not None and np.any(mask_type):
+            this_norm = (attr[f'_own_k{ii}'] * attr['_own_length']
+                         + attr[f'_parent_k{ii}'] * attr['_parent_length'] * attr['weight'] * attr._inherit_strengths)
+            this_skew = (attr[f'_own_k{ii}s'] * attr['_own_length']
+                         + attr[f'_parent_k{ii}s'] * attr['_parent_length'] * attr['weight'] * attr._inherit_strengths)
+            _main_strength_normal[mask_type] = this_norm[mask_type]
+            _main_strength_skew[mask_type] = this_skew[mask_type]
+
+        # Handle Multipole elements
+        mask_main_order = (main_order == ii) & mask_take_main_order
+        if np.any(mask_main_order):
+            this_norm = attr[f'_k{ii}l_no_rel']
+            this_skew = attr[f'_k{ii}sl_no_rel']
+            _main_strength_normal[mask_main_order] = this_norm[mask_main_order]
+            _main_strength_skew[mask_main_order] = this_skew[mask_main_order]
+
+    main_is_skew = np.bool_(attr['_own_main_is_skew'] + attr['_parent_main_is_skew'])
+
+    main_strength = np.zeros(len(main_order), dtype=np.float64)
+    main_strength[~main_is_skew] = _main_strength_normal[~main_is_skew]
+    main_strength[main_is_skew] = _main_strength_skew[main_is_skew]
+
+    return main_strength
+
+class AttrDefinition:
+    def __init__(self, name, index=None, dtype=np.float64):
+        self.name = name
+        self.index = index
+        self.dtype = dtype

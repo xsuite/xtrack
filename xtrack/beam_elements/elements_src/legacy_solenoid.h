@@ -6,14 +6,14 @@
 #ifndef XTRACK_SOLENOID_H
 #define XTRACK_SOLENOID_H
 
-#include <headers/track.h>
-#include <headers/synrad_spectrum.h>
-#include <beam_elements/elements_src/track_legacy_solenoid_multipolar_components.h>
-#include <beam_elements/elements_src/track_legacy_solenoid_radiation.h>
-#include <beam_elements/elements_src/track_xrotation.h>
-#include <beam_elements/elements_src/track_yrotation.h>
-#include <beam_elements/elements_src/track_srotation.h>
-#include <beam_elements/elements_src/track_legacy_solenoid.h>
+#include "xtrack/headers/track.h"
+#include "xtrack/headers/synrad_spectrum.h"
+#include "xtrack/beam_elements/elements_src/track_legacy_solenoid_multipolar_components.h"
+#include "xtrack/beam_elements/elements_src/track_legacy_solenoid_radiation.h"
+#include "xtrack/beam_elements/elements_src/track_xrotation.h"
+#include "xtrack/beam_elements/elements_src/track_yrotation.h"
+#include "xtrack/beam_elements/elements_src/track_srotation.h"
+#include "xtrack/beam_elements/elements_src/track_legacy_solenoid.h"
 
 
 GPUFUN
@@ -24,10 +24,10 @@ void Solenoid_track_local_particle(SolenoidData el, LocalParticle* part0) {
     int64_t radiation_flag = SolenoidData_get_radiation_flag(el);
     double factor_knl_ksl = 1;
 
-    #ifdef XSUITE_BACKTRACK
+    if (LocalParticle_check_track_flag(part0, XS_FLAG_BACKTRACK)) {
         length = -length;
         factor_knl_ksl = -1;
-    #endif
+    }
 
     #ifndef XTRACK_SOLENOID_NO_SYNRAD
         double dp_record_entry = 0.;
@@ -92,7 +92,7 @@ void Solenoid_track_local_particle(SolenoidData el, LocalParticle* part0) {
             XRotation_single_particle(part, sin_x_rot, cos_x_rot, tan_x_rot);
         }
         if (sin_y_rot != 0) {
-            YRotation_single_particle(part, sin_y_rot, cos_y_rot, tan_y_rot);
+            YRotation_single_particle(part, -sin_y_rot, cos_y_rot, -tan_y_rot);
         }
 
         track_multipolar_kick_bend(
@@ -100,7 +100,7 @@ void Solenoid_track_local_particle(SolenoidData el, LocalParticle* part0) {
                     kick_weight, 0, 0, 0, 0);
 
         if (sin_y_rot != 0) {
-            YRotation_single_particle(part, -sin_y_rot, cos_y_rot, -tan_y_rot);
+            YRotation_single_particle(part, sin_y_rot, cos_y_rot, tan_y_rot);
         }
         if (sin_x_rot != 0) {
             XRotation_single_particle(part, -sin_x_rot, cos_x_rot, -tan_x_rot);

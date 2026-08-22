@@ -4,6 +4,10 @@ import xobjects as xo
 
 import numpy as np
 from scipy.constants import c as clight
+import pathlib
+
+test_data_folder = pathlib.Path(
+    __file__).parent.joinpath('../test_data').absolute()
 
 def test_bucket_below_transition():
 
@@ -27,7 +31,6 @@ def test_bucket_below_transition():
 
     f_rf = h_rf * f_rev
     v_rf = 100e3
-    lag_rf = 180. if eta > 0. else 0.
 
     # Compute momentum increment using auxiliary particle
     dp0c_eV = energy_ref_increment / particle_ref.beta0[0]
@@ -35,7 +38,6 @@ def test_bucket_below_transition():
     phi = np.arcsin(dp0c_eV * particle_ref.beta0[0] / v_rf)
     if eta > 0:
         phi = np.pi - phi
-    lag_rf = np.rad2deg(phi)
 
     otm = xt.LineSegmentMap(
         betx=1., bety=1,
@@ -44,7 +46,7 @@ def test_bucket_below_transition():
         longitudinal_mode="nonlinear",
         voltage_rf=v_rf,
         frequency_rf=f_rf,
-        lag_rf=lag_rf,
+        phase_rf=phi,
         length=circumference,
         energy_ref_increment=energy_ref_increment
     )
@@ -58,10 +60,10 @@ def test_bucket_below_transition():
     rfb = line._get_bucket()
 
     # Mostly checking that they do not change
-    xo.assert_allclose(line['otm'].lag_rf[0], 30., # degrees
+    xo.assert_allclose(line['otm'].phase_rf[0], np.deg2rad(30.), # degrees
                     atol=1e-4, rtol=0)
 
-    xo.assert_allclose(np.rad2deg(rfb.dphi[0]), 30.,
+    xo.assert_allclose(rfb.dphi[0], np.deg2rad(30.),
                     atol=1e-4, rtol=0)
 
     xo.assert_allclose(rfb.z_sfp, 0, atol=1e-4, rtol=0)
@@ -192,14 +194,12 @@ def test_bucket_above_transition():
 
     f_rf = h_rf * f_rev
     v_rf = 100e3
-    lag_rf = 180. if eta > 0. else 0.
 
     # Compute momentum increment using auxiliary particle
     dp0c_eV = energy_ref_increment / particle_ref.beta0[0]
     phi = np.arcsin(dp0c_eV * particle_ref.beta0[0] / v_rf)
     if eta > 0:
         phi = np.pi - phi
-    lag_rf = np.rad2deg(phi)
 
     otm = xt.LineSegmentMap(
         betx=1., bety=1,
@@ -208,7 +208,7 @@ def test_bucket_above_transition():
         longitudinal_mode="nonlinear",
         voltage_rf=v_rf,
         frequency_rf=f_rf,
-        lag_rf=lag_rf,
+        phase_rf=phi,
         length=circumference,
         energy_ref_increment=energy_ref_increment
     )
@@ -222,10 +222,10 @@ def test_bucket_above_transition():
     rfb = line._get_bucket()
 
     # Mostly checking that they do not change
-    xo.assert_allclose(line['otm'].lag_rf[0], 180-30., # degrees
+    xo.assert_allclose(line['otm'].phase_rf[0], np.deg2rad(180-30.), # degrees
                     atol=1e-4, rtol=0)
 
-    xo.assert_allclose(np.rad2deg(rfb.dphi[0]), 180-30.,
+    xo.assert_allclose(rfb.dphi[0], np.deg2rad(180-30.),
                     atol=1e-4, rtol=0)
 
     xo.assert_allclose(rfb.z_sfp, 0, atol=1e-4, rtol=0)
@@ -356,10 +356,7 @@ def test_bucket_below_transition_uncompensated_lag():
 
     f_rf = h_rf * f_rev
     v_rf = 100e3
-    lag_rf = 180. if eta > 0. else 0.
-
-    # Compute momentum increment using auxiliary particle
-    dp0c_eV = energy_ref_increment / particle_ref.beta0[0]
+    phase_rf = np.pi if eta > 0. else 0.
 
     otm = xt.LineSegmentMap(
         betx=1., bety=1,
@@ -368,7 +365,7 @@ def test_bucket_below_transition_uncompensated_lag():
         longitudinal_mode="nonlinear",
         voltage_rf=v_rf,
         frequency_rf=f_rf,
-        lag_rf=lag_rf,
+        phase_rf=phase_rf,
         length=circumference,
         energy_ref_increment=energy_ref_increment
     )
@@ -382,10 +379,10 @@ def test_bucket_below_transition_uncompensated_lag():
     rfb = line._get_bucket()
 
     # Mostly checking that they do not change
-    xo.assert_allclose(line['otm'].lag_rf[0], 0., # degrees
+    xo.assert_allclose(line['otm'].phase_rf[0], np.deg2rad(0.), # degrees
                     atol=1e-4, rtol=0)
 
-    xo.assert_allclose(np.rad2deg(rfb.dphi[0]), 0.,
+    xo.assert_allclose(rfb.dphi[0], np.deg2rad(0.),
                     atol=1e-4, rtol=0)
 
     z_shift = -2.08333333
@@ -517,10 +514,7 @@ def test_bucket_above_transition_uncompensated_lag():
 
     f_rf = h_rf * f_rev
     v_rf = 100e3
-    lag_rf = 180. if eta > 0. else 0.
-
-    # Compute momentum increment using auxiliary particle
-    dp0c_eV = energy_ref_increment / particle_ref.beta0[0]
+    phase_rf = np.pi if eta > 0. else 0.
 
     otm = xt.LineSegmentMap(
         betx=1., bety=1,
@@ -529,7 +523,7 @@ def test_bucket_above_transition_uncompensated_lag():
         longitudinal_mode="nonlinear",
         voltage_rf=v_rf,
         frequency_rf=f_rf,
-        lag_rf=lag_rf,
+        phase_rf=phase_rf,
         length=circumference,
         energy_ref_increment=energy_ref_increment
     )
@@ -543,10 +537,10 @@ def test_bucket_above_transition_uncompensated_lag():
     rfb = line._get_bucket()
 
     # Mostly checking that they do not change
-    xo.assert_allclose(line['otm'].lag_rf[0], 180., # degrees
+    xo.assert_allclose(line['otm'].phase_rf[0], np.deg2rad(180.), # degrees
                     atol=1e-4, rtol=0)
 
-    xo.assert_allclose(np.rad2deg(rfb.dphi[0]), 180.,
+    xo.assert_allclose(rfb.dphi[0], np.deg2rad(180.),
                     atol=1e-4, rtol=0)
 
     z_shift = 2.08333333
@@ -678,7 +672,6 @@ def test_bucket_with_energy_program():
 
     f_rf = h_rf * f_rev
     v_rf = 100e3
-    lag_rf = 180. if eta > 0. else 0.
 
     # Compute momentum increment using auxiliary particle
     dp0c_eV = energy_ref_increment / particle_ref.beta0[0]
@@ -686,7 +679,6 @@ def test_bucket_with_energy_program():
     phi = np.arcsin(dp0c_eV * particle_ref.beta0[0] / v_rf)
     if eta > 0:
         phi = np.pi - phi
-    lag_rf = np.rad2deg(phi)
 
     otm = xt.LineSegmentMap(
         betx=1., bety=1,
@@ -695,7 +687,7 @@ def test_bucket_with_energy_program():
         longitudinal_mode="nonlinear",
         voltage_rf=v_rf,
         frequency_rf=f_rf,
-        lag_rf=lag_rf,
+        phase_rf=phi,
         length=circumference,
     )
     energy_program = xt.EnergyProgram(
@@ -713,10 +705,10 @@ def test_bucket_with_energy_program():
     rfb = line._get_bucket()
 
     # Mostly checking that they do not change
-    xo.assert_allclose(line['otm'].lag_rf[0], 30., # degrees
+    xo.assert_allclose(line['otm'].phase_rf[0], np.deg2rad(30.), # degrees
                     atol=1e-4, rtol=0)
 
-    xo.assert_allclose(np.rad2deg(rfb.dphi[0]), 30.,
+    xo.assert_allclose(rfb.dphi[0], np.deg2rad(30.),
                     atol=1e-4, rtol=0)
 
     xo.assert_allclose(rfb.z_sfp, 0, atol=3e-3, rtol=0)
@@ -858,7 +850,6 @@ def test_bucket_with_reference_ernergy_increase_elem():
 
     f_rf = h_rf * f_rev
     v_rf = 100e3
-    lag_rf = 180. if eta > 0. else 0.
 
     # Compute momentum increment using auxiliary particle
     dp0c_eV = energy_ref_increment / particle_ref.beta0[0]
@@ -866,7 +857,6 @@ def test_bucket_with_reference_ernergy_increase_elem():
     phi = np.arcsin(dp0c_eV * particle_ref.beta0[0] / v_rf)
     if eta > 0:
         phi = np.pi - phi
-    lag_rf = np.rad2deg(phi)
 
     otm = xt.LineSegmentMap(
         betx=1., bety=1,
@@ -875,7 +865,7 @@ def test_bucket_with_reference_ernergy_increase_elem():
         longitudinal_mode="nonlinear",
         voltage_rf=v_rf,
         frequency_rf=f_rf,
-        lag_rf=lag_rf,
+        phase_rf=phi,
         length=circumference,
     )
 
@@ -892,10 +882,10 @@ def test_bucket_with_reference_ernergy_increase_elem():
     rfb = line._get_bucket()
 
     # Mostly checking that they do not change
-    xo.assert_allclose(line['otm'].lag_rf[0], 30., # degrees
+    xo.assert_allclose(line['otm'].phase_rf[0], np.deg2rad(30.), # degrees
                     atol=1e-4, rtol=0)
 
-    xo.assert_allclose(np.rad2deg(rfb.dphi[0]), 30.,
+    xo.assert_allclose(rfb.dphi[0], np.deg2rad(30.),
                     atol=1e-4, rtol=0)
 
     xo.assert_allclose(rfb.z_sfp, 0, atol=3e-3, rtol=0)
@@ -1014,3 +1004,31 @@ def test_bucket_with_reference_ernergy_increase_elem():
     xo.assert_allclose(z_std, np.mean(z_std), atol=0.025*sigma_z)
     xo.assert_allclose(delta_mean, np.mean(delta_mean), atol=0.025*sigma_delta)
     xo.assert_allclose(delta_std, np.mean(delta_std), atol=0.025*sigma_delta)
+
+def test_bucket_with_radiation():
+
+    env = xt.load(test_data_folder / 'fcc_ee/fccee_h.seq')
+    pc_gev = 120.
+
+    line = env.fccee_p_ring
+    line.set_particle_ref('positron', p0c=pc_gev*1e9)
+
+    tw_no_rad = line.twiss6d()
+    rfb_no_rad = line._get_bucket()
+
+    line.configure_radiation(model='mean')
+    line.compensate_radiation_energy_loss()
+
+    tw_rad = line.twiss6d(radiation_analysis=True)
+    rfb_rad = line._get_bucket()
+
+    # Check that the effect of the radiation is visible on qs
+    assert tw_no_rad.qs > 0.045
+    assert tw_rad.qs < 0.035
+
+    # Check consistency of qs and bets0 between twiss and rfb
+    xo.assert_allclose(rfb_no_rad.Q_s, tw_no_rad.qs, rtol=0.01)
+    xo.assert_allclose(rfb_rad.Q_s, tw_rad.qs, rtol=0.01)
+    xo.assert_allclose(rfb_no_rad.beta_z, tw_no_rad.bets0, rtol=0.015)
+    xo.assert_allclose(rfb_rad.beta_z, tw_rad.bets0, rtol=0.015)
+    xo.assert_allclose(rfb_rad.z_sfp, tw_rad.zeta[0], rtol=0, atol=5e-7)

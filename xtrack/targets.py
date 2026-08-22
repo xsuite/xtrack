@@ -1,8 +1,10 @@
 import numpy as np
+from warnings import warn
 
 import xtrack as xt
 
 from . import lumi
+from .general import DEPRECATION_INFO_PREP_1_0
 
 
 class TargetLuminosity(xt.Target):
@@ -18,7 +20,7 @@ class TargetLuminosity(xt.Target):
             value = luminosity
             tol = tol
 
-        xt.Target.__init__(self, self.compute_luminosity, value, tol=tol)
+        xt.Target.__init__(self, self.get_luminosity, value, tol=tol)
 
         self.ip_name = ip_name
         self.num_colliding_bunches = num_colliding_bunches
@@ -45,7 +47,7 @@ class TargetLuminosity(xt.Target):
     def weight(self, value):
         self._weight = value
 
-    def compute_luminosity(self, tw):
+    def get_luminosity(self, tw):
         assert len(tw._line_names) == 2
         out = lumi.luminosity_from_twiss(
             n_colliding_bunches=self.num_colliding_bunches,
@@ -61,6 +63,16 @@ class TargetLuminosity(xt.Target):
         if self.log:
             out = np.log10(out)
         return out
+
+    def compute_luminosity(self, *args, **kwargs):
+        warn(
+            '`TargetLuminosity.compute_luminosity()` is deprecated and will '
+            'be removed in future versions. Please use '
+            '`TargetLuminosity.get_luminosity()` instead.'
+            + DEPRECATION_INFO_PREP_1_0,
+            FutureWarning,
+        )
+        return self.get_luminosity(*args, **kwargs)
 
 class TargetSeparationOrthogonalToCrossing(xt.Target):
 

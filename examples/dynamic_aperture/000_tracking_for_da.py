@@ -4,9 +4,7 @@ import xtrack as xt
 import xpart as xp
 import xobjects as xo
 
-line = xt.load(
-    '../../test_data/hllhc14_no_errors_with_coupling_knobs/line_b1.json')
-line.build_tracker()
+line = xt.load('../../test_data/hllhc14_no_errors_with_coupling_knobs/line_b1.json')
 
 # Switch on LHC octupole circuits to have a smaller dynamic aperture
 for arc in ['12', '23', '34', '45', '56', '67', '78', '81']:

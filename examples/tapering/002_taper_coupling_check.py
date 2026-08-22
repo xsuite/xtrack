@@ -17,7 +17,7 @@ line.build_tracker()
 
 # Initial twiss (no radiation)
 line.configure_radiation(model=None)
-tw_no_rad = line.twiss(method='4d', freeze_longitudinal=True)
+tw_no_rad = line.twiss4d()
 
 # Enable radiation
 line.configure_radiation(model='mean')
@@ -28,7 +28,7 @@ line.compensate_radiation_energy_loss(record_iterations=True)
 import matplotlib.pyplot as plt
 plt.close('all')
 
-tw = line.twiss(eneloss_and_damping=True)
+tw = line.twiss(radiation_analysis=True)
 
 p0corr = 1 + line.delta_taper
 

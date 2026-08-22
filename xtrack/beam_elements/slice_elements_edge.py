@@ -3,12 +3,34 @@ import numpy as np
 
 from ..general import _pkg_root
 from ..base_element import BeamElement
-from .slice_base import _SliceBase, COMMON_SLICE_XO_FIELDS
-from .elements import (
-    Bend, Quadrupole, Sextupole,
-    Octupole, RBend, UniformSolenoid, DipoleEdge, Marker, MultipoleEdge
+from .slice_base import (
+    _SliceBase, COMMON_SLICE_XO_FIELDS,
+    _raise_if_parent_has_transverse_rotation,
 )
+from .bend import Bend
+from .dipole_edge import DipoleEdge
+from .marker import Marker
+from .multipole_edge import MultipoleEdge
+from .octupole import Octupole
+from .quadrupole import Quadrupole
+from .rbend import RBend
+from .sextupole import Sextupole
+from .uniform_solenoid import UniformSolenoid
 from ..survey import advance_element as survey_advance_element
+
+def _parent_total_kn_ks(parent):
+    if parent.length == 0:
+        raise ValueError(
+            'Equivalent edge elements need a parent with non-zero length.')
+    knl, ksl = parent.get_total_knl_ksl()
+    return knl / parent.length, ksl / parent.length
+
+def _parent_total_kn_ks_for_multipole_edge(parent):
+    kn, ks = _parent_total_kn_ks(parent)
+    kn[0] = 0
+    ks[0] = 0
+    return kn, ks
+
 
 class _ThinSliceEdgeBase(_SliceBase):
 
@@ -24,14 +46,17 @@ class ThinSliceBendEntry(_ThinSliceEdgeBase, BeamElement):
     _extra_c_sources = [
         _pkg_root.joinpath('headers/constants.h'),
         _pkg_root.joinpath('beam_elements/elements_src/track_dipole_edge_nonlinear.h'),
-        '#include <beam_elements/elements_src/thin_slice_bend_entry.h>'
+        '#include "xtrack/beam_elements/elements_src/thin_slice_bend_entry.h"'
     ]
 
     def get_equivalent_element(self):
 
+        _raise_if_parent_has_transverse_rotation(self._parent)
+
         if self._parent.edge_entry_active:
+            kn, _ = _parent_total_kn_ks(self._parent)
             return DipoleEdge(
-                k=self._parent.k0,
+                k=kn[0],
                 e1=self._parent.edge_entry_angle,
                 e1_fd=self._parent.edge_entry_angle_fdown,
                 hgap=self._parent.edge_entry_hgap,
@@ -52,14 +77,17 @@ class ThinSliceBendExit(_ThinSliceEdgeBase, BeamElement):
     _xofields = {'_parent': xo.Ref(Bend), **COMMON_SLICE_XO_FIELDS}
 
     _extra_c_sources = [
-        '#include <beam_elements/elements_src/thin_slice_bend_exit.h>'
+        '#include "xtrack/beam_elements/elements_src/thin_slice_bend_exit.h"'
     ]
 
     def get_equivalent_element(self):
 
+        _raise_if_parent_has_transverse_rotation(self._parent)
+
         if self._parent.edge_exit_active:
+            kn, _ = _parent_total_kn_ks(self._parent)
             return DipoleEdge(
-                k=self._parent.k0,
+                k=kn[0],
                 e1=self._parent.edge_exit_angle,
                 e1_fd=self._parent.edge_exit_angle_fdown,
                 hgap=self._parent.edge_exit_hgap,
@@ -81,14 +109,17 @@ class ThinSliceQuadrupoleEntry(_ThinSliceEdgeBase, BeamElement):
     _xofields = {'_parent': xo.Ref(Quadrupole), **COMMON_SLICE_XO_FIELDS}
 
     _extra_c_sources = [
-        '#include <beam_elements/elements_src/thin_slice_quadrupole_entry.h>'
+        '#include "xtrack/beam_elements/elements_src/thin_slice_quadrupole_entry.h"'
     ]
 
     def get_equivalent_element(self):
+        _raise_if_parent_has_transverse_rotation(self._parent)
+
         if self._parent.edge_entry_active:
+            kn, ks = _parent_total_kn_ks_for_multipole_edge(self._parent)
             return MultipoleEdge(
-                kn=[0, self._parent.k1],
-                ks=[0, self._parent.k1s],
+                kn=kn,
+                ks=ks,
                 is_exit=False,
                 shift_x=self._parent.shift_x,
                 shift_y=self._parent.shift_y,
@@ -104,14 +135,17 @@ class ThinSliceQuadrupoleExit(_ThinSliceEdgeBase, BeamElement):
     _xofields = {'_parent': xo.Ref(Quadrupole), **COMMON_SLICE_XO_FIELDS}
 
     _extra_c_sources = [
-        '#include <beam_elements/elements_src/thin_slice_quadrupole_exit.h>'
+        '#include "xtrack/beam_elements/elements_src/thin_slice_quadrupole_exit.h"'
     ]
 
     def get_equivalent_element(self):
+        _raise_if_parent_has_transverse_rotation(self._parent)
+
         if self._parent.edge_exit_active:
+            kn, ks = _parent_total_kn_ks_for_multipole_edge(self._parent)
             return MultipoleEdge(
-                kn=[0, self._parent.k1],
-                ks=[0, self._parent.k1s],
+                kn=kn,
+                ks=ks,
                 is_exit=True,
                 shift_x=self._parent.shift_x,
                 shift_y=self._parent.shift_y,
@@ -127,14 +161,17 @@ class ThinSliceSextupoleEntry(_ThinSliceEdgeBase, BeamElement):
     _xofields = {'_parent': xo.Ref(Sextupole), **COMMON_SLICE_XO_FIELDS}
 
     _extra_c_sources = [
-        '#include <beam_elements/elements_src/thin_slice_sextupole_entry.h>'
+        '#include "xtrack/beam_elements/elements_src/thin_slice_sextupole_entry.h"'
     ]
 
     def get_equivalent_element(self):
+        _raise_if_parent_has_transverse_rotation(self._parent)
+
         if self._parent.edge_entry_active:
+            kn, ks = _parent_total_kn_ks_for_multipole_edge(self._parent)
             return MultipoleEdge(
-                kn=[0, 0, self._parent.k2],
-                ks=[0, 0, self._parent.k2s],
+                kn=kn,
+                ks=ks,
                 is_exit=False,
                 shift_x=self._parent.shift_x,
                 shift_y=self._parent.shift_y,
@@ -150,14 +187,17 @@ class ThinSliceSextupoleExit(_ThinSliceEdgeBase, BeamElement):
     _xofields = {'_parent': xo.Ref(Sextupole), **COMMON_SLICE_XO_FIELDS}
 
     _extra_c_sources = [
-        '#include <beam_elements/elements_src/thin_slice_sextupole_exit.h>'
+        '#include "xtrack/beam_elements/elements_src/thin_slice_sextupole_exit.h"'
     ]
 
     def get_equivalent_element(self):
+        _raise_if_parent_has_transverse_rotation(self._parent)
+
         if self._parent.edge_exit_active:
+            kn, ks = _parent_total_kn_ks_for_multipole_edge(self._parent)
             return MultipoleEdge(
-                kn=[0, 0, self._parent.k2],
-                ks=[0, 0, self._parent.k2s],
+                kn=kn,
+                ks=ks,
                 is_exit=True,
                 shift_x=self._parent.shift_x,
                 shift_y=self._parent.shift_y,
@@ -173,14 +213,17 @@ class ThinSliceOctupoleEntry(_ThinSliceEdgeBase, BeamElement):
     _xofields = {'_parent': xo.Ref(Octupole), **COMMON_SLICE_XO_FIELDS}
 
     _extra_c_sources = [
-        '#include <beam_elements/elements_src/thin_slice_octupole_entry.h>'
+        '#include "xtrack/beam_elements/elements_src/thin_slice_octupole_entry.h"'
     ]
 
     def get_equivalent_element(self):
+        _raise_if_parent_has_transverse_rotation(self._parent)
+
         if self._parent.edge_entry_active:
+            kn, ks = _parent_total_kn_ks_for_multipole_edge(self._parent)
             return MultipoleEdge(
-                kn=[0, 0, 0, self._parent.k3],
-                ks=[0, 0, 0, self._parent.k3s],
+                kn=kn,
+                ks=ks,
                 is_exit=False,
                 shift_x=self._parent.shift_x,
                 shift_y=self._parent.shift_y,
@@ -196,14 +239,17 @@ class ThinSliceOctupoleExit(_ThinSliceEdgeBase, BeamElement):
     _xofields = {'_parent': xo.Ref(Octupole), **COMMON_SLICE_XO_FIELDS}
 
     _extra_c_sources = [
-        '#include <beam_elements/elements_src/thin_slice_octupole_exit.h>'
+        '#include "xtrack/beam_elements/elements_src/thin_slice_octupole_exit.h"'
     ]
 
     def get_equivalent_element(self):
+        _raise_if_parent_has_transverse_rotation(self._parent)
+
         if self._parent.edge_exit_active:
+            kn, ks = _parent_total_kn_ks_for_multipole_edge(self._parent)
             return MultipoleEdge(
-                kn=[0, 0, 0, self._parent.k3],
-                ks=[0, 0, 0, self._parent.k3s],
+                kn=kn,
+                ks=ks,
                 is_exit=True,
                 shift_x=self._parent.shift_x,
                 shift_y=self._parent.shift_y,
@@ -219,42 +265,38 @@ class ThinSliceUniformSolenoidEntry(_ThinSliceEdgeBase, BeamElement):
     _xofields = {'_parent': xo.Ref(UniformSolenoid), **COMMON_SLICE_XO_FIELDS}
 
     _extra_c_sources = [
-        '#include <beam_elements/elements_src/thin_slice_uniform_solenoid_entry.h>'
+        '#include "xtrack/beam_elements/elements_src/thin_slice_uniform_solenoid_entry.h"'
     ]
 
-    def get_equivalent_element(self):
-        if self._parent.edge_entry_active:
-            raise NotImplementedError
-        else:
-            return Marker(_buffer=self._buffer)
 
 class ThinSliceUniformSolenoidExit(_ThinSliceEdgeBase, BeamElement):
 
     _xofields = {'_parent': xo.Ref(UniformSolenoid), **COMMON_SLICE_XO_FIELDS}
 
     _extra_c_sources = [
-        '#include <beam_elements/elements_src/thin_slice_uniform_solenoid_exit.h>'
+        '#include "xtrack/beam_elements/elements_src/thin_slice_uniform_solenoid_exit.h"'
     ]
-
-    def get_equivalent_element(self):
-        if self._parent.edge_entry_active:
-            raise NotImplementedError
-        else:
-            return Marker(_buffer=self._buffer)
 
 class ThinSliceRBendEntry(_ThinSliceEdgeBase, BeamElement):
 
     _xofields = {'_parent': xo.Ref(RBend), **COMMON_SLICE_XO_FIELDS}
 
     _extra_c_sources = [
-        '#include <beam_elements/elements_src/thin_slice_rbend_entry.h>'
+        '#include "xtrack/beam_elements/elements_src/thin_slice_rbend_entry.h"'
     ]
 
     def get_equivalent_element(self):
 
+        _raise_if_parent_has_transverse_rotation(self._parent)
+
+        if self._parent.rbend_model == "straight-body":
+            return self # No replacement possible (not yet supported), element
+                        # left where it is
+
         if self._parent.edge_entry_active:
+            kn, _ = _parent_total_kn_ks(self._parent)
             return DipoleEdge(
-                k=self._parent.k0,
+                k=kn[0],
                 e1=self._parent.edge_entry_angle + self._parent.angle / 2,
                 e1_fd=self._parent.edge_entry_angle_fdown,
                 hgap=self._parent.edge_entry_hgap,
@@ -273,7 +315,6 @@ class ThinSliceRBendEntry(_ThinSliceEdgeBase, BeamElement):
     def _propagate_survey(self, v, w, backtrack):
 
         if self._parent.rbend_model == "straight-body":
-            rbend_shift_tot = self._parent.sagitta / 2  + self._parent.rbend_shift
             if backtrack:
                 if abs(self._parent.angle) > 1e-10:  # avoid numerical issues
                     v, w = survey_advance_element(
@@ -282,8 +323,8 @@ class ThinSliceRBendEntry(_ThinSliceEdgeBase, BeamElement):
                         length          = 0,
                         angle           = 0,
                         tilt            = 0,
-                        ref_shift_x     = -rbend_shift_tot * np.cos(self._parent.rot_s_rad),
-                        ref_shift_y     = -rbend_shift_tot * np.sin(self._parent.rot_s_rad),
+                        ref_shift_x     = self._parent._x0_in * np.cos(self._parent.rot_s_rad),
+                        ref_shift_y     = self._parent._x0_in * np.sin(self._parent.rot_s_rad),
                         ref_rot_x_rad   = 0,
                         ref_rot_y_rad   = 0,
                         ref_rot_s_rad   = 0,
@@ -292,7 +333,7 @@ class ThinSliceRBendEntry(_ThinSliceEdgeBase, BeamElement):
                     v               = v,
                     w               = w,
                     length          = 0,
-                    angle           = -self._parent.angle / 2.,
+                    angle           = -self._parent._angle_in,
                     tilt            = self._parent.rot_s_rad,
                     ref_shift_x     = 0,
                     ref_shift_y     = 0,
@@ -305,7 +346,7 @@ class ThinSliceRBendEntry(_ThinSliceEdgeBase, BeamElement):
                     v               = v,
                     w               = w,
                     length          = 0,
-                    angle           = self._parent.angle / 2.,
+                    angle           = self._parent._angle_in,
                     tilt            = self._parent.rot_s_rad,
                     ref_shift_x     = 0,
                     ref_shift_y     = 0,
@@ -320,8 +361,8 @@ class ThinSliceRBendEntry(_ThinSliceEdgeBase, BeamElement):
                         length          = 0,
                         angle           = 0,
                         tilt            = 0,
-                        ref_shift_x     = rbend_shift_tot * np.cos(self._parent.rot_s_rad),
-                        ref_shift_y     = rbend_shift_tot * np.sin(self._parent.rot_s_rad),
+                        ref_shift_x     = -self._parent._x0_in * np.cos(self._parent.rot_s_rad),
+                        ref_shift_y     = -self._parent._x0_in * np.sin(self._parent.rot_s_rad),
                         ref_rot_x_rad   = 0,
                         ref_rot_y_rad   = 0,
                         ref_rot_s_rad   = 0,
@@ -333,14 +374,21 @@ class ThinSliceRBendExit(_ThinSliceEdgeBase, BeamElement):
     _xofields = {'_parent': xo.Ref(RBend), **COMMON_SLICE_XO_FIELDS}
 
     _extra_c_sources = [
-        '#include <beam_elements/elements_src/thin_slice_rbend_exit.h>'
+        '#include "xtrack/beam_elements/elements_src/thin_slice_rbend_exit.h"'
     ]
 
     def get_equivalent_element(self):
 
+        _raise_if_parent_has_transverse_rotation(self._parent)
+
+        if self._parent.rbend_model == "straight-body":
+            return self # No replacement possible (not yet supported), element
+                        # left where it is
+
         if self._parent.edge_exit_active:
+            kn, _ = _parent_total_kn_ks(self._parent)
             return DipoleEdge(
-                k=self._parent.k0,
+                k=kn[0],
                 e1=self._parent.edge_exit_angle + self._parent.angle / 2,
                 e1_fd=self._parent.edge_exit_angle_fdown,
                 hgap=self._parent.edge_exit_hgap,
@@ -359,13 +407,12 @@ class ThinSliceRBendExit(_ThinSliceEdgeBase, BeamElement):
     def _propagate_survey(self, v, w, backtrack):
 
         if self._parent.rbend_model == "straight-body":
-            rbend_shift_tot = self._parent.sagitta / 2  + self._parent.rbend_shift
             if backtrack:
                 v, w = survey_advance_element(
                     v               = v,
                     w               = w,
                     length          = 0,
-                    angle           = -self._parent.angle / 2.,
+                    angle           = -self._parent._angle_out,
                     tilt            = self._parent.rot_s_rad,
                     ref_shift_x     = 0,
                     ref_shift_y     = 0,
@@ -380,8 +427,8 @@ class ThinSliceRBendExit(_ThinSliceEdgeBase, BeamElement):
                         length          = 0,
                         angle           = 0,
                         tilt            = 0,
-                        ref_shift_x     = rbend_shift_tot * np.cos(self._parent.rot_s_rad),
-                        ref_shift_y     = rbend_shift_tot * np.sin(self._parent.rot_s_rad),
+                        ref_shift_x     = -self._parent._x0_out * np.cos(self._parent.rot_s_rad),
+                        ref_shift_y     = -self._parent._x0_out * np.sin(self._parent.rot_s_rad),
                         ref_rot_x_rad   = 0,
                         ref_rot_y_rad   = 0,
                         ref_rot_s_rad   = 0,
@@ -394,8 +441,8 @@ class ThinSliceRBendExit(_ThinSliceEdgeBase, BeamElement):
                         length          = 0,
                         angle           = 0,
                         tilt            = 0,
-                        ref_shift_x     = -rbend_shift_tot * np.cos(self._parent.rot_s_rad),
-                        ref_shift_y     = -rbend_shift_tot * np.sin(self._parent.rot_s_rad),
+                        ref_shift_x     = self._parent._x0_out * np.cos(self._parent.rot_s_rad),
+                        ref_shift_y     = self._parent._x0_out * np.sin(self._parent.rot_s_rad),
                         ref_rot_x_rad   = 0,
                         ref_rot_y_rad   = 0,
                         ref_rot_s_rad   = 0,
@@ -404,7 +451,7 @@ class ThinSliceRBendExit(_ThinSliceEdgeBase, BeamElement):
                     v               = v,
                     w               = w,
                     length          = 0,
-                    angle           = self._parent.angle / 2.,
+                    angle           = self._parent._angle_out,
                     tilt            = self._parent.rot_s_rad,
                     ref_shift_x     = 0,
                     ref_shift_y     = 0,
@@ -413,4 +460,3 @@ class ThinSliceRBendExit(_ThinSliceEdgeBase, BeamElement):
                     ref_rot_s_rad   = 0,
                 )
         return v, w
-

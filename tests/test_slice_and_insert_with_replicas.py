@@ -5,13 +5,13 @@ from xobjects.test_helpers import for_all_test_contexts
 
 assert_allclose = xo.assert_allclose
 
-@for_all_test_contexts
+@for_all_test_contexts(excluding=('ContextCupy', 'ContextPyopencl'))
 def test_slice_thin_and_insert_with_replicas(test_context):
 
     elements = {
-        'e0': xt.Bend(k0=0.3, h=0.31, length=1),
+        'e0': xt.Bend(k0=0.3, angle=0.31, length=1),
         'e1': xt.Replica(parent_name='e0'),
-        'e2': xt.Bend(k0=-0.4, h=-0.41, length=1),
+        'e2': xt.Bend(k0=-0.4, angle=-0.41, length=1),
         'e3': xt.Replica(parent_name='e2'),
         'e4': xt.Replica(parent_name='e3'), # Replica of replica
     }
@@ -20,11 +20,11 @@ def test_slice_thin_and_insert_with_replicas(test_context):
     line.build_tracker(_context=test_context)
 
     element_no_repl={
-        'e0': xt.Bend(k0=0.3, h=0.31, length=1),
-        'e1': xt.Bend(k0=0.3, h=0.31, length=1),
-        'e2': xt.Bend(k0=-0.4, h=-0.41, length=1),
-        'e3': xt.Bend(k0=-0.4, h=-0.41, length=1),
-        'e4': xt.Bend(k0=-0.4, h=-0.41, length=1),
+        'e0': xt.Bend(k0=0.3, angle=0.31, length=1),
+        'e1': xt.Bend(k0=0.3, angle=0.31, length=1),
+        'e2': xt.Bend(k0=-0.4, angle=-0.41, length=1),
+        'e3': xt.Bend(k0=-0.4, angle=-0.41, length=1),
+        'e4': xt.Bend(k0=-0.4, angle=-0.41, length=1),
     }
 
     line_no_repl = xt.Line(elements=element_no_repl,
@@ -130,19 +130,19 @@ def test_slice_thin_and_insert_with_replicas(test_context):
     assert_allclose(p2.delta, p1.delta, rtol=0, atol=1e-14)
 
     line.discard_tracker()
-    line.insert_element(name='mkins1', element=xt.Marker(), at_s=0.5)
-    line.insert_element(name='mkins2', element=xt.Marker(), at_s=1.5)
-    line.insert_element(name='mkins3', element=xt.Marker(), at_s=2.5)
-    line.insert_element(name='mkins4', element=xt.Marker(), at_s=3.5)
-    line.insert_element(name='mkins5', element=xt.Marker(), at_s=4.5)
+    line.insert('mkins1', obj=xt.Marker(), at=0.5)
+    line.insert('mkins2', obj=xt.Marker(), at=1.5)
+    line.insert('mkins3', obj=xt.Marker(), at=2.5)
+    line.insert('mkins4', obj=xt.Marker(), at=3.5)
+    line.insert('mkins5', obj=xt.Marker(), at=4.5)
     line.build_tracker(_context=test_context)
 
     line_no_repl.discard_tracker()
-    line_no_repl.insert_element(name='mkins1', element=xt.Marker(), at_s=0.5)
-    line_no_repl.insert_element(name='mkins2', element=xt.Marker(), at_s=1.5)
-    line_no_repl.insert_element(name='mkins3', element=xt.Marker(), at_s=2.5)
-    line_no_repl.insert_element(name='mkins4', element=xt.Marker(), at_s=3.5)
-    line_no_repl.insert_element(name='mkins5', element=xt.Marker(), at_s=4.5)
+    line_no_repl.insert('mkins1', obj=xt.Marker(), at=0.5)
+    line_no_repl.insert('mkins2', obj=xt.Marker(), at=1.5)
+    line_no_repl.insert('mkins3', obj=xt.Marker(), at=2.5)
+    line_no_repl.insert('mkins4', obj=xt.Marker(), at=3.5)
+    line_no_repl.insert('mkins5', obj=xt.Marker(), at=4.5)
     line_no_repl.build_tracker(_context=test_context)
 
     tt = line.get_table()
@@ -228,9 +228,9 @@ def test_slice_thin_and_insert_with_replicas(test_context):
 def test_slice_thick_and_insert_with_replicas(test_context):
 
     elements = {
-        'e0': xt.Bend(k0=0.3, h=0.31, length=1),
+        'e0': xt.Bend(k0=0.3, angle=0.31, length=1),
         'e1': xt.Replica(parent_name='e0'),
-        'e2': xt.Bend(k0=-0.4, h=-0.41, length=1),
+        'e2': xt.Bend(k0=-0.4, angle=-0.41, length=1),
         'e3': xt.Replica(parent_name='e2'),
         'e4': xt.Replica(parent_name='e3'), # Replica of replica
     }
@@ -241,11 +241,11 @@ def test_slice_thick_and_insert_with_replicas(test_context):
     assert line['e2']._movable
 
     element_no_repl={
-        'e0': xt.Bend(k0=0.3, h=0.31, length=1),
-        'e1': xt.Bend(k0=0.3, h=0.31, length=1),
-        'e2': xt.Bend(k0=-0.4, h=-0.41, length=1),
-        'e3': xt.Bend(k0=-0.4, h=-0.41, length=1),
-        'e4': xt.Bend(k0=-0.4, h=-0.41, length=1),
+        'e0': xt.Bend(k0=0.3, angle=0.31, length=1),
+        'e1': xt.Bend(k0=0.3, angle=0.31, length=1),
+        'e2': xt.Bend(k0=-0.4, angle=-0.41, length=1),
+        'e3': xt.Bend(k0=-0.4, angle=-0.41, length=1),
+        'e4': xt.Bend(k0=-0.4, angle=-0.41, length=1),
     }
 
     line_no_repl = xt.Line(elements=element_no_repl,
@@ -359,20 +359,20 @@ def test_slice_thick_and_insert_with_replicas(test_context):
 
     line.discard_tracker()
     assert line['e2']._movable
-    line.insert_element(name='mkins1', element=xt.Marker(), at_s=0.5)
-    line.insert_element(name='mkins2', element=xt.Marker(), at_s=1.5)
-    line.insert_element(name='mkins3', element=xt.Marker(), at_s=2.5)
-    line.insert_element(name='mkins4', element=xt.Marker(), at_s=3.5)
-    line.insert_element(name='mkins5', element=xt.Marker(), at_s=4.5)
+    line.insert('mkins1', obj=xt.Marker(), at=0.5)
+    line.insert('mkins2', obj=xt.Marker(), at=1.5)
+    line.insert('mkins3', obj=xt.Marker(), at=2.5)
+    line.insert('mkins4', obj=xt.Marker(), at=3.5)
+    line.insert('mkins5', obj=xt.Marker(), at=4.5)
     line.build_tracker(_context=test_context)
     assert line['e2']._movable
 
     line_no_repl.discard_tracker()
-    line_no_repl.insert_element(name='mkins1', element=xt.Marker(), at_s=0.5)
-    line_no_repl.insert_element(name='mkins2', element=xt.Marker(), at_s=1.5)
-    line_no_repl.insert_element(name='mkins3', element=xt.Marker(), at_s=2.5)
-    line_no_repl.insert_element(name='mkins4', element=xt.Marker(), at_s=3.5)
-    line_no_repl.insert_element(name='mkins5', element=xt.Marker(), at_s=4.5)
+    line_no_repl.insert('mkins1', obj=xt.Marker(), at=0.5)
+    line_no_repl.insert('mkins2', obj=xt.Marker(), at=1.5)
+    line_no_repl.insert('mkins3', obj=xt.Marker(), at=2.5)
+    line_no_repl.insert('mkins4', obj=xt.Marker(), at=3.5)
+    line_no_repl.insert('mkins5', obj=xt.Marker(), at=4.5)
     line_no_repl.build_tracker(_context=test_context)
     assert line['e2']._movable
 

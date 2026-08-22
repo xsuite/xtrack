@@ -6,7 +6,7 @@
 #ifndef XTRACK_FIRSTORDERTAYLORMAP_H
 #define XTRACK_FIRSTORDERTAYLORMAP_H
 
-#include <headers/track.h>
+#include "xtrack/headers/track.h"
 
 
 GPUFUN

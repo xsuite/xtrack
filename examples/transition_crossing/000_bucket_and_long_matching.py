@@ -27,7 +27,7 @@ h_rf = 40
 
 f_rf = h_rf * f_rev
 v_rf = 100e3
-lag_rf = 180. if eta > 0. else 0.
+phase_rf = np.pi if eta > 0. else 0.
 
 # Compute momentum increment using auxiliary particle
 dp0c_eV = energy_ref_increment / particle_ref.beta0[0]
@@ -36,7 +36,7 @@ if compensate_phase:
     phi = np.arcsin(dp0c_eV * particle_ref.beta0[0] / v_rf)
     if eta > 0:
         phi = np.pi - phi
-    lag_rf = np.rad2deg(phi)
+    phase_rf = phi
 
 otm = xt.LineSegmentMap(
     betx=1., bety=1,
@@ -45,7 +45,7 @@ otm = xt.LineSegmentMap(
     longitudinal_mode="nonlinear",
     voltage_rf=v_rf,
     frequency_rf=f_rf,
-    lag_rf=lag_rf,
+    phase_rf=phase_rf,
     length=circumference,
     energy_ref_increment=energy_ref_increment
 )

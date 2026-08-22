@@ -6,9 +6,10 @@
 #ifndef XTRACK_BEND_H
 #define XTRACK_BEND_H
 
-#include <headers/track.h>
-#include <beam_elements/elements_src/track_magnet.h>
-#include <beam_elements/elements_src/default_magnet_config.h>
+#include "xtrack/headers/track.h"
+#include "xtrack/headers/factorial.h"
+#include "xtrack/beam_elements/elements_src/track_magnet.h"
+#include "xtrack/beam_elements/elements_src/default_magnet_config.h"
 
 GPUFUN
 void Bend_track_local_particle(
@@ -24,6 +25,11 @@ void Bend_track_local_particle(
         /*inv_factorial_order*/   BendData_get_inv_factorial_order(el),
         /*knl*/                   BendData_getp1_knl(el, 0),
         /*ksl*/                   BendData_getp1_ksl(el, 0),
+        /*order_rel*/             BendData_len_knl_rel(el) - 1, // order_rel is derived from the length of knl_rel and ksl_rel arrays
+      /*inv_factorial_order_rel*/ one_over_factorial(BendData_len_knl_rel(el) - 1), // 1 / (order_rel)!
+        /*knl_rel*/               BendData_getp1_knl_rel(el, 0),
+        /*ksl_rel*/               BendData_getp1_ksl_rel(el, 0),
+        /*rel_ref_strength*/      BendData_get_k0(el) * BendData_get_length(el),
         /*num_multipole_kicks*/   BendData_get_num_multipole_kicks(el),
         /*model*/                 BendData_get_model(el),
         /*default_model*/         BEND_DEFAULT_MODEL,
@@ -37,7 +43,7 @@ void Bend_track_local_particle(
         /*hxl*/                   0.,
         /*k0*/                    BendData_get_k0(el),
         /*k1*/                    BendData_get_k1(el),
-        /*k2*/                    0.,
+        /*k2*/                    BendData_get_k2(el),
         /*k3*/                    0.,
         /*k0s*/                   0.,
         /*k1s*/                   0.,
@@ -48,7 +54,10 @@ void Bend_track_local_particle(
         /*x0_solenoid*/           0.,
         /*y0_solenoid*/           0.,
         /*rbend_model*/           -1, // not rbend
-        /*rbend_shift*/           0.,
+     /*rbend_compensate_sagitta*/ 0,  // not rbend
+        /*rbend_shift*/           0., // not rbend
+        /*rbend_angle_diff*/      0., // not rbend
+        /*length_straight*/       0., // not rbend
         /*body_active*/           1,
         /*edge_entry_active*/     BendData_get_edge_entry_active(el),
         /*edge_exit_active*/      BendData_get_edge_exit_active(el),

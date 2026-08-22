@@ -50,7 +50,7 @@ line.configure_radiation(model='mean')
 # In the presence of radiation the stability tolerance needs to be increded to
 # allow twiss matrix determinant to be different from one.
 line.matrix_stability_tol = 1e-2
-tw = line.twiss(eneloss_and_damping=True)
+tw = line.twiss(radiation_analysis=True)
 
 bunch_intensity = 1e11
 sigma_z = 5e-3

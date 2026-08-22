@@ -4,7 +4,7 @@ import xtrack as xt
 import numpy as np
 from cpymad.madx import Madx
 
-def test_quadrupole_fringe_ptc():
+def test_quadrupole_fringe_ptc(sandbox_cwd):
     b2 = 100
     b1 = 0
     length=1e-20
@@ -20,7 +20,7 @@ def test_quadrupole_fringe_ptc():
 
     p0 = xt.Particles(x=x0,px=px0,y=y0,py=py0,delta=delta0,zeta=zeta0,beta0=beta0)
 
-    ptau0 = float(p0.ptau)
+    ptau0 = p0.ptau[0]
     tau0 = zeta0/beta0
 
     # XSuite
@@ -31,7 +31,7 @@ def test_quadrupole_fringe_ptc():
     line.build_tracker()
     line.track(p0)
 
-    mat = line.compute_one_turn_matrix_finite_differences(p0)['R_matrix']
+    mat = line.get_R_matrix(p0)['R_matrix']
     det = np.linalg.det(mat)
 
     assert np.isclose(det, 1.0)
@@ -58,9 +58,9 @@ def test_quadrupole_fringe_ptc():
 
     df = madx.table.tracksumm.dframe()
 
-    assert np.isclose(p0.x, df.x[-1])
-    assert np.isclose(p0.px, df.px[-1])
-    assert np.isclose(p0.y, df.y[-1])
-    assert np.isclose(p0.py, df.py[-1])
-    assert np.isclose(p0.ptau, df.pt[-1])
-    assert np.isclose(p0.zeta/p0.beta0, df.t[-1])
+    assert np.isclose(p0.x, df.x.values[-1])
+    assert np.isclose(p0.px, df.px.values[-1])
+    assert np.isclose(p0.y, df.y.values[-1])
+    assert np.isclose(p0.py, df.py.values[-1])
+    assert np.isclose(p0.ptau, df.pt.values[-1])
+    assert np.isclose(p0.zeta/p0.beta0, df.t.values[-1])

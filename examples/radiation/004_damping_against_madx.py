@@ -53,22 +53,18 @@ line.particle_ref = xt.Particles(
         q0=-1,
         gamma0=mad.sequence.ring.beam.gamma)
 
-context = xo.ContextCpu()
 
-# Build tracker
-print('Build tracker ...')
-line.build_tracker(_context=context)
 line.matrix_stability_tol = 1e-2
 
 line.configure_radiation(model='mean')
 
 # Twiss
 print('Checks with twiss...')
-tw = line.twiss(eneloss_and_damping=True)
+tw = line.twiss(radiation_analysis=True)
 
 # Checks
 met = mad_emit_table
-assert np.isclose(tw['eneloss_turn'], mad_emit_summ.u0[0]*1e9,
+assert np.isclose(tw['energy_loss'], mad_emit_summ.u0[0]*1e9,
                   rtol=3e-3, atol=0)
 assert np.isclose(tw['damping_constants_s'][0],
     met[met.loc[:, 'parameter']=='damping_constant']['mode1'][0],

@@ -13,7 +13,7 @@ from xobjects.test_helpers import fix_random_seed, for_all_test_contexts
 
 def do_checks(test_context,part,n_part_per_bunch,sigma_z,sigma_delta,
         filled_slots,bunch_numbers,bunch_spacing):
-        
+
     for i_bunch,bunch_number in enumerate(bunch_numbers):
         zeta_avg = np.average(
         test_context.nparray_from_context_array(
@@ -92,7 +92,7 @@ def test_multi_bunch_gaussian_generation(test_context, arc_type):
             voltage_rf = voltage,
             longitudinal_mode = 'linear_fixed_rf',
             frequency_rf = f_RF,
-            lag_rf = 180.0,
+            phase_rf = np.pi,
             slippage_length = circumference,
             momentum_compaction_factor = momentumCompaction,length=circumference)
     elif arc_type == 'arc_nonlinear':
@@ -102,7 +102,7 @@ def test_multi_bunch_gaussian_generation(test_context, arc_type):
             voltage_rf = voltage,
             longitudinal_mode = 'nonlinear',
             frequency_rf = f_RF,
-            lag_rf = 180.0,
+            phase_rf = np.pi,
             slippage_length = circumference,
             momentum_compaction_factor = momentumCompaction,
             length=circumference)

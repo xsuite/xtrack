@@ -1,8 +1,7 @@
 import xtrack as xt
 
-# Load a line and build a tracker
+# Load a line
 line = xt.load('../../test_data/hllhc15_thick/lhc_thick_with_knobs.json')
-line.build_tracker()
 
 # Build optimizer object for tunes and chromaticities without performing optimization
 opt = line.match(
@@ -28,8 +27,8 @@ opt.target_status()
 #  3 ON    chrom   False     -10.057     1.94297         12 'dqy', val=12, tol=0.01, weight=1)
 
 # Disable optimization of chromaticities and usage of sextupole knobs
-opt.disable_targets(tag='chrom')
-opt.disable_vary(tag='sext')
+opt.disable(target='chrom')
+opt.disable(vary='sext')
 
 opt.show()
 # prints:
@@ -60,8 +59,8 @@ opt.target_status()
 #  3 OFF   chrom   False            0     1.91882         12 'dqy', val=12, tol=0.01, weight=1)
 
 # Enable all targets and knobs
-opt.enable_all_targets()
-opt.enable_all_vary()
+opt.enable(target=True)
+opt.enable(vary=True)
 
 # Solve (for tunes and chromaticities)
 opt.solve()

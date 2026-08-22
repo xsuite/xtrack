@@ -5,8 +5,8 @@
 #ifndef XTRACK_TRACK_LEGACY_SOLENOID_RADIATION_H
 #define XTRACK_TRACK_LEGACY_SOLENOID_RADIATION_H
 
-#include <headers/track.h>
-#include <headers/synrad_spectrum.h>
+#include "xtrack/headers/track.h"
+#include "xtrack/headers/synrad_spectrum.h"
 
 
 GPUFUN
@@ -115,9 +115,9 @@ void legacy_solenoid_apply_radiation_single_particle(
 
     if ((spin_flag != 0) && (spin_x_0 != 0. || spin_y_0 != 0. || spin_z_0 != 0.)){
 
-        #ifdef XSUITE_BACKTRACK
+        if (LocalParticle_check_track_flag(part, XS_FLAG_BACKTRACK)) {
             LocalParticle_set_state(part, -33);
-        #else
+        } else {
             double const Bz_T = ks * brho0;
 
             double const kin_px_mean = (old_px + new_ax);
@@ -209,7 +209,7 @@ void legacy_solenoid_apply_radiation_single_particle(
                 LocalParticle_set_spin_y(part, spin_y_3);
                 LocalParticle_set_spin_z(part, spin_z_3);
             }
-        #endif
+        }
     }
 
     // Synchrotron radiation
@@ -222,6 +222,9 @@ void legacy_solenoid_apply_radiation_single_particle(
     }
     else if (radiation_flag == 2){
         synrad_emit_photons(part, B_perp_T, l_path, record_index, record);
+    }
+    else if (radiation_flag == 3){
+        synrad_emit_total_energy_loss(part, B_perp_T, l_path);
     }
 
     LocalParticle_add_to_px(part, new_ax);

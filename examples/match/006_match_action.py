@@ -1,8 +1,7 @@
 import xtrack as xt
 
-# Load a line and build a tracker
+# Load a line
 line = xt.load('../../test_data/hllhc15_thick/lhc_thick_with_knobs.json')
-line.build_tracker()
 
 class ActionMeasAmplDet(xt.Action):
 

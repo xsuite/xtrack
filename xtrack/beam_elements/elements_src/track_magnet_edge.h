@@ -5,12 +5,12 @@
 #ifndef XTRACK_TRACK_MAGNET_EDGE_H
 #define XTRACK_TRACK_MAGNET_EDGE_H
 
-#include <headers/track.h>
-#include <beam_elements/elements_src/track_dipole_edge_linear.h>
-#include <beam_elements/elements_src/track_yrotation.h>
-#include <beam_elements/elements_src/track_wedge.h>
-#include <beam_elements/elements_src/track_mult_fringe.h>
-#include <beam_elements/elements_src/track_dipole_fringe.h>
+#include "xtrack/headers/track.h"
+#include "xtrack/beam_elements/elements_src/track_dipole_edge_linear.h"
+#include "xtrack/beam_elements/elements_src/track_yrotation.h"
+#include "xtrack/beam_elements/elements_src/track_wedge.h"
+#include "xtrack/beam_elements/elements_src/track_mult_fringe.h"
+#include "xtrack/beam_elements/elements_src/track_dipole_fringe.h"
 
 
 GPUFUN
@@ -22,10 +22,14 @@ void track_magnet_edge_particles(
     const double* knorm,
     const double* kskew,
     const int64_t k_order,
-    const double* knl,
-    const double* ksl,
+    GPUGLMEM const double* knl,
+    GPUGLMEM const double* ksl,
     const double factor_knl_ksl,
     const int64_t kl_order,
+    GPUGLMEM const double* knl_rel,
+    GPUGLMEM const double* ksl_rel,
+    const double factor_knl_ksl_rel,
+    int64_t order_rel,
     const double ksol,
     const double x0_solenoid,
     const double y0_solenoid,
@@ -37,7 +41,12 @@ void track_magnet_edge_particles(
 ) {
     double k0 = 0;
     if (k_order > -1) k0 += knorm[0];
-    if (fabs(length) > 1e-10 && kl_order > -1) k0 += factor_knl_ksl * knl[0] / length;
+    if (fabs(length) > 1e-10 && kl_order > -1) {
+        k0 += factor_knl_ksl * knl[0] / length;
+    }
+    if (fabs(length) > 1e-10 && order_rel > -1 && knl_rel != NULL) {
+        k0 += factor_knl_ksl_rel * knl_rel[0] / length;
+    }
 
     // Assume we are coming from or going to a drift
     if (is_exit) {
@@ -89,7 +98,7 @@ void track_magnet_edge_particles(
         if (is_exit) k0 = -k0;
 
         #define MAGNET_Y_ROTATE(PART) \
-            if (should_rotate) YRotation_single_particle((PART), sin_, cos_, tan_)
+            if (should_rotate) YRotation_single_particle((PART), -sin_, cos_, -tan_)
 
         #define MAGNET_DIPOLE_FRINGE(PART) \
             DipoleFringe_single_particle((PART), fringe_integral, half_gap, k0)

@@ -1,6 +1,6 @@
 from collections import defaultdict
 
-from ..line import Functions
+from ..functions import Functions
 import xdeps
 
 class VarSharing:

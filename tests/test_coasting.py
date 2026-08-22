@@ -1,27 +1,37 @@
 import pathlib
 
 import numpy as np
+import xobjects as xo
 from scipy.constants import c as clight
+from xobjects.test_helpers import (
+    allow_kernel_compilation, fix_random_seed,
+    for_all_test_contexts)
 
 import xtrack as xt
-from xobjects.test_helpers import fix_random_seed
+import xtrack.synctime as st
 
 test_data_folder = pathlib.Path(
     __file__).parent.joinpath('../test_data').absolute()
 
 
 @fix_random_seed(8837465)
-def test_coasting():
+@allow_kernel_compilation
+@for_all_test_contexts(excluding=('ContextPyopencl',))
+def test_coasting(test_context):
+
     delta0 = 1e-2
 
     line = xt.load(test_data_folder /
                              'psb_injection/line_and_particle.json')
 
+    # Move to the test context
+    line.build_tracker(_context=test_context)
+
     # RF off!
     tt = line.get_table()
     ttcav = tt.rows[tt.element_type == 'Cavity']
     for nn in ttcav.name:
-        line.element_refs[nn].voltage=0
+        line[nn].voltage=0
 
     line.configure_bend_model(core='bend-kick-bend', edge='full')
     line.twiss_default['method'] = '4d'
@@ -31,35 +41,35 @@ def test_coasting():
     line.discard_tracker()
 
     # Install dummy collective elements
-    s_sync = np.linspace(0, tw.circumference, 10)
+    s_sync = np.linspace(0, tw.line_length, 10)
     line.cut_at_s(s_sync)
+    collective_element_names = []
     for ii, ss in enumerate(s_sync):
         nn = f'sync_here_{ii}'
-        line.insert_element(element=xt.Marker(), name=nn, at_s=ss)
+        line.insert(obj=xt.Marker(_context=test_context), what=nn, at=ss)
         line[nn].iscollective = True
+        collective_element_names.append(nn)
 
-    import xtrack.synctime as st
     st.install_sync_time_at_collective_elements(line)
-
-    import xobjects as xo
-    line.build_tracker(_context=xo.ContextCpu(omp_num_threads='auto'))
 
     beta1 = tw.beta0 / 0.9
 
-    circumference = tw.circumference
+    circumference = tw.line_length
     zeta_min0 = -circumference/2*tw.beta0/beta1
     zeta_max0 = circumference/2*tw.beta0/beta1
 
     num_particles = 50000
+    # Build on CPU and then transfer to be able to use numpy to initialize
     p = line.build_particles(
+        _context=xo.context_default, # <-- CPU
         delta=delta0 + 0 * np.random.uniform(-1, 1, num_particles),
         x_norm=0, y_norm=0
     )
-
     # Need to take beta of actual particles to convert the distribution along the
     # circumference to a distribution in time
     p.zeta = (np.random.uniform(0, circumference, num_particles) / p.rvv
             + (zeta_max0 - circumference) / p.rvv)
+    p.move(_context=test_context)
 
     st.prepare_particles_for_sync_time(p, line)
 
@@ -69,17 +79,20 @@ def test_coasting():
     p0 = p.copy()
 
     def particles(_, p):
-        return p.copy()
+        return p.copy(_context=xo.context_default)
 
     def intensity(line, particles):
+        particles = particles.copy(_context=xo.context_default)
         return (np.sum(particles.weight[particles.state > 0])
                     / ((zeta_max0 - zeta_min0)/tw.beta0/clight))
 
     def z_range(line, particles):
+        particles = particles.copy(_context=xo.context_default)
         mask_alive = particles.state > 0
         return particles.zeta[mask_alive].min(), particles.zeta[mask_alive].max()
 
     def long_density(line, particles):
+        particles = particles.copy(_context=xo.context_default)
         mask_alive = particles.state > 0
         if not(np.any(particles.at_turn[mask_alive] == 0)): # don't check at the first turn
             assert np.all(particles.zeta[mask_alive] > zeta_min0)
@@ -89,13 +102,14 @@ def test_coasting():
                             weights=particles.weight[mask_alive])
 
     def y_mean_hist(line, particles):
-
+        particles = particles.copy(_context=xo.context_default)
         mask_alive = particles.state > 0
         if not(np.any(particles.at_turn[mask_alive] == 0)): # don't check at the first turn
             assert np.all(particles.zeta[mask_alive] > zeta_min0)
             assert np.all(particles.zeta[mask_alive] < zeta_max0)
         return np.histogram(particles.zeta[mask_alive], bins=200,
                             range=(zeta_min0, zeta_max0), weights=particles.y[mask_alive])
+
 
 
     line.enable_time_dependent_vars = True
@@ -109,7 +123,7 @@ def test_coasting():
 
     inten = line.log_last_track['intensity']
 
-    f_rev_ave = 1 / tw.T_rev0 * (1 - tw.slip_factor * p.delta.mean())
+    f_rev_ave = 1 / tw.t_rev0 * (1 - tw.slip_factor * p.delta.mean())
     t_rev_ave = 1 / f_rev_ave
 
     inten_exp =  np.sum(p0.weight) / t_rev_ave
@@ -130,9 +144,9 @@ def test_coasting():
     import nafflib
     intensity_no_ave = intensity_vs_t - np.mean(intensity_vs_t)
     f_harmons = nafflib.get_tunes(intensity_no_ave, N=50)[0] / (t_unwrapped[1] - t_unwrapped[0])
-    f_nominal = 1 / tw.T_rev0
+    f_nominal = 1 / tw.t_rev0
     dt_expected = -(twom.zeta[-1] - twom.zeta[0]) / tw.beta0 / clight
-    f_expected = 1 / (tw.T_rev0 + dt_expected)
+    f_expected = 1 / (tw.t_rev0 + dt_expected)
 
     f_measured = f_harmons[np.argmin(np.abs(f_harmons - f_nominal))]
 

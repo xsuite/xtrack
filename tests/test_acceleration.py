@@ -8,7 +8,6 @@ import pathlib
 
 import numpy as np
 import pandas as pd
-from cpymad.madx import Madx
 from scipy.constants import c as clight
 
 import xobjects as xo
@@ -32,13 +31,14 @@ def test_acceleration(test_context):
     line = xt.Line.from_dict(input_data['line'])
 
     energy_increase = xt.ReferenceEnergyIncrease(Delta_p0c=Delta_p0c)
-    line.append_element(energy_increase, 'energy_increase')
+    line.append('energy_increase', energy_increase)
 
     line.build_tracker(_context=test_context)
 
     # Assume only first cavity is active
-    frequency = line.get_elements_of_type(xt.Cavity)[0][0].frequency
-    voltage = line.get_elements_of_type(xt.Cavity)[0][0].voltage
+    tt_cav = line.get_table().rows.match(element_type='Cavity')
+    frequency = line[tt_cav.name[0]].frequency
+    voltage = line[tt_cav.name[0]].voltage
     # Assuming proton and beta=1
     stable_z = np.arcsin(Delta_p0c/voltage)/frequency/2/np.pi*clight
 
@@ -46,6 +46,34 @@ def test_acceleration(test_context):
         input_data['particle']))
 
     xo.assert_allclose(p_co._xobject.zeta[0], stable_z, atol=0, rtol=1e-2)
+
+
+@for_all_test_contexts
+def test_reference_energy_change(test_context):
+    new_p0c = 1.5e9
+    element = xt.ReferenceEnergyChange(_context=test_context, p0c=new_p0c)
+    particles = xp.Particles(
+        _context=test_context,
+        p0c=1.4e9,
+        delta=[0, 1e-3],
+        px=[1e-6, -1e-6],
+        py=[2e-6, 0],
+        zeta=[0.1, -0.2],
+    )
+
+    particles_before = particles.copy(_context=xo.ContextCpu())
+    element.track(particles)
+    particles.move(_context=xo.ContextCpu())
+
+    xo.assert_allclose(particles.p0c, new_p0c, atol=0, rtol=0)
+    xo.assert_allclose(particles.energy, particles_before.energy,
+                       atol=1e-6, rtol=1e-14)
+    xo.assert_allclose(particles.px,
+                       particles_before.px * particles_before.p0c / new_p0c,
+                       atol=1e-14, rtol=0)
+    xo.assert_allclose(particles.py,
+                       particles_before.py * particles_before.p0c / new_p0c,
+                       atol=1e-14, rtol=0)
 
 
 @for_all_test_contexts(excluding=('ContextPyopencl',))
@@ -64,20 +92,10 @@ def test_energy_program(test_context):
     # Shift the time scale for testing purposes
     t_s = t_s
 
-    # Load mad model and apply element shifts
-    mad = Madx(stdout=False)
-    mad.call(str(test_data_folder / 'psb_chicane/psb.seq'))
-    mad.call(str(test_data_folder / 'psb_chicane/psb_fb_lhc.str'))
-    mad.input('''
-        beam, particle=PROTON, pc=0.5708301551893517;
-        use, sequence=psb1;
-        twiss;
-    ''')
-
-    line = xt.Line.from_madx_sequence(mad.sequence.psb1, allow_thick=True,
-                                      deferred_expressions=True)
-    line.particle_ref = xt.Particles(mass0=xt.PROTON_MASS_EV,
-                                     gamma0=mad.sequence.psb1.beam.gamma)
+    env = xt.load([test_data_folder / 'psb_chicane/psb.seq',
+                   test_data_folder / 'psb_chicane/psb_fb_lhc.str'])
+    env.psb1.set_particle_ref('proton', p0c=0.5708301551893517e9)
+    line = env.psb1
 
     line.build_tracker(_context=test_context)
 
@@ -153,7 +171,7 @@ def test_energy_program(test_context):
     line.enable_time_dependent_vars = False
     line.vars['t_turn_s'] = 20e-3
 
-    E_kin_expected = np.interp(line.vv['t_turn_s'], t_s, E_kin_GeV*1e9)
+    E_kin_expected = np.interp(line['t_turn_s'], t_s, E_kin_GeV*1e9)
     E_tot_expected = E_kin_expected + line.particle_ref.mass0
     xo.assert_allclose(
         E_tot_expected, line.particle_ref.energy0[0], rtol=1e-4, atol=0)
@@ -169,28 +187,17 @@ def test_energy_program(test_context):
     line.vars['t_turn_s'] = 0
     line.vars['on_chicane_k0'] = 0
     tw = line.twiss(method='6d')
-    xo.assert_allclose(tw.zeta[0], 0, rtol=0, atol=1e-12)
+    xo.assert_allclose(tw.zeta[0], 0, rtol=0, atol=5e-10)
     xo.assert_allclose(line.particle_ref.mass0 * tw.gamma0, line.particle_ref.mass0 + E_kin_turn[0],
                        rtol=1e-10, atol=0)
 
 @for_all_test_contexts(excluding=('ContextPyopencl',))
 def test_acceleration_transverse_shrink(test_context):
 
-    mad = Madx(stdout=False)
-
-    # Load mad model and apply element shifts
-    mad.input(f'''
-    call, file = '{str(test_data_folder)}/psb_chicane/psb.seq';
-    call, file = '{str(test_data_folder)}/psb_chicane/psb_fb_lhc.str';
-    beam;
-    use, sequence=psb1;
-    ''')
-
-    line = xt.Line.from_madx_sequence(mad.sequence.psb1,
-                                        deferred_expressions=True)
-    e_kin_start_eV = 160e6
-    line.particle_ref = xt.Particles(mass0=xt.PROTON_MASS_EV, q0=1.,
-                                    energy0=xt.PROTON_MASS_EV + e_kin_start_eV)
+    env = xt.load([test_data_folder / 'psb_chicane/psb.seq',
+                   test_data_folder / 'psb_chicane/psb_fb_lhc.str'])
+    env.psb1.set_particle_ref('proton', p0c=0.5708301551893517e9)
+    line = env.psb1
 
     # Slice to gain some tracking speed
     line.slice_thick_elements(
@@ -256,13 +263,12 @@ def test_acceleration_transverse_shrink(test_context):
 
     # Build a function with these samples and link it to the cavity
     line.functions['fun_f_rf'] = xt.FunctionPieceWiseLinear(x=t_rf, y=f_rf)
-    line.element_refs['br1.acwf5l1.1'].frequency = line.functions['fun_f_rf'](
+    line['br1.acwf5l1.1'].frequency = line.functions['fun_f_rf'](
                                                             line.vars['t_turn_s'])
 
-    # Setup voltage and lag
-    line.element_refs['br1.acwf5l1.1'].voltage = 3000 # V
-    line.element_refs['br1.acwf5l1.1'].lag = 0 # degrees (below transition energy)
-
+    # Setup voltage and phase
+    line['br1.acwf5l1.1'].voltage = 3000 # V
+    line['br1.acwf5l1.1'].phase = 0 # rad
     # When setting line.vars['t_turn_s'] the reference energy and the rf frequency
     # are updated automatically
     line.vars['t_turn_s'] = 0

@@ -12,10 +12,10 @@ import matplotlib.pyplot as plt
 line = xt.load('psb_03_with_chicane_corrected.json')
 line.build_tracker()
 
-line.vars['on_chicane_k0'] = 1
-line.vars['on_chicane_k2'] = 1
-line.vars['on_chicane_beta_corr'] = 0
-line.vars['on_chicane_tune_corr'] = 0
+line['on_chicane_k0'] = 1
+line['on_chicane_k2'] = 1
+line['on_chicane_beta_corr'] = 0
+line['on_chicane_tune_corr'] = 0
 
 line_thick = line.copy()
 line_thick.build_tracker()
@@ -79,10 +79,10 @@ bety_at_mker_uncorrected = []
 qy_uncorrected = []
 for ii, tt in enumerate(t_test):
     print(f'Twiss at t = {tt*1e3:.2f} ms   ', end='\r', flush=True)
-    line.vars['t_turn_s'] = tt
+    line['t_turn_s'] = tt
 
-    line.vars['on_chicane_beta_corr'] = 1
-    line.vars['on_chicane_tune_corr'] = 1
+    line['on_chicane_beta_corr'] = 1
+    line['on_chicane_tune_corr'] = 1
     tw = line.twiss()
 
     qx.append(tw.qx)
@@ -93,8 +93,8 @@ for ii, tt in enumerate(t_test):
     k0_bsw2.append(line['bi1.bsw1l1.2'].knl[0] / line['bi1.bsw1l1.2'].length)
     k2_bsw2.append(line['bi1.bsw1l1.2'].knl[2] / line['bi1.bsw1l1.2'].length)
 
-    line.vars['on_chicane_beta_corr'] = 0
-    line.vars['on_chicane_tune_corr'] = 0
+    line['on_chicane_beta_corr'] = 0
+    line['on_chicane_tune_corr'] = 0
     tw_uncorr = line.twiss()
     bety_at_mker_uncorrected.append(tw_uncorr['bety', 'mker_match'])
     qy_uncorrected.append(tw_uncorr.qy)
@@ -155,8 +155,8 @@ dqy_ptc = ptc_ref['dqy_ptc']
 bety_at_scraper_ptc = ptc_ref['bety_at_scraper_ptc']
 
 # Check against ptc (correction off)
-line.vars['on_chicane_beta_corr'] = 0
-line.vars['on_chicane_tune_corr'] = 0
+line['on_chicane_beta_corr'] = 0
+line['on_chicane_tune_corr'] = 0
 qx_thick = []
 qy_thick = []
 dqx_thick = []
@@ -169,8 +169,8 @@ dqy_thin = []
 bety_at_scraper_thin = []
 for ii, tt in enumerate(t_test):
     print(f'Check against ptc, twiss at t = {tt*1e3:.2f} ms   ', end='\r', flush=True)
-    line_thick.vars['t_turn_s'] = tt
-    line.vars['t_turn_s'] = tt
+    line_thick['t_turn_s'] = tt
+    line['t_turn_s'] = tt
 
     tw_thick = line_thick.twiss()
     bety_at_scraper_thick.append(tw_thick['bety', 'br.stscrap22'])
@@ -199,10 +199,10 @@ assert np.allclose(bety_at_scraper_thick, bety_at_scraper_ptc, atol=0, rtol=1e-2
 assert np.allclose(bety_at_scraper_thin, bety_at_scraper_ptc, atol=0, rtol=2e-2)
 
 # Check correction
-line.vars['on_chicane_beta_corr'] = 1
-line.vars['on_chicane_tune_corr'] = 1
-line_thick.vars['on_chicane_beta_corr'] = 1
-line_thick.vars['on_chicane_tune_corr'] = 1
+line['on_chicane_beta_corr'] = 1
+line['on_chicane_tune_corr'] = 1
+line_thick['on_chicane_beta_corr'] = 1
+line_thick['on_chicane_tune_corr'] = 1
 qx_thick_corr = []
 qy_thick_corr = []
 bety_at_scraper_thick_corr = []
@@ -211,8 +211,8 @@ qy_thin_corr = []
 bety_at_scraper_thin_corr = []
 for ii, tt in enumerate(t_test):
     print(f'Check correction, twiss at t = {tt*1e3:.2f} ms   ', end='\r', flush=True)
-    line_thick.vars['t_turn_s'] = tt
-    line.vars['t_turn_s'] = tt
+    line_thick['t_turn_s'] = tt
+    line['t_turn_s'] = tt
 
     tw_thick = line_thick.twiss()
     bety_at_scraper_thick_corr.append(tw_thick['bety', 'br.stscrap22'])

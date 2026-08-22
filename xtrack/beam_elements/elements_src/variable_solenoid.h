@@ -6,9 +6,9 @@
 #ifndef XTRACK_VARIABLESOLENOID_H
 #define XTRACK_VARIABLESOLENOID_H
 
-#include <headers/track.h>
-#include <beam_elements/elements_src/track_magnet.h>
-#include <beam_elements/elements_src/default_magnet_config.h>
+#include "xtrack/headers/track.h"
+#include "xtrack/beam_elements/elements_src/track_magnet.h"
+#include "xtrack/beam_elements/elements_src/default_magnet_config.h"
 
 GPUFUN
 void VariableSolenoid_track_local_particle(
@@ -21,9 +21,9 @@ void VariableSolenoid_track_local_particle(
     double const x0 = VariableSolenoidData_get_x0(el);
     double const y0 = VariableSolenoidData_get_y0(el);
 
-    #ifdef XSUITE_BACKTRACK
+    if (LocalParticle_check_track_flag(part0, XS_FLAG_BACKTRACK)) {
         VSWAP(ks_entry, ks_exit);
-    #endif
+    }
 
     double ks, dks_ds;
     if (length != 0){
@@ -51,6 +51,11 @@ void VariableSolenoid_track_local_particle(
         /*inv_factorial_order*/   VariableSolenoidData_get_inv_factorial_order(el),
         /*knl*/                   VariableSolenoidData_getp1_knl(el, 0),
         /*ksl*/                   VariableSolenoidData_getp1_ksl(el, 0),
+        /*order_rel*/             -1,
+      /*inv_factorial_order_rel*/ 0,
+        /*knl_rel*/               NULL,
+        /*ksl_rel*/               NULL,
+        /*rel_ref_strength*/      0.,
         /*num_multipole_kicks*/   VariableSolenoidData_get_num_multipole_kicks(el),
         /*model*/                 -2, // sol-kick-sol
         /*default_model*/         0, // unused
@@ -75,7 +80,10 @@ void VariableSolenoid_track_local_particle(
         /*x0_solenoid*/           x0,
         /*y0_solenoid*/           y0,
         /*rbend_model*/           -1, // not rbend
-        /*rbend_shift*/           0.,
+     /*rbend_compensate_sagitta*/ 0,  // not rbend
+        /*rbend_shift*/           0., // not rbend
+        /*rbend_angle_diff*/      0., // not rbend
+        /*length_straight*/       0., // not rbend
         /*body_active*/           1,
         /*edge_entry_active*/     0,
         /*edge_exit_active*/      0,

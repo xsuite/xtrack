@@ -22,7 +22,7 @@ def test_radial_steering(test_context):
     tw = line.twiss()
 
     h_rf = 1
-    f_rf = h_rf/tw.T_rev0
+    f_rf = h_rf/tw.t_rev0
 
     beta0 = line.particle_ref.beta0[0]
 
@@ -30,13 +30,13 @@ def test_radial_steering(test_context):
     # dt = h_rf/(f_rf + df_hz) - h_rf/f_rf = h_rf/f_rf (1/(1+df_hz/f_rf) - 1)
     #                                       ~= h_rf/f_rf * (1 - df_hz/f_rf -1)
     #                                       = -h_rf/(f_rf^2) * df_hz
-    #                                       = -T_rev / f_rf * df_hz
+    #                                       = -t_rev / f_rf * df_hz
     # dzeta = -beta0 * clight * dt = circumference * df_hz / f_rf
 
-    dzeta = tw.circumference * df_hz / f_rf
+    dzeta = tw.line_length * df_hz / f_rf
 
-    line.unfreeze()
-    line.append_element(element=xt.ZetaShift(dzeta=dzeta), name='zeta_shift')
+    line.discard_tracker()
+    line.append('time_delay', xt.TimeDelay(shift_zeta=dzeta))
     line.build_tracker()
 
     tw_6d_offmom = line.twiss()
@@ -46,11 +46,11 @@ def test_radial_steering(test_context):
 
     # Checks
     eta = tw.slip_factor
-    f0 = 1/tw.T_rev0
+    f0 = 1/tw.t_rev0
     delta_trim = -1/h_rf/eta/f0*df_hz
 
-    # Use 4d twiss on machine without zeta shift
-    line['zeta_shift'].dzeta = 0
+    # Use 4d twiss on machine without time delay
+    line['time_delay'].shift_zeta = 0
     tw_on_mom = line.twiss(delta0=0, method='4d')
     tw_off_mom = line.twiss(delta0=delta_trim, method='4d')
     dzeta_from_twiss = (tw_off_mom['zeta'][-1] - tw_off_mom['zeta'][0])

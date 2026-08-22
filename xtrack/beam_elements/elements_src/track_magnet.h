@@ -5,13 +5,14 @@
 #ifndef XTRACK_TRACK_MAGNET_H
 #define XTRACK_TRACK_MAGNET_H
 
-#include <headers/track.h>
-#include <beam_elements/elements_src/track_magnet_kick.h>
-#include <beam_elements/elements_src/track_magnet_drift.h>
-#include <beam_elements/elements_src/track_magnet_edge.h>
+#include "xtrack/headers/track.h"
+#include "xtrack/beam_elements/elements_src/track_magnet_kick.h"
+#include "xtrack/beam_elements/elements_src/track_magnet_drift.h"
+#include "xtrack/beam_elements/elements_src/track_magnet_edge.h"
+#include "xtrack/beam_elements/elements_src/track_magnet_configure.h"
 
 #ifndef XTRACK_MULTIPOLE_NO_SYNRAD
-#include <beam_elements/elements_src/track_magnet_radiation.h>
+#include "xtrack/beam_elements/elements_src/track_magnet_radiation.h"
 #endif
 
 #define H_TOLERANCE (1e-8)
@@ -22,156 +23,6 @@
 
 
 GPUFUN
-void configure_tracking_model(
-    int64_t model,
-    double k0,
-    double k1,
-    double h,
-    double ks,
-    double* k0_drift,
-    double* k1_drift,
-    double* h_drift,
-    double* ks_drift,
-    double* k0_kick,
-    double* k1_kick,
-    double* h_kick,
-    double* k0_h_correction,
-    double* k1_h_correction,
-    int8_t* kick_rot_frame,
-    int8_t* out_drift_model
-){
-
-    // model = 0 or 1 : adaptive
-    // model = 2: bend-kick-bend
-    // model = 3: rot-kick-rot
-    // model = 4: mat-kick-mat (previously called `expanded`)
-    // model = 5: drift-kick-drift-exact
-    // model = 6: drift-kick-drift-expanded
-    // model = -1: kick only (not exposed in python)
-    // model = -2: sol-kick-sol (not exposed in python)
-
-    if (model==1){
-        model = 3; // backward compatibility
-    }
-
-    int8_t h_is_zero = (fabs(h) < H_TOLERANCE);
-    int64_t drift_model = 0;
-
-    if (model == 2){ // bend-kick-bend
-        if (h_is_zero){
-            drift_model = 5; // bend without h
-        }
-        else{
-            drift_model = 4; // bend with h
-        }
-    }
-    else if(model == 3){ // rot-kick-rot
-        if (h_is_zero){
-            drift_model = 1; // drift exact
-        }
-        else{
-            drift_model = 2; // polar drift
-        }
-    }
-    else if(model == 4){ // mat-kick-mat
-        drift_model = 3; // expanded
-    }
-    else if(model == 5){ // drift-kick-drift-exact
-        drift_model = 1; // drift exact
-    }
-    else if(model == 6){ // drift-kick-drift-expanded
-        drift_model = 0; // drift expanded
-    }
-    else if(model == -1){ // kick only
-        drift_model = -1;
-    }
-    else if(model == -2){ // sol-kick-sol
-        drift_model = 6; // solenoid
-    }
-    else{
-        // This should never happen, but just in case
-        drift_model = 99999999;
-    }
-
-    if (drift_model == -1 || drift_model == 0 || drift_model == 1){ // drift expanded, drift exact, kick only
-        *k0_drift = 0.0;
-        *k1_drift = 0.0;
-        *h_drift = 0.0;
-        *ks_drift = 0.0;
-        *k0_kick = k0;
-        *k1_kick = k1;
-        *h_kick = h;
-        *k0_h_correction = k0;
-        *k1_h_correction = k1;
-        *kick_rot_frame = 1;
-    }
-    else if (drift_model == 2){ // polar drift
-        *k0_drift = 0.0;
-        *k1_drift = 0.0;
-        *h_drift = h;
-        *ks_drift = 0.0;
-        *k0_kick = k0;
-        *k1_kick = k1;
-        *h_kick = h;
-        *k0_h_correction = k0;
-        *k1_h_correction = k1;
-        *kick_rot_frame = 0;
-    }
-    else if (drift_model == 3){ // expanded dipole-quadrupole
-        *k0_drift = k0;
-        *k1_drift = k1;
-        *h_drift = h;
-        *ks_drift = 0.0;
-        *k0_kick = 0.0;
-        *k1_kick = 0.0;
-        *h_kick = h;
-        *k0_h_correction = 0.;
-        *k1_h_correction = k1;
-        *kick_rot_frame = 0;
-    }
-    else if (drift_model == 4){ // bend with h
-        *k0_drift = k0;
-        *k1_drift = 0.0;
-        *h_drift = h;
-        *ks_drift = 0.0;
-        *k0_kick = 0.0;
-        *k1_kick = k1;
-        *h_kick = h;
-        *k0_h_correction = 0.;
-        *k1_h_correction = k1;
-        *kick_rot_frame = 0;
-    }
-    else if (drift_model == 5){ // bend without h
-        *k0_drift = k0;
-        *k1_drift = 0.0;
-        *h_drift = 0.0;
-        *ks_drift = 0.0;
-        *k0_kick = 0.0;
-        *k1_kick = k1;
-        *h_kick = 0.0;
-        *k0_h_correction = 0.;
-        *k1_h_correction = 0.;
-        *kick_rot_frame = 0;
-    }
-    else if (drift_model == 6){ // solenoid
-        *k0_drift = 0.0;
-        *k1_drift = 0.0;
-        *h_drift = 0.0;
-        *ks_drift = ks;
-        *k0_kick = k0;
-        *k1_kick = k1;
-        *h_kick = h;
-        *k0_h_correction = k0;
-        *k1_h_correction = k1;
-        *kick_rot_frame = 1;
-    }
-
-
-    *out_drift_model = drift_model;
-}
-
-
-GPUFUN
 void track_magnet_body_single_particle(
     LocalParticle* part,
     const double length,
@@ -179,6 +30,11 @@ void track_magnet_body_single_particle(
     const double inv_factorial_order,
     GPUGLMEM const double* knl,
     GPUGLMEM const double* ksl,
+    int64_t order_rel,
+    double inv_factorial_order_rel,
+    GPUGLMEM const double* knl_rel,
+    GPUGLMEM const double* ksl_rel,
+    double rel_ref_strength,
     const double factor_knl_ksl,
     const int64_t num_multipole_kicks,
     const int8_t kick_rot_frame,
@@ -213,8 +69,10 @@ void track_magnet_body_single_particle(
 
     #define MAGNET_KICK(part, weight) \
         track_magnet_kick_single_particle(\
-            part, length, order, inv_factorial_order, \
-            knl, ksl, factor_knl_ksl, (weight), \
+            part, length,\
+            order, inv_factorial_order, knl, ksl,\
+            order_rel, inv_factorial_order_rel, knl_rel, ksl_rel, rel_ref_strength,\
+            factor_knl_ksl, (weight),\
             k0_kick, k1_kick, k2, k3, k0s, k1s, k2s, k3s, h_kick,\
             hxl, k0_h_correction, k1_h_correction, kick_rot_frame\
         )
@@ -263,6 +121,11 @@ void track_magnet_body_single_particle(
                     inv_factorial_order, \
                     knl, \
                     ksl, \
+                    order_rel, \
+                    inv_factorial_order_rel, \
+                    knl_rel, \
+                    ksl_rel, \
+                    rel_ref_strength, \
                     factor_knl_ksl, \
                     k0_drift + k0_kick, \
                     k1_drift + k1_kick, \
@@ -320,7 +183,12 @@ void track_magnet_body_single_particle(
             MAGNET_DRIFT(part, length);
         )
     }
-    else if (integrator == 1){ // TEAPOT
+    else{
+
+        
+    // START GENERATED INTEGRATION CODE
+
+    if (integrator == 1){ // TEAPOT
 
         WITH_RADIATION(length,
             const double kick_weight = 1. / num_multipole_kicks;
@@ -405,11 +273,17 @@ void track_magnet_body_single_particle(
             }
     } // integrator if
 
+    // END GENERATED INTEGRATION CODE
+
+
+    }
+
     #undef MAGNET_KICK
     #undef MAGNET_DRIFT
     #undef WITH_RADIATION
 
 }
+
 
 GPUFUN
 void track_magnet_particles(
@@ -420,6 +294,11 @@ void track_magnet_particles(
     double inv_factorial_order,
     GPUGLMEM const double* knl,
     GPUGLMEM const double* ksl,
+    int64_t order_rel,
+    double inv_factorial_order_rel,
+    GPUGLMEM const double* knl_rel,
+    GPUGLMEM const double* ksl_rel,
+    double rel_ref_strength,
     int64_t num_multipole_kicks,
     int8_t model,
     int8_t default_model,
@@ -444,7 +323,10 @@ void track_magnet_particles(
     double x0_solenoid,
     double y0_solenoid,
     int64_t rbend_model, // -1: not used, 0: auto, 1: curved body, 2: straight body
+    int64_t rbend_compensate_sagitta,
     double rbend_shift,
+    double rbend_angle_diff,
+    double length_straight,
     int64_t body_active,
     int64_t edge_entry_active,
     int64_t edge_exit_active,
@@ -463,57 +345,78 @@ void track_magnet_particles(
     double factor_knl_ksl = 1.0;
 
     // Used only for rbend-straight-body
-    double rbend_half_angle = 0.;
-    double cos_rbha = 0.;
-    double sin_rbha = 0.;
+    double theta_in = 0.;
+    double theta_out = 0.;
+    double cos_theta_in = 1.;
+    double sin_theta_in = 0.;
+    double cos_theta_out = 1.;
+    double sin_theta_out = 0.;
     double length_curved = 0.;
-    double dx_rb = 0.;
-
+    double x0_mid = 0.;
+    double x0_in = 0.;
+    double x0_out = 0.;
 
     if (rbend_model == 0){
         // auto mode, curved body
         rbend_model = 1;
     }
 
+    double const angle = h * length;
     if (rbend_model == 1){
         // curved body
-        double const angle = h * length;
-        edge_entry_angle += angle / 2.0;
-        edge_exit_angle += angle / 2.0;
+        edge_entry_angle += (angle - rbend_angle_diff) / 2.0;
+        edge_exit_angle += (angle + rbend_angle_diff) / 2.0;
     }
     else if (rbend_model == 2){
         // straight body
-        double sinc_rbha;
-        rbend_half_angle = h * length / 2;
-        if (fabs(rbend_half_angle) > 1e-10){
-            sin_rbha = sin(rbend_half_angle);
-            cos_rbha = cos(rbend_half_angle);
-            sinc_rbha = sin_rbha / rbend_half_angle;
+        theta_in = (angle - rbend_angle_diff) / 2.0;
+        if (fabs(theta_in) > 1e-10){
+            sin_theta_in = sin(theta_in);
+            cos_theta_in = cos(theta_in);
         }
-        else {
-            sinc_rbha = 1.;
-            cos_rbha = 1.;
+        theta_out = (angle + rbend_angle_diff) / 2.0;
+        if (fabs(theta_out) > 1e-10){
+            sin_theta_out = sin(theta_out);
+            cos_theta_out = cos(theta_out);
         }
+
         length_curved = length;
-        length = length_curved * sinc_rbha;
-        if (fabs(rbend_half_angle) > 1e-10){
+        length = length_straight;
+
+        x0_mid -= rbend_shift;
+
+        if (rbend_compensate_sagitta && fabs(angle) > 1e-10){
             // shift by half the sagitta
-            dx_rb = 0.5 / h * (1 - cos_rbha) + rbend_shift;
-        };
+            double cos_rbha = cos(angle / 2.);
+            x0_mid += 0.5 / h * (1 - cos_rbha);
+        }
+
+        x0_in = x0_mid;
+        x0_out = x0_mid;
+        if (fabs(angle) > 1e-10){
+            double const px0_in = sin(theta_in);
+            double const px0_mid = px0_in - h * length_straight / 2;
+            double const sqrt_mid = sqrt(1 - px0_mid * px0_mid);
+            x0_in -= 1/h *(sqrt_mid - cos_theta_in);
+            x0_out += 1/h * (cos_theta_out - sqrt_mid);
+        }
+        ;
         h = 0; // treat magnet as straight
         // We are entering the fringe with an angle, the linear fringe
         // needs to come from the  expansion around the right angle
-        edge_entry_angle_fdown += rbend_half_angle;
-        edge_exit_angle_fdown += rbend_half_angle;
+        edge_entry_angle_fdown += theta_in;
+        edge_exit_angle_fdown += theta_out;
     }
 
+    double core_length, core_length_curved,factor_knl_ksl_body,
+           factor_knl_ksl_edge,factor_backtrack_edge;
     // Backtracking
-    #ifdef XSUITE_BACKTRACK
-        const double core_length = -length * weight;
-        const double core_length_curved = -length_curved * weight;
-        double factor_knl_ksl_body = -factor_knl_ksl * weight;
-        double factor_knl_ksl_edge = factor_knl_ksl; // Edge has a specific factor for backtracking
-        const double factor_backtrack_edge = -1.;
+    if (LocalParticle_check_track_flag(part0, XS_FLAG_BACKTRACK)) {
+        core_length = -length * weight;
+        core_length_curved = -length_curved * weight;
+        factor_knl_ksl_body = -factor_knl_ksl * weight;
+        factor_knl_ksl_edge = factor_knl_ksl; // Edge has a specific factor for backtracking
+        factor_backtrack_edge = -1.;
         hxl = -hxl;
         VSWAP(edge_entry_active, edge_exit_active);
         VSWAP(edge_entry_model, edge_exit_model);
@@ -521,16 +424,22 @@ void track_magnet_particles(
         VSWAP(edge_entry_angle_fdown, edge_exit_angle_fdown);
         VSWAP(edge_entry_fint, edge_exit_fint);
         VSWAP(edge_entry_hgap, edge_exit_hgap);
-        rbend_half_angle = -rbend_half_angle;
-        sin_rbha = -sin_rbha;
-
-    #else
-        const double core_length = length * weight;
-        const double core_length_curved = length_curved * weight;
-        double factor_knl_ksl_body = factor_knl_ksl * weight;
-        double factor_knl_ksl_edge = factor_knl_ksl;
-        const double factor_backtrack_edge = 1.;
-    #endif
+        VSWAP(theta_in, theta_out);
+        VSWAP(cos_theta_in, cos_theta_out);
+        VSWAP(sin_theta_in, sin_theta_out);
+        theta_in = -theta_in;
+        theta_out = -theta_out;
+        sin_theta_in = -sin_theta_in;
+        sin_theta_out = -sin_theta_out;
+        VSWAP(x0_in, x0_out);
+    }
+    else {
+        core_length = length * weight;
+        core_length_curved = length_curved * weight;
+        factor_knl_ksl_body = factor_knl_ksl * weight;
+        factor_knl_ksl_edge = factor_knl_ksl;
+        factor_backtrack_edge = 1.;
+    }
 
     #ifndef XTRACK_MULTIPOLE_NO_SYNRAD
         if (radiation_flag == 10){ // from parent
@@ -539,12 +448,12 @@ void track_magnet_particles(
     #endif
 
     // Tapering
-    #ifdef XTRACK_MULTIPOLE_TAPER // Computing the tapering
+    if (LocalParticle_check_track_flag(part0, XS_FLAG_SR_TAPER)){
         part0->ipart = 0;
         delta_taper = LocalParticle_get_delta(part0); // I can use part0 because
                                                       // there is only one particle
                                                       // when doing the tapering
-    #endif
+    }
 
     #ifndef XTRACK_MULTIPOLE_NO_SYNRAD
         if (radiation_flag){
@@ -568,8 +477,9 @@ void track_magnet_particles(
         if (rbend_model == 2){
             // straight body --> curvature in the edges
             START_PER_PARTICLE_BLOCK(part0, part);
-                YRotation_single_particle(part, sin_rbha, cos_rbha, sin_rbha/cos_rbha);
-                LocalParticle_add_to_x(part, -dx_rb);
+                YRotation_single_particle(part, -sin_theta_in, cos_theta_in,
+                                          -sin_theta_in/cos_theta_in);
+                LocalParticle_add_to_x(part, x0_in);
             END_PER_PARTICLE_BLOCK;
         }
 
@@ -588,6 +498,10 @@ void track_magnet_particles(
             ksl,
             factor_knl_ksl_edge,
             order,
+            knl_rel,
+            ksl_rel,
+            factor_knl_ksl_edge * rel_ref_strength,
+            order_rel,
             ks,
             x0_solenoid,
             y0_solenoid,
@@ -606,6 +520,10 @@ void track_magnet_particles(
         }
         if (model == 0){
             model = default_model;
+        }
+        if (model==-1){ // kick only
+            integrator = 3; // uniform
+            num_multipole_kicks = 1;
         }
 
         // Adjust the number of multipole kicks based on the weight
@@ -631,11 +549,11 @@ void track_magnet_particles(
             }
         }
 
-        double k0_drift, k1_drift, h_drift, ks_drift;
-        double k0_kick, k1_kick, h_kick;
-        double k0_h_correction, k1_h_correction;
-        int8_t kick_rot_frame;
-        int8_t drift_model;
+        double k0_drift=0, k1_drift=0, h_drift=0, ks_drift=0;
+        double k0_kick=0, k1_kick=0, h_kick=0;
+        double k0_h_correction=0, k1_h_correction=0;
+        int8_t kick_rot_frame=0;
+        int8_t drift_model=0;
         configure_tracking_model(
             model,
             k0,
@@ -661,6 +579,7 @@ void track_magnet_particles(
             track_magnet_body_single_particle(
                 part, core_length, order, inv_factorial_order,
                 knl, ksl,
+                order_rel, inv_factorial_order_rel, knl_rel, ksl_rel, rel_ref_strength,
                 factor_knl_ksl_body,
                 num_multipole_kicks, kick_rot_frame, drift_model, integrator,
                 k0_drift, k1_drift, ks_drift, h_drift,
@@ -676,7 +595,7 @@ void track_magnet_particles(
             );
         END_PER_PARTICLE_BLOCK;
 
-        if (rbend_model == 2){
+        if (rbend_model == 2 && model >= 0){ // model>=0 means not kick only
             // straight body --> correct s to match the curved frame
             double const ds = (core_length_curved - core_length);
             START_PER_PARTICLE_BLOCK(part0, part);
@@ -702,6 +621,10 @@ void track_magnet_particles(
             ksl,
             factor_knl_ksl_edge,
             order,
+            knl_rel,
+            ksl_rel,
+            factor_knl_ksl_edge * rel_ref_strength,
+            order_rel,
             ks,
             x0_solenoid,
             y0_solenoid,
@@ -715,8 +638,9 @@ void track_magnet_particles(
         if (rbend_model == 2){
             // straight body --> curvature in the edges
             START_PER_PARTICLE_BLOCK(part0, part);
-                LocalParticle_add_to_x(part, dx_rb); // shift by half sagitta
-                YRotation_single_particle(part, sin_rbha, cos_rbha, sin_rbha/cos_rbha);
+                LocalParticle_add_to_x(part, -x0_out); // shift by half sagitta
+                YRotation_single_particle(part, -sin_theta_out, cos_theta_out,
+                    -sin_theta_out/cos_theta_out);
             END_PER_PARTICLE_BLOCK;
         }
     }

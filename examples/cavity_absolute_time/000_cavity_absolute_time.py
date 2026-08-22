@@ -18,7 +18,7 @@ tw = line.twiss()
 
 df_hz = -50
 h_rf = 35640
-f_rev = 1/tw.T_rev0
+f_rev = 1/tw.t_rev0
 df_rev = df_hz / h_rf
 eta = tw.slip_factor
 delta_expected = -df_rev / f_rev / eta
@@ -26,8 +26,8 @@ delta_expected = -df_rev / f_rev / eta
 line.vars['f_rf'] = 400789598.9858259 + df_hz
 tt = line.get_table()
 for nn in tt.rows[tt.element_type=='Cavity'].name:
-    line.element_refs[nn].absolute_time = 1
-    line.element_refs[nn].frequency = line.vars['f_rf']
+    line[nn].absolute_time = 1
+    line[nn].frequency = line.vars['f_rf']
 
 
 def merit_function(x, num_turns=10):
@@ -61,7 +61,7 @@ particle_on_co = line.build_particles(
 
 tw1 = line.twiss(particle_on_co=particle_on_co)
 
-T_rev = tw1.T_rev0 - (tw1.zeta[-1] - tw1.zeta[0])/(tw.beta0*clight)
+t_rev = tw1.t_rev0 - (tw1.zeta[-1] - tw1.zeta[0])/(tw.beta0*clight)
 
 import matplotlib.pyplot as plt
 plt.close('all')

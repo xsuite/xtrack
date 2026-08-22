@@ -5,7 +5,7 @@
 #ifndef XTRACK_ZETASHIFT_H
 #define XTRACK_ZETASHIFT_H
 
-#include <headers/track.h>
+#include "xtrack/headers/track.h"
 
 
 GPUFUN
@@ -13,9 +13,9 @@ void ZetaShift_track_local_particle(ZetaShiftData el, LocalParticle* part0){
 
 
     double dzeta = ZetaShiftData_get_dzeta(el);
-    #ifdef XSUITE_BACKTRACK
+    if (LocalParticle_check_track_flag(part0, XS_FLAG_BACKTRACK)) {
         dzeta = -dzeta;
-    #endif
+    }
 
     START_PER_PARTICLE_BLOCK(part0, part);
         LocalParticle_add_to_zeta(part, -dzeta);

@@ -51,17 +51,17 @@ opt_im = line.match_knob(knob_name='c_minus_im.b1',
 opt_im.solve()
 opt_im.generate_knob()
 
-line.vars['c_minus_re.b1'] = 5e-3
-line.vars['c_minus_im.b1'] = 0
+line['c_minus_re.b1'] = 5e-3
+line['c_minus_im.b1'] = 0
 tt_re = line.get_table(attr=True)
 
-line.vars['c_minus_re.b1'] = 0
-line.vars['c_minus_im.b1'] = 5e-3
+line['c_minus_re.b1'] = 0
+line['c_minus_im.b1'] = 5e-3
 tt_im = line.get_table(attr=True)
 
 # Check orthogonality
-line.vars['c_minus_re.b1'] = 1e-3
-line.vars['c_minus_im.b1'] = 1e-3
+line['c_minus_re.b1'] = 1e-3
+line['c_minus_im.b1'] = 1e-3
 assert np.isclose(line.twiss().c_minus/np.sqrt(2), 1e-3, rtol=0, atol=1.5e-5)
 
 

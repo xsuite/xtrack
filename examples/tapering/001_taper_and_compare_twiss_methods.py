@@ -32,7 +32,7 @@ line.build_tracker()
 
 # Initial twiss (no radiation)
 line.configure_radiation(model=None)
-tw_no_rad = line.twiss(method='4d', freeze_longitudinal=True)
+tw_no_rad = line.twiss4d()
 
 # Enable radiation
 line.configure_radiation(model='mean')
@@ -54,7 +54,7 @@ for conf in configs:
     # Twiss(es) with radiation
     line.config.XTRACK_CAVITY_PRESERVE_ANGLE = conf['cavity_preserve_angle']
     tw = line.twiss(radiation_method=conf['radiation_method'],
-            eneloss_and_damping=(conf['radiation_method'] != 'kick_as_co'),
+            radiation_analysis=(conf['radiation_method'] != 'kick_as_co'),
             **extra_kwargs)
     line.config.XTRACK_CAVITY_PRESERVE_ANGLE = False
 

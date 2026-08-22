@@ -1,17 +1,21 @@
 import json
 import pathlib
+import pytest
 
 import xobjects as xo
 import xpart as xp
 import xtrack as xt
-from xobjects.test_helpers import for_all_test_contexts
+from xobjects.test_helpers import (
+    allow_kernel_compilation, for_all_test_contexts)
 
 test_data_folder = pathlib.Path(
     __file__).parent.joinpath('../test_data').absolute()
 
 
 @for_all_test_contexts
+@allow_kernel_compilation
 def test_freeze_longitudinal_explicit(test_context):
+
 
     fname_line = test_data_folder / 'lhc_no_bb/line_and_particle.json'
 
@@ -55,7 +59,9 @@ def test_freeze_longitudinal_explicit(test_context):
 
 
 @for_all_test_contexts
+@allow_kernel_compilation
 def test_freeze_longitudinal_context_manager(test_context):
+
 
     fname_line = test_data_folder / 'lhc_no_bb/line_and_particle.json'
 
@@ -93,9 +99,11 @@ def test_freeze_longitudinal_context_manager(test_context):
     twiss = line.twiss(method='6d')
     xo.assert_allclose(twiss.slip_factor, 0.00032151, rtol=0, atol=1e-6)
 
-
+@pytest.mark.filterwarnings('ignore::FutureWarning')
 @for_all_test_contexts
+@allow_kernel_compilation
 def test_freeze_longitudinal_individual_methods(test_context):
+
 
     fname_line = test_data_folder / 'lhc_no_bb/line_and_particle.json'
 

@@ -20,17 +20,27 @@ XTRACK_DEFAULT_WEIGHTS = {
     'ptau': 100,
     'alfx': 10.,
     'alfy': 10.,
+    'alfa11_ng': 10.,
+    'alfa22_ng': 10.,
     'mux': 10.,
     'muy': 10.,
+    'mu1_ng': 10.,
+    'mu2_ng': 10.,
     'qx': 10.,
     'qy': 10.,
     'dx' : 10.,
     'dpx': 100.,
+    'dx_ng' : 10.,
+    'dpx_ng': 100.,
     'dy' : 10.,
     'dpy': 100.,
+    'dy_ng' : 10.,
+    'dpy_ng': 100.,
+    't_ng': 10.,
+    'pt_ng': 100.,
 }
 
-ALLOWED_TARGET_KWARGS= ['x', 'px', 'y', 'py', 'zeta', 'delta', 'pzata', 'ptau',
+ALLOWED_TARGET_KWARGS= ['x', 'px', 'y', 'py', 'zeta', 'delta', 'pzeta', 'ptau',
                         'betx', 'bety', 'alfx', 'alfy', 'gamx', 'gamy',
                         'mux', 'muy', 'dx', 'dpx', 'dy', 'dpy',
                         'qx', 'qy', 'dqx', 'dqy',
@@ -44,7 +54,21 @@ ALLOWED_TARGET_KWARGS= ['x', 'px', 'y', 'py', 'zeta', 'delta', 'pzata', 'ptau',
                         'eq_nemitt_x', 'eq_nemitt_y', 'eq_nemitt_zeta',
                         'spin_x', 'spin_y', 'spin_z',
                         'c_minus_re_0', 'c_minus_im_0',
-                        'c_minus_re', 'c_minus_im']
+                        'c_minus_re', 'c_minus_im',
+                        'beta11_ng', 'beta22_ng', 'alfa11_ng', 'alfa22_ng',
+                        'dx_ng', 'dpx_ng', 'dy_ng', 'dpy_ng',
+                        'x_ng', 'px_ng', 'y_ng', 'py_ng', 't_ng', 'pt_ng',
+                        'rad_int_i1x', 'rad_int_i1y', 'rad_int_i2', 'rad_int_i3', 'rad_int_i4',
+                        'rad_int_i4x', 'rad_int_i4y', 'rad_int_i5x', 'rad_int_i5y',
+                        'rad_int_i1x_integrand', 'rad_int_i1y_integrand', 'rad_int_l2_integrand',
+                        'rad_int_i3_integrand', 'rad_int_i4_integrand', 'rad_int_i4x_integrand',
+                        'rad_int_i4y_integrand', 'rad_int_i5x_integrand', 'rad_int_i5y_integrand',
+                        'rad_int_curly_hx', 'rad_int_curly_hy',
+                        'rad_int_eq_gemitt_x', 'rad_int_eq_gemitt_y',
+                        'rad_int_energy_loss', 'rad_int_sigma_delta',
+                        'rad_int_damping_constant_x_s', 'rad_int_damping_constant_y_s',
+                        'rad_int_damping_constant_zeta_s',
+]
 
 
 # Alternative transitions functions
@@ -512,7 +536,7 @@ class TargetRelPhaseAdvance(Target):
 
         Target.__init__(self, tar=self.compute, value=value, tag=tag, **kwargs)
 
-        assert tar in ['mux', 'muy'], 'Only mux and muy are supported'
+        assert tar in ['mux', 'muy', 'mu1_ng', 'mu2_ng'], 'Only mux and muy are supported'
         self.var = tar
         if end is None:
             end = '__ele_stop__'
@@ -525,7 +549,6 @@ class TargetRelPhaseAdvance(Target):
         return f'TargetPhaseAdv({self.var}({self.end} - {self.start}), val={self.value}, tol={self.tol}, weight={self.weight})'
 
     def compute(self, tw):
-
         if self.end == '__ele_stop__':
             mu_1 = tw[self.var, -1]
         else:
@@ -537,7 +560,6 @@ class TargetRelPhaseAdvance(Target):
             mu_0 = tw[self.var, self.start]
 
         return mu_1 - mu_0
-
 
 class TargetRmatrixTerm(Target):
 
@@ -596,6 +618,9 @@ class TargetRmatrixTerm(Target):
         assert len(self.term) == 3, (
             'Only terms of the R-matrix in the form "r11", "r12", "r21", "r22", etc'
             ' are supported')
+
+        if hasattr(tw._data, 'attrs') and self.tag in tw._data.attrs:
+            return tw._data.attrs[self.tag]
 
         if self.start is xt.START:
             self.start = tw.name[0]
@@ -802,6 +827,57 @@ class ActionTwiss(xd.Action):
         out.line = self.line
         return out
 
+class MeritFunctionLine(xd.MeritFunctionForMatch):
+    def __init__(
+            self,
+            merit_function_match,
+            use_tpsa=False,
+    ):
+
+        self.vary = merit_function_match.vary
+        self.targets = merit_function_match.targets
+        self.actions = merit_function_match.actions
+        self.return_scalar = merit_function_match.return_scalar
+        self.call_counter = merit_function_match.call_counter
+        self.verbose = merit_function_match.verbose
+        self.tw_kwargs = merit_function_match.tw_kwargs
+        self.steps_for_jacobian = merit_function_match.steps_for_jacobian
+        self.found_point_within_tol = merit_function_match.found_point_within_tol
+        self.zero_if_met = merit_function_match.zero_if_met
+        self.show_call_counter = merit_function_match.show_call_counter
+        self.check_limits = merit_function_match.check_limits
+        self._print = merit_function_match._print
+        self.use_tpsa = use_tpsa
+
+    def get_jacobian(self, x=None, f0=None):
+        if self.use_tpsa:
+            return self.get_jacobian_tpsa(x)
+        else:
+            return super().get_jacobian(x, f0=f0)
+
+    def get_jacobian_tpsa(self, x=None):
+        from .madng_interface import ActionTwissMadngTPSA
+        action = None
+        for a in self.actions:
+            if isinstance(a, ActionTwissMadngTPSA):
+                action = a
+                break
+        if action is None:
+            raise RuntimeError('No ActionTwissMadngTPSA found in actions for TPSA jacobian computation')
+
+        # acquire_jacobian() reads the Jacobian as the linear part of the
+        # differential-algebra map from the last MAD-NG track.
+        # Re-track only if different point requested, to avoid redundant MAD-NG calls: self(x) re-tracks at x
+        if x is not None and not np.allclose(x, self._get_x(), rtol=1e-12, atol=0):
+            self(x)
+
+        jacobian = action.acquire_jacobian()
+
+        for i, tar in enumerate(self.targets):
+            jacobian[i] *= tar.weight
+
+        return jacobian
+
 class OptimizeLine(xd.Optimize):
 
     def __init__(self, line, vary, targets, assert_within_tol=True,
@@ -810,8 +886,8 @@ class OptimizeLine(xd.Optimize):
                     restore_if_fail=True, verbose=False,
                     n_steps_max=20, default_tol=None,
                     solver=None, check_limits=True,
-                    action_twiss=None,
-                    name="",
+                    action_twiss=None, action_twiss_ng=None,
+                    use_tpsa=False, name="",
                     **kwargs):
 
         if hasattr(targets, 'values'): # dict like
@@ -820,7 +896,28 @@ class OptimizeLine(xd.Optimize):
         if not isinstance(targets, (list, tuple)):
             targets = [targets]
 
+        # Flatten targets and assign tags for TargetRMatrixTerms if multiple
         targets_flatten = []
+        start_end_tuple_set = list()
+        rmat_index = 0
+        if any(isinstance(tt, (TargetRmatrixTerm, TargetRmatrix)) for tt in targets):
+            for tt in targets:
+                if isinstance(tt, TargetRmatrixTerm):
+                    if (tt.start, tt.end) in start_end_tuple_set:
+                        rmat_index = start_end_tuple_set.index((tt.start, tt.end))
+                    else:
+                        rmat_index = len(start_end_tuple_set)
+                        start_end_tuple_set.append((tt.start, tt.end))
+                    tt.rtag = f'{rmat_index}_{tt.term}'
+                elif isinstance(tt, TargetRmatrix):
+                    if (tt.targets[0].start, tt.targets[0].end) in start_end_tuple_set:
+                        rmat_index = start_end_tuple_set.index((tt.targets[0].start, tt.targets[0].end))
+                    else:
+                        rmat_index = len(start_end_tuple_set)
+                        start_end_tuple_set.append((tt.targets[0].start, tt.targets[0].end))
+                    for sub_tt in tt.targets:
+                        sub_tt.rtag = f'{rmat_index}_{sub_tt.term}'
+
         for tt in targets:
             if isinstance(tt, xd.TargetList):
                 for tt1 in tt.targets:
@@ -830,17 +927,45 @@ class OptimizeLine(xd.Optimize):
 
         aux_vary = []
 
+        # part of the `auxvar` experimental code
+        # if isinstance(tt.value, (GreaterThan, LessThan)):
+        #     if tt.value.mode == 'auxvar':
+        #         aux_vary.append(tt.value.gen_vary(aux_vary_container))
+        #         aux_vary_container[aux_vary[-1].name] = 0
+        #         val = tt.runeval()
+        #         if val > 0:
+        #             aux_vary_container[aux_vary[-1].name] = np.sqrt(val)
+
+        if not isinstance(vary, (list, tuple)):
+            vary = [vary]
+
+        vary = list(vary) + aux_vary
+
+        vary_flatten = _flatten_vary(vary)
+        _complete_vary_with_info_from_line(vary_flatten, line)
+
         for tt in targets_flatten:
 
             # Handle action
             if tt.action is None:
-                if action_twiss is None:
-                    action_twiss = ActionTwiss(
-                        line, allow_twiss_failure=allow_twiss_failure,
-                        compensate_radiation_energy_loss=compensate_radiation_energy_loss,
-                        **kwargs)
-                    action_twiss.prepare()
-                tt.action = action_twiss
+                if use_tpsa:
+                    if action_twiss_ng is None:
+                        from .madng_interface import ActionTwissMadngTPSA
+
+                        action_twiss_ng = ActionTwissMadngTPSA(
+                                line, [v.name for v in vary_flatten], targets_flatten, {},
+                                    sum_rmat_tar=len(start_end_tuple_set), **kwargs
+                        )
+                        action_twiss_ng.prepare()
+                    tt.action = action_twiss_ng
+                else:
+                    if action_twiss is None:
+                        action_twiss = ActionTwiss(
+                            line, allow_twiss_failure=allow_twiss_failure,
+                            compensate_radiation_energy_loss=compensate_radiation_energy_loss,
+                            **kwargs)
+                        action_twiss.prepare()
+                    tt.action = action_twiss
 
             # Handle at
             if isinstance(tt.tar, tuple):
@@ -859,7 +984,7 @@ class OptimizeLine(xd.Optimize):
                     # If _end_point preceded by a marker, use the marker
                     if tt_at == '_end_point' and len(tw0.name) > 1:
                         nn_prev = tw0['name', -2]
-                        nn_env_prev = tw0['name_env', -2]
+                        nn_env_prev = tw0['env_name', -2]
                         if isinstance(this_line[nn_env_prev], xt.Marker):
                             tt_at= nn_prev
                 tt.tar = (tt_name, tt_at)
@@ -887,22 +1012,6 @@ class OptimizeLine(xd.Optimize):
                 else:
                     tt.tol = default_tol
 
-            # part of the `auxvar` experimental code
-            # if isinstance(tt.value, (GreaterThan, LessThan)):
-            #     if tt.value.mode == 'auxvar':
-            #         aux_vary.append(tt.value.gen_vary(aux_vary_container))
-            #         aux_vary_container[aux_vary[-1].name] = 0
-            #         val = tt.runeval()
-            #         if val > 0:
-            #             aux_vary_container[aux_vary[-1].name] = np.sqrt(val)
-
-        if not isinstance(vary, (list, tuple)):
-            vary = [vary]
-
-        vary = list(vary) + aux_vary
-
-        vary_flatten = _flatten_vary(vary)
-        _complete_vary_with_info_from_line(vary_flatten, line)
 
         xd.Optimize.__init__(self,
                         vary=vary_flatten, targets=targets_flatten, solver=solver,
@@ -911,10 +1020,14 @@ class OptimizeLine(xd.Optimize):
                         n_steps_max=n_steps_max,
                         restore_if_fail=restore_if_fail,
                         check_limits=check_limits,
-                        name=name)
+                        name=name,
+                        _printer=_print)
+
+        _err = MeritFunctionLine(self._err, use_tpsa=use_tpsa)
         self.line = line
         self.action_twiss = action_twiss
         self.default_tol = default_tol
+        self._err = _err
 
     def clone(self, add_targets=None, add_vary=None,
               remove_targets=None, remove_vary=None,
@@ -972,6 +1085,40 @@ class OptimizeLine(xd.Optimize):
     def plot(self, *args, **kwargs):
         return self.action_twiss.run().plot(*args, **kwargs)
 
+    def step(
+        self,
+        n_steps=1,
+        take_best=True,
+        enable_target=None,
+        enable_vary=None,
+        enable_vary_name=None,
+        disable_target=None,
+        disable_vary=None,
+        disable_vary_name=None,
+        rcond=None,
+        sing_val_cutoff=None,
+        verbose=None,
+        broyden=False,
+        cleanup_madng_tpsa=False,
+    ):
+        super().step(n_steps, take_best, enable_target, enable_vary, enable_vary_name, disable_target,
+                     disable_vary, disable_vary_name, rcond, sing_val_cutoff, verbose, broyden)
+
+        if cleanup_madng_tpsa and self._err.use_tpsa:
+            for a in self.actions:
+                if hasattr(a, "cleanup"):
+                    a.cleanup()
+                    break
+
+    def solve(self, n_steps=None, verbose=None, take_best=True, rcond=None, sing_val_cutoff=None, broyden=False, cleanup_madng_tpsa=True):
+        super().solve(n_steps, verbose, take_best, rcond, sing_val_cutoff, broyden)
+
+        if cleanup_madng_tpsa and self._err.use_tpsa:
+            for a in self.actions:
+                if hasattr(a, "cleanup"):
+                    a.cleanup()
+                    break
+
 def _flatten_vary(vary):
     vary_flatten = []
     for vv in vary:
@@ -991,6 +1138,7 @@ def _complete_vary_with_info_from_line(vary, line):
 def closed_orbit_correction(line, line_co_ref, correction_config,
                             solver=None, verbose=False, restore_if_fail=True):
 
+    opts = {}
     for corr_name, corr in correction_config.items():
         _print('Correcting', corr_name)
         with xt.line._temp_knobs(line, corr['ref_with_knobs']):
@@ -1004,7 +1152,11 @@ def closed_orbit_correction(line, line_co_ref, correction_config,
 
         assert isinstance(corr['start'], str)
 
-        line.match(
+        if not line._has_valid_tracker():
+            line.build_tracker()
+
+        opt = line.match(
+            solve=False,
             solver=solver,
             verbose=verbose,
             restore_if_fail=restore_if_fail,
@@ -1021,6 +1173,10 @@ def closed_orbit_correction(line, line_co_ref, correction_config,
                 delta=tw_ref['delta', corr['start']],
             ),
             start=corr['start'], end=corr['end'])
+        opt.solve()
+        opts[corr_name] = opt
+        _print()
+    return opts
 
 def match_knob_line(line, knob_name, vary, targets, knob_value_start,
                     knob_value_end, run=True, **kwargs):
@@ -1034,10 +1190,92 @@ def match_knob_line(line, knob_name, vary, targets, knob_value_start,
     return knob_opt
 
 class KnobOptimizer:
+    """
+    Optimizer used by :meth:`xtrack.Line.match_knob`.
+
+    The object drives the optimization of the auxiliary variables used to build
+    a new knob. It provides the same methods as :class:`xdeps.Optimize`,
+    so methods such as :meth:`xdeps.Optimize.solve`,
+    :meth:`xdeps.Optimize.target_status`, :meth:`xdeps.Optimize.vary_status`,
+    :meth:`xdeps.Optimize.log` and :meth:`xdeps.Optimize.reload` can be used
+    directly on the :class:`KnobOptimizer <xtrack.match.KnobOptimizer>`
+    instance.
+
+    After solving, call
+    :meth:`generate_knob <xtrack.match.KnobOptimizer.generate_knob>` to define
+    the linear knob.
+
+    Attributes
+    ----------
+    line : xtrack.Line
+        Line on which the knob is defined.
+    knob_name : str
+        Name of the knob to be generated.
+    knob_value_start : float
+        Knob value corresponding to the line state before matching.
+    knob_value_end : float
+        Knob value corresponding to the matched line state.
+    opt : xdeps.Optimize
+        Optimizer used to match the auxiliary variables.
+    """
 
     def __init__(self, line, knob_name, vary, targets,
                     knob_value_start, knob_value_end,
                     **kwargs):
+        """
+        Create a knob optimizer.
+
+        Parameters
+        ----------
+        line : xtrack.Line
+            Line on which the knob will be defined.
+        knob_name : str
+            Name of the knob to be generated.
+        vary : Vary or list of Vary
+            Existing variables used to match the requested targets.
+        targets : Target or list of Target
+            Targets to be matched when the knob is set to
+            ``knob_value_end``.
+        knob_value_start : float
+            Knob value corresponding to the line state before matching.
+        knob_value_end : float
+            Knob value corresponding to the matched line state.
+        **kwargs
+            Additional arguments passed to :meth:`xtrack.Line.match`.
+
+        Examples
+        --------
+        .. code-block:: python
+
+            import xpart as xp
+            import xtrack as xt
+            from xtrack.match import KnobOptimizer
+
+            env = xt.Environment()
+            env['kqf'] = 0.20
+            env['kqd'] = -0.20
+            env.new('qf', xt.Multipole, knl=[0, 'kqf'], length=0.1)
+            env.new('qd', xt.Multipole, knl=[0, 'kqd'], length=0.1)
+            env.new('dr', xt.Drift, length=1.0)
+
+            line = env.new_line(components=['dr', 'qf', 'dr', 'qd'] * 8)
+            line.particle_ref = xp.Particles(
+                p0c=7e9, mass0=xp.PROTON_MASS_EV)
+            line.build_tracker()
+            tw0 = line.twiss(method='4d')
+
+            opt = KnobOptimizer(
+                line=line,
+                knob_name='qx_knob',
+                knob_value_start=tw0.qx,
+                knob_value_end=tw0.qx + 1e-3,
+                vary=xt.Vary('kqf', step=1e-6),
+                targets=xt.Target('qx', tw0.qx + 1e-3, tol=1e-6),
+                method='4d',
+                verbose=False)
+            opt.solve()
+            opt.generate_knob()
+        """
 
         if not isinstance (vary, (list, tuple)):
             vary = [vary]
@@ -1049,6 +1287,7 @@ class KnobOptimizer:
         for vv in vary_flatten:
             aux_name = vv.name + '_from_' + knob_name
             if (aux_name in line.vars
+                and line.vars[vv.name]._expr is not None
                 and (line.vars[aux_name] in
                          line.vars[vv.name]._expr._get_dependencies())):
                 # reset existing term in expression
@@ -1083,6 +1322,13 @@ class KnobOptimizer:
         return object.__dir__(self) + dir(self.opt)
 
     def generate_knob(self):
+        """
+        Generate the knob expression from the matched auxiliary variables.
+
+        The generated knob is linear between ``knob_value_start`` and
+        ``knob_value_end``. The line variables listed in ``vary`` receive an
+        added expression term controlled by ``knob_name``.
+        """
         self.line.vars[self.knob_name] = self.knob_value_end
         for vv in self.vary:
             var_value = self.line.vars[vv.name]._value
@@ -1096,12 +1342,13 @@ class KnobOptimizer:
 
         self.line.vars[self.knob_name] = self.knob_value_start
 
-        _print('Generated knob: ', self.knob_name)
+        _print('Generated knob: ', self.knob_name, '                      ')
 
 def opt_from_callable(function, x0, steps, tar, tols):
 
     '''Optimize a generic callable'''
 
-    opt = xd.Optimize.from_callable(function, x0, tar, steps=steps, tols=tols,
-                                    show_call_counter=False)
+    opt = xd.Optimize.from_callable(
+        function, x0, tar, steps=steps, tols=tols,
+        show_call_counter=False, _printer=_print)
     return opt

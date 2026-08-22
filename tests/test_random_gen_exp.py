@@ -10,12 +10,15 @@ import numpy as np
 import xobjects as xo
 import xpart as xp
 import xtrack as xt
-from xobjects.test_helpers import for_all_test_contexts, fix_random_seed
+from xobjects.test_helpers import (
+    allow_kernel_compilation, fix_random_seed, for_all_test_contexts)
 
 
 @for_all_test_contexts
 @fix_random_seed(46543143)
+@allow_kernel_compilation
 def test_random_generation(test_context):
+
 
     part = xp.Particles(_context=test_context, p0c=6.5e12, x=[1,2,3])
     part._init_random_number_generator()
@@ -29,13 +32,15 @@ def test_random_generation(test_context):
 
         _extra_c_sources = [
             '''
-                /*gpufun*/
+                #include "xtrack/headers/track.h"
+
+                GPUFUN
                 void TestElement_track_local_particle(
                         TestElementData el, LocalParticle* part0){
-                    //start_per_particle_block (part0->part)
+                    START_PER_PARTICLE_BLOCK(part0, part);
                         double rr = RandomExponential_generate(part);
                         LocalParticle_set_x(part, rr);
-                    //end_per_particle_block
+                    END_PER_PARTICLE_BLOCK;
                 }
             '''
         ]
@@ -96,4 +101,3 @@ def test_reproducibility(test_context):
         results2 = ran.generate(n_samples=n_samples_per_seed*n_seeds, particles=part2)
         results2 = test_context.nparray_from_context_array(results2)
         assert np.all(results1 == results2)
-

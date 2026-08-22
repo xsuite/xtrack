@@ -26,9 +26,9 @@ element = xt.LineSegmentMap(_context=context,
         qx=Q_x, det_xx = det_xx, det_xy = det_xy,
         qy=Q_y, det_yy = det_yy, det_yx = det_yx,
         qs = Q_s,bets=1.0)
-line = xt.Line(elements = [element])
-line.particle_ref = xt.Particles(p0c=7000e9, mass0=xt.PROTON_MASS_EV)
-line.build_tracker()
+line = xt.Line(elements=[element])
+line.set_particle_ref('proton', p0c=7e12)
+
 # ######################################### #
 # Create footprint on a uniform grid        #
 # in transverse actions Jx,Jy               #
@@ -36,21 +36,25 @@ line.build_tracker()
 #  is advised not to keep the FFTs in       #
 #  memory)                                  #
 # ######################################### #
+
 nemitt_x = 2.5e-6
 nemitt_y = 4.5e-6
 footprint = line.get_footprint(
         nemitt_x=nemitt_x, nemitt_y=nemitt_y,
         mode='uniform_action_grid',n_x_norm=200,n_y_norm=210,keep_fft=False)
+
 # ######################################### #
 # Draw the stability diagram by computing   #
 # the dispersion integral for a Gaussian    #
 # beam in X and Y for a set of coherent     #
 # tunes with vanishing imaginary part       #
 # ######################################### #
+
 tune_shifts_x,tune_shifts_y = footprint.get_stability_diagram(context)
 # ######################################### #
 # Plot                                      #
 # ######################################### #
+
 plt.figure(0)
 plt.plot(np.real(tune_shifts_x),np.imag(tune_shifts_x),'-b',label='Horizontal')
 plt.plot(np.real(tune_shifts_y),np.imag(tune_shifts_y),'-g',label='Vertical')

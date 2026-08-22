@@ -96,8 +96,8 @@ def test_multispecies_multipole():
     line_ref1 = xt.Line(elements=ele_ref1)
     line_ref2 = xt.Line(elements=ele_ref2)
 
-    line_ref1.append_element(element=xt.Marker(), name='endmarker')
-    line_ref2.append_element(element=xt.Marker(), name='endmarker')
+    line_ref1.append('endmarker', obj=xt.Marker())
+    line_ref2.append('endmarker', obj=xt.Marker())
 
     line_ref1.build_tracker()
     line_ref2.build_tracker()
@@ -185,10 +185,10 @@ def test_multispecies_bend(model, B_T, hxl, G_Tm, S_Tm2):
     n_slices = 10
 
     dipole_ref1 = xt.Bend(k0=theta_bend_ref1/L_bend, length=L_bend / n_slices,
-                        h=hxl/L_bend, k1=k1l_ref1/n_slices/L_bend,
+                        angle=hxl, k1=k1l_ref1/n_slices/L_bend,
                         knl=[0, 0, k2l_ref1/n_slices])
     dipole_ref2 = xt.Bend(k0=theta_bend_ref2/L_bend, length=L_bend / n_slices,
-                        h=hxl/L_bend, k1=k1l_ref2/n_slices/L_bend,
+                        angle=hxl, k1=k1l_ref2/n_slices/L_bend,
                         knl=[0, 0, k2l_ref2/n_slices])
 
     if model == 'expanded':
@@ -210,8 +210,8 @@ def test_multispecies_bend(model, B_T, hxl, G_Tm, S_Tm2):
     line_ref1 = xt.Line(elements=ele_ref1)
     line_ref2 = xt.Line(elements=ele_ref2)
 
-    line_ref1.append_element(element=xt.Marker(), name='endmarker')
-    line_ref2.append_element(element=xt.Marker(), name='endmarker')
+    line_ref1.append('endmarker', obj=xt.Marker())
+    line_ref2.append('endmarker', obj=xt.Marker())
 
     line_ref1.configure_bend_model(core=model)
     line_ref2.configure_bend_model(core=model)
@@ -300,8 +300,8 @@ def test_multispecies_dipole_edge(model, side):
     line_ref1 = xt.Line(elements=ele_ref1)
     line_ref2 = xt.Line(elements=ele_ref2)
 
-    line_ref1.append_element(element=xt.Marker(), name='endmarker')
-    line_ref2.append_element(element=xt.Marker(), name='endmarker')
+    line_ref1.append('endmarker', obj=xt.Marker())
+    line_ref2.append('endmarker', obj=xt.Marker())
 
     line_ref1.configure_bend_model(edge=model)
     line_ref2.configure_bend_model(edge=model)
@@ -407,14 +407,11 @@ def test_multispecies_quadrupole():
     line_ref1 = xt.Line(elements=ele_ref1)
     line_ref2 = xt.Line(elements=ele_ref2)
 
-    line_ref1.append_element(element=xt.Marker(), name='endmarker')
-    line_ref2.append_element(element=xt.Marker(), name='endmarker')
+    line_ref1.append('endmarker', obj=xt.Marker())
+    line_ref2.append('endmarker', obj=xt.Marker())
 
     line_ref1.configure_bend_model(core=model)
     line_ref2.configure_bend_model(core=model)
-
-    # line_ref1.config.XTRACK_USE_EXACT_DRIFTS = True
-    # line_ref2.config.XTRACK_USE_EXACT_DRIFTS = True
 
     line_ref1.build_tracker()
     line_ref2.build_tracker()
@@ -515,14 +512,11 @@ def test_multispecies_sextupole():
     line_ref1 = xt.Line(elements=ele_ref1)
     line_ref2 = xt.Line(elements=ele_ref2)
 
-    line_ref1.append_element(element=xt.Marker(), name='endmarker')
-    line_ref2.append_element(element=xt.Marker(), name='endmarker')
+    line_ref1.append('endmarker', obj=xt.Marker())
+    line_ref2.append('endmarker', obj=xt.Marker())
 
     line_ref1.configure_bend_model(core=model)
     line_ref2.configure_bend_model(core=model)
-
-    # line_ref1.config.XTRACK_USE_EXACT_DRIFTS = True
-    # line_ref2.config.XTRACK_USE_EXACT_DRIFTS = True
 
     line_ref1.build_tracker()
     line_ref2.build_tracker()
@@ -620,11 +614,11 @@ def test_multispecies_octupole():
     line_ref1 = xt.Line(elements=ele_ref1)
     line_ref2 = xt.Line(elements=ele_ref2)
 
-    line_ref1.append_element(element=xt.Marker(), name='endmarker')
-    line_ref2.append_element(element=xt.Marker(), name='endmarker')
+    line_ref1.append('endmarker', obj=xt.Marker())
+    line_ref2.append('endmarker', obj=xt.Marker())
 
-    line_ref1.config.XTRACK_USE_EXACT_DRIFTS = True
-    line_ref2.config.XTRACK_USE_EXACT_DRIFTS = True
+    line_ref1.configure_drift_model(model='exact')
+    line_ref2.configure_drift_model(model='exact')
 
     line_ref1.build_tracker()
     line_ref2.build_tracker()
@@ -694,11 +688,11 @@ def test_multispecies_cavity():
     frequency = 400e6
 
 
-    lag2 = 180 / np.pi *  2 * np.pi * frequency * s_cav / clight * (1/p1_ref2.beta0 - 1/p1.beta0)
+    phase2 = 2 * np.pi * frequency * s_cav / clight * (1/p1_ref2.beta0 - 1/p1.beta0)
 
 
     cav_ref1 = xt.Cavity(voltage=1e6, frequency=frequency)
-    cav_ref2 = xt.Cavity(voltage=1e6, frequency=frequency, lag=lag2)
+    cav_ref2 = xt.Cavity(voltage=1e6, frequency=frequency, phase=phase2)
 
     ele_ref1 = [xt.Drift(length=s_cav), cav_ref1, xt.Drift(length=0)]
     ele_ref2 = [xt.Drift(length=s_cav), cav_ref2, xt.Drift(length=0)]
@@ -706,8 +700,8 @@ def test_multispecies_cavity():
     line_ref1 = xt.Line(elements=ele_ref1)
     line_ref2 = xt.Line(elements=ele_ref2)
 
-    line_ref1.append_element(element=xt.Marker(), name='endmarker')
-    line_ref2.append_element(element=xt.Marker(), name='endmarker')
+    line_ref1.append('endmarker', obj=xt.Marker())
+    line_ref2.append('endmarker', obj=xt.Marker())
 
     line_ref1.build_tracker()
     line_ref2.build_tracker()

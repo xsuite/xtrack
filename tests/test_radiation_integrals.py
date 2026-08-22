@@ -9,13 +9,13 @@ test_data_folder = pathlib.Path(
         __file__).parent.joinpath('../test_data').absolute()
 
 def test_radiation_wiggler():
-    env = xt.load(test_data_folder / 'sps_thick/sps.seq')
-    env.vars.load(test_data_folder / 'sps_thick/lhc_q20.str')
+    env = xt.load([test_data_folder / 'sps_thick/sps.seq',
+                   test_data_folder / 'sps_thick/lhc_q20.str'])
     line = env.sps
 
     line['actcse.31632'].voltage = 4.2e+08
     line['actcse.31632'].frequency = 3e6
-    line['actcse.31632'].lag = 180.
+    line['actcse.31632'].phase = np.pi
 
     line.particle_ref = xt.Particles(energy0=20e9, mass0=xt.ELECTRON_MASS_EV)
     env.particle_ref = line.particle_ref
@@ -29,7 +29,7 @@ def test_radiation_wiggler():
     lambdawig = lenwig / numperiods
 
     wig = Wiggler(period=lambdawig, amplitude=k0_wig, num_periods=numperiods,
-                    angle_rad=tilt_rad, scheme='121a')
+                    angle=tilt_rad, scheme='121a')
 
     tt = line.get_table()
     wig_elems = []
@@ -62,7 +62,7 @@ def test_radiation_wiggler():
 
     line.configure_radiation(model='mean')
 
-    tw_rad = line.twiss(eneloss_and_damping=True, strengths=True)
+    tw_rad = line.twiss(radiation_analysis=True, strengths=True)
 
     print('ex rad int:', tw4d.rad_int_eq_gemitt_x)
     print('ex Chao:   ', tw_rad.eq_gemitt_x)
@@ -92,17 +92,17 @@ def test_radiation_wiggler():
 
 def test_radiation_integrals_sls_combined_function_magnets():
 
-    env = xt.load(test_data_folder / 'sls_2.0/b075_2024.09.25.madx')
+    env = xt.load(test_data_folder / 'sls/sls.madx')
     line = env.ring
     line.particle_ref = xt.Particles(energy0=2.7e9, mass0=xt.ELECTRON_MASS_EV)
     line.configure_bend_model(num_multipole_kicks=20)
 
     line['vrf'] = 1.8e6
     line['frf'] = 499.6e6
-    line['lagrf'] = 180.
+    line['phrf'] = np.pi
 
     line.insert(
-        env.new('cav', 'Cavity', voltage='vrf', frequency='frf', lag='lagrf', at=0))
+        env.new('cav', 'Cavity', voltage='vrf', frequency='frf', phase='phrf', at=0))
 
     tt = line.get_table()
     tw4d_thick = line.twiss4d()
@@ -123,7 +123,7 @@ def test_radiation_integrals_sls_combined_function_magnets():
 
     line.configure_radiation(model='mean')
 
-    tw_rad = line.twiss(eneloss_and_damping=True, strengths=True,
+    tw_rad = line.twiss(radiation_analysis=True, strengths=True,
                         radiation_method='full')
 
     tw_integrals = line.twiss(radiation_integrals=True)
@@ -153,21 +153,28 @@ def test_radiation_integrals_sls_combined_function_magnets():
     xo.assert_allclose(
         tw_integrals.rad_int_damping_constant_zeta_s, tw_rad.damping_constants_s[2],
         rtol=1e-3, atol=0)
+    xo.assert_allclose(
+        tw_integrals.rad_int_energy_loss, tw_rad.energy_loss,
+        rtol=1e-3, atol=0)
+    xo.assert_allclose(
+        tw_integrals.rad_int_sigma_delta,
+        np.sqrt(tw_rad.eq_gemitt_zeta / tw_rad.bets0),
+        rtol=1e-3, atol=0)
 
 @pytest.mark.parametrize('tilt', [True, False], ids=['tilt', 'no_tilt'])
 def test_radiation_integrals_sps_vs_df(tilt):
-    env = xt.load(test_data_folder / 'sps_thick/sps.seq')
-    env.vars.load(test_data_folder / 'sps_thick/lhc_q20.str')
+    env = xt.load([test_data_folder / 'sps_thick/sps.seq',
+                   test_data_folder / 'sps_thick/lhc_q20.str'])
     line = env.sps
 
     line.particle_ref = xt.Particles(mass0=xt.ELECTRON_MASS_EV, energy0=10e9)
 
-    line.insert('zeta_shift', obj=xt.ZetaShift(), at=0)
+    line.insert('time_delay', obj=xt.TimeDelay(), at=0)
 
     # RF set tp stay in the linear region
     env['actcse.31632'].voltage = 2500e6
     env['actcse.31632'].frequency = 3e6
-    env['actcse.31632'].lag = 180.
+    env['actcse.31632'].phase = np.pi
 
     if tilt:
 
@@ -202,14 +209,14 @@ def test_radiation_integrals_sps_vs_df(tilt):
     line.configure_radiation(model='mean')
     line.compensate_radiation_energy_loss()
 
-    tw_rad = line.twiss(eneloss_and_damping=True)
+    tw_rad = line.twiss(radiation_analysis=True)
 
     # Prepare trim
-    env['frev0'] = 1. / tw4d.T_rev0
-    env['circum'] = tw4d.circumference
+    env['frev0'] = 1. / tw4d.t_rev0
+    env['circum'] = tw4d.line_length
     env['frev_trim'] = 0.
 
-    env['zeta_shift'].dzeta = 'circum * frev_trim / frev0'
+    env['time_delay'].shift_zeta = 'circum * frev_trim / frev0'
 
     dfrev = np.linspace(-0.7, 0.7, 21)
     part_x = []
@@ -230,7 +237,7 @@ def test_radiation_integrals_sps_vs_df(tilt):
     for dff in dfrev:
         print(f'dfrev: {dff}')
         env['frev_trim'] = dff
-        tw = line.twiss(eneloss_and_damping=True,
+        tw = line.twiss(radiation_analysis=True,
                         radiation_integrals=True)
         part_x.append(tw.partition_numbers[0])
         part_y.append(tw.partition_numbers[1])
@@ -290,7 +297,7 @@ def test_radiation_integrals_sps_vs_df(tilt):
             rad_int_ey, 0, rtol=1e-14, atol=1e-14)
 
 class Wiggler:
-    def __init__(self, period, amplitude, num_periods, angle_rad=0,
+    def __init__(self, period, amplitude, num_periods, angle=0,
                 scheme='121s'):
         # The scheme_library is a list of all the possible schemes that can be
         # used. The scheme determines the order of the dipoles in the wiggler.
@@ -301,7 +308,7 @@ class Wiggler:
         self.wiggler_period = period
         self.wiggler_amplitude = amplitude
         self.wiggler_num_periods = num_periods
-        self.angle_rad = angle_rad
+        self.angle = angle
         self.scheme = scheme
         self.spacing = 0
         self.wiggler = self._build_wiggler_()
@@ -315,37 +322,37 @@ class Wiggler:
                 if i != 0 and i != self.wiggler_num_periods:
                     wiggler += [
                         xt.Bend(length=self.wiggler_period / 4,
-                                k0=-self.wiggler_amplitude, h=0,
-                                rot_s_rad=self.angle_rad),
+                                k0=-self.wiggler_amplitude, angle=0,
+                                rot_s_rad=self.angle),
                         xt.Bend(length=self.wiggler_period / 4,
-                                k0=-self.wiggler_amplitude, h=0,
-                                rot_s_rad=self.angle_rad),
+                                k0=-self.wiggler_amplitude, angle=0,
+                                rot_s_rad=self.angle),
                         xt.Bend(length=self.wiggler_period / 4,
-                                k0=self.wiggler_amplitude, h=0,
-                                rot_s_rad=self.angle_rad),
+                                k0=self.wiggler_amplitude, angle=0,
+                                rot_s_rad=self.angle),
                         xt.Bend(length=self.wiggler_period / 4,
-                                k0=self.wiggler_amplitude, h=0,
-                                rot_s_rad=self.angle_rad)
+                                k0=self.wiggler_amplitude, angle=0,
+                                rot_s_rad=self.angle)
                     ]
 
                 elif i == 0:
                     wiggler += [
                         xt.Bend(length=self.wiggler_period / 4,
-                                k0=self.wiggler_amplitude, h=0,
-                                rot_s_rad=self.angle_rad)
+                                k0=self.wiggler_amplitude, angle=0,
+                                rot_s_rad=self.angle)
                     ]
 
                 else:
                     wiggler += [
                         xt.Bend(length=self.wiggler_period / 4,
-                                k0=-self.wiggler_amplitude, h=0,
-                                rot_s_rad=self.angle_rad),
+                                k0=-self.wiggler_amplitude, angle=0,
+                                rot_s_rad=self.angle),
                         xt.Bend(length=self.wiggler_period / 4,
-                                k0=-self.wiggler_amplitude, h=0,
-                                rot_s_rad=self.angle_rad),
+                                k0=-self.wiggler_amplitude, angle=0,
+                                rot_s_rad=self.angle),
                         xt.Bend(length=self.wiggler_period / 4,
-                                k0=self.wiggler_amplitude, h=0,
-                                rot_s_rad=self.angle_rad)
+                                k0=self.wiggler_amplitude, angle=0,
+                                rot_s_rad=self.angle)
                     ]
 
         if self.scheme == '121a':
@@ -353,17 +360,17 @@ class Wiggler:
                 sign = 1 if i % 2 == 0 else -1
                 wiggler += [
                     xt.Bend(length=self.wiggler_period / 4,
-                            k0=-sign * self.wiggler_amplitude, h=0,
-                            rot_s_rad=self.angle_rad),
+                            k0=-sign * self.wiggler_amplitude, angle=0,
+                            rot_s_rad=self.angle),
                     xt.Bend(length=self.wiggler_period / 4,
-                            k0=sign * self.wiggler_amplitude, h=0,
-                            rot_s_rad=self.angle_rad),
+                            k0=sign * self.wiggler_amplitude, angle=0,
+                            rot_s_rad=self.angle),
                     xt.Bend(length=self.wiggler_period / 4,
-                            k0=sign * self.wiggler_amplitude, h=0,
-                            rot_s_rad=self.angle_rad),
+                            k0=sign * self.wiggler_amplitude, angle=0,
+                            rot_s_rad=self.angle),
                     xt.Bend(length=self.wiggler_period / 4,
-                            k0=-sign * self.wiggler_amplitude, h=0,
-                            rot_s_rad=self.angle_rad)
+                            k0=-sign * self.wiggler_amplitude, angle=0,
+                            rot_s_rad=self.angle)
                 ]
 
         print(f'wiggler.shape = {len(wiggler)}')

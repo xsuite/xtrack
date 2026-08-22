@@ -9,9 +9,10 @@
 #ifndef XTRACK_EXIT_SLICE_RBEND_H
 #define XTRACK_EXIT_SLICE_RBEND_H
 
-#include <headers/track.h>
-#include <beam_elements/elements_src/track_magnet.h>
-#include <beam_elements/elements_src/default_magnet_config.h>
+#include "xtrack/headers/track.h"
+#include "xtrack/headers/factorial.h"
+#include "xtrack/beam_elements/elements_src/track_magnet.h"
+#include "xtrack/beam_elements/elements_src/default_magnet_config.h"
 
 GPUFUN
 void ThinSliceRBendExit_track_local_particle(
@@ -27,6 +28,11 @@ void ThinSliceRBendExit_track_local_particle(
         /*inv_factorial_order*/   ThinSliceRBendExitData_get__parent_inv_factorial_order(el),
         /*knl*/                   ThinSliceRBendExitData_getp1__parent_knl(el, 0),
         /*ksl*/                   ThinSliceRBendExitData_getp1__parent_ksl(el, 0),
+        /*order_rel*/             ThinSliceRBendExitData_len__parent_knl_rel(el) - 1, // order_rel is derived from the length of knl_rel and ksl_rel arrays
+      /*inv_factorial_order_rel*/ one_over_factorial(ThinSliceRBendExitData_len__parent_knl_rel(el) - 1), // 1 / (order_rel)!
+        /*knl_rel*/               ThinSliceRBendExitData_getp1__parent_knl_rel(el, 0),
+        /*ksl_rel*/               ThinSliceRBendExitData_getp1__parent_ksl_rel(el, 0),
+        /*rel_ref_strength*/      ThinSliceRBendExitData_get__parent_k0(el) * ThinSliceRBendExitData_get__parent_length(el),
         /*num_multipole_kicks*/   0, // unused
         /*model*/                 0, // unused
         /*default_model*/         RBEND_DEFAULT_MODEL,
@@ -40,7 +46,7 @@ void ThinSliceRBendExit_track_local_particle(
         /*hxl*/                   0.,
         /*k0*/                    ThinSliceRBendExitData_get__parent_k0(el),
         /*k1*/                    ThinSliceRBendExitData_get__parent_k1(el),
-        /*k2*/                    0.,
+        /*k2*/                    ThinSliceRBendExitData_get__parent_k2(el),
         /*k3*/                    0.,
         /*k0s*/                   0.,
         /*k1s*/                   0.,
@@ -51,7 +57,10 @@ void ThinSliceRBendExit_track_local_particle(
         /*x0_solenoid*/           0.,
         /*y0_solenoid*/           0.,
         /*rbend_model*/           ThinSliceRBendExitData_get__parent_rbend_model(el),
+     /*rbend_compensate_sagitta*/ ThinSliceRBendExitData_get__parent_rbend_compensate_sagitta(el),
         /*rbend_shift*/           ThinSliceRBendExitData_get__parent_rbend_shift(el),
+        /*rbend_angle_diff*/      ThinSliceRBendExitData_get__parent_rbend_angle_diff(el),
+        /*length_straight*/       ThinSliceRBendExitData_get__parent_length_straight(el),
         /*body_active*/           0, // disabled
         /*edge_entry_active*/     0,
         /*edge_exit_active*/      ThinSliceRBendExitData_get__parent_edge_exit_active(el),

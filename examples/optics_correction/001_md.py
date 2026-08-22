@@ -67,7 +67,7 @@ tw_meas = xt.Table({'name': np.array(obs_points_import), 'betx': meas_betx['BETX
 tw = xt.Table({'name': np.array(obs_points),
                'betx': np.array([tw_meas['betx', nn] for nn in obs_points])})
 
-from xtrack.trajectory_correction import _compute_correction
+from xtrack.trajectory_correction import _get_correction
 
 correct_on_observables = ['betx']
 
@@ -84,8 +84,8 @@ for cc in correct_on_observables:
         err = np.concatenate((err, ee))
         response_matrix = np.concatenate((response_matrix, rr), axis=0)
 
-correction_svd = _compute_correction(err, response_matrix, rcond=1e-2)
-correction_micado = _compute_correction(err, response_matrix, n_micado=2)
+correction_svd = _get_correction(err, response_matrix, rcond=1e-2)
+correction_micado = _get_correction(err, response_matrix, n_micado=2)
 
 i_micado = np.argmax(np.abs(correction_micado))
 print(f'MICADO correction: {correction_micado[i_micado]:.2e} at {correctors[i_micado]}')

@@ -9,9 +9,10 @@
 #ifndef XTRACK_EXIT_SLICE_OCTUPOLE_H
 #define XTRACK_EXIT_SLICE_OCTUPOLE_H
 
-#include <headers/track.h>
-#include <beam_elements/elements_src/track_magnet.h>
-#include <beam_elements/elements_src/default_magnet_config.h>
+#include "xtrack/headers/track.h"
+#include "xtrack/headers/factorial.h"
+#include "xtrack/beam_elements/elements_src/track_magnet.h"
+#include "xtrack/beam_elements/elements_src/default_magnet_config.h"
 
 GPUFUN
 void ThinSliceOctupoleExit_track_local_particle(
@@ -27,6 +28,11 @@ void ThinSliceOctupoleExit_track_local_particle(
         /*inv_factorial_order*/   ThinSliceOctupoleExitData_get__parent_inv_factorial_order(el),
         /*knl*/                   ThinSliceOctupoleExitData_getp1__parent_knl(el, 0),
         /*ksl*/                   ThinSliceOctupoleExitData_getp1__parent_ksl(el, 0),
+        /*order_rel*/             ThinSliceOctupoleExitData_len__parent_knl_rel(el) - 1, // order_rel is derived from the length of knl_rel and ksl_rel arrays
+      /*inv_factorial_order_rel*/ one_over_factorial(ThinSliceOctupoleExitData_len__parent_knl_rel(el) - 1), // 1 / (order_rel)!
+        /*knl_rel*/               ThinSliceOctupoleExitData_getp1__parent_knl_rel(el, 0),
+        /*ksl_rel*/               ThinSliceOctupoleExitData_getp1__parent_ksl_rel(el, 0),
+        /*rel_ref_strength*/      ThinSliceOctupoleExitData_get__parent_length(el) * ((ThinSliceOctupoleExitData_get__parent_main_is_skew(el)) ? ThinSliceOctupoleExitData_get__parent_k3s(el) : ThinSliceOctupoleExitData_get__parent_k3(el)),
         /*num_multipole_kicks*/   0, // unused
         /*model*/                 0, // unused
         /*default_model*/         OCTUPOLE_DEFAULT_MODEL,
@@ -51,7 +57,10 @@ void ThinSliceOctupoleExit_track_local_particle(
         /*x0_solenoid*/           0.,
         /*y0_solenoid*/           0.,
         /*rbend_model*/           -1, // not rbend
-        /*rbend_shift*/           0.,
+     /*rbend_compensate_sagitta*/ 0,  // not rbend
+        /*rbend_shift*/           0., // not rbend
+        /*rbend_angle_diff*/      0., // not rbend
+        /*length_straight*/       0., // not rbend
         /*body_active*/           0, // disabled
         /*edge_entry_active*/     0,
         /*edge_exit_active*/      ThinSliceOctupoleExitData_get__parent_edge_exit_active(el),

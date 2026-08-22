@@ -38,7 +38,7 @@ line = xt.Line.from_dict(input_data['line'])
 
 from PyHEADTAIL.feedback.transverse_damper import TransverseDamper
 damper = TransverseDamper(dampingrate_x=10., dampingrate_y=15.)
-line.append_element(damper, 'Damper')
+line.append('Damper', damper)
 
 #################
 # Build tracker #

@@ -1,12 +1,18 @@
 import xobjects as xo
 
 from ..general import _pkg_root
-from .slice_base import _SliceBase, COMMON_SLICE_XO_FIELDS, ID_RADIATION_FROM_PARENT
-from .elements import (
-    SynchrotronRadiationRecord, Quadrupole, Sextupole,
-    Octupole, Bend, Multipole, DipoleEdge, RBend, MultipoleEdge, Marker,
-    UniformSolenoid
+from .slice_base import (
+    _SliceBase, COMMON_SLICE_XO_FIELDS, ID_RADIATION_FROM_PARENT,
+    _raise_if_parent_has_transverse_rotation,
 )
+from .bend import Bend
+from .cavity import Cavity
+from .crab_cavity import CrabCavity
+from .multipole import Multipole
+from .octupole import Octupole
+from .quadrupole import Quadrupole
+from .rbend import RBend
+from .sextupole import Sextupole
 from ..base_element import BeamElement
 
 class _ThinSliceElementBase(_SliceBase):
@@ -27,11 +33,11 @@ class ThinSliceQuadrupole(_ThinSliceElementBase, BeamElement):
 
     def get_equivalent_element(self):
 
-        knl = self._parent.knl.copy() * self.weight
-        ksl = self._parent.ksl.copy() * self.weight
+        _raise_if_parent_has_transverse_rotation(self._parent)
 
-        knl[1] += self._parent.k1 * self._parent.length * self.weight
-        ksl[1] += self._parent.k1s * self._parent.length * self.weight
+        knl, ksl = self._parent.get_total_knl_ksl()
+        knl = knl * self.weight
+        ksl = ksl * self.weight
 
         length = self._parent.length * self.weight
 
@@ -57,16 +63,16 @@ class ThinSliceSextupole(_ThinSliceElementBase, BeamElement):
     _xofields = {'_parent': xo.Ref(Sextupole), **COMMON_SLICE_XO_FIELDS}
 
     _extra_c_sources = [
-        '#include <beam_elements/elements_src/thin_slice_sextupole.h>'
+        '#include "xtrack/beam_elements/elements_src/thin_slice_sextupole.h"'
     ]
 
     def get_equivalent_element(self):
 
-        knl = self._parent.knl.copy() * self.weight
-        ksl = self._parent.ksl.copy() * self.weight
+        _raise_if_parent_has_transverse_rotation(self._parent)
 
-        knl[2] += self._parent.k2 * self._parent.length * self.weight
-        ksl[2] += self._parent.k2s * self._parent.length * self.weight
+        knl, ksl = self._parent.get_total_knl_ksl()
+        knl = knl * self.weight
+        ksl = ksl * self.weight
 
         length = self._parent.length * self.weight
 
@@ -92,16 +98,16 @@ class ThinSliceOctupole(_ThinSliceElementBase, BeamElement):
     _xofields = {'_parent': xo.Ref(Octupole), **COMMON_SLICE_XO_FIELDS}
 
     _extra_c_sources = [
-        '#include <beam_elements/elements_src/thin_slice_octupole.h>'
+        '#include "xtrack/beam_elements/elements_src/thin_slice_octupole.h"'
     ]
 
     def get_equivalent_element(self):
 
-        knl = self._parent.knl.copy() * self.weight
-        ksl = self._parent.ksl.copy() * self.weight
+        _raise_if_parent_has_transverse_rotation(self._parent)
 
-        knl[3] += self._parent.k3 * self._parent.length * self.weight
-        ksl[3] += self._parent.k3s * self._parent.length * self.weight
+        knl, ksl = self._parent.get_total_knl_ksl()
+        knl = knl * self.weight
+        ksl = ksl * self.weight
 
         length = self._parent.length * self.weight
 
@@ -122,20 +128,66 @@ class ThinSliceOctupole(_ThinSliceElementBase, BeamElement):
         return out
 
 
+class ThinSliceCavity(_ThinSliceElementBase, BeamElement):
+
+    _xofields = {'_parent': xo.Ref(Cavity), **COMMON_SLICE_XO_FIELDS}
+
+    _extra_c_sources = [
+        _pkg_root.joinpath('beam_elements/elements_src/thin_slice_cavity.h'),
+    ]
+
+    def get_equivalent_element(self):
+
+        out = Cavity(length=0,
+                     voltage=self._parent.voltage * self.weight,
+                     frequency=self._parent.frequency,
+                     harmonic=self._parent.harmonic,
+                     lag=self._parent.lag,
+                     phase=self._parent.phase,
+                     lag_taper=self._parent.lag_taper,
+                     absolute_time=self._parent.absolute_time,
+                     _buffer=self._buffer)
+
+        return out
+
+
+class ThinSliceCrabCavity(_ThinSliceElementBase, BeamElement):
+
+    _xofields = {'_parent': xo.Ref(CrabCavity), **COMMON_SLICE_XO_FIELDS}
+
+    _extra_c_sources = [
+        _pkg_root.joinpath('beam_elements/elements_src/thin_slice_crab_cavity.h'),
+    ]
+
+    def get_equivalent_element(self):
+
+        out = CrabCavity(length=0,
+                     crab_voltage=self._parent.crab_voltage * self.weight,
+                     frequency=self._parent.frequency,
+                     lag=self._parent.lag,
+                     phase=self._parent.phase,
+                     lag_taper=self._parent.lag_taper,
+                     absolute_time=self._parent.absolute_time,
+                     _buffer=self._buffer)
+
+        return out
+
+
 class ThinSliceBend(_ThinSliceElementBase, BeamElement):
 
     _xofields = {'_parent': xo.Ref(Bend), **COMMON_SLICE_XO_FIELDS}
 
     _extra_c_sources = [
-        '#include <beam_elements/elements_src/thin_slice_bend.h>'
+        '#include "xtrack/beam_elements/elements_src/thin_slice_bend.h"'
     ]
 
     def get_equivalent_element(self):
-        knl = self._parent.knl.copy() * self.weight
-        ksl = self._parent.ksl.copy() * self.weight
 
-        knl[0] += self._parent.k0 * self._parent.length * self.weight
-        knl[1] += self._parent.k1 * self._parent.length * self.weight
+        _raise_if_parent_has_transverse_rotation(self._parent)
+
+        knl, ksl = self._parent.get_total_knl_ksl()
+        knl = knl * self.weight
+        ksl = ksl * self.weight
 
         length = self._parent.length * self.weight
 
@@ -160,20 +212,59 @@ class ThinSliceRBend(_ThinSliceElementBase, BeamElement):
     _xofields = {'_parent': xo.Ref(RBend), **COMMON_SLICE_XO_FIELDS}
 
     _extra_c_sources = [
-        '#include <beam_elements/elements_src/thin_slice_rbend.h>'
+        '#include "xtrack/beam_elements/elements_src/thin_slice_rbend.h"'
     ]
 
     def get_equivalent_element(self):
-        knl = self._parent.knl.copy() * self.weight
-        ksl = self._parent.ksl.copy() * self.weight
 
-        knl[0] += self._parent.k0 * self._parent.length * self.weight
-        knl[1] += self._parent.k1 * self._parent.length * self.weight
+        _raise_if_parent_has_transverse_rotation(self._parent)
+
+        if self._parent.rbend_model == "straight-body":
+            return self # No replacement possible (not yet supported), element
+                        # left where it is
+
+        knl, ksl = self._parent.get_total_knl_ksl()
+        knl = knl * self.weight
+        ksl = ksl * self.weight
 
         length = self._parent.length * self.weight
 
         out = Multipole(knl=knl, ksl=ksl, length=length,
                         hxl=self._parent.h * length,
+                        shift_x=self._parent.shift_x,
+                        shift_y=self._parent.shift_y,
+                        shift_s=self._parent.shift_s,
+                        rot_s_rad=self._parent.rot_s_rad,
+                        _buffer=self._buffer)
+        return out
+
+
+class ThinSliceMultipole(_ThinSliceElementBase, BeamElement):
+
+    _xofields = {'_parent': xo.Ref(Multipole), **COMMON_SLICE_XO_FIELDS}
+
+    _extra_c_sources = [
+        '#include "xtrack/beam_elements/elements_src/thin_slice_multipole.h"'
+    ]
+
+    def get_equivalent_element(self):
+        _raise_if_parent_has_transverse_rotation(self._parent)
+
+        knl, ksl = self._parent.get_total_knl_ksl()
+        knl = knl * self.weight
+        ksl = ksl * self.weight
+
+        length = self._parent.length * self.weight
+
+        if self.radiation_flag == ID_RADIATION_FROM_PARENT:
+            radiation_flag = self._parent.radiation_flag
+        else:
+            radiation_flag = self.radiation_flag
+
+        out = Multipole(knl=knl, ksl=ksl, length=length,
+                        hxl=self._parent.hxl,
+                        radiation_flag=radiation_flag,
+                        delta_taper=self.delta_taper,
                         shift_x=self._parent.shift_x,
                         shift_y=self._parent.shift_y,
                         shift_s=self._parent.shift_s,

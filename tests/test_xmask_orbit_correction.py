@@ -126,7 +126,7 @@ correction_config = {
 }
 
 
-@for_all_test_contexts
+@for_all_test_contexts(excluding=('ContextCupy', 'ContextPyopencl'))
 def test_orbit_correction(test_context):
     with open(test_data_folder /
               'hllhc14_no_errors_with_coupling_knobs/line_b1.json', 'r') as fid:

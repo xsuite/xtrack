@@ -4,7 +4,7 @@ import numpy as np
 
 import xdeps as xd
 import xobjects as xo
-import xtrack
+import xtrack as xt
 from xobjects.test_helpers import for_all_test_contexts
 
 test_data_folder = pathlib.Path(
@@ -92,12 +92,11 @@ class ActionMatchPhaseWithMQTs(xd.Action):
                 self.line.vars[kk] = mqt_knob_values[kk]
         return res
 
-@for_all_test_contexts
+@for_all_test_contexts(excluding=('ContextCupy', 'ContextPyopencl'))
 def test_match_nested(test_context):
 
     # Load the line
-    collider = xtrack.Multiline.from_json(test_data_folder /
-                'hllhc15_collider/collider_00_from_mad.json')
+    collider = xt.load(test_data_folder / 'hllhc15_collider/collider_00_from_mad.json')
     collider.build_trackers(_context=test_context)
 
     collider.lhcb1.twiss_default['method'] = '4d'

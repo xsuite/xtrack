@@ -1,8 +1,9 @@
 import xtrack as xt
 import xobjects as xo
+import numpy as np
 
-env = xt.load('../../test_data/sps_thick/sps.seq')
-env.vars.load('../../test_data/sps_thick/lhc_q20.str')
+env = xt.load(['../../test_data/sps_thick/sps.seq',
+               '../../test_data/sps_thick/lhc_q20.str'])
 
 line = env['sps']
 line.particle_ref = xt.Particles(p0c=26e9, mass0=xt.PROTON_MASS_EV)
@@ -49,16 +50,16 @@ line.particle_ref = env.particle_ref
 
 line['actcse.31632'].voltage = 4.2e+08
 line['actcse.31632'].frequency = 3e6
-line['actcse.31632'].lag = 180.
+line['actcse.31632'].phase = np.pi
 
 line.configure_radiation(model='mean')
 
 line.set(tt_rbend, rbend_model='curved-body')
-tw_rad_curved = line.twiss(eneloss_and_damping=True,
+tw_rad_curved = line.twiss(radiation_analysis=True,
                              radiation_integrals=True)
 
 line.set(tt_rbend, rbend_model='straight-body')
-tw_rad_straight = line.twiss(eneloss_and_damping=True,
+tw_rad_straight = line.twiss(radiation_analysis=True,
                                radiation_integrals=True)
 
 xo.assert_allclose(tw_rad_straight.eq_gemitt_x,

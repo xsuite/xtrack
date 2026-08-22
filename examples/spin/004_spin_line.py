@@ -7,8 +7,8 @@ from scipy.constants import e as qe
 from scipy.constants import c as clight
 from scipy.constants import hbar
 
-# env = xt.load('../../test_data/sps_thick/sps.seq')
-# env.vars.load('../../test_data/sps_thick/lhc_q20.str')
+# env = xt.load(['../../test_data/sps_thick/sps.seq',
+#                '../../test_data/sps_thick/lhc_q20.str'])
 # line = env.sps
 # line.particle_ref = xt.Particles(mass0=xt.ELECTRON_MASS_EV, q0=1, p0c=20e9,
 #                                  )
@@ -36,38 +36,36 @@ line['on_sol'] = 1.
 
 # I flip the bumps (Jorg had probably opposite solenoids)
 line['on_spin_bumps'] = 1.
-line.vars['kcv32.l2'] = ' 3.14467e-05 * on_spin_bumps * (-1)'
-line.vars['kcv26.l2'] = ' 6.28933e-05 * on_spin_bumps * (-1)'
-line.vars['kcv20.l2'] = ' 3.14467e-05 * on_spin_bumps * (-1)'
-line.vars['kcv20.r2'] = '-3.14467e-05 * on_spin_bumps * (-1)'
-line.vars['kcv26.r2'] = '-6.28933e-05 * on_spin_bumps * (-1)'
-line.vars['kcv32.r2'] = '-3.14467e-05 * on_spin_bumps * (-1)'
-line.vars['kcv32.l4'] = ' 5.21432e-05 * on_spin_bumps * (-1)'
-line.vars['kcv26.l4'] = ' 0.000104286 * on_spin_bumps * (-1)'
-line.vars['kcv20.l4'] = ' 5.21432e-05 * on_spin_bumps * (-1)'
-line.vars['kcv20.r4'] = '-5.21432e-05 * on_spin_bumps * (-1)'
-line.vars['kcv26.r4'] = '-0.000104286 * on_spin_bumps * (-1)'
-line.vars['kcv32.r4'] = '-5.21432e-05 * on_spin_bumps * (-1)'
-line.vars['kcv32.l6'] = '  1.3513e-05 * on_spin_bumps * (-1)'
-line.vars['kcv26.l6'] = '  2.7026e-05 * on_spin_bumps * (-1)'
-line.vars['kcv20.l6'] = '  1.3513e-05 * on_spin_bumps * (-1)'
-line.vars['kcv20.r6'] = ' -1.3513e-05 * on_spin_bumps * (-1)'
-line.vars['kcv26.r6'] = ' -2.7026e-05 * on_spin_bumps * (-1)'
-line.vars['kcv32.r6'] = ' -1.3513e-05 * on_spin_bumps * (-1)'
-line.vars['kcv32.l8'] = ' 4.67179e-05 * on_spin_bumps * (-1)'
-line.vars['kcv26.l8'] = ' 9.34358e-05 * on_spin_bumps * (-1)'
-line.vars['kcv20.l8'] = ' 4.67179e-05 * on_spin_bumps * (-1)'
-line.vars['kcv20.r8'] = '-4.67179e-05 * on_spin_bumps * (-1)'
-line.vars['kcv26.r8'] = '-9.34358e-05 * on_spin_bumps * (-1)'
-line.vars['kcv32.r8'] = '-4.67179e-05 * on_spin_bumps * (-1)'
+line['kcv32.l2'] = ' 3.14467e-05 * on_spin_bumps * (-1)'
+line['kcv26.l2'] = ' 6.28933e-05 * on_spin_bumps * (-1)'
+line['kcv20.l2'] = ' 3.14467e-05 * on_spin_bumps * (-1)'
+line['kcv20.r2'] = '-3.14467e-05 * on_spin_bumps * (-1)'
+line['kcv26.r2'] = '-6.28933e-05 * on_spin_bumps * (-1)'
+line['kcv32.r2'] = '-3.14467e-05 * on_spin_bumps * (-1)'
+line['kcv32.l4'] = ' 5.21432e-05 * on_spin_bumps * (-1)'
+line['kcv26.l4'] = ' 0.000104286 * on_spin_bumps * (-1)'
+line['kcv20.l4'] = ' 5.21432e-05 * on_spin_bumps * (-1)'
+line['kcv20.r4'] = '-5.21432e-05 * on_spin_bumps * (-1)'
+line['kcv26.r4'] = '-0.000104286 * on_spin_bumps * (-1)'
+line['kcv32.r4'] = '-5.21432e-05 * on_spin_bumps * (-1)'
+line['kcv32.l6'] = '  1.3513e-05 * on_spin_bumps * (-1)'
+line['kcv26.l6'] = '  2.7026e-05 * on_spin_bumps * (-1)'
+line['kcv20.l6'] = '  1.3513e-05 * on_spin_bumps * (-1)'
+line['kcv20.r6'] = ' -1.3513e-05 * on_spin_bumps * (-1)'
+line['kcv26.r6'] = ' -2.7026e-05 * on_spin_bumps * (-1)'
+line['kcv32.r6'] = ' -1.3513e-05 * on_spin_bumps * (-1)'
+line['kcv32.l8'] = ' 4.67179e-05 * on_spin_bumps * (-1)'
+line['kcv26.l8'] = ' 9.34358e-05 * on_spin_bumps * (-1)'
+line['kcv20.l8'] = ' 4.67179e-05 * on_spin_bumps * (-1)'
+line['kcv20.r8'] = '-4.67179e-05 * on_spin_bumps * (-1)'
+line['kcv26.r8'] = '-9.34358e-05 * on_spin_bumps * (-1)'
+line['kcv32.r8'] = '-4.67179e-05 * on_spin_bumps * (-1)'
 
 line['on_spin_bumps'] = 1; line['on_sol'] = 0
 tw_off = line.twiss4d(spin=True, radiation_integrals=True)
 line['on_spin_bumps'] = 1; line['on_sol'] = 1
 tw = line.twiss4d(spin=True, radiation_integrals=True)
 tw_ir4 = tw.rows[9997:11200:'s']
-
-prrrr
 
 for ttww in [tw_off, tw]:
 
@@ -85,12 +83,12 @@ for ttww in [tw_off, tw]:
 
     # reference https://lib-extopc.kek.jp/preprints/PDF/1980/8011/8011060.pdf
 
-    alpha_plus_co = 1. / ttww.circumference * np.sum(
+    alpha_plus_co = 1. / ttww.line_length * np.sum(
         kappa**3 * (1 - 2./9. * n0_iv**2) * ttww.length)
 
     tp_inv = 5 * np.sqrt(3) / 8 * r0 * hbar * ttww.gamma0**5 / m0_kg * alpha_plus_co
     tp_s = 1 / tp_inv
-    tp_turn = tp_s / ttww.T_rev0
+    tp_turn = tp_s / ttww.t_rev0
 
     brho_ref = ttww.particle_on_co.p0c[0] / clight / ttww.particle_on_co.q0
     brho_part = (brho_ref * ttww.particle_on_co.rvv[0] * ttww.particle_on_co.energy[0]
@@ -108,7 +106,7 @@ for ttww in [tw_off, tw]:
 
     n0_ib = ttww.spin_x * ib_x + ttww.spin_y * ib_y + ttww.spin_z * ib_z
 
-    alpha_minus_co = 1. / ttww.circumference * np.sum(kappa**3 * n0_ib *  ttww.length)
+    alpha_minus_co = 1. / ttww.line_length * np.sum(kappa**3 * n0_ib *  ttww.length)
 
     pol_inf = 8 / 5 / np.sqrt(3) * alpha_minus_co / alpha_plus_co
 
@@ -128,9 +126,9 @@ line['vrfc231'] = 15
 
 line.configure_radiation(model='mean')
 line['on_spin_bumps'] = 0.; line['on_sol'] = 0.
-tw_rad_off = line.twiss(spin=True, eneloss_and_damping=True)
+tw_rad_off = line.twiss(spin=True, radiation_analysis=True)
 line['on_spin_bumps'] = 0.; line['on_sol'] = 1.
-tw_rad_on = line.twiss(spin=True, eneloss_and_damping=True)
+tw_rad_on = line.twiss(spin=True, radiation_analysis=True)
 
 line['on_spin_bumps'] = 0.; line['on_sol'] = 0.
 p_off = xp.generate_matched_gaussian_bunch(
@@ -139,7 +137,7 @@ p_off = xp.generate_matched_gaussian_bunch(
     nemitt_y=tw_rad_off.eq_nemitt_y,
     sigma_z=np.sqrt(tw_rad_off.eq_gemitt_zeta * tw_rad_off.bets0),
     num_particles=100,
-    engine='linear')
+    engine='pyheadtail')
 # Need to patch the longitudinal plane
 p_off.zeta += tw_rad_off.zeta[0]
 p_off.delta += tw_rad_off.delta[0]
@@ -155,7 +153,7 @@ p_on = xp.generate_matched_gaussian_bunch(
     nemitt_y=tw_rad_on.eq_nemitt_y,
     sigma_z=np.sqrt(tw_rad_on.eq_gemitt_zeta * tw_rad_on.bets0),
     num_particles=100,
-    engine='linear')
+    engine='pyheadtail')
 # Need to patch the longitudinal plane
 p_on.zeta += tw_rad_on.zeta[0]
 p_on.delta += tw_rad_on.delta[0]

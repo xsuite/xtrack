@@ -8,26 +8,18 @@ import xtrack as xt
 from xobjects.test_helpers import for_all_test_contexts
 
 
-@for_all_test_contexts
+@for_all_test_contexts(excluding=('ContextCupy', 'ContextPyopencl'))
 def test_ps_multiturn_twiss(test_context):
 
     test_data_folder = pathlib.Path(
             __file__).parent.joinpath('../test_data').absolute()
 
-    mad = Madx(stdout=False)
-    mad.input("""
-    beam, particle=proton, pc = 14.0;
-    BRHO      = BEAM->PC * 3.3356;
-    """)
-    mad.call(str(test_data_folder / "ps_sftpro/ps.seq"))
-    mad.call(str(test_data_folder / "ps_sftpro/ps_hs_sftpro.str"))
-    mad.use('ps')
 
-    line = xt.Line.from_madx_sequence(mad.sequence.ps, allow_thick=True,
-                                    deferred_expressions=True,
-                                    )
-    line.particle_ref = xt.Particles(mass0=xt.PROTON_MASS_EV,
-                                        q0=1, gamma0=mad.sequence.ps.beam.gamma)
+    env = xt.load([test_data_folder / 'ps_sftpro/ps.seq',
+                   test_data_folder / 'ps_sftpro/ps_hs_sftpro.str'])
+    line = env['ps']
+    line.set_particle_ref('proton', p0c=14e9)
+
     line.twiss_default['method'] = '4d'
     line.build_tracker(test_context)
 
@@ -51,7 +43,16 @@ def test_ps_multiturn_twiss(test_context):
     mon = line.record_last_track
 
     tw_mt = line.twiss(co_guess={'x': 0.025}, num_turns=4)
+    tw_mt_zeroed = line.twiss(
+        co_guess={'x': 0.025}, num_turns=4, zero_at='_turn_2')
     tw_core = line.twiss(co_guess={'x': 0.0}, num_turns=0)
+
+    xo.assert_allclose(
+        tw_mt_zeroed['s', '_turn_2'], 0, atol=1e-10, rtol=0)
+    xo.assert_allclose(
+        tw_mt_zeroed['mux', '_turn_2'], 0, atol=1e-10, rtol=0)
+    xo.assert_allclose(
+        tw_mt_zeroed['muy', '_turn_2'], 0, atol=1e-10, rtol=0)
 
     assert len(tw_mt.rows['_turn.*']) == 4
     assert len(tw_mt.rows['_end_poi.*']) == 1

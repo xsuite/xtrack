@@ -24,13 +24,13 @@ tw_no_rad = line.twiss(method='4d')
 line.configure_radiation(model='mean')
 line.compensate_radiation_energy_loss()
 
-tw_rad_wig_off = line.twiss(eneloss_and_damping=True)
+tw_rad_wig_off = line.twiss(radiation_analysis=True)
 
 line.vars['on_wiggler_v'] = 0.05
 line.compensate_radiation_energy_loss()
 opt = line.match(
     solve=False,
-    eneloss_and_damping=True,
+    radiation_analysis=True,
     compensate_radiation_energy_loss=True,
     targets=[
         xt.Target(eq_gemitt_y=gemitt_y_target, tol=1e-15, optimize_log=True)],
@@ -39,11 +39,11 @@ opt = line.match(
 
 opt.solve()
 
-tw_rad = line.twiss(eneloss_and_damping=True)
-tw_rad2 = line.twiss(eneloss_and_damping=True, method='6d',
+tw_rad = line.twiss(radiation_analysis=True)
+tw_rad2 = line.twiss(radiation_analysis=True, method='6d',
                      radiation_method='full',
                      compute_lattice_functions=False,
-                     compute_chromatic_properties=False)
+                     chrom=False)
 
 
 ex = tw_rad.eq_gemitt_x

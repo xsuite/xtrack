@@ -41,15 +41,17 @@ tt = line.get_table()
 tt.show(cols=['s_start', 's_center', 's_end'])
 # is:
 # name             s_start      s_center         s_end
-# drift_1..0             0         2.475          4.95
+# ||drift_4              0         2.475          4.95
 # s1                  4.95             5          5.05
-# drift_1..2          5.05         7.025             9
+# ||drift_6           5.05         7.025             9
 # q0                     9            10            11
-# drift_2..0            11         12.45          13.9
+# ||drift_7             11         12.45          13.9
 # s2                  13.9         13.95            14
-# drift_2..2            14          16.5            19
+# ||drift_8             14          16.5            19
 # q1                    19            20            21
-# drift_3               21          30.5            40
+# ||drift_3             21          30.5            40
 # m1                    40            40            40
+# m2                    40            40            40
 # m0                    40            40            40
 # m3                    40            40            40
+# _end_point            40            40            40

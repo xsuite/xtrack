@@ -7,15 +7,13 @@ import numpy as np
 
 import xtrack as xt
 
-# Load a line and build tracker
+# Load a line
 line = xt.load(
     '../../test_data/hllhc15_thick/lhc_thick_with_knobs.json')
-line.particle_ref = xt.Particles(
-                    mass0=xt.PROTON_MASS_EV, q0=1, energy0=7e12)
-line.build_tracker()
+line.set_particle_ref('proton', p0c=7e12)
 
-line.vv['vrf400'] = 16
-line.vv['kqsx3.l1'] = 3e-6
+line['vrf400'] = 16
+line['kqsx3.l1'] = 3e-6
 
 tw = line.twiss(method='6d')
 
@@ -47,7 +45,7 @@ p_dummy = line.build_particles(x=0)
 tw_from_sigmas = dummy_line.twiss(
                         particle_on_co=p_dummy,
                         R_matrix=dummy_R,
-                        compute_chromatic_properties=False)
+                        chrom=False)
 
 print('betx/bety')
 print(f'betx (from line)    = {tw.betx[0]}')

@@ -74,9 +74,9 @@ env.new('mq_clone_2', 'mq', mode='clone')
 
 line = env.new_line(components=['mq_clone_1', 'dd', 'mq_clone_2', 'dd'])
 
-line['mq'].get_expr('k1') # is 'kq'
-line['mq_clone_1'].get_expr('k1') # is 'kq'
-line['mq_clone_2'].get_expr('k1') # is 'kq'
+line.ref['mq'].k1.xdeps.expr # is 'kq'
+line.ref['mq_clone_1'].k1.xdeps.expr # is 'kq'
+line.ref['mq_clone_2'].k1.xdeps.expr # is 'kq'
 
 # When changing the value of 'kq', all three elements are affected
 env['kq'] = 0.2
@@ -88,9 +88,9 @@ line['mq_clone_2'].k1 # is 0.2
 # its creation, the clones are not affected. For example:
 line['mq'].k1 = '2 * kq'
 
-line['mq'].get_expr('k1')         # is '2 * kq'
-line['mq_clone_1'].get_expr('k1') # is 'kq'
-line['mq_clone_2'].k1             # is 'kq'
+line.ref['mq'].k1.xdeps.expr         # is '2 * kq'
+line.ref['mq_clone_1'].k1.xdeps.expr # is 'kq'
+line.ref['mq_clone_2'].k1.xdeps.expr # is 'kq'
 
 # Clones allow for example, specifying different values for tilts and offsets
 # for different elements. For example:

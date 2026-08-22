@@ -32,7 +32,7 @@ class MultilineLegacy:
         if link_vars:
             self._var_sharing = xt.multiline_legacy.VarSharing(
                 lines=line_list, names=line_names)
-            self._multiline_vars = xt.line.LineVars(self)
+            self._multiline_vars = xt.line.EnvVars(self)
         else:
             self._var_sharing = None
 
@@ -84,7 +84,7 @@ class MultilineLegacy:
         return dct
 
     @classmethod
-    def from_dict(cls, dct):
+    def from_dict(cls, dct, with_progress=True):
 
         '''
         Load a multiline from a dictionary.
@@ -93,6 +93,9 @@ class MultilineLegacy:
         ----------
         dct: dict
             The dictionary with the multiline data.
+        with_progress : bool, optional
+            Whether to show progress while deserializing line elements.
+            Defaults to ``True``.
 
         Returns
         -------
@@ -102,7 +105,8 @@ class MultilineLegacy:
 
         lines = {}
         for nn, ll in dct['lines'].items():
-            lines[nn] = xt.Line.from_dict(ll)
+            lines[nn] = xt.Line.from_dict(
+                ll, with_progress=with_progress)
 
         new_multiline = cls(lines=lines, link_vars=('_var_manager' in dct))
 
@@ -181,11 +185,12 @@ class MultilineLegacy:
         return _multiline_from_madx(cls, filename=filename, madx=madx, stdout=stdout,
                              return_lines=return_lines, **kwargs)
 
-    def copy(self):
+    def copy(self, with_progress=True):
         '''
         Returns a deep copy of the multiline.
         '''
-        return self.__class__.from_dict(self.to_dict())
+        return self.__class__.from_dict(
+            self.to_dict(), with_progress=with_progress)
 
     def __getstate__(self):
         out = self.__dict__.copy()
@@ -344,7 +349,7 @@ class MultilineLegacy:
 
     def __getitem__(self, key: str):
         if key in self.vars:
-            return self.vv[key]
+            return self.vars.val[key]
 
         if key in self.lines:
             return self.lines[key]
@@ -479,7 +484,7 @@ class MultilineLegacy:
 
         # Trackers need to be invalidated to add elements
         for nn, ll in self.lines.items():
-            ll.unfreeze()
+            ll.discard_tracker()
 
         if clockwise_line is not None and anticlockwise_line is not None:
             circumference_cw = self.lines[clockwise_line].get_length()
@@ -545,6 +550,8 @@ class MultilineLegacy:
             if self._bb_config[f"{nn}_line"] is None:
                 continue
             line = self.lines[self._bb_config[f"{nn}_line"]]
+            if not line._has_valid_tracker():
+                line.build_tracker()
             if not isinstance(line.tracker._context, xo.ContextCpu):
                 raise ValueError(
                     "The trackers need to be built on CPU before "

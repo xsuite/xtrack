@@ -6,7 +6,7 @@
 #ifndef XTRACK_NONLINEARLENS_H
 #define XTRACK_NONLINEARLENS_H
 
-#include <headers/track.h>
+#include "xtrack/headers/track.h"
 
 // Implementation of a non-linear lens with elliptic potential
 // (based on the corresponding element in MAD-X, reference: Danilov and Nagaitsev,

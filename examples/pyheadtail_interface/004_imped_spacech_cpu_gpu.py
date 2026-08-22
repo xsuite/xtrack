@@ -22,12 +22,12 @@ xt.enable_pyheadtail_interface()
 # Settings #
 ############
 
-gpu_device = 0
+gpu_device = 0 # Set to None to use CPU, or to an integer to specify the GPU device to use (e.g. 0)
 seq_name = "sps"
 qx0,qy0 = 20.13, 20.18
 p0c = 26e9
 cavity_name = "actcse.31632"
-cavity_lag = 180
+cavity_phase = np.pi
 frequency = 200e6
 rf_voltage = 4e6
 use_wakes = True
@@ -88,7 +88,7 @@ line.particle_ref = xt.Particles(p0c=p0c,mass0=xt.PROTON_MASS_EV)
 ################
 
 line[cavity_name].voltage = rf_voltage
-line[cavity_name].lag = cavity_lag
+line[cavity_name].phase = cavity_phase
 line[cavity_name].frequency = frequency
 
 ############################################
@@ -97,11 +97,6 @@ line[cavity_name].frequency = frequency
 
 line.build_tracker()
 tw = line.twiss()
-
-# We unfreeze the line so that we can still insert elements in the
-# original one (would be prevented by the existence of a tracker linked to the
-# line).
-line.unfreeze()
 
 #####################################
 # Install spacecharge interactions) #
@@ -115,7 +110,7 @@ lprofile = xf.LongitudinalProfileQGaussian(
        z0=0.,
        q_parameter=1.)
 
-xf.install_spacecharge_frozen(line=line,
+line.xfields.spacecharge_install_frozen(
                   particle_ref=line.particle_ref,
                   longitudinal_profile=lprofile,
                   nemitt_x=nemitt_x, nemitt_y=nemitt_y,
@@ -127,13 +122,12 @@ xf.install_spacecharge_frozen(line=line,
 if mode == 'frozen':
    pass # Already configured in line
 elif mode == 'quasi-frozen':
-   xf.replace_spacecharge_with_quasi_frozen(
-                                   line,
+   line.xfields.spacecharge_replace_with_quasi_frozen(
                                    update_mean_x_on_track=True,
                                    update_mean_y_on_track=True)
 elif mode == 'pic':
-   pic_collection, all_pics = xf.replace_spacecharge_with_PIC(
-       _context=context, line=line,
+   pic_collection, all_pics = line.xfields.spacecharge_replace_with_pic(
+       _context=context,
        n_sigmas_range_pic_x=8,
        n_sigmas_range_pic_y=8,
        nx_grid=256, ny_grid=256, nz_grid=100,
@@ -152,7 +146,7 @@ if use_wakes:
    # the average beta functions (for which the table is calculated) and the beta
    # functions at the location in the lattice at which the wake element is
    # installed.
-   wakefields = np.genfromtxt('wakes/kickerSPSwake_2020_oldMKP.wake')
+   wakefields = np.genfromtxt('wakes/wakeforhdtl_PyZbase_Allthemachine_7000GeV_B1_2021_TeleIndex1_wake.dat')
    wakefields[:,1] *= 54.65/tw['betx'][0]
    wakefields[:,2] *= 54.51/tw['bety'][0]
    wakefields[:,3] *= 54.65/tw['betx'][0]
@@ -175,7 +169,7 @@ if use_wakes:
    wakefield.needs_hidden_lost_particles = True
 
    # Insert element in the line
-   line.insert_element(element=wakefield,name="wakefield", at_s=0)
+   line.insert('wakefield', wakefield, at=0)
 
 #################
 # Build Tracker #

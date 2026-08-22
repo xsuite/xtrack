@@ -11,27 +11,27 @@ env = xt.Environment()
 line = env.new_line(components=[
     env.new('mqf.1', xt.Quadrupole, length=0.3, k1=0.1),
     env.new('d1.1',  xt.Drift, length=1),
-    env.new('mb1.1', xt.Bend, length=lbend, k0=pi / 2 / lbend, h=pi / 2 / lbend),
+    env.new('mb1.1', xt.Bend, length=lbend, angle=pi / 2),
     env.new('d2.1',  xt.Drift, length=1),
 
     env.new('mqd.1', xt.Quadrupole, length=0.3, k1=-0.7),
     env.new('d3.1',  xt.Drift, length=1),
-    env.new('mb2.1', xt.Bend, length=lbend, k0=pi / 2 / lbend, h=pi / 2 / lbend),
+    env.new('mb2.1', xt.Bend, length=lbend, angle=pi / 2),
     env.new('d4.1',  xt.Drift, length=1),
 
     env.new('mqf.2', xt.Quadrupole, length=0.3, k1=0.1),
     env.new('d1.2',  xt.Drift, length=1),
-    env.new('mb1.2', xt.Bend, length=lbend, k0=pi / 2 / lbend, h=pi / 2 / lbend),
+    env.new('mb1.2', xt.Bend, length=lbend, angle=pi / 2),
     env.new('d2.2',  xt.Drift, length=1),
 
     env.new('mqd.2', xt.Quadrupole, length=0.3, k1=-0.7),
     env.new('d3.2',  xt.Drift, length=1),
-    env.new('mb2.2', xt.Bend, length=lbend, k0=pi / 2 / lbend, h=pi / 2 / lbend),
+    env.new('mb2.2', xt.Bend, length=lbend, angle=pi / 2),
     env.new('d4.2',  xt.Drift, length=1),
 ])
 
 # Define reference particle
-line.particle_ref = xt.Particles(p0c=1.2e9, mass0=xt.PROTON_MASS_EV)
+line.set_particle_ref('proton', p0c=1.2e9)
 
 # Print the line table
 line.get_table().show()

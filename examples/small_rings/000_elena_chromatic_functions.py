@@ -2,20 +2,12 @@ import numpy as np
 from cpymad.madx import Madx
 import xtrack as xt
 
-# We get the model from MAD-X
-mad = Madx()
-folder = ('../../test_data/elena')
-mad.call(folder + '/elena.seq')
-mad.call(folder + '/highenergy.str')
-mad.call(folder + '/highenergy.beam')
-mad.use('elena')
-
-# Build xsuite line
-seq = mad.sequence.elena
-line = xt.Line.from_madx_sequence(seq)
-line.particle_ref = xt.Particles(gamma0=seq.beam.gamma,
-                                    mass0=seq.beam.mass * 1e9,
-                                    q0=seq.beam.charge)
+# We load the model from MAD-X lattice and strengths
+env = xt.load(['../../test_data/elena/elena.seq',
+               '../../test_data/elena/highenergy.str'])
+line = env.elena
+line.set_particle_ref('antiproton', p0c=0.1e9)
+line['beam_p_gev_c'] = line.particle_ref.p0c[0]/1e9 # Used by the optics
 
 # Inspect one bend
 line['lnr.mbhek.0135']
@@ -41,7 +33,7 @@ line['lnr.mbhek.0135'].edge_exit_model # is 'linear'
 line.configure_bend_model(core='adaptive', edge='full')
 
 # It is also possible to switch from the expanded drift to the exact one
-line.config.XTRACK_USE_EXACT_DRIFTS = True
+line.configure_drift_model(model='exact')
 
 line['lnr.mbhek.0135'].model # is 'adaptive'
 line['lnr.mbhek.0135'].edge_entry_model # is 'full'
@@ -59,7 +51,7 @@ tw = line.twiss(method='4d')
 
 # Switch to a simplified model
 line.configure_bend_model(core='expanded', edge='linear')
-line.config.XTRACK_USE_EXACT_DRIFTS = False
+line.configure_drift_model(model='expanded')
 
 # Twiss with the default model
 tw_simpl = line.twiss(method='4d')
@@ -92,11 +84,11 @@ plt.ylabel(r'$W_y$')
 plt.xlabel('s [m]')
 
 # Highlight the bends
-tt_sliced = line.get_table()
+tt_sliced = line.get_table(attr=True)
 tbends = tt_sliced.rows[tt_sliced.element_type == 'ThickSliceBend']
 for ax in [ax1, ax2, ax3, ax4]:
     for nn in tbends.name:
-        ax.axvspan(tbends['s', nn], tbends['s', nn] + line[nn].length,
+        ax.axvspan(tbends['s', nn], tbends['s', nn] + tbends['length', nn],
                    color='b', alpha=0.2, linewidth=0)
 
 plt.show()
