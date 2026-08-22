@@ -12,22 +12,22 @@ GPUFUN
 void YRotation_single_particle(LocalParticle* part, double sin_angle, double cos_angle, double tan_angle)
 {
     double const beta0 = LocalParticle_get_beta0(part);
-    double const x  = LocalParticle_get_x(part);
-    double const y  = LocalParticle_get_y(part);
-    double const px = LocalParticle_get_px(part);
-    double const py = LocalParticle_get_py(part);
-    double const t = LocalParticle_get_zeta(part)/beta0;
-    double const pt = LocalParticle_get_pzeta(part)*beta0;
+    xt_num_t const x  = LocalParticle_get_x(part);
+    xt_num_t const y  = LocalParticle_get_y(part);
+    xt_num_t const px = LocalParticle_get_px(part);
+    xt_num_t const py = LocalParticle_get_py(part);
+    xt_num_t const t = LocalParticle_get_zeta(part)/beta0;
+    xt_num_t const pt = LocalParticle_get_pzeta(part)*beta0;
 
-    double pz = sqrt(1.0 + 2.0*pt/beta0 + pt*pt - px*px - py*py);
-    double ptt = 1.0 + tan_angle*px/pz;
-    double x_hat = x/(cos_angle*ptt);
-    double px_hat = cos_angle*px - sin_angle*pz;
-    double y_hat = y - tan_angle*x*py/(pz*ptt);
-    double t_hat = t + tan_angle*x*(1.0/beta0+pt)/(pz*ptt);
+    xt_num_t pz = sqrt(1.0 + 2.0*pt/beta0 + pt*pt - px*px - py*py);
+    xt_num_t ptt = 1.0 + tan_angle*px/pz;
+    xt_num_t x_hat = x/(cos_angle*ptt);
+    xt_num_t px_hat = cos_angle*px - sin_angle*pz;
+    xt_num_t y_hat = y - tan_angle*x*py/(pz*ptt);
+    xt_num_t t_hat = t + tan_angle*x*(1.0/beta0+pt)/(pz*ptt);
 
     /* Spin tracking is disabled by the synrad compile flag */
-    #ifndef XTRACK_MULTIPOLE_NO_SYNRAD
+    #if !defined(XTRACK_TPSA_TRACK) && !defined(XTRACK_MULTIPOLE_NO_SYNRAD)
         /* Rotate spin */
         double const spin_x_0 = LocalParticle_get_spin_x(part);
         double const spin_z_0 = LocalParticle_get_spin_z(part);

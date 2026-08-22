@@ -8,7 +8,7 @@
 #include "xtrack/headers/track.h"
 #include "xtrack/beam_elements/splineboris_src/spline_B_field_eval.h" // evaluate_B for Bx, By, Bs (scalar version)
 #include "xtrack/beam_elements/elements_src/track_magnet_kick.h"
-#ifndef XTRACK_MULTIPOLE_NO_SYNRAD
+#if !defined(XTRACK_TPSA_TRACK) && !defined(XTRACK_MULTIPOLE_NO_SYNRAD)
 // Forward declarations for random functions needed by synrad_spectrum.h
 // (These are normally declared in random headers but we avoid including them
 //  directly to prevent issues with generated data types)
@@ -96,7 +96,7 @@ void SplineBoris_single_particle(
     // Backtracking traverses the same field map from L to 0.
     double s_local = backtrack ? L : 0.0;
 
-    #ifndef XTRACK_MULTIPOLE_NO_SYNRAD
+    #if !defined(XTRACK_TPSA_TRACK) && !defined(XTRACK_MULTIPOLE_NO_SYNRAD)
     // Variables for radiation tracking (if needed)
     double old_kin_px = 0.0, old_kin_py = 0.0;
     double dp_record_exit = 0.0, dpx_record_exit = 0.0, dpy_record_exit = 0.0;
@@ -119,7 +119,7 @@ void SplineBoris_single_particle(
         const double P = P0 * (1.0 + delta);  // [kg m / s]
 
         // Save state for radiation tracking
-        #ifndef XTRACK_MULTIPOLE_NO_SYNRAD
+        #if !defined(XTRACK_TPSA_TRACK) && !defined(XTRACK_MULTIPOLE_NO_SYNRAD)
         if (radiation_flag && ds > 0) {
             // Get kinetic momenta (px/py minus ax/ay)
             // Convert physical momenta back to dimensionless, then subtract ax/ay
@@ -282,7 +282,7 @@ void SplineBoris_single_particle(
         zeta += (ds - dt * c * beta0);
 
         // Track spin and radiation over this step
-        #ifndef XTRACK_MULTIPOLE_NO_SYNRAD
+        #if !defined(XTRACK_TPSA_TRACK) && !defined(XTRACK_MULTIPOLE_NO_SYNRAD)
         // Compute path length for spin and radiation tracking
         // dzeta per step = ds - dt * c * beta0
         double const rvv = LocalParticle_get_rvv(part);

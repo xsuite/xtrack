@@ -35,13 +35,15 @@ void MultiElementMonitor_track_local_particle(MultiElementMonitorData el,
                 int64_t const turn_index = at_turn - start_at_turn;
                 int64_t const particle_index = particle_id - part_id_start;
 
-                double const x = LocalParticle_get_x(part);
-                double const px = LocalParticle_get_px(part);
-                double const y = LocalParticle_get_y(part);
-                double const py = LocalParticle_get_py(part);
-                double const zeta = LocalParticle_get_zeta(part);
-                double const delta = LocalParticle_get_delta(part);
-                double const s = LocalParticle_get_s(part);
+                // Truncation constant part of TPSA map or takes scalar directly
+                // if scalar tracking.
+                double const x = xt_num_truncate_to_double(LocalParticle_get_x(part));
+                double const px = xt_num_truncate_to_double(LocalParticle_get_px(part));
+                double const y = xt_num_truncate_to_double(LocalParticle_get_y(part));
+                double const py = xt_num_truncate_to_double(LocalParticle_get_py(part));
+                double const zeta = xt_num_truncate_to_double(LocalParticle_get_zeta(part));
+                double const delta = xt_num_truncate_to_double(LocalParticle_get_delta(part));
+                double const s = xt_num_truncate_to_double(LocalParticle_get_s(part));
 
                 MultiElementMonitorData_set_data(
                     el, turn_index, particle_index, 0, store_at, x);
@@ -57,6 +59,26 @@ void MultiElementMonitor_track_local_particle(MultiElementMonitorData el,
                     el, turn_index, particle_index, 5, store_at, delta);
                 MultiElementMonitorData_set_data(
                     el, turn_index, particle_index, 6, store_at, s);
+
+#ifdef XTRACK_TPSA_TRACK
+                // `data` only holds the constant part. When the track preallocated
+                // series, copy the whole map into them too.
+                if (MultiElementMonitorData_len_map_slots(el) > 0){
+                    #define XT_MONITOR_STORE_MAP(INDEX, NAME)                     \
+                        mad_tpsa_copy(part->NAME, (tpsa_t*)(uintptr_t)            \
+                            MultiElementMonitorData_get_map_slots(                \
+                                el, turn_index, store_at, INDEX));
+
+                    XT_MONITOR_STORE_MAP(0, x)
+                    XT_MONITOR_STORE_MAP(1, px)
+                    XT_MONITOR_STORE_MAP(2, y)
+                    XT_MONITOR_STORE_MAP(3, py)
+                    XT_MONITOR_STORE_MAP(4, zeta)
+                    XT_MONITOR_STORE_MAP(5, delta)
+
+                    #undef XT_MONITOR_STORE_MAP
+                }
+#endif
             }
         }
     END_PER_PARTICLE_BLOCK;

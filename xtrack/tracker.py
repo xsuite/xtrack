@@ -27,6 +27,7 @@ from .track_flags import TrackFlags
 
 logger = logging.getLogger(__name__)
 
+
 class Tracker:
 
     '''
@@ -47,9 +48,7 @@ class Tracker:
         track_kernel=None,
         particles_monitor_class=None,
         extra_headers=(),
-        _prebuilding_kernels=False,
     ):
-
         # Check if there are collective elements
         self.iscollective = False
         for ee in line._elements:
@@ -95,14 +94,9 @@ class Tracker:
         else:
             ele_dict_non_collective = line._element_dict
 
-        if _prebuilding_kernels:
-            tt = None
-            element_s_locations = np.zeros(len(line.element_names))
-            line_length = 0.
-        else:
-            tt = line.get_table()
-            element_s_locations = tt.s[:-1]  # remove _end_point
-            line_length = tt.s[-1]
+        tt = line.get_table()
+        element_s_locations = tt.s[:-1]  # remove _end_point
+        line_length = tt.s[-1]
 
         tracker_data_base = TrackerData(
             allow_move=True, # Will move elements to the same buffer
@@ -114,13 +108,11 @@ class Tracker:
             extra_element_classes=(particles_monitor_class._XoStruct,
                                    xt.MultiElementMonitor._XoStruct),
             _context=_context,
-            _buffer=_buffer,
-            _no_resolve_parents=_prebuilding_kernels)
+            _buffer=_buffer)
 
-        if not _prebuilding_kernels:
-            tracker_data_base._line_table = tt
-            tracker_data_base._element_names_unique = tuple(
-                    tracker_data_base._line_table.name[:-1]) # remove _endpoint
+        tracker_data_base._line_table = tt
+        tracker_data_base._element_names_unique = tuple(
+                tracker_data_base._line_table.name[:-1]) # remove _endpoint
         line._freeze()
 
         if np.any([hasattr(ee, 'needs_rng') and ee.needs_rng for ee in line._elements]):
@@ -136,8 +128,7 @@ class Tracker:
         self._tracker_data_cache = {}
         self._tracker_data_cache[None] = tracker_data_base
 
-        if not _prebuilding_kernels:
-            self._get_twiss_mask_markers() # to cache it
+        self._get_twiss_mask_markers() # to cache it
 
         self.line = line
         self._init_io_buffer(io_buffer)
@@ -247,6 +238,8 @@ class Tracker:
 
     @property
     def config(self):
+        if not isinstance(self.line.config, TrackerConfig):
+            self.line.config = TrackerConfig(self.line.config)
         return self.line.config
 
     @property
@@ -302,6 +295,24 @@ class Tracker:
 
         if time:
             t0 = perf_counter()
+
+        if (
+            type(particles).__name__ == "ParticlesTpsa"
+            and type(particles).__module__.startswith("xtrack.tpsa")
+        ):
+            out = self._track_tpsa(
+                particles,
+                *args,
+                with_progress=with_progress,
+                multi_element_monitor_at=multi_element_monitor_at,
+                **kwargs,
+            )
+            if time:
+                self._context.synchronize()
+                self.time_last_track = perf_counter() - t0
+            else:
+                self.time_last_track = None
+            return out
 
         assert self.iscollective in (True, False)
         if (self.iscollective or self.line.enable_time_dependent_vars
@@ -398,6 +409,119 @@ class Tracker:
 
         return out
 
+    def _track_tpsa(
+        self,
+        particles,
+        ele_start=0,
+        ele_stop=None,
+        num_elements=None,
+        num_turns=None,
+        turn_by_turn_monitor=None,
+        freeze_longitudinal=False,
+        backtrack=False,
+        multi_element_monitor_at=None,
+        with_progress=False,
+        **kwargs,
+    ):
+        self._check_invalidated()
+        if args := kwargs:
+            raise TypeError(f"unsupported TPSA tracking arguments: {sorted(args)}")
+        if self.iscollective or self.line.enable_time_dependent_vars:
+            raise NotImplementedError("TPSA tracking is not implemented for collective/time-dependent tracking")
+        if not isinstance(self._context, xo.ContextCpu):
+            raise NotImplementedError("TPSA tracking is implemented only for ContextCpu")
+        if freeze_longitudinal:
+            raise NotImplementedError("freeze_longitudinal is not implemented for TPSA tracking")
+        if backtrack:
+            raise NotImplementedError("backtracking is not implemented for TPSA tracking")
+        if with_progress:
+            raise NotImplementedError("progress tracking is not implemented for TPSA tracking")
+        if turn_by_turn_monitor not in (None, False):
+            raise NotImplementedError("TPSA turn-by-turn monitors are not implemented yet")
+        if self.line.config.data.get("XTRACK_MULTIPOLE_NO_SYNRAD", False) is not True:
+            raise NotImplementedError(
+                "TPSA tracking does not support synchrotron radiation. "
+                "Set line.config.XTRACK_MULTIPOLE_NO_SYNRAD = True."
+            )
+        num_turns = 1 if num_turns is None else num_turns
+
+        if isinstance(ele_start, str):
+            ele_start = self.line.element_names.index(ele_start)
+        ele_start = ele_start or 0
+        if num_elements is None:
+            if isinstance(ele_stop, str):
+                ele_stop = self.line.element_names.index(ele_stop)
+            if ele_stop is None or ele_stop == 0:
+                ele_stop = self.num_elements
+            if ele_stop < ele_start:
+                raise NotImplementedError("TPSA wrap-around ranges are not implemented yet")
+            num_elements = ele_stop - ele_start
+        elif ele_stop is not None:
+            raise ValueError("Cannot use both num_elements and ele_stop!")
+
+        if num_elements < 0:
+            raise ValueError("num_elements must be non-negative")
+        if ele_start + num_elements > self.num_elements:
+            raise NotImplementedError("TPSA wrap-around ranges are not implemented yet")
+        # Splitting range into first/middle/last calls is not implemented yet.
+        if num_turns > 1 and (ele_start != 0 or num_elements != self.num_elements):
+            raise NotImplementedError(
+                "TPSA multi-turn tracking is implemented only for full turns from the "
+                "first element. Partial ranges over several turns are not implemented yet."
+            )
+        flag_end_turn_actions = (
+            num_turns > 1
+            and ele_start == 0
+            and num_elements == self.num_elements
+        )
+
+        self.config.XTRACK_TPSA_TRACK = True
+        track_kernel, tracker_data = self.get_track_kernel_and_data_for_present_config()
+        track_kernel.description.n_threads = 1
+
+        p = particles._xobject
+        p.state = 1
+        p.at_element = int(ele_start)
+        p.track_flags = self.track_flags.get_flags_register()
+        p.line_length = float(tracker_data.line_length)
+
+        multi_element_monitor = self._get_multi_element_monitor(
+            multi_element_monitor_at, particles, num_turns,
+            tpsa_descriptor=particles.descriptor)
+        dummy_buffer = p._buffer.buffer
+        if multi_element_monitor is not None:
+            buffer_multi_element_monitor = multi_element_monitor._xobject._buffer.buffer
+            offset_multi_element_monitor = multi_element_monitor._xobject._offset
+        else:
+            buffer_multi_element_monitor = dummy_buffer
+            offset_multi_element_monitor = -1
+
+        track_kernel(
+            buffer=tracker_data._buffer.buffer,
+            tracker_data=tracker_data._element_ref_data,
+            particles=p,
+            num_turns=int(num_turns),
+            ele_start=int(ele_start),
+            num_ele_track=int(num_elements),
+            flag_end_turn_actions=flag_end_turn_actions,
+            flag_reset_s_at_end_turn=self.reset_s_at_end_turn,
+            flag_monitor=0,
+            num_ele_line=len(tracker_data.element_names),
+            line_length=tracker_data.line_length,
+            buffer_tbt_monitor=dummy_buffer,
+            offset_tbt_monitor=0,
+            buffer_multi_element_monitor=buffer_multi_element_monitor,
+            offset_multi_element_monitor=offset_multi_element_monitor,
+            io_buffer=self.io_buffer.buffer,
+            track_flags=p.track_flags,
+        )
+        self.record_multi_element_last_track = multi_element_monitor
+        if p.state <= 0:
+            at = p.at_element
+            name = self.line.element_names[at] if at < len(self.line.element_names) else "?"
+            raise RuntimeError(f"TPSA map lost at element index {at} ('{name}')")
+        return particles
+
     @property
     def particle_ref(self) -> xt.Particles:
         self._check_invalidated()
@@ -478,13 +602,27 @@ class Tracker:
                 )
 
             if kernel_info:
+                particle_data_class = None
+                include_auxiliary_kernels = True
+                if self.config.XTRACK_TPSA_TRACK:
+                    from xtrack.tpsa.particles import TpsaParticleData
+                    from madng_tpsa.paths import core_library
+
+                    particle_data_class = TpsaParticleData
+                    include_auxiliary_kernels = False
+                    preload_libraries = (core_library(),)
+                else:
+                    preload_libraries = ()
                 kernel_description = self.get_kernel_descriptions(
-                    kernel_element_classes=kernel_info['tracker_element_classes']
+                    kernel_element_classes=kernel_info['tracker_element_classes'],
+                    particle_data_class=particle_data_class,
+                    include_auxiliary_kernels=include_auxiliary_kernels,
                 )['track_line']
                 kernels = self._context.kernels_from_file(
                     module_name=kernel_info['module_name'],
                     containing_dir=PREBUILT_KERNELS_LOCATION,
                     kernel_descriptions={'track_line': kernel_description},
+                    preload_libraries=preload_libraries,
                 )
                 return kernels['track_line']
 
@@ -512,8 +650,17 @@ class Tracker:
             containing_dir='.',
             compile=True,
     ):
+        tpsa_track = config.XTRACK_TPSA_TRACK
         kernel_element_classes = _expand_element_classes_with_slice_classes(
             tracker_element_classes)
+        if tpsa_track:
+            # The multi-element monitor records maps too, the other monitors are
+            # doubles-only and their sources do not compile against TPSA coordinates.
+            kernel_element_classes = [
+                cc for cc in kernel_element_classes
+                if "Monitor" not in cc.__name__
+                or cc is xt.MultiElementMonitor._XoStruct
+            ]
         kernel_element_classes = sorted(
             kernel_element_classes,
             key=lambda cc: cc._DressingClass.__name__)
@@ -530,8 +677,9 @@ class Tracker:
                 all_classes.append(extra_class)
 
         extra_kernels = {}
-        for element_class in all_classes:
-            extra_kernels.update(element_class._kernels)
+        if not tpsa_track:
+            for element_class in all_classes:
+                extra_kernels.update(element_class._kernels)
 
         headers = []
 
@@ -546,7 +694,11 @@ class Tracker:
             void track_line(
                 /*gpuglmem*/ int8_t* buffer,
                              ElementRefData elem_ref_data,
+#ifndef XTRACK_TPSA_TRACK
                              ParticlesData particles,
+#else
+                             TpsaParticleData particles,
+#endif
                              int num_turns,
                              int ele_start,
                              int num_ele_track,
@@ -563,6 +715,7 @@ class Tracker:
                              uint64_t track_flags
                              ){
 
+#ifndef XTRACK_TPSA_TRACK
             #define CONTEXT_OPENMP  //only_for_context cpu_openmp
             #ifdef CONTEXT_OPENMP
                 const int64_t capacity = ParticlesData_get__capacity(particles);
@@ -607,26 +760,49 @@ class Tracker:
             ParticlesMonitorData tbt_monitor =
                             (ParticlesMonitorData) tbt_mon_pointer;
 
-            /*gpuglmem*/ int8_t* multi_elem_mon_pointer =
-                    buffer_multi_element_monitor + offset_multi_element_monitor;
-            MultiElementMonitorData tbt_multi_elem_monitor =
-                    (MultiElementMonitorData) multi_elem_mon_pointer;
-
             int64_t part_capacity = ParticlesData_get__capacity(particles);
             if (part_id<part_capacity){
             Particles_to_LocalParticle(particles, &lpart, part_id, end_id);
 
             int64_t isactive = check_is_active(&lpart);
+#else
+            LocalParticle lpart;
+            Particles_to_LocalParticle(particles, &lpart, 0, 1);
+            lpart.line_length = line_length;
+            lpart._num_active_particles = 1;
+            lpart._num_lost_particles = 0;
+            lpart.track_flags = track_flags;
+            lpart.io_buffer = io_buffer;
+            xt_tpsa::default_scope xt_tpsa_default_scope(lpart.x);
+
+            LocalParticle_set_state(&lpart, 1);
+            LocalParticle_set_at_element(&lpart, ele_start);
+            LocalParticle_update_delta(&lpart, LocalParticle_get_delta(&lpart));
+            LocalParticle_set_s(&lpart, 0.0);
+            LocalParticle_set_ax(&lpart, 0.0);
+            LocalParticle_set_ay(&lpart, 0.0);
+
+#endif
+
+            /*gpuglmem*/ int8_t* multi_elem_mon_pointer =
+                    buffer_multi_element_monitor + offset_multi_element_monitor;
+            MultiElementMonitorData tbt_multi_elem_monitor =
+                    (MultiElementMonitorData) multi_elem_mon_pointer;
 
             for (int64_t iturn=0; iturn<num_turns; iturn++){
 
+#ifndef XTRACK_TPSA_TRACK
                 if (!isactive){
+#else
+                if (LocalParticle_get_state(&lpart) <= 0){
+#endif
                     break;
                 }
 
                 int64_t const ele_stop = ele_start + num_ele_track;
 
                 int64_t elem_idx, increm;
+#ifndef XTRACK_TPSA_TRACK
                 if (LocalParticle_check_track_flag(&lpart, XS_FLAG_BACKTRACK)) {
                     elem_idx = ele_stop - 1;
                     increm = -1;
@@ -642,11 +818,17 @@ class Tracker:
                     elem_idx = ele_start;
                     increm = 1;
                 }
+#else
+                elem_idx = ele_start;
+                increm = 1;
+#endif
 
                 for (; ((elem_idx >= ele_start) && (elem_idx < ele_stop)); elem_idx+=increm){
+#ifndef XTRACK_TPSA_TRACK
                         if (flag_monitor==2){
                             ParticlesMonitor_track_local_particle(tbt_monitor, &lpart);
                         }
+#endif
                         if (offset_multi_element_monitor >= 0){
                             MultiElementMonitor_track_local_particle(
                                 tbt_multi_elem_monitor, &lpart);
@@ -681,9 +863,11 @@ class Tracker:
             if vars(cc._DressingClass).get('_isthick') is True:
                 src_lines.append(
                     """
+#ifndef XTRACK_TPSA_TRACK
                             #ifdef XTRACK_GLOBAL_XY_LIMIT
                             global_aperture_check(&lpart);
                             #endif
+#endif
 
                             """
                 )
@@ -696,6 +880,7 @@ class Tracker:
             r"""
                         } //switch
 
+#ifndef XTRACK_TPSA_TRACK
                     // Setting the below flag will break particle losses
                     #ifndef DANGER_SKIP_ACTIVE_CHECK_AND_SWAPS
 
@@ -711,9 +896,16 @@ class Tracker:
                     }
 
                     #endif //DANGER_SKIP_ACTIVE_CHECK_AND_SWAPS
+#else
+                    if (LocalParticle_get_state(&lpart) <= 0){
+                        break;
+                    }
+                    increment_at_element(&lpart, 1);
+#endif
 
                 } // for elements
 
+#ifndef XTRACK_TPSA_TRACK
                 if (flag_monitor==2){
                     // End of turn (element-by-element mode)
                     ParticlesMonitor_track_local_particle(tbt_monitor, &lpart);
@@ -729,8 +921,15 @@ class Tracker:
                         increment_at_turn(&lpart, flag_reset_s_at_end_turn);
                     }
                 }
+#else
+                if (flag_end_turn_actions>0
+                        && LocalParticle_get_state(&lpart) > 0){
+                    increment_at_turn(&lpart, flag_reset_s_at_end_turn);
+                }
+#endif
             } // for turns
 
+#ifndef XTRACK_TPSA_TRACK
             LocalParticle_to_Particles(&lpart, particles, part_id, 1);
 
             }// if partid
@@ -746,13 +945,25 @@ class Tracker:
             count_reorganized_particles(&lpart);                       //only_for_context cpu_openmp
             LocalParticle_to_Particles(&lpart, particles, 0, capacity);//only_for_context cpu_openmp
             #endif                                                     //only_for_context cpu_openmp
+#else
+            LocalParticle_to_Particles(&lpart, particles, 0, 1);
+#endif
         }//kernel
         """
         )
 
         source_track = "\n".join(src_lines)
 
-        kernels = cls.get_kernel_descriptions(kernel_element_classes)
+        particle_data_class = None
+        if tpsa_track:
+            from xtrack.tpsa.particles import TpsaParticleData
+            particle_data_class = TpsaParticleData
+
+        kernels = cls.get_kernel_descriptions(
+            kernel_element_classes,
+            particle_data_class=particle_data_class,
+            include_auxiliary_kernels=not tpsa_track,
+        )
         kernels.update(extra_kernels)
 
         # Compile!
@@ -765,18 +976,53 @@ class Tracker:
             # Saving kernels is unsupported on GPU
             kwargs = {}
 
-        out_kernels = context.build_kernels(
-            sources=[source_track],
-            kernel_descriptions=kernels,
-            extra_headers=cls._config_to_headers_from_config(config) + headers,
-            extra_classes=all_classes,
-            apply_to_source=[_handle_per_particle_blocks],
-            specialize=True,
-            compile=compile,
-            save_source_as=f'{module_name}.c' if module_name else None,
-            extra_compile_args=(),
+        apply_to_source = [_handle_per_particle_blocks]
+
+        sources = [source_track]
+        extra_compile_args = ()
+        extra_link_args = ()
+        preload_libraries = ()
+        compiler_language = "c"
+
+        if tpsa_track:
+            from madng_tpsa.paths import core_library
+
+            tpsa_sources = [
+                '#include "xtrack/particles/headers/local_particle.h"',
+            ]
+            sources = [*tpsa_sources, source_track]
+            extra_compile_args = (
+                "-include", "complex",
+            )
+            preload_libraries = (core_library(),)
+            compiler_language = "c++"
+            headers.insert(0, "#define restrict __restrict")
+
+        skip_config_headers = set()
+        if tpsa_track:
+            skip_config_headers.add("XTRACK_MULTIPOLE_NO_SYNRAD")
+
+        build_kwargs = {
+            'sources': sources,
+            'kernel_descriptions': kernels,
+            'extra_headers': cls._config_to_headers_from_config(
+                config, skip=skip_config_headers) + headers,
+            'extra_classes': all_classes,
+            'apply_to_source': apply_to_source,
+            'specialize': True,
+            'compile': compile,
+            'save_source_as': f'{module_name}.c' if module_name else None,
+            'extra_compile_args': extra_compile_args,
             **kwargs,
-        )
+        }
+        if isinstance(context, xo.ContextCpu):
+            build_kwargs.update(
+                extra_link_args=extra_link_args,
+                preload_libraries=preload_libraries,
+                compiler_language=compiler_language,
+            )
+
+        out_kernels = context.build_kernels(**build_kwargs)
         return {
             'kernel': out_kernels['track_line'],
             'tracker_element_classes': kernel_element_classes,
@@ -784,10 +1030,16 @@ class Tracker:
         }
 
     @staticmethod
-    def get_kernel_descriptions(kernel_element_classes):
+    def get_kernel_descriptions(
+        kernel_element_classes,
+        particle_data_class=None,
+        include_auxiliary_kernels=True,
+    ):
 
         tdata_type = _element_ref_data_class_from_element_classes(
             kernel_element_classes)
+        if particle_data_class is None:
+            particle_data_class = xt.Particles._XoStruct
 
         kernel_descriptions = {
             "track_line": xo.Kernel(
@@ -795,7 +1047,7 @@ class Tracker:
                 args=[
                     xo.Arg(xo.Int8, pointer=True, name="buffer"),
                     xo.Arg(tdata_type, name="tracker_data"),
-                    xo.Arg(xt.Particles._XoStruct, name="particles"),
+                    xo.Arg(particle_data_class, name="particles"),
                     xo.Arg(xo.Int32, name="num_turns"),
                     xo.Arg(xo.Int32, name="ele_start"),
                     xo.Arg(xo.Int32, name="num_ele_track"),
@@ -814,11 +1066,12 @@ class Tracker:
             )
         }
 
-        # Random number generator init kernel
-        kernel_descriptions.update(xt.Particles._kernels)
+        if include_auxiliary_kernels:
+            # Random number generator init kernel
+            kernel_descriptions.update(xt.Particles._kernels)
 
-        # Multisetter
-        kernel_descriptions.update(xt.MultiSetter._kernels)
+            # Multisetter
+            kernel_descriptions.update(xt.MultiSetter._kernels)
 
         return kernel_descriptions
 
@@ -1479,48 +1732,74 @@ class Tracker:
 
         return flag_monitor, monitor, buffer_monitor, offset_monitor
 
+    def _multi_element_monitor_mapping(self, multi_element_monitor_at):
+        """``(at_element_mapping, obs_names)`` for the observed element names.
+
+        ``at_element_mapping`` sends an element index to its slot, and -1 to the elements
+        that are not observed. Shared by the doubles and the TPSA monitor.
+        """
+        tt = self._tracker_data_base._line_table # reuse cached table
+        if (isinstance(multi_element_monitor_at, str)
+            and multi_element_monitor_at == '_all_'):
+            multi_element_monitor_at = tt.name[:-1] # exclude _end_point
+        if not isinstance(self._context, xo.ContextCpu):
+            raise NotImplementedError(
+                'Multi-element monitor is only supported on CPU trackers for now.')
+        assert isinstance(multi_element_monitor_at, (list, tuple, np.ndarray)), \
+            '`multi_element_monitor_at` must be a list, tuple or array of element names'
+        indeces_obs = tt.rows.indices[multi_element_monitor_at]
+        if len(indeces_obs) != len(multi_element_monitor_at):
+            missing = set(multi_element_monitor_at) - set(
+                tt.rows.names[indeces_obs])
+            raise ValueError(f'Elements not found in line: {missing}')
+
+        at_element_mapping = np.zeros(len(tt), dtype=np.int64)
+        at_element_mapping[:] = -1
+        at_element_mapping[indeces_obs] = np.arange(len(indeces_obs), dtype=np.int64)
+
+        return at_element_mapping, tt.name[indeces_obs] # to ensure the right order
+
     def _get_multi_element_monitor(self, multi_element_monitor_at, particles,
-                                   num_turns):
+                                   num_turns, tpsa_descriptor=None):
+        """The monitor for a track. With a descriptor it also records the full maps."""
 
         if multi_element_monitor_at is None or len(multi_element_monitor_at) == 0:
-            multi_element_monitor = None
-        else:
-            tt = self._tracker_data_base._line_table # reuse cached table
-            if (isinstance(multi_element_monitor_at, str)
-                and multi_element_monitor_at == '_all_'):
-                multi_element_monitor_at = tt.name[:-1] # exclude _end_point
-            if not isinstance(self._context, xo.ContextCpu):
-                raise NotImplementedError(
-                    'Multi-element monitor is only supported on CPU trackers for now.')
-            assert isinstance(multi_element_monitor_at, (list, tuple, np.ndarray)), \
-                '`multi_element_monitor_at` must be a list, tuple or array of element names'
-            indeces_obs = tt.rows.indices[multi_element_monitor_at]
-            if len(indeces_obs) != len(multi_element_monitor_at):
-                missing = set(multi_element_monitor_at) - set(
-                    tt.rows.names[indeces_obs])
-                raise ValueError(f'Elements not found in line: {missing}')
+            return None
 
-            at_element_mapping = np.zeros(len(tt), dtype=np.int64)
-            at_element_mapping[:] = -1
-            at_element_mapping[indeces_obs] = np.arange(len(indeces_obs), dtype=np.int64)
+        at_element_mapping, obs_names = self._multi_element_monitor_mapping(
+            multi_element_monitor_at)
 
-            # Very simple constructor for now, can be made more solid and flexible later
+        # Very simple constructor for now, can be made more solid and flexible later
+        if tpsa_descriptor is None:
             part_id_start, part_id_end = particles.get_active_particle_id_range()
-            num_particles = part_id_end - part_id_start
-            num_cooordinates = 7 # hardcoded for now (C code of the monitor
-                                 # needs to be extended if different number
-                                 # of coordinates is needed)
-            num_elements = len(multi_element_monitor_at)
-            num_turns = num_turns if num_turns is not None else 1
-            multi_element_monitor = xt.MultiElementMonitor(
-                start_at_turn=0,
-                stop_at_turn=num_turns,
-                part_id_start=particles.get_active_particle_id_range()[0],
-                part_id_end=particles.get_active_particle_id_range()[1],
-                at_element_mapping=at_element_mapping,
-                data=(num_turns, num_particles, num_cooordinates, num_elements),
-                obs_names=tt.name[indeces_obs] # to ensure the right orde
-            )
+        else:
+            part_id_start, part_id_end = 0, 1  # a map is a single particle
+        num_particles = part_id_end - part_id_start
+        num_cooordinates = 7 # hardcoded for now (C code of the monitor
+                             # needs to be extended if different number
+                             # of coordinates is needed)
+        num_elements = len(obs_names)
+        num_turns = num_turns if num_turns is not None else 1
+
+        map_series = None
+        map_slots = (0, 0, 0)
+        if tpsa_descriptor is not None:
+            map_series, map_slots = xt.MultiElementMonitor.build_map_slots(
+                tpsa_descriptor, num_elements, num_turns)
+
+        multi_element_monitor = xt.MultiElementMonitor(
+            start_at_turn=0,
+            stop_at_turn=num_turns,
+            part_id_start=part_id_start,
+            part_id_end=part_id_end,
+            at_element_mapping=at_element_mapping,
+            data=(num_turns, num_particles, num_cooordinates, num_elements),
+            map_slots=map_slots,
+            obs_names=obs_names
+        )
+        multi_element_monitor._map_series = map_series
+        if tpsa_descriptor is not None:
+            multi_element_monitor._map_ref_particle = particles._ref_particle
 
         return multi_element_monitor
 
@@ -1540,9 +1819,12 @@ class Tracker:
         return self._config_to_headers_from_config(self.config)
 
     @staticmethod
-    def _config_to_headers_from_config(config):
+    def _config_to_headers_from_config(config, skip=()):
+        skip = set(skip)
         headers = []
         for k, v in config.items():
+            if k in skip:
+                continue
             if not isinstance(v, bool):
                 headers.append(f'#define {k} {v}')
             elif v is True:
@@ -1694,8 +1976,16 @@ class Tracker:
 
 
 class TrackerConfig(UserDict):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
     def __setitem__(self, idx, val):
+        if idx == 'XTRACK_TPSA_TRACK':
+            if val:
+                super(TrackerConfig, self).__setitem__(idx, True)
+            elif idx in self.data:
+                del self.data[idx]
+            return
         if val is False and idx in self:
             del(self[idx]) # We don't want to store flags that are False
         else:
@@ -1708,6 +1998,11 @@ class TrackerConfig(UserDict):
                  + DEPRECATION_INFO_PREP_1_0, FutureWarning)
         if idx == 'data':
             object.__setattr__(self, idx, val)
+        elif idx == 'XTRACK_TPSA_TRACK':
+            if val:
+                self.data[idx] = True
+            elif idx in self.data:
+                del self.data[idx]
         elif val is not False and val is not None:
             self.data[idx] = val
         elif idx in self:
@@ -1716,6 +2011,8 @@ class TrackerConfig(UserDict):
     def __getattr__(self, idx):
         if idx == 'data':
             return object.__getattribute__(self, idx)
+        if idx == 'XTRACK_TPSA_TRACK':
+            return self.data.get(idx, False)
         if idx in self.data:
             return self.data[idx]
         else:
@@ -1786,8 +2083,8 @@ def _element_ref_data_class_from_element_classes(element_classes):
         _reftypes = element_classes_xostruct
 
     class ElementRefData(xo.Struct):
-            elements = ElementRefClass[:]
-            names = xo.String[:]
+        elements = ElementRefClass[:]
+        names = xo.String[:]
 
     return ElementRefData
 

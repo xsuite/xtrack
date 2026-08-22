@@ -1704,6 +1704,8 @@ class Line:
 
     @config.setter
     def config(self, value):
+        if not isinstance(value, xt.tracker.TrackerConfig):
+            value = xt.tracker.TrackerConfig(value)
         self._config = value
 
     @property_with_doc_group("Inspection, Variables and Configuration")
@@ -1918,7 +1920,7 @@ class Line:
 
         Parameters
         ----------
-        particles: xpart.Particles
+        particles: xpart.Particles or xtrack.tpsa.ParticlesTpsa
             The particles to track
         ele_start: int or str, optional
             The element to start tracking from (inclusive). If an integer is
@@ -1959,8 +1961,29 @@ class Line:
             equals to False and no progress bar is displayed.
         """
 
+        if not isinstance(particles, xt.Particles):
+            from xtrack.tpsa import ParticlesTpsa
+            if not isinstance(particles, ParticlesTpsa):
+                raise TypeError(f"Cannot track particles of type {type(particles)}")
+            if not self._has_valid_tracker():
+                self.build_tracker()
+            self.tracker.config.XTRACK_TPSA_TRACK = True
+            return self.tracker._track(
+                particles,
+                ele_start=ele_start,
+                ele_stop=ele_stop,
+                num_elements=num_elements,
+                num_turns=num_turns,
+                turn_by_turn_monitor=turn_by_turn_monitor,
+                freeze_longitudinal=freeze_longitudinal,
+                time=time,
+                with_progress=with_progress,
+                multi_element_monitor_at=multi_element_monitor_at,
+                **kwargs)
+
         if not self._has_valid_tracker():
             self.build_tracker()
+        self.tracker.config.XTRACK_TPSA_TRACK = False
 
         if hasattr(particles, '_needs_pipeline') and particles._needs_pipeline:
             if '_called_by_pipeline' not in kwargs or not kwargs['_called_by_pipeline']:
