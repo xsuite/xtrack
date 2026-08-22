@@ -12,6 +12,11 @@ from scipy.signal import ZoomFFT
 
 
 class SchottkyMonitor:
+
+    behaves_like_drift = True
+    allow_loss_refinement = True
+    needs_cpu = True  # numpy based element, particles are moved to CPU for the tracking
+
     def __init__(self, f_rev, schottky_harmonic, n_taylor):
         """
         Tracking element computing Schottky spectra.
