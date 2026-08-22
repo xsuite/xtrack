@@ -52,22 +52,26 @@ void DipoleEdge_track_local_particle(DipoleEdgeData el, LocalParticle* part0){
     }
     else if (model == 1){
 
-        if (LocalParticle_check_track_flag(part0, XS_FLAG_BACKTRACK)){
-            START_PER_PARTICLE_BLOCK(part0, part);
-                LocalParticle_kill_particle(part, -32);
-            END_PER_PARTICLE_BLOCK;
-            return;
-        }
-
         double const e1 = DipoleEdgeData_get_e1(el);
         double const fint = DipoleEdgeData_get_fint(el);
         double const hgap = DipoleEdgeData_get_hgap(el);
         double const k = DipoleEdgeData_get_k(el);
         int64_t const side = DipoleEdgeData_get_side(el);
+        int64_t const backtrack =
+            LocalParticle_check_track_flag(part0, XS_FLAG_BACKTRACK);
 
-        START_PER_PARTICLE_BLOCK(part0, part);
-            DipoleEdgeNonLinear_single_particle(part, k, e1, fint, hgap, side);
-        END_PER_PARTICLE_BLOCK;
+        if (backtrack){
+            START_PER_PARTICLE_BLOCK(part0, part);
+                DipoleEdgeNonLinear_single_particle_backtrack(
+                    part, k, e1, fint, hgap, side);
+            END_PER_PARTICLE_BLOCK;
+        }
+        else{
+            START_PER_PARTICLE_BLOCK(part0, part);
+                DipoleEdgeNonLinear_single_particle(
+                    part, k, e1, fint, hgap, side);
+            END_PER_PARTICLE_BLOCK;
+        }
 
     }
 
