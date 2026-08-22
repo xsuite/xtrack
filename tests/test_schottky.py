@@ -53,10 +53,9 @@ def test_qs_qx_qy_linear_rf():
     line.particle_ref = xt.Particles(mass0=xt.PROTON_MASS_EV, q0=1, energy0=450e9)
     twiss = line.twiss()
     schottky_monitor = xt.monitors.SchottkyMonitor(
-        f_rev=1 / twiss.T_rev0, schottky_harmonic=427_725, n_taylor=4
+        f_rev=1 / twiss.t_rev0, schottky_harmonic=427_725, n_taylor=4
     )
-    line.discard_tracker()
-    line.append_element(element=schottky_monitor, name='Schottky monitor')
+    line.append('Schottky monitor', schottky_monitor)
     line.build_tracker()
     # Track single particle
     particle = line.build_particles(
@@ -118,16 +117,15 @@ def line_with_schottky_monitor(n_taylor, schottky_harmonic, n_turns=None, n_part
     line.particle_ref = xt.Particles(mass0=xt.PROTON_MASS_EV, q0=1, energy0=450e9)
     twiss = line.twiss()
     schottky_monitor = xt.monitors.SchottkyMonitor(
-        f_rev=1 / twiss.T_rev0, schottky_harmonic=schottky_harmonic, n_taylor=n_taylor
+        f_rev=1 / twiss.t_rev0, schottky_harmonic=schottky_harmonic, n_taylor=n_taylor
     )
-    line.discard_tracker()
     particles_monitor = None
     if n_turns is not None:
         particles_monitor = xt.ParticlesMonitor(
             start_at_turn=0, stop_at_turn=n_turns, num_particles=n_part
         )
-        line.append_element(element=particles_monitor, name='Particles monitor')
-    line.append_element(element=schottky_monitor, name='Schottky monitor')
+        line.append('Particles monitor', particles_monitor)
+    line.append('Schottky monitor', schottky_monitor)
     line.build_tracker()
     return line, twiss, schottky_monitor, particles_monitor
 
@@ -277,7 +275,7 @@ def test_qs_nonlinear_rf():
     line, twiss, schottky_monitor, _ = line_with_schottky_monitor(
         n_taylor=4, schottky_harmonic=LHC_SCHOTTKY_HARMONIC, length=LHC_LENGTH,
         qx=qx, qy=qy, dqx=0, dqy=0, longitudinal_mode='nonlinear', voltage_rf=4e6,
-        frequency_rf=frequency_rf, lag_rf=180, momentum_compaction_factor=3.225e-04,
+        frequency_rf=frequency_rf, phase_rf=np.pi, momentum_compaction_factor=3.225e-04,
     )
     # Track single particle with a large longitudinal amplitude
     particle = line.build_particles(x=1e-3, px=0, y=1e-3, py=0, zeta=zeta_hat, delta=0)

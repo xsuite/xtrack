@@ -8,6 +8,7 @@ This script builds a simple LHC-like ring using a LineSegmentMap, inserts
 a Schottky monitor, tracks a Gaussian bunch, and produces Schottky spectra.
 """
 
+import numpy as np
 import xtrack as xt
 import xpart as xp
 import matplotlib.pyplot as plt
@@ -16,7 +17,7 @@ import matplotlib.pyplot as plt
 length_lhc = 26658.8831999989
 lmap = xt.LineSegmentMap(length=length_lhc, qx=0.27, qy=0.295, dqx=15, dqy=15,
                          longitudinal_mode='nonlinear', voltage_rf=4e6,
-                         frequency_rf=400e6, lag_rf=180,
+                         frequency_rf=400e6, phase_rf=np.pi,
                          momentum_compaction_factor=3.225e-04,
                          betx=1, bety=1)
 line = xt.Line(elements=[lmap])
@@ -26,11 +27,10 @@ line.particle_ref = xt.Particles(mass0=xt.PROTON_MASS_EV, q0=1, energy0=450e9)
 tw = line.twiss()
 
 # Create and insert Schottky monitor
-schottky_monitor = xt.monitors.SchottkyMonitor(f_rev=1 / tw.T_rev0,
+schottky_monitor = xt.monitors.SchottkyMonitor(f_rev=1 / tw.t_rev0,
                                                schottky_harmonic=427_725,
                                                n_taylor=4)
-line.discard_tracker()
-line.append_element(element=schottky_monitor, name='schottky_monitor')
+line.append('schottky_monitor', schottky_monitor)
 line.build_tracker()
 
 # Generate a matched Gaussian bunch
