@@ -612,22 +612,42 @@ class Particles(xo.HybridClass):
             _capacity = input_length
 
         # Allocate the xobject of the right size
+        _context = kwargs.pop('_context', None)
+        _buffer = kwargs.pop('_buffer', None)
+        _offset = kwargs.pop('_offset', None)
         self.xoinitialize(
-            _context=kwargs.pop('_context', None),
-            _buffer=kwargs.pop('_buffer', None),
-            _offset=kwargs.pop('_offset', None),
+            _context=_context,
+            _buffer=_buffer,
+            _offset=_offset,
             **{field: _capacity for _, field in self.per_particle_vars}
         )
         self._capacity = _capacity
         self._num_active_particles = -1  # To be filled in only on CPU
         self._num_lost_particles = -1  # To be filled in only on CPU
 
-        # Initialize the fields to preset values
+        state = kwargs.get('state', 1)
+        state_is_scalar = np.isscalar(state) or len(state) == 1
+        if state_is_scalar:
+            state = np.asarray(state).item()
+            all_input_slots_are_valid = state > LAST_INVALID_STATE
+        else:
+            state = np.asarray(state)
+            all_input_slots_are_valid = bool(
+                np.all(state > LAST_INVALID_STATE))
+
+        can_skip_sentinel_fill = (
+            isinstance(self._context, xo.ContextCpu)
+            and _capacity == input_length
+            and all_input_slots_are_valid)
+
+        # All valid input slots are overwritten below. Avoid filling every
+        # array once more unless unallocated or invalid slots need sentinels.
+        # RNG state is always initialized explicitly.
         for type_, field in self.per_particle_vars:
             raw_field = self._rename.get(field, field)
             if raw_field.startswith('_rng'):
                 setattr(self, raw_field, 0)
-            else:
+            elif not can_skip_sentinel_fill:
                 setattr(self, raw_field, LAST_INVALID_STATE)
 
         np_to_ctx = self._context.nparray_to_context_array
@@ -637,15 +657,19 @@ class Particles(xo.HybridClass):
         self.hide_first_n_particles(input_length)
 
         # Start populating the object with the input values
-        state = kwargs.get('state', 1)
-        if np.isscalar(state) or len(state) == 1:
-            state = np.array(state).item()
-        else:
-            state = np_to_ctx(np.array(state))
+        if not state_is_scalar:
+            state = np_to_ctx(state)
         self.state = state
-        input_mask = self.state > LAST_INVALID_STATE
+        # None selects the cheaper direct-assignment path in the update
+        # helpers. A mask is only needed when input slots can be invalid.
+        input_mask = (None if (all_input_slots_are_valid
+                               and isinstance(self._context, xo.ContextCpu))
+                      else self.state > LAST_INVALID_STATE)
 
-        particle_ids = kwargs.get('particle_id', np.arange(input_length))
+        if 'particle_id' in kwargs:
+            particle_ids = kwargs['particle_id']
+        else:
+            particle_ids = np.arange(input_length)
         particle_ids = np.atleast_1d(particle_ids)
         self.particle_id = np_to_ctx(particle_ids)
 
@@ -666,20 +690,24 @@ class Particles(xo.HybridClass):
         # Ensure that all per particle inputs are numpy arrays of the same
         # length, and move them to the target context
         for xotype, field in per_part_input_vars:
-            if field not in kwargs.keys():
+            if field not in kwargs:
                 continue
 
             if np.isscalar(kwargs[field]) or len(kwargs[field]) == 1:
-                value = np.array(kwargs[field]).item()
-                kwargs[field] = np.full(input_length, value)
+                value = np.asarray(kwargs[field]).item()
+                if (input_mask is None
+                        and isinstance(self._context, xo.ContextCpu)):
+                    # CPU array assignment broadcasts scalars directly; there
+                    # is no need to allocate a temporary input-sized array.
+                    kwargs[field] = value
+                    continue
+                kwargs[field] = np.full(
+                    input_length, value, dtype=xotype._dtype)
             else:
-                kwargs[field] = np.array(kwargs[field])
+                kwargs[field] = np.asarray(
+                    kwargs[field], dtype=xotype._dtype)
 
-            # Coerce the right type so that we can allocate the right array
-            # in the target context. PyOpenCL gets fussy if types don't match
-            # in calculations.
-            if kwargs[field].dtype != xotype._dtype:
-                kwargs[field] = kwargs[field].astype(xotype._dtype)
+            # PyOpenCL gets fussy if types don't match in calculations.
             kwargs[field] = np_to_ctx(kwargs[field])
 
 
@@ -714,6 +742,9 @@ class Particles(xo.HybridClass):
             _rpp=kwargs.get('rpp'),
             _rvv=kwargs.get('rvv'),
             mask=input_mask,
+            _mass_ratio_is_default=all(
+                kwargs.get(name) is None
+                for name in ('chi', 'charge_ratio', 'mass_ratio')),
         )
 
         # Init zeta
@@ -725,7 +756,13 @@ class Particles(xo.HybridClass):
 
         self.unhide_first_n_particles()
         if isinstance(self._context, xo.ContextCpu) and not _no_reorganize:
-            self.reorganize()
+            if state_is_scalar and state > LAST_INVALID_STATE:
+                self._num_active_particles = (
+                    input_length if state > 0 else 0)
+                self._num_lost_particles = (
+                    input_length if state <= 0 else 0)
+            else:
+                self.reorganize()
 
         if 'name' in kwargs.keys():
             self.name = kwargs['name']
@@ -1866,7 +1903,7 @@ class Particles(xo.HybridClass):
 
     def _assert_values_consistent(self, given_value, computed_value, mask=None):
         """Check if the given value is consistent with the computed value."""
-        if given_value is None:
+        if given_value is None or given_value is computed_value:
             return
         if not self._allclose(given_value, computed_value, mask=mask):
             raise ValueError(
@@ -1954,14 +1991,23 @@ class Particles(xo.HybridClass):
                                     mask=mask)
 
     def _update_energy_deviations(self, delta=None, ptau=None, pzeta=None,
-                                  _rpp=None, _rvv=None, mask=None):
+                                  _rpp=None, _rvv=None, mask=None,
+                                  _mass_ratio_is_default=False):
         if all(ff is None for ff in (delta, ptau, pzeta)):
             if _rpp is not None or _rvv is not None:
                 raise ValueError('Setting `delta` and `ptau` by only giving '
                                  '`_rpp` and `_rvv` is not supported.')
-            if any(self.mass_ratio != 1.0):
-                raise ValueError('Need to provide `delta` or `ptau` with '
-                                 'non-default mass ratios.')
+            if not _mass_ratio_is_default:
+                mass_ratio = self.mass_ratio
+                if isinstance(self._context, xo.ContextPyopencl):
+                    has_non_default_mass_ratio = np.any(
+                        mass_ratio.get() != 1.0)
+                else:
+                    has_non_default_mass_ratio = bool(
+                        self._context.nplike_lib.any(mass_ratio != 1.0))
+                if has_non_default_mass_ratio:
+                    raise ValueError('Need to provide `delta` or `ptau` with '
+                                     'non-default mass ratios.')
             self._delta = 0.0
             delta = self._delta  # Cupy complains if we later assign LinkedArray
 
@@ -1971,11 +2017,13 @@ class Particles(xo.HybridClass):
         if delta is not None:
             _delta = delta
             _ptau = _sqrt(_delta ** 2 + 2 * _delta + 1 / beta0 ** 2) - 1 / beta0
-            _pzeta = _ptau / beta0
+            if pzeta is not None:
+                _pzeta = _ptau / beta0
         elif ptau is not None:
             _ptau = ptau
             _delta = _sqrt(_ptau ** 2 + 2 * _ptau / beta0 + 1) - 1
-            _pzeta = _ptau / beta0
+            if pzeta is not None:
+                _pzeta = _ptau / beta0
         elif pzeta is not None:
             _pzeta = pzeta
             _ptau = _pzeta * beta0
@@ -1983,7 +2031,8 @@ class Particles(xo.HybridClass):
         else:
             raise RuntimeError('This statement is unreachable.')
 
-        self._assert_values_consistent(pzeta, _pzeta, mask)
+        if pzeta is not None:
+            self._assert_values_consistent(pzeta, _pzeta, mask)
         self._setattr_if_consistent('_delta',
                                     given_value=delta,
                                     computed_value=_delta,
@@ -1994,8 +2043,12 @@ class Particles(xo.HybridClass):
                                     mask=mask)
 
         delta = self._delta  # Cupy complains if we later assign LinkedArray
+        # Keep the operation order used historically. Although rvv can be
+        # derived directly from _ptau, the algebraic rewrite changes the last
+        # bit and can perturb finite-difference maps on accelerator contexts.
         delta_beta0 = delta * beta0
-        ptau_beta0 = _sqrt(delta_beta0 ** 2 + 2 * delta_beta0 * beta0 + 1) - 1
+        ptau_beta0 = _sqrt(delta_beta0 ** 2
+                           + 2 * delta_beta0 * beta0 + 1) - 1
         new_rvv = (1 + delta) / (1 + ptau_beta0)
         new_rpp = 1 / (1 + delta)
         self._setattr_if_consistent('_rpp',
@@ -2010,20 +2063,22 @@ class Particles(xo.HybridClass):
     def _update_zeta(self, zeta=None, tau=None, mask=None):
         if zeta is None and tau is None:
             self.zeta = 0.0
-            zeta = self.zeta
+            return
 
         beta0 = self._beta0
 
         if zeta is not None:
             _zeta = zeta
-            _tau = zeta / beta0
+            if tau is not None:
+                _tau = zeta / beta0
         elif tau is not None:
             _tau = tau
             _zeta = beta0 * _tau
         else:
             raise RuntimeError('This statement is unreachable.')
 
-        self._assert_values_consistent(tau, _tau, mask)
+        if tau is not None:
+            self._assert_values_consistent(tau, _tau, mask)
         self._setattr_if_consistent('zeta',
                                     given_value=zeta,
                                     computed_value=_zeta,
