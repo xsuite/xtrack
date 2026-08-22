@@ -8,6 +8,7 @@ Date: 2025-08-17
 import numpy as np
 import scipy as sp
 from scipy.constants import c
+from scipy.signal import ZoomFFT
 
 
 class SchottkyMonitor:
@@ -113,40 +114,42 @@ class SchottkyMonitor:
             freq = self.frequencies[region]
             if region == 'center':
                 coeff = self.z_coeff
-            elif region == 'lowerH' or region == 'upperH':
+            elif region in ('lowerH', 'upperH'):
                 coeff = self.x_coeff
-            elif region == 'lowerV' or region == 'upperV':
+            else:  # 'lowerV', 'upperV'
                 coeff = self.y_coeff
-            else:
-                raise ValueError('Frequency region not defined:' + region)
 
-            # Computing instataneous Schottky spectra as defined in Eqs. (2.2) and (2.4)
+            # Computing instantaneous Schottky spectra as defined in Eqs. (2.2) and (2.4):
+            #   S(q_k) = sum_l alpha[l, k] * X_l[k],
+            #   X_l[k] = sum_n w_n * C[n, l] * exp(+2*pi*i*q_k*n)
+            # X_l is the discrete-time Fourier transform of the windowed coefficients
+            # C[n, l] (turn n, Taylor order l) evaluated on the uniform normalised
+            # frequency grid q_k = q_0 + k*delta_q. It is computed with the chirp-z
+            # (Bluestein) algorithm, i.e. O((L + n_freq) log) time and memory per
+            # order, instead of materialising the (L x n_freq) kernel w_n*exp(2*pi*i*q_k*n).
             n_freq = len(freq)
             delta_omega = freq * 2 * np.pi * self.f_rev
-            alpha = np.empty((self.n_taylor, n_freq), dtype=np.csingle)
-            alpha[0, :] = np.ones(n_freq)
-            for l in range(1, self.n_taylor):
-                alpha[l, :] = alpha[l - 1, :] * 1j * delta_omega / l
-            first_exponential = (
-                np.vander(
-                    np.exp(1j * delta_omega / self.f_rev),
-                    N=inst_spectrum_len,
-                    increasing=True,
-                )
-                * window
-            ).T
+            alpha = np.empty((self.n_taylor, n_freq), dtype=np.complex128)
+            alpha[0, :] = 1.0
+            for i_taylor in range(1, self.n_taylor):
+                alpha[i_taylor, :] = alpha[i_taylor - 1, :] * 1j * delta_omega / i_taylor
+            # scipy evaluates sum_n y_n exp(-2*pi*i*q_k*n) on q_k = linspace(freq[0], freq[-1], n_freq)
+            # (fs=1: frequencies per turn, i.e. normalised to f_rev); the sign is handled below.
+            zoom_dtft = ZoomFFT(inst_spectrum_len, [freq[0], freq[-1]], m=n_freq,
+                                fs=1.0, endpoint=True)
             n_inst_spectra = len(coeff) // inst_spectrum_len
             for i in range(len(self.instantaneous_PSDs[region]), n_inst_spectra):
                 print(f'Processing {region} Schottky spectrum {i+1}/{n_inst_spectra}', end='\r')
-                # Selecting the coefficients (x, y, or z) needed to calculate the i-th instantaneous Schottky spectrum
-                inst_coeff = np.array(
+                # Coefficients (x, y, or z) of the turns of the i-th instantaneous spectrum, (L, n_taylor)
+                inst_coeff = np.asarray(
                     coeff[i * inst_spectrum_len : (i + 1) * inst_spectrum_len]
                 )
-                spectrum = np.sum(
-                    np.dot(inst_coeff, alpha) * first_exponential, axis=0
-                )
+                windowed = inst_coeff.T * window  # (n_taylor, L): w_n * C[n, l]
+                # DTFT on the grid with the + sign convention: conj(sum_n conj(y_n) exp(-2*pi*i*q_k*n))
+                dtft = np.conj(zoom_dtft(np.conj(windowed), axis=-1))  # (n_taylor, n_freq)
+                spectrum = np.einsum('lk,lk->k', alpha, dtft)  # sum over the Taylor orders
                 self.instantaneous_PSDs[region].append(
-                    abs(spectrum) ** 2 / self.N_macropart_max
+                    np.abs(spectrum) ** 2 / self.N_macropart_max
                 )
             self.PSD_avg[region] = np.mean(self.instantaneous_PSDs[region], axis=0)
             print(f'{region} band of Schottky spectrum processed')
