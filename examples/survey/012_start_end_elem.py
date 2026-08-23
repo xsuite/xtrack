@@ -1,53 +1,69 @@
 import xtrack as xt
 import misalignment_entry_transforms as met
 import numpy as np
+import matplotlib.pyplot as plt
 
 env = xt.Environment()
 
 env.new('q', 'Quadrupole', length=2, k1=0.1,
         rot_shift_anchor=1, rot_y_rad=np.deg2rad(30))
-line_thick = env.new_line(length=4, components=[
-    env.place('q', at=2)
+env.new('b', 'Bend', length=2, angle=0, #np.deg2rad(0.1),
+        rot_shift_anchor=1, rot_y_rad=np.deg2rad(30))
+line_thick = env.new_line(length=8, components=[
+    env.place('q', at=2),
+    env.place('b', at=6),
 ])
 
 line_sliced = line_thick.copy(shallow=True)
-line_sliced.cut_at_s(np.linspace(0, 4, 11))
+line_sliced.cut_at_s(np.linspace(0, 8, 33))
 
-line = line_sliced
-name = 'q..2'
+# line = line_sliced
+# name = 'q..3'
 
-# line = line
+# line = line_thick
 # name = 'q'
+
+line = line_thick
+name = 'b'
 
 sv = line.survey()
 
-elem = env.get(name)
+elem = line[name]
+
+# Slices inherit their transformations and geometry from the parent element.
+# This mirrors GET_PARAM, GET_WEIGHT, and the slice-anchor correction in
+# track_local_particle_with_transformations.h.
+parent = getattr(elem, '_parent', None)
+if parent is None:
+    element_with_transformations = elem
+    weight = 1.0
+    slice_offset = 0.0
+else:
+    element_with_transformations = parent
+    weight = elem.weight
+    slice_offset = elem.slice_offset
+
+transform_kwargs = dict(
+    shift_x=element_with_transformations.shift_x,
+    shift_y=element_with_transformations.shift_y,
+    shift_s=element_with_transformations.shift_s,
+    rot_y_rad=element_with_transformations.rot_y_rad,
+    rot_x_rad=element_with_transformations.rot_x_rad,
+    rot_s_rad_no_frame=(
+        element_with_transformations.rot_s_rad_no_frame),
+    rot_shift_anchor=(
+        element_with_transformations.rot_shift_anchor - slice_offset),
+    length=getattr(element_with_transformations, 'length', 0.0) * weight,
+    angle=getattr(element_with_transformations, 'angle', 0.0) * weight,
+    h=getattr(element_with_transformations, 'h', 0.0),
+    rot_s_rad=element_with_transformations.rot_s_rad,
+)
 
 transf_params_start = met.get_entry_transform(
-    shift_x=elem.shift_x,
-    shift_y=elem.shift_y,
-    shift_s=elem.shift_s,
-    rot_y_rad=elem.rot_y_rad,
-    rot_x_rad=elem.rot_x_rad,
-    rot_s_rad_no_frame=elem.rot_s_rad_no_frame,
-    rot_shift_anchor=elem.rot_shift_anchor,
-    length=elem.length,
-    angle=0.,
-    h=0.0,
-    rot_s_rad=elem.rot_s_rad)
+    **transform_kwargs)
 
 transf_params_end = met.get_exit_transform(
-    shift_x=elem.shift_x,
-    shift_y=elem.shift_y,
-    shift_s=elem.shift_s,
-    rot_y_rad=elem.rot_y_rad,
-    rot_x_rad=elem.rot_x_rad,
-    rot_s_rad_no_frame=elem.rot_s_rad_no_frame,
-    rot_shift_anchor=elem.rot_shift_anchor,
-    length=elem.length,
-    angle=0.,
-    h=0.0,
-    rot_s_rad=elem.rot_s_rad)
+    **transform_kwargs)
 
 
 XYZ_ref_start = sv['XYZ', name]
@@ -109,7 +125,6 @@ E_elem_end = E_elem_temp.copy()
 
 
 
-import matplotlib.pyplot as plt
 plt.close('all')
 plt.figure(1)
 plt.plot(sv.Z, sv.X, '.-', label='survey')
@@ -119,8 +134,6 @@ plt.axis('equal')
 plt.xlabel('Z [m]')
 plt.ylabel('X [m]')
 plt.legend()
-
-
 
 
 
