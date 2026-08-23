@@ -6,13 +6,21 @@ env = xt.Environment()
 
 env.new('q', 'Quadrupole', length=2, k1=0.1,
         rot_shift_anchor=1, rot_y_rad=np.deg2rad(30))
-line = env.new_line(length=4, components=[
+line_thick = env.new_line(length=4, components=[
     env.place('q', at=2)
 ])
 
+line_sliced = line_thick.copy(shallow=True)
+line_sliced.cut_at_s(np.linspace(0, 4, 11))
+
+line = line_sliced
+name = 'q..2'
+
+# line = line
+# name = 'q'
+
 sv = line.survey()
 
-name = 'q'
 elem = env.get(name)
 
 transf_params_start = met.get_entry_transform(
