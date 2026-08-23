@@ -7,7 +7,7 @@ env = xt.Environment()
 
 env.new('q', 'Quadrupole', length=2, k1=0.1,
         rot_shift_anchor=1, rot_y_rad=np.deg2rad(30))
-env.new('b', 'Bend', length=2, angle=0, #np.deg2rad(0.1),
+env.new('b', 'Bend', length=2, angle=np.deg2rad(20),
         rot_shift_anchor=1, rot_y_rad=np.deg2rad(30))
 line_thick = env.new_line(length=8, components=[
     env.place('q', at=2),
@@ -65,6 +65,10 @@ transf_params_start = met.get_entry_transform(
 transf_params_end = met.get_exit_transform(
     **transform_kwargs)
 
+uses_curved_transform = not (
+    transform_kwargs['angle'] == 0.0
+    and (transform_kwargs['length'] != 0.0 or transform_kwargs['h'] == 0.0)
+)
 
 XYZ_ref_start = sv['XYZ', name]
 E_ref_start = sv['E_matrix', name]
@@ -84,6 +88,8 @@ rot_start = xt.Rotation(
     rot_s_rad=transf_params_start.rot_s_rad_no_frame,
     seq='yxs'
 )
+rot_frame_start = xt.Rotation(
+    rot_s_rad=transform_kwargs['rot_s_rad'])
 
 # shift by trans_start
 XYZ_temp, E_elem_temp = trans_start._propagate_survey(XYZ_ref_start, E_ref_start,
@@ -94,6 +100,9 @@ XYZ_temp, E_elem_temp = xt.survey.advance_element(XYZ_temp, E_elem_temp,
 # rotate by rot_start
 XYZ_temp, E_elem_temp = rot_start._propagate_survey(XYZ_temp, E_elem_temp,
                                               backtrack=False)
+# apply the separate element-frame rotation
+XYZ_temp, E_elem_temp = rot_frame_start._propagate_survey(
+    XYZ_temp, E_elem_temp, backtrack=False)
 XYZ_elem_start = XYZ_temp.copy()
 E_elem_start = E_elem_temp.copy()
 
@@ -107,21 +116,47 @@ rot_end = xt.Rotation(
     rot_x_rad=-(transf_params_end.rot_x_rad),
     rot_y_rad=transf_params_end.rot_y_rad,
     rot_s_rad=transf_params_end.rot_s_rad_no_frame,
-    seq='sxy'
+    seq='yxs' if uses_curved_transform else 'sxy'
 )
+rot_frame_end = xt.Rotation(
+    rot_s_rad=-transform_kwargs['rot_s_rad'])
 
-# shift back by trans_end
-XYZ_temp, E_elem_temp = trans_end._propagate_survey(XYZ_ref_end, E_ref_end,
-                                                    backtrack=True)
-# drift back by length
-XYZ_temp, E_elem_temp = xt.survey.advance_element(XYZ_temp, E_elem_temp,
-                          length=-transf_params_end.shift_s)
-# rotate back by rot_end
-XYZ_temp, E_elem_temp = rot_end._propagate_survey(XYZ_temp, E_elem_temp,
-                                                  backtrack=True)
+if uses_curved_transform:
+    # The curved exit applies frame rotation, shifts, then y-x-s rotations.
+    # Undo these in reverse order.
+    XYZ_temp, E_elem_temp = rot_end._propagate_survey(
+        XYZ_ref_end, E_ref_end, backtrack=True)
+    XYZ_temp, E_elem_temp = xt.survey.advance_element(
+        XYZ_temp, E_elem_temp, length=-transf_params_end.shift_s)
+    XYZ_temp, E_elem_temp = trans_end._propagate_survey(
+        XYZ_temp, E_elem_temp, backtrack=True)
+else:
+    # The straight exit applies frame/s-x-y rotations before the shifts.
+    # Undo the shifts first and the rotations last.
+    XYZ_temp, E_elem_temp = trans_end._propagate_survey(
+        XYZ_ref_end, E_ref_end, backtrack=True)
+    XYZ_temp, E_elem_temp = xt.survey.advance_element(
+        XYZ_temp, E_elem_temp, length=-transf_params_end.shift_s)
+    XYZ_temp, E_elem_temp = rot_end._propagate_survey(
+        XYZ_temp, E_elem_temp, backtrack=True)
+
+# Undo the separate -rot_s_rad frame rotation, which is first at the exit.
+XYZ_temp, E_elem_temp = rot_frame_end._propagate_survey(
+    XYZ_temp, E_elem_temp, backtrack=True)
 
 XYZ_elem_end = XYZ_temp.copy()
 E_elem_end = E_elem_temp.copy()
+
+# Independently reach the local end by propagating from the local start through
+# the element body. This guards the continuous angle -> 0 limit.
+XYZ_elem_end_from_start, E_elem_end_from_start = xt.survey.advance_element(
+    XYZ_elem_start,
+    E_elem_start,
+    length=transform_kwargs['length'],
+    angle=transform_kwargs['angle'],
+)
+np.testing.assert_allclose(XYZ_elem_end, XYZ_elem_end_from_start, atol=1e-14)
+np.testing.assert_allclose(E_elem_end, E_elem_end_from_start, atol=1e-14)
 
 
 
@@ -134,6 +169,5 @@ plt.axis('equal')
 plt.xlabel('Z [m]')
 plt.ylabel('X [m]')
 plt.legend()
-
 
 
