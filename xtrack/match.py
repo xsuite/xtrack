@@ -855,7 +855,7 @@ class MeritFunctionLine(xd.MeritFunctionForMatch):
         else:
             return super().get_jacobian(x, f0=f0)
 
-    def notify_jacobian_point(self, flag):
+    def set_jacobian_flag(self, flag):
         """Solver hint: the upcoming eval is a Jacobian point (build the parametric map)
         or a value-only line-search eval (build the cheap map). Harmless for non-TPSA."""
         if not self.use_tpsa:
