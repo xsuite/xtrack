@@ -19,6 +19,9 @@ from .internal_record import RecordIdentifier, RecordIndex, generate_get_record
 from .particles import Particles
 from .track_flags import c_header_flag_mapping
 
+_INTERNAL_RECORD_GETTER_SOURCE_NAME = "internal_record_getter"
+
+
 def _float_to_uint64_bits(value):
     value = np.asarray(value).item()
     return np.array([float(value)], dtype=np.float64).view(np.uint64)[0]
@@ -368,15 +371,15 @@ class MetaBeamElement(xo.MetaHybridClass):
                     continue
                 data[kk] = vv
 
-        # If inheriting _extra_c_sources, remove get_record function
+        # Generated record getters are specific to the owning element class. Do not inherit them.
         if '_extra_c_sources' in data:
-            ii_remove = None
-            for ii, ss in enumerate(data['_extra_c_sources']):
-                if isinstance(ss, str) and '/*---GENERATED GET RECORD FUNCTION---*/' in ss:
-                   ii_remove = ii
-                   break
-            if ii_remove is not None:
-                data['_extra_c_sources'].pop(ii_remove)
+            data['_extra_c_sources'] = [
+                source for source in data['_extra_c_sources']
+                if not (
+                    isinstance(source, Source)
+                    and source.name == _INTERNAL_RECORD_GETTER_SOURCE_NAME
+                )
+            ]
 
         data.update(data_in)
 
@@ -436,8 +439,14 @@ class MetaBeamElement(xo.MetaHybridClass):
             depends_on.append(RecordIndex)
             depends_on.append(data['_internal_record_class']._XoStruct)
             extra_c_source.append(
-                generate_get_record(ele_classname=_XoStruct_name,
-                    record_classname=data['_internal_record_class']._XoStruct.__name__))
+                Source(
+                    generate_get_record(
+                        ele_classname=_XoStruct_name,
+                        record_classname=data['_internal_record_class']._XoStruct.__name__,
+                    ),
+                    name=_INTERNAL_RECORD_GETTER_SOURCE_NAME,
+                )
+            )
 
         # Get user-defined source, dependencies and kernels
         if '_extra_c_sources' in data.keys():
