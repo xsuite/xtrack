@@ -16,13 +16,6 @@
     #error "This file must be included with ELEMENT_NAME macro defined."
 #endif
 
-// Common concatenation macros, unfortunately not part of standard C headers
-#ifndef _CONCAT
-#define _CONCAT(a, b) a ## b
-#define CONCAT(a, b) _CONCAT(a, b)
-#define CONCAT3(a, b, c) CONCAT(CONCAT(a, b), c)
-#endif /* !defined(_CONCAT) */
-
 #include "xtrack/headers/track.h"
 #include "xtrack/headers/particle_states.h"
 #include "xtrack/beam_elements/elements_src/track_misalignments.h"

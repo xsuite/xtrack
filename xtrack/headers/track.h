@@ -10,6 +10,13 @@
 #include "xobjects/headers/atomicadd.h"
 #include "xtrack/headers/constants.h"
 
+// Common token-concatenation helpers used by C API templates.
+#ifndef _CONCAT
+    #define _CONCAT(a, b) a ## b
+    #define CONCAT(a, b) _CONCAT(a, b)
+    #define CONCAT3(a, b, c) CONCAT(CONCAT(a, b), c)
+#endif /* !defined(_CONCAT) */
+
 #ifdef XTRACK_TPSA_TRACK
     #include "xtrack/tpsa/headers/xt_tpsa.h"
     #include "xtrack/tpsa/headers/lifted_array.h"

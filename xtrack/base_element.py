@@ -290,98 +290,56 @@ def _generate_track_local_particle_with_transformations(
     return '\n'.join(source_lines)
 
 
-def _generate_per_particle_kernel_from_local_particle_function(
-                                                element_name, kernel_name,
-                                                local_particle_function_name,
-                                                additional_args=[]):
+def _generate_per_particle_kernel_source(
+        element_name, kernel_name, local_particle_function_name, additional_args=None):
 
-    if len(additional_args) > 0:
-        add_to_signature = ", ".join([
-            f"{' /*gpuglmem*/ ' if arg.pointer else ''} {arg.get_c_type()} {arg.name}"
-                for arg in additional_args]) + ", "
-        add_to_call = ", " + ", ".join(f"{arg.name}" for arg in additional_args)
+    if additional_args is None:
+        additional_args = []
 
-    source = ('''
-            #ifndef XTRACK_TPSA_TRACK
-            /*
-             * Scalar element kernels operate on ParticlesData and are not supported
-             * when compiling a TPSA tracker, which uses TpsaParticleData instead.
-             */
-            /*gpukern*/
-            '''
-            f'void {kernel_name}(\n'
-            f'               {element_name}Data el,\n'
+    argument_declarations = ", ".join(
+        f"{' GPUGLMEM' if arg.pointer else ''} {arg.get_c_type()} {arg.name}"
+        for arg in additional_args
+    )
+    if argument_declarations:
+        argument_declarations = ", " + argument_declarations
+
+    argument_values = ", ".join(arg.name for arg in additional_args)
+    if argument_values:
+        argument_values = ", " + argument_values
+
+    return f'''\
+#define ELEMENT_NAME {element_name}
+#define KERNEL_NAME {kernel_name}
+#define LOCAL_PARTICLE_FUNCTION {local_particle_function_name}
+#define KERNEL_EXTRA_ARGUMENTS {argument_declarations}
+#define KERNEL_EXTRA_ARGUMENT_VALUES {argument_values}
+
+#include "xtrack/headers/per_particle_kernel.h"
+
+#undef KERNEL_EXTRA_ARGUMENT_VALUES
+#undef KERNEL_EXTRA_ARGUMENTS
+#undef LOCAL_PARTICLE_FUNCTION
+#undef KERNEL_NAME
+#undef ELEMENT_NAME
 '''
-                             ParticlesData particles,
+
+
+def _generate_beam_element_track_kernel_source(
+        element_name, scalar_kernel_name, tpsa_kernel_name):
+    return f'''\
+#define ELEMENT_NAME {element_name}
+
+#ifndef XTRACK_TPSA_TRACK
+    #define KERNEL_NAME {scalar_kernel_name}
+    #include "xtrack/headers/beam_element_track.h"
+#else
+    #define KERNEL_NAME {tpsa_kernel_name}
+    #include "xtrack/tpsa/headers/beam_element_track.h"
+#endif
+
+#undef KERNEL_NAME
+#undef ELEMENT_NAME
 '''
-            f'{(add_to_signature if len(additional_args) > 0 else "")}'
-'''
-                             int64_t flag_increment_at_element,
-                /*gpuglmem*/ int8_t* io_buffer){
-
-            #define CONTEXT_OPENMP  //only_for_context cpu_openmp
-            #ifdef CONTEXT_OPENMP
-                const int64_t capacity = ParticlesData_get__capacity(particles);
-                const int num_threads = omp_get_max_threads();
-
-                #ifndef XT_OMP_SKIP_REORGANIZE
-                    const int64_t num_particles_to_track = ParticlesData_get__num_active_particles(particles);
-
-                    {
-                        LocalParticle lpart;
-                        lpart.io_buffer = io_buffer;
-                        Particles_to_LocalParticle(particles, &lpart, 0, capacity);
-                        check_is_active(&lpart);
-                        count_reorganized_particles(&lpart);
-                        LocalParticle_to_Particles(&lpart, particles, 0, capacity);
-                    }
-                #else // When we skip reorganize, we cannot just batch active particles
-                    const int64_t num_particles_to_track = capacity;
-                #endif
-
-                const int64_t chunk_size = (num_particles_to_track + num_threads - 1)/num_threads; // ceil division
-            #endif // CONTEXT_OPENMP
-
-            #pragma omp parallel for                                                           //only_for_context cpu_openmp
-            for (int64_t batch_id = 0; batch_id < num_threads; batch_id++) {                   //only_for_context cpu_openmp
-                LocalParticle lpart;
-                lpart.io_buffer = io_buffer;
-                lpart.track_flags = 0;
-                int64_t part_id = batch_id * chunk_size;                                       //only_for_context cpu_openmp
-                int64_t end_id = (batch_id + 1) * chunk_size;                                  //only_for_context cpu_openmp
-                if (end_id > num_particles_to_track) end_id = num_particles_to_track;          //only_for_context cpu_openmp
-
-                int64_t part_id = 0;                    //only_for_context cpu_serial
-                int64_t part_id = blockDim.x * blockIdx.x + threadIdx.x; //only_for_context cuda
-                int64_t part_id = get_global_id(0);                    //only_for_context opencl
-                int64_t end_id = 0; // unused outside of openmp  //only_for_context cpu_serial cuda opencl
-
-                int64_t part_capacity = ParticlesData_get__capacity(particles);
-                if (part_id<part_capacity){
-                    Particles_to_LocalParticle(particles, &lpart, part_id, end_id);
-                    if (check_is_active(&lpart)>0){
-    '''
-            f'          {local_particle_function_name}(el, &lpart{(add_to_call if len(additional_args) > 0 else "")});\n'
-    '''
-                    }
-                    if (check_is_active(&lpart)>0 && flag_increment_at_element){
-                            increment_at_element(&lpart, 1);
-                    }
-                }
-            } //only_for_context cpu_openmp
-
-            // On OpenMP we want to additionally by default reorganize all
-            // the particles.
-            #ifndef XT_OMP_SKIP_REORGANIZE                             //only_for_context cpu_openmp
-            LocalParticle lpart;                                       //only_for_context cpu_openmp
-            lpart.io_buffer = io_buffer;                               //only_for_context cpu_openmp
-            Particles_to_LocalParticle(particles, &lpart, 0, capacity);//only_for_context cpu_openmp
-            check_is_active(&lpart);                                   //only_for_context cpu_openmp
-            #endif                                                     //only_for_context cpu_openmp
-        }
-            #endif /* XTRACK_TPSA_TRACK */
-''')
-    return source
 
 
 def _tranformations_active(beam_element):
@@ -495,6 +453,7 @@ class MetaBeamElement(xo.MetaHybridClass):
         depends_on.append(Particles._XoStruct)
 
         track_kernel_name = None
+        track_kernel_name_tpsa = None
         if ('allow_track' not in data.keys() or data['allow_track']):
             extra_c_source.append(
                 _generate_track_local_particle_with_transformations(
@@ -508,14 +467,17 @@ class MetaBeamElement(xo.MetaHybridClass):
                 )
             )
 
-            # Generate track kernel
-            extra_c_source.append(
-                _generate_per_particle_kernel_from_local_particle_function(
-                    element_name=name, kernel_name=name+'_track_particles',
-                    local_particle_function_name=name+'_track_local_particle_with_transformations'))
-
-            # Define track kernel
             track_kernel_name = f'{name}_track_particles'
+            track_kernel_name_tpsa = f'{name}_track_tpsa_particles'
+            extra_c_source.append(
+                _generate_beam_element_track_kernel_source(
+                    element_name=name,
+                    scalar_kernel_name=track_kernel_name,
+                    tpsa_kernel_name=track_kernel_name_tpsa,
+                )
+            )
+
+            # Define scalar track kernel.
             kernels[track_kernel_name] = xo.Kernel(
                 c_name=track_kernel_name,
                 args=[xo.Arg(xo.ThisClass, name='el'),
@@ -528,7 +490,7 @@ class MetaBeamElement(xo.MetaHybridClass):
         if '_per_particle_kernels' in data.keys():
             for nn, kk in data['_per_particle_kernels'].items():
                 extra_c_source.append(
-                    _generate_per_particle_kernel_from_local_particle_function(
+                    _generate_per_particle_kernel_source(
                         element_name=name, kernel_name=nn,
                         local_particle_function_name=kk.c_name,
                         additional_args=kk.args))
@@ -556,6 +518,7 @@ class MetaBeamElement(xo.MetaHybridClass):
 
         # Attach some information to the class
         new_class._track_kernel_name = track_kernel_name
+        new_class._track_kernel_name_tpsa = track_kernel_name_tpsa
         if '_internal_record_class' in data.keys():
             new_class._XoStruct._internal_record_class = data['_internal_record_class']
             new_class._internal_record_class = data['_internal_record_class']
@@ -685,6 +648,39 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
             **kwargs,
         )
 
+    def compile_tpsa_kernels(self, only_if_needed=True):
+        from madng_tpsa.paths import core_library
+        from xtrack.tpsa.particles import TpsaParticleData
+
+        context = self._buffer.context
+        kernel_name = self._track_kernel_name_tpsa
+        if only_if_needed and kernel_name in context.kernels:
+            return
+
+        kernel = xo.Kernel(
+            c_name=kernel_name,
+            args=[
+                xo.Arg(self.__class__._XoStruct, name='el'),
+                xo.Arg(TpsaParticleData, name='particles'),
+                xo.Arg(xo.Int64, name='flag_increment_at_element'),
+                xo.Arg(xo.Int8, pointer=True, name="io_buffer"),
+            ],
+        )
+        kernels = context.build_kernels(
+            sources=[],
+            kernel_descriptions={kernel_name: kernel},
+            extra_classes=[self.__class__._XoStruct, TpsaParticleData],
+            extra_headers=[
+                "#define XTRACK_TPSA_TRACK",
+                "#define restrict __restrict",
+            ],
+            apply_to_source=[_handle_per_particle_blocks],
+            extra_compile_args=("-include", "complex"),
+            preload_libraries=(core_library(),),
+            compiler_language="c++",
+        )
+        context.kernels.update(kernels)
+
     def track(self, particles=None, increment_at_element=False):
         if not self.allow_track:
             raise RuntimeError(f"BeamElement {self.__class__.__name__} "
@@ -696,10 +692,24 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
             from xtrack.tpsa import ParticlesTpsa
             if not isinstance(particles, ParticlesTpsa):
                 raise TypeError(f"Cannot track particles of type {type(particles)}")
-            line = xt.Line(elements=[self], element_names=["__element__"])
-            line.particle_ref = particles._ref_particle.copy()
-            line.build_tracker(use_prebuilt_kernels=False)
-            return line.track(particles)
+            context = self._buffer.context
+            if self._track_kernel_name_tpsa not in context.kernels:
+                self.compile_tpsa_kernels()
+            _track_kernel = context.kernels[self._track_kernel_name_tpsa]
+
+            if hasattr(self, 'io_buffer') and self.io_buffer is not None:
+                io_buffer_arr = self.io_buffer.buffer
+            else:
+                io_buffer_arr = context.zeros(1, dtype=np.int8)  # dummy
+
+            _track_kernel.description.n_threads = 1
+            _track_kernel(el=self._xobject, particles=particles._xobject,
+                          flag_increment_at_element=increment_at_element,
+                          io_buffer=io_buffer_arr)
+            if particles._xobject.state <= 0:
+                raise RuntimeError(
+                    f"TPSA map lost while tracking {self.__class__.__name__}")
+            return None
 
         if getattr(self, "_tpsa_enabled", 0):
             raise RuntimeError(
