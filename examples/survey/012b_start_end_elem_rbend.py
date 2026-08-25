@@ -17,28 +17,28 @@ line_thick = env.new_line(length=8, components=[
 line_sliced = line_thick.copy(shallow=True)
 line_sliced.cut_at_s(np.linspace(0, 8, 33))
 
-# line = line_sliced
-# name = 'q..3'
-
-# line = line_thick
-# name = 'q'
-
-# line = line_thick
-# name = 'b'
-
 line = line_sliced
-name = 'b..2'
 
 sv = line.survey(include_element_frames=True)
 
-XYZ_elem_start = sv['XYZ_elem_start', name]
-XYZ_elem_end = sv['XYZ_elem_end', name]
+XYZ_elem_start = sv.XYZ_elem_start[:-1]
+XYZ_elem_end = sv.XYZ_elem_end[:-1]
+
+# Separate the elements with NaNs so that matplotlib draws one independent
+# segment from XYZ_elem_start to XYZ_elem_end for each element.
+Z_elem_segments = np.column_stack([
+    XYZ_elem_start[:, 2], XYZ_elem_end[:, 2],
+    np.full(len(XYZ_elem_start), np.nan),
+]).ravel()
+X_elem_segments = np.column_stack([
+    XYZ_elem_start[:, 0], XYZ_elem_end[:, 0],
+    np.full(len(XYZ_elem_start), np.nan),
+]).ravel()
 
 plt.close('all')
 plt.figure(1)
 plt.plot(sv.Z, sv.X, '.-', label='survey')
-plt.plot(XYZ_elem_start[2], XYZ_elem_start[0], 'o', label='start elem')
-plt.plot(XYZ_elem_end[2], XYZ_elem_end[0], 'o', label='end elem')
+plt.plot(Z_elem_segments, X_elem_segments, 'o-', label='elements')
 plt.axis('equal')
 plt.xlabel('Z [m]')
 plt.ylabel('X [m]')
