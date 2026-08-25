@@ -30,20 +30,25 @@ void KERNEL_NAME(
     lpart._num_active_particles = 1;
     lpart._num_lost_particles = 0;
     xt_tpsa::default_scope xt_tpsa_default_scope(lpart.x);
+    xt_tpsa::error_scope xt_tpsa_error_scope;
 
-    LocalParticle_set_state(&lpart, 1);
-    LocalParticle_set_at_element(&lpart, 0);
-    LocalParticle_update_delta(&lpart, LocalParticle_get_delta(&lpart));
-    LocalParticle_set_s(&lpart, 0.0);
-    LocalParticle_set_ax(&lpart, 0.0);
-    LocalParticle_set_ay(&lpart, 0.0);
+    try {
+        LocalParticle_set_state(&lpart, 1);
+        LocalParticle_set_at_element(&lpart, 0);
+        LocalParticle_update_delta(&lpart, LocalParticle_get_delta(&lpart));
+        LocalParticle_set_s(&lpart, 0.0);
+        LocalParticle_set_ax(&lpart, 0.0);
+        LocalParticle_set_ay(&lpart, 0.0);
 
-    if (check_is_active(&lpart) > 0) {
-        CONCAT(ELEMENT_NAME, _track_local_particle_with_transformations)(
-            el, &lpart);
-    }
-    if (check_is_active(&lpart) > 0 && flag_increment_at_element) {
-        increment_at_element(&lpart, 1);
+        if (check_is_active(&lpart) > 0) {
+            CONCAT(ELEMENT_NAME, _track_local_particle_with_transformations)(
+                el, &lpart);
+        }
+        if (check_is_active(&lpart) > 0 && flag_increment_at_element) {
+            increment_at_element(&lpart, 1);
+        }
+    } catch (const xt_tpsa::tracking_error&) {
+        LocalParticle_set_state(&lpart, XT_LOST_ON_TPSA_ERROR);
     }
 
     LocalParticle_to_Particles(&lpart, particles, 0, 1);

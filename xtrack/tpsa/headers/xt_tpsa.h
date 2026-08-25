@@ -7,9 +7,39 @@
 
 #include <cstdint>
 #include <math.h>
+#include <stdexcept>
+#include "madng_tpsa.h"
 #include "mad_tpsa.hpp"
 
 namespace xt_tpsa {
+    class tracking_error : public std::runtime_error {
+    public:
+        explicit tracking_error(const char* message)
+            : std::runtime_error(message) {}
+    };
+
+    extern "C" [[noreturn]] inline void throw_tracking_error(
+            const char*, const char* message) {
+        throw tracking_error(message);
+    }
+
+    // Install the throwing handler only while executing an Xtrack TPSA kernel.
+    class error_scope {
+    public:
+        error_scope()
+            : previous_handler(madng_tpsa_set_error_handler(throw_tracking_error)) {}
+
+        ~error_scope() {
+            madng_tpsa_set_error_handler(previous_handler);
+        }
+
+        error_scope(const error_scope&) = delete;
+        error_scope& operator=(const error_scope&) = delete;
+
+    private:
+        madng_tpsa_error_handler previous_handler;
+    };
+
     /* Subclass mad::tpsa to implement custom behaviours for Xtrack.
      *
      * Extend mad::tpsa so scalar constants can be promoted through normal C++

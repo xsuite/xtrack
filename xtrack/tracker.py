@@ -850,6 +850,9 @@ class Tracker:
             lpart.track_flags = track_flags;
             lpart.io_buffer = io_buffer;
             xt_tpsa::default_scope xt_tpsa_default_scope(lpart.x);
+            xt_tpsa::error_scope xt_tpsa_error_scope;
+
+            try {
 
             LocalParticle_set_state(&lpart, 1);
             LocalParticle_set_at_element(&lpart, ele_start);
@@ -1022,6 +1025,9 @@ class Tracker:
             LocalParticle_to_Particles(&lpart, particles, 0, capacity);//only_for_context cpu_openmp
             #endif                                                     //only_for_context cpu_openmp
 #else
+            } catch (const xt_tpsa::tracking_error&) {
+                LocalParticle_set_state(&lpart, XT_LOST_ON_TPSA_ERROR);
+            }
             LocalParticle_to_Particles(&lpart, particles, 0, 1);
 #endif
         }//kernel

@@ -72,6 +72,34 @@ def _map(order=1, descriptor=None):
     )
 
 
+def test_tpsa_tracking_error_marks_particle_lost():
+    line = xt.Line(elements=[xt.Rotation(rot_x_rad=0.1)])
+    line.particle_ref = xt.Particles(p0c=7e12, mass0=xt.PROTON_MASS_EV)
+    line.build_tracker()
+    particles = xtpsa.ParticlesTpsa(
+        order=1, x=0.0, px=1.0, y=0.0, py=0.0, zeta=0.0, delta=0.0,
+        p0c=7e12, mass0=xt.PROTON_MASS_EV,
+    )
+
+    with pytest.raises(RuntimeError, match="TPSA map lost"):
+        line.track(particles)
+
+    assert particles._xobject.state == -50
+
+
+def test_tpsa_element_tracking_error_marks_particle_lost():
+    element = xt.Rotation(rot_x_rad=0.1)
+    particles = xtpsa.ParticlesTpsa(
+        order=1, x=0.0, px=1.0, y=0.0, py=0.0, zeta=0.0, delta=0.0,
+        p0c=7e12, mass0=xt.PROTON_MASS_EV,
+    )
+
+    with pytest.raises(RuntimeError, match="TPSA map lost"):
+        element.track(particles)
+
+    assert particles._xobject.state == -50
+
+
 def test_particles_tpsa_uses_tracker_tpsa_config():
     line = _line()
     m = _map()
