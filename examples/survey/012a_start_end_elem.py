@@ -1,5 +1,4 @@
 import xtrack as xt
-import misalignment_survey as ms
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -23,28 +22,16 @@ line_sliced.cut_at_s(np.linspace(0, 8, 33))
 # line = line_thick
 # name = 'q'
 
-line = line_thick
-name = 'b'
+# line = line_thick
+# name = 'b'
 
-sv = line.survey()
+line = line_sliced
+name = 'b..3'
 
-elem = line[name]
+sv = line.survey(include_element_frames=True)
 
-XYZ_ref_start = sv['XYZ', name]
-E_ref_start = sv['E_matrix', name]
-
-XYZ_ref_end = sv['XYZ', name+'>>1']
-E_ref_end = sv['E_matrix', name+'>>1']
-
-XYZ_elem_start, E_elem_start, XYZ_elem_end, E_elem_end = (
-    ms.get_misaligned_element_survey(
-        elem,
-        XYZ_ref_start,
-        E_ref_start,
-        XYZ_ref_end,
-        E_ref_end,
-    )
-)
+XYZ_elem_start = sv['XYZ_elem_start', name]
+XYZ_elem_end = sv['XYZ_elem_end', name]
 
 plt.close('all')
 plt.figure(1)
@@ -55,4 +42,3 @@ plt.axis('equal')
 plt.xlabel('Z [m]')
 plt.ylabel('X [m]')
 plt.legend()
-

@@ -12,6 +12,94 @@ if hasattr(np, 'trapezoid'): # numpy >= 2.0
 else:
     trapz = np.trapz
 
+
+@pytest.mark.parametrize('angle', [0.0, np.deg2rad(0.1), np.deg2rad(20)])
+@pytest.mark.parametrize('sliced', [False, True])
+def test_survey_include_element_frames(angle, sliced):
+    env = xt.Environment()
+    env.new(
+        'b', 'Bend',
+        length=2,
+        angle=angle,
+        shift_x=0.01,
+        shift_y=-0.02,
+        shift_s=0.03,
+        rot_y_rad=0.05,
+        rot_x_rad=-0.04,
+        rot_s_rad_no_frame=0.03,
+        rot_s_rad=0.2,
+        rot_shift_anchor=0.7,
+    )
+    line = env.new_line(length=4, components=[env.place('b', at=2)])
+
+    if sliced:
+        line.cut_at_s(np.linspace(0, 4, 17))
+        name = 'b..3'
+    else:
+        name = 'b'
+
+    frame_columns = [
+        'XYZ_ref_start',
+        'E_ref_start',
+        'XYZ_ref_end',
+        'E_ref_end',
+        'XYZ_elem_start',
+        'E_elem_start',
+        'XYZ_elem_end',
+        'E_elem_end',
+    ]
+
+    sv_default = line.survey()
+    for column in frame_columns:
+        assert column not in sv_default._col_names
+
+    sv = line.survey(include_element_frames=True)
+    for column in frame_columns:
+        assert column in sv._col_names
+
+    n_rows = len(sv.name)
+    assert sv.XYZ_ref_start.shape == (n_rows, 3)
+    assert sv.E_ref_start.shape == (n_rows, 3, 3)
+
+    xo.assert_allclose(sv.XYZ_ref_start, sv.XYZ, atol=0, rtol=0)
+    xo.assert_allclose(sv.E_ref_start, sv.E_matrix, atol=0, rtol=0)
+    xo.assert_allclose(sv.XYZ_ref_end[:-1], sv.XYZ[1:], atol=0, rtol=0)
+    xo.assert_allclose(
+        sv.E_ref_end[:-1], sv.E_matrix[1:], atol=0, rtol=0)
+    xo.assert_allclose(sv.XYZ_ref_end[-1], sv.XYZ[-1], atol=0, rtol=0)
+    xo.assert_allclose(
+        sv.E_ref_end[-1], sv.E_matrix[-1], atol=0, rtol=0)
+
+    elem = line[name]
+    if getattr(elem, 'rot_and_shift_from_parent', False):
+        source = elem._parent
+        weight = elem.weight
+    else:
+        source = elem
+        weight = 1.0
+
+    expected_end, expected_end_matrix = xt.survey.advance_element(
+        sv['XYZ_elem_start', name],
+        sv['E_elem_start', name],
+        length=source.length * weight,
+        angle=source.angle * weight,
+    )
+    xo.assert_allclose(
+        sv['XYZ_elem_end', name], expected_end, atol=1e-14, rtol=0)
+    xo.assert_allclose(
+        sv['E_elem_end', name], expected_end_matrix, atol=1e-14, rtol=0)
+
+    sv_reverse = sv.reverse()
+    for column in frame_columns:
+        assert column in sv_reverse._col_names
+    xo.assert_allclose(
+        sv_reverse.XYZ_ref_end[:-1],
+        sv_reverse.XYZ_ref_start[1:],
+        atol=0,
+        rtol=0,
+    )
+
+
 @for_all_test_contexts
 @pytest.mark.parametrize(
     'slice_mode',

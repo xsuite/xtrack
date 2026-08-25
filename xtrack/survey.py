@@ -296,6 +296,41 @@ class SurveyTable(Table):
         derived_quantities = _get_survey_quantities_from_v_w(new_V, new_E_matrix)
         new_cols.update(derived_quantities)
 
+        if 'XYZ_ref_start' in self._data:
+            position_pairs = [
+                ('XYZ_ref_start', 'XYZ_ref_end'),
+                ('XYZ_elem_start', 'XYZ_elem_end'),
+            ]
+            orientation_pairs = [
+                ('E_ref_start', 'E_ref_end'),
+                ('E_elem_start', 'E_elem_end'),
+            ]
+
+            for start_name, end_name in position_pairs:
+                reversed_start = self._data[start_name].copy()
+                reversed_end = self._data[end_name].copy()
+                reversed_start[:-1] = self._data[end_name][:-1][::-1]
+                reversed_end[:-1] = self._data[start_name][:-1][::-1]
+                reversed_start[-1] = self.XYZ[0]
+                reversed_end[-1] = self.XYZ[0]
+                reversed_start[:, (0, 2)] *= -1
+                reversed_end[:, (0, 2)] *= -1
+                new_cols[start_name] = reversed_start
+                new_cols[end_name] = reversed_end
+
+            for start_name, end_name in orientation_pairs:
+                reversed_start = self._data[start_name].copy()
+                reversed_end = self._data[end_name].copy()
+                reversed_start[:-1] = self._data[end_name][:-1][::-1]
+                reversed_end[:-1] = self._data[start_name][:-1][::-1]
+                reversed_start[-1] = self.E_matrix[0]
+                reversed_end[-1] = self.E_matrix[0]
+                for reversed_matrix in (reversed_start, reversed_end):
+                    reversed_matrix[:, (0, 2), :] *= -1
+                    reversed_matrix[:, :, (0, 2)] *= -1
+                new_cols[start_name] = reversed_start
+                new_cols[end_name] = reversed_end
+
         out = SurveyTable(
             data        = (new_cols | {'element0': self.element0}),
             col_names   = new_cols.keys())
@@ -389,7 +424,8 @@ class SurveyTable(Table):
 def survey_from_line(
         line,
         X0=0, Y0=0, Z0=0, theta0=0, phi0=0, psi0=0,
-        element0=0, values_at_element_exit=False, reverse=False):
+        element0=0, values_at_element_exit=False, reverse=False,
+        include_element_frames=False):
     """Execute SURVEY command. Based on MAD-X equivalent.
     Attributes, must be given in this order in the dictionary:
     X0        (float)    Initial X position in meters.
@@ -436,6 +472,15 @@ def survey_from_line(
 
     out_columns = derived_quantities
     out_scalars = {}
+
+    if include_element_frames:
+        from .misalignment_survey import get_element_frame_columns
+
+        out_columns.update(get_element_frame_columns(
+            elements=line._elements,
+            XYZ=V,
+            E_matrix=E_matrix,
+        ))
 
     # element properties
     out_columns["name"]             = tt.name
