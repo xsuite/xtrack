@@ -331,6 +331,12 @@ class SurveyTable(Table):
                 new_cols[start_name] = reversed_start
                 new_cols[end_name] = reversed_end
 
+            for frame_name in (
+                    'ref_start', 'ref_end', 'elem_start', 'elem_end'):
+                XYZ_frame = new_cols[f'XYZ_{frame_name}']
+                for ii, coordinate in enumerate('XYZ'):
+                    new_cols[f'{coordinate}_{frame_name}'] = XYZ_frame[:, ii]
+
         out = SurveyTable(
             data        = (new_cols | {'element0': self.element0}),
             col_names   = new_cols.keys())

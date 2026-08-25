@@ -271,6 +271,60 @@ class RBend(_BendCommon, BeamElement):
             out += 1 / self.h * (cos_theta_out - sqrt_mid)
         return out
 
+    def _survey_ref_start_to_body_start(self, XYZ, E):
+        from ..survey import advance_element
+
+        XYZ, E = advance_element(XYZ, E, angle=self._angle_in)
+        return advance_element(XYZ, E, ref_shift_x=-self._x0_in)
+
+    def _survey_ref_end_to_body_end(self, XYZ, E):
+        from ..survey import advance_element
+
+        XYZ, E = advance_element(XYZ, E, angle=-self._angle_out)
+        return advance_element(XYZ, E, ref_shift_x=-self._x0_out)
+
+    def _survey_start_end_elem(
+            self,
+            XYZ_ref_start,
+            E_ref_start,
+            XYZ_ref_end,
+            E_ref_end,
+    ):
+        """Return the entrance and exit frames of the rectangular body."""
+        from ..misalignment_survey import get_misaligned_element_survey
+
+        out = get_misaligned_element_survey(
+            self,
+            XYZ_ref_start,
+            E_ref_start,
+            XYZ_ref_end,
+            E_ref_end,
+        )
+
+        if self.rbend_model != 'straight-body':
+            return out
+
+        (
+            XYZ_elem_start,
+            E_elem_start,
+            XYZ_elem_end,
+            E_elem_end,
+        ) = out
+
+        # Move from the curved reference-trajectory frames to the straight
+        # magnet-body frames. The outer element misalignment has already been
+        # applied, therefore these rotations and shifts are in the element's
+        # local frame and need no additional tilt.
+        XYZ_elem_start, E_elem_start = (
+            self._survey_ref_start_to_body_start(
+                XYZ_elem_start, E_elem_start)
+        )
+        XYZ_elem_end, E_elem_end = self._survey_ref_end_to_body_end(
+            XYZ_elem_end, E_elem_end,
+        )
+
+        return XYZ_elem_start, E_elem_start, XYZ_elem_end, E_elem_end
+
     @property
     def radiation_flag(self): return 0.0
 

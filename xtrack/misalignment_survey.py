@@ -510,7 +510,12 @@ def get_misaligned_element_survey(
 
 
 def get_element_frame_columns(elements, XYZ, E_matrix):
-    """Build aligned-reference and physical-element frame survey columns."""
+    """Build aligned-reference and physical-element frame survey columns.
+
+    Elements can override the generic misalignment-based frame calculation by
+    exposing ``_survey_start_end_elem(XYZ_ref_start, E_ref_start,
+    XYZ_ref_end, E_ref_end)``.
+    """
     XYZ_ref_start = np.array(XYZ).copy()
     E_ref_start = np.array(E_matrix).copy()
 
@@ -527,20 +532,32 @@ def get_element_frame_columns(elements, XYZ, E_matrix):
     E_elem_end = E_ref_end.copy()
 
     for ii, elem in enumerate(elements):
+        survey_start_end_elem = getattr(
+            elem, '_survey_start_end_elem', None)
+        if survey_start_end_elem is None:
+            element_frames = get_misaligned_element_survey(
+                elem,
+                XYZ_ref_start[ii],
+                E_ref_start[ii],
+                XYZ_ref_end[ii],
+                E_ref_end[ii],
+            )
+        else:
+            element_frames = survey_start_end_elem(
+                XYZ_ref_start[ii],
+                E_ref_start[ii],
+                XYZ_ref_end[ii],
+                E_ref_end[ii],
+            )
+
         (
             XYZ_elem_start[ii],
             E_elem_start[ii],
             XYZ_elem_end[ii],
             E_elem_end[ii],
-        ) = get_misaligned_element_survey(
-            elem,
-            XYZ_ref_start[ii],
-            E_ref_start[ii],
-            XYZ_ref_end[ii],
-            E_ref_end[ii],
-        )
+        ) = element_frames
 
-    return {
+    out = {
         'XYZ_ref_start': XYZ_ref_start,
         'E_ref_start': E_ref_start,
         'XYZ_ref_end': XYZ_ref_end,
@@ -550,3 +567,11 @@ def get_element_frame_columns(elements, XYZ, E_matrix):
         'XYZ_elem_end': XYZ_elem_end,
         'E_elem_end': E_elem_end,
     }
+
+    for frame_name in (
+            'ref_start', 'ref_end', 'elem_start', 'elem_end'):
+        XYZ_frame = out[f'XYZ_{frame_name}']
+        for ii, coordinate in enumerate('XYZ'):
+            out[f'{coordinate}_{frame_name}'] = XYZ_frame[:, ii]
+
+    return out

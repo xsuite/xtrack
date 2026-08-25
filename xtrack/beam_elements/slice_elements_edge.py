@@ -312,6 +312,43 @@ class ThinSliceRBendEntry(_ThinSliceEdgeBase, BeamElement):
         else:
             return Marker(_buffer=self._buffer)
 
+    def _survey_start_end_elem(
+            self,
+            XYZ_ref_start,
+            E_ref_start,
+            XYZ_ref_end,
+            E_ref_end,
+    ):
+        from ..misalignment_survey import get_misaligned_element_survey
+
+        (
+            XYZ_elem_start,
+            E_elem_start,
+            XYZ_elem_end,
+            E_elem_end,
+        ) = get_misaligned_element_survey(
+            self,
+            XYZ_ref_start,
+            E_ref_start,
+            XYZ_ref_end,
+            E_ref_end,
+        )
+        if self._parent.rbend_model != 'straight-body':
+            return (
+                XYZ_elem_start,
+                E_elem_start,
+                XYZ_elem_end,
+                E_elem_end,
+            )
+
+        # The reference survey already applies the RBend entry map between
+        # XYZ_ref_start and XYZ_ref_end. Therefore the generic physical exit
+        # frame is the body-side frame; applying the parent entry transform
+        # here would move it a second time.
+        XYZ_body = XYZ_elem_end
+        E_body = E_elem_end
+        return XYZ_body, E_body, XYZ_body.copy(), E_body.copy()
+
     def _propagate_survey(self, v, w, backtrack):
 
         if self._parent.rbend_model == "straight-body":
@@ -403,6 +440,41 @@ class ThinSliceRBendExit(_ThinSliceEdgeBase, BeamElement):
             )
         else:
             return Marker(_buffer=self._buffer)
+
+    def _survey_start_end_elem(
+            self,
+            XYZ_ref_start,
+            E_ref_start,
+            XYZ_ref_end,
+            E_ref_end,
+    ):
+        from ..misalignment_survey import get_misaligned_element_survey
+
+        (
+            XYZ_elem_start,
+            E_elem_start,
+            XYZ_elem_end,
+            E_elem_end,
+        ) = get_misaligned_element_survey(
+            self,
+            XYZ_ref_start,
+            E_ref_start,
+            XYZ_ref_end,
+            E_ref_end,
+        )
+        if self._parent.rbend_model != 'straight-body':
+            return (
+                XYZ_elem_start,
+                E_elem_start,
+                XYZ_elem_end,
+                E_elem_end,
+            )
+
+        # The generic physical entrance frame is already on the body side of
+        # the exit map. Collapse the zero-length edge slice onto that frame.
+        XYZ_body = XYZ_elem_start
+        E_body = E_elem_start
+        return XYZ_body.copy(), E_body.copy(), XYZ_body, E_body
 
     def _propagate_survey(self, v, w, backtrack):
 

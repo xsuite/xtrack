@@ -22,16 +22,19 @@ sv = line.survey(include_element_frames=True)
 
 XYZ_elem_start = sv.XYZ_elem_start[:-1]
 XYZ_elem_end = sv.XYZ_elem_end[:-1]
+has_extent = np.linalg.norm(XYZ_elem_end - XYZ_elem_start, axis=1) > 1e-14
+X_elem_start = sv.X_elem_start[:-1][has_extent]
+Z_elem_start = sv.Z_elem_start[:-1][has_extent]
+X_elem_end = sv.X_elem_end[:-1][has_extent]
+Z_elem_end = sv.Z_elem_end[:-1][has_extent]
 
 # Separate the elements with NaNs so that matplotlib draws one independent
 # segment from XYZ_elem_start to XYZ_elem_end for each element.
 Z_elem_segments = np.column_stack([
-    XYZ_elem_start[:, 2], XYZ_elem_end[:, 2],
-    np.full(len(XYZ_elem_start), np.nan),
+    Z_elem_start, Z_elem_end, np.full(len(Z_elem_start), np.nan),
 ]).ravel()
 X_elem_segments = np.column_stack([
-    XYZ_elem_start[:, 0], XYZ_elem_end[:, 0],
-    np.full(len(XYZ_elem_start), np.nan),
+    X_elem_start, X_elem_end, np.full(len(X_elem_start), np.nan),
 ]).ravel()
 
 plt.close('all')
