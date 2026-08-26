@@ -1057,6 +1057,16 @@ class TwissTable(Table):
                 out.alfy1 = -out.alfy1
                 out.alfy2 = -out.alfy2
 
+            if 'alfx_edw_teng' in out._col_names:
+                out.alfx_edw_teng = -out.alfx_edw_teng
+                out.alfy_edw_teng = -out.alfy_edw_teng
+
+            if 'f1001' in out._col_names:
+                out.f1001 = np.conj(out.f1001)
+                out.f1010 = np.conj(out.f1010)
+                out.f0110 = np.conj(out.f0110)
+                out.f0101 = np.conj(out.f0101)
+
             out.W_matrix[:, 0, :] = -out.W_matrix[:, 0, :]
             out.W_matrix[:, 1, :] = out.W_matrix[:, 1, :]
             out.W_matrix[:, 2, :] = out.W_matrix[:, 2, :]
@@ -1103,8 +1113,6 @@ class TwissTable(Table):
             out.pop('r12_edw_teng')
             out.pop('r21_edw_teng')
             out.pop('r22_edw_teng')
-            out.pop('f1010')
-            out.pop('f1001')
 
         out._data['reference_frame'] = {
             'proper': 'reverse', 'reverse': 'proper'}[self.reference_frame]

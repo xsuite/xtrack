@@ -1681,6 +1681,8 @@ def test_solenoid_against_madx_cpymad(test_context, ks, ksi, length):
     ml = MadLoader(mad.sequence.ss, allow_thick=True)
     line_thick = ml.make_line()
     line_thick.build_tracker(_context=test_context)
+    # Compare the map itself also for particles outside the safety aperture.
+    line_thick.tracker.track_flags.XS_FLAG_IGNORE_GLOBAL_APERTURE = True
     line_thick.configure_drift_model('exact')  # to be consistent with madx
 
     for ii in range(len(p0.x)):
@@ -1758,6 +1760,8 @@ def test_solenoid_against_madx_native(test_context, ks, ksi, length):
 
     line_thick.configure_drift_model('exact')  # to be consistent with madx
     line_thick.build_tracker(_context=test_context)
+    # Compare the map itself also for particles outside the safety aperture.
+    line_thick.tracker.track_flags.XS_FLAG_IGNORE_GLOBAL_APERTURE = True
 
     mad = Madx(stdout=False)
     mad.input(mad_src)

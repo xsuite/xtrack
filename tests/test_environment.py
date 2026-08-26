@@ -10,6 +10,26 @@ from pathlib import Path
 
 test_data_folder = Path(__file__).parent.joinpath('../test_data').absolute()
 
+
+def test_env_elements_table_length():
+
+    env = xt.Environment()
+    env.new('d', 'Drift', length=52.0)
+    env.new('thin_multipole', 'Multipole', length=3.0, isthick=False)
+    line = env.new_line(components=['d'])
+
+    env.new('m', 'Marker')
+    line.insert('m', at=26.0, with_progress=False)
+
+    tt_elements = env.elements.get_table()
+    tt_slices = tt_elements.rows.match(
+        element_type='DriftSlice')
+
+    assert np.all(tt_slices.name == ['d..0', 'd..1'])
+    xo.assert_allclose(tt_slices.length, [26.0, 26.0])
+    assert tt_elements['length', 'thin_multipole'] == 3.0
+
+
 @pytest.mark.parametrize('container_type', ['env', 'line'])
 def test_vars_and_element_access_modes(container_type):
 

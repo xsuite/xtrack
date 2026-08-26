@@ -233,6 +233,9 @@ def test_misalign_vs_madng(angle, tilt):
         ),
     ])
     p_xt = p0.copy()
+    line.build_tracker()
+    # This test isolates the map and can use transformed coordinates above 1 m.
+    line.tracker.track_flags.XS_FLAG_IGNORE_GLOBAL_APERTURE = True
     line.track(p_xt)
 
     # MAD-NG
@@ -390,6 +393,8 @@ def test_misalign_dedicated_vs_beam_element(test_context, element_type):
     ])
     p_ref = p0.copy()
     line_ref.build_tracker(_context=test_context)
+    # This test isolates the map and can use transformed coordinates above 1 m.
+    line_ref.tracker.track_flags.XS_FLAG_IGNORE_GLOBAL_APERTURE = True
     line_ref.track(p_ref)
 
     p_test = p0.copy()
@@ -405,6 +410,7 @@ def test_misalign_dedicated_vs_beam_element(test_context, element_type):
 
     line_test = xt.Line(elements=[transformed_element])
     line_test.build_tracker(_context=test_context)
+    line_test.tracker.track_flags.XS_FLAG_IGNORE_GLOBAL_APERTURE = True
     line_test.track(p_test)
 
     xo.assert_allclose(p_ref.x, p_test.x, atol=1e-15, rtol=1e-15)
