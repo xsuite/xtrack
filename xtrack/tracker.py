@@ -312,6 +312,14 @@ class Tracker:
                 self.time_last_track = None
             return out
 
+        if not isinstance(self._context, xo.ContextCpu):
+            tpsa_enabled = self.line.attr['_tpsa_enabled']
+            if np.any(tpsa_enabled):
+                raise RuntimeError(
+                    'TPSA-enabled elements are not supported on GPU contexts. '
+                    'Disable TPSA on the line before tracking on a GPU.'
+                )
+
         assert self.iscollective in (True, False)
         if (self.iscollective or self.line.enable_time_dependent_vars
             or 'log' in kwargs and kwargs['log'] is not None):

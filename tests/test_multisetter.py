@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 import xtrack as xt
 from xobjects.test_helpers import for_all_test_contexts
@@ -60,6 +61,26 @@ def test_custom_setter_scalar(test_context):
     assert line['qf1'].length == 10.
     assert line['qf2'].length == 100.
     assert line['qf3'].length == 1000.
+
+
+@for_all_test_contexts
+def test_multisetter_int8_tpsa_enabled(test_context):
+    line = xt.Line(
+        elements={
+            'qf1': xt.Quadrupole(length=0.1, k1=1.0),
+            'qf2': xt.Quadrupole(length=0.2, k1=1.0),
+        },
+        element_names=['qf1', 'qf2'],
+    )
+    line.build_tracker(_context=test_context, compile=False)
+
+    flags = xt.MultiSetter(
+        line, ['qf1', 'qf2'], field='_tpsa_enabled', dtype=np.int8)
+    ctx2np = test_context.nparray_from_context_array
+    assert np.array_equal(ctx2np(flags.get_values()), [0, 0])
+    assert np.array_equal(line.attr['_tpsa_enabled'], [0.0, 0.0])
+    with pytest.raises(NotImplementedError, match="int8"):
+        flags.set_values(np.array([1, 0], dtype=np.int8))
 
 
 @for_all_test_contexts

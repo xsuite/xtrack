@@ -1761,6 +1761,13 @@ class Line:
 
         return self.tracker._tracker_data_base.cache['attr']
 
+    def disable_tpsa_elements(self):
+        """Convert all TPSA-enabled elements in the line back to scalar storage."""
+        tpsa_enabled = self.attr['_tpsa_enabled']
+        for element_name, enabled in zip(self.element_names, tpsa_enabled):
+            if enabled:
+                self[element_name].disable_tpsa()
+
     @doc_group("Reference Particle and Particle Generation")
     def set_particle_ref(self, *args, **kwargs):
         """
@@ -7230,6 +7237,7 @@ class Line:
                 '_own_harmonic': AttrDefinition(name='harmonic'),
 
                 '_own_radiation_flag': AttrDefinition(name='radiation_flag', dtype=np.int64),
+                '_tpsa_enabled': AttrDefinition(name='_tpsa_enabled', dtype=np.int8),
 
                 '_own_ks': AttrDefinition(name='ks'),
                 '_own_ks_profile_0': AttrDefinition(name='ks_profile', index=0),

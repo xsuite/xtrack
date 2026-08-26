@@ -299,6 +299,19 @@ def test_scalar_track_tpsa_enabled_element_uses_const_part():
     )
 
 
+def test_line_disable_tpsa_elements():
+    line = _line(k1=0.125)
+    descriptor = madng_tpsa.Descriptor(6, 1, num_params=1, param_order=1)
+    line["q"].k1 = descriptor.param(1, 0.125)
+
+    assert np.array_equal(line.attr['_tpsa_enabled'], [0, 0, 1, 0, 0, 0])
+
+    line.disable_tpsa_elements()
+
+    assert np.array_equal(line.attr['_tpsa_enabled'], np.zeros(6))
+    assert line["q"].k1 == 0.125
+
+
 def test_build_tracker_preserves_tpsa_enabled_elements_moved_to_common_buffer():
     ctx = xo.ContextCpu()
     buffer_a = ctx.new_buffer(capacity=1024)
