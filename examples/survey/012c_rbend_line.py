@@ -15,11 +15,11 @@ env.new('bend_1', 'RBend', length_straight=2,
         shift_x=0.5)
 env.new('bend_2', 'RBend', length_straight=2,
         angle=-0.2, # This dipole bends the reference frame
-        rot_s_rad = np.deg2rad(15),
+        # rot_s_rad = np.deg2rad(15),
         rbend_model='straight-body',
         rbend_compensate_sagitta=True,
-        rot_shift_anchor=1., # shift defined in the middle
-        rot_y_rad=np.deg2rad(10)
+        # rot_shift_anchor=1., # shift defined in the middle
+        # rot_y_rad=np.deg2rad(10)
 )
 env.new('translation', 'Translation')
 env.new('rotation', 'Rotation')
@@ -55,21 +55,55 @@ line_no_jumps.remove('rotation')
 sv_no_jumps = line_no_jumps.survey(include_element_frames=True)
 
 name_elem = 'bend_2'
-E_start_ref = sv_no_jumps['E_ref_start', name_elem]
-XYZ_start_ref = sv_no_jumps['XYZ_ref_start', name_elem]
-E_end_ref = sv_no_jumps['E_ref_end', name_elem]
-XYZ_end_ref = sv_no_jumps['XYZ_ref_end', name_elem]
 
-mat = np.eye(4)
-mat[:3, :3] = E_start_ref
-mat[:3, 3] = XYZ_start_ref
-mad_point = MADPoint(src=mat)
-angs = mad_point.get_theta_phi_psi()
-mad_point.rpsi(env[name_elem].rot_s_rad)
-mad_point.rtheta(-env[name_elem].angle/2)
+p_mat_elem_start = np.eye(4)
+p_mat_elem_start[:3, :3] = sv['E_elem_start', name_elem]
+p_mat_elem_start[:3, 3] = sv['XYZ_elem_start', name_elem]
 
-es = XYZ_end_ref - XYZ_start_ref
-es = es / np.linalg.norm(es, ord=2)
+p_ref_start_no_jumps = np.eye(4)
+p_ref_start_no_jumps[:3, :3] = sv_no_jumps['E_ref_start', name_elem]
+p_ref_start_no_jumps[:3, 3] = sv_no_jumps['XYZ_ref_start', name_elem]
+
+M_transform = np.linalg.inv(p_ref_start_no_jumps) @ p_mat_elem_start
+
+theta = np.arctan2(M_transform[0, 2], M_transform[2, 2])
+phi = np.arctan2(M_transform[1, 2], np.sqrt(M_transform[1, 0]**2 + M_transform[1, 1]**2))
+psi = np.arctan2(M_transform[1, 0], M_transform[1, 1])
+dx = M_transform[0, 3]
+dy = M_transform[1, 3]
+ds = M_transform[2, 3]
+
+env.new(name_elem + '_no_jumps', name_elem)
+env[name_elem + '_no_jumps'].rot_shift_anchor = 0. # Define the entrance
+env[name_elem + '_no_jumps'].rot_y_rad = theta
+env[name_elem + '_no_jumps'].rot_x_rad = phi
+env[name_elem + '_no_jumps'].rot_s_rad = env[name_elem].rot_s_rad
+env[name_elem + '_no_jumps'].rot_s_rad_no_frame = psi - env[name_elem].rot_s_rad
+env[name_elem + '_no_jumps'].shift_x = dx
+env[name_elem + '_no_jumps'].shift_y = dy
+env[name_elem + '_no_jumps'].shift_s = ds
+
+line_no_jumps.replace(name_elem, name_elem + '_no_jumps')
+
+sv_no_jumps_2 = line_no_jumps.survey(include_element_frames=True)
+
+
+
+# E_start_ref = sv_no_jumps['E_ref_start', name_elem]
+# XYZ_start_ref = sv_no_jumps['XYZ_ref_start', name_elem]
+# E_end_ref = sv_no_jumps['E_ref_end', name_elem]
+# XYZ_end_ref = sv_no_jumps['XYZ_ref_end', name_elem]
+
+# mat = np.eye(4)
+# mat[:3, :3] = E_start_ref
+# mat[:3, 3] = XYZ_start_ref
+# mad_point = MADPoint(src=mat)
+# angs = mad_point.get_theta_phi_psi()
+# mad_point.rpsi(env[name_elem].rot_s_rad)
+# mad_point.rtheta(-env[name_elem].angle/2)
+
+# es = XYZ_end_ref - XYZ_start_ref
+# es = es / np.linalg.norm(es, ord=2)
 
 elems_to_plot = ['bend_1', 'bend_2']
 
