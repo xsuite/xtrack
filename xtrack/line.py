@@ -2798,9 +2798,10 @@ class Line:
         With ``include_element_frames=True``, the table also contains
         ``XYZ_ref_start``, ``E_ref_start``, ``XYZ_ref_end``, ``E_ref_end``,
         ``XYZ_elem_start``, ``E_elem_start``, ``XYZ_elem_end``, and
-        ``E_elem_end``. Each ``XYZ_*`` column is also exposed as three scalar
-        coordinate columns, for example ``X_elem_start``, ``Y_elem_start``,
-        and ``Z_elem_start``.
+        ``E_elem_end``. The ``E_rst_start`` and ``E_rst_end`` matrices contain
+        the intentional element frames with columns ordered R, S, T. Each
+        ``XYZ_*`` column is also exposed as three scalar coordinate columns,
+        for example ``X_elem_start``, ``Y_elem_start``, and ``Z_elem_start``.
 
         Examples
         --------

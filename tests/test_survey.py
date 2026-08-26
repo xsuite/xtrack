@@ -47,6 +47,8 @@ def test_survey_include_element_frames(angle, sliced):
         'E_elem_start',
         'XYZ_elem_end',
         'E_elem_end',
+        'E_rst_start',
+        'E_rst_end',
     ]
     position_frames = [
         'ref_start',
@@ -72,6 +74,8 @@ def test_survey_include_element_frames(angle, sliced):
     n_rows = len(sv.name)
     assert sv.XYZ_ref_start.shape == (n_rows, 3)
     assert sv.E_ref_start.shape == (n_rows, 3, 3)
+    assert sv.E_rst_start.shape == (n_rows, 3, 3)
+    assert sv.E_rst_end.shape == (n_rows, 3, 3)
 
     xo.assert_allclose(sv.XYZ_ref_start, sv.XYZ, atol=0, rtol=0)
     xo.assert_allclose(sv.E_ref_start, sv.E_matrix, atol=0, rtol=0)
@@ -82,6 +86,63 @@ def test_survey_include_element_frames(angle, sliced):
     xo.assert_allclose(
         sv.E_ref_end[-1], sv.E_matrix[-1], atol=0, rtol=0)
 
+    if sliced:
+        source = line[name]._parent
+        weight = line[name].weight
+    else:
+        source = line[name]
+        weight = 1.0
+
+    cos_s = np.cos(source.rot_s_rad)
+    sin_s = np.sin(source.rot_s_rad)
+    rotation_s = np.array([
+        [cos_s, -sin_s, 0.0],
+        [sin_s, cos_s, 0.0],
+        [0.0, 0.0, 1.0],
+    ])
+    angle_slice = source.angle * weight
+    expected_rst = []
+    for E_ref, half_angle in (
+            (sv['E_ref_start', name], angle_slice / 2),
+            (sv['E_ref_end', name], -angle_slice / 2)):
+        cos_y = np.cos(half_angle)
+        sin_y = np.sin(half_angle)
+        rotation_y = np.array([
+            [cos_y, 0.0, -sin_y],
+            [0.0, 1.0, 0.0],
+            [sin_y, 0.0, cos_y],
+        ])
+        E_tilted = E_ref @ rotation_s
+        et = E_tilted[:, 1]
+        es = (E_tilted @ rotation_y)[:, 2]
+        er = np.cross(es, et)
+        expected_rst.append(np.column_stack((er, es, et)))
+
+    xo.assert_allclose(
+        sv['E_rst_start', name], expected_rst[0], atol=1e-14, rtol=0)
+    xo.assert_allclose(
+        sv['E_rst_end', name], expected_rst[1], atol=1e-14, rtol=0)
+    xo.assert_allclose(
+        sv['E_rst_start', name][:, 0],
+        np.cross(
+            sv['E_rst_start', name][:, 1],
+            sv['E_rst_start', name][:, 2],
+        ),
+        atol=1e-14,
+        rtol=0,
+    )
+    xo.assert_allclose(
+        np.linalg.det(sv['E_rst_start', name]), 1.0, atol=1e-14, rtol=0)
+
+    chord = (
+        sv['XYZ_ref_end', name] - sv['XYZ_ref_start', name]
+    )
+    chord /= np.linalg.norm(chord)
+    xo.assert_allclose(
+        sv['E_rst_start', name][:, 1], chord, atol=1e-14, rtol=0)
+    xo.assert_allclose(
+        sv['E_rst_end', name][:, 1], chord, atol=1e-14, rtol=0)
+
     for frame in position_frames:
         XYZ_frame = sv[f'XYZ_{frame}']
         for ii, coordinate in enumerate('XYZ'):
@@ -91,7 +152,6 @@ def test_survey_include_element_frames(angle, sliced):
                 atol=0,
                 rtol=0,
             )
-
     elem = line[name]
     if getattr(elem, 'rot_and_shift_from_parent', False):
         source = elem._parent
@@ -129,6 +189,30 @@ def test_survey_include_element_frames(angle, sliced):
                 atol=0,
                 rtol=0,
             )
+    for rst_column in ('E_rst_start', 'E_rst_end'):
+        E_rst = sv_reverse[rst_column]
+        xo.assert_allclose(
+            E_rst[:, :, 0],
+            np.cross(E_rst[:, :, 1], E_rst[:, :, 2]),
+            atol=1e-14,
+            rtol=0,
+        )
+    reverse_chords = sv_reverse.XYZ_ref_end - sv_reverse.XYZ_ref_start
+    reverse_chord_lengths = np.linalg.norm(reverse_chords, axis=1)
+    has_chord = reverse_chord_lengths > 0
+    reverse_chords[has_chord] /= reverse_chord_lengths[has_chord, None]
+    xo.assert_allclose(
+        sv_reverse.E_rst_start[has_chord, :, 1],
+        reverse_chords[has_chord],
+        atol=1e-14,
+        rtol=0,
+    )
+    xo.assert_allclose(
+        sv_reverse.E_rst_end[has_chord, :, 1],
+        reverse_chords[has_chord],
+        atol=1e-14,
+        rtol=0,
+    )
 
 
 def test_survey_element_frame_hook(monkeypatch):

@@ -509,6 +509,47 @@ def get_misaligned_element_survey(
     return XYZ_elem_start, E_elem_start, XYZ_elem_end, E_elem_end
 
 
+def _get_rst_frame(E_ref, rot_s_rad, chord_rotation_rad):
+    cos_s = np.cos(rot_s_rad)
+    sin_s = np.sin(rot_s_rad)
+    rotation_s = np.array([
+        [cos_s, -sin_s, 0.0],
+        [sin_s, cos_s, 0.0],
+        [0.0, 0.0, 1.0],
+    ])
+    E_tilted = E_ref @ rotation_s
+
+    cos_y = np.cos(chord_rotation_rad)
+    sin_y = np.sin(chord_rotation_rad)
+    rotation_y = np.array([
+        [cos_y, 0.0, -sin_y],
+        [0.0, 1.0, 0.0],
+        [sin_y, 0.0, cos_y],
+    ])
+    E_chord = E_tilted @ rotation_y
+
+    et = E_tilted[:, 1]
+    es = E_chord[:, 2]
+    er = np.cross(es, et)
+
+    # The columns are ordered R, S, T. With er = es x et, this ordering is
+    # right-handed.
+    return np.column_stack((er, es, et))
+
+
+def _get_angle_and_tilt(elem):
+    if getattr(elem, 'rot_and_shift_from_parent', False):
+        source = elem._parent
+        weight = elem.weight
+    else:
+        source = elem
+        weight = 1.0
+
+    angle = getattr(source, 'angle', 0.0) * weight
+    rot_s_rad = getattr(source, 'rot_s_rad', 0.0)
+    return angle, rot_s_rad
+
+
 def get_element_frame_columns(elements, XYZ, E_matrix):
     """Build aligned-reference and physical-element frame survey columns.
 
@@ -531,7 +572,19 @@ def get_element_frame_columns(elements, XYZ, E_matrix):
     XYZ_elem_end = XYZ_ref_end.copy()
     E_elem_end = E_ref_end.copy()
 
+    E_rst_start = np.empty_like(E_ref_start)
+    E_rst_end = np.empty_like(E_ref_end)
+    for ii in range(len(E_ref_start)):
+        E_rst_start[ii] = _get_rst_frame(E_ref_start[ii], 0.0, 0.0)
+        E_rst_end[ii] = _get_rst_frame(E_ref_end[ii], 0.0, 0.0)
+
     for ii, elem in enumerate(elements):
+        angle, rot_s_rad = _get_angle_and_tilt(elem)
+        E_rst_start[ii] = _get_rst_frame(
+            E_ref_start[ii], rot_s_rad, angle / 2)
+        E_rst_end[ii] = _get_rst_frame(
+            E_ref_end[ii], rot_s_rad, -angle / 2)
+
         survey_start_end_elem = getattr(
             elem, '_survey_start_end_elem', None)
         if survey_start_end_elem is None:
@@ -566,6 +619,8 @@ def get_element_frame_columns(elements, XYZ, E_matrix):
         'E_elem_start': E_elem_start,
         'XYZ_elem_end': XYZ_elem_end,
         'E_elem_end': E_elem_end,
+        'E_rst_start': E_rst_start,
+        'E_rst_end': E_rst_end,
     }
 
     for frame_name in (
