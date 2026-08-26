@@ -6,6 +6,8 @@ env.set_particle_ref('proton', p0c=400e9)
 
 line1 = env.new_line(length=15, components=[
     env.new('q1', 'Bend', length=2, angle=0.2, k1=0.1, at=5,
+            rot_s_rad=np.deg2rad(30),
+            rot_s_rad_no_frame=np.deg2rad(10),
             shift_x=0.3, rot_y_rad=np.deg2rad(10)),
 ])
 
@@ -13,8 +15,9 @@ sv1 = line1.survey(include_element_frames=True)
 
 line2 = env.new_line(length=15, components=[
     env.new('translation', 'Translation', at=2, shift_x=0.4),
-    env.new('q2', 'Bend', length=2, angle=0.2, k1=0.1, at=5,
-            shift_x=-0.1)
+    env.new('rotation', 'Rotation', at=2,
+            rot_y_rad=np.deg2rad(15), rot_x_rad=np.deg2rad(20), rot_s_rad=np.deg2rad(30)),
+    env.new('q2', 'Bend', length=2, angle=0.2, k1=0.1, at=5)
 ])
 
 sv2 = line2.survey(include_element_frames=True)
