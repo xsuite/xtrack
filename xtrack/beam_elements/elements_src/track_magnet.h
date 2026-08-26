@@ -178,7 +178,8 @@ void track_magnet_body_single_particle(
         }
     #endif
 
-    if (num_multipole_kicks == 0 && k0_kick == 0 && k1_kick == 0 && h_kick == 0) { //only drift
+    if (num_multipole_kicks == 0 && xt_num_truncate_to_double(k0_kick) == 0
+            && xt_num_truncate_to_double(k1_kick) == 0 && h_kick == 0) { //only drift
         WITH_RADIATION(length,
             MAGNET_DRIFT(part, length);
         )

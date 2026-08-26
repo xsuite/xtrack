@@ -7,6 +7,10 @@
 
 #include "xtrack/headers/track.h"
 
+#ifdef XTRACK_TPSA_TRACK
+#include <tuple>
+#endif
+
 #define IS_ZERO(X) (fabs(X) < 1e-9)
 
 GPUFUN
@@ -111,15 +115,19 @@ void track_expanded_combined_dipole_quad_single_particle(
 
     const xt_num_t Kx = k0 * h + k1;
     const xt_num_t Ky = -k1;
+    const double Kx0 = xt_num_truncate_to_double(Kx);
+    const double Ky0 = xt_num_truncate_to_double(Ky);
 
     xt_num_t Sx = 0.0, Sy = 0.0, Cx = 0.0, Cy = 0.0;
 
-    if (Kx > 0.0) {
+#ifndef XTRACK_TPSA_TRACK
+    /* Scalar path */
+    if (Kx0 > 0.0) {
         xt_num_t sqrt_Kx = sqrt(Kx);
         Sx = sin(sqrt_Kx * length) / sqrt_Kx;
         Cx = cos(sqrt_Kx * length);
     }
-    else if (Kx < 0.0) {
+    else if (Kx0 < 0.0) {
         xt_num_t sqrt_Kx = sqrt(-Kx); // the imaginary part
         Sx = sinh(sqrt_Kx * length) / sqrt_Kx; // sin(ix) = i sinh(x)
         Cx = cosh(sqrt_Kx * length); // cos(ix) = cosh(x)
@@ -129,12 +137,12 @@ void track_expanded_combined_dipole_quad_single_particle(
         Cx = 1.0;
     }
 
-    if (Ky > 0.0) {
+    if (Ky0 > 0.0) {
         xt_num_t sqrt_Ky = sqrt(Ky);
         Sy = sin(sqrt_Ky * length) / sqrt_Ky;
         Cy = cos(sqrt_Ky * length);
     }
-    else if (Ky < 0.0) {
+    else if (Ky0 < 0.0) {
         xt_num_t sqrt_Ky = sqrt(-Ky); // the imaginary part
         Sy = sinh(sqrt_Ky * length) / sqrt_Ky; // sin(ix) = i sinh(x)
         Cy = cosh(sqrt_Ky * length);  // cos(ix) = cosh(x)
@@ -143,8 +151,22 @@ void track_expanded_combined_dipole_quad_single_particle(
         Sy = length;
         Cy = 1.0;
     }
+#else
+    /* TPSA path */
+    const xt_num_t Kx_length_sq = Kx * POW2(length);
+    // Sx := sinc(sqrt(Kx * length ^ 2)); Cx := cos(sqrt(Kx * length ^ 2)):
+    std::tie(Sx, Cx) = mad::sincosq(Kx_length_sq);
 
-    // useful quantities
+    Sx *= length; // sin(sqrt(Kx) * length) / sqrt(Kx)
+
+    const xt_num_t minus_Ky_length_sq = -Ky * POW2(length);
+    // Sy := sinhc(sqrt(-Ky * length ^ 2)); Cy := cosh(sqrt(-Ky * length ^ 2)):
+    std::tie(Sy, Cy) = mad::sincoshq(minus_Ky_length_sq);
+
+    Sy *= length; // sinh(sqrt(-Ky) * length) / sqrt(-Ky)
+#endif
+
+    /* Useful quantities */
     const xt_num_t xp = px / delta_plus_1;
     const xt_num_t yp = py / delta_plus_1;
     const xt_num_t A = -Kx * x - k0 + h;
@@ -152,50 +174,98 @@ void track_expanded_combined_dipole_quad_single_particle(
     const xt_num_t C = -Ky * y;
     const xt_num_t D = yp;
 
-    // transverse map
+    /* Transverse map */
     xt_num_t x_ = x * Cx + xp * Sx;
     const xt_num_t y_ = y * Cy + yp * Sy;
     const xt_num_t px_ = (A * Sx + B * Cx) * delta_plus_1;
     const xt_num_t py_ = (C * Sy + D * Cy) * delta_plus_1;
 
+#ifndef XTRACK_TPSA_TRACK
+    /* Scalar path */
     if (NONZERO(Kx))
         x_ = x_ + (k0 - h) * (Cx - 1.0) / Kx;
     else
         x_ = x_ - (k0 - h) * 0.5 * POW2(length);
+#else
+    /* TPSA path */
+    xt_num_t sincmq_Kx_length_sq = 0.0, cosmq_Kx_length_sq = 0.0;
 
-    // longitudinal map
+    // sincmq_Kx_length_sq := (sinc(sqrt(Kx_length_sq)) - 1) / Kx_length_sq;
+    // cosmq_Kx_length_sq := (cos(sqrt(Kx_length_sq)) - 1) / Kx_length_sq:
+    std::tie(sincmq_Kx_length_sq, cosmq_Kx_length_sq) = mad::sincosmq(Kx_length_sq);
+
+    // Cx_minus_one_over_Kx := (Cx - 1) / Kx
+    const xt_num_t Cx_minus_one_over_Kx = POW2(length) * cosmq_Kx_length_sq;
+    x_ = x_ + (k0 - h) * Cx_minus_one_over_Kx;
+#endif
+
+    /* Longitudinal map */
     xt_num_t length_ = length; // will be the total path length traveled by the particle
-    if (NONZERO(Kx)) {
-        length_ -= (h * ((Cx - 1.0) * xp + Sx * A + length * (k0 - h))) / Kx;
+    if (NONZERO(Kx0) || TPSA_TRACKING_BOOL)
+    {
+        #ifndef XTRACK_TPSA_TRACK
+            const xt_num_t Cx_minus_one_over_Kx = (Cx - 1.0) / Kx;
+            const xt_num_t length_minus_Sx_over_Kx = (length - Sx) / Kx;
+            const xt_num_t one_minus_Cx_sq_over_Kx = (1.0 - POW2(Cx)) / Kx;
+        #else
+            const xt_num_t length_minus_Sx_over_Kx = -POW3(length) * sincmq_Kx_length_sq;
+            const xt_num_t one_minus_Cx_sq_over_Kx = -Cx_minus_one_over_Kx * (1.0 + Cx);
+        #endif
+
+        // (length - Cx * Sx) / Kx = (length - Sx) / Kx - Sx * (Cx - 1) / Kx.
+        const xt_num_t length_minus_Cx_Sx_over_Kx = (
+            length_minus_Sx_over_Kx - Sx * Cx_minus_one_over_Kx);
+        length_ -= h * (
+            Cx_minus_one_over_Kx * xp - Sx * x
+            + (k0 - h) * length_minus_Sx_over_Kx);
         length_ += 0.5 * (
-            - (POW2(A) * Cx * Sx) / (2.0 * Kx) \
-            + (POW2(B) * Cx * Sx) / 2.0 \
-            + (POW2(A) * length) / (2.0 * Kx) \
-            + (POW2(B) * length) / 2.0 \
-            - (A * B * POW2(Cx)) / Kx \
-            + (A * B) / Kx
-        );
+            POW2(A) * length_minus_Cx_Sx_over_Kx / 2.0
+            + POW2(B) * (Cx * Sx + length) / 2.0
+            + A * B * one_minus_Cx_sq_over_Kx);
     }
     else {
+        /* Kx is zero and not TPSA */
         length_ += h * length * (
             3.0 * length * xp \
             + 6.0 * x \
             - (k0 - h) * POW2(length)
         ) / 6.0;
-        length_ += 0.5 * (POW2(B)) * length;
+
+        length_ += 0.5 * POW2(B) * length;
     }
 
-    if (NONZERO(Ky)) {
+    if (NONZERO(Ky0) || TPSA_TRACKING_BOOL)
+    {
+        #ifndef XTRACK_TPSA_TRACK
+            const xt_num_t Cy_minus_one_over_Ky = (Cy - 1.0) / Ky;
+            const xt_num_t length_minus_Sy_over_Ky = (length - Sy) / Ky;
+            const xt_num_t one_minus_Cy_sq_over_Ky = (1.0 - POW2(Cy)) / Ky;
+        #else
+            xt_num_t sinhcmq_minus_Ky_length_sq = 0.0, coshcmq_minus_Ky_length_sq = 0.0;
+
+            // sinhcmq_minus_Ky_length_sq := (sinhc(sqrt(-Ky * length ^ 2)) - 1) / (-Ky * length ^ 2).
+            // coshcmq_minus_Ky_length_sq := (cosh(sqrt(-Ky * length ^ 2)) - 1) / (-Ky * length ^ 2).
+            std::tie(
+                sinhcmq_minus_Ky_length_sq,
+                coshcmq_minus_Ky_length_sq
+            ) = mad::sincoshmq(minus_Ky_length_sq);
+
+            const xt_num_t Cy_minus_one_over_Ky = -POW2(length) * coshcmq_minus_Ky_length_sq;
+            const xt_num_t length_minus_Sy_over_Ky = POW3(length) * sinhcmq_minus_Ky_length_sq;
+            const xt_num_t one_minus_Cy_sq_over_Ky = -Cy_minus_one_over_Ky * (1.0 + Cy);
+        #endif
+
+        // (length - Cy * Sy) / Ky = (length - Sy) / Ky - Sy * (Cy - 1) / Ky.
+        const xt_num_t length_minus_Cy_Sy_over_Ky = (
+            length_minus_Sy_over_Ky - Sy * Cy_minus_one_over_Ky);
+
         length_ += 0.5 * (
-            - (POW2(C) * Cy * Sy) / (2.0 * Ky) \
-            + (POW2(D) * Cy * Sy) / 2.0 \
-            + (POW2(C) * length) / (2.0 * Ky) \
-            + (POW2(D) * length) / 2.0 \
-            - (C * D * POW2(Cy)) / Ky \
-            + (C * D) / Ky
-        );
+            POW2(C) * length_minus_Cy_Sy_over_Ky / 2.0
+            + POW2(D) * (Cy * Sy + length) / 2.0
+            + C * D * one_minus_Cy_sq_over_Ky);
     }
     else {
+        /* Ky is zero and not TPSA */
         length_ += 0.5 * POW2(D) * length;
     }
 
@@ -207,7 +277,6 @@ void track_expanded_combined_dipole_quad_single_particle(
     LocalParticle_set_py(part, py_);
     LocalParticle_add_to_zeta(part, dzeta);
     LocalParticle_add_to_s(part, length);
-
 }
 
 // OLD IMPLEMENTATION

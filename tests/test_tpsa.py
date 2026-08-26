@@ -6,6 +6,7 @@ import xobjects as xo
 import madng_tpsa
 import xtrack as xt
 import xtrack.tpsa as xtpsa
+from xobjects.test_helpers import allow_kernel_compilation
 
 from xtrack._temp import lhc_match as lm
 from xtrack.tpsa._knobs import KnobParameters
@@ -72,14 +73,26 @@ def _map(order=1, descriptor=None):
     )
 
 
+@allow_kernel_compilation
 def test_tpsa_tracking_error_marks_particle_lost():
-    line = xt.Line(elements=[xt.Rotation(rot_x_rad=0.1)])
-    line.particle_ref = xt.Particles(p0c=7e12, mass0=xt.PROTON_MASS_EV)
-    line.build_tracker()
-    particles = xtpsa.ParticlesTpsa(
-        order=1, x=0.0, px=1.0, y=0.0, py=0.0, zeta=0.0, delta=0.0,
-        p0c=7e12, mass0=xt.PROTON_MASS_EV,
-    )
+    class IllegalTpsaOperation(xt.BeamElement):
+        _extra_c_sources = [r"""
+            #include "xtrack/headers/track.h"
+
+            GPUFUN
+            void IllegalTpsaOperation_track_local_particle(
+                    IllegalTpsaOperationData el, LocalParticle* part0) {
+                START_PER_PARTICLE_BLOCK(part0, part)
+                    xt_num_t zero = 0.0;
+                    LocalParticle_set_x(part, sqrt(zero));
+                END_PER_PARTICLE_BLOCK;
+            }
+        """]
+
+    line = xt.Line(elements=[IllegalTpsaOperation()])
+    line.particle_ref = xt.Particles(p0c=P0C, mass0=MASS0)
+    line.build_tracker(compile=False)
+    particles = _map()
 
     with pytest.raises(RuntimeError, match="TPSA map lost"):
         line.track(particles)
@@ -87,17 +100,48 @@ def test_tpsa_tracking_error_marks_particle_lost():
     assert particles._xobject.state == -50
 
 
-def test_tpsa_element_tracking_error_marks_particle_lost():
-    element = xt.Rotation(rot_x_rad=0.1)
-    particles = xtpsa.ParticlesTpsa(
-        order=1, x=0.0, px=1.0, y=0.0, py=0.0, zeta=0.0, delta=0.0,
-        p0c=7e12, mass0=xt.PROTON_MASS_EV,
-    )
+def test_tpsa_quadrupole_zero_strength_parameter_map():
+    length = 2.0
+    quadrupole = xt.Quadrupole(length=length, k1=0.0)
+    line = xt.Line(elements=[quadrupole])
+    line.particle_ref = xt.Particles(p0c=7e12, mass0=xt.PROTON_MASS_EV)
+    descriptor = madng_tpsa.Descriptor(6, 1, num_params=1, param_order=1)
+    quadrupole.k1 = descriptor.param(1, 0.0)
+    line.build_tracker(compile=False)
+    particles = _map(descriptor=descriptor)
+    x0 = particles.const_part[0]
+    px0 = particles.const_part[1]
 
-    with pytest.raises(RuntimeError, match="TPSA map lost"):
-        element.track(particles)
+    line.track(particles)
 
-    assert particles._xobject.state == -50
+    # Expand the thick-quadrupole map about k1 = 0:
+    # cos(sqrt(k1)L) = 1 - k1 L^2 / 2 and sinc(sqrt(k1)L) = 1 - k1 L^2 / 6.
+    assert particles.sensitivity("x", 0) == pytest.approx(
+        -0.5 * length**2 * x0 - length**3 * px0 / 6.0)
+    assert particles.sensitivity("px", 0) == pytest.approx(
+        -length * x0 - 0.5 * length**2 * px0)
+    assert particles.sensitivity("zeta", 0) == pytest.approx(
+        0.5 * length**2 * x0 * px0 + length**3 * px0**2 / 6.0)
+
+
+def test_tpsa_quadrupole_zero_strength_parameter_element_track():
+    length = 2.0
+    element = xt.Quadrupole(length=length, k1=0.0)
+    line = xt.Line(elements=[element])
+    descriptor = madng_tpsa.Descriptor(6, 1, num_params=1, param_order=1)
+    element.k1 = descriptor.param(1, 0.0)
+    particles = _map(descriptor=descriptor)
+    x0 = particles.const_part[0]
+    px0 = particles.const_part[1]
+
+    element.track(particles)
+
+    assert particles.sensitivity("x", 0) == pytest.approx(
+        -0.5 * length**2 * x0 - length**3 * px0 / 6.0)
+    assert particles.sensitivity("px", 0) == pytest.approx(
+        -length * x0 - 0.5 * length**2 * px0)
+    assert particles.sensitivity("zeta", 0) == pytest.approx(
+        0.5 * length**2 * x0 * px0 + length**3 * px0**2 / 6.0)
 
 
 def test_particles_tpsa_uses_tracker_tpsa_config():

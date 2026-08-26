@@ -170,18 +170,18 @@ uint8_t kick_is_inactive(
     double h
 ){
     if (h != 0) return 0;
-    if (k0 != 0) return 0;
-    if (k1 != 0) return 0;
-    if (k2 != 0) return 0;
-    if (k3 != 0) return 0;
-    if (k0s != 0) return 0;
-    if (k1s != 0) return 0;
-    if (k2s != 0) return 0;
-    if (k3s != 0) return 0;
+    if (xt_num_truncate_to_double(k0) != 0) return 0;
+    if (xt_num_truncate_to_double(k1) != 0) return 0;
+    if (xt_num_truncate_to_double(k2) != 0) return 0;
+    if (xt_num_truncate_to_double(k3) != 0) return 0;
+    if (xt_num_truncate_to_double(k0s) != 0) return 0;
+    if (xt_num_truncate_to_double(k1s) != 0) return 0;
+    if (xt_num_truncate_to_double(k2s) != 0) return 0;
+    if (xt_num_truncate_to_double(k3s) != 0) return 0;
 
     for (int index = order; index >= 0; index--) {
-        if (knl[index] != 0) return 0;
-        if (ksl[index] != 0) return 0;
+        if (xt_num_truncate_to_double(knl[index]) != 0) return 0;
+        if (xt_num_truncate_to_double(ksl[index]) != 0) return 0;
     }
 
     return 1;

@@ -9,6 +9,7 @@
 #include <math.h>
 #include <stdexcept>
 #include "madng_tpsa.h"
+#include "madng_log.h"
 #include "mad_tpsa.hpp"
 
 namespace xt_tpsa {
@@ -115,19 +116,6 @@ typedef const xt_num_t& xt_num_arg_t;
 static inline double xt_num_truncate_to_double(xt_num_arg_t value){
     return value[0];
 }
-
-// Define relational operators between TPSAs and between TPSAs and scalars.
-#define XT_TPSA_REL(OP) \
-  template<class A> \
-  inline bool operator OP (const mad::tpsa_base<A>& a, double b){ return a[0] OP b; } \
-  template<class A> \
-  inline bool operator OP (double a, const mad::tpsa_base<A>& b){ return a OP b[0]; } \
-  template<class A, class B> \
-  inline bool operator OP (const mad::tpsa_base<A>& a, const mad::tpsa_base<B>& b){ \
-      return a[0] OP b[0]; \
-  }
-XT_TPSA_REL(>) XT_TPSA_REL(<) XT_TPSA_REL(>=) XT_TPSA_REL(<=) XT_TPSA_REL(==) XT_TPSA_REL(!=)
-#undef XT_TPSA_REL
 
 // Decode a scalar FloatOrTpsa slot stored as raw uint64_t bits.
 static inline double xt_float_or_tpsa_bits_to_double(uint64_t bits){

@@ -18,9 +18,11 @@
 #endif /* !defined(_CONCAT) */
 
 #ifdef XTRACK_TPSA_TRACK
+    #define TPSA_TRACKING_BOOL 1
     #include "xtrack/tpsa/headers/xt_tpsa.h"
     #include "xtrack/tpsa/headers/lifted_array.h"
 #else
+    #define TPSA_TRACKING_BOOL 0
     #include "xtrack/tpsa/headers/tpsa_compat.h"
 #endif
 
