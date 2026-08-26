@@ -16,10 +16,11 @@ env.new('bend_1', 'RBend', length_straight=2,
 env.new('bend_2', 'RBend', length_straight=2,
         angle=-0.2, # This dipole bends the reference frame
         # rot_s_rad = np.deg2rad(15),
-        rbend_model='straight-body',
+        # rbend_model='straight-body',
         rbend_compensate_sagitta=True,
-        # rot_shift_anchor=1., # shift defined in the middle
-        # rot_y_rad=np.deg2rad(10)
+        rot_shift_anchor=1., # shift defined in the middle
+        rot_y_rad=np.deg2rad(10),
+        shift_x=0.5
 )
 env.new('translation', 'Translation')
 env.new('rotation', 'Rotation')
@@ -59,13 +60,16 @@ name_elem = 'bend_2'
 XYZ_elem_start = sv['XYZ_elem_start', name_elem]
 E_elem_start = sv['E_elem_start', name_elem]
 
+XYZ_ref_start = sv_no_jumps['XYZ_ref_start', name_elem]
+E_ref_start = sv_no_jumps['E_ref_start', name_elem]
+
 p1_mat_elem_start = np.eye(4)
-p1_mat_elem_start[:3, :3] = sv['E_elem_start', name_elem]
-p1_mat_elem_start[:3, 3] = sv['XYZ_elem_start', name_elem]
+p1_mat_elem_start[:3, :3] = E_elem_start
+p1_mat_elem_start[:3, 3] = XYZ_elem_start
 
 p2_mat_ref_start = np.eye(4)
-p2_mat_ref_start[:3, :3] = sv_no_jumps['E_ref_start', name_elem]
-p2_mat_ref_start[:3, 3] = sv_no_jumps['XYZ_ref_start', name_elem]
+p2_mat_ref_start[:3, :3] = E_ref_start
+p2_mat_ref_start[:3, 3] = XYZ_ref_start
 
 A = np.linalg.inv(p2_mat_ref_start) @ p1_mat_elem_start
 theta = np.arctan2(A[0, 2], A[2, 2])
@@ -77,6 +81,7 @@ ds = A[2, 3]
 
 env.new(name_elem + '_no_jumps', name_elem)
 env[name_elem + '_no_jumps'].rot_shift_anchor = 0. # Define the entrance
+env[name_elem + '_no_jumps'].rbend_model = 'curved-body'
 env[name_elem + '_no_jumps'].rot_y_rad = theta
 env[name_elem + '_no_jumps'].rot_x_rad = phi
 env[name_elem + '_no_jumps'].rot_s_rad = env[name_elem].rot_s_rad
@@ -84,6 +89,7 @@ env[name_elem + '_no_jumps'].rot_s_rad_no_frame = psi - env[name_elem].rot_s_rad
 env[name_elem + '_no_jumps'].shift_x = dx
 env[name_elem + '_no_jumps'].shift_y = dy
 env[name_elem + '_no_jumps'].shift_s = ds
+
 
 line_no_jumps.replace(name_elem, name_elem + '_no_jumps')
 
@@ -107,7 +113,7 @@ sv_no_jumps_2 = line_no_jumps.survey(include_element_frames=True)
 # es = XYZ_end_ref - XYZ_start_ref
 # es = es / np.linalg.norm(es, ord=2)
 
-elems_to_plot = ['bend_1', 'bend_2']
+elems_to_plot = ['bend_2']
 
 import matplotlib.pyplot as plt
 plt.close('all')
@@ -119,6 +125,9 @@ for nn in elems_to_plot:
     plt.plot([sv['Z_elem_start', nn], sv['Z_elem_end', nn]],
              [sv['X_elem_start', nn], sv['X_elem_end', nn]],
              'x--', label=nn)
+    plt.plot([sv_no_jumps_2['Z_elem_start', nn+'_no_jumps'], sv_no_jumps_2['Z_elem_end', nn+'_no_jumps']],
+             [sv_no_jumps_2['X_elem_start', nn+'_no_jumps'], sv_no_jumps_2['X_elem_end', nn+'_no_jumps']],
+             '.--', label=nn + ' no jumps')
 
 plt.xlabel('Z [m]')
 plt.ylabel('X [m]')
