@@ -1,10 +1,53 @@
+from attr import dataclass
+
 import xtrack as xt
 import numpy as np
 from ldbpoint import MADPoint
 
+@dataclass
+class Misalignment:
+    dtheta: float
+    dphi: float
+    dpsi: float
+    dx: float
+    dy: float
+    ds: float
+
+    def apply_to_element(self, element):
+        if hasattr(element, 'rbend_model') and element.rbend_model == 'straight-body':
+            raise ValueError('straight-body rbends not yet supported for misalignment application')
+        element.rot_shift_anchor = 0. # Defined at the entrance
+        element.rot_y_rad = self.dtheta
+        element.rot_x_rad = self.dphi
+        element.rot_s_rad_no_frame = self.dpsi - element.rot_s_rad
+        element.shift_x = self.dx
+        element.shift_y = self.dy
+        element.shift_s = self.ds
+
+
+def misalignment_from_absolute_position(XYZ_elem_start, E_elem_start,
+                                        XYZ_ref_start, E_ref_start):
+
+    p1_mat_elem_start = np.eye(4)
+    p1_mat_elem_start[:3, :3] = E_elem_start
+    p1_mat_elem_start[:3, 3] = XYZ_elem_start
+
+    p2_mat_ref_start = np.eye(4)
+    p2_mat_ref_start[:3, :3] = E_ref_start
+    p2_mat_ref_start[:3, 3] = XYZ_ref_start
+
+    A = np.linalg.inv(p2_mat_ref_start) @ p1_mat_elem_start
+    theta = np.arctan2(A[0, 2], A[2, 2])
+    phi = np.arctan2(A[1, 2], np.sqrt(A[1, 0]**2 + A[1, 1]**2))
+    psi = np.arctan2(A[1, 0], A[1, 1])
+    dx = A[0, 3]
+    dy = A[1, 3]
+    ds = A[2, 3]
+
+    return Misalignment(dtheta=theta, dphi=phi, dpsi=psi, dx=dx, dy=dy, ds=ds)
+
 env = xt.Environment()
 env.set_particle_ref('proton', p0c=400e9)
-
 
 env.new('bend_1', 'RBend', length_straight=2,
         angle=0., # This dipole does not bend the reference frame
@@ -49,69 +92,32 @@ sv = line.survey(include_element_frames=True)
 sv_sliced = line_sliced.survey()
 
 # Make a fictitious line without jumps to have continuous reference frame for plotting
-line_no_jumps = line.copy(shallow=True)
+line_no_jumps = line.copy(shallow=False)
 line_no_jumps.remove('translation')
 line_no_jumps.remove('rotation')
 
-sv_no_jumps = line_no_jumps.survey(include_element_frames=True)
+sv_smooth_no_misalign = line_no_jumps.survey(include_element_frames=True)
 
 name_elem = 'bend_2'
 
+# Absolute position and orientation of the element start in the real line (with jumps)
 XYZ_elem_start = sv['XYZ_elem_start', name_elem]
 E_elem_start = sv['E_elem_start', name_elem]
 
-XYZ_ref_start = sv_no_jumps['XYZ_ref_start', name_elem]
-E_ref_start = sv_no_jumps['E_ref_start', name_elem]
+# Absolute position of the reference point in the smooth line (without jumps)
+XYZ_ref_start = sv_smooth_no_misalign['XYZ_ref_start', name_elem]
+E_ref_start = sv_smooth_no_misalign['E_ref_start', name_elem]
 
-p1_mat_elem_start = np.eye(4)
-p1_mat_elem_start[:3, :3] = E_elem_start
-p1_mat_elem_start[:3, 3] = XYZ_elem_start
+# Compute the misalignment of the element with respect to the smooth reference frame
+misalignment = misalignment_from_absolute_position(XYZ_elem_start, E_elem_start,
+                                               XYZ_ref_start, E_ref_start)
 
-p2_mat_ref_start = np.eye(4)
-p2_mat_ref_start[:3, :3] = E_ref_start
-p2_mat_ref_start[:3, 3] = XYZ_ref_start
-
-A = np.linalg.inv(p2_mat_ref_start) @ p1_mat_elem_start
-theta = np.arctan2(A[0, 2], A[2, 2])
-phi = np.arctan2(A[1, 2], np.sqrt(A[1, 0]**2 + A[1, 1]**2))
-psi = np.arctan2(A[1, 0], A[1, 1])
-dx = A[0, 3]
-dy = A[1, 3]
-ds = A[2, 3]
-
-env.new(name_elem + '_no_jumps', name_elem)
-env[name_elem + '_no_jumps'].rot_shift_anchor = 0. # Define the entrance
-env[name_elem + '_no_jumps'].rbend_model = 'curved-body'
-env[name_elem + '_no_jumps'].rot_y_rad = theta
-env[name_elem + '_no_jumps'].rot_x_rad = phi
-env[name_elem + '_no_jumps'].rot_s_rad = env[name_elem].rot_s_rad
-env[name_elem + '_no_jumps'].rot_s_rad_no_frame = psi - env[name_elem].rot_s_rad
-env[name_elem + '_no_jumps'].shift_x = dx
-env[name_elem + '_no_jumps'].shift_y = dy
-env[name_elem + '_no_jumps'].shift_s = ds
+# Apply the misalignment to the element in the smooth line
+misalignment.apply_to_element(line_no_jumps[name_elem])
 
 
-line_no_jumps.replace(name_elem, name_elem + '_no_jumps')
+sv_smooth = line_no_jumps.survey(include_element_frames=True)
 
-sv_no_jumps_2 = line_no_jumps.survey(include_element_frames=True)
-
-
-
-# E_start_ref = sv_no_jumps['E_ref_start', name_elem]
-# XYZ_start_ref = sv_no_jumps['XYZ_ref_start', name_elem]
-# E_end_ref = sv_no_jumps['E_ref_end', name_elem]
-# XYZ_end_ref = sv_no_jumps['XYZ_ref_end', name_elem]
-
-# mat = np.eye(4)
-# mat[:3, :3] = E_start_ref
-# mat[:3, 3] = XYZ_start_ref
-# mad_point = MADPoint(src=mat)
-# angs = mad_point.get_theta_phi_psi()
-# mad_point.rpsi(env[name_elem].rot_s_rad)
-# mad_point.rtheta(-env[name_elem].angle/2)
-
-# es = XYZ_end_ref - XYZ_start_ref
-# es = es / np.linalg.norm(es, ord=2)
 
 elems_to_plot = ['bend_2']
 
@@ -119,14 +125,14 @@ import matplotlib.pyplot as plt
 plt.close('all')
 plt.figure(1)
 plt.plot(sv_sliced.Z, sv_sliced.X, '.-', label='survey')
-plt.plot(sv_no_jumps.Z, sv_no_jumps.X, 'o--', label='survey no jumps')
+plt.plot(sv_smooth.Z, sv_smooth.X, 'o--', label='survey no jumps')
 
 for nn in elems_to_plot:
     plt.plot([sv['Z_elem_start', nn], sv['Z_elem_end', nn]],
              [sv['X_elem_start', nn], sv['X_elem_end', nn]],
              'x--', label=nn)
-    plt.plot([sv_no_jumps_2['Z_elem_start', nn+'_no_jumps'], sv_no_jumps_2['Z_elem_end', nn+'_no_jumps']],
-             [sv_no_jumps_2['X_elem_start', nn+'_no_jumps'], sv_no_jumps_2['X_elem_end', nn+'_no_jumps']],
+    plt.plot([sv_smooth['Z_elem_start', nn], sv_smooth['Z_elem_end', nn]],
+             [sv_smooth['X_elem_start', nn], sv_smooth['X_elem_end', nn]],
              '.--', label=nn + ' no jumps')
 
 plt.xlabel('Z [m]')
