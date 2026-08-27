@@ -274,14 +274,22 @@ class RBend(_BendCommon, BeamElement):
     def _survey_ref_start_to_body_start(self, XYZ, E):
         from ..survey import advance_element
 
-        XYZ, E = advance_element(XYZ, E, angle=self._angle_in)
-        return advance_element(XYZ, E, ref_shift_x=-self._x0_in)
+        if self.rbend_model == 'straight-body':
+            XYZ, E = advance_element(XYZ, E, angle=self._angle_in)
+            return advance_element(XYZ, E, ref_shift_x=-self._x0_in)
+        else:
+            XYZ, E = advance_element(XYZ, E, angle=self.angle/2)
+            return XYZ, E
 
     def _survey_ref_end_to_body_end(self, XYZ, E):
         from ..survey import advance_element
 
-        XYZ, E = advance_element(XYZ, E, angle=-self._angle_out)
-        return advance_element(XYZ, E, ref_shift_x=-self._x0_out)
+        if self.rbend_model == 'straight-body':
+            XYZ, E = advance_element(XYZ, E, angle=-self._angle_out)
+            return advance_element(XYZ, E, ref_shift_x=-self._x0_out)
+        else:
+            XYZ, E = advance_element(XYZ, E, angle=-self.angle/2)
+            return XYZ, E
 
     def _survey_start_end_elem(
             self,
@@ -301,8 +309,8 @@ class RBend(_BendCommon, BeamElement):
             E_ref_end,
         )
 
-        if self.rbend_model != 'straight-body':
-            return out
+        # if self.rbend_model != 'straight-body':
+        #     return out
 
         (
             XYZ_elem_start,
