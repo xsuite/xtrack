@@ -30,11 +30,22 @@ class Misalignment:
         element.shift_s = self.ds
 
 
-def misalignment_from_absolute_position(XYZ_elem_start, E_elem_start,
-                                        XYZ_ref_start, E_ref_start):
+def misalignment_from_absolute_position(
+        XYZ_elem_start, E_elem_start, XYZ_ref_start, E_ref_start,
+        rbend_angle=None):
+    """Infer MAD-X misalignments from absolute entrance position and frame.
+
+    For an RBend, ``rbend_angle`` applies the half-angle transformation from
+    its entrance frame to the frame used by the MAD-X misalignment convention.
+    """
     p_mat_elem_start = np.eye(4)
     p_mat_elem_start[:3, :3] = E_elem_start
     p_mat_elem_start[:3, 3] = XYZ_elem_start
+
+    if rbend_angle is not None:
+        mp_elem_start = MADPoint(p_mat_elem_start)
+        mp_elem_start.rtheta(rbend_angle / 2)
+        p_mat_elem_start = mp_elem_start.matrix
 
     p_mat_ref_start = np.eye(4)
     p_mat_ref_start[:3, :3] = E_ref_start

@@ -2,7 +2,6 @@ import xtrack as xt
 import xobjects as xo
 import numpy as np
 
-from ldbpoint import MADPoint
 from survey_utils import (
     misalignment_from_absolute_position,
     plot_exy,
@@ -121,30 +120,12 @@ offset_end_rst[~supports_misalignment] = 0.0
 for elem_name in elements_to_process:
     ee_nj = line_no_jumps[elem_name]
 
-    XYZ_elem_start = sv['XYZ_elem_start', elem_name]
-    E_elem_start = sv['E_elem_start', elem_name]
-
-    XYZ_nj_ref_start = sv0_nj['XYZ_ref_start', elem_name]
-    E_nj_ref_start = sv0_nj['E_ref_start', elem_name]
-
-    p_mat_elem_start = np.eye(4)
-    p_mat_elem_start[:3, :3] = E_elem_start
-    p_mat_elem_start[:3, 3] = XYZ_elem_start
-
-    if isinstance(ee_nj, xt.RBend):
-        mp_elem_start = MADPoint(p_mat_elem_start)
-        mp_elem_start.rtheta(ee_nj.angle/2)
-        E_elem_start_rot = mp_elem_start.matrix[:3, :3]
-        XYZ_elem_start_rot = mp_elem_start.matrix[:3, 3]
-    else:
-        E_elem_start_rot = E_elem_start
-        XYZ_elem_start_rot = XYZ_elem_start
-
     misalignment = misalignment_from_absolute_position(
-        XYZ_elem_start=XYZ_elem_start_rot,
-        E_elem_start=E_elem_start_rot,
-        XYZ_ref_start=XYZ_nj_ref_start,
-        E_ref_start=E_nj_ref_start
+        XYZ_elem_start=sv['XYZ_elem_start', elem_name],
+        E_elem_start=sv['E_elem_start', elem_name],
+        XYZ_ref_start=sv0_nj['XYZ_ref_start', elem_name],
+        E_ref_start=sv0_nj['E_ref_start', elem_name],
+        rbend_angle=(ee_nj.angle if isinstance(ee_nj, xt.RBend) else None),
     )
 
     misalignment.apply_to_element(ee_nj)
