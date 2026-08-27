@@ -9,6 +9,8 @@ from survey_utils import (
     plot_exz,
 )
 
+elements_to_process = ['bend_2', 'bend_3']
+
 env = xt.Environment()
 env.set_particle_ref('proton', p0c=400e9)
 
@@ -33,8 +35,8 @@ env.new('bend_3', 'RBend', length_straight=2,
         # rbend_model='straight-body',
         rbend_compensate_sagitta=True,
         rot_shift_anchor=1., # shift defined in the middle
-        rot_y_rad=np.deg2rad(10),
-        shift_x=0.5
+        rot_y_rad=np.deg2rad(-20),
+        shift_x=-0.1
 )
 env.new('translation', 'Translation')
 env.new('rotation', 'Rotation')
@@ -54,58 +56,54 @@ env['rotation'].rot_y_rad = np.asin(tw0['px', 'rotation'])
 
 sv = line.survey(include_element_frames=True)
 
-elem_name = 'bend_2'
-
 line_no_jumps = line.copy(shallow=False)
 
 line_no_jumps['translation'].shift_x = 0
 line_no_jumps['rotation'].rot_y_rad = 0
 
-ee_nj = line_no_jumps[elem_name]
 
-ee_nj.rbend_model = 'curved-body'
-ee_nj.rot_x_rad = 0
-ee_nj.rot_y_rad = 0
-ee_nj.rot_s_rad_no_frame = 0
-ee_nj.shift_x = 0
-ee_nj.shift_y = 0
-ee_nj.shift_z = 0
-ee_nj.rot_shift_anchor = 0
+for elem_name in elements_to_process:
+    ee_nj = line_no_jumps[elem_name]
 
-sv0_nj = line_no_jumps.survey(include_element_frames=True)
+    ee_nj.rbend_model = 'curved-body'
+    ee_nj.rot_x_rad = 0
+    ee_nj.rot_y_rad = 0
+    ee_nj.rot_s_rad_no_frame = 0
+    ee_nj.shift_x = 0
+    ee_nj.shift_y = 0
+    ee_nj.shift_z = 0
+    ee_nj.rot_shift_anchor = 0
+
+    sv0_nj = line_no_jumps.survey(include_element_frames=True)
+
+    XYZ_elem_start = sv['XYZ_elem_start', elem_name]
+    E_elem_start = sv['E_elem_start', elem_name]
+    XYZ_elem_end = sv['XYZ_elem_end', elem_name]
+    E_elem_end = sv['E_elem_end', elem_name]
+
+    XYZ_nj_ref_start = sv0_nj['XYZ_ref_start', elem_name]
+    E_nj_ref_start = sv0_nj['E_ref_start', elem_name]
+
+    p_mat_elem_start = np.eye(4)
+    p_mat_elem_start[:3, :3] = E_elem_start
+    p_mat_elem_start[:3, 3] = XYZ_elem_start
 
 
-XYZ_elem_start = sv['XYZ_elem_start', elem_name]
-E_elem_start = sv['E_elem_start', elem_name]
-XYZ_elem_end = sv['XYZ_elem_end', elem_name]
-E_elem_end = sv['E_elem_end', elem_name]
+    mp_elem_start = MADPoint(p_mat_elem_start)
+    mp_elem_start.rtheta(ee_nj.angle/2)
+    E_elem_start_rot = mp_elem_start.matrix[:3, :3]
+    XYZ_elem_start_rot = mp_elem_start.matrix[:3, 3]
 
-XYZ_nj_ref_start = sv0_nj['XYZ_ref_start', elem_name]
-E_nj_ref_start = sv0_nj['E_ref_start', elem_name]
+    misalignment = misalignment_from_absolute_position(
+        XYZ_elem_start=XYZ_elem_start_rot,
+        E_elem_start=E_elem_start_rot,
+        XYZ_ref_start=XYZ_nj_ref_start,
+        E_ref_start=E_nj_ref_start
+    )
 
-p_mat_elem_start = np.eye(4)
-p_mat_elem_start[:3, :3] = E_elem_start
-p_mat_elem_start[:3, 3] = XYZ_elem_start
-
-
-mp_elem_start = MADPoint(p_mat_elem_start)
-mp_elem_start.rtheta(ee_nj.angle/2)
-E_elem_start_rot = mp_elem_start.matrix[:3, :3]
-XYZ_elem_start_rot = mp_elem_start.matrix[:3, 3]
-
-misalignment = misalignment_from_absolute_position(
-    XYZ_elem_start=XYZ_elem_start_rot,
-    E_elem_start=E_elem_start_rot,
-    XYZ_ref_start=XYZ_nj_ref_start,
-    E_ref_start=E_nj_ref_start
-)
-
-misalignment.apply_to_element(ee_nj)
+    misalignment.apply_to_element(ee_nj)
 
 sv_nj = line_no_jumps.survey(include_element_frames=True)
-
-
-
 
 xo.assert_allclose(np.cross(E_elem_start[:, 2], XYZ_elem_end - XYZ_elem_start), 0, atol=1e-12)
 
@@ -117,21 +115,30 @@ plt.figure(1)
 plt.plot(sv.Z, sv.X, '.-', label='survey')
 plt.plot(sv0_nj.Z, sv0_nj.X, '--', label='survey no jumps')
 
-plt.plot([sv['Z_elem_start', elem_name], sv['Z_elem_end', elem_name]],
-            [sv['X_elem_start', elem_name], sv['X_elem_end', elem_name]],
-            'x-',
-            color='g'
-)
-plt.plot([sv0_nj['Z_ref_start', elem_name], sv0_nj['Z_ref_end', elem_name]],
-            [sv0_nj['X_ref_start', elem_name], sv0_nj['X_ref_end', elem_name]],
-            '+--',
-            color='orange'
-)
-plt.plot([sv_nj['Z_elem_start', elem_name], sv_nj['Z_elem_end', elem_name]],
-         [sv_nj['X_elem_start', elem_name], sv_nj['X_elem_end', elem_name]],
-         '.--',
-         color='r'
-)
+for elem_name in elements_to_process:
+    plt.plot([sv['Z_elem_start', elem_name], sv['Z_elem_end', elem_name]],
+                [sv['X_elem_start', elem_name], sv['X_elem_end', elem_name]],
+                'x-',
+                color='g'
+    )
+    plt.plot([sv0_nj['Z_ref_start', elem_name], sv0_nj['Z_ref_end', elem_name]],
+                [sv0_nj['X_ref_start', elem_name], sv0_nj['X_ref_end', elem_name]],
+                '+--',
+                color='orange'
+    )
+    plt.plot([sv_nj['Z_elem_start', elem_name], sv_nj['Z_elem_end', elem_name]],
+             [sv_nj['X_elem_start', elem_name], sv_nj['X_elem_end', elem_name]],
+             '.--',
+             color='r'
+    )
+
+    plot_exz(sv['E_elem_start', elem_name], sv['XYZ_elem_start', elem_name], length=0.5, color='g')
+    plot_exz(sv['E_elem_end', elem_name], sv['XYZ_elem_end', elem_name], length=0.5, color='g')
+    plot_exz(sv0_nj['E_ref_start', elem_name], sv0_nj['XYZ_ref_start', elem_name], length=0.5, color='orange')
+    plot_exz(sv0_nj['E_ref_end', elem_name], sv0_nj['XYZ_ref_end', elem_name], length=0.5, color='orange')
+    plot_exz(sv_nj['E_elem_start', elem_name], sv_nj['XYZ_elem_start', elem_name], length=0.3, color='red')
+    plot_exz(sv_nj['E_elem_end', elem_name], sv_nj['XYZ_elem_end', elem_name], length=0.3, color='red')
+    # plot_exz(E_elem_start_rot, XYZ_elem_start_rot, length=0.5, color='r')
 
 plot_exz(sv['E_elem_start', elem_name], sv['XYZ_elem_start', elem_name], length=0.5, color='g')
 plot_exz(sv['E_elem_end', elem_name], sv['XYZ_elem_end', elem_name], length=0.5, color='g')
@@ -141,16 +148,15 @@ plot_exz(sv_nj['E_elem_start', elem_name], sv_nj['XYZ_elem_start', elem_name], l
 plot_exz(sv_nj['E_elem_end', elem_name], sv_nj['XYZ_elem_end', elem_name], length=0.3, color='red')
 # plot_exz(E_elem_start_rot, XYZ_elem_start_rot, length=0.5, color='r')
 
-
-
 plt.xlabel('Z [m]')
 plt.ylabel('X [m]')
 plt.axis('equal')
 plt.legend()
 
 plt.figure(2)
-plot_exy(sv['E_elem_start', elem_name], sv['XYZ_elem_start', elem_name], length=0.5, color='g')
-plot_exy(sv_nj['E_elem_start', elem_name], sv_nj['XYZ_elem_start', elem_name], length=0.3, color='orange')
+for elem_name in elements_to_process:
+    plot_exy(sv['E_elem_start', elem_name], sv['XYZ_elem_start', elem_name], length=0.5, color='g')
+    plot_exy(sv_nj['E_elem_start', elem_name], sv_nj['XYZ_elem_start', elem_name], length=0.3, color='orange')
 
 plt.xlabel('X [m]')
 plt.ylabel('Y [m]')
