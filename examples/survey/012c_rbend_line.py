@@ -103,19 +103,14 @@ tt_rst = xt.Table({
     'E': np.array(E_rst_start),
 })
 
-displacement_start = sv.XYZ_elem_start - tt_rst.XYZ
-displacement_end = sv.XYZ_elem_end - tt_rst.XYZ
-offset_start_rst = np.einsum(
-    'nij,ni->nj', tt_rst.E, displacement_start)
-offset_end_rst = np.einsum(
-    'nij,ni->nj', tt_rst.E, displacement_end)
-
-supports_misalignment = np.zeros(len(tt_rst), dtype=bool)
+offset_start_rst = np.zeros((len(tt_rst), 3))
+offset_end_rst = np.zeros((len(tt_rst), 3))
 for ii, element in enumerate(line_no_jumps.elements):
-    supports_misalignment[ii] = element.allow_rot_and_shift
-
-offset_start_rst[~supports_misalignment] = 0.0
-offset_end_rst[~supports_misalignment] = 0.0
+    if element.allow_rot_and_shift:
+        displacement_start = sv.XYZ_elem_start[ii] - tt_rst.XYZ[ii]
+        displacement_end = sv.XYZ_elem_end[ii] - tt_rst.XYZ[ii]
+        offset_start_rst[ii] = tt_rst.E[ii].T @ displacement_start
+        offset_end_rst[ii] = tt_rst.E[ii].T @ displacement_end
 
 for elem_name in elements_to_process:
     ee_nj = line_no_jumps[elem_name]
