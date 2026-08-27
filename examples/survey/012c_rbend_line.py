@@ -20,7 +20,8 @@ env.new('bend_1', 'RBend', length_straight=2,
         rbend_compensate_sagitta=False,
         rot_shift_anchor=1., # shift defined in the middle
         shift_x=0.5)
-env.new('bend_2', 'RBend', length_straight=2,
+
+env.new('bend_2', 'Bend', length=2,
         angle=-0.2, # This dipole bends the reference frame
         rot_s_rad = np.deg2rad(15),
         rot_shift_anchor=1., # shift defined in the middle
