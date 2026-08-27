@@ -1005,6 +1005,174 @@ def test_multi_element_monitor_records_parameters():
     knobs.teardown()
 
 
+# MultiElementMonitor recording selected map coefficients instead of full maps
+
+def _coefficient_reference(line, obs_names, monomial, coords, turn=0):
+    """The same coefficients read off the full recorded maps."""
+    ref_map = _offaxis_map(order=2)
+    line.track(ref_map, num_turns=turn + 1, multi_element_monitor_at=obs_names)
+    ref = line.tracker.record_multi_element_last_track
+    return np.array([[ref.map_at(name, turn=turn).coefficient(c, monomial)
+                      for c in coords] for name in obs_names])
+
+
+def test_monitor_monomials_match_the_full_maps():
+    line = _demo_line()
+    obs = ["q", "b", "d2"]
+    monomials = np.array([[1, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 2]], dtype=np.uint8)
+    line.track(_offaxis_map(order=2), multi_element_monitor_at=obs,
+               monitor_monomials=monomials)
+    mon = line.tracker.record_multi_element_last_track
+
+    assert mon.coefficients.shape == (1, len(obs), 2 * len(COORDS))
+    assert mon._map_series is None                  # no full maps allocated
+    for monomial in monomials:
+        monomial = tuple(int(o) for o in monomial)
+        xo.assert_allclose(
+            mon.coefficient(monomial)[0],
+            _coefficient_reference(line, obs, monomial, COORDS),
+            rtol=0, atol=0)
+
+
+def test_monitor_monomials_dict_selects_coordinates():
+    line = _demo_line()
+    obs = ["q", "d2"]
+    monomial = (0, 0, 0, 0, 0, 2)
+    line.track(_offaxis_map(order=2), multi_element_monitor_at=obs,
+               monitor_monomials={monomial: ("x", "zeta")})
+    mon = line.tracker.record_multi_element_last_track
+
+    assert mon.monomial_slots == [(monomial, "x"), (monomial, "zeta")]
+    xo.assert_allclose(mon.coefficient(monomial)[0],
+                       _coefficient_reference(line, obs, monomial, ["x", "zeta"]),
+                       rtol=0, atol=0)
+    with pytest.raises(KeyError, match="was not recorded for"):
+        mon.coefficient(monomial, coord="py")
+
+
+def test_monitor_monomials_axes_and_turns():
+    line = _demo_line()
+    obs = ["q", "b"]
+    monomial = (1, 0, 0, 0, 0, 0)
+    line.track(_offaxis_map(order=2), num_turns=3, multi_element_monitor_at=obs,
+               monitor_monomials={monomial: COORDS})
+    mon = line.tracker.record_multi_element_last_track
+
+    assert mon.coefficient(monomial).shape == (3, 2, 6)
+    assert mon.coefficient(monomial, coord="x").shape == (3, 2)
+    assert mon.coefficient(monomial, coord="x", obs_name="b").shape == (3,)
+    assert np.shape(mon.coefficient(monomial, coord="x", obs_name="b", turn=2)) == ()
+
+    for turn in range(3):
+        xo.assert_allclose(
+            mon.coefficient(monomial)[turn],
+            _coefficient_reference(line, obs, monomial, COORDS, turn=turn),
+            rtol=0, atol=0)
+    with pytest.raises(IndexError, match="not recorded"):
+        mon.coefficient(monomial, turn=3)
+
+
+def test_monitor_monomials_leave_the_tracked_map_untouched():
+    line = _demo_line()
+    m = _offaxis_map(order=2)
+    line.track(m, multi_element_monitor_at=["q"],
+               monitor_monomials=np.array([[1, 0, 0, 0, 0, 0]], dtype=np.uint8))
+    plain = _offaxis_map(order=2)
+    line.track(plain)
+    for c in COORDS:
+        assert m.monomial_coeffs(c) == plain.monomial_coeffs(c)
+
+
+def test_monitor_monomials_rejects_bad_requests():
+    line = _demo_line()
+    monomials = np.array([[1, 0, 0, 0, 0, 0]], dtype=np.uint8)
+    with pytest.raises(ValueError, match="beyond the order"):
+        line.track(_offaxis_map(order=2), multi_element_monitor_at=["q"],
+                   monitor_monomials={(0, 0, 0, 0, 0, 3): "x"})
+    with pytest.raises(ValueError, match="expected length 6"):
+        line.track(_offaxis_map(order=2), multi_element_monitor_at=["q"],
+                   monitor_monomials=np.array([[1, 0, 0, 0, 0]], dtype=np.uint8))
+    with pytest.raises(ValueError, match="not an output coordinate"):
+        line.track(_offaxis_map(order=2), multi_element_monitor_at=["q"],
+                   monitor_monomials={(1, 0, 0, 0, 0, 0): "s"})
+    with pytest.raises(ValueError, match="needs .multi_element_monitor_at."):
+        line.track(_offaxis_map(order=2), monitor_monomials=monomials)
+    with pytest.raises(ValueError, match="needs TPSA tracking"):
+        line.track(_particle(), multi_element_monitor_at=["q"],
+                   monitor_monomials=monomials)
+
+
+def test_monitor_monomials_constant_part_is_the_scalar_particle():
+    """The recorded slot is the same particle, at the same place and turn, as a
+    doubles track through the same monitor."""
+    line = _demo_line()
+    obs = ["q", "b", "d2"]
+    constant = (0,) * len(COORDS)
+
+    p = line.build_particles(**X0)
+    line.track(p, num_turns=3, multi_element_monitor_at=obs)
+    scalar = line.tracker.record_multi_element_last_track
+
+    line.track(_offaxis_map(order=2), num_turns=3, multi_element_monitor_at=obs,
+               monitor_monomials={constant: COORDS})
+    mon = line.tracker.record_multi_element_last_track
+
+    for turn in range(3):
+        for name in obs:
+            recorded = mon.coefficient(constant, obs_name=name, turn=turn)
+            native = [np.ravel(scalar.get(c, name, turn=turn))[0] for c in COORDS]
+            xo.assert_allclose(recorded, native, rtol=0, atol=1e-14)
+            # the monitor's own doubles buffer is written by the same C block from
+            # the same series, but indexed (turn, particle, coord, location)
+            own = [np.ravel(mon.get(c, name, turn=turn))[0] for c in COORDS]
+            xo.assert_allclose(recorded, own, rtol=0, atol=0)
+
+    # a swapped turn or location index cannot pass unnoticed
+    orbit = mon.coefficient(constant, coord="x")
+    assert len(set(orbit.ravel())) == orbit.size
+
+
+def test_monitor_monomials_first_order_matches_scalar_differences():
+    """Order-1 slots are the derivatives of that same scalar particle."""
+    line = _demo_line()
+    obs = ["q", "d2"]
+    monomials = np.eye(len(COORDS), dtype=np.uint8)
+    h = 1e-7
+
+    displaced = {c: [] for c in COORDS}
+    for varied in COORDS:                       # two particles per coordinate
+        for sign in (+1, -1):
+            for c in COORDS:
+                displaced[c].append(X0[c] + sign * h * (c == varied))
+    p = line.build_particles(**{c: np.array(v) for c, v in displaced.items()})
+    line.track(p, num_turns=2, multi_element_monitor_at=obs)
+    scalar = line.tracker.record_multi_element_last_track
+
+    line.track(_offaxis_map(order=2), num_turns=2, multi_element_monitor_at=obs,
+               monitor_monomials=monomials)
+    mon = line.tracker.record_multi_element_last_track
+
+    for turn in range(2):
+        for name in obs:
+            fd = np.zeros((len(COORDS), len(COORDS)))
+            for i, ci in enumerate(COORDS):
+                column = np.ravel(scalar.get(ci, name, turn=turn))
+                for j in range(len(COORDS)):
+                    fd[i, j] = (column[2 * j] - column[2 * j + 1]) / (2 * h)
+            recorded = np.array([mon.coefficient(tuple(int(o) for o in monomial),
+                                                 obs_name=name, turn=turn)
+                                 for monomial in monomials]).T
+            xo.assert_allclose(recorded, fd, rtol=0, atol=1e-8)
+
+
+def test_monitor_full_maps_reject_coefficient():
+    line = _demo_line()
+    line.track(_offaxis_map(order=2), multi_element_monitor_at=["q"])
+    mon = line.tracker.record_multi_element_last_track
+    with pytest.raises(AttributeError, match="holds full TPSA maps"):
+        mon.coefficient((1, 0, 0, 0, 0, 0))
+
+
 # TpsaOptics
 
 def test_optics_round_trip_from_w_matrix():

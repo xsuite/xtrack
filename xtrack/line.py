@@ -1917,6 +1917,7 @@ class Line:
         num_turns=None,    # defaults to 1
         turn_by_turn_monitor=None,
         multi_element_monitor_at=None,
+        monitor_monomials=None,
         freeze_longitudinal=False,
         time=False,
         with_progress=False,
@@ -1956,6 +1957,12 @@ class Line:
             If provided, a multi-element monitor is created and coordinates of the
             trcked particles are recorded at the elements whose names are in the list.
             The recorded data can be retrieved in `line.record_multi_element_last_track`.
+        monitor_monomials: array or dict, optional
+            TPSA tracking only. Record the given map coefficients at the multi-element
+            monitor locations instead of the full maps. Either an `(N, 6 + np)` array
+            of monomials (recorded for all six coordinates) or a mapping
+            `{monomial: coord}` / `{monomial: (coord, ...)}`. Retrieved with
+            `line.record_multi_element_last_track.coefficient(...)`.
         freeze_longitudinal: bool, optional
             If True, the longitudinal coordinates are frozen during tracking.
         time: bool, optional
@@ -1986,6 +1993,7 @@ class Line:
                 time=time,
                 with_progress=with_progress,
                 multi_element_monitor_at=multi_element_monitor_at,
+                monitor_monomials=monitor_monomials,
                 **kwargs)
 
         if not self._has_valid_tracker():
@@ -2020,6 +2028,7 @@ class Line:
             time=time,
             with_progress=with_progress,
             multi_element_monitor_at=multi_element_monitor_at,
+            monitor_monomials=monitor_monomials,
             **kwargs)
 
     @doc_group("Tracking and Analysis")

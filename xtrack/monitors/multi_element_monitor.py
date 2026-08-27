@@ -14,6 +14,10 @@ class MultiElementMonitor(xt.BeamElement):
         'data': xo.Float64[:, :, :, :], # turns, particles, coordinate, location
         # Destinations for the full TPSA maps, empty in scalar tracking
         'map_slots': xo.UInt64[:, :, :], # turns, location, coordinate
+        # Selected map coefficients instead of full map
+        'monomial_indices': xo.Int64[:],  # descriptor coefficient index per slot
+        'coord_indices': xo.Int64[:],     # output coordinate index per slot
+        'coefficients': xo.Float64[:, :, :], # turns, location, slot
     }
 
     behaves_like_drift = True
@@ -33,7 +37,10 @@ class MultiElementMonitor(xt.BeamElement):
                  data,
                  obs_names,
                  map_slots=(0, 0, 0),
+                 monomial_slots=None,
                  **kwargs):
+        num_slots = 0 if monomial_slots is None else len(monomial_slots)
+        num_turns = stop_at_turn - start_at_turn
         super().__init__(start_at_turn=start_at_turn,
                          stop_at_turn=stop_at_turn,
                          part_id_start=part_id_start,
@@ -41,6 +48,9 @@ class MultiElementMonitor(xt.BeamElement):
                          at_element_mapping=at_element_mapping,
                          data=data,
                          map_slots=map_slots,
+                         monomial_indices=num_slots,
+                         coord_indices=num_slots,
+                         coefficients=(num_turns, len(obs_names), num_slots),
                          **kwargs)
         self.obs_names = obs_names
         self._name_to_index = {
@@ -48,6 +58,10 @@ class MultiElementMonitor(xt.BeamElement):
         }
         self._map_series = None  # filled by a ParticlesTpsa track
         self._map_ref_particle = None
+        self.monomial_slots = None
+        if monomial_slots is not None:
+            self.monomial_slots = [(m, c) for m, c, _ in monomial_slots]
+            self._fill_monomial_slots(monomial_slots)
 
     def __len__(self):
         return len(self.obs_names)
@@ -60,13 +74,103 @@ class MultiElementMonitor(xt.BeamElement):
                 raise KeyError(f'{obs_name!r} is not a recorded location') from None
         return obs_name
 
-    def _recorded_maps(self, turn):
+    def _turn_index(self, turn):
+        """Array index of an absolute turn number."""
+        if not self.start_at_turn <= turn < self.stop_at_turn:
+            raise IndexError(
+                f'turn {turn} not recorded, this monitor covers turns '
+                f'[{self.start_at_turn}, {self.stop_at_turn})')
+        return turn - self.start_at_turn
+
+    def _fill_monomial_slots(self, monomial_slots):
+        """Write the C lookup arrays and the slot index, from `parse_monomials`."""
+        self._slot_index = {}
+        for slot, (monomial, coord, coefficient_index) in enumerate(monomial_slots):
+            self.monomial_indices[slot] = coefficient_index
+            self.coord_indices[slot] = self._coord_name_to_index[coord]
+            self._slot_index[monomial, coord] = slot
+
+    @staticmethod
+    def parse_monomials(monomials, descriptor):
+        """Slots `(monomial, coord, coefficient_index)` for one track.
+
+        `monomials` is an `(N, 6+np)` array of monomials, recorded for all six
+        coordinates, or a mapping `{monomial: coord}` / `{monomial: (coord, ...)}`.
+        """
+        from xtrack.tpsa.particles import _COORDS
+
+        if hasattr(monomials, 'items'):
+            requested = list(monomials.items())
+        else:
+            requested = [(monomial, _COORDS) for monomial in np.asarray(monomials)]
+
+        slots = []
+        seen = set()
+        for monomial, coords in requested:
+            monomial = tuple(int(order) for order in np.asarray(monomial).reshape(-1))
+            if len(monomial) != descriptor.monomial_length:
+                raise ValueError(
+                    f'invalid monomial {monomial}: expected length '
+                    f'{descriptor.monomial_length} (6 vars + '
+                    f'{descriptor.num_params} params)')
+            if not descriptor.is_valid_monomial(monomial):
+                raise ValueError(
+                    f'invalid monomial {monomial}: beyond the order or the '
+                    f'parameter order of the descriptor')
+            coefficient_index = descriptor.monomial_index(monomial)
+            if isinstance(coords, str):
+                coords = (coords,)
+            for coord in coords:
+                if coord not in _COORDS:
+                    raise ValueError(
+                        f'{coord!r} is not an output coordinate, expected one '
+                        f'of {list(_COORDS)}')
+                if (monomial, coord) in seen:
+                    raise ValueError(
+                        f'monomial {monomial} requested twice for {coord!r}')
+                seen.add((monomial, coord))
+                slots.append((monomial, coord, coefficient_index))
+        if not slots:
+            raise ValueError('no monomials to record')
+        return slots
+
+    def coefficient(self, monomial, coord=None, obs_name=None, turn=None):
+        """Recorded coefficient(s) of `monomial`, axes `(turns, locations, coords)`.
+
+        An axis is dropped when selected. `turn` is an absolute turn number.
+        """
+        if self.monomial_slots is None:
+            raise AttributeError(
+                'No coefficients recorded, this monitor holds full TPSA maps')
+
+        monomial = tuple(int(order) for order in np.asarray(monomial).reshape(-1))
+        if coord is None:
+            coords = [c for m, c in self.monomial_slots if m == monomial]
+            if not coords:
+                raise KeyError(f'monomial {monomial} was not recorded')
+            slots = [self._slot_index[monomial, c] for c in coords]
+        else:
+            if not isinstance(coord, str):
+                coord = list(self._coord_name_to_index)[coord]
+            try:
+                slots = self._slot_index[monomial, coord]
+            except KeyError:
+                raise KeyError(
+                    f'monomial {monomial} was not recorded for {coord!r}') from None
+
+        turn_index = slice(None) if turn is None else self._turn_index(turn)
+        obs_index = slice(None) if obs_name is None else self._obs_index(obs_name)
+        return np.asarray(self.coefficients)[turn_index, obs_index, slots]
+
+    def _recorded_maps(self, turn=None):
         if self._map_series is None:
             raise AttributeError(
                 'No TPSA maps recorded, this monitor only holds doubles')
-        return self._map_series[turn]
+        if turn is None:
+            turn = self.start_at_turn
+        return self._map_series[self._turn_index(turn)]
 
-    def map_at(self, obs_name, turn=0):
+    def map_at(self, obs_name, turn=None):
         """The full TPSA map recorded at a location, sharing the series."""
         from xtrack.tpsa.particles import ParticlesTpsa
 
@@ -74,7 +178,7 @@ class MultiElementMonitor(xt.BeamElement):
             self._recorded_maps(turn)[self._obs_index(obs_name)],
             self._map_ref_particle)
 
-    def map_jacobian(self, turn=0):
+    def map_jacobian(self, turn=None):
         """Recorded transfer matrices, one per location, `(num_locations, 6, 6)`."""
         return np.array([[series.grad() for series in location]
                          for location in self._recorded_maps(turn)])
@@ -83,8 +187,12 @@ class MultiElementMonitor(xt.BeamElement):
         obs_names_print = (self.obs_names if len(self.obs_names) < 5
                            else list(self.obs_names[:5]) + ['...'])
         obs_names_str = ', '.join(obs_names_print)
+        if self.monomial_slots is None:
+            recorded = ''
+        else:
+            recorded = f', monomial_slots={len(self.monomial_slots)}'
         return (f'MultiElementMonitor('
-                f'obs_names=[{obs_names_str}])')
+                f'obs_names=[{obs_names_str}]{recorded})')
 
     @staticmethod
     def build_map_slots(descriptor, num_locations, num_turns):
@@ -130,7 +238,7 @@ class MultiElementMonitor(xt.BeamElement):
             particle_index = slice(None)
 
         if turn is not None:
-            turn_index = turn - self.start_at_turn
+            turn_index = self._turn_index(turn)
         else:
             turn_index = slice(None)
 
