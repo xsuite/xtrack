@@ -51,7 +51,7 @@ void build_expansion_bent(BentFieldExpansionData el){
     /* a_0(s)=int_0^s b_s(u)du contributes -a_0 to phi_0. 
     CAREFUL: this will neglect the highest order in the polynomial, 
     only up to given degree in a0 is kept */
-    for (int k = 0; k < deg; ++k) c[cidx(0,0,k+1,nm,moff,deg)] = bs[k] / (double)(k + 1);
+    for (int k = 0; k < deg; ++k) c[cidx(0,0,k+1,nm,moff,deg)] = -bs[k] / (double)(k + 1);
     /* phi_0(s) = sum_m c[0,m](s) q^m
     c[0,m] = - sum_(n>=m) (-1)^(n-m) / (h^n m! (n-m)!) a_n(s) */
     for (int m = 0; m <= na; ++m) {
