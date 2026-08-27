@@ -72,6 +72,12 @@ line_no_jumps['rotation'].rot_y_rad = 0
 
 for elem_name in elements_to_process:
     ee_nj = line_no_jumps[elem_name]
+
+    # mad-x style rbend description
+    if hasattr(ee_nj, 'rbend_model'):
+        ee_nj.rbend_model = 'curved-body'
+
+    # clear existing misalignments
     clear_element_misalignments(ee_nj)
 
 sv0_nj = line_no_jumps.survey(include_element_frames=True)
@@ -89,20 +95,21 @@ for ii in range(len(sv0_nj)):
     XYZ_rst_start.append(XYZ_rst)
     E_rst_start.append(E_rst)
 
-tt_rst = xt.Table({
-    'name': sv0_nj.name,
-    'XYZ': np.array(XYZ_rst_start),
-    'E': np.array(E_rst_start),
-})
+sv0_nj['XYZ_rst_start'] = np.array(XYZ_rst_start)
+sv0_nj['E_rst_start'] = np.array(E_rst_start)
 
-offset_start_rst = np.zeros((len(tt_rst), 3))
-offset_end_rst = np.zeros((len(tt_rst), 3))
+offset_start_rst = np.zeros((len(sv0_nj), 3))
+offset_end_rst = np.zeros((len(sv0_nj), 3))
 for ii, element in enumerate(line_no_jumps.elements):
     if element.allow_rot_and_shift:
-        displacement_start = sv.XYZ_elem_start[ii] - tt_rst.XYZ[ii]
-        displacement_end = sv.XYZ_elem_end[ii] - tt_rst.XYZ[ii]
-        offset_start_rst[ii] = tt_rst.E[ii].T @ displacement_start
-        offset_end_rst[ii] = tt_rst.E[ii].T @ displacement_end
+        displacement_start = (
+            sv.XYZ_elem_start[ii] - sv0_nj.XYZ_rst_start[ii])
+        displacement_end = (
+            sv.XYZ_elem_end[ii] - sv0_nj.XYZ_rst_start[ii])
+        offset_start_rst[ii] = (
+            sv0_nj.E_rst_start[ii].T @ displacement_start)
+        offset_end_rst[ii] = (
+            sv0_nj.E_rst_start[ii].T @ displacement_end)
 
 for elem_name in elements_to_process:
     ee_nj = line_no_jumps[elem_name]
@@ -151,7 +158,7 @@ tt_align = xt.Table({
     'bgamma': -tt_nj['rot_s_rad_no_frame'],
 
     # RST unit vectors at element start
-    'E_rst_start': tt_rst.E,
+    'E_rst_start': sv0_nj.E_rst_start,
 })
 
 tt_align.to_tfs('test_align.tfs')
@@ -164,14 +171,14 @@ for ii in range(len(sv0_nj)):
     if chord_length > 0:
         chord /= chord_length
         xo.assert_allclose(
-            tt_rst.E[ii, :, 1], chord, atol=1e-12, rtol=0)
+            sv0_nj.E_rst_start[ii, :, 1], chord, atol=1e-12, rtol=0)
 
 b_E_rst = []
 b_S_rst = []
 element_lengths = []
 for elem_name in elements_to_process:
-    XYZ_rst = tt_rst['XYZ', elem_name]
-    E_rst = tt_rst['E', elem_name]
+    XYZ_rst = sv0_nj['XYZ_rst_start', elem_name]
+    E_rst = sv0_nj['E_rst_start', elem_name]
 
     # E is the entree (element start), S is the sortie (element end).
     displacement_E = sv['XYZ_elem_start', elem_name] - XYZ_rst

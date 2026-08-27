@@ -31,8 +31,6 @@ class Misalignment:
 
 
 def clear_element_misalignments(element):
-    if hasattr(element, 'rbend_model'):
-        element.rbend_model = 'curved-body'
     element.rot_x_rad = 0
     element.rot_y_rad = 0
     element.rot_s_rad_no_frame = 0
