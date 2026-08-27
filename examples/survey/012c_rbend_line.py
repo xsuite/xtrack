@@ -116,8 +116,19 @@ for ii, element in enumerate(line_no_jumps.elements):
                 XYZ_elem_end=sv.XYZ_elem_end[ii],
             )
         )
+sv0_nj['br_start'] = offset_start_rst[:, 0]
+sv0_nj['bs_start'] = offset_start_rst[:, 1]
+sv0_nj['bt_start'] = offset_start_rst[:, 2]
+sv0_nj['br_end'] = offset_end_rst[:, 0]
+sv0_nj['bs_end'] = offset_end_rst[:, 1]
+sv0_nj['bt_end'] = offset_end_rst[:, 2]
 
 # Element displacements with respect to the smooth line as MAD-X style misalignments
+misalignment_data = {
+    column: np.zeros(len(sv0_nj))
+    for column in ('dtheta', 'dphi', 'dpsi', 'dx', 'dy', 'ds')
+}
+misalignments = {}
 for elem_name in elements_to_process:
     ee_nj = line_no_jumps[elem_name]
 
@@ -129,40 +140,49 @@ for elem_name in elements_to_process:
         rbend_angle=(ee_nj.angle if isinstance(ee_nj, xt.RBend) else None),
     )
 
-    misalignment.apply_to_element(ee_nj)
+    ii = sv0_nj.rows.indices[elem_name][0]
+    misalignment_data['dtheta'][ii] = misalignment.dtheta
+    misalignment_data['dphi'][ii] = misalignment.dphi
+    misalignment_data['dpsi'][ii] = (
+        misalignment.dpsi - ee_nj.rot_s_rad)
+    misalignment_data['dx'][ii] = misalignment.dx
+    misalignment_data['dy'][ii] = misalignment.dy
+    misalignment_data['ds'][ii] = misalignment.ds
+    misalignments[elem_name] = misalignment
 
-sv_nj = line_no_jumps.survey(include_element_frames=True)
-tt_nj = line_no_jumps.get_table(attr=True)
+for column, values in misalignment_data.items():
+    sv0_nj[column] = values
+sv0_nj['bgamma'] = -sv0_nj.dpsi
 
 tt_align = xt.Table({
-    'name': sv_nj['name'],
-    'element_type': sv_nj['element_type'],
+    'name': sv0_nj['name'],
+    'element_type': sv0_nj['element_type'],
     # Reference trajectory (survey with no jumps)
-    'X': sv_nj['X'],
-    'Y': sv_nj['Y'],
-    'Z': sv_nj['Z'],
-    'theta': sv_nj['theta'],
-    'phi': sv_nj['phi'],
-    'psi': sv_nj['psi'],
-    'angle': tt_nj['angle'],
-    'tilt': tt_nj['rot_s_rad'],
+    'X': sv0_nj['X'],
+    'Y': sv0_nj['Y'],
+    'Z': sv0_nj['Z'],
+    'theta': sv0_nj['theta'],
+    'phi': sv0_nj['phi'],
+    'psi': sv0_nj['psi'],
+    'angle': tt0_nj['angle'],
+    'tilt': tt0_nj['rot_s_rad'],
 
     # Misalignment parameters (MAD-X convention)
-    'dtheta': tt_nj['rot_y_rad'],
-    'dphi': tt_nj['rot_x_rad'],
-    'dpsi': tt_nj['rot_s_rad_no_frame'],
-    'dx': tt_nj['shift_x'],
-    'dy': tt_nj['shift_y'],
-    'ds': tt_nj['shift_s'],
+    'dtheta': sv0_nj['dtheta'],
+    'dphi': sv0_nj['dphi'],
+    'dpsi': sv0_nj['dpsi'],
+    'dx': sv0_nj['dx'],
+    'dy': sv0_nj['dy'],
+    'ds': sv0_nj['ds'],
 
     # Misalignment as RST offsets and tilt (SU convention)
-    'br_start': offset_start_rst[:, 0],
-    'bs_start': offset_start_rst[:, 1],
-    'bt_start': offset_start_rst[:, 2],
-    'br_end': offset_end_rst[:, 0],
-    'bs_end': offset_end_rst[:, 1],
-    'bt_end': offset_end_rst[:, 2],
-    'bgamma': -tt_nj['rot_s_rad_no_frame'],
+    'br_start': sv0_nj['br_start'],
+    'bs_start': sv0_nj['bs_start'],
+    'bt_start': sv0_nj['bt_start'],
+    'br_end': sv0_nj['br_end'],
+    'bs_end': sv0_nj['bs_end'],
+    'bt_end': sv0_nj['bt_end'],
+    'bgamma': sv0_nj['bgamma'],
 
     # RST unit vectors at element start
     'E_rst_start': sv0_nj.E_rst_start,
@@ -171,6 +191,23 @@ tt_align = xt.Table({
 tt_align.to_tfs('test_align.tfs')
 
 # Checks
+
+for elem_name, misalignment in misalignments.items():
+    misalignment.apply_to_element(line_no_jumps[elem_name])
+
+sv_nj = line_no_jumps.survey(include_element_frames=True)
+tt_nj = line_no_jumps.get_table(attr=True)
+
+for survey_column, element_attribute in {
+        'dtheta': 'rot_y_rad',
+        'dphi': 'rot_x_rad',
+        'dpsi': 'rot_s_rad_no_frame',
+        'dx': 'shift_x',
+        'dy': 'shift_y',
+        'ds': 'shift_s',
+}.items():
+    xo.assert_allclose(
+        sv0_nj[survey_column], tt_nj[element_attribute], atol=1e-12, rtol=0)
 
 for ii in range(len(sv0_nj)):
     chord = sv0_nj.XYZ_ref_end[ii] - sv0_nj.XYZ_ref_start[ii]
