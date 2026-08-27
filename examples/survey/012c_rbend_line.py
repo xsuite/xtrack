@@ -31,6 +31,53 @@ def rst_from_reference_start(
     return p_rst_start.matrix[:3, 3].copy(), E_rst_start
 
 
+def rst_endpoint_offsets_from_parameters(element, length):
+    angle = getattr(element, 'angle', 0.0)
+
+    rotation_tilt = MADPoint.psi_matrix(
+        element.rot_s_rad)[:3, :3]
+    rotation_half_angle = MADPoint.theta_matrix(
+        -angle / 2)[:3, :3]
+    rotation_misalignment = (
+        MADPoint.theta_matrix(element.rot_y_rad)
+        @ MADPoint.phi_matrix(element.rot_x_rad)
+        @ MADPoint.psi_matrix(element.rot_s_rad_no_frame)
+    )[:3, :3]
+
+    # E_rst = E_ref @ rotation_tilt @ rotation_half_angle @ xys_from_rst.
+    # The columns of xys_from_rst are R=-y, S=x, T=s, expressed in the
+    # tilted chord frame.
+    xys_from_rst = np.array([
+        [0.0, 1.0, 0.0],
+        [-1.0, 0.0, 0.0],
+        [0.0, 0.0, 1.0],
+    ])
+    rst_from_xys = (
+        xys_from_rst.T
+        @ rotation_half_angle.T
+        @ rotation_tilt.T
+    )
+
+    # The screenshot uses (DX, DS, DY). Xtrack uses (x, y, s), hence the
+    # corresponding vectors below are (DX, DY, DS) and (0, 0, l_E).
+    displacement_E_xys = np.array([
+        element.shift_x,
+        element.shift_y,
+        element.shift_s,
+    ])
+    body_chord_xys = np.array([0.0, 0.0, length])
+
+    b_E = rst_from_xys @ displacement_E_xys
+    b_S = rst_from_xys @ (
+        displacement_E_xys
+        + rotation_misalignment
+        @ rotation_tilt
+        @ rotation_half_angle
+        @ body_chord_xys
+    )
+    return b_E, b_S
+
+
 env = xt.Environment()
 env.set_particle_ref('proton', p0c=400e9)
 
@@ -164,6 +211,49 @@ tt_rst = xt.Table({
     'name': np.array(elements_to_process),
     'XYZ': np.array(XYZ_rst_start),
     'E': np.array(E_rst_start),
+})
+
+b_E_rst = []
+b_S_rst = []
+element_lengths = []
+for elem_name in elements_to_process:
+    XYZ_rst = tt_rst['XYZ', elem_name]
+    E_rst = tt_rst['E', elem_name]
+
+    # E is the entree (element start), S is the sortie (element end).
+    displacement_E = sv['XYZ_elem_start', elem_name] - XYZ_rst
+    displacement_S = sv['XYZ_elem_end', elem_name] - XYZ_rst
+    b_E = E_rst.T @ displacement_E
+    b_S = E_rst.T @ displacement_S
+
+    length = np.linalg.norm(
+        sv['XYZ_elem_end', elem_name]
+        - sv['XYZ_elem_start', elem_name]
+    )
+    b_E_formula, b_S_formula = rst_endpoint_offsets_from_parameters(
+        line_no_jumps[elem_name], length)
+
+    xo.assert_allclose(b_E, b_E_formula, atol=1e-12, rtol=0)
+    xo.assert_allclose(b_S, b_S_formula, atol=1e-12, rtol=0)
+
+    b_E_rst.append(b_E)
+    b_S_rst.append(b_S)
+    element_lengths.append(length)
+
+b_E_rst = np.array(b_E_rst)
+b_S_rst = np.array(b_S_rst)
+
+tt_misalignment_rst = xt.Table({
+    'name': np.array(elements_to_process),
+    'b_E': b_E_rst,
+    'b_S': b_S_rst,
+    'b_EX': -b_E_rst[:, 0],
+    'b_EY': b_E_rst[:, 1],
+    'b_EZ': b_E_rst[:, 2],
+    'b_SX': -b_S_rst[:, 0],
+    'b_SY': b_S_rst[:, 1],
+    'b_SZ': b_S_rst[:, 2],
+    'l_E': np.array(element_lengths),
 })
 
 tt_align = xt.Table({
