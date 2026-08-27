@@ -256,12 +256,37 @@ tt_misalignment_rst = xt.Table({
     'l_E': np.array(element_lengths),
 })
 
+XYZ_rst_start_all = []
+E_rst_start_all = []
+for ii in range(len(sv_nj)):
+    XYZ_rst, E_rst = rst_from_reference_start(
+        XYZ_ref_start=sv_nj.XYZ_ref_start[ii],
+        E_ref_start=sv_nj.E_ref_start[ii],
+        rot_s_rad=tt_nj.rot_s_rad[ii],
+        angle=tt_nj.angle[ii],
+    )
+    XYZ_rst_start_all.append(XYZ_rst)
+    E_rst_start_all.append(E_rst)
+
+XYZ_rst_start_all = np.array(XYZ_rst_start_all)
+E_rst_start_all = np.array(E_rst_start_all)
+
+displacement_start = sv.XYZ_elem_start - XYZ_rst_start_all
+displacement_end = sv.XYZ_elem_end - XYZ_rst_start_all
+offset_start_rst = np.einsum(
+    'nij,ni->nj', E_rst_start_all, displacement_start)
+offset_end_rst = np.einsum(
+    'nij,ni->nj', E_rst_start_all, displacement_end)
+
 tt_align = xt.Table({
     'name': sv_nj['name'],
     'element_type': sv_nj['element_type'],
     'X': sv_nj['X'],
     'Y': sv_nj['Y'],
     'Z': sv_nj['Z'],
+    'theta': sv_nj['theta'],
+    'phi': sv_nj['phi'],
+    'psi': sv_nj['psi'],
     'angle': tt_nj['angle'],
     'tilt': tt_nj['rot_s_rad'],
     'dtheta': tt_nj['rot_y_rad'],
@@ -270,6 +295,13 @@ tt_align = xt.Table({
     'dx': tt_nj['shift_x'],
     'dy': tt_nj['shift_y'],
     'ds': tt_nj['shift_s'],
+    'E_rst_start': E_rst_start_all,
+    'dr_start': offset_start_rst[:, 0],
+    'ds_start': offset_start_rst[:, 1],
+    'dt_start': offset_start_rst[:, 2],
+    'dr_end': offset_end_rst[:, 0],
+    'ds_end': offset_end_rst[:, 1],
+    'dt_end': offset_end_rst[:, 2],
 })
 
 
