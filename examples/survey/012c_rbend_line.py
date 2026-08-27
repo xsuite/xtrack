@@ -138,6 +138,7 @@ plot_exz(sv['E_elem_end', elem_name], sv['XYZ_elem_end', elem_name], length=0.5,
 plot_exz(sv0_nj['E_ref_start', elem_name], sv0_nj['XYZ_ref_start', elem_name], length=0.5, color='orange')
 plot_exz(sv0_nj['E_ref_end', elem_name], sv0_nj['XYZ_ref_end', elem_name], length=0.5, color='orange')
 plot_exz(sv_nj['E_elem_start', elem_name], sv_nj['XYZ_elem_start', elem_name], length=0.3, color='red')
+plot_exz(sv_nj['E_elem_end', elem_name], sv_nj['XYZ_elem_end', elem_name], length=0.3, color='red')
 # plot_exz(E_elem_start_rot, XYZ_elem_start_rot, length=0.5, color='r')
 
 
