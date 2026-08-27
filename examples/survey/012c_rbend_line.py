@@ -126,15 +126,14 @@ for ii, element in enumerate(line_no_jumps.elements):
         sv0_nj['bt_end', ii] = oo_end_rst[2]
 
 # Element displacements with respect to the smooth line as MAD-X style misalignments
-misalignment_data = {
-    column: np.zeros(len(sv0_nj))
-    for column in ('dtheta', 'dphi', 'dpsi', 'dx', 'dy', 'ds')
-}
+
+for nn in ['dtheta', 'dphi', 'dpsi', 'dx', 'dy', 'ds']:
+    sv0_nj[nn] = np.zeros(len(sv0_nj))
 misalignments = {}
 for elem_name in elements_to_process:
     ee_nj = line_no_jumps[elem_name]
 
-    misalignment = misalignment_from_absolute_position(
+    mm = misalignment_from_absolute_position(
         XYZ_elem_start=sv['XYZ_elem_start', elem_name],
         E_elem_start=sv['E_elem_start', elem_name],
         XYZ_ref_start=sv0_nj['XYZ_ref_start', elem_name],
@@ -142,18 +141,14 @@ for elem_name in elements_to_process:
         rbend_angle=(ee_nj.angle if isinstance(ee_nj, xt.RBend) else None),
     )
 
-    ii = sv0_nj.rows.indices[elem_name][0]
-    misalignment_data['dtheta'][ii] = misalignment.dtheta
-    misalignment_data['dphi'][ii] = misalignment.dphi
-    misalignment_data['dpsi'][ii] = (
-        misalignment.dpsi - ee_nj.rot_s_rad)
-    misalignment_data['dx'][ii] = misalignment.dx
-    misalignment_data['dy'][ii] = misalignment.dy
-    misalignment_data['ds'][ii] = misalignment.ds
-    misalignments[elem_name] = misalignment
+    sv0_nj['dtheta', elem_name] = mm.dtheta
+    sv0_nj['dphi', elem_name] = mm.dphi
+    sv0_nj['dpsi', elem_name] = mm.dpsi - ee_nj.rot_s_rad
+    sv0_nj['dx', elem_name] = mm.dx
+    sv0_nj['dy', elem_name] = mm.dy
+    sv0_nj['ds', elem_name] = mm.ds
+    misalignments[elem_name] = mm
 
-for column, values in misalignment_data.items():
-    sv0_nj[column] = values
 sv0_nj['bgamma'] = -sv0_nj.dpsi
 
 tt_align = xt.Table({
