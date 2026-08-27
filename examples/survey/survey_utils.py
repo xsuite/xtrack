@@ -30,6 +30,18 @@ class Misalignment:
         element.shift_s = self.ds
 
 
+def clear_element_misalignments(element):
+    if hasattr(element, 'rbend_model'):
+        element.rbend_model = 'curved-body'
+    element.rot_x_rad = 0
+    element.rot_y_rad = 0
+    element.rot_s_rad_no_frame = 0
+    element.shift_x = 0
+    element.shift_y = 0
+    element.shift_s = 0
+    element.rot_shift_anchor = 0
+
+
 def misalignment_from_absolute_position(
         XYZ_elem_start, E_elem_start, XYZ_ref_start, E_ref_start,
         rbend_angle=None):

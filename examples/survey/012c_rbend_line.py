@@ -3,6 +3,7 @@ import xobjects as xo
 import numpy as np
 
 from survey_utils import (
+    clear_element_misalignments,
     misalignment_from_absolute_position,
     plot_exy,
     plot_exz,
@@ -71,16 +72,7 @@ line_no_jumps['rotation'].rot_y_rad = 0
 
 for elem_name in elements_to_process:
     ee_nj = line_no_jumps[elem_name]
-
-    if hasattr(ee_nj, 'rbend_model'):
-        ee_nj.rbend_model = 'curved-body'
-    ee_nj.rot_x_rad = 0
-    ee_nj.rot_y_rad = 0
-    ee_nj.rot_s_rad_no_frame = 0
-    ee_nj.shift_x = 0
-    ee_nj.shift_y = 0
-    ee_nj.shift_s = 0
-    ee_nj.rot_shift_anchor = 0
+    clear_element_misalignments(ee_nj)
 
 sv0_nj = line_no_jumps.survey(include_element_frames=True)
 tt0_nj = line_no_jumps.get_table(attr=True)
