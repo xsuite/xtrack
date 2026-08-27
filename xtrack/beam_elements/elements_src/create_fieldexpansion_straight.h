@@ -46,7 +46,7 @@ void build_expansion_straight(StraightFieldExpansionData el){
         invhpow[n] = invhpow[n - 1] / h;
     }
 
-    for (int k = 0; k < deg; ++k) c[cidx(0,0,k+1,nm,moff,deg)] = bs[k] / (double)(k + 1);
+    for (int k = 0; k < deg; ++k) c[cidx(0,0,k+1,nm,moff,deg)] = -bs[k] / (double)(k + 1);
 
     for (int n = 1; n <= na; ++n) {
         const double fac = -invfact[n];
