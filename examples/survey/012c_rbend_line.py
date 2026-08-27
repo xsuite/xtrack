@@ -104,11 +104,12 @@ sv0_nj['XYZ_rst_start'] = np.array(XYZ_rst_start)
 sv0_nj['E_rst_start'] = np.array(E_rst_start)
 
 # Actual element displacements with respect to the smooth in RST coordinates
-offset_start_rst = np.zeros((len(sv0_nj), 3))
-offset_end_rst = np.zeros((len(sv0_nj), 3))
+for nn in ['br_start', 'bs_start', 'bt_start', 'br_end', 'bs_end', 'bt_end']:
+    sv0_nj[nn] = np.zeros(len(sv0_nj))
+
 for ii, element in enumerate(line_no_jumps.elements):
     if element.allow_rot_and_shift:
-        offset_start_rst[ii], offset_end_rst[ii] = (
+        oo_start_rts, oo_end_rst = (
             rst_start_end_offsets_from_positions(
                 XYZ_rst_start=sv0_nj.XYZ_rst_start[ii],
                 E_rst_start=sv0_nj.E_rst_start[ii],
@@ -116,12 +117,13 @@ for ii, element in enumerate(line_no_jumps.elements):
                 XYZ_elem_end=sv.XYZ_elem_end[ii],
             )
         )
-sv0_nj['br_start'] = offset_start_rst[:, 0]
-sv0_nj['bs_start'] = offset_start_rst[:, 1]
-sv0_nj['bt_start'] = offset_start_rst[:, 2]
-sv0_nj['br_end'] = offset_end_rst[:, 0]
-sv0_nj['bs_end'] = offset_end_rst[:, 1]
-sv0_nj['bt_end'] = offset_end_rst[:, 2]
+
+        sv0_nj['br_start', ii] = oo_start_rts[0]
+        sv0_nj['bs_start', ii] = oo_start_rts[1]
+        sv0_nj['bt_start', ii] = oo_start_rts[2]
+        sv0_nj['br_end', ii] = oo_end_rst[0]
+        sv0_nj['bs_end', ii] = oo_end_rst[1]
+        sv0_nj['bt_end', ii] = oo_end_rst[2]
 
 # Element displacements with respect to the smooth line as MAD-X style misalignments
 misalignment_data = {
