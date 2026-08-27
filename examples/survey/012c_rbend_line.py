@@ -123,8 +123,6 @@ for elem_name in elements_to_process:
 
     XYZ_elem_start = sv['XYZ_elem_start', elem_name]
     E_elem_start = sv['E_elem_start', elem_name]
-    XYZ_elem_end = sv['XYZ_elem_end', elem_name]
-    E_elem_end = sv['E_elem_end', elem_name]
 
     XYZ_nj_ref_start = sv0_nj['XYZ_ref_start', elem_name]
     E_nj_ref_start = sv0_nj['E_ref_start', elem_name]
