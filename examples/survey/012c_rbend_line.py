@@ -7,8 +7,9 @@ from survey_utils import (
     misalignment_from_absolute_position,
     plot_exy,
     plot_exz,
-    rst_endpoint_offsets_from_parameters,
     rst_from_reference_start,
+    rst_start_end_offsets_from_parameters,
+    rst_start_end_offsets_from_positions,
 )
 
 elements_to_process = ['bend_1', 'bend_2', 'bend_3', 'q1', 'q2']
@@ -63,13 +64,16 @@ tw0 = line.twiss(betx=1, bety=1)
 env['translation'].shift_x = tw0['x', 'translation']
 env['rotation'].rot_y_rad = np.asin(tw0['px', 'rotation'])
 
+# Survey of the real line
 sv = line.survey(include_element_frames=True)
 
+# Build a deep copy of the line and make it smooth (no jumps)
 line_no_jumps = line.copy(shallow=False)
 
 line_no_jumps['translation'].shift_x = 0
 line_no_jumps['rotation'].rot_y_rad = 0
 
+# Reset alignment data for elements in the smooth line
 for elem_name in elements_to_process:
     ee_nj = line_no_jumps[elem_name]
 
@@ -80,9 +84,11 @@ for elem_name in elements_to_process:
     # clear existing misalignments
     clear_element_misalignments(ee_nj)
 
+# Survey and table of the smooth line
 sv0_nj = line_no_jumps.survey(include_element_frames=True)
 tt0_nj = line_no_jumps.get_table(attr=True)
 
+# RST frame unit vectors for the smooth line
 XYZ_rst_start = []
 E_rst_start = []
 for ii in range(len(sv0_nj)):
@@ -94,23 +100,24 @@ for ii in range(len(sv0_nj)):
     )
     XYZ_rst_start.append(XYZ_rst)
     E_rst_start.append(E_rst)
-
 sv0_nj['XYZ_rst_start'] = np.array(XYZ_rst_start)
 sv0_nj['E_rst_start'] = np.array(E_rst_start)
 
+# Actual element displacements with respect to the smooth in RST coordinates
 offset_start_rst = np.zeros((len(sv0_nj), 3))
 offset_end_rst = np.zeros((len(sv0_nj), 3))
 for ii, element in enumerate(line_no_jumps.elements):
     if element.allow_rot_and_shift:
-        displacement_start = (
-            sv.XYZ_elem_start[ii] - sv0_nj.XYZ_rst_start[ii])
-        displacement_end = (
-            sv.XYZ_elem_end[ii] - sv0_nj.XYZ_rst_start[ii])
-        offset_start_rst[ii] = (
-            sv0_nj.E_rst_start[ii].T @ displacement_start)
-        offset_end_rst[ii] = (
-            sv0_nj.E_rst_start[ii].T @ displacement_end)
+        offset_start_rst[ii], offset_end_rst[ii] = (
+            rst_start_end_offsets_from_positions(
+                XYZ_rst_start=sv0_nj.XYZ_rst_start[ii],
+                E_rst_start=sv0_nj.E_rst_start[ii],
+                XYZ_elem_start=sv.XYZ_elem_start[ii],
+                XYZ_elem_end=sv.XYZ_elem_end[ii],
+            )
+        )
 
+# Element displacements with respect to the smooth line as MAD-X style misalignments
 for elem_name in elements_to_process:
     ee_nj = line_no_jumps[elem_name]
 
@@ -181,16 +188,18 @@ for elem_name in elements_to_process:
     E_rst = sv0_nj['E_rst_start', elem_name]
 
     # E is the entree (element start), S is the sortie (element end).
-    displacement_E = sv['XYZ_elem_start', elem_name] - XYZ_rst
-    displacement_S = sv['XYZ_elem_end', elem_name] - XYZ_rst
-    b_E = E_rst.T @ displacement_E
-    b_S = E_rst.T @ displacement_S
+    b_E, b_S = rst_start_end_offsets_from_positions(
+        XYZ_rst_start=XYZ_rst,
+        E_rst_start=E_rst,
+        XYZ_elem_start=sv['XYZ_elem_start', elem_name],
+        XYZ_elem_end=sv['XYZ_elem_end', elem_name],
+    )
 
     length = np.linalg.norm(
         sv['XYZ_elem_end', elem_name]
         - sv['XYZ_elem_start', elem_name]
     )
-    b_E_formula, b_S_formula = rst_endpoint_offsets_from_parameters(
+    b_E_formula, b_S_formula = rst_start_end_offsets_from_parameters(
         line_no_jumps[elem_name], length)
 
     xo.assert_allclose(b_E, b_E_formula, atol=1e-12, rtol=0)

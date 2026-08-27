@@ -93,7 +93,16 @@ def rst_from_reference_start(
     return p_rst_start.matrix[:3, 3].copy(), E_rst_start
 
 
-def rst_endpoint_offsets_from_parameters(element, length):
+def rst_start_end_offsets_from_positions(
+        XYZ_rst_start, E_rst_start, XYZ_elem_start, XYZ_elem_end):
+    displacement_start = XYZ_elem_start - XYZ_rst_start
+    displacement_end = XYZ_elem_end - XYZ_rst_start
+    offset_start_rst = E_rst_start.T @ displacement_start
+    offset_end_rst = E_rst_start.T @ displacement_end
+    return offset_start_rst, offset_end_rst
+
+
+def rst_start_end_offsets_from_parameters(element, length):
     angle = getattr(element, 'angle', 0.0)
 
     rotation_tilt = MADPoint.psi_matrix(
