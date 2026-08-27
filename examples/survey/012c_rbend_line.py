@@ -73,7 +73,8 @@ line_no_jumps['rotation'].rot_y_rad = 0
 for elem_name in elements_to_process:
     ee_nj = line_no_jumps[elem_name]
 
-    ee_nj.rbend_model = 'curved-body'
+    if hasattr(ee_nj, 'rbend_model'):
+        ee_nj.rbend_model = 'curved-body'
     ee_nj.rot_x_rad = 0
     ee_nj.rot_y_rad = 0
     ee_nj.rot_s_rad_no_frame = 0
@@ -82,7 +83,10 @@ for elem_name in elements_to_process:
     ee_nj.shift_z = 0
     ee_nj.rot_shift_anchor = 0
 
-    sv0_nj = line_no_jumps.survey(include_element_frames=True)
+sv0_nj = line_no_jumps.survey(include_element_frames=True)
+
+for elem_name in elements_to_process:
+    ee_nj = line_no_jumps[elem_name]
 
     XYZ_elem_start = sv['XYZ_elem_start', elem_name]
     E_elem_start = sv['E_elem_start', elem_name]
