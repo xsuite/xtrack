@@ -11,6 +11,26 @@ from survey_utils import (
 
 elements_to_process = ['bend_1', 'bend_2', 'bend_3', 'q1', 'q2']
 
+
+def rst_from_reference_start(
+        XYZ_ref_start, E_ref_start, rot_s_rad, angle):
+    p_ref_start = np.eye(4)
+    p_ref_start[:3, :3] = E_ref_start
+    p_ref_start[:3, 3] = XYZ_ref_start
+
+    p_rst_start = MADPoint(p_ref_start)
+    p_rst_start.rpsi(rot_s_rad)
+    p_rst_start.rtheta(-angle / 2)
+
+    # T is along the chord, S is in the curvature plane, and R = S x T.
+    et = p_rst_start.matrix[:3, 2]
+    es = p_rst_start.matrix[:3, 0]
+    er = np.cross(es, et)
+
+    E_rst_start = np.column_stack((er, es, et))
+    return p_rst_start.matrix[:3, 3].copy(), E_rst_start
+
+
 env = xt.Environment()
 env.set_particle_ref('proton', p0c=400e9)
 
@@ -119,6 +139,32 @@ for elem_name in elements_to_process:
 
 sv_nj = line_no_jumps.survey(include_element_frames=True)
 tt_nj = line_no_jumps.get_table(attr=True)
+
+XYZ_rst_start = []
+E_rst_start = []
+for elem_name in elements_to_process:
+    ee_nj = line_no_jumps[elem_name]
+    XYZ_rst, E_rst = rst_from_reference_start(
+        XYZ_ref_start=sv_nj['XYZ_ref_start', elem_name],
+        E_ref_start=sv_nj['E_ref_start', elem_name],
+        rot_s_rad=ee_nj.rot_s_rad,
+        angle=getattr(ee_nj, 'angle', 0.0),
+    )
+    XYZ_rst_start.append(XYZ_rst)
+    E_rst_start.append(E_rst)
+
+    chord = (
+        sv_nj['XYZ_ref_end', elem_name]
+        - sv_nj['XYZ_ref_start', elem_name]
+    )
+    chord /= np.linalg.norm(chord)
+    xo.assert_allclose(E_rst[:, 2], chord, atol=1e-12, rtol=0)
+
+tt_rst = xt.Table({
+    'name': np.array(elements_to_process),
+    'XYZ': np.array(XYZ_rst_start),
+    'E': np.array(E_rst_start),
+})
 
 tt_align = xt.Table({
     'name': sv_nj['name'],

@@ -331,18 +331,6 @@ class SurveyTable(Table):
                 new_cols[start_name] = reversed_start
                 new_cols[end_name] = reversed_end
 
-            reversed_rst_start = self._data['E_rst_start'].copy()
-            reversed_rst_end = self._data['E_rst_end'].copy()
-            reversed_rst_start[:-1] = self._data['E_rst_end'][:-1][::-1]
-            reversed_rst_end[:-1] = self._data['E_rst_start'][:-1][::-1]
-            reversed_rst_start[-1] = self._data['E_rst_start'][0]
-            reversed_rst_end[-1] = self._data['E_rst_start'][0]
-            for reversed_matrix in (reversed_rst_start, reversed_rst_end):
-                reversed_matrix[:, (0, 2), :] *= -1
-                reversed_matrix[:, :, (0, 1)] *= -1
-            new_cols['E_rst_start'] = reversed_rst_start
-            new_cols['E_rst_end'] = reversed_rst_end
-
             for frame_name in (
                     'ref_start', 'ref_end', 'elem_start', 'elem_end'):
                 XYZ_frame = new_cols[f'XYZ_{frame_name}']
