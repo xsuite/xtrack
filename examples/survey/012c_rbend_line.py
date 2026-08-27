@@ -1,8 +1,10 @@
-from attr import dataclass
-
 import xtrack as xt
+import xobjects as xo
 import numpy as np
+from dataclasses import dataclass
+
 from ldbpoint import MADPoint
+
 
 @dataclass
 class Misalignment:
@@ -28,15 +30,16 @@ class Misalignment:
 def misalignment_from_absolute_position(XYZ_elem_start, E_elem_start,
                                         XYZ_ref_start, E_ref_start):
 
-    p1_mat_elem_start = np.eye(4)
-    p1_mat_elem_start[:3, :3] = E_elem_start
-    p1_mat_elem_start[:3, 3] = XYZ_elem_start
+    p_mat_elem_start = np.eye(4)
+    p_mat_elem_start[:3, :3] = E_elem_start
+    p_mat_elem_start[:3, 3] = XYZ_elem_start
 
-    p2_mat_ref_start = np.eye(4)
-    p2_mat_ref_start[:3, :3] = E_ref_start
-    p2_mat_ref_start[:3, 3] = XYZ_ref_start
+    p_mat_ref_start = np.eye(4)
+    p_mat_ref_start[:3, :3] = E_ref_start
+    p_mat_ref_start[:3, 3] = XYZ_ref_start
 
-    A = np.linalg.inv(p2_mat_ref_start) @ p1_mat_elem_start
+    A = np.linalg.inv(p_mat_ref_start) @ p_mat_elem_start
+
     theta = np.arctan2(A[0, 2], A[2, 2])
     phi = np.arctan2(A[1, 2], np.sqrt(A[1, 0]**2 + A[1, 1]**2))
     psi = np.arctan2(A[1, 0], A[1, 1])
@@ -58,6 +61,7 @@ env.new('bend_1', 'RBend', length_straight=2,
 env.new('bend_2', 'RBend', length_straight=2,
         angle=-0.2, # This dipole bends the reference frame
         rot_s_rad = np.deg2rad(15),
+        # rbend_model='straight-body',
         rbend_compensate_sagitta=True,
         rot_shift_anchor=1., # shift defined in the middle
         rot_y_rad=np.deg2rad(10),
@@ -73,69 +77,166 @@ line = env.new_line(length=15, components=[
     env.place('bend_2', at=10),
 ])
 
-line_sliced = line.copy(shallow=True)
-line_sliced.slice_thick_elements(
-        slicing_strategies=[
-            # Slicing with thin elements
-            xt.Strategy(slicing=None),
-            xt.Strategy(slicing=xt.Uniform(5), element_type=xt.RBend), # (2) Selection by element type
-    ])
-
 tw0 = line.twiss(betx=1, bety=1)
 
 env['translation'].shift_x = tw0['x', 'translation']
 env['rotation'].rot_y_rad = np.asin(tw0['px', 'rotation'])
 
 sv = line.survey(include_element_frames=True)
-sv_sliced = line_sliced.survey()
 
-# Make a fictitious line without jumps to have continuous reference frame for plotting
+elem_name = 'bend_2'
+
 line_no_jumps = line.copy(shallow=False)
-line_no_jumps.remove('translation')
-line_no_jumps.remove('rotation')
 
-sv_smooth_no_misalign = line_no_jumps.survey(include_element_frames=True)
+line_no_jumps['translation'].shift_x = 0
+line_no_jumps['rotation'].rot_y_rad = 0
 
-name_elem = 'bend_2'
+ee_nj = line_no_jumps[elem_name]
 
-# Absolute position and orientation of the element start in the real line (with jumps)
-XYZ_elem_start = sv['XYZ_elem_start', name_elem]
-E_elem_start = sv['E_elem_start', name_elem]
+ee_nj.rbend_model = 'curved-body'
+ee_nj.rot_x_rad = 0
+ee_nj.rot_y_rad = 0
+ee_nj.rot_s_rad_no_frame = 0
+ee_nj.shift_x = 0
+ee_nj.shift_y = 0
+ee_nj.shift_z = 0
+ee_nj.rot_shift_anchor = 0
 
-# Absolute position of the reference point in the smooth line (without jumps)
-XYZ_ref_start = sv_smooth_no_misalign['XYZ_ref_start', name_elem]
-E_ref_start = sv_smooth_no_misalign['E_ref_start', name_elem]
-
-# Compute the misalignment of the element with respect to the smooth reference frame
-misalignment = misalignment_from_absolute_position(XYZ_elem_start, E_elem_start,
-                                                   XYZ_ref_start, E_ref_start)
-
-# Apply the misalignment to the element in the smooth line
-misalignment.apply_to_element(line_no_jumps[name_elem])
+sv0_nj = line_no_jumps.survey(include_element_frames=True)
 
 
-sv_smooth = line_no_jumps.survey(include_element_frames=True)
+XYZ_elem_start = sv['XYZ_elem_start', elem_name]
+E_elem_start = sv['E_elem_start', elem_name]
+XYZ_elem_end = sv['XYZ_elem_end', elem_name]
+E_elem_end = sv['E_elem_end', elem_name]
+
+XYZ_nj_ref_start = sv0_nj['XYZ_ref_start', elem_name]
+E_nj_ref_start = sv0_nj['E_ref_start', elem_name]
+
+p_mat_elem_start = np.eye(4)
+p_mat_elem_start[:3, :3] = E_elem_start
+p_mat_elem_start[:3, 3] = XYZ_elem_start
 
 
-elems_to_plot = ['bend_2']
+mp_elem_start = MADPoint(p_mat_elem_start)
+mp_elem_start.rtheta(ee_nj.angle/2)
+E_elem_start_rot = mp_elem_start.matrix[:3, :3]
+XYZ_elem_start_rot = mp_elem_start.matrix[:3, 3]
+
+misalignment = misalignment_from_absolute_position(
+    XYZ_elem_start=XYZ_elem_start_rot,
+    E_elem_start=E_elem_start_rot,
+    XYZ_ref_start=XYZ_nj_ref_start,
+    E_ref_start=E_nj_ref_start
+)
+
+misalignment.apply_to_element(ee_nj)
+
+sv_nj = line_no_jumps.survey(include_element_frames=True)
+
+
+
+
+xo.assert_allclose(np.cross(E_elem_start[:, 2], XYZ_elem_end - XYZ_elem_start), 0, atol=1e-12)
 
 import matplotlib.pyplot as plt
+
+
+def plot_exz(rotation_matrix, point, length=0.5, color='k'):
+    """Plot the local x and z directions in the global Z-X plane."""
+    if length <= 0:
+        raise ValueError('length must be positive')
+
+    rotation_matrix = np.asarray(rotation_matrix)
+    point = np.asarray(point)
+    ax = plt.gca()
+    arrows = []
+
+    for axis_index in (0, 2):
+        direction = rotation_matrix[:, axis_index]
+        delta_z = length * direction[2]
+        delta_x = length * direction[0]
+        projected_length = np.hypot(delta_z, delta_x)
+
+        arrows.append(ax.arrow(
+            point[2], point[0], delta_z, delta_x,
+            width=0.025 * projected_length,
+            head_width=0.15 * projected_length,
+            head_length=0.25 * projected_length,
+            length_includes_head=True,
+            color=color,
+        ))
+
+    return arrows
+
+
+def plot_exy(rotation_matrix, point, length=0.5, color='k'):
+    """Plot the local x and y directions in the global X-Y plane."""
+    if length <= 0:
+        raise ValueError('length must be positive')
+
+    rotation_matrix = np.asarray(rotation_matrix)
+    point = np.asarray(point)
+    ax = plt.gca()
+    arrows = []
+
+    for axis_index in (0, 1):
+        direction = rotation_matrix[:, axis_index]
+        delta_x = length * direction[0]
+        delta_y = length * direction[1]
+        projected_length = np.hypot(delta_x, delta_y)
+
+        arrows.append(ax.arrow(
+            point[0], point[1], delta_x, delta_y,
+            width=0.025 * projected_length,
+            head_width=0.15 * projected_length,
+            head_length=0.25 * projected_length,
+            length_includes_head=True,
+            color=color,
+        ))
+
+    return arrows
+
+
 plt.close('all')
 plt.figure(1)
-plt.plot(sv_sliced.Z, sv_sliced.X, '.-', label='survey')
-plt.plot(sv_smooth.Z, sv_smooth.X, 'o--', label='survey no jumps')
+plt.plot(sv.Z, sv.X, '.-', label='survey')
+plt.plot(sv0_nj.Z, sv0_nj.X, '--', label='survey no jumps')
 
-for nn in elems_to_plot:
-    plt.plot([sv['Z_elem_start', nn], sv['Z_elem_end', nn]],
-             [sv['X_elem_start', nn], sv['X_elem_end', nn]],
-             'x--', label=nn)
-    plt.plot([sv_smooth['Z_elem_start', nn], sv_smooth['Z_elem_end', nn]],
-             [sv_smooth['X_elem_start', nn], sv_smooth['X_elem_end', nn]],
-             '.--', label=nn + ' no jumps')
+plt.plot([sv['Z_elem_start', elem_name], sv['Z_elem_end', elem_name]],
+            [sv['X_elem_start', elem_name], sv['X_elem_end', elem_name]],
+            'x-',
+            color='g'
+)
+plt.plot([sv0_nj['Z_ref_start', elem_name], sv0_nj['Z_ref_end', elem_name]],
+            [sv0_nj['X_ref_start', elem_name], sv0_nj['X_ref_end', elem_name]],
+            '+--',
+            color='orange'
+)
+plt.plot([sv_nj['Z_elem_start', elem_name], sv_nj['Z_elem_end', elem_name]],
+         [sv_nj['X_elem_start', elem_name], sv_nj['X_elem_end', elem_name]],
+         '.--',
+         color='r'
+)
+
+plot_exz(sv['E_elem_start', elem_name], sv['XYZ_elem_start', elem_name], length=0.5, color='g')
+plot_exz(sv['E_elem_end', elem_name], sv['XYZ_elem_end', elem_name], length=0.5, color='g')
+plot_exz(sv0_nj['E_ref_start', elem_name], sv0_nj['XYZ_ref_start', elem_name], length=0.5, color='orange')
+plot_exz(sv0_nj['E_ref_end', elem_name], sv0_nj['XYZ_ref_end', elem_name], length=0.5, color='orange')
+plot_exz(E_elem_start_rot, XYZ_elem_start_rot, length=0.5, color='r')
+
+
 
 plt.xlabel('Z [m]')
 plt.ylabel('X [m]')
 plt.axis('equal')
 plt.legend()
+
+plt.figure(2)
+plot_exy(sv['E_elem_start', elem_name], sv['XYZ_elem_start', elem_name], length=0.5, color='g')
+plot_exy(sv_nj['E_elem_start', elem_name], sv_nj['XYZ_elem_start', elem_name], length=0.3, color='orange')
+
+plt.xlabel('X [m]')
+plt.ylabel('Y [m]')
 
 plt.show()
