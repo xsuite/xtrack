@@ -9,7 +9,7 @@ from survey_utils import (
     plot_exz,
 )
 
-elements_to_process = ['bend_1', 'bend_2', 'bend_3']
+elements_to_process = ['bend_1', 'bend_2', 'bend_3', 'q1', 'q2']
 
 env = xt.Environment()
 env.set_particle_ref('proton', p0c=400e9)
@@ -38,6 +38,11 @@ env.new('bend_3', 'RBend', length_straight=2,
         rot_y_rad=np.deg2rad(-20),
         shift_x=-0.1
 )
+
+env.new('q1', 'Quadrupole', length=0.7, k1=0.1)
+env.new('q2', 'Quadrupole', length=0.7, k1=-0.1)
+
+
 env.new('translation', 'Translation')
 env.new('rotation', 'Rotation')
 
@@ -45,8 +50,11 @@ line = env.new_line(length=20, components=[
     env.place('bend_1', at=2),
     env.new('ref_change', 'Marker', at=4),
     env.place(['translation', 'rotation'], at='ref_change@end'),
+    env.place('q1', at=6),
     env.place('bend_2', at=10),
+    env.place('q2', at=12),
     env.place('bend_3', at=14),
+
 ])
 
 tw0 = line.twiss(betx=1, bety=1)
@@ -88,11 +96,14 @@ for elem_name in elements_to_process:
     p_mat_elem_start[:3, :3] = E_elem_start
     p_mat_elem_start[:3, 3] = XYZ_elem_start
 
-
-    mp_elem_start = MADPoint(p_mat_elem_start)
-    mp_elem_start.rtheta(ee_nj.angle/2)
-    E_elem_start_rot = mp_elem_start.matrix[:3, :3]
-    XYZ_elem_start_rot = mp_elem_start.matrix[:3, 3]
+    if hasattr(ee_nj, 'angle'):
+        mp_elem_start = MADPoint(p_mat_elem_start)
+        mp_elem_start.rtheta(ee_nj.angle/2)
+        E_elem_start_rot = mp_elem_start.matrix[:3, :3]
+        XYZ_elem_start_rot = mp_elem_start.matrix[:3, 3]
+    else:
+        E_elem_start_rot = E_elem_start
+        XYZ_elem_start_rot = XYZ_elem_start
 
     misalignment = misalignment_from_absolute_position(
         XYZ_elem_start=XYZ_elem_start_rot,
