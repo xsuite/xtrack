@@ -9,7 +9,7 @@ from survey_utils import (
     plot_exz,
 )
 
-elements_to_process = ['bend_2', 'bend_3']
+elements_to_process = ['bend_1', 'bend_2', 'bend_3']
 
 env = xt.Environment()
 env.set_particle_ref('proton', p0c=400e9)
