@@ -170,7 +170,36 @@ def plot_exz(rotation_matrix, point, length=0.5, color='k'):
     return arrows
 
 
+def plot_exy(rotation_matrix, point, length=0.5, color='k'):
+    """Plot the local x and y directions in the global X-Y plane."""
+    if length <= 0:
+        raise ValueError('length must be positive')
+
+    rotation_matrix = np.asarray(rotation_matrix)
+    point = np.asarray(point)
+    ax = plt.gca()
+    arrows = []
+
+    for axis_index in (0, 1):
+        direction = rotation_matrix[:, axis_index]
+        delta_x = length * direction[0]
+        delta_y = length * direction[1]
+        projected_length = np.hypot(delta_x, delta_y)
+
+        arrows.append(ax.arrow(
+            point[0], point[1], delta_x, delta_y,
+            width=0.025 * projected_length,
+            head_width=0.15 * projected_length,
+            head_length=0.25 * projected_length,
+            length_includes_head=True,
+            color=color,
+        ))
+
+    return arrows
+
+
 plt.close('all')
+plt.figure(1)
 plt.plot(sv.Z, sv.X, '.-', label='survey')
 plt.plot(sv0_nj.Z, sv0_nj.X, '--', label='survey no jumps')
 
@@ -202,5 +231,12 @@ plt.xlabel('Z [m]')
 plt.ylabel('X [m]')
 plt.axis('equal')
 plt.legend()
-plt.show()
 
+plt.figure(2)
+plot_exy(sv['E_elem_start', elem_name], sv['XYZ_elem_start', elem_name], length=0.5, color='g')
+plot_exy(sv_nj['E_elem_start', elem_name], sv_nj['XYZ_elem_start', elem_name], length=0.3, color='orange')
+
+plt.xlabel('X [m]')
+plt.ylabel('Y [m]')
+
+plt.show()
