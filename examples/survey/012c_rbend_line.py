@@ -126,7 +126,6 @@ for ii, element in enumerate(line_no_jumps.elements):
         sv0_nj['bt_end', ii] = oo_end_rst[2]
 
 # Element displacements with respect to the smooth line as MAD-X style misalignments
-
 for nn in ['dtheta', 'dphi', 'dpsi', 'dx', 'dy', 'ds']:
     sv0_nj[nn] = np.zeros(len(sv0_nj))
 misalignments = {}
