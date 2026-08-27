@@ -150,6 +150,7 @@ for elem_name in elements_to_process:
 
 sv0_nj['bgamma'] = -sv0_nj.dpsi
 
+# Output table
 tt_align = xt.Table({
     'name': sv0_nj['name'],
     'element_type': sv0_nj['element_type'],
