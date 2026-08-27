@@ -3,6 +3,8 @@ from dataclasses import dataclass
 import matplotlib.pyplot as plt
 import numpy as np
 
+from ldbpoint import MADPoint
+
 
 @dataclass
 class Misalignment:
@@ -49,6 +51,72 @@ def misalignment_from_absolute_position(XYZ_elem_start, E_elem_start,
 
     return Misalignment(
         dtheta=theta, dphi=phi, dpsi=psi, dx=dx, dy=dy, ds=ds)
+
+
+def rst_from_reference_start(
+        XYZ_ref_start, E_ref_start, rot_s_rad, angle):
+    p_ref_start = np.eye(4)
+    p_ref_start[:3, :3] = E_ref_start
+    p_ref_start[:3, 3] = XYZ_ref_start
+
+    p_rst_start = MADPoint(p_ref_start)
+    p_rst_start.rpsi(rot_s_rad)
+    p_rst_start.rtheta(-angle / 2)
+
+    # S is along the chord, T is normal to the curvature plane, and R = S x T.
+    es = p_rst_start.matrix[:3, 2]
+    et = p_rst_start.matrix[:3, 1]
+    er = np.cross(es, et)
+
+    E_rst_start = np.column_stack((er, es, et))
+    return p_rst_start.matrix[:3, 3].copy(), E_rst_start
+
+
+def rst_endpoint_offsets_from_parameters(element, length):
+    angle = getattr(element, 'angle', 0.0)
+
+    rotation_tilt = MADPoint.psi_matrix(
+        element.rot_s_rad)[:3, :3]
+    rotation_half_angle = MADPoint.theta_matrix(
+        -angle / 2)[:3, :3]
+    rotation_misalignment = (
+        MADPoint.theta_matrix(element.rot_y_rad)
+        @ MADPoint.phi_matrix(element.rot_x_rad)
+        @ MADPoint.psi_matrix(element.rot_s_rad_no_frame)
+    )[:3, :3]
+
+    # E_rst = E_ref @ rotation_tilt @ rotation_half_angle @ xys_from_rst.
+    # The columns of xys_from_rst are R=-x, S=s, T=y, expressed in the
+    # tilted chord frame.
+    xys_from_rst = np.array([
+        [-1.0, 0.0, 0.0],
+        [0.0, 0.0, 1.0],
+        [0.0, 1.0, 0.0],
+    ])
+    rst_from_xys = (
+        xys_from_rst.T
+        @ rotation_half_angle.T
+        @ rotation_tilt.T
+    )
+
+    # The screenshot uses (DX, DS, DY). Xtrack uses (x, y, s), hence the
+    # corresponding vectors below are (DX, DY, DS) and (0, 0, l_E).
+    displacement_E_xys = np.array([
+        element.shift_x,
+        element.shift_y,
+        element.shift_s,
+    ])
+    body_chord_xys = np.array([0.0, 0.0, length])
+
+    b_E = rst_from_xys @ displacement_E_xys
+    b_S = rst_from_xys @ (
+        displacement_E_xys
+        + rotation_misalignment
+        @ rotation_tilt
+        @ rotation_half_angle
+        @ body_chord_xys
+    )
+    return b_E, b_S
 
 
 def plot_exz(rotation_matrix, point, length=0.5, color='k'):
