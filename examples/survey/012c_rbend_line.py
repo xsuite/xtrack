@@ -79,7 +79,7 @@ for elem_name in elements_to_process:
     ee_nj.rot_s_rad_no_frame = 0
     ee_nj.shift_x = 0
     ee_nj.shift_y = 0
-    ee_nj.shift_z = 0
+    ee_nj.shift_s = 0
     ee_nj.rot_shift_anchor = 0
 
 sv0_nj = line_no_jumps.survey(include_element_frames=True)
@@ -137,7 +137,31 @@ tt_align = xt.Table({
 })
 
 
-xo.assert_allclose(np.cross(E_elem_start[:, 2], XYZ_elem_end - XYZ_elem_start), 0, atol=1e-12)
+for elem_name in elements_to_process:
+    xo.assert_allclose(
+        sv_nj['XYZ_elem_start', elem_name],
+        sv['XYZ_elem_start', elem_name],
+        atol=1e-12,
+        rtol=0,
+    )
+    xo.assert_allclose(
+        sv_nj['E_elem_start', elem_name],
+        sv['E_elem_start', elem_name],
+        atol=1e-12,
+        rtol=0,
+    )
+    xo.assert_allclose(
+        sv_nj['XYZ_elem_end', elem_name],
+        sv['XYZ_elem_end', elem_name],
+        atol=1e-12,
+        rtol=0,
+    )
+    xo.assert_allclose(
+        sv_nj['E_elem_end', elem_name],
+        sv['E_elem_end', elem_name],
+        atol=1e-12,
+        rtol=0,
+    )
 
 import matplotlib.pyplot as plt
 
