@@ -22,9 +22,9 @@ def rst_from_reference_start(
     p_rst_start.rpsi(rot_s_rad)
     p_rst_start.rtheta(-angle / 2)
 
-    # T is along the chord, S is in the curvature plane, and R = S x T.
-    et = p_rst_start.matrix[:3, 2]
-    es = p_rst_start.matrix[:3, 0]
+    # S is along the chord, T is normal to the curvature plane, and R = S x T.
+    es = p_rst_start.matrix[:3, 2]
+    et = p_rst_start.matrix[:3, 1]
     er = np.cross(es, et)
 
     E_rst_start = np.column_stack((er, es, et))
@@ -45,12 +45,12 @@ def rst_endpoint_offsets_from_parameters(element, length):
     )[:3, :3]
 
     # E_rst = E_ref @ rotation_tilt @ rotation_half_angle @ xys_from_rst.
-    # The columns of xys_from_rst are R=-y, S=x, T=s, expressed in the
+    # The columns of xys_from_rst are R=-x, S=s, T=y, expressed in the
     # tilted chord frame.
     xys_from_rst = np.array([
-        [0.0, 1.0, 0.0],
         [-1.0, 0.0, 0.0],
         [0.0, 0.0, 1.0],
+        [0.0, 1.0, 0.0],
     ])
     rst_from_xys = (
         xys_from_rst.T
@@ -205,7 +205,7 @@ for elem_name in elements_to_process:
         - sv_nj['XYZ_ref_start', elem_name]
     )
     chord /= np.linalg.norm(chord)
-    xo.assert_allclose(E_rst[:, 2], chord, atol=1e-12, rtol=0)
+    xo.assert_allclose(E_rst[:, 1], chord, atol=1e-12, rtol=0)
 
 tt_rst = xt.Table({
     'name': np.array(elements_to_process),
@@ -278,9 +278,17 @@ offset_start_rst = np.einsum(
 offset_end_rst = np.einsum(
     'nij,ni->nj', E_rst_start_all, displacement_end)
 
+supports_misalignment = np.zeros(len(sv_nj), dtype=bool)
+for ii, element in enumerate(line_no_jumps.elements):
+    supports_misalignment[ii] = element.allow_rot_and_shift
+
+offset_start_rst[~supports_misalignment] = 0.0
+offset_end_rst[~supports_misalignment] = 0.0
+
 tt_align = xt.Table({
     'name': sv_nj['name'],
     'element_type': sv_nj['element_type'],
+    # Reference trajectory (survey with no jumps)
     'X': sv_nj['X'],
     'Y': sv_nj['Y'],
     'Z': sv_nj['Z'],
@@ -289,20 +297,29 @@ tt_align = xt.Table({
     'psi': sv_nj['psi'],
     'angle': tt_nj['angle'],
     'tilt': tt_nj['rot_s_rad'],
+
+    # Misalignment parameters (MAD-X convention)
     'dtheta': tt_nj['rot_y_rad'],
     'dphi': tt_nj['rot_x_rad'],
     'dpsi': tt_nj['rot_s_rad_no_frame'],
     'dx': tt_nj['shift_x'],
     'dy': tt_nj['shift_y'],
     'ds': tt_nj['shift_s'],
+
+    # Misalignment as RST offsets and tilt (SU convention)
+    'br_start': offset_start_rst[:, 0],
+    'bs_start': offset_start_rst[:, 1],
+    'bt_start': offset_start_rst[:, 2],
+    'br_end': offset_end_rst[:, 0],
+    'bs_end': offset_end_rst[:, 1],
+    'bt_end': offset_end_rst[:, 2],
+    'bgamma': -tt_nj['rot_s_rad_no_frame'],
+
+    # RST unit vectors at element start
     'E_rst_start': E_rst_start_all,
-    'dr_start': offset_start_rst[:, 0],
-    'ds_start': offset_start_rst[:, 1],
-    'dt_start': offset_start_rst[:, 2],
-    'dr_end': offset_end_rst[:, 0],
-    'ds_end': offset_end_rst[:, 1],
-    'dt_end': offset_end_rst[:, 2],
 })
+
+tt_align.to_tfs('test_align.tfs')
 
 
 for elem_name in elements_to_process:
