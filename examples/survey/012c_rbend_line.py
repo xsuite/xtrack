@@ -23,8 +23,6 @@ env.new('bend_1', 'RBend', length_straight=2,
 env.new('bend_2', 'RBend', length_straight=2,
         angle=-0.2, # This dipole bends the reference frame
         rot_s_rad = np.deg2rad(15),
-        # rbend_model='straight-body',
-        rbend_compensate_sagitta=True,
         rot_shift_anchor=1., # shift defined in the middle
         rot_y_rad=np.deg2rad(10),
         shift_x=0.5
@@ -119,6 +117,24 @@ for elem_name in elements_to_process:
     misalignment.apply_to_element(ee_nj)
 
 sv_nj = line_no_jumps.survey(include_element_frames=True)
+tt_nj = line_no_jumps.get_table(attr=True)
+
+tt_align = xt.Table({
+    'name': sv_nj['name'],
+    'element_type': sv_nj['element_type'],
+    'X': sv_nj['X'],
+    'Y': sv_nj['Y'],
+    'Z': sv_nj['Z'],
+    'angle': tt_nj['angle'],
+    'tilt': tt_nj['rot_s_rad'],
+    'dtheta': tt_nj['rot_y_rad'],
+    'dphi': tt_nj['rot_x_rad'],
+    'dpsi': tt_nj['rot_s_rad_no_frame'],
+    'dx': tt_nj['shift_x'],
+    'dy': tt_nj['shift_y'],
+    'ds': tt_nj['shift_s'],
+})
+
 
 xo.assert_allclose(np.cross(E_elem_start[:, 2], XYZ_elem_end - XYZ_elem_start), 0, atol=1e-12)
 

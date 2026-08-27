@@ -7203,6 +7203,9 @@ class Line:
                 '_own_length': AttrDefinition(name='length'),
 
                 '_own_rot_s_rad': AttrDefinition(name='rot_s_rad'),
+                '_own_rot_x_rad': AttrDefinition(name='rot_x_rad'),
+                '_own_rot_y_rad': AttrDefinition(name='rot_y_rad'),
+                '_own_rot_s_rad_no_frame': AttrDefinition(name='rot_s_rad_no_frame'),
                 '_own_shift_x': AttrDefinition(name='shift_x'),
                 '_own_shift_y': AttrDefinition(name='shift_y'),
                 '_own_shift_s': AttrDefinition(name='shift_s'),
@@ -7273,6 +7276,9 @@ class Line:
 
                 '_parent_length': AttrDefinition(name=('_parent', 'length')),
                 '_parent_rot_s_rad': AttrDefinition(name=('_parent', 'rot_s_rad')),
+                '_parent_rot_x_rad': AttrDefinition(name=('_parent', 'rot_x_rad')),
+                '_parent_rot_y_rad': AttrDefinition(name=('_parent', 'rot_y_rad')),
+                '_parent_rot_s_rad_no_frame': AttrDefinition(name=('_parent', 'rot_s_rad_no_frame')),
                 '_parent_shift_x': AttrDefinition(name=('_parent', 'shift_x')),
                 '_parent_shift_y': AttrDefinition(name=('_parent', 'shift_y')),
                 '_parent_shift_s': AttrDefinition(name=('_parent', 'shift_s')),
@@ -7349,6 +7355,15 @@ class Line:
                 '_main_strength': _main_strength_from_attr,
                 'rot_s_rad': lambda attr:
                     attr['_own_rot_s_rad'] + attr['_parent_rot_s_rad']
+                    * attr._rot_and_shift_from_parent,
+                'rot_x_rad': lambda attr:
+                    attr['_own_rot_x_rad'] + attr['_parent_rot_x_rad']
+                    * attr._rot_and_shift_from_parent,
+                'rot_s_rad_no_frame': lambda attr:
+                    attr['_own_rot_s_rad_no_frame'] + attr['_parent_rot_s_rad_no_frame']
+                    * attr._rot_and_shift_from_parent,
+                'rot_y_rad': lambda attr:
+                    attr['_own_rot_y_rad'] + attr['_parent_rot_y_rad']
                     * attr._rot_and_shift_from_parent,
                 'shift_x': lambda attr:
                     attr['_own_shift_x'] + attr['_parent_shift_x']
