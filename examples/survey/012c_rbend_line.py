@@ -99,7 +99,7 @@ for elem_name in elements_to_process:
     p_mat_elem_start[:3, :3] = E_elem_start
     p_mat_elem_start[:3, 3] = XYZ_elem_start
 
-    if hasattr(ee_nj, 'angle'):
+    if isinstance(ee_nj, xt.RBend):
         mp_elem_start = MADPoint(p_mat_elem_start)
         mp_elem_start.rtheta(ee_nj.angle/2)
         E_elem_start_rot = mp_elem_start.matrix[:3, :3]
