@@ -98,17 +98,25 @@ for ii in range(len(sv0_nj)):
     XYZ_rst_start.append(XYZ_rst)
     E_rst_start.append(E_rst)
 
-    chord = sv0_nj.XYZ_ref_end[ii] - sv0_nj.XYZ_ref_start[ii]
-    chord_length = np.linalg.norm(chord)
-    if chord_length > 0:
-        chord /= chord_length
-        xo.assert_allclose(E_rst[:, 1], chord, atol=1e-12, rtol=0)
-
 tt_rst = xt.Table({
     'name': sv0_nj.name,
     'XYZ': np.array(XYZ_rst_start),
     'E': np.array(E_rst_start),
 })
+
+displacement_start = sv.XYZ_elem_start - tt_rst.XYZ
+displacement_end = sv.XYZ_elem_end - tt_rst.XYZ
+offset_start_rst = np.einsum(
+    'nij,ni->nj', tt_rst.E, displacement_start)
+offset_end_rst = np.einsum(
+    'nij,ni->nj', tt_rst.E, displacement_end)
+
+supports_misalignment = np.zeros(len(tt_rst), dtype=bool)
+for ii, element in enumerate(line_no_jumps.elements):
+    supports_misalignment[ii] = element.allow_rot_and_shift
+
+offset_start_rst[~supports_misalignment] = 0.0
+offset_end_rst[~supports_misalignment] = 0.0
 
 for elem_name in elements_to_process:
     ee_nj = line_no_jumps[elem_name]
@@ -145,6 +153,52 @@ for elem_name in elements_to_process:
 
 sv_nj = line_no_jumps.survey(include_element_frames=True)
 tt_nj = line_no_jumps.get_table(attr=True)
+
+tt_align = xt.Table({
+    'name': sv_nj['name'],
+    'element_type': sv_nj['element_type'],
+    # Reference trajectory (survey with no jumps)
+    'X': sv_nj['X'],
+    'Y': sv_nj['Y'],
+    'Z': sv_nj['Z'],
+    'theta': sv_nj['theta'],
+    'phi': sv_nj['phi'],
+    'psi': sv_nj['psi'],
+    'angle': tt_nj['angle'],
+    'tilt': tt_nj['rot_s_rad'],
+
+    # Misalignment parameters (MAD-X convention)
+    'dtheta': tt_nj['rot_y_rad'],
+    'dphi': tt_nj['rot_x_rad'],
+    'dpsi': tt_nj['rot_s_rad_no_frame'],
+    'dx': tt_nj['shift_x'],
+    'dy': tt_nj['shift_y'],
+    'ds': tt_nj['shift_s'],
+
+    # Misalignment as RST offsets and tilt (SU convention)
+    'br_start': offset_start_rst[:, 0],
+    'bs_start': offset_start_rst[:, 1],
+    'bt_start': offset_start_rst[:, 2],
+    'br_end': offset_end_rst[:, 0],
+    'bs_end': offset_end_rst[:, 1],
+    'bt_end': offset_end_rst[:, 2],
+    'bgamma': -tt_nj['rot_s_rad_no_frame'],
+
+    # RST unit vectors at element start
+    'E_rst_start': tt_rst.E,
+})
+
+tt_align.to_tfs('test_align.tfs')
+
+# Checks
+
+for ii in range(len(sv0_nj)):
+    chord = sv0_nj.XYZ_ref_end[ii] - sv0_nj.XYZ_ref_start[ii]
+    chord_length = np.linalg.norm(chord)
+    if chord_length > 0:
+        chord /= chord_length
+        xo.assert_allclose(
+            tt_rst.E[ii, :, 1], chord, atol=1e-12, rtol=0)
 
 b_E_rst = []
 b_S_rst = []
@@ -188,57 +242,6 @@ tt_misalignment_rst = xt.Table({
     'b_SZ': b_S_rst[:, 2],
     'l_E': np.array(element_lengths),
 })
-
-displacement_start = sv.XYZ_elem_start - tt_rst.XYZ
-displacement_end = sv.XYZ_elem_end - tt_rst.XYZ
-offset_start_rst = np.einsum(
-    'nij,ni->nj', tt_rst.E, displacement_start)
-offset_end_rst = np.einsum(
-    'nij,ni->nj', tt_rst.E, displacement_end)
-
-supports_misalignment = np.zeros(len(sv_nj), dtype=bool)
-for ii, element in enumerate(line_no_jumps.elements):
-    supports_misalignment[ii] = element.allow_rot_and_shift
-
-offset_start_rst[~supports_misalignment] = 0.0
-offset_end_rst[~supports_misalignment] = 0.0
-
-tt_align = xt.Table({
-    'name': sv_nj['name'],
-    'element_type': sv_nj['element_type'],
-    # Reference trajectory (survey with no jumps)
-    'X': sv_nj['X'],
-    'Y': sv_nj['Y'],
-    'Z': sv_nj['Z'],
-    'theta': sv_nj['theta'],
-    'phi': sv_nj['phi'],
-    'psi': sv_nj['psi'],
-    'angle': tt_nj['angle'],
-    'tilt': tt_nj['rot_s_rad'],
-
-    # Misalignment parameters (MAD-X convention)
-    'dtheta': tt_nj['rot_y_rad'],
-    'dphi': tt_nj['rot_x_rad'],
-    'dpsi': tt_nj['rot_s_rad_no_frame'],
-    'dx': tt_nj['shift_x'],
-    'dy': tt_nj['shift_y'],
-    'ds': tt_nj['shift_s'],
-
-    # Misalignment as RST offsets and tilt (SU convention)
-    'br_start': offset_start_rst[:, 0],
-    'bs_start': offset_start_rst[:, 1],
-    'bt_start': offset_start_rst[:, 2],
-    'br_end': offset_end_rst[:, 0],
-    'bs_end': offset_end_rst[:, 1],
-    'bt_end': offset_end_rst[:, 2],
-    'bgamma': -tt_nj['rot_s_rad_no_frame'],
-
-    # RST unit vectors at element start
-    'E_rst_start': tt_rst.E,
-})
-
-tt_align.to_tfs('test_align.tfs')
-
 
 for elem_name in elements_to_process:
     xo.assert_allclose(
