@@ -108,7 +108,7 @@ E_ref_start = sv_smooth_no_misalign['E_ref_start', name_elem]
 
 # Compute the misalignment of the element with respect to the smooth reference frame
 misalignment = misalignment_from_absolute_position(XYZ_elem_start, E_elem_start,
-                                               XYZ_ref_start, E_ref_start)
+                                                   XYZ_ref_start, E_ref_start)
 
 # Apply the misalignment to the element in the smooth line
 misalignment.apply_to_element(line_no_jumps[name_elem])
