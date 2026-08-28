@@ -66,10 +66,10 @@ void MultiElementMonitor_track_local_particle(MultiElementMonitorData el,
                 // requested coefficients. Never both.
                 int64_t const num_slots =
                     MultiElementMonitorData_len_monomial_indices(el);
-                if (MultiElementMonitorData_len_map_slots(el) > 0){
-                    #define XT_MONITOR_STORE_MAP(INDEX, NAME)                     \
-                        mad_tpsa_copy(part->NAME, (tpsa_t*)(uintptr_t)            \
-                            MultiElementMonitorData_get_map_slots(                \
+                if (MultiElementMonitorData_len_tpsa_addresses(el) > 0){
+                    #define XT_MONITOR_STORE_MAP(INDEX, NAME)                  \
+                        mad_tpsa_copy(part->NAME, (tpsa_t*)(uintptr_t)         \
+                            MultiElementMonitorData_get_tpsa_addresses(        \
                                 el, turn_index, store_at, INDEX));
 
                     XT_MONITOR_STORE_MAP(0, x)

@@ -1834,13 +1834,9 @@ class Tracker:
         num_turns = num_turns if num_turns is not None else 1
 
         map_series = None
-        map_slots = (0, 0, 0)
-        monomial_slots = None
-        if monitor_monomials is not None:
-            monomial_slots = xt.MultiElementMonitor.parse_monomials(
-                monitor_monomials, tpsa_descriptor)
-        elif tpsa_descriptor is not None:
-            map_series, map_slots = xt.MultiElementMonitor.build_map_slots(
+        tpsa_addresses = (0, 0, 0)
+        if monitor_monomials is None and tpsa_descriptor is not None:
+            map_series, tpsa_addresses = xt.MultiElementMonitor.build_tpsa_addresses(
                 tpsa_descriptor, num_elements, num_turns)
 
         multi_element_monitor = xt.MultiElementMonitor(
@@ -1850,8 +1846,9 @@ class Tracker:
             part_id_end=part_id_end,
             at_element_mapping=at_element_mapping,
             data=(num_turns, num_particles, num_cooordinates, num_elements),
-            map_slots=map_slots,
-            monomial_slots=monomial_slots,
+            tpsa_addresses=tpsa_addresses,
+            monomials=monitor_monomials,
+            descriptor=tpsa_descriptor,
             obs_names=obs_names
         )
         multi_element_monitor._map_series = map_series

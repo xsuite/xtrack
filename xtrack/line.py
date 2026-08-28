@@ -1955,14 +1955,15 @@ class Line:
             The recorded data can be retrieved in `line.record_last_track`.
         multi_element_monitor_at: list of str, optional
             If provided, a multi-element monitor is created and coordinates of the
-            trcked particles are recorded at the elements whose names are in the list.
+            tracked particles are recorded at the elements whose names are in the list.
             The recorded data can be retrieved in `line.record_multi_element_last_track`.
-        monitor_monomials: array or dict, optional
+        monitor_monomials: list, array or dict, optional
             TPSA tracking only. Record the given map coefficients at the multi-element
-            monitor locations instead of the full maps. Either an `(N, 6 + np)` array
-            of monomials (recorded for all six coordinates) or a mapping
-            `{monomial: coord}` / `{monomial: (coord, ...)}`. Retrieved with
-            `line.record_multi_element_last_track.coefficient(...)`.
+            monitor locations instead of the full maps. A monomial is the per-variable
+            orders, of length 6 plus the number of descriptor parameters. Give a list
+            of monomials or a 2D array with one per row, recorded for all six output
+            coordinates, or a mapping `{coord: monomial}` / `{coord: monomials}`.
+            Retrieved with `line.record_multi_element_last_track.coefficient(...)`.
         freeze_longitudinal: bool, optional
             If True, the longitudinal coordinates are frozen during tracking.
         time: bool, optional
