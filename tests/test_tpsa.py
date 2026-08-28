@@ -745,11 +745,11 @@ def test_coefficient_and_set_coefficient():
 def test_coefficient_rejects_invalid_monomials():
     """A malformed or beyond-order monomial raises instead of GTPSA exit(1)-ing."""
     m = _offaxis_map(order=3)
-    with pytest.raises(ValueError, match="invalid monomial"):
+    with pytest.raises(ValueError, match="Invalid monomial"):
         m.coefficient("x", (0, 0, 0, 0, 0))         # wrong length
-    with pytest.raises(ValueError, match="invalid monomial"):
+    with pytest.raises(ValueError, match="Invalid monomial"):
         m.coefficient("x", (3, 3, 0, 0, 0, 0))      # total order 6 > 3
-    with pytest.raises(ValueError, match="invalid monomial"):
+    with pytest.raises(ValueError, match="Invalid monomial"):
         m.set_coefficient("x", (3, 3, 0, 0, 0, 0), 1.0)
 
 

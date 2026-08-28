@@ -110,12 +110,12 @@ class MultiElementMonitor(xt.BeamElement):
             monomial = tuple(int(order) for order in np.asarray(monomial).reshape(-1))
             if len(monomial) != descriptor.monomial_length:
                 raise ValueError(
-                    f'invalid monomial {monomial}: expected length '
+                    f'Invalid monomial {monomial}: expected length '
                     f'{descriptor.monomial_length} (6 vars + '
                     f'{descriptor.num_params} params)')
             if not descriptor.is_valid_monomial(monomial):
                 raise ValueError(
-                    f'invalid monomial {monomial}: beyond the order or the '
+                    f'Invalid monomial {monomial}: beyond the order or the '
                     f'parameter order of the descriptor')
             coefficient_index = descriptor.monomial_index(monomial)
             if isinstance(coords, str):

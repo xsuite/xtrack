@@ -300,7 +300,7 @@ class ParticlesTpsa:
             mono = tuple(int(v) for v in row)
             if len(mono) != desc.monomial_length or not desc.is_valid_monomial(mono):
                 raise ValueError(
-                    f"invalid monomial {mono}: expected length {desc.monomial_length} "
+                    f"Invalid monomial {mono}: expected length {desc.monomial_length} "
                     f"(6 vars + {desc.num_params} params) and total order within the "
                     f"descriptor's order/param-order"
                 )
@@ -321,7 +321,7 @@ class ParticlesTpsa:
         mono = tuple(int(v) for v in np.asarray(monomial).reshape(-1))
         if len(mono) != desc.monomial_length or not desc.is_valid_monomial(mono):
             raise ValueError(
-                f"invalid monomial {mono}: expected length {desc.monomial_length} "
+                f"Invalid monomial {mono}: expected length {desc.monomial_length} "
                 f"(6 vars + {desc.num_params} params) and total order within the "
                 f"descriptor's order/param-order"
             )
