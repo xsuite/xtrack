@@ -134,70 +134,70 @@ propagation implementation.
 
 ### 1. Freeze current behavior and add `Frame`
 
-- [ ] Add independent reference tests for the current translation, rotation,
+- [x] Add independent reference tests for the current translation, rotation,
       drift, bend, tilt, and zero-length bend formulas.
-- [ ] Implement the homogeneous matrix representation and constructors.
-- [ ] Implement position and orientation accessors.
-- [ ] Implement local translations and rotations.
-- [ ] Implement arc propagation with the existing MAD-X sign conventions.
-- [ ] Implement copy, composition, and rigid inverse operations needed by the
+- [x] Implement the homogeneous matrix representation and constructors.
+- [x] Implement position and orientation accessors.
+- [x] Implement local translations and rotations.
+- [x] Implement arc propagation with the existing MAD-X sign conventions.
+- [x] Implement copy, composition, and rigid inverse operations needed by the
       survey code.
-- [ ] Test chaining and forward/inverse round trips from non-identity frames.
+- [x] Test chaining and forward/inverse round trips from non-identity frames.
 
 ### 2. Refactor the main survey loop
 
-- [ ] Initialize a `Frame` from the existing survey initial coordinates and
+- [x] Initialize a `Frame` from the existing survey initial coordinates and
       angles.
-- [ ] Store copies of its position and orientation at each element entrance.
-- [ ] Use `Frame` for default drift and bend propagation.
-- [ ] Preserve the current split forward/backward logic for `element0`.
-- [ ] Keep `get_survey` return values and types compatible.
-- [ ] Reimplement `advance_element` as a compatibility wrapper.
+- [x] Store copies of its position and orientation at each element entrance.
+- [x] Use `Frame` for default drift and bend propagation.
+- [x] Preserve the current split forward/backward logic for `element0`.
+- [x] Keep `get_survey` return values and types compatible.
+- [x] Reimplement `advance_element` as a compatibility wrapper.
 
 ### 3. Introduce hook dispatch and legacy compatibility
 
-- [ ] Add MRO-aware selection between `track_frame` and
+- [x] Add MRO-aware selection between `track_frame` and
       `_propagate_survey`.
-- [ ] Adapt legacy `(v, w)` input and output to the active `Frame`.
-- [ ] Test a custom element implementing only `track_frame`.
-- [ ] Test a custom element implementing only `_propagate_survey`.
-- [ ] Test a subclass whose legacy override is more specific than an inherited
+- [x] Adapt legacy `(v, w)` input and output to the active `Frame`.
+- [x] Test a custom element implementing only `track_frame`.
+- [x] Test a custom element implementing only `_propagate_survey`.
+- [x] Test a subclass whose legacy override is more specific than an inherited
       `track_frame`.
-- [ ] Test that `track_frame` wins when both hooks are defined at the same
+- [x] Test that `track_frame` wins when both hooks are defined at the same
       class level.
 
 ### 4. Migrate built-in elements
 
-- [ ] `Translation` and `XYShift`.
-- [ ] `XRotation`, `YRotation`, and `SRotation`.
-- [ ] General `Rotation`, including reversed sequence during backtracking.
-- [ ] Thick slices and drift slices.
-- [ ] Straight-body RBend entry and exit edge slices.
-- [ ] Remove built-in dependence on `survey_advance_element` where it is no
+- [x] `Translation` and `XYShift`.
+- [x] `XRotation`, `YRotation`, and `SRotation`.
+- [x] General `Rotation`, including reversed sequence during backtracking.
+- [x] Thick slices and drift slices.
+- [x] Straight-body RBend entry and exit edge slices.
+- [x] Remove built-in dependence on `survey_advance_element` where it is no
       longer needed, while preserving the public import compatibility.
 
 ### 5. Refactor element-frame and misalignment helpers
 
-- [ ] Use `Frame` in `get_misaligned_element_survey`.
-- [ ] Use `Frame` in RBend physical-frame helpers.
-- [ ] Replace direct propagation through temporary `Translation` and
+- [x] Use `Frame` in `get_misaligned_element_survey`.
+- [x] Use `Frame` in RBend physical-frame helpers.
+- [x] Replace direct propagation through temporary `Translation` and
       `Rotation` elements with direct frame operations.
-- [ ] Preserve straight and curved transformation order exactly.
-- [ ] Preserve sliced-element anchor and weight handling.
-- [ ] Use `Frame` for relative survey transform construction where this
+- [x] Preserve straight and curved transformation order exactly.
+- [x] Preserve sliced-element anchor and weight handling.
+- [x] Use `Frame` for relative survey transform construction where this
       reduces duplicate homogeneous-matrix logic.
 
 ### 6. Verification and documentation
 
-- [ ] Run focused `Frame` and compatibility-hook tests.
-- [ ] Run `tests/test_survey.py`.
-- [ ] Run relevant thick-element, slicing, transformation, and RBend tests.
-- [ ] Run MAD-X survey comparisons when their optional dependencies and data
+- [x] Run focused `Frame` and compatibility-hook tests.
+- [x] Run `tests/test_survey.py` on the available serial CPU context.
+- [x] Run relevant thick-element, slicing, transformation, and RBend tests.
+- [x] Run MAD-X survey comparisons when their optional dependencies and data
       are available.
-- [ ] Compare representative survey tables before and after the refactor at
+- [x] Compare representative survey tables before and after the refactor at
       tight absolute tolerance.
-- [ ] Run the wider Xtrack test suite in proportion to the affected scope.
-- [ ] Document `Frame` and the custom-element `track_frame` protocol.
+- [x] Run the wider Xtrack test suite in proportion to the affected scope.
+- [x] Document `Frame` and the custom-element `track_frame` protocol.
 
 Development environment:
 
@@ -222,3 +222,11 @@ Development environment:
 ## Progress log
 
 - 2026-08-30: Design agreed. Plan recorded. No implementation started.
+- 2026-08-30: Added `Frame`, refactored the survey loop and compatibility
+  helpers, migrated built-in hooks, and centralized element-frame transforms.
+- 2026-08-30: Focused Frame, survey, slicing, misalignment, thick-element,
+  native-loader, and MAD-X comparison tests pass. Automatic OpenMP test
+  contexts cannot compile with the system Apple clang (`-fopenmp` is not
+  supported); equivalent serial CPU cases pass.
+- 2026-08-30: Final affected-scope regression batch completed with 121 passed
+  and 61 deselected automatic/non-serial contexts.

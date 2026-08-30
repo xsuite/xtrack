@@ -16,7 +16,6 @@ from .quadrupole import Quadrupole
 from .rbend import RBend
 from .sextupole import Sextupole
 from .uniform_solenoid import UniformSolenoid
-from ..survey import advance_element as survey_advance_element
 
 def _parent_total_kn_ks(parent):
     if parent.length == 0:
@@ -349,62 +348,33 @@ class ThinSliceRBendEntry(_ThinSliceEdgeBase, BeamElement):
         E_body = E_elem_end
         return XYZ_body, E_body, XYZ_body.copy(), E_body.copy()
 
-    def _propagate_survey(self, v, w, backtrack):
+    def track_frame(self, frame, backtrack=False):
 
         if self._parent.rbend_model == "straight-body":
             if backtrack:
                 if abs(self._parent.angle) > 1e-10:  # avoid numerical issues
-                    v, w = survey_advance_element(
-                        v               = v,
-                        w               = w,
-                        length          = 0,
-                        angle           = 0,
-                        tilt            = 0,
-                        ref_shift_x     = self._parent._x0_in * np.cos(self._parent.rot_s_rad),
-                        ref_shift_y     = self._parent._x0_in * np.sin(self._parent.rot_s_rad),
-                        ref_rot_x_rad   = 0,
-                        ref_rot_y_rad   = 0,
-                        ref_rot_s_rad   = 0,
-                    )
-                v, w = survey_advance_element(
-                    v               = v,
-                    w               = w,
-                    length          = 0,
-                    angle           = -self._parent._angle_in,
-                    tilt            = self._parent.rot_s_rad,
-                    ref_shift_x     = 0,
-                    ref_shift_y     = 0,
-                    ref_rot_x_rad   = 0,
-                    ref_rot_y_rad   = 0,
-                    ref_rot_s_rad   = 0,
+                    frame.trans_x(
+                        self._parent._x0_in
+                        * np.cos(self._parent.rot_s_rad))
+                    frame.trans_y(
+                        self._parent._x0_in
+                        * np.sin(self._parent.rot_s_rad))
+                frame.arc(
+                    angle=-self._parent._angle_in,
+                    tilt=self._parent.rot_s_rad,
                 )
             else:
-                v, w = survey_advance_element(
-                    v               = v,
-                    w               = w,
-                    length          = 0,
-                    angle           = self._parent._angle_in,
-                    tilt            = self._parent.rot_s_rad,
-                    ref_shift_x     = 0,
-                    ref_shift_y     = 0,
-                    ref_rot_x_rad   = 0,
-                    ref_rot_y_rad   = 0,
-                    ref_rot_s_rad   = 0,
+                frame.arc(
+                    angle=self._parent._angle_in,
+                    tilt=self._parent.rot_s_rad,
                 )
                 if abs(self._parent.angle) > 1e-10:  # avoid numerical issues
-                    v, w = survey_advance_element(
-                        v               = v,
-                        w               = w,
-                        length          = 0,
-                        angle           = 0,
-                        tilt            = 0,
-                        ref_shift_x     = -self._parent._x0_in * np.cos(self._parent.rot_s_rad),
-                        ref_shift_y     = -self._parent._x0_in * np.sin(self._parent.rot_s_rad),
-                        ref_rot_x_rad   = 0,
-                        ref_rot_y_rad   = 0,
-                        ref_rot_s_rad   = 0,
-                    )
-        return v, w
+                    frame.trans_x(
+                        -self._parent._x0_in
+                        * np.cos(self._parent.rot_s_rad))
+                    frame.trans_y(
+                        -self._parent._x0_in
+                        * np.sin(self._parent.rot_s_rad))
 
 class ThinSliceRBendExit(_ThinSliceEdgeBase, BeamElement):
 
@@ -476,59 +446,30 @@ class ThinSliceRBendExit(_ThinSliceEdgeBase, BeamElement):
         E_body = E_elem_start
         return XYZ_body.copy(), E_body.copy(), XYZ_body, E_body
 
-    def _propagate_survey(self, v, w, backtrack):
+    def track_frame(self, frame, backtrack=False):
 
         if self._parent.rbend_model == "straight-body":
             if backtrack:
-                v, w = survey_advance_element(
-                    v               = v,
-                    w               = w,
-                    length          = 0,
-                    angle           = -self._parent._angle_out,
-                    tilt            = self._parent.rot_s_rad,
-                    ref_shift_x     = 0,
-                    ref_shift_y     = 0,
-                    ref_rot_x_rad   = 0,
-                    ref_rot_y_rad   = 0,
-                    ref_rot_s_rad   = 0,
+                frame.arc(
+                    angle=-self._parent._angle_out,
+                    tilt=self._parent.rot_s_rad,
                 )
                 if abs(self._parent.angle) > 1e-10:  # avoid numerical issues
-                    v, w = survey_advance_element(
-                        v               = v,
-                        w               = w,
-                        length          = 0,
-                        angle           = 0,
-                        tilt            = 0,
-                        ref_shift_x     = -self._parent._x0_out * np.cos(self._parent.rot_s_rad),
-                        ref_shift_y     = -self._parent._x0_out * np.sin(self._parent.rot_s_rad),
-                        ref_rot_x_rad   = 0,
-                        ref_rot_y_rad   = 0,
-                        ref_rot_s_rad   = 0,
-                    )
+                    frame.trans_x(
+                        -self._parent._x0_out
+                        * np.cos(self._parent.rot_s_rad))
+                    frame.trans_y(
+                        -self._parent._x0_out
+                        * np.sin(self._parent.rot_s_rad))
             else:
                 if abs(self._parent.angle) > 1e-10:  # avoid numerical issues
-                    v, w = survey_advance_element(
-                        v               = v,
-                        w               = w,
-                        length          = 0,
-                        angle           = 0,
-                        tilt            = 0,
-                        ref_shift_x     = self._parent._x0_out * np.cos(self._parent.rot_s_rad),
-                        ref_shift_y     = self._parent._x0_out * np.sin(self._parent.rot_s_rad),
-                        ref_rot_x_rad   = 0,
-                        ref_rot_y_rad   = 0,
-                        ref_rot_s_rad   = 0,
-                    )
-                v, w = survey_advance_element(
-                    v               = v,
-                    w               = w,
-                    length          = 0,
-                    angle           = self._parent._angle_out,
-                    tilt            = self._parent.rot_s_rad,
-                    ref_shift_x     = 0,
-                    ref_shift_y     = 0,
-                    ref_rot_x_rad   = 0,
-                    ref_rot_y_rad   = 0,
-                    ref_rot_s_rad   = 0,
+                    frame.trans_x(
+                        self._parent._x0_out
+                        * np.cos(self._parent.rot_s_rad))
+                    frame.trans_y(
+                        self._parent._x0_out
+                        * np.sin(self._parent.rot_s_rad))
+                frame.arc(
+                    angle=self._parent._angle_out,
+                    tilt=self._parent.rot_s_rad,
                 )
-        return v, w

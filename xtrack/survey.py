@@ -10,30 +10,14 @@
 import numpy as np
 from warnings import warn
 
+from .frame import Frame
 from .table import Table
 from .general import DEPRECATION_INFO_PREP_1_0
 
 # Required functions
 # ==================================================
 def get_E_from_angles(theta, phi, psi):
-    costhe = np.cos(theta)
-    cosphi = np.cos(phi)
-    cospsi = np.cos(psi)
-    sinthe = np.sin(theta)
-    sinphi = np.sin(phi)
-    sinpsi = np.sin(psi)
-    w = np.zeros([3, 3])
-    w[0, 0] = +costhe * cospsi - sinthe * sinphi * sinpsi
-    w[0, 1] = -costhe * sinpsi - sinthe * sinphi * cospsi
-    w[0, 2] = sinthe * cosphi
-    w[1, 0] = cosphi * sinpsi
-    w[1, 1] = cosphi * cospsi
-    w[1, 2] = sinphi
-    w[2, 0] = -sinthe * cospsi - costhe * sinphi * sinpsi
-    w[2, 1] = +sinthe * sinpsi - costhe * sinphi * cospsi
-    w[2, 2] = costhe * cosphi
-
-    return w
+    return Frame.rotation_from_angles(theta, phi, psi)
 
 
 def get_angles_from_w(w):
@@ -54,19 +38,23 @@ def get_angles_from_w(w):
 def advance_bend(v, w, R, S):
     """Advancing through bending element, see MAD-X manual:
     v2 = w1*R + v1  | w2 = w1*S"""
-    return np.dot(w, R) + v, np.dot(w, S)
+    frame = Frame.from_xyz_matrix(v, w).transform(
+        displacement=R, rotation=S)
+    return frame.xyz.copy(), frame.rotation.copy()
 
 
 def advance_rotation(v, w, S):
     """Advancing through rotation element:
     Rotate w matrix according to transformation matrix S"""
-    return v, np.dot(w, S)
+    frame = Frame.from_xyz_matrix(v, w).transform(rotation=S)
+    return frame.xyz.copy(), frame.rotation.copy()
 
 
 def advance_drift(v, w, R):
     """Advancing through drift element, see MAD-X manual:
     v2 = w1*R + v1  | w2 = w1*S -> S is unity"""
-    return np.dot(w, R) + v, w
+    frame = Frame.from_xyz_matrix(v, w).transform(displacement=R)
+    return frame.xyz.copy(), frame.rotation.copy()
 
 
 def advance_element(
@@ -74,15 +62,16 @@ def advance_element(
         ref_shift_x = 0, ref_shift_y = 0, ref_rot_x_rad = 0, ref_rot_y_rad = 0, ref_rot_s_rad = 0):
     """Computing the advance element-by-element.
     See MAD-X manual for generation of R and S"""
+    frame = Frame.from_xyz_matrix(v, w)
+
     # XYShift Handling
     if ref_shift_x != 0 or ref_shift_y != 0:
         assert angle == 0,  "ref_shift_x and ref_shift_y are only supported for angle = 0"
         assert tilt == 0,   "ref_shift_x and ref_shift_y are only supported for tilt = 0"
         assert length == 0, "ref_shift_x and ref_shift_y are only supported for length = 0"
 
-        R = np.array([ref_shift_x, ref_shift_y, 0])
-        # XYShift transforms as a drift
-        return advance_drift(v, w, R)
+        frame.trans_x(ref_shift_x).trans_y(ref_shift_y)
+        return frame.xyz.copy(), frame.rotation.copy()
 
     # XRotation Handling
     if ref_rot_x_rad != 0:
@@ -90,12 +79,8 @@ def advance_element(
         assert tilt == 0,   "rot_x_rad is only supported for tilt = 0"
         assert length == 0, "rot_x_rad is only supported for length = 0"
 
-        # Rotation sine/cosine
-        cr = np.cos(-ref_rot_x_rad)
-        sr = np.sin(-ref_rot_x_rad)
-        # ------
-        S = np.array([[1, 0, 0], [0, cr, sr], [0, -sr, cr]]) # x rotation matrix
-        return advance_rotation(v, w, S)
+        frame.rot_x(ref_rot_x_rad)
+        return frame.xyz.copy(), frame.rotation.copy()
 
     # YRotation Handling
     if ref_rot_y_rad != 0:
@@ -103,12 +88,8 @@ def advance_element(
         assert tilt == 0,   "rot_y_rad is only supported for tilt = 0"
         assert length == 0, "rot_y_rad is only supported for length = 0"
 
-        # Rotation sine/cosine
-        cr = np.cos(ref_rot_y_rad)
-        sr = np.sin(ref_rot_y_rad)
-        # ------
-        S = np.array([[cr, 0, -sr], [0, 1, 0], [sr, 0, cr]]) # y rotation matrix
-        return advance_rotation(v, w, S)
+        frame.rot_y(-ref_rot_y_rad)
+        return frame.xyz.copy(), frame.rotation.copy()
 
     # SRotation Handling
     if ref_rot_s_rad != 0:
@@ -116,47 +97,23 @@ def advance_element(
         assert tilt == 0,   "rot_s_rad is only supported for tilt = 0"
         assert length == 0, "rot_s_rad is only supported for length = 0"
 
-        # Rotation sine/cosine
-        cr = np.cos(ref_rot_s_rad)
-        sr = np.sin(ref_rot_s_rad)
-        # ------
-        S = np.array([[cr, -sr, 0], [sr, cr, 0], [0, 0, 1]]) # z rotation matrix
-        return advance_rotation(v, w, S)
+        frame.rot_s(ref_rot_s_rad)
+        return frame.xyz.copy(), frame.rotation.copy()
 
     # Non bending elements
     if angle == 0:
-        R = np.array([0, 0, length])
-        return advance_drift(v, w, R)
+        frame.trans_s(length)
+        return frame.xyz.copy(), frame.rotation.copy()
 
     # Horizontal bending elements
     elif tilt == 0:
-        # Angle sine/cosine
-        ca = np.cos(angle)
-        sa = np.sin(angle)
-        # ------
-        rho = length / angle
-        R = np.array([rho * (ca - 1), 0, rho * sa])
-        S = np.array([[ca, 0, -sa], [0, 1, 0], [sa, 0, ca]])
-        return advance_bend(v, w, R, S)
+        frame.arc_x(length=length, angle=angle)
+        return frame.xyz.copy(), frame.rotation.copy()
 
     # Tilted bending elements
     else:
-        # Angle sine/cosine
-        ca = np.cos(angle)
-        sa = np.sin(angle)
-        # Tilt sine/cosine
-        ct = np.cos(tilt)
-        st = np.sin(tilt)
-        # ------
-        rho = length / angle
-        R = np.array([rho * (ca - 1), 0, rho * sa])
-        S = np.array([[ca, 0, -sa], [0, 1, 0], [sa, 0, ca]])
-
-        # Orthogonal rotation matrix for tilt
-        T       = np.array([[ct, -st, 0], [st, ct, 0], [0, 0, 1]])
-        Tinv    = np.array([[ct, st, 0], [-st, ct, 0], [0, 0, 1]])
-
-        return advance_bend(v, w, np.dot(T, R), np.dot(T, np.dot(S, Tinv)))
+        frame.arc(length=length, angle=angle, tilt=tilt)
+        return frame.xyz.copy(), frame.rotation.copy()
 
 
 class SurveyTable(Table):
@@ -570,46 +527,84 @@ def get_survey(
     V = []
 
     # Initial position and orientation
-    v   = np.array([X0, Y0, Z0])
-    w   = get_E_from_angles(
-        theta       = theta0,
-        phi         = phi0,
-        psi         = psi0)
+    frame = Frame.from_xyz_angles(
+        X=X0,
+        Y=Y0,
+        Z=Z0,
+        theta=theta0,
+        phi=phi0,
+        psi=psi0,
+    )
 
     # Advancing element by element
     for ee, ll, aa, tt in zip(elements, drift_length, angle, tilt):
 
         # Store position and orientation at element entrance
-        E_matrix.append(w)
-        V.append(v)
+        E_matrix.append(frame.rotation.copy())
+        V.append(frame.xyz.copy())
 
-        if hasattr(ee, '_propagate_survey'):
-            v, w = ee._propagate_survey(v=v, w=w, backtrack=backtrack)
-        else:
-
+        if not _element_tracks_frame(ee, frame, backtrack=backtrack):
             if backtrack:
                 ll = -ll
                 aa = -aa
 
-            # Advancing
-            v, w = advance_element(
-                v               = v,
-                w               = w,
-                length          = ll,
-                angle           = aa,
-                tilt            = tt,
-                ref_shift_x     = 0.,
-                ref_shift_y     = 0.,
-                ref_rot_x_rad   = 0.,
-                ref_rot_y_rad   = 0.,
-                ref_rot_s_rad   = 0.)
+            frame.arc(length=ll, angle=aa, tilt=tt)
 
     # Last marker
-    E_matrix.append(w)
-    V.append(v)
+    E_matrix.append(frame.rotation.copy())
+    V.append(frame.xyz.copy())
 
     # Return data for SurveyTable object
     return V, E_matrix
+
+
+def _find_hook(element, name):
+    """Return ``(MRO distance, bound hook)`` or ``(None, None)``."""
+    try:
+        instance_attributes = vars(element)
+    except TypeError:
+        instance_attributes = {}
+    if name in instance_attributes:
+        return -1, getattr(element, name)
+
+    mro = type(element).__mro__
+    for distance, cls in enumerate(mro):
+        if name in cls.__dict__:
+            return distance, getattr(element, name)
+
+    if hasattr(element, name):
+        return len(mro), getattr(element, name)
+    return None, None
+
+
+def _element_tracks_frame(element, frame, backtrack=False):
+    """Run the most-specific new or legacy element survey hook.
+
+    Returns ``True`` when an element hook was found and ``False`` when the
+    caller needs to apply the standard drift/bend propagation.
+    """
+    track_distance, track_frame = _find_hook(element, 'track_frame')
+    legacy_distance, propagate_survey = _find_hook(
+        element, '_propagate_survey')
+
+    use_track_frame = track_frame is not None and (
+        propagate_survey is None or track_distance <= legacy_distance)
+
+    if use_track_frame:
+        track_frame(frame, backtrack=backtrack)
+        return True
+
+    if propagate_survey is not None:
+        v, w = propagate_survey(
+            v=frame.xyz,
+            w=frame.rotation,
+            backtrack=backtrack,
+        )
+        frame.xyz = v
+        frame.rotation = w
+        return True
+
+    return False
 
 
 def compute_survey(*args, **kwargs):
@@ -675,13 +670,6 @@ def survey_relative_transform(survey: SurveyTable, source: str | int, destinatio
     src_row = survey.rows[source]
     dest_row = survey.rows[destination]
 
-    def _row_to_matrix(row):
-        matrix = np.identity(4)
-        matrix[:3, :3] = row.E_matrix
-        matrix[:3, 3] = row.XYZ
-        return matrix
-
-    src_mat = _row_to_matrix(src_row)
-    dest_mat = _row_to_matrix(dest_row)
-
-    return np.linalg.inv(src_mat) @ dest_mat
+    src_frame = Frame.from_xyz_matrix(src_row.XYZ, src_row.E_matrix)
+    dest_frame = Frame.from_xyz_matrix(dest_row.XYZ, dest_row.E_matrix)
+    return (src_frame.inverse() @ dest_frame).matrix

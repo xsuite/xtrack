@@ -11,6 +11,8 @@ from typing import NamedTuple
 
 import numpy as np
 
+from .frame import Frame
+
 
 class TransformParameters(NamedTuple):
     """Six shift and rotation parameters for one side of an element."""
@@ -35,68 +37,26 @@ def _misalignment_matrix(
     rot_x_rad,
     rot_s_rad_no_frame,
 ):
-    s_phi = sin(rot_x_rad)
-    c_phi = cos(rot_x_rad)
-    s_theta = sin(rot_y_rad)
-    c_theta = cos(rot_y_rad)
-    s_psi = sin(rot_s_rad_no_frame)
-    c_psi = cos(rot_s_rad_no_frame)
-
-    return np.array(
-        [
-            [
-                -s_phi * s_psi * s_theta + c_psi * c_theta,
-                -c_psi * s_phi * s_theta - c_theta * s_psi,
-                c_phi * s_theta,
-                shift_x,
-            ],
-            [c_phi * s_psi, c_phi * c_psi, s_phi, shift_y],
-            [
-                -c_theta * s_phi * s_psi - c_psi * s_theta,
-                -c_psi * c_theta * s_phi + s_psi * s_theta,
-                c_phi * c_theta,
-                shift_s,
-            ],
-            [0.0, 0.0, 0.0, 1.0],
-        ]
-    )
+    return Frame.from_xyz_angles(
+        X=shift_x,
+        Y=shift_y,
+        Z=shift_s,
+        theta=rot_y_rad,
+        phi=rot_x_rad,
+        psi=rot_s_rad_no_frame,
+    ).matrix
 
 
 def _curved_part_matrix(part_angle, h, rot_s_rad):
-    c_part = cos(part_angle)
-    s_part = sin(part_angle)
-    c_tilt = cos(rot_s_rad)
-    s_tilt = sin(rot_s_rad)
-
-    delta_x = (c_part - 1.0) * c_tilt / h
-    delta_y = (c_part - 1.0) * s_tilt / h
-    delta_s = s_part / h
-
-    return np.array(
-        [
-            [
-                (c_part - 1.0) * c_tilt**2 + 1.0,
-                (c_part - 1.0) * c_tilt * s_tilt,
-                -c_tilt * s_part,
-                delta_x,
-            ],
-            [
-                (c_part - 1.0) * c_tilt * s_tilt,
-                (c_part - 1.0) * s_tilt**2 + 1.0,
-                -s_part * s_tilt,
-                delta_y,
-            ],
-            [c_tilt * s_part, s_part * s_tilt, c_part, delta_s],
-            [0.0, 0.0, 0.0, 1.0],
-        ]
-    )
+    return Frame().arc(
+        length=part_angle / h,
+        angle=part_angle,
+        tilt=rot_s_rad,
+    ).matrix
 
 
 def _rigid_affine_inverse(matrix):
-    inverse = np.eye(4)
-    inverse[:3, :3] = matrix[:3, :3].T
-    inverse[:3, 3] = -matrix[:3, :3].T @ matrix[:3, 3]
-    return inverse
+    return Frame(matrix).inverse().matrix
 
 
 def _parameters_from_matrix(matrix):
@@ -232,8 +192,10 @@ def get_entry_transform(
     inverse_first_part = _rigid_affine_inverse(matrix_first_part)
 
     misaligned_entry = (
-        matrix_first_part @ misalignment_matrix @ inverse_first_part
-    )
+        Frame(matrix_first_part)
+        @ Frame(misalignment_matrix)
+        @ Frame(inverse_first_part)
+    ).matrix
 
     return _parameters_from_matrix(misaligned_entry)
 
@@ -356,8 +318,10 @@ def get_exit_transform(
     inverse_second_part = _rigid_affine_inverse(matrix_second_part)
 
     realign = (
-        inverse_second_part @ inverse_misalignment @ matrix_second_part
-    )
+        Frame(inverse_second_part)
+        @ Frame(inverse_misalignment)
+        @ Frame(matrix_second_part)
+    ).matrix
     return _parameters_from_matrix(realign)
 
 
@@ -392,10 +356,6 @@ def get_misaligned_element_survey(
     tuple
         ``(XYZ_elem_start, E_elem_start, XYZ_elem_end, E_elem_end)``.
     """
-    from .beam_elements.rotation import Rotation
-    from .beam_elements.translation import Translation
-    from .survey import advance_element
-
     inherits_transformations = getattr(
         elem, 'rot_and_shift_from_parent', False)
     supports_transformations = getattr(elem, 'allow_rot_and_shift', False)
@@ -442,71 +402,40 @@ def get_misaligned_element_survey(
         )
     )
 
-    translation_start = Translation(
-        shift_x=transform_start.shift_x,
-        shift_y=transform_start.shift_y,
-    )
-    rotation_start = Rotation(
-        rot_x_rad=-transform_start.rot_x_rad,
-        rot_y_rad=transform_start.rot_y_rad,
-        rot_s_rad=transform_start.rot_s_rad_no_frame,
-        seq='yxs',
-    )
-    frame_rotation_start = Rotation(
-        rot_s_rad=transform_kwargs['rot_s_rad'])
+    frame_start = Frame.from_xyz_matrix(XYZ_ref_start, E_ref_start)
+    frame_start.trans_x(transform_start.shift_x)
+    frame_start.trans_y(transform_start.shift_y)
+    frame_start.trans_s(transform_start.shift_s)
+    frame_start.rot_y(transform_start.rot_y_rad)
+    frame_start.rot_x(-transform_start.rot_x_rad)
+    frame_start.rot_s(transform_start.rot_s_rad_no_frame)
+    frame_start.rot_s(transform_kwargs['rot_s_rad'])
 
-    XYZ_elem_start, E_elem_start = translation_start._propagate_survey(
-        XYZ_ref_start, E_ref_start, backtrack=False)
-    XYZ_elem_start, E_elem_start = advance_element(
-        XYZ_elem_start,
-        E_elem_start,
-        length=transform_start.shift_s,
-    )
-    XYZ_elem_start, E_elem_start = rotation_start._propagate_survey(
-        XYZ_elem_start, E_elem_start, backtrack=False)
-    XYZ_elem_start, E_elem_start = (
-        frame_rotation_start._propagate_survey(
-            XYZ_elem_start, E_elem_start, backtrack=False)
-    )
-
-    translation_end = Translation(
-        shift_x=transform_end.shift_x,
-        shift_y=transform_end.shift_y,
-    )
-    rotation_end = Rotation(
-        rot_x_rad=-transform_end.rot_x_rad,
-        rot_y_rad=transform_end.rot_y_rad,
-        rot_s_rad=transform_end.rot_s_rad_no_frame,
-        seq='yxs' if uses_curved_transform else 'sxy',
-    )
-    frame_rotation_end = Rotation(
-        rot_s_rad=-transform_kwargs['rot_s_rad'])
+    frame_end = Frame.from_xyz_matrix(XYZ_ref_end, E_ref_end)
 
     if uses_curved_transform:
-        XYZ_elem_end, E_elem_end = rotation_end._propagate_survey(
-            XYZ_ref_end, E_ref_end, backtrack=True)
-        XYZ_elem_end, E_elem_end = advance_element(
-            XYZ_elem_end,
-            E_elem_end,
-            length=-transform_end.shift_s,
-        )
-        XYZ_elem_end, E_elem_end = translation_end._propagate_survey(
-            XYZ_elem_end, E_elem_end, backtrack=True)
+        frame_end.rot_s(-transform_end.rot_s_rad_no_frame)
+        frame_end.rot_x(transform_end.rot_x_rad)
+        frame_end.rot_y(-transform_end.rot_y_rad)
+        frame_end.trans_s(-transform_end.shift_s)
+        frame_end.trans_x(-transform_end.shift_x)
+        frame_end.trans_y(-transform_end.shift_y)
     else:
-        XYZ_elem_end, E_elem_end = translation_end._propagate_survey(
-            XYZ_ref_end, E_ref_end, backtrack=True)
-        XYZ_elem_end, E_elem_end = advance_element(
-            XYZ_elem_end,
-            E_elem_end,
-            length=-transform_end.shift_s,
-        )
-        XYZ_elem_end, E_elem_end = rotation_end._propagate_survey(
-            XYZ_elem_end, E_elem_end, backtrack=True)
+        frame_end.trans_x(-transform_end.shift_x)
+        frame_end.trans_y(-transform_end.shift_y)
+        frame_end.trans_s(-transform_end.shift_s)
+        frame_end.rot_y(-transform_end.rot_y_rad)
+        frame_end.rot_x(transform_end.rot_x_rad)
+        frame_end.rot_s(-transform_end.rot_s_rad_no_frame)
 
-    XYZ_elem_end, E_elem_end = frame_rotation_end._propagate_survey(
-        XYZ_elem_end, E_elem_end, backtrack=True)
+    frame_end.rot_s(transform_kwargs['rot_s_rad'])
 
-    return XYZ_elem_start, E_elem_start, XYZ_elem_end, E_elem_end
+    return (
+        frame_start.xyz.copy(),
+        frame_start.rotation.copy(),
+        frame_end.xyz.copy(),
+        frame_end.rotation.copy(),
+    )
 
 
 def get_element_frame_columns(elements, XYZ, E_matrix):

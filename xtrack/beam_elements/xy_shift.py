@@ -5,7 +5,6 @@
 
 from ..base_element import BeamElement
 from ..general import DEPRECATION_INFO_PREP_1_0
-from ..survey import advance_element as survey_advance_element
 from warnings import warn
 import xobjects as xo
 
@@ -47,26 +46,7 @@ class XYShift(BeamElement):
 
         super().__init__(dx=dx, dy=dy, **kwargs)
 
-    def _propagate_survey(self, v, w, backtrack):
-
-        shift_x = self.dx
-        shift_y = self.dy
-
-        if backtrack:
-            fback = -1
-        else:
-            fback = 1
-
-        v, w = survey_advance_element(
-                    v               = v,
-                    w               = w,
-                    length          = 0,
-                    angle           = 0,
-                    tilt            = 0,
-                    ref_shift_x     = fback * shift_x,
-                    ref_shift_y     = fback * shift_y,
-                    ref_rot_x_rad   = 0,
-                    ref_rot_y_rad   = 0,
-                    ref_rot_s_rad   = 0,
-                )
-        return v, w
+    def track_frame(self, frame, backtrack=False):
+        sign = -1 if backtrack else 1
+        frame.trans_x(sign * self.dx)
+        frame.trans_y(sign * self.dy)
