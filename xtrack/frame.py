@@ -88,18 +88,6 @@ class Frame:
     def copy(self):
         return Frame(self.matrix)
 
-    def inverse(self):
-        """Return the inverse rigid transform as a new frame."""
-        matrix = np.eye(4)
-        matrix[:3, :3] = self.E_matrix.T
-        matrix[:3, 3] = -self.E_matrix.T @ self.XYZ
-        return Frame(matrix)
-
-    def __matmul__(self, other):
-        if not isinstance(other, Frame):
-            return NotImplemented
-        return Frame(self.matrix @ other.matrix)
-
     def transform(self, displacement=None, rotation_matrix=None):
         """Apply a local rigid transform represented by vector and matrix."""
         initial_E_matrix = self.E_matrix.copy()

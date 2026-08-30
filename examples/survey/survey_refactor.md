@@ -35,7 +35,6 @@ frame.matrix
 frame.XYZ
 frame.E_matrix
 frame.copy()
-frame.inverse()
 ```
 
 Planned propagation methods:
@@ -114,12 +113,12 @@ All survey-frame movement and rotation belongs in `Frame`. This includes:
 - Thick and drift slices.
 - Straight-body RBend entry and exit maps.
 - Physical element-frame construction in `misalignment_survey.py`.
-- Relative frame composition and inversion where practical.
+- Construction of mutable frames from survey matrices.
 
 Misalignment helpers may continue to calculate scalar transformation
-parameters. Creation, composition, inversion, and application of homogeneous
-frame transforms should use `Frame`, rather than introducing another survey
-propagation implementation.
+parameters and perform their conjugation and inversion directly with matrices.
+Once a frame is constructed, movement and rotation are applied only through
+`Frame` methods.
 
 ## Implementation plan
 
@@ -131,9 +130,8 @@ propagation implementation.
 - [x] Implement position and orientation accessors.
 - [x] Implement local translations and rotations.
 - [x] Implement arc propagation with the existing MAD-X sign conventions.
-- [x] Implement copy, composition, and rigid inverse operations needed by the
-      survey code.
-- [x] Test chaining and forward/inverse round trips from non-identity frames.
+- [x] Implement frame copying.
+- [x] Test chaining and forward/backward round trips from non-identity frames.
 
 ### 2. Refactor the main survey loop
 
@@ -168,8 +166,7 @@ propagation implementation.
       `Rotation` elements with direct frame operations.
 - [x] Preserve straight and curved transformation order exactly.
 - [x] Preserve sliced-element anchor and weight handling.
-- [x] Use `Frame` for relative survey transform construction where this
-      reduces duplicate homogeneous-matrix logic.
+- [x] Keep relative survey transforms as explicit matrix algebra.
 
 ### 6. Verification and documentation
 
@@ -220,4 +217,8 @@ Development environment:
 - 2026-08-30: Aligned the `Frame` API with survey terminology: `XYZ` is the
   point and `E_matrix` is the basis-vector matrix.
 - 2026-08-30: Post-rename affected-scope regression batch completed with 124
+  passed and 61 automatic/non-serial contexts deselected.
+- 2026-08-30: Removed frame inversion and composition from the `Frame` API;
+  misalignment and relative-transform algebra remain explicit matrix code.
+- 2026-08-30: Post-cleanup affected-scope regression batch completed with 124
   passed and 61 automatic/non-serial contexts deselected.

@@ -105,7 +105,7 @@ def test_frame_is_mutable_and_chainable():
     np.testing.assert_allclose(frame.XYZ, [1, 2, 0], atol=1e-15, rtol=0)
 
 
-def test_frame_copy_inverse_and_arc_backtrack():
+def test_frame_copy_and_arc_backtrack():
     initial = xt.Frame.from_survey_angles(
         X=0.4, Y=-1.2, Z=2.1, theta=0.2, phi=-0.3, psi=0.1)
     frame = initial.copy()
@@ -113,8 +113,6 @@ def test_frame_copy_inverse_and_arc_backtrack():
     frame.arc(length=-1.8, angle=-0.43, tilt=-0.37)
 
     np.testing.assert_allclose(frame.matrix, initial.matrix, atol=2e-15, rtol=0)
-    np.testing.assert_allclose(
-        (initial @ initial.inverse()).matrix, np.eye(4), atol=2e-15, rtol=0)
     assert not np.shares_memory(initial.matrix, initial.copy().matrix)
 
 

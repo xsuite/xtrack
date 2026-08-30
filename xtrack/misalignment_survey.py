@@ -56,7 +56,10 @@ def _curved_part_matrix(part_angle, h, rot_s_rad):
 
 
 def _rigid_affine_inverse(matrix):
-    return Frame(matrix).inverse().matrix
+    inverse = np.eye(4)
+    inverse[:3, :3] = matrix[:3, :3].T
+    inverse[:3, 3] = -matrix[:3, :3].T @ matrix[:3, 3]
+    return inverse
 
 
 def _parameters_from_matrix(matrix):
@@ -192,10 +195,7 @@ def get_entry_transform(
     inverse_first_part = _rigid_affine_inverse(matrix_first_part)
 
     misaligned_entry = (
-        Frame(matrix_first_part)
-        @ Frame(misalignment_matrix)
-        @ Frame(inverse_first_part)
-    ).matrix
+        matrix_first_part @ misalignment_matrix @ inverse_first_part)
 
     return _parameters_from_matrix(misaligned_entry)
 
@@ -318,10 +318,7 @@ def get_exit_transform(
     inverse_second_part = _rigid_affine_inverse(matrix_second_part)
 
     realign = (
-        Frame(inverse_second_part)
-        @ Frame(inverse_misalignment)
-        @ Frame(matrix_second_part)
-    ).matrix
+        inverse_second_part @ inverse_misalignment @ matrix_second_part)
     return _parameters_from_matrix(realign)
 
 

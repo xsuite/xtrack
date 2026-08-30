@@ -511,6 +511,12 @@ def survey_relative_transform(survey: SurveyTable, source: str | int, destinatio
     src_row = survey.rows[source]
     dest_row = survey.rows[destination]
 
-    src_frame = Frame.from_survey(src_row.XYZ, src_row.E_matrix)
-    dest_frame = Frame.from_survey(dest_row.XYZ, dest_row.E_matrix)
-    return (src_frame.inverse() @ dest_frame).matrix
+    src_matrix = np.eye(4)
+    src_matrix[:3, :3] = src_row.E_matrix
+    src_matrix[:3, 3] = src_row.XYZ
+
+    dest_matrix = np.eye(4)
+    dest_matrix[:3, :3] = dest_row.E_matrix
+    dest_matrix[:3, 3] = dest_row.XYZ
+
+    return np.linalg.inv(src_matrix) @ dest_matrix
