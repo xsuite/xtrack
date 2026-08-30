@@ -1,3 +1,5 @@
+from dataclasses import asdict, is_dataclass
+
 import numpy as np
 import pytest
 
@@ -125,6 +127,51 @@ def test_frame_exposes_survey_angles_as_read_only_properties():
 
     with pytest.raises(AttributeError):
         frame.theta = 0
+
+
+def test_frame_from_ccs():
+    ccs = xt.CCSFrame(
+        x=1.2, y=-0.7, z=3.1, theta=0.21, phi=-0.17, psi=0.33)
+    frame = xt.Frame.from_ccs(ccs)
+
+    survey_to_ccs = np.array([
+        [-1, 0, 0],
+        [0, 0, 1],
+        [0, 1, 0],
+    ])
+    ct, cp, cs = np.cos([ccs.theta, ccs.phi, ccs.psi])
+    st, sp, ss = np.sin([ccs.theta, ccs.phi, ccs.psi])
+    ccs_E_matrix = (
+        np.array([[ct, st, 0], [-st, ct, 0], [0, 0, 1]])
+        @ np.array([[1, 0, 0], [0, cp, -sp], [0, sp, cp]])
+        @ np.array([[cs, 0, -ss], [0, 1, 0], [ss, 0, cs]])
+    )
+
+    np.testing.assert_allclose(
+        frame.XYZ,
+        survey_to_ccs.T @ np.array([ccs.x, ccs.y, ccs.z]),
+        atol=1e-15,
+        rtol=0,
+    )
+    np.testing.assert_allclose(
+        frame.E_matrix,
+        survey_to_ccs.T @ ccs_E_matrix @ survey_to_ccs,
+        atol=1e-15,
+        rtol=0,
+    )
+
+
+def test_frame_to_ccs_round_trip():
+    frame = xt.Frame.from_survey_angles(
+        X=1.2, Y=-0.7, Z=3.1, theta=0.21, phi=-0.17, psi=0.33)
+
+    ccs = frame.to_ccs()
+    rebuilt = xt.Frame.from_ccs(ccs)
+
+    assert is_dataclass(ccs)
+    assert asdict(ccs).keys() == {
+        'x', 'y', 'z', 'theta', 'phi', 'psi'}
+    np.testing.assert_allclose(rebuilt.matrix, frame.matrix, atol=1e-15, rtol=0)
 
 
 def test_frame_is_mutable_and_chainable():

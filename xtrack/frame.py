@@ -3,7 +3,33 @@
 # Copyright (c) CERN, 2026.                 #
 # ######################################### #
 
+from dataclasses import dataclass
+
 import numpy as np
+
+
+@dataclass
+class CCSFrame:
+    """Pose in the CERN Coordinate System.
+
+    The x axis points towards a positive bend, y follows the beam, and z
+    points upwards. The ``theta``, ``phi``, and ``psi`` angles are in radians.
+    """
+
+    x: float = 0
+    y: float = 0
+    z: float = 0
+    theta: float = 0
+    phi: float = 0
+    psi: float = 0
+
+
+_SURVEY_TO_CCS = np.array([
+    [-1, 0, 0],
+    [0, 0, 1],
+    [0, 1, 0],
+])
+_CCS_TO_SURVEY = _SURVEY_TO_CCS.T
 
 
 def _angles_from_E_matrix(E_matrix):
@@ -55,6 +81,18 @@ class Frame:
             E_matrix=cls.E_matrix_from_angles(theta, phi, psi),
         )
 
+    @classmethod
+    def from_ccs(cls, ccs: CCSFrame):
+        """Build a survey frame from CERN Coordinate System coordinates."""
+        ccs_XYZ = np.array([ccs.x, ccs.y, ccs.z])
+        ccs_E_matrix = cls._ccs_E_matrix_from_angles(
+            ccs.theta, ccs.phi, ccs.psi)
+        return cls.from_survey(
+            XYZ=_CCS_TO_SURVEY @ ccs_XYZ,
+            E_matrix=(
+                _CCS_TO_SURVEY @ ccs_E_matrix @ _SURVEY_TO_CCS),
+        )
+
     @staticmethod
     def E_matrix_from_angles(theta, phi, psi):
         """Build the MAD-X-compatible survey orientation matrix."""
@@ -76,6 +114,50 @@ class Frame:
         E_matrix[2, 1] = +sinthe * sinpsi - costhe * sinphi * cospsi
         E_matrix[2, 2] = costhe * cosphi
         return E_matrix
+
+    @staticmethod
+    def _ccs_E_matrix_from_angles(theta, phi, psi):
+        costhe = np.cos(theta)
+        cosphi = np.cos(phi)
+        cospsi = np.cos(psi)
+        sinthe = np.sin(theta)
+        sinphi = np.sin(phi)
+        sinpsi = np.sin(psi)
+
+        theta_matrix = np.array([
+            [costhe, sinthe, 0],
+            [-sinthe, costhe, 0],
+            [0, 0, 1],
+        ])
+        phi_matrix = np.array([
+            [1, 0, 0],
+            [0, cosphi, -sinphi],
+            [0, sinphi, cosphi],
+        ])
+        psi_matrix = np.array([
+            [cospsi, 0, -sinpsi],
+            [0, 1, 0],
+            [sinpsi, 0, cospsi],
+        ])
+        return theta_matrix @ phi_matrix @ psi_matrix
+
+    def to_ccs(self) -> CCSFrame:
+        """Return this frame as principal-angle CCS coordinates."""
+        ccs_XYZ = _SURVEY_TO_CCS @ self.XYZ
+        ccs_E_matrix = (
+            _SURVEY_TO_CCS @ self.E_matrix @ _CCS_TO_SURVEY)
+        psi = np.arctan2(ccs_E_matrix[2, 0], ccs_E_matrix[2, 2])
+        cosphi = np.hypot(ccs_E_matrix[0, 1], ccs_E_matrix[1, 1])
+        phi = np.arctan2(ccs_E_matrix[2, 1], cosphi)
+        theta = np.arctan2(ccs_E_matrix[0, 1], ccs_E_matrix[1, 1])
+        return CCSFrame(
+            x=ccs_XYZ[0],
+            y=ccs_XYZ[1],
+            z=ccs_XYZ[2],
+            theta=theta,
+            phi=phi,
+            psi=psi,
+        )
 
     @property
     def XYZ(self):

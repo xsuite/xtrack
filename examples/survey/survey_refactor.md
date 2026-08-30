@@ -30,6 +30,7 @@ Frame()
 Frame(matrix)
 Frame.from_survey_angles(X, Y, Z, theta, phi, psi)
 Frame.from_survey(XYZ, E_matrix)
+Frame.from_ccs(CCSFrame(x, y, z, theta, phi, psi))
 
 frame.matrix
 frame.XYZ
@@ -40,6 +41,7 @@ frame.ez
 frame.theta
 frame.phi
 frame.psi
+frame.to_ccs()
 frame.copy()
 ```
 
@@ -64,8 +66,9 @@ propagation. `arc_x` and `arc_y` are convenience operations. Their sign
 conventions will be fixed by tests reproducing the present survey behavior
 before the old implementation is replaced.
 
-The class is expected to live in `xtrack/frame.py` and to be publicly
-available as `xtrack.Frame`, since it is part of the custom-element protocol.
+The class lives in `xtrack/frame.py` and is publicly available as
+`xtrack.Frame`, since it is part of the custom-element protocol. The data-only
+CCS representation is publicly available as `xtrack.CCSFrame`.
 
 ## Element protocol
 
@@ -236,3 +239,7 @@ Development environment:
   `translate_x/y/s` and `rotate_x/y/s` API without compatibility aliases.
 - 2026-08-30: Post-method-rename affected-scope regression batch completed
   with 126 passed and 61 automatic/non-serial contexts deselected.
+- 2026-08-30: Added the data-only `CCSFrame` type and `Frame.from_ccs`
+  and `Frame.to_ccs` conversions.
+- 2026-08-30: Post-CCS affected-scope regression batch completed with 128
+  passed and 61 automatic/non-serial contexts deselected.
