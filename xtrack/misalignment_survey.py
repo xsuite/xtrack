@@ -400,32 +400,32 @@ def get_misaligned_element_survey(
     )
 
     frame_start = Frame.from_survey(XYZ_ref_start, E_ref_start)
-    frame_start.trans_x(transform_start.shift_x)
-    frame_start.trans_y(transform_start.shift_y)
-    frame_start.trans_s(transform_start.shift_s)
-    frame_start.rot_y(transform_start.rot_y_rad)
-    frame_start.rot_x(-transform_start.rot_x_rad)
-    frame_start.rot_s(transform_start.rot_s_rad_no_frame)
-    frame_start.rot_s(transform_kwargs['rot_s_rad'])
+    frame_start.translate_x(transform_start.shift_x)
+    frame_start.translate_y(transform_start.shift_y)
+    frame_start.translate_s(transform_start.shift_s)
+    frame_start.rotate_y(transform_start.rot_y_rad)
+    frame_start.rotate_x(-transform_start.rot_x_rad)
+    frame_start.rotate_s(transform_start.rot_s_rad_no_frame)
+    frame_start.rotate_s(transform_kwargs['rot_s_rad'])
 
     frame_end = Frame.from_survey(XYZ_ref_end, E_ref_end)
 
     if uses_curved_transform:
-        frame_end.rot_s(-transform_end.rot_s_rad_no_frame)
-        frame_end.rot_x(transform_end.rot_x_rad)
-        frame_end.rot_y(-transform_end.rot_y_rad)
-        frame_end.trans_s(-transform_end.shift_s)
-        frame_end.trans_x(-transform_end.shift_x)
-        frame_end.trans_y(-transform_end.shift_y)
+        frame_end.rotate_s(-transform_end.rot_s_rad_no_frame)
+        frame_end.rotate_x(transform_end.rot_x_rad)
+        frame_end.rotate_y(-transform_end.rot_y_rad)
+        frame_end.translate_s(-transform_end.shift_s)
+        frame_end.translate_x(-transform_end.shift_x)
+        frame_end.translate_y(-transform_end.shift_y)
     else:
-        frame_end.trans_x(-transform_end.shift_x)
-        frame_end.trans_y(-transform_end.shift_y)
-        frame_end.trans_s(-transform_end.shift_s)
-        frame_end.rot_y(-transform_end.rot_y_rad)
-        frame_end.rot_x(transform_end.rot_x_rad)
-        frame_end.rot_s(-transform_end.rot_s_rad_no_frame)
+        frame_end.translate_x(-transform_end.shift_x)
+        frame_end.translate_y(-transform_end.shift_y)
+        frame_end.translate_s(-transform_end.shift_s)
+        frame_end.rotate_y(-transform_end.rot_y_rad)
+        frame_end.rotate_x(transform_end.rot_x_rad)
+        frame_end.rotate_s(-transform_end.rot_s_rad_no_frame)
 
-    frame_end.rot_s(transform_kwargs['rot_s_rad'])
+    frame_end.rotate_s(transform_kwargs['rot_s_rad'])
 
     return (
         frame_start.XYZ.copy(),

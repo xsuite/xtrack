@@ -99,7 +99,7 @@ class XRotation(BeamElement):
 
     def track_frame(self, frame, backtrack=False):
         sign = -1 if backtrack else 1
-        frame.rot_x(sign * np.deg2rad(self.angle))
+        frame.rotate_x(sign * np.deg2rad(self.angle))
 
 
     @property

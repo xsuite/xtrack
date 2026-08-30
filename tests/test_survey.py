@@ -214,11 +214,11 @@ def test_survey_rbend_straight_body_element_frames():
     expected_start_frame = xt.Frame.from_survey(
         expected_start, expected_start_matrix)
     expected_start_frame.arc_x(angle=rbend._angle_in)
-    expected_start_frame.trans_x(-rbend._x0_in)
+    expected_start_frame.translate_x(-rbend._x0_in)
     expected_end_frame = xt.Frame.from_survey(
         expected_end, expected_end_matrix)
     expected_end_frame.arc_x(angle=-rbend._angle_out)
-    expected_end_frame.trans_x(-rbend._x0_out)
+    expected_end_frame.translate_x(-rbend._x0_out)
 
     xo.assert_allclose(
         sv.XYZ_elem_start[0], expected_start_frame.XYZ,

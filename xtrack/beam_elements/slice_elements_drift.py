@@ -57,7 +57,7 @@ class DriftSliceRBend(_DriftSliceElementBase, BeamElement):
         if backtrack:
             ll *= -1
 
-        frame.trans_s(ll)
+        frame.translate_s(ll)
 
 class DriftSliceQuadrupole(_DriftSliceElementBase, BeamElement):
 

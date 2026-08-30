@@ -149,57 +149,57 @@ class Frame:
             self.E_matrix[:] = initial_E_matrix @ rotation_matrix
         return self
 
-    def _trans(self, dx=0, dy=0, ds=0):
+    def _translate(self, dx=0, dy=0, ds=0):
         if dx != 0 or dy != 0 or ds != 0:
             self.transform(displacement=np.array([dx, dy, ds]))
         return self
 
-    def trans_x(self, dx):
+    def translate_x(self, dx):
         """Translate along the local horizontal axis."""
-        return self._trans(dx=dx)
+        return self._translate(dx=dx)
 
-    def trans_y(self, dy):
+    def translate_y(self, dy):
         """Translate along the local vertical axis."""
-        return self._trans(dy=dy)
+        return self._translate(dy=dy)
 
-    def trans_s(self, ds):
+    def translate_s(self, ds):
         """Translate along the local longitudinal axis."""
-        return self._trans(ds=ds)
+        return self._translate(ds=ds)
 
-    def _rot(self, rotation_matrix):
+    def _rotate(self, rotation_matrix):
         return self.transform(rotation_matrix=rotation_matrix)
 
-    def rot_x(self, angle):
+    def rotate_x(self, angle):
         """Rotate around the local horizontal axis."""
         if angle == 0:
             return self
         c = np.cos(angle)
         s = np.sin(angle)
-        return self._rot(np.array([
+        return self._rotate(np.array([
             [1, 0, 0],
             [0, c, -s],
             [0, s, c],
         ]))
 
-    def rot_y(self, angle):
+    def rotate_y(self, angle):
         """Rotate around the local vertical axis."""
         if angle == 0:
             return self
         c = np.cos(angle)
         s = np.sin(angle)
-        return self._rot(np.array([
+        return self._rotate(np.array([
             [c, 0, s],
             [0, 1, 0],
             [-s, 0, c],
         ]))
 
-    def rot_s(self, angle):
+    def rotate_s(self, angle):
         """Rotate around the local longitudinal axis."""
         if angle == 0:
             return self
         c = np.cos(angle)
         s = np.sin(angle)
-        return self._rot(np.array([
+        return self._rotate(np.array([
             [c, -s, 0],
             [s, c, 0],
             [0, 0, 1],
@@ -208,7 +208,7 @@ class Frame:
     def arc(self, length=0, angle=0, tilt=0):
         """Advance along a MAD-X-compatible arc in the local frame."""
         if angle == 0:
-            return self.trans_s(length)
+            return self.translate_s(length)
 
         rho = length / angle
         ca = np.cos(angle)

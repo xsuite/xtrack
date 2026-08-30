@@ -65,14 +65,14 @@ def test_frame_matches_previous_survey_formulas(kwargs):
         frame.XYZ.copy(), frame.E_matrix.copy(), **kwargs)
 
     if kwargs.get('shift_x', 0) != 0 or kwargs.get('shift_y', 0) != 0:
-        frame.trans_x(kwargs.get('shift_x', 0))
-        frame.trans_y(kwargs.get('shift_y', 0))
+        frame.translate_x(kwargs.get('shift_x', 0))
+        frame.translate_y(kwargs.get('shift_y', 0))
     elif kwargs.get('rot_x', 0) != 0:
-        frame.rot_x(kwargs['rot_x'])
+        frame.rotate_x(kwargs['rot_x'])
     elif kwargs.get('rot_y', 0) != 0:
-        frame.rot_y(-kwargs['rot_y'])
+        frame.rotate_y(-kwargs['rot_y'])
     elif kwargs.get('rot_s', 0) != 0:
-        frame.rot_s(kwargs['rot_s'])
+        frame.rotate_s(kwargs['rot_s'])
     else:
         frame.arc(
             length=kwargs.get('length', 0),
@@ -129,7 +129,7 @@ def test_frame_exposes_survey_angles_as_read_only_properties():
 
 def test_frame_is_mutable_and_chainable():
     frame = xt.Frame()
-    returned = frame.trans_x(1).rot_s(np.pi / 2).trans_x(2)
+    returned = frame.translate_x(1).rotate_s(np.pi / 2).translate_x(2)
 
     assert returned is frame
     np.testing.assert_allclose(frame.XYZ, [1, 2, 0], atol=1e-15, rtol=0)
@@ -162,7 +162,7 @@ def test_line_survey_uses_track_frame_hook(monkeypatch):
 
     def track_frame(self, frame, backtrack=False):
         seen_frames.append(frame)
-        frame.trans_x(-1 if backtrack else 1)
+        frame.translate_x(-1 if backtrack else 1)
 
     monkeypatch.setattr(
         xt.Marker, 'track_frame', track_frame, raising=False)

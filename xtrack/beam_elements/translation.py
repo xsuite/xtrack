@@ -37,5 +37,5 @@ class Translation(BeamElement):
 
     def track_frame(self, frame, backtrack=False):
         sign = -1 if backtrack else 1
-        frame.trans_x(sign * self.shift_x)
-        frame.trans_y(sign * self.shift_y)
+        frame.translate_x(sign * self.shift_x)
+        frame.translate_y(sign * self.shift_y)

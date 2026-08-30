@@ -111,4 +111,4 @@ class YRotation(BeamElement):
 
     def track_frame(self, frame, backtrack=False):
         sign = -1 if backtrack else 1
-        frame.rot_y(sign * np.deg2rad(self.angle))
+        frame.rotate_y(sign * np.deg2rad(self.angle))

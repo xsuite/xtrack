@@ -90,4 +90,4 @@ class SRotation(BeamElement):
 
     def track_frame(self, frame, backtrack=False):
         sign = -1 if backtrack else 1
-        frame.rot_s(sign * np.deg2rad(self.angle))
+        frame.rotate_s(sign * np.deg2rad(self.angle))

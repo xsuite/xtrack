@@ -48,5 +48,5 @@ class XYShift(BeamElement):
 
     def track_frame(self, frame, backtrack=False):
         sign = -1 if backtrack else 1
-        frame.trans_x(sign * self.dx)
-        frame.trans_y(sign * self.dy)
+        frame.translate_x(sign * self.dx)
+        frame.translate_y(sign * self.dy)

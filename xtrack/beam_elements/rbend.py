@@ -277,7 +277,7 @@ class RBend(_BendCommon, BeamElement):
         frame = Frame.from_survey(XYZ, E)
         if self.rbend_model == 'straight-body':
             frame.arc_x(angle=self._angle_in)
-            frame.trans_x(-self._x0_in)
+            frame.translate_x(-self._x0_in)
         else:
             frame.arc_x(angle=self.angle / 2)
         return frame.XYZ.copy(), frame.E_matrix.copy()
@@ -288,7 +288,7 @@ class RBend(_BendCommon, BeamElement):
         frame = Frame.from_survey(XYZ, E)
         if self.rbend_model == 'straight-body':
             frame.arc_x(angle=-self._angle_out)
-            frame.trans_x(-self._x0_out)
+            frame.translate_x(-self._x0_out)
         else:
             frame.arc_x(angle=-self.angle / 2)
         return frame.XYZ.copy(), frame.E_matrix.copy()

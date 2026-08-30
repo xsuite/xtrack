@@ -353,10 +353,10 @@ class ThinSliceRBendEntry(_ThinSliceEdgeBase, BeamElement):
         if self._parent.rbend_model == "straight-body":
             if backtrack:
                 if abs(self._parent.angle) > 1e-10:  # avoid numerical issues
-                    frame.trans_x(
+                    frame.translate_x(
                         self._parent._x0_in
                         * np.cos(self._parent.rot_s_rad))
-                    frame.trans_y(
+                    frame.translate_y(
                         self._parent._x0_in
                         * np.sin(self._parent.rot_s_rad))
                 frame.arc(
@@ -369,10 +369,10 @@ class ThinSliceRBendEntry(_ThinSliceEdgeBase, BeamElement):
                     tilt=self._parent.rot_s_rad,
                 )
                 if abs(self._parent.angle) > 1e-10:  # avoid numerical issues
-                    frame.trans_x(
+                    frame.translate_x(
                         -self._parent._x0_in
                         * np.cos(self._parent.rot_s_rad))
-                    frame.trans_y(
+                    frame.translate_y(
                         -self._parent._x0_in
                         * np.sin(self._parent.rot_s_rad))
 
@@ -455,18 +455,18 @@ class ThinSliceRBendExit(_ThinSliceEdgeBase, BeamElement):
                     tilt=self._parent.rot_s_rad,
                 )
                 if abs(self._parent.angle) > 1e-10:  # avoid numerical issues
-                    frame.trans_x(
+                    frame.translate_x(
                         -self._parent._x0_out
                         * np.cos(self._parent.rot_s_rad))
-                    frame.trans_y(
+                    frame.translate_y(
                         -self._parent._x0_out
                         * np.sin(self._parent.rot_s_rad))
             else:
                 if abs(self._parent.angle) > 1e-10:  # avoid numerical issues
-                    frame.trans_x(
+                    frame.translate_x(
                         self._parent._x0_out
                         * np.cos(self._parent.rot_s_rad))
-                    frame.trans_y(
+                    frame.translate_y(
                         self._parent._x0_out
                         * np.sin(self._parent.rot_s_rad))
                 frame.arc(

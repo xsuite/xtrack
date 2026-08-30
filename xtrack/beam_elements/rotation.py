@@ -95,10 +95,10 @@ class Rotation(xt.BeamElement):
 
         for ax in seq:
             if ax == 'x':
-                frame.rot_x(sign * self.rot_x_rad)
+                frame.rotate_x(sign * self.rot_x_rad)
             elif ax == 'y':
-                frame.rot_y(sign * self.rot_y_rad)
+                frame.rotate_y(sign * self.rot_y_rad)
             elif ax == 's':
-                frame.rot_s(sign * self.rot_s_rad)
+                frame.rotate_s(sign * self.rot_s_rad)
             else:
                 raise ValueError(f"Invalid rotation axis '{ax}' in sequence '{self.seq}'")

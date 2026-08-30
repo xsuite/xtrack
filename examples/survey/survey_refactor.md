@@ -46,13 +46,13 @@ frame.copy()
 Planned propagation methods:
 
 ```python
-frame.trans_x(dx)
-frame.trans_y(dy)
-frame.trans_s(ds)
+frame.translate_x(dx)
+frame.translate_y(dy)
+frame.translate_s(ds)
 
-frame.rot_x(angle)
-frame.rot_y(angle)
-frame.rot_s(angle)
+frame.rotate_x(angle)
+frame.rotate_y(angle)
+frame.rotate_s(angle)
 
 frame.arc_x(length, angle)
 frame.arc_y(length, angle)
@@ -232,3 +232,7 @@ Development environment:
   (`theta`, `phi`, `psi`) properties to `Frame`.
 - 2026-08-30: Post-property affected-scope regression batch completed with 126
   passed and 61 automatic/non-serial contexts deselected.
+- 2026-08-30: Renamed frame transformations to the explicit
+  `translate_x/y/s` and `rotate_x/y/s` API without compatibility aliases.
+- 2026-08-30: Post-method-rename affected-scope regression batch completed
+  with 126 passed and 61 automatic/non-serial contexts deselected.
