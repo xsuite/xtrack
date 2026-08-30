@@ -8,112 +8,10 @@
 
 
 import numpy as np
-from warnings import warn
 
 from .frame import Frame
 from .table import Table
 from .general import DEPRECATION_INFO_PREP_1_0
-
-# Required functions
-# ==================================================
-def get_E_from_angles(theta, phi, psi):
-    return Frame.rotation_from_angles(theta, phi, psi)
-
-
-def get_angles_from_w(w):
-    """Inverse function of get_w_from_angles()"""
-    # w[0, 2]/w[2, 2] = (sinthe * cosphi)/(costhe * cosphi)
-    # w[1, 0]/w[1, 1] = (cosphi * sinpsi)/(cosphi * cospsi)
-    # w[1, 2]/w[1, 1] = (sinphi)/(cosphi * cospsi)
-
-    theta = np.arctan2(w[0, 2], w[2, 2])
-    psi = np.arctan2(w[1, 0], w[1, 1])
-    phi = np.arctan2(w[1, 2], w[1, 1] / np.cos(psi))
-
-    # TODO: arctan2 returns angle between [-pi,pi].
-    # Hence theta ends up not at 2pi after a full survey
-    return theta, phi, psi
-
-
-def advance_bend(v, w, R, S):
-    """Advancing through bending element, see MAD-X manual:
-    v2 = w1*R + v1  | w2 = w1*S"""
-    frame = Frame.from_xyz_matrix(v, w).transform(
-        displacement=R, rotation=S)
-    return frame.xyz.copy(), frame.rotation.copy()
-
-
-def advance_rotation(v, w, S):
-    """Advancing through rotation element:
-    Rotate w matrix according to transformation matrix S"""
-    frame = Frame.from_xyz_matrix(v, w).transform(rotation=S)
-    return frame.xyz.copy(), frame.rotation.copy()
-
-
-def advance_drift(v, w, R):
-    """Advancing through drift element, see MAD-X manual:
-    v2 = w1*R + v1  | w2 = w1*S -> S is unity"""
-    frame = Frame.from_xyz_matrix(v, w).transform(displacement=R)
-    return frame.xyz.copy(), frame.rotation.copy()
-
-
-def advance_element(
-        v, w, length = 0, angle = 0, tilt = 0,
-        ref_shift_x = 0, ref_shift_y = 0, ref_rot_x_rad = 0, ref_rot_y_rad = 0, ref_rot_s_rad = 0):
-    """Computing the advance element-by-element.
-    See MAD-X manual for generation of R and S"""
-    frame = Frame.from_xyz_matrix(v, w)
-
-    # XYShift Handling
-    if ref_shift_x != 0 or ref_shift_y != 0:
-        assert angle == 0,  "ref_shift_x and ref_shift_y are only supported for angle = 0"
-        assert tilt == 0,   "ref_shift_x and ref_shift_y are only supported for tilt = 0"
-        assert length == 0, "ref_shift_x and ref_shift_y are only supported for length = 0"
-
-        frame.trans_x(ref_shift_x).trans_y(ref_shift_y)
-        return frame.xyz.copy(), frame.rotation.copy()
-
-    # XRotation Handling
-    if ref_rot_x_rad != 0:
-        assert angle == 0,  "rot_x_rad is only supported for angle = 0"
-        assert tilt == 0,   "rot_x_rad is only supported for tilt = 0"
-        assert length == 0, "rot_x_rad is only supported for length = 0"
-
-        frame.rot_x(ref_rot_x_rad)
-        return frame.xyz.copy(), frame.rotation.copy()
-
-    # YRotation Handling
-    if ref_rot_y_rad != 0:
-        assert angle == 0,  "rot_y_rad is only supported for angle = 0"
-        assert tilt == 0,   "rot_y_rad is only supported for tilt = 0"
-        assert length == 0, "rot_y_rad is only supported for length = 0"
-
-        frame.rot_y(-ref_rot_y_rad)
-        return frame.xyz.copy(), frame.rotation.copy()
-
-    # SRotation Handling
-    if ref_rot_s_rad != 0:
-        assert angle == 0,  "rot_s_rad is only supported for angle = 0"
-        assert tilt == 0,   "rot_s_rad is only supported for tilt = 0"
-        assert length == 0, "rot_s_rad is only supported for length = 0"
-
-        frame.rot_s(ref_rot_s_rad)
-        return frame.xyz.copy(), frame.rotation.copy()
-
-    # Non bending elements
-    if angle == 0:
-        frame.trans_s(length)
-        return frame.xyz.copy(), frame.rotation.copy()
-
-    # Horizontal bending elements
-    elif tilt == 0:
-        frame.arc_x(length=length, angle=angle)
-        return frame.xyz.copy(), frame.rotation.copy()
-
-    # Tilted bending elements
-    else:
-        frame.arc(length=length, angle=angle, tilt=tilt)
-        return frame.xyz.copy(), frame.rotation.copy()
 
 
 class SurveyTable(Table):
@@ -543,7 +441,9 @@ def get_survey(
         E_matrix.append(frame.rotation.copy())
         V.append(frame.xyz.copy())
 
-        if not _element_tracks_frame(ee, frame, backtrack=backtrack):
+        if hasattr(ee, 'track_frame'):
+            ee.track_frame(frame, backtrack=backtrack)
+        else:
             if backtrack:
                 ll = -ll
                 aa = -aa
@@ -556,65 +456,6 @@ def get_survey(
 
     # Return data for SurveyTable object
     return V, E_matrix
-
-
-def _find_hook(element, name):
-    """Return ``(MRO distance, bound hook)`` or ``(None, None)``."""
-    try:
-        instance_attributes = vars(element)
-    except TypeError:
-        instance_attributes = {}
-    if name in instance_attributes:
-        return -1, getattr(element, name)
-
-    mro = type(element).__mro__
-    for distance, cls in enumerate(mro):
-        if name in cls.__dict__:
-            return distance, getattr(element, name)
-
-    if hasattr(element, name):
-        return len(mro), getattr(element, name)
-    return None, None
-
-
-def _element_tracks_frame(element, frame, backtrack=False):
-    """Run the most-specific new or legacy element survey hook.
-
-    Returns ``True`` when an element hook was found and ``False`` when the
-    caller needs to apply the standard drift/bend propagation.
-    """
-    track_distance, track_frame = _find_hook(element, 'track_frame')
-    legacy_distance, propagate_survey = _find_hook(
-        element, '_propagate_survey')
-
-    use_track_frame = track_frame is not None and (
-        propagate_survey is None or track_distance <= legacy_distance)
-
-    if use_track_frame:
-        track_frame(frame, backtrack=backtrack)
-        return True
-
-    if propagate_survey is not None:
-        v, w = propagate_survey(
-            v=frame.xyz,
-            w=frame.rotation,
-            backtrack=backtrack,
-        )
-        frame.xyz = v
-        frame.rotation = w
-        return True
-
-    return False
-
-
-def compute_survey(*args, **kwargs):
-    warn(
-        '`compute_survey()` is deprecated and will be removed in future '
-        'versions. Please use `get_survey()` instead.'
-        + DEPRECATION_INFO_PREP_1_0,
-        FutureWarning,
-    )
-    return get_survey(*args, **kwargs)
 
 
 def _get_survey_quantities_from_v_w(V, E_matrix):

@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 import xtrack as xt
-from xtrack.survey import _element_tracks_frame
+import xtrack.beam_elements as beam_elements
 
 
 def _old_advance(v, w, *, length=0, angle=0, tilt=0,
@@ -116,74 +116,6 @@ def test_frame_arc_conveniences():
     np.testing.assert_array_equal(vertical.matrix, generic_vertical.matrix)
 
 
-def test_track_frame_hook():
-    calls = []
-
-    class Element:
-        def track_frame(self, frame, backtrack=False):
-            calls.append((frame, backtrack))
-            frame.trans_x(-2 if backtrack else 2)
-
-    frame = xt.Frame()
-    assert _element_tracks_frame(Element(), frame, backtrack=True)
-    assert calls == [(frame, True)]
-    np.testing.assert_array_equal(frame.xyz, [-2, 0, 0])
-
-
-def test_legacy_survey_hook():
-    class Element:
-        def _propagate_survey(self, v, w, backtrack):
-            sign = -1 if backtrack else 1
-            return v + w @ np.array([sign * 2, 0, 0]), w
-
-    frame = xt.Frame()
-    assert _element_tracks_frame(Element(), frame, backtrack=False)
-    np.testing.assert_array_equal(frame.xyz, [2, 0, 0])
-
-
-def test_more_specific_legacy_hook_wins_over_inherited_track_frame():
-    calls = []
-
-    class Parent:
-        def track_frame(self, frame, backtrack=False):
-            calls.append('new')
-
-    class Child(Parent):
-        def _propagate_survey(self, v, w, backtrack):
-            calls.append('legacy')
-            return v, w
-
-    assert _element_tracks_frame(Child(), xt.Frame())
-    assert calls == ['legacy']
-
-
-def test_track_frame_wins_over_legacy_hook_on_same_class():
-    calls = []
-
-    class Element:
-        def track_frame(self, frame, backtrack=False):
-            calls.append('new')
-
-        def _propagate_survey(self, v, w, backtrack):
-            calls.append('legacy')
-            return v, w
-
-    assert _element_tracks_frame(Element(), xt.Frame())
-    assert calls == ['new']
-
-
-def test_instance_legacy_hook_is_supported():
-    class Element:
-        pass
-
-    element = Element()
-    element._propagate_survey = lambda v, w, backtrack: (v + [2, 0, 0], w)
-    frame = xt.Frame()
-
-    assert _element_tracks_frame(element, frame)
-    np.testing.assert_array_equal(frame.xyz, [2, 0, 0])
-
-
 def test_line_survey_uses_track_frame_hook(monkeypatch):
     seen_frames = []
 
@@ -201,14 +133,18 @@ def test_line_survey_uses_track_frame_hook(monkeypatch):
     np.testing.assert_array_equal(survey.XYZ[-1], [1, 0, 0])
 
 
-def test_line_survey_uses_legacy_hook(monkeypatch):
-    def _propagate_survey(self, v, w, backtrack):
-        sign = -1 if backtrack else 1
-        return v + w @ np.array([sign, 0, 0]), w
+@pytest.mark.parametrize('name', [
+    'advance_bend',
+    'advance_rotation',
+    'advance_drift',
+    'advance_element',
+    'get_E_from_angles',
+    'get_angles_from_w',
+    'compute_survey',
+])
+def test_procedural_survey_helpers_are_removed(name):
+    assert not hasattr(xt.survey, name)
 
-    monkeypatch.setattr(
-        xt.Marker, '_propagate_survey', _propagate_survey, raising=False)
 
-    survey = xt.Line(elements=[xt.Marker()]).survey()
-
-    np.testing.assert_array_equal(survey.XYZ[-1], [1, 0, 0])
+def test_survey_advance_element_export_is_removed():
+    assert not hasattr(beam_elements, 'survey_advance_element')

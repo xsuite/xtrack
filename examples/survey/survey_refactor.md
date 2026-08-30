@@ -2,8 +2,8 @@
 
 ## Goal
 
-Refactor Xtrack survey propagation around a mutable `Frame` object without
-changing the existing external survey API or its numerical conventions.
+Refactor Xtrack survey propagation around a mutable `Frame` object while
+preserving the `Line.survey` API and its numerical conventions.
 
 `Frame` will own all operations that move or rotate a local reference frame.
 Both the main survey loop and element-specific survey hooks will propagate the
@@ -81,20 +81,13 @@ implemented by the survey loop merely negating three angles.
 
 Survey hook dispatch order:
 
-1. Use the most-specific `track_frame` implementation.
-2. Otherwise adapt the most-specific legacy `_propagate_survey` implementation.
-3. Otherwise apply the standard drift or bend propagation in the survey loop.
+1. Use `track_frame` when the element exposes it.
+2. Otherwise apply the standard drift or bend propagation in the survey loop.
 
-The dispatcher must consider the class MRO, not only `hasattr`. In particular,
-a user subclass may override `_propagate_survey` while inheriting
-`track_frame` from a built-in parent. The more-specific user override must
-continue to win. If both hooks are defined by the same class, `track_frame`
-takes precedence.
+There is no legacy hook adapter. Custom elements that need non-standard survey
+propagation must implement `track_frame`.
 
-Legacy `_propagate_survey(v, w, backtrack)` support will remain silent, without
-a new deprecation warning. Built-in elements will migrate to `track_frame`.
-
-## Compatibility requirements
+## Retained interface and cleanup decision
 
 The following existing interfaces and behavior must remain unchanged:
 
@@ -104,15 +97,13 @@ The following existing interfaces and behavior must remain unchanged:
 - Forward and backward propagation used for intermediate initialization.
 - `include_element_frames=True` and survey-table reversal.
 - `get_survey(...)`.
-- `advance_element(v, w, ...)`.
-- `get_E_from_angles(...)` and `get_angles_from_w(...)`.
-- `compute_survey(...)` and its existing deprecation behavior.
-- Existing custom elements that expose only `_propagate_survey`.
-- Existing `xtrack.beam_elements.survey_advance_element` availability.
 
-The procedural helpers can remain as compatibility wrappers around `Frame`.
-The main survey loop and migrated built-in elements should use `Frame`
-directly, avoiding conversion to and from `(v, w)` at every element.
+The compatibility-only helpers `advance_element`, `advance_bend`,
+`advance_rotation`, `advance_drift`, `get_E_from_angles`,
+`get_angles_from_w`, and `compute_survey` are intentionally removed. The
+`survey_advance_element` beam-elements import and legacy `_propagate_survey`
+hook are removed with them. Survey propagation uses `Frame` directly, without
+conversion to and from `(v, w)`.
 
 ## Scope of transformation centralization
 
@@ -152,19 +143,12 @@ propagation implementation.
 - [x] Use `Frame` for default drift and bend propagation.
 - [x] Preserve the current split forward/backward logic for `element0`.
 - [x] Keep `get_survey` return values and types compatible.
-- [x] Reimplement `advance_element` as a compatibility wrapper.
+- [x] Remove the old procedural survey helper APIs.
 
-### 3. Introduce hook dispatch and legacy compatibility
+### 3. Introduce the `track_frame` hook
 
-- [x] Add MRO-aware selection between `track_frame` and
-      `_propagate_survey`.
-- [x] Adapt legacy `(v, w)` input and output to the active `Frame`.
+- [x] Dispatch to `track_frame` when exposed by an element.
 - [x] Test a custom element implementing only `track_frame`.
-- [x] Test a custom element implementing only `_propagate_survey`.
-- [x] Test a subclass whose legacy override is more specific than an inherited
-      `track_frame`.
-- [x] Test that `track_frame` wins when both hooks are defined at the same
-      class level.
 
 ### 4. Migrate built-in elements
 
@@ -173,8 +157,8 @@ propagation implementation.
 - [x] General `Rotation`, including reversed sequence during backtracking.
 - [x] Thick slices and drift slices.
 - [x] Straight-body RBend entry and exit edge slices.
-- [x] Remove built-in dependence on `survey_advance_element` where it is no
-      longer needed, while preserving the public import compatibility.
+- [x] Remove `survey_advance_element` and built-in dependence on the old
+      procedural propagation helpers.
 
 ### 5. Refactor element-frame and misalignment helpers
 
@@ -212,7 +196,6 @@ Development environment:
   difference is understood and explicitly accepted.
 - A custom `track_frame` element can express its geometry using only `Frame`
   methods.
-- A custom legacy `_propagate_survey` element continues to work.
 - Built-in element survey methods contain no standalone matrix propagation
   formulas.
 - Survey-frame transformation formulas have one implementation in `Frame`.
@@ -230,3 +213,7 @@ Development environment:
   supported); equivalent serial CPU cases pass.
 - 2026-08-30: Final affected-scope regression batch completed with 121 passed
   and 61 deselected automatic/non-serial contexts.
+- 2026-08-30: Backward compatibility for `_propagate_survey` and the old
+  procedural survey helpers was intentionally dropped to remove duplication.
+- 2026-08-30: Post-cleanup affected-scope regression batch completed with 123
+  passed and 61 automatic/non-serial contexts deselected.
