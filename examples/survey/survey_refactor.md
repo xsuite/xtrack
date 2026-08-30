@@ -34,6 +34,12 @@ Frame.from_survey(XYZ, E_matrix)
 frame.matrix
 frame.XYZ
 frame.E_matrix
+frame.ex
+frame.ey
+frame.ez
+frame.theta
+frame.phi
+frame.psi
 frame.copy()
 ```
 
@@ -221,4 +227,8 @@ Development environment:
 - 2026-08-30: Removed frame inversion and composition from the `Frame` API;
   misalignment and relative-transform algebra remain explicit matrix code.
 - 2026-08-30: Post-cleanup affected-scope regression batch completed with 124
+  passed and 61 automatic/non-serial contexts deselected.
+- 2026-08-30: Added survey-vector (`ex`, `ey`, `ez`) and principal-angle
+  (`theta`, `phi`, `psi`) properties to `Frame`.
+- 2026-08-30: Post-property affected-scope regression batch completed with 126
   passed and 61 automatic/non-serial contexts deselected.

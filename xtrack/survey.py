@@ -9,7 +9,7 @@
 
 import numpy as np
 
-from .frame import Frame
+from .frame import Frame, _angles_from_E_matrix
 from .table import Table
 from .general import DEPRECATION_INFO_PREP_1_0
 
@@ -463,9 +463,7 @@ def _get_survey_quantities_from_v_w(V, E_matrix):
     E_matrix = np.array(E_matrix)
     V = np.array(V)
 
-    theta = np.arctan2(E_matrix[:, 0, 2], E_matrix[:, 2, 2])
-    psi = np.arctan2(E_matrix[:, 1, 0], E_matrix[:, 1, 1])
-    phi = np.arctan2(E_matrix[:, 1, 2], E_matrix[:, 1, 1] / np.cos(psi))
+    theta, phi, psi = _angles_from_E_matrix(E_matrix)
 
     ex = E_matrix[:, :, 0]
     ey = E_matrix[:, :, 1]

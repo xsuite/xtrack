@@ -6,6 +6,16 @@
 import numpy as np
 
 
+def _angles_from_E_matrix(E_matrix):
+    """Return MAD-X survey angles for one or more orientation matrices."""
+    E_matrix = np.asarray(E_matrix)
+    theta = np.arctan2(E_matrix[..., 0, 2], E_matrix[..., 2, 2])
+    psi = np.arctan2(E_matrix[..., 1, 0], E_matrix[..., 1, 1])
+    phi = np.arctan2(
+        E_matrix[..., 1, 2], E_matrix[..., 1, 1] / np.cos(psi))
+    return theta, phi, psi
+
+
 class Frame:
     """Mutable local reference frame used by survey propagation.
 
@@ -84,6 +94,48 @@ class Frame:
     @E_matrix.setter
     def E_matrix(self, value):
         self.matrix[:3, :3] = value
+
+    @property
+    def ex(self):
+        """Global components of the local horizontal unit vector."""
+        return self.E_matrix[:, 0]
+
+    @ex.setter
+    def ex(self, value):
+        self.E_matrix[:, 0] = value
+
+    @property
+    def ey(self):
+        """Global components of the local vertical unit vector."""
+        return self.E_matrix[:, 1]
+
+    @ey.setter
+    def ey(self, value):
+        self.E_matrix[:, 1] = value
+
+    @property
+    def ez(self):
+        """Global components of the local longitudinal unit vector."""
+        return self.E_matrix[:, 2]
+
+    @ez.setter
+    def ez(self, value):
+        self.E_matrix[:, 2] = value
+
+    @property
+    def theta(self):
+        """Principal MAD-X survey angle theta."""
+        return _angles_from_E_matrix(self.E_matrix)[0]
+
+    @property
+    def phi(self):
+        """Principal MAD-X survey angle phi."""
+        return _angles_from_E_matrix(self.E_matrix)[1]
+
+    @property
+    def psi(self):
+        """Principal MAD-X survey angle psi."""
+        return _angles_from_E_matrix(self.E_matrix)[2]
 
     def copy(self):
         return Frame(self.matrix)

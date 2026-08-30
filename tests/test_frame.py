@@ -97,6 +97,36 @@ def test_frame_uses_survey_names():
     assert not hasattr(frame, 'rotation')
 
 
+def test_frame_exposes_survey_vectors_as_writable_views():
+    frame = xt.Frame()
+
+    assert np.shares_memory(frame.ex, frame.matrix)
+    assert np.shares_memory(frame.ey, frame.matrix)
+    assert np.shares_memory(frame.ez, frame.matrix)
+
+    frame.ex = [0, 1, 0]
+    frame.ey[:] = [0, 0, 1]
+    frame.ez = [1, 0, 0]
+
+    np.testing.assert_array_equal(frame.E_matrix, [
+        [0, 0, 1],
+        [1, 0, 0],
+        [0, 1, 0],
+    ])
+
+
+def test_frame_exposes_survey_angles_as_read_only_properties():
+    expected = dict(theta=0.21, phi=-0.17, psi=0.33)
+    frame = xt.Frame.from_survey_angles(**expected)
+
+    assert frame.theta == pytest.approx(expected['theta'], abs=1e-15)
+    assert frame.phi == pytest.approx(expected['phi'], abs=1e-15)
+    assert frame.psi == pytest.approx(expected['psi'], abs=1e-15)
+
+    with pytest.raises(AttributeError):
+        frame.theta = 0
+
+
 def test_frame_is_mutable_and_chainable():
     frame = xt.Frame()
     returned = frame.trans_x(1).rot_s(np.pi / 2).trans_x(2)
