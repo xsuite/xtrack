@@ -425,7 +425,7 @@ def get_survey(
     V = []
 
     # Initial position and orientation
-    frame = Frame.from_xyz_angles(
+    frame = Frame.from_survey_angles(
         X=X0,
         Y=Y0,
         Z=Z0,
@@ -438,8 +438,8 @@ def get_survey(
     for ee, ll, aa, tt in zip(elements, drift_length, angle, tilt):
 
         # Store position and orientation at element entrance
-        E_matrix.append(frame.rotation.copy())
-        V.append(frame.xyz.copy())
+        E_matrix.append(frame.E_matrix.copy())
+        V.append(frame.XYZ.copy())
 
         if hasattr(ee, 'track_frame'):
             ee.track_frame(frame, backtrack=backtrack)
@@ -451,8 +451,8 @@ def get_survey(
             frame.arc(length=ll, angle=aa, tilt=tt)
 
     # Last marker
-    E_matrix.append(frame.rotation.copy())
-    V.append(frame.xyz.copy())
+    E_matrix.append(frame.E_matrix.copy())
+    V.append(frame.XYZ.copy())
 
     # Return data for SurveyTable object
     return V, E_matrix
@@ -511,6 +511,6 @@ def survey_relative_transform(survey: SurveyTable, source: str | int, destinatio
     src_row = survey.rows[source]
     dest_row = survey.rows[destination]
 
-    src_frame = Frame.from_xyz_matrix(src_row.XYZ, src_row.E_matrix)
-    dest_frame = Frame.from_xyz_matrix(dest_row.XYZ, dest_row.E_matrix)
+    src_frame = Frame.from_survey(src_row.XYZ, src_row.E_matrix)
+    dest_frame = Frame.from_survey(dest_row.XYZ, dest_row.E_matrix)
     return (src_frame.inverse() @ dest_frame).matrix

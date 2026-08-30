@@ -31,22 +31,22 @@ class Frame:
         self.matrix = matrix
 
     @classmethod
-    def from_xyz_matrix(cls, XYZ, E_matrix):
+    def from_survey(cls, XYZ, E_matrix):
         matrix = np.eye(4)
         matrix[:3, :3] = E_matrix
         matrix[:3, 3] = XYZ
         return cls(matrix)
 
     @classmethod
-    def from_xyz_angles(cls, X=0, Y=0, Z=0,
-                        theta=0, phi=0, psi=0):
-        return cls.from_xyz_matrix(
+    def from_survey_angles(cls, X=0, Y=0, Z=0,
+                           theta=0, phi=0, psi=0):
+        return cls.from_survey(
             XYZ=np.array([X, Y, Z]),
-            E_matrix=cls.rotation_from_angles(theta, phi, psi),
+            E_matrix=cls.E_matrix_from_angles(theta, phi, psi),
         )
 
     @staticmethod
-    def rotation_from_angles(theta, phi, psi):
+    def E_matrix_from_angles(theta, phi, psi):
         """Build the MAD-X-compatible survey orientation matrix."""
         costhe = np.cos(theta)
         cosphi = np.cos(phi)
@@ -55,34 +55,34 @@ class Frame:
         sinphi = np.sin(phi)
         sinpsi = np.sin(psi)
 
-        rotation = np.zeros((3, 3))
-        rotation[0, 0] = +costhe * cospsi - sinthe * sinphi * sinpsi
-        rotation[0, 1] = -costhe * sinpsi - sinthe * sinphi * cospsi
-        rotation[0, 2] = sinthe * cosphi
-        rotation[1, 0] = cosphi * sinpsi
-        rotation[1, 1] = cosphi * cospsi
-        rotation[1, 2] = sinphi
-        rotation[2, 0] = -sinthe * cospsi - costhe * sinphi * sinpsi
-        rotation[2, 1] = +sinthe * sinpsi - costhe * sinphi * cospsi
-        rotation[2, 2] = costhe * cosphi
-        return rotation
+        E_matrix = np.zeros((3, 3))
+        E_matrix[0, 0] = +costhe * cospsi - sinthe * sinphi * sinpsi
+        E_matrix[0, 1] = -costhe * sinpsi - sinthe * sinphi * cospsi
+        E_matrix[0, 2] = sinthe * cosphi
+        E_matrix[1, 0] = cosphi * sinpsi
+        E_matrix[1, 1] = cosphi * cospsi
+        E_matrix[1, 2] = sinphi
+        E_matrix[2, 0] = -sinthe * cospsi - costhe * sinphi * sinpsi
+        E_matrix[2, 1] = +sinthe * sinpsi - costhe * sinphi * cospsi
+        E_matrix[2, 2] = costhe * cosphi
+        return E_matrix
 
     @property
-    def xyz(self):
+    def XYZ(self):
         """Global position of the local-frame origin, as a writable view."""
         return self.matrix[:3, 3]
 
-    @xyz.setter
-    def xyz(self, value):
+    @XYZ.setter
+    def XYZ(self, value):
         self.matrix[:3, 3] = value
 
     @property
-    def rotation(self):
-        """Local-to-global orientation matrix, as a writable view."""
+    def E_matrix(self):
+        """Local-to-global basis-vector matrix, as a writable view."""
         return self.matrix[:3, :3]
 
-    @rotation.setter
-    def rotation(self, value):
+    @E_matrix.setter
+    def E_matrix(self, value):
         self.matrix[:3, :3] = value
 
     def copy(self):
@@ -91,8 +91,8 @@ class Frame:
     def inverse(self):
         """Return the inverse rigid transform as a new frame."""
         matrix = np.eye(4)
-        matrix[:3, :3] = self.rotation.T
-        matrix[:3, 3] = -self.rotation.T @ self.xyz
+        matrix[:3, :3] = self.E_matrix.T
+        matrix[:3, 3] = -self.E_matrix.T @ self.XYZ
         return Frame(matrix)
 
     def __matmul__(self, other):
@@ -100,13 +100,13 @@ class Frame:
             return NotImplemented
         return Frame(self.matrix @ other.matrix)
 
-    def transform(self, displacement=None, rotation=None):
+    def transform(self, displacement=None, rotation_matrix=None):
         """Apply a local rigid transform represented by vector and matrix."""
-        initial_rotation = self.rotation.copy()
+        initial_E_matrix = self.E_matrix.copy()
         if displacement is not None:
-            self.xyz[:] = self.xyz + initial_rotation @ displacement
-        if rotation is not None:
-            self.rotation[:] = initial_rotation @ rotation
+            self.XYZ[:] = self.XYZ + initial_E_matrix @ displacement
+        if rotation_matrix is not None:
+            self.E_matrix[:] = initial_E_matrix @ rotation_matrix
         return self
 
     def _trans(self, dx=0, dy=0, ds=0):
@@ -126,8 +126,8 @@ class Frame:
         """Translate along the local longitudinal axis."""
         return self._trans(ds=ds)
 
-    def _rot(self, rotation):
-        return self.transform(rotation=rotation)
+    def _rot(self, rotation_matrix):
+        return self.transform(rotation_matrix=rotation_matrix)
 
     def rot_x(self, angle):
         """Rotate around the local horizontal axis."""
@@ -195,7 +195,8 @@ class Frame:
 
         return self.transform(
             displacement=tilt_rotation @ displacement,
-            rotation=tilt_rotation @ bend_rotation @ inverse_tilt_rotation,
+            rotation_matrix=(
+                tilt_rotation @ bend_rotation @ inverse_tilt_rotation),
         )
 
     def arc_x(self, length=0, angle=0):

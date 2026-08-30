@@ -37,7 +37,7 @@ def _misalignment_matrix(
     rot_x_rad,
     rot_s_rad_no_frame,
 ):
-    return Frame.from_xyz_angles(
+    return Frame.from_survey_angles(
         X=shift_x,
         Y=shift_y,
         Z=shift_s,
@@ -402,7 +402,7 @@ def get_misaligned_element_survey(
         )
     )
 
-    frame_start = Frame.from_xyz_matrix(XYZ_ref_start, E_ref_start)
+    frame_start = Frame.from_survey(XYZ_ref_start, E_ref_start)
     frame_start.trans_x(transform_start.shift_x)
     frame_start.trans_y(transform_start.shift_y)
     frame_start.trans_s(transform_start.shift_s)
@@ -411,7 +411,7 @@ def get_misaligned_element_survey(
     frame_start.rot_s(transform_start.rot_s_rad_no_frame)
     frame_start.rot_s(transform_kwargs['rot_s_rad'])
 
-    frame_end = Frame.from_xyz_matrix(XYZ_ref_end, E_ref_end)
+    frame_end = Frame.from_survey(XYZ_ref_end, E_ref_end)
 
     if uses_curved_transform:
         frame_end.rot_s(-transform_end.rot_s_rad_no_frame)
@@ -431,10 +431,10 @@ def get_misaligned_element_survey(
     frame_end.rot_s(transform_kwargs['rot_s_rad'])
 
     return (
-        frame_start.xyz.copy(),
-        frame_start.rotation.copy(),
-        frame_end.xyz.copy(),
-        frame_end.rotation.copy(),
+        frame_start.XYZ.copy(),
+        frame_start.E_matrix.copy(),
+        frame_end.XYZ.copy(),
+        frame_end.E_matrix.copy(),
     )
 
 

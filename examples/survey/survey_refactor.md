@@ -28,12 +28,12 @@ Planned construction and access API:
 ```python
 Frame()
 Frame(matrix)
-Frame.from_xyz_angles(X, Y, Z, theta, phi, psi)
-Frame.from_xyz_matrix(XYZ, E_matrix)
+Frame.from_survey_angles(X, Y, Z, theta, phi, psi)
+Frame.from_survey(XYZ, E_matrix)
 
 frame.matrix
-frame.xyz
-frame.rotation
+frame.XYZ
+frame.E_matrix
 frame.copy()
 frame.inverse()
 ```
@@ -216,4 +216,8 @@ Development environment:
 - 2026-08-30: Backward compatibility for `_propagate_survey` and the old
   procedural survey helpers was intentionally dropped to remove duplication.
 - 2026-08-30: Post-cleanup affected-scope regression batch completed with 123
+  passed and 61 automatic/non-serial contexts deselected.
+- 2026-08-30: Aligned the `Frame` API with survey terminology: `XYZ` is the
+  point and `E_matrix` is the basis-vector matrix.
+- 2026-08-30: Post-rename affected-scope regression batch completed with 124
   passed and 61 automatic/non-serial contexts deselected.

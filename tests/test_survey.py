@@ -101,16 +101,16 @@ def test_survey_include_element_frames(angle, sliced):
         source = elem
         weight = 1.0
 
-    expected_frame = xt.Frame.from_xyz_matrix(
+    expected_frame = xt.Frame.from_survey(
         sv['XYZ_elem_start', name], sv['E_elem_start', name])
     expected_frame.arc_x(
         length=source.length * weight,
         angle=source.angle * weight,
     )
     xo.assert_allclose(
-        sv['XYZ_elem_end', name], expected_frame.xyz, atol=1e-14, rtol=0)
+        sv['XYZ_elem_end', name], expected_frame.XYZ, atol=1e-14, rtol=0)
     xo.assert_allclose(
-        sv['E_elem_end', name], expected_frame.rotation,
+        sv['E_elem_end', name], expected_frame.E_matrix,
         atol=1e-14, rtol=0)
 
     sv_reverse = sv.reverse()
@@ -211,26 +211,26 @@ def test_survey_rbend_straight_body_element_frames():
         sv.XYZ_ref_end[0],
         sv.E_ref_end[0],
     )
-    expected_start_frame = xt.Frame.from_xyz_matrix(
+    expected_start_frame = xt.Frame.from_survey(
         expected_start, expected_start_matrix)
     expected_start_frame.arc_x(angle=rbend._angle_in)
     expected_start_frame.trans_x(-rbend._x0_in)
-    expected_end_frame = xt.Frame.from_xyz_matrix(
+    expected_end_frame = xt.Frame.from_survey(
         expected_end, expected_end_matrix)
     expected_end_frame.arc_x(angle=-rbend._angle_out)
     expected_end_frame.trans_x(-rbend._x0_out)
 
     xo.assert_allclose(
-        sv.XYZ_elem_start[0], expected_start_frame.xyz,
+        sv.XYZ_elem_start[0], expected_start_frame.XYZ,
         atol=1e-14, rtol=0)
     xo.assert_allclose(
-        sv.E_elem_start[0], expected_start_frame.rotation,
+        sv.E_elem_start[0], expected_start_frame.E_matrix,
         atol=1e-14, rtol=0)
     xo.assert_allclose(
-        sv.XYZ_elem_end[0], expected_end_frame.xyz,
+        sv.XYZ_elem_end[0], expected_end_frame.XYZ,
         atol=1e-14, rtol=0)
     xo.assert_allclose(
-        sv.E_elem_end[0], expected_end_frame.rotation,
+        sv.E_elem_end[0], expected_end_frame.E_matrix,
         atol=1e-14, rtol=0)
 
     element_axis = sv.E_elem_start[0, :, 2]

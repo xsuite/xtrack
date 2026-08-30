@@ -5,32 +5,33 @@ import xtrack as xt
 import xtrack.beam_elements as beam_elements
 
 
-def _old_advance(v, w, *, length=0, angle=0, tilt=0,
-                 shift_x=0, shift_y=0, rot_x=0, rot_y=0, rot_s=0):
+def _reference_advance(XYZ, E_matrix, *, length=0, angle=0, tilt=0,
+                       shift_x=0, shift_y=0,
+                       rot_x=0, rot_y=0, rot_s=0):
     """Independent copy of the pre-refactor survey formulas."""
     if shift_x != 0 or shift_y != 0:
-        return w @ np.array([shift_x, shift_y, 0]) + v, w
+        return E_matrix @ np.array([shift_x, shift_y, 0]) + XYZ, E_matrix
 
     if rot_x != 0:
         c = np.cos(-rot_x)
         s = np.sin(-rot_x)
         rotation = np.array([[1, 0, 0], [0, c, s], [0, -s, c]])
-        return v, w @ rotation
+        return XYZ, E_matrix @ rotation
 
     if rot_y != 0:
         c = np.cos(rot_y)
         s = np.sin(rot_y)
         rotation = np.array([[c, 0, -s], [0, 1, 0], [s, 0, c]])
-        return v, w @ rotation
+        return XYZ, E_matrix @ rotation
 
     if rot_s != 0:
         c = np.cos(rot_s)
         s = np.sin(rot_s)
         rotation = np.array([[c, -s, 0], [s, c, 0], [0, 0, 1]])
-        return v, w @ rotation
+        return XYZ, E_matrix @ rotation
 
     if angle == 0:
-        return w @ np.array([0, 0, length]) + v, w
+        return E_matrix @ np.array([0, 0, length]) + XYZ, E_matrix
 
     c = np.cos(angle)
     s = np.sin(angle)
@@ -42,8 +43,8 @@ def _old_advance(v, w, *, length=0, angle=0, tilt=0,
     tilt_rotation = np.array([[ct, -st, 0], [st, ct, 0], [0, 0, 1]])
     inverse_tilt = np.array([[ct, st, 0], [-st, ct, 0], [0, 0, 1]])
     return (
-        w @ (tilt_rotation @ displacement) + v,
-        w @ (tilt_rotation @ rotation @ inverse_tilt),
+        E_matrix @ (tilt_rotation @ displacement) + XYZ,
+        E_matrix @ (tilt_rotation @ rotation @ inverse_tilt),
     )
 
 
@@ -58,10 +59,10 @@ def _old_advance(v, w, *, length=0, angle=0, tilt=0,
     {'length': 0, 'angle': 0.37, 'tilt': -0.42},
 ])
 def test_frame_matches_previous_survey_formulas(kwargs):
-    frame = xt.Frame.from_xyz_angles(
+    frame = xt.Frame.from_survey_angles(
         X=1.2, Y=-0.7, Z=3.1, theta=0.21, phi=-0.17, psi=0.33)
-    expected_xyz, expected_rotation = _old_advance(
-        frame.xyz.copy(), frame.rotation.copy(), **kwargs)
+    expected_XYZ, expected_E_matrix = _reference_advance(
+        frame.XYZ.copy(), frame.E_matrix.copy(), **kwargs)
 
     if kwargs.get('shift_x', 0) != 0 or kwargs.get('shift_y', 0) != 0:
         frame.trans_x(kwargs.get('shift_x', 0))
@@ -79,9 +80,21 @@ def test_frame_matches_previous_survey_formulas(kwargs):
             tilt=kwargs.get('tilt', 0),
         )
 
-    np.testing.assert_allclose(frame.xyz, expected_xyz, atol=1e-15, rtol=0)
+    np.testing.assert_allclose(frame.XYZ, expected_XYZ, atol=1e-15, rtol=0)
     np.testing.assert_allclose(
-        frame.rotation, expected_rotation, atol=1e-15, rtol=0)
+        frame.E_matrix, expected_E_matrix, atol=1e-15, rtol=0)
+
+
+def test_frame_uses_survey_names():
+    frame = xt.Frame.from_survey(
+        XYZ=[1, 2, 3],
+        E_matrix=np.eye(3),
+    )
+
+    np.testing.assert_array_equal(frame.XYZ, [1, 2, 3])
+    np.testing.assert_array_equal(frame.E_matrix, np.eye(3))
+    assert not hasattr(frame, 'xyz')
+    assert not hasattr(frame, 'rotation')
 
 
 def test_frame_is_mutable_and_chainable():
@@ -89,11 +102,11 @@ def test_frame_is_mutable_and_chainable():
     returned = frame.trans_x(1).rot_s(np.pi / 2).trans_x(2)
 
     assert returned is frame
-    np.testing.assert_allclose(frame.xyz, [1, 2, 0], atol=1e-15, rtol=0)
+    np.testing.assert_allclose(frame.XYZ, [1, 2, 0], atol=1e-15, rtol=0)
 
 
 def test_frame_copy_inverse_and_arc_backtrack():
-    initial = xt.Frame.from_xyz_angles(
+    initial = xt.Frame.from_survey_angles(
         X=0.4, Y=-1.2, Z=2.1, theta=0.2, phi=-0.3, psi=0.1)
     frame = initial.copy()
     frame.arc(length=1.8, angle=0.43, tilt=-0.37)
