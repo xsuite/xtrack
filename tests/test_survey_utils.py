@@ -1,6 +1,5 @@
 from types import SimpleNamespace
 
-import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 
@@ -202,6 +201,8 @@ def test_misalignment_from_rst_offsets_rejects_degenerate_chords():
 
 @pytest.mark.parametrize('plot_function', [su.plot_exz, su.plot_exy])
 def test_survey_frame_plot_helpers(plot_function):
+    plt = pytest.importorskip('matplotlib.pyplot')
+
     plt.figure()
     arrows = plot_function(
         rotation_matrix=np.eye(3),

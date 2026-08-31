@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 
-import matplotlib.pyplot as plt
 import numpy as np
 
 from ..survey.frame import Frame
@@ -217,6 +216,8 @@ def rst_start_end_offsets_from_parameters(element, length):
 
 def plot_exz(rotation_matrix, point, length=0.5, color='k'):
     """Plot the local x and z directions in the global Z-X plane."""
+    import matplotlib.pyplot as plt
+
     if length <= 0:
         raise ValueError('length must be positive')
 
@@ -245,6 +246,8 @@ def plot_exz(rotation_matrix, point, length=0.5, color='k'):
 
 def plot_exy(rotation_matrix, point, length=0.5, color='k'):
     """Plot the local x and y directions in the global X-Y plane."""
+    import matplotlib.pyplot as plt
+
     if length <= 0:
         raise ValueError('length must be positive')
 
