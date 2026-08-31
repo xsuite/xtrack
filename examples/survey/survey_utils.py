@@ -92,24 +92,11 @@ def rst_start_end_offsets_from_positions(
     return offset_start_rst, offset_end_rst
 
 
-def rst_start_end_offsets_from_parameters(element, length):
-    angle = getattr(element, 'angle', 0.0)
+def _rst_transform_matrices(tilt, angle):
+    rotation_tilt = Frame().rotate_s(tilt).E_matrix
+    rotation_half_angle = Frame().rotate_y(-angle / 2).E_matrix
 
-    frame_tilt = Frame().rotate_s(element.rot_s_rad)
-    rotation_tilt = frame_tilt.E_matrix
-
-    frame_half_angle = Frame().rotate_y(-angle / 2)
-    rotation_half_angle = frame_half_angle.E_matrix
-
-    frame_misalignment = Frame()
-    frame_misalignment.rotate_y(element.rot_y_rad)
-    frame_misalignment.rotate_x(-element.rot_x_rad)
-    frame_misalignment.rotate_s(element.rot_s_rad_no_frame)
-    rotation_misalignment = frame_misalignment.E_matrix
-
-    # E_rst = E_ref @ rotation_tilt @ rotation_half_angle @ xys_from_rst.
-    # The columns of xys_from_rst are R=-x, S=s, T=y, expressed in the
-    # tilted chord frame.
+    # The columns are R=-x, S=s, T=y, expressed in the tilted chord frame.
     xys_from_rst = np.array([
         [-1.0, 0.0, 0.0],
         [0.0, 0.0, 1.0],
@@ -120,6 +107,83 @@ def rst_start_end_offsets_from_parameters(element, length):
         @ rotation_half_angle.T
         @ rotation_tilt.T
     )
+    return rotation_tilt, rotation_half_angle, rst_from_xys
+
+
+def misalignment_from_rst_offsets(
+        offset_start_rst, offset_end_rst, bgamma, tilt=0.0, angle=0.0):
+    """Infer MAD-X misalignments from RST entry and exit offsets.
+
+    The endpoint offsets determine the translation and displaced chord
+    direction. ``bgamma`` supplies the rotation about the chord, which cannot
+    be inferred from endpoint positions alone. The principal-angle solution
+    is returned. Following the SU convention, ``bgamma`` is the negative of
+    the additional longitudinal rotation; ``tilt`` is the reference tilt.
+    The returned ``dpsi`` includes that tilt, consistently with
+    :func:`misalignment_from_absolute_position`.
+    """
+    offset_start_rst = np.asarray(offset_start_rst)
+    offset_end_rst = np.asarray(offset_end_rst)
+
+    rotation_tilt, rotation_half_angle, rst_from_xys = (
+        _rst_transform_matrices(tilt, angle))
+
+    displacement_xys = rst_from_xys.T @ offset_start_rst
+    displaced_chord_rst = offset_end_rst - offset_start_rst
+    length = np.linalg.norm(displaced_chord_rst)
+    if length <= 0:
+        raise ValueError('entry and exit offsets must define a chord')
+    displaced_chord_xys = rst_from_xys.T @ displaced_chord_rst
+
+    rot_s_rad_no_frame = -bgamma
+    chord_before_theta_phi = (
+        Frame().rotate_s(rot_s_rad_no_frame).E_matrix
+        @ rotation_tilt
+        @ rotation_half_angle
+        @ np.array([0.0, 0.0, length])
+    )
+
+    uy = chord_before_theta_phi[1]
+    uz = chord_before_theta_phi[2]
+    yz_norm = np.hypot(uy, uz)
+    if yz_norm <= np.finfo(float).eps * length:
+        raise ValueError('cannot infer dphi for a chord parallel to x')
+
+    phi_reference = np.arctan2(uy, uz)
+    dphi = (
+        np.arcsin(np.clip(displaced_chord_xys[1] / yz_norm, -1.0, 1.0))
+        - phi_reference
+    )
+    dphi = np.arctan2(np.sin(dphi), np.cos(dphi))
+
+    chord_after_phi_z = -np.sin(dphi) * uy + np.cos(dphi) * uz
+    dtheta = (
+        np.arctan2(displaced_chord_xys[0], displaced_chord_xys[2])
+        - np.arctan2(chord_before_theta_phi[0], chord_after_phi_z)
+    )
+    dtheta = np.arctan2(np.sin(dtheta), np.cos(dtheta))
+
+    return Misalignment(
+        dtheta=dtheta,
+        dphi=dphi,
+        dpsi=tilt + rot_s_rad_no_frame,
+        dx=displacement_xys[0],
+        dy=displacement_xys[1],
+        ds=displacement_xys[2],
+    )
+
+
+def rst_start_end_offsets_from_parameters(element, length):
+    angle = getattr(element, 'angle', 0.0)
+
+    rotation_tilt, rotation_half_angle, rst_from_xys = (
+        _rst_transform_matrices(element.rot_s_rad, angle))
+
+    frame_misalignment = Frame()
+    frame_misalignment.rotate_y(element.rot_y_rad)
+    frame_misalignment.rotate_x(-element.rot_x_rad)
+    frame_misalignment.rotate_s(element.rot_s_rad_no_frame)
+    rotation_misalignment = frame_misalignment.E_matrix
 
     # The screenshot uses (DX, DS, DY). Xtrack uses (x, y, s), hence the
     # corresponding vectors below are (DX, DY, DS) and (0, 0, l_E).

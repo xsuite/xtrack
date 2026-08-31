@@ -5,6 +5,7 @@ import numpy as np
 from survey_utils import (
     clear_element_misalignments,
     misalignment_from_absolute_position,
+    misalignment_from_rst_offsets,
     plot_exy,
     plot_exz,
     rst_from_reference_start,
@@ -41,7 +42,9 @@ env.new('bend_3', 'RBend', length_straight=2,
         shift_x=-0.1
 )
 
-env.new('q1', 'Quadrupole', length=0.7, k1=0.1)
+env.new('q1', 'Quadrupole', length=0.7, k1=0.1,
+        # Rotation about the chord is supplied separately through bgamma.
+        rot_s_rad_no_frame=np.deg2rad(5))
 env.new('q2', 'Quadrupole', length=0.7, k1=-0.1)
 
 
@@ -106,10 +109,11 @@ sv0_nj['E_rst_start'] = np.array(E_rst_start)
 # Actual element displacements with respect to the smooth in RST coordinates
 for nn in ['br_start', 'bs_start', 'bt_start', 'br_end', 'bs_end', 'bt_end']:
     sv0_nj[nn] = np.zeros(len(sv0_nj))
+sv0_nj['bgamma'] = np.zeros(len(sv0_nj))
 
 for ii, element in enumerate(line_no_jumps.elements):
     if element.allow_rot_and_shift:
-        oo_start_rts, oo_end_rst = (
+        oo_start_rst, oo_end_rst = (
             rst_start_end_offsets_from_positions(
                 XYZ_rst_start=sv0_nj.XYZ_rst_start[ii],
                 E_rst_start=sv0_nj.E_rst_start[ii],
@@ -118,9 +122,9 @@ for ii, element in enumerate(line_no_jumps.elements):
             )
         )
 
-        sv0_nj['br_start', ii] = oo_start_rts[0]
-        sv0_nj['bs_start', ii] = oo_start_rts[1]
-        sv0_nj['bt_start', ii] = oo_start_rts[2]
+        sv0_nj['br_start', ii] = oo_start_rst[0]
+        sv0_nj['bs_start', ii] = oo_start_rst[1]
+        sv0_nj['bt_start', ii] = oo_start_rst[2]
         sv0_nj['br_end', ii] = oo_end_rst[0]
         sv0_nj['bs_end', ii] = oo_end_rst[1]
         sv0_nj['bt_end', ii] = oo_end_rst[2]
@@ -132,12 +136,50 @@ misalignments = {}
 for elem_name in elements_to_process:
     ee_nj = line_no_jumps[elem_name]
 
-    mm = misalignment_from_absolute_position(
+    # In an alignment file bgamma is an independent input. This example
+    # starts from absolute frames, so derive only bgamma from that source.
+    mm_from_absolute = misalignment_from_absolute_position(
         XYZ_elem_start=sv['XYZ_elem_start', elem_name],
         E_elem_start=sv['E_elem_start', elem_name],
         XYZ_ref_start=sv0_nj['XYZ_ref_start', elem_name],
         E_ref_start=sv0_nj['E_ref_start', elem_name],
         rbend_angle=(ee_nj.angle if isinstance(ee_nj, xt.RBend) else None),
+    )
+    sv0_nj['bgamma', elem_name] = -(
+        mm_from_absolute.dpsi - ee_nj.rot_s_rad)
+
+    offset_start_rst = np.array([
+        sv0_nj['br_start', elem_name],
+        sv0_nj['bs_start', elem_name],
+        sv0_nj['bt_start', elem_name],
+    ])
+    offset_end_rst = np.array([
+        sv0_nj['br_end', elem_name],
+        sv0_nj['bs_end', elem_name],
+        sv0_nj['bt_end', elem_name],
+    ])
+    mm = misalignment_from_rst_offsets(
+        offset_start_rst=offset_start_rst,
+        offset_end_rst=offset_end_rst,
+        bgamma=sv0_nj['bgamma', elem_name],
+        tilt=ee_nj.rot_s_rad,
+        angle=getattr(ee_nj, 'angle', 0.0),
+    )
+
+    # The absolute-frame result is used only as a validation oracle.
+    xo.assert_allclose(
+        np.array([
+            mm.dtheta, mm.dphi, mm.dpsi, mm.dx, mm.dy, mm.ds]),
+        np.array([
+            mm_from_absolute.dtheta,
+            mm_from_absolute.dphi,
+            mm_from_absolute.dpsi,
+            mm_from_absolute.dx,
+            mm_from_absolute.dy,
+            mm_from_absolute.ds,
+        ]),
+        atol=1e-12,
+        rtol=0,
     )
 
     sv0_nj['dtheta', elem_name] = mm.dtheta
@@ -147,8 +189,6 @@ for elem_name in elements_to_process:
     sv0_nj['dy', elem_name] = mm.dy
     sv0_nj['ds', elem_name] = mm.ds
     misalignments[elem_name] = mm
-
-sv0_nj['bgamma'] = -sv0_nj.dpsi
 
 # Output table
 tt_align = xt.Table({
