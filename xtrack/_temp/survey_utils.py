@@ -3,7 +3,7 @@ from dataclasses import dataclass
 import matplotlib.pyplot as plt
 import numpy as np
 
-from xtrack import Frame
+from ..frame import Frame
 
 
 @dataclass

@@ -2,16 +2,7 @@ import xtrack as xt
 import xobjects as xo
 import numpy as np
 
-from survey_utils import (
-    clear_element_misalignments,
-    misalignment_from_absolute_position,
-    misalignment_from_rst_offsets,
-    plot_exy,
-    plot_exz,
-    rst_from_reference_start,
-    rst_start_end_offsets_from_parameters,
-    rst_start_end_offsets_tilt_from_positions,
-)
+from xtrack._temp import survey_utils as su
 
 elements_to_process = ['bend_1', 'bend_2', 'bend_3', 'q1', 'q2']
 
@@ -85,7 +76,7 @@ for elem_name in elements_to_process:
         ee_nj.rbend_model = 'curved-body'
 
     # clear existing misalignments
-    clear_element_misalignments(ee_nj)
+    su.clear_element_misalignments(ee_nj)
 
 # Survey and table of the smooth line
 sv0_nj = line_no_jumps.survey(include_element_frames=True)
@@ -95,7 +86,7 @@ tt0_nj = line_no_jumps.get_table(attr=True)
 XYZ_rst_start = []
 E_rst_start = []
 for ii in range(len(sv0_nj)):
-    XYZ_rst, E_rst = rst_from_reference_start(
+    XYZ_rst, E_rst = su.rst_from_reference_start(
         XYZ_ref_start=sv0_nj.XYZ_ref_start[ii],
         E_ref_start=sv0_nj.E_ref_start[ii],
         rot_s_rad=tt0_nj.rot_s_rad[ii],
@@ -114,7 +105,7 @@ sv0_nj['bgamma'] = np.zeros(len(sv0_nj))
 for ii, element in enumerate(line_no_jumps.elements):
     if element.allow_rot_and_shift:
         oo_start_rst, oo_end_rst, bgamma = (
-            rst_start_end_offsets_tilt_from_positions(
+            su.rst_start_end_offsets_tilt_from_positions(
                 XYZ_rst_start=sv0_nj.XYZ_rst_start[ii],
                 E_rst_start=sv0_nj.E_rst_start[ii],
                 XYZ_elem_start=sv.XYZ_elem_start[ii],
@@ -182,7 +173,7 @@ for elem_name in elements_to_process:
         tt_align['bs_end', elem_name],
         tt_align['bt_end', elem_name],
     ])
-    misalignment = misalignment_from_rst_offsets(
+    misalignment = su.misalignment_from_rst_offsets(
         offset_start_rst=offset_start_rst,
         offset_end_rst=offset_end_rst,
         bgamma=tt_align['bgamma', elem_name],
@@ -190,7 +181,7 @@ for elem_name in elements_to_process:
         angle=getattr(ee_nj, 'angle', 0.0),
     )
     misalignments[elem_name] = misalignment
-    misalignment_from_absolute = misalignment_from_absolute_position(
+    misalignment_from_absolute = su.misalignment_from_absolute_position(
         XYZ_elem_start=sv['XYZ_elem_start', elem_name],
         E_elem_start=sv['E_elem_start', elem_name],
         XYZ_ref_start=sv0_nj['XYZ_ref_start', elem_name],
@@ -255,7 +246,7 @@ for elem_name in elements_to_process:
 
     # E is the entree (element start), S is the sortie (element end).
     element = line_no_jumps[elem_name]
-    b_E, b_S, bgamma = rst_start_end_offsets_tilt_from_positions(
+    b_E, b_S, bgamma = su.rst_start_end_offsets_tilt_from_positions(
         XYZ_rst_start=XYZ_rst,
         E_rst_start=E_rst,
         XYZ_elem_start=sv['XYZ_elem_start', elem_name],
@@ -271,7 +262,7 @@ for elem_name in elements_to_process:
         sv['XYZ_elem_end', elem_name]
         - sv['XYZ_elem_start', elem_name]
     )
-    b_E_formula, b_S_formula = rst_start_end_offsets_from_parameters(
+    b_E_formula, b_S_formula = su.rst_start_end_offsets_from_parameters(
         line_no_jumps[elem_name], length)
 
     xo.assert_allclose(b_E, b_E_formula, atol=1e-12, rtol=0)
@@ -350,21 +341,21 @@ for elem_name in elements_to_process:
              color='r'
     )
 
-    plot_exz(sv['E_elem_start', elem_name], sv['XYZ_elem_start', elem_name], length=0.5, color='g')
-    plot_exz(sv['E_elem_end', elem_name], sv['XYZ_elem_end', elem_name], length=0.5, color='g')
-    plot_exz(sv0_nj['E_ref_start', elem_name], sv0_nj['XYZ_ref_start', elem_name], length=0.5, color='orange')
-    plot_exz(sv0_nj['E_ref_end', elem_name], sv0_nj['XYZ_ref_end', elem_name], length=0.5, color='orange')
-    plot_exz(sv_nj['E_elem_start', elem_name], sv_nj['XYZ_elem_start', elem_name], length=0.3, color='red')
-    plot_exz(sv_nj['E_elem_end', elem_name], sv_nj['XYZ_elem_end', elem_name], length=0.3, color='red')
-    # plot_exz(E_elem_start_rot, XYZ_elem_start_rot, length=0.5, color='r')
+    su.plot_exz(sv['E_elem_start', elem_name], sv['XYZ_elem_start', elem_name], length=0.5, color='g')
+    su.plot_exz(sv['E_elem_end', elem_name], sv['XYZ_elem_end', elem_name], length=0.5, color='g')
+    su.plot_exz(sv0_nj['E_ref_start', elem_name], sv0_nj['XYZ_ref_start', elem_name], length=0.5, color='orange')
+    su.plot_exz(sv0_nj['E_ref_end', elem_name], sv0_nj['XYZ_ref_end', elem_name], length=0.5, color='orange')
+    su.plot_exz(sv_nj['E_elem_start', elem_name], sv_nj['XYZ_elem_start', elem_name], length=0.3, color='red')
+    su.plot_exz(sv_nj['E_elem_end', elem_name], sv_nj['XYZ_elem_end', elem_name], length=0.3, color='red')
+    # su.plot_exz(E_elem_start_rot, XYZ_elem_start_rot, length=0.5, color='r')
 
-plot_exz(sv['E_elem_start', elem_name], sv['XYZ_elem_start', elem_name], length=0.5, color='g')
-plot_exz(sv['E_elem_end', elem_name], sv['XYZ_elem_end', elem_name], length=0.5, color='g')
-plot_exz(sv0_nj['E_ref_start', elem_name], sv0_nj['XYZ_ref_start', elem_name], length=0.5, color='orange')
-plot_exz(sv0_nj['E_ref_end', elem_name], sv0_nj['XYZ_ref_end', elem_name], length=0.5, color='orange')
-plot_exz(sv_nj['E_elem_start', elem_name], sv_nj['XYZ_elem_start', elem_name], length=0.3, color='red')
-plot_exz(sv_nj['E_elem_end', elem_name], sv_nj['XYZ_elem_end', elem_name], length=0.3, color='red')
-# plot_exz(E_elem_start_rot, XYZ_elem_start_rot, length=0.5, color='r')
+su.plot_exz(sv['E_elem_start', elem_name], sv['XYZ_elem_start', elem_name], length=0.5, color='g')
+su.plot_exz(sv['E_elem_end', elem_name], sv['XYZ_elem_end', elem_name], length=0.5, color='g')
+su.plot_exz(sv0_nj['E_ref_start', elem_name], sv0_nj['XYZ_ref_start', elem_name], length=0.5, color='orange')
+su.plot_exz(sv0_nj['E_ref_end', elem_name], sv0_nj['XYZ_ref_end', elem_name], length=0.5, color='orange')
+su.plot_exz(sv_nj['E_elem_start', elem_name], sv_nj['XYZ_elem_start', elem_name], length=0.3, color='red')
+su.plot_exz(sv_nj['E_elem_end', elem_name], sv_nj['XYZ_elem_end', elem_name], length=0.3, color='red')
+# su.plot_exz(E_elem_start_rot, XYZ_elem_start_rot, length=0.5, color='r')
 
 plt.xlabel('Z [m]')
 plt.ylabel('X [m]')
@@ -373,8 +364,8 @@ plt.legend()
 
 plt.figure(2)
 for elem_name in elements_to_process:
-    plot_exy(sv['E_elem_start', elem_name], sv['XYZ_elem_start', elem_name], length=0.5, color='g')
-    plot_exy(sv_nj['E_elem_start', elem_name], sv_nj['XYZ_elem_start', elem_name], length=0.3, color='orange')
+    su.plot_exy(sv['E_elem_start', elem_name], sv['XYZ_elem_start', elem_name], length=0.5, color='g')
+    su.plot_exy(sv_nj['E_elem_start', elem_name], sv_nj['XYZ_elem_start', elem_name], length=0.3, color='orange')
 
 plt.xlabel('X [m]')
 plt.ylabel('Y [m]')
