@@ -11,9 +11,9 @@ class Misalignment:
     dtheta: float
     dphi: float
     dpsi: float
-    dx: float
-    dy: float
-    ds: float
+    shift_x: float
+    shift_y: float
+    shift_s: float
 
     def apply_to_element(self, element):
         if (hasattr(element, 'rbend_model')
@@ -25,9 +25,9 @@ class Misalignment:
         element.rot_y_rad = self.dtheta
         element.rot_x_rad = self.dphi
         element.rot_s_rad_no_frame = self.dpsi - element.rot_s_rad
-        element.shift_x = self.dx
-        element.shift_y = self.dy
-        element.shift_s = self.ds
+        element.shift_x = self.shift_x
+        element.shift_y = self.shift_y
+        element.shift_s = self.shift_s
 
 
 def clear_element_misalignments(element):
@@ -61,12 +61,18 @@ def misalignment_from_absolute_position(
     theta = np.arctan2(A[0, 2], A[2, 2])
     phi = np.arctan2(A[1, 2], np.sqrt(A[1, 0]**2 + A[1, 1]**2))
     psi = np.arctan2(A[1, 0], A[1, 1])
-    dx = A[0, 3]
-    dy = A[1, 3]
-    ds = A[2, 3]
+    shift_x = A[0, 3]
+    shift_y = A[1, 3]
+    shift_s = A[2, 3]
 
     return Misalignment(
-        dtheta=theta, dphi=phi, dpsi=psi, dx=dx, dy=dy, ds=ds)
+        dtheta=theta,
+        dphi=phi,
+        dpsi=psi,
+        shift_x=shift_x,
+        shift_y=shift_y,
+        shift_s=shift_s,
+    )
 
 
 def rst_from_reference_start(
@@ -177,9 +183,9 @@ def misalignment_from_rst_offsets(
         dtheta=dtheta,
         dphi=dphi,
         dpsi=tilt + rot_s_rad_no_frame,
-        dx=displacement_xys[0],
-        dy=displacement_xys[1],
-        ds=displacement_xys[2],
+        shift_x=displacement_xys[0],
+        shift_y=displacement_xys[1],
+        shift_s=displacement_xys[2],
     )
 
 
