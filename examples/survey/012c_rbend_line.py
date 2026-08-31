@@ -3,7 +3,6 @@ import xobjects as xo
 import numpy as np
 
 from survey_utils import (
-    Misalignment,
     clear_element_misalignments,
     misalignment_from_absolute_position,
     misalignment_from_rst_offsets,
@@ -139,38 +138,6 @@ for ii, element in enumerate(line_no_jumps.elements):
         if elem_name in elements_to_process:
             sv0_nj['bgamma', ii] = bgamma
 
-# Element displacements with respect to the smooth line as MAD-X style misalignments
-for nn in [
-        'dtheta', 'dphi', 'dpsi', 'shift_x', 'shift_y', 'shift_s']:
-    sv0_nj[nn] = np.zeros(len(sv0_nj))
-for elem_name in elements_to_process:
-    ee_nj = line_no_jumps[elem_name]
-
-    offset_start_rst = np.array([
-        sv0_nj['br_start', elem_name],
-        sv0_nj['bs_start', elem_name],
-        sv0_nj['bt_start', elem_name],
-    ])
-    offset_end_rst = np.array([
-        sv0_nj['br_end', elem_name],
-        sv0_nj['bs_end', elem_name],
-        sv0_nj['bt_end', elem_name],
-    ])
-    mm = misalignment_from_rst_offsets(
-        offset_start_rst=offset_start_rst,
-        offset_end_rst=offset_end_rst,
-        bgamma=sv0_nj['bgamma', elem_name],
-        tilt=ee_nj.rot_s_rad,
-        angle=getattr(ee_nj, 'angle', 0.0),
-    )
-
-    sv0_nj['dtheta', elem_name] = mm.dtheta
-    sv0_nj['dphi', elem_name] = mm.dphi
-    sv0_nj['dpsi', elem_name] = mm.dpsi - ee_nj.rot_s_rad
-    sv0_nj['shift_x', elem_name] = mm.shift_x
-    sv0_nj['shift_y', elem_name] = mm.shift_y
-    sv0_nj['shift_s', elem_name] = mm.shift_s
-
 # Output table
 tt_align = xt.Table({
     'name': sv0_nj['name'],
@@ -194,14 +161,6 @@ tt_align = xt.Table({
     'bt_end': sv0_nj['bt_end'],
     'bgamma': sv0_nj['bgamma'],
 
-    # Misalignment parameters (MAD-X convention)
-    'dtheta': sv0_nj['dtheta'],
-    'dphi': sv0_nj['dphi'],
-    'dpsi': sv0_nj['dpsi'],
-    'shift_x': sv0_nj['shift_x'],
-    'shift_y': sv0_nj['shift_y'],
-    'shift_s': sv0_nj['shift_s'],
-
     # RST unit vectors at element start
     'E_rst_start': sv0_nj.E_rst_start,
 })
@@ -210,17 +169,27 @@ tt_align.to_tfs('test_align.tfs')
 
 # Checks
 
+misalignments = {}
 for elem_name in elements_to_process:
     ee_nj = line_no_jumps[elem_name]
-    misalignment = Misalignment(
-        dtheta=tt_align['dtheta', elem_name],
-        dphi=tt_align['dphi', elem_name],
-        dpsi=(
-            tt_align['dpsi', elem_name] + tt_align['tilt', elem_name]),
-        shift_x=tt_align['shift_x', elem_name],
-        shift_y=tt_align['shift_y', elem_name],
-        shift_s=tt_align['shift_s', elem_name],
+    offset_start_rst = np.array([
+        tt_align['br_start', elem_name],
+        tt_align['bs_start', elem_name],
+        tt_align['bt_start', elem_name],
+    ])
+    offset_end_rst = np.array([
+        tt_align['br_end', elem_name],
+        tt_align['bs_end', elem_name],
+        tt_align['bt_end', elem_name],
+    ])
+    misalignment = misalignment_from_rst_offsets(
+        offset_start_rst=offset_start_rst,
+        offset_end_rst=offset_end_rst,
+        bgamma=tt_align['bgamma', elem_name],
+        tilt=ee_nj.rot_s_rad,
+        angle=getattr(ee_nj, 'angle', 0.0),
     )
+    misalignments[elem_name] = misalignment
     misalignment_from_absolute = misalignment_from_absolute_position(
         XYZ_elem_start=sv['XYZ_elem_start', elem_name],
         E_elem_start=sv['E_elem_start', elem_name],
@@ -261,8 +230,13 @@ for survey_column, element_attribute in {
         'shift_y': 'shift_y',
         'shift_s': 'shift_s',
 }.items():
-    xo.assert_allclose(
-        sv0_nj[survey_column], tt_nj[element_attribute], atol=1e-12, rtol=0)
+    for elem_name in elements_to_process:
+        expected = getattr(misalignments[elem_name], survey_column)
+        if survey_column == 'dpsi':
+            expected -= line_no_jumps[elem_name].rot_s_rad
+        xo.assert_allclose(
+            expected, tt_nj[element_attribute, elem_name],
+            atol=1e-12, rtol=0)
 
 for ii in range(len(sv0_nj)):
     chord = sv0_nj.XYZ_ref_end[ii] - sv0_nj.XYZ_ref_start[ii]
