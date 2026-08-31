@@ -50,9 +50,9 @@ namespace xt_tpsa {
     struct tpsa : public mad::tpsa {
         inline static thread_local tpsa_t* default_proto = nullptr;
 
-        // Promote scalar constants using the active TPSA prototype.
+        // Promote scalar constants using the active descriptor at first order only.
         tpsa(double value)
-            : mad::tpsa(mad::tpsa_ref(default_proto)) {
+            : mad::tpsa(mad::tpsa_ref(default_proto), 1) {
             mad::tpsa::operator=(value);
         }
 
@@ -70,6 +70,12 @@ namespace xt_tpsa {
             : mad::tpsa(static_cast<const mad::tpsa&>(value)) {
             mad::tpsa::operator=(static_cast<const mad::tpsa&>(value));
         }
+
+#if TPSA_USE_TMP
+        // Forward MAD-NG expression temporaries so the base constructor takes their storage.
+        tpsa(const mad::mad_prv_::tpsa_tmp_& value)
+            : mad::tpsa(value) {}
+#endif
 
         // Construct an xt_tpsa::tpsa as a copy of mad::tpsa
         template<class A>

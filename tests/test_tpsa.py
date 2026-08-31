@@ -100,6 +100,64 @@ def test_tpsa_tracking_error_marks_particle_lost():
     assert particles._xobject.state == -50
 
 
+@allow_kernel_compilation
+def test_xt_num_t_constructor_orders():
+    class CheckXtNumTConstructorOrders(xt.BeamElement):
+        _extra_c_sources = [r"""
+            #include "xtrack/headers/track.h"
+
+            GPUFUN
+            void CheckXtNumTConstructorOrders_track_local_particle(
+                    CheckXtNumTConstructorOrdersData el, LocalParticle* part0) {
+                START_PER_PARTICLE_BLOCK(part0, part)
+                    xt_num_t source = LocalParticle_get_x(part);
+                    xt_num_t scalar = 1.0;
+                    xt_num_t copy = source;
+                    if (scalar.mo() != 1 || copy.mo() != source.mo()) {
+                        LocalParticle_set_state(part, -1);
+                    }
+                END_PER_PARTICLE_BLOCK;
+            }
+        """]
+
+    line = xt.Line(elements=[CheckXtNumTConstructorOrders()])
+    line.particle_ref = xt.Particles(p0c=P0C, mass0=MASS0)
+    line.build_tracker(compile=False)
+    particles = _map(order=3)
+    line.track(particles)
+
+    assert particles._xobject.state == 1
+
+
+@allow_kernel_compilation
+def test_xt_num_t_captures_madng_expression_temporary():
+    class CheckXtNumTTemporaryCapture(xt.BeamElement):
+        _extra_c_sources = [r"""
+            #include "xtrack/headers/track.h"
+
+            GPUFUN
+            void CheckXtNumTTemporaryCapture_track_local_particle(
+                    CheckXtNumTTemporaryCaptureData el, LocalParticle* part0) {
+                START_PER_PARTICLE_BLOCK(part0, part)
+                    xt_num_t source = LocalParticle_get_x(part);
+                    auto expression = source + source;
+                    xt_num_t result = expression;
+                    if (expression.ptr() != nullptr || result[0] != 2.0 * source[0]) {
+                        LocalParticle_set_state(part, -1);
+                    }
+                END_PER_PARTICLE_BLOCK;
+            }
+        """]
+
+    line = xt.Line(elements=[CheckXtNumTTemporaryCapture()])
+    line.particle_ref = xt.Particles(p0c=P0C, mass0=MASS0)
+    line.build_tracker(compile=False)
+    particles = _map(order=3)
+    line.track(particles)
+
+    assert particles._xobject.state == 1
+
+
 def test_tpsa_quadrupole_zero_strength_parameter_map():
     length = 2.0
     quadrupole = xt.Quadrupole(length=length, k1=0.0)

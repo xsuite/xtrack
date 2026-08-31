@@ -1,5 +1,6 @@
-"""001a - bar plots of the 001 benchmark, read from 001_bench.json."""
+"""Plot reports emitted by ``001_benchmark_track_tpsa.py``."""
 
+import argparse
 import colorsys
 import json
 from pathlib import Path
@@ -7,7 +8,6 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 
 HERE = Path(__file__).resolve().parent
-JSON_FILE = HERE / "001_benchmark_results.json"
 MODES = ["scalar", "tpsa", "param"]
 COLORS = {"xs": "#4C72B0", "ng": "#DD8452"}
 SIDE_NAMES = {"xs": "Xsuite", "ng": "MAD-NG"}
@@ -26,7 +26,7 @@ def lighten(hex_color, amount=0.5):
 LIGHT_COLORS = {k: lighten(v, 0.6) for k, v in COLORS.items()}
 
 
-def grouped_bars(rows, group_labels, divisors, ylabel, title, fname):
+def grouped_bars(rows, group_labels, divisors, ylabel, title):
     """One group of xs/ng bar pairs per row, tracking at the base, setup stacked on top.
 
     Bars are means of the per-iteration times, so the two segments add up to the total
@@ -104,36 +104,46 @@ def grouped_bars(rows, group_labels, divisors, ylabel, title, fname):
     ax.legend()
     ax.grid(axis="y", which="both", linestyle="--", alpha=0.4)
     plt.subplots_adjust(bottom=0.16)
-    plt.savefig(fname, dpi=150, bbox_inches="tight")
-    plt.close(fig)
-    print(f"saved {fname}")
+    return fig
 
 
-with open(JSON_FILE) as fid:
-    data = json.load(fid)
+def plot_report(report, output_file=None, show=True):
+    """Plot one benchmark report, optionally saving it in addition to displaying it."""
+    fig = grouped_bars(report["rows"], **report["plot"])
+    if output_file is not None:
+        fig.savefig(output_file, dpi=150, bbox_inches="tight")
+        print(f"saved {output_file}")
+    if show:
+        plt.show()
+    return fig
 
-if "fodo" in data:
-    rows = data["fodo"]
-    grouped_bars(
-        rows,
-        [f"{r['label']} FODO cells" for r in rows],
-        [int(r["label"]) for r in rows],
-        "Time per cell (ms)",
-        "Mean track time per FODO cell\n"
-        "(Xsuite vs MAD-NG, by tracking mode, renormalised per cell count)",
-        HERE / "001_benchmark_plot.png",
+
+def load_report(path):
+    with open(path) as fid:
+        return json.load(fid)
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "reports",
+        nargs="*",
+        type=Path,
+        default=[
+            HERE / "001_fodo_benchmark_results.json",
+            HERE / "002_ir8_benchmark_results.json",
+        ],
     )
+    parser.add_argument("-o", "--output", type=Path, help="Write the plot to this file")
+    parser.add_argument("--no-show", action="store_true", help="Do not display the plot")
+    args = parser.parse_args()
 
-if "ir8" in data:
-    rows = data["ir8"]
-    grouped_bars(
-        rows,
-        [f"map {r['label']}" for r in rows],
-        [1.0] * len(rows),
-        "Time (ms)",
-        f"Mean track time, HL-LHC IR8 s.ds.l8.b1 -> ip1.l1"
-        f" ({rows[0]['n_elem']} elements)\n"
-        f"Xsuite vs MAD-NG, by tracking mode and map order, 20 quadrupole knobs"
-        f" ({rows[0]['n_driven']} driven fields).",
-        HERE / "001_ir8_benchmark_plot.png",
-    )
+    if args.output is not None and len(args.reports) != 1:
+        parser.error("--output requires exactly one report")
+
+    for path in args.reports:
+        plot_report(load_report(path), output_file=args.output, show=not args.no_show)
+
+
+if __name__ == "__main__":
+    main()
