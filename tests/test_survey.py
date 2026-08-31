@@ -174,7 +174,9 @@ def test_survey_element_frame_hook(monkeypatch):
 
 
 def test_survey_rbend_straight_body_element_frames():
-    from xtrack.misalignment_survey import get_misaligned_element_survey
+    from xtrack.survey.misalignment_survey import (
+        get_misaligned_element_survey,
+    )
 
     rbend = xt.RBend(
         length_straight=2.0,

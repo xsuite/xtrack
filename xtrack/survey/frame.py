@@ -8,6 +8,9 @@ from dataclasses import dataclass
 import numpy as np
 
 
+__all__ = ['CCSFrame', 'Frame']
+
+
 @dataclass
 class CCSFrame:
     """Pose in the CERN Coordinate System.

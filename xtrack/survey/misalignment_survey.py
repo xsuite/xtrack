@@ -14,6 +14,18 @@ import numpy as np
 from .frame import Frame
 
 
+__all__ = [
+    'TransformParameters',
+    'EntryTransform',
+    'get_entry_transform_straight',
+    'get_entry_transform',
+    'get_exit_transform_straight',
+    'get_exit_transform',
+    'get_misaligned_element_survey',
+    'get_element_frame_columns',
+]
+
+
 class TransformParameters(NamedTuple):
     """Six shift and rotation parameters for one side of an element."""
 

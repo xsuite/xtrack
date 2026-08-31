@@ -318,7 +318,7 @@ class ThinSliceRBendEntry(_ThinSliceEdgeBase, BeamElement):
             XYZ_ref_end,
             E_ref_end,
     ):
-        from ..misalignment_survey import get_misaligned_element_survey
+        from ..survey.misalignment_survey import get_misaligned_element_survey
 
         (
             XYZ_elem_start,
@@ -418,7 +418,7 @@ class ThinSliceRBendExit(_ThinSliceEdgeBase, BeamElement):
             XYZ_ref_end,
             E_ref_end,
     ):
-        from ..misalignment_survey import get_misaligned_element_survey
+        from ..survey.misalignment_survey import get_misaligned_element_survey
 
         (
             XYZ_elem_start,

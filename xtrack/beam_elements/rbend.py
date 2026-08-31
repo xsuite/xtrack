@@ -272,7 +272,7 @@ class RBend(_BendCommon, BeamElement):
         return out
 
     def _survey_ref_start_to_body_start(self, XYZ, E):
-        from ..frame import Frame
+        from ..survey.frame import Frame
 
         frame = Frame.from_survey(XYZ, E)
         if self.rbend_model == 'straight-body':
@@ -283,7 +283,7 @@ class RBend(_BendCommon, BeamElement):
         return frame.XYZ.copy(), frame.E_matrix.copy()
 
     def _survey_ref_end_to_body_end(self, XYZ, E):
-        from ..frame import Frame
+        from ..survey.frame import Frame
 
         frame = Frame.from_survey(XYZ, E)
         if self.rbend_model == 'straight-body':
@@ -301,7 +301,7 @@ class RBend(_BendCommon, BeamElement):
             E_ref_end,
     ):
         """Return the entrance and exit frames of the rectangular body."""
-        from ..misalignment_survey import get_misaligned_element_survey
+        from ..survey.misalignment_survey import get_misaligned_element_survey
 
         out = get_misaligned_element_survey(
             self,

@@ -10,8 +10,16 @@
 import numpy as np
 
 from .frame import Frame, _angles_from_E_matrix
-from .table import Table
-from .general import DEPRECATION_INFO_PREP_1_0
+from ..table import Table
+from ..general import DEPRECATION_INFO_PREP_1_0
+
+
+__all__ = [
+    'SurveyTable',
+    'get_survey',
+    'survey_from_line',
+    'survey_relative_transform',
+]
 
 
 class SurveyTable(Table):
