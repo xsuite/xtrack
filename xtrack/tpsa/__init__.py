@@ -14,7 +14,7 @@ kernel assembly. CPU only.
     el.track(m)                        # m.const_part (orbit), m.jacobian() (first-order)
 """
 
-from .particles import ParticlesTpsa
+from .particles import COORDS, ParticlesTpsa
 from .optics import TpsaOptics
 
-__all__ = ["ParticlesTpsa", "TpsaOptics"]
+__all__ = ["COORDS", "ParticlesTpsa", "TpsaOptics"]

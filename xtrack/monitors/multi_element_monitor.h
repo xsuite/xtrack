@@ -61,12 +61,15 @@ void MultiElementMonitor_track_local_particle(MultiElementMonitorData el,
                     el, turn_index, particle_index, 6, store_at, s);
 
 #ifdef XTRACK_TPSA_TRACK
-                // `data` only holds the constant part. When the track preallocated
-                // series, copy the whole map into them too.
-                if (MultiElementMonitorData_len_map_slots(el) > 0){
-                    #define XT_MONITOR_STORE_MAP(INDEX, NAME)                     \
-                        mad_tpsa_copy(part->NAME, (tpsa_t*)(uintptr_t)            \
-                            MultiElementMonitorData_get_map_slots(                \
+                // `data` only holds the constant part, so the map is recorded on
+                // the side: either whole into preallocated series, or as the
+                // requested coefficients. Never both.
+                int64_t const num_slots =
+                    MultiElementMonitorData_len_monomial_indices(el);
+                if (MultiElementMonitorData_len_tpsa_addresses(el) > 0){
+                    #define XT_MONITOR_STORE_MAP(INDEX, NAME)                  \
+                        mad_tpsa_copy(part->NAME, (tpsa_t*)(uintptr_t)         \
+                            MultiElementMonitorData_get_tpsa_addresses(        \
                                 el, turn_index, store_at, INDEX));
 
                     XT_MONITOR_STORE_MAP(0, x)
@@ -77,6 +80,18 @@ void MultiElementMonitor_track_local_particle(MultiElementMonitorData el,
                     XT_MONITOR_STORE_MAP(5, delta)
 
                     #undef XT_MONITOR_STORE_MAP
+                } else if (num_slots > 0){
+                    tpsa_t* const series[6] = {part->x, part->px, part->y,
+                                               part->py, part->zeta, part->delta};
+                    for (int64_t slot = 0; slot < num_slots; slot++){
+                        int64_t const coord =
+                            MultiElementMonitorData_get_coord_indices(el, slot);
+                        int64_t const coefficient_index =
+                            MultiElementMonitorData_get_monomial_indices(el, slot);
+                        MultiElementMonitorData_set_coefficients(
+                            el, turn_index, store_at, slot,
+                            mad_tpsa_geti(series[coord], coefficient_index));
+                    }
                 }
 #endif
             }

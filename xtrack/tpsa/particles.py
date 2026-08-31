@@ -11,7 +11,7 @@ import madng_tpsa
 
 import xobjects as xo
 
-_COORDS: tuple[str, ...] = ("x", "px", "y", "py", "zeta", "delta")
+COORDS: tuple[str, ...] = ("x", "px", "y", "py", "zeta", "delta")
 _REF_VARS: tuple[str, ...] = (
     "q0",
     "mass0",
@@ -36,7 +36,7 @@ _INT_FIELDS = (
     "parent_particle_id",
 )
 _RNG_FIELDS = ("_rng_s1", "_rng_s2", "_rng_s3", "_rng_s4")
-_TPSA_NUM_FIELDS = _COORDS + _DERIVED_COORDS + _LOCAL_COORDS + _SPIN_COORDS
+_TPSA_NUM_FIELDS = COORDS + _DERIVED_COORDS + _LOCAL_COORDS + _SPIN_COORDS
 
 
 class TpsaParticleData(xo.Struct):
@@ -123,7 +123,7 @@ class ParticlesTpsa:
             desc = madng_tpsa.Descriptor(6, order)
         self.coords = [
             desc.var(i + 1, self._ref(c))
-            for i, c in enumerate(_COORDS)
+            for i, c in enumerate(COORDS)
         ]
         self._local_series = {
             name: desc.constant(self._ref(name)) for name in _DERIVED_COORDS
@@ -146,7 +146,7 @@ class ParticlesTpsa:
         """
         ffi = madng_tpsa.ffi()
         bp = TpsaParticleData()
-        for c, t in zip(_COORDS, self.coords):
+        for c, t in zip(COORDS, self.coords):
             setattr(bp, c, int(ffi.cast("uintptr_t", t.ptr)))
         for c in _DERIVED_COORDS + _LOCAL_COORDS + _SPIN_COORDS:
             setattr(bp, c, int(ffi.cast("uintptr_t", self._local_series[c].ptr)))
@@ -185,13 +185,13 @@ class ParticlesTpsa:
     def to_particles(self) -> xt.Particles:
         """A fresh single ``xt.Particles`` at the current const part (validation use)."""
         p = self._ref_particle.copy()
-        for c, v in zip(_COORDS, self.const_part):
+        for c, v in zip(COORDS, self.const_part):
             setattr(p, c, [v])
         return p
 
     def __getattr__(self, name: str) -> madng_tpsa.Tpsa | float:
-        if name in _COORDS:
-            return self.coords[_COORDS.index(name)]
+        if name in COORDS:
+            return self.coords[COORDS.index(name)]
         if name in _REF_VARS:
             if self._xobject is not None:
                 return float(getattr(self._xobject, name))
@@ -271,7 +271,7 @@ class ParticlesTpsa:
     def _series(self, coord: str | int) -> madng_tpsa.Tpsa:
         """The ``Tpsa`` output series for ``coord`` (name like ``'x'`` or index 0..5)."""
         if isinstance(coord, str):
-            return self.coords[_COORDS.index(coord)]
+            return self.coords[COORDS.index(coord)]
         return self.coords[coord]
 
     def coefficient(
@@ -300,7 +300,7 @@ class ParticlesTpsa:
             mono = tuple(int(v) for v in row)
             if len(mono) != desc.monomial_length or not desc.is_valid_monomial(mono):
                 raise ValueError(
-                    f"invalid monomial {mono}: expected length {desc.monomial_length} "
+                    f"Invalid monomial {mono}: expected length {desc.monomial_length} "
                     f"(6 vars + {desc.num_params} params) and total order within the "
                     f"descriptor's order/param-order"
                 )
@@ -321,7 +321,7 @@ class ParticlesTpsa:
         mono = tuple(int(v) for v in np.asarray(monomial).reshape(-1))
         if len(mono) != desc.monomial_length or not desc.is_valid_monomial(mono):
             raise ValueError(
-                f"invalid monomial {mono}: expected length {desc.monomial_length} "
+                f"Invalid monomial {mono}: expected length {desc.monomial_length} "
                 f"(6 vars + {desc.num_params} params) and total order within the "
                 f"descriptor's order/param-order"
             )
@@ -337,4 +337,4 @@ class ParticlesTpsa:
         """
         if coord is not None:
             return self._series(coord).monomial_coeffs(tol)
-        return {c: s.monomial_coeffs(tol) for c, s in zip(_COORDS, self.coords)}
+        return {c: s.monomial_coeffs(tol) for c, s in zip(COORDS, self.coords)}

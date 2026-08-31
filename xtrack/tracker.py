@@ -290,7 +290,8 @@ class Tracker:
                 "Please rebuild the tracker, for example using `line.build_tracker(...)`.")
 
     def _track(self, particles, *args, with_progress: Union[bool, int] = False,
-               time=False, multi_element_monitor_at=None, **kwargs):
+               time=False, multi_element_monitor_at=None,
+               monitor_monomials=None, **kwargs):
 
         out = None
 
@@ -303,6 +304,7 @@ class Tracker:
                 *args,
                 with_progress=with_progress,
                 multi_element_monitor_at=multi_element_monitor_at,
+                monitor_monomials=monitor_monomials,
                 **kwargs,
             )
             if time:
@@ -360,7 +362,8 @@ class Tracker:
             multi_element_monitor = self._get_multi_element_monitor(
                 particles=particles,
                 multi_element_monitor_at=multi_element_monitor_at,
-                num_turns=num_turns
+                num_turns=num_turns,
+                monitor_monomials=monitor_monomials,
             )
 
             for ii in progress(
@@ -401,7 +404,8 @@ class Tracker:
             multi_element_monitor = self._get_multi_element_monitor(
                 particles=particles,
                 multi_element_monitor_at=multi_element_monitor_at,
-                num_turns=kwargs.get('num_turns', 1)
+                num_turns=kwargs.get('num_turns', 1),
+                monitor_monomials=monitor_monomials,
             )
             out = tracking_func(particles, *args, **kwargs,
                                multi_element_monitor=multi_element_monitor)
@@ -426,6 +430,7 @@ class Tracker:
         freeze_longitudinal=False,
         backtrack=False,
         multi_element_monitor_at=None,
+        monitor_monomials=None,
         with_progress=False,
         **kwargs,
     ):
@@ -483,7 +488,8 @@ class Tracker:
 
         multi_element_monitor = self._get_multi_element_monitor(
             multi_element_monitor_at, particles, monitor_turns,
-            tpsa_descriptor=particles.descriptor)
+            tpsa_descriptor=particles.descriptor,
+            monitor_monomials=monitor_monomials)
         dummy_buffer = p._buffer.buffer
         if multi_element_monitor is not None:
             buffer_multi_element_monitor = multi_element_monitor._xobject._buffer.buffer
@@ -1796,11 +1802,21 @@ class Tracker:
         return at_element_mapping, tt.name[indeces_obs] # to ensure the right order
 
     def _get_multi_element_monitor(self, multi_element_monitor_at, particles,
-                                   num_turns, tpsa_descriptor=None):
-        """The monitor for a track. With a descriptor it also records the full maps."""
+                                   num_turns, tpsa_descriptor=None,
+                                   monitor_monomials=None):
+        """The monitor for a track. With a descriptor it also records the maps.
+
+        Without `monitor_monomials` the full TPSA map is recorded at every observed
+        location, with it only the requested coefficients are.
+        """
 
         if multi_element_monitor_at is None or len(multi_element_monitor_at) == 0:
+            if monitor_monomials is not None:
+                raise ValueError(
+                    '`monitor_monomials` needs `multi_element_monitor_at` locations')
             return None
+        if monitor_monomials is not None and tpsa_descriptor is None:
+            raise ValueError('`monitor_monomials` needs TPSA tracking')
 
         at_element_mapping, obs_names = self._multi_element_monitor_mapping(
             multi_element_monitor_at)
@@ -1818,9 +1834,9 @@ class Tracker:
         num_turns = num_turns if num_turns is not None else 1
 
         map_series = None
-        map_slots = (0, 0, 0)
-        if tpsa_descriptor is not None:
-            map_series, map_slots = xt.MultiElementMonitor.build_map_slots(
+        tpsa_addresses = (0, 0, 0)
+        if monitor_monomials is None and tpsa_descriptor is not None:
+            map_series, tpsa_addresses = xt.MultiElementMonitor.build_tpsa_addresses(
                 tpsa_descriptor, num_elements, num_turns)
 
         multi_element_monitor = xt.MultiElementMonitor(
@@ -1830,7 +1846,9 @@ class Tracker:
             part_id_end=part_id_end,
             at_element_mapping=at_element_mapping,
             data=(num_turns, num_particles, num_cooordinates, num_elements),
-            map_slots=map_slots,
+            tpsa_addresses=tpsa_addresses,
+            monomials=monitor_monomials,
+            descriptor=tpsa_descriptor,
             obs_names=obs_names
         )
         multi_element_monitor._map_series = map_series
