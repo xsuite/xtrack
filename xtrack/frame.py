@@ -222,6 +222,16 @@ class Frame:
     def copy(self):
         return Frame(self.matrix)
 
+    def inverse(self):
+        """Return the inverse homogeneous transform as a new frame."""
+        return Frame(np.linalg.inv(self.matrix))
+
+    def __matmul__(self, other):
+        """Compose two frames without mutating either operand."""
+        if not isinstance(other, Frame):
+            return NotImplemented
+        return Frame(self.matrix @ other.matrix)
+
     def transform(self, displacement=None, rotation_matrix=None):
         """Apply a local rigid transform represented by vector and matrix."""
         initial_E_matrix = self.E_matrix.copy()

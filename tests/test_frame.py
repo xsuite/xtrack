@@ -193,6 +193,38 @@ def test_frame_copy_and_arc_backtrack():
     assert not np.shares_memory(initial.matrix, initial.copy().matrix)
 
 
+def test_frame_inverse_and_composition_are_non_mutating():
+    parent = xt.Frame.from_survey_angles(
+        X=0.4, Y=-1.2, Z=2.1, theta=0.2, phi=-0.3, psi=0.1)
+    child = xt.Frame.from_survey_angles(
+        X=-0.7, Y=0.3, Z=1.4, theta=-0.1, phi=0.25, psi=-0.4)
+    parent_matrix = parent.matrix.copy()
+    child_matrix = child.matrix.copy()
+
+    composed = parent @ child
+    inverse = parent.inverse()
+
+    np.testing.assert_allclose(
+        composed.matrix, parent_matrix @ child_matrix, atol=2e-15, rtol=0)
+    np.testing.assert_allclose(
+        (inverse @ parent).matrix, np.eye(4), atol=2e-15, rtol=0)
+    np.testing.assert_array_equal(parent.matrix, parent_matrix)
+    np.testing.assert_array_equal(child.matrix, child_matrix)
+
+
+def test_frame_inverse_supports_general_affine_matrix():
+    matrix = np.array([
+        [2.0, 0.1, 0.0, 1.0],
+        [0.0, 0.5, 0.2, -2.0],
+        [0.0, 0.0, 1.5, 3.0],
+        [0.0, 0.0, 0.0, 1.0],
+    ])
+    frame = xt.Frame(matrix)
+
+    np.testing.assert_allclose(
+        frame.inverse().matrix, np.linalg.inv(matrix), atol=1e-15, rtol=0)
+
+
 def test_frame_arc_conveniences():
     horizontal = xt.Frame().arc_x(length=1.2, angle=0.3)
     generic_horizontal = xt.Frame().arc(length=1.2, angle=0.3, tilt=0)

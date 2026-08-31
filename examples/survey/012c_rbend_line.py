@@ -3,6 +3,7 @@ import xobjects as xo
 import numpy as np
 
 from survey_utils import (
+    Misalignment,
     clear_element_misalignments,
     misalignment_from_absolute_position,
     misalignment_from_rst_offsets,
@@ -10,7 +11,7 @@ from survey_utils import (
     plot_exz,
     rst_from_reference_start,
     rst_start_end_offsets_from_parameters,
-    rst_start_end_offsets_from_positions,
+    rst_start_end_offsets_tilt_from_positions,
 )
 
 elements_to_process = ['bend_1', 'bend_2', 'bend_3', 'q1', 'q2']
@@ -106,19 +107,24 @@ for ii in range(len(sv0_nj)):
 sv0_nj['XYZ_rst_start'] = np.array(XYZ_rst_start)
 sv0_nj['E_rst_start'] = np.array(E_rst_start)
 
-# Actual element displacements with respect to the smooth in RST coordinates
+# Actual element displacements with respect to the smooth curve in RST coordinates
 for nn in ['br_start', 'bs_start', 'bt_start', 'br_end', 'bs_end', 'bt_end']:
     sv0_nj[nn] = np.zeros(len(sv0_nj))
 sv0_nj['bgamma'] = np.zeros(len(sv0_nj))
 
 for ii, element in enumerate(line_no_jumps.elements):
     if element.allow_rot_and_shift:
-        oo_start_rst, oo_end_rst = (
-            rst_start_end_offsets_from_positions(
+        oo_start_rst, oo_end_rst, bgamma = (
+            rst_start_end_offsets_tilt_from_positions(
                 XYZ_rst_start=sv0_nj.XYZ_rst_start[ii],
                 E_rst_start=sv0_nj.E_rst_start[ii],
                 XYZ_elem_start=sv.XYZ_elem_start[ii],
+                E_elem_start=sv.E_elem_start[ii],
                 XYZ_elem_end=sv.XYZ_elem_end[ii],
+                tilt=element.rot_s_rad,
+                angle=getattr(element, 'angle', 0.0),
+                rbend_angle=(
+                    element.angle if isinstance(element, xt.RBend) else None),
             )
         )
 
@@ -129,24 +135,15 @@ for ii, element in enumerate(line_no_jumps.elements):
         sv0_nj['bs_end', ii] = oo_end_rst[1]
         sv0_nj['bt_end', ii] = oo_end_rst[2]
 
+        elem_name = sv0_nj.name[ii]
+        if elem_name in elements_to_process:
+            sv0_nj['bgamma', ii] = bgamma
+
 # Element displacements with respect to the smooth line as MAD-X style misalignments
 for nn in ['dtheta', 'dphi', 'dpsi', 'dx', 'dy', 'ds']:
     sv0_nj[nn] = np.zeros(len(sv0_nj))
-misalignments = {}
 for elem_name in elements_to_process:
     ee_nj = line_no_jumps[elem_name]
-
-    # In an alignment file bgamma is an independent input. This example
-    # starts from absolute frames, so derive only bgamma from that source.
-    mm_from_absolute = misalignment_from_absolute_position(
-        XYZ_elem_start=sv['XYZ_elem_start', elem_name],
-        E_elem_start=sv['E_elem_start', elem_name],
-        XYZ_ref_start=sv0_nj['XYZ_ref_start', elem_name],
-        E_ref_start=sv0_nj['E_ref_start', elem_name],
-        rbend_angle=(ee_nj.angle if isinstance(ee_nj, xt.RBend) else None),
-    )
-    sv0_nj['bgamma', elem_name] = -(
-        mm_from_absolute.dpsi - ee_nj.rot_s_rad)
 
     offset_start_rst = np.array([
         sv0_nj['br_start', elem_name],
@@ -166,29 +163,12 @@ for elem_name in elements_to_process:
         angle=getattr(ee_nj, 'angle', 0.0),
     )
 
-    # The absolute-frame result is used only as a validation oracle.
-    xo.assert_allclose(
-        np.array([
-            mm.dtheta, mm.dphi, mm.dpsi, mm.dx, mm.dy, mm.ds]),
-        np.array([
-            mm_from_absolute.dtheta,
-            mm_from_absolute.dphi,
-            mm_from_absolute.dpsi,
-            mm_from_absolute.dx,
-            mm_from_absolute.dy,
-            mm_from_absolute.ds,
-        ]),
-        atol=1e-12,
-        rtol=0,
-    )
-
     sv0_nj['dtheta', elem_name] = mm.dtheta
     sv0_nj['dphi', elem_name] = mm.dphi
     sv0_nj['dpsi', elem_name] = mm.dpsi - ee_nj.rot_s_rad
     sv0_nj['dx', elem_name] = mm.dx
     sv0_nj['dy', elem_name] = mm.dy
     sv0_nj['ds', elem_name] = mm.ds
-    misalignments[elem_name] = mm
 
 # Output table
 tt_align = xt.Table({
@@ -229,7 +209,44 @@ tt_align.to_tfs('test_align.tfs')
 
 # Checks
 
-for elem_name, misalignment in misalignments.items():
+for elem_name in elements_to_process:
+    ee_nj = line_no_jumps[elem_name]
+    misalignment = Misalignment(
+        dtheta=tt_align['dtheta', elem_name],
+        dphi=tt_align['dphi', elem_name],
+        dpsi=(
+            tt_align['dpsi', elem_name] + tt_align['tilt', elem_name]),
+        dx=tt_align['dx', elem_name],
+        dy=tt_align['dy', elem_name],
+        ds=tt_align['ds', elem_name],
+    )
+    misalignment_from_absolute = misalignment_from_absolute_position(
+        XYZ_elem_start=sv['XYZ_elem_start', elem_name],
+        E_elem_start=sv['E_elem_start', elem_name],
+        XYZ_ref_start=sv0_nj['XYZ_ref_start', elem_name],
+        E_ref_start=sv0_nj['E_ref_start', elem_name],
+        rbend_angle=(ee_nj.angle if isinstance(ee_nj, xt.RBend) else None),
+    )
+    xo.assert_allclose(
+        np.array([
+            misalignment.dtheta,
+            misalignment.dphi,
+            misalignment.dpsi,
+            misalignment.dx,
+            misalignment.dy,
+            misalignment.ds,
+        ]),
+        np.array([
+            misalignment_from_absolute.dtheta,
+            misalignment_from_absolute.dphi,
+            misalignment_from_absolute.dpsi,
+            misalignment_from_absolute.dx,
+            misalignment_from_absolute.dy,
+            misalignment_from_absolute.ds,
+        ]),
+        atol=1e-12,
+        rtol=0,
+    )
     misalignment.apply_to_element(line_no_jumps[elem_name])
 
 sv_nj = line_no_jumps.survey(include_element_frames=True)
@@ -262,11 +279,17 @@ for elem_name in elements_to_process:
     E_rst = sv0_nj['E_rst_start', elem_name]
 
     # E is the entree (element start), S is the sortie (element end).
-    b_E, b_S = rst_start_end_offsets_from_positions(
+    element = line_no_jumps[elem_name]
+    b_E, b_S, bgamma = rst_start_end_offsets_tilt_from_positions(
         XYZ_rst_start=XYZ_rst,
         E_rst_start=E_rst,
         XYZ_elem_start=sv['XYZ_elem_start', elem_name],
+        E_elem_start=sv['E_elem_start', elem_name],
         XYZ_elem_end=sv['XYZ_elem_end', elem_name],
+        tilt=element.rot_s_rad,
+        angle=getattr(element, 'angle', 0.0),
+        rbend_angle=(
+            element.angle if isinstance(element, xt.RBend) else None),
     )
 
     length = np.linalg.norm(
@@ -278,6 +301,8 @@ for elem_name in elements_to_process:
 
     xo.assert_allclose(b_E, b_E_formula, atol=1e-12, rtol=0)
     xo.assert_allclose(b_S, b_S_formula, atol=1e-12, rtol=0)
+    xo.assert_allclose(
+        bgamma, tt_align['bgamma', elem_name], atol=1e-12, rtol=0)
 
     b_E_rst.append(b_E)
     b_S_rst.append(b_S)

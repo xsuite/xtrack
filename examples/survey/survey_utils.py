@@ -55,7 +55,8 @@ def misalignment_from_absolute_position(
 
     frame_ref_start = Frame.from_survey(XYZ_ref_start, E_ref_start)
 
-    A = np.linalg.inv(frame_ref_start.matrix) @ frame_elem_start.matrix
+    relative_frame = frame_ref_start.inverse() @ frame_elem_start
+    A = relative_frame.matrix
 
     theta = np.arctan2(A[0, 2], A[2, 2])
     phi = np.arctan2(A[1, 2], np.sqrt(A[1, 0]**2 + A[1, 1]**2))
@@ -83,31 +84,43 @@ def rst_from_reference_start(
     return frame_rst_start.XYZ.copy(), E_rst_start
 
 
-def rst_start_end_offsets_from_positions(
-        XYZ_rst_start, E_rst_start, XYZ_elem_start, XYZ_elem_end):
+def _rst_transform_frames(tilt, angle):
+    tilted_chord_frame = Frame().rotate_s(tilt).rotate_y(-angle / 2)
+
+    # This frame maps RST coordinates to the tilted chord coordinates.
+    # The columns are R=-x, S=s, T=y, expressed in the tilted chord frame.
+    rst_basis_frame = Frame.from_survey(
+        XYZ=np.zeros(3),
+        E_matrix=np.array([
+            [-1.0, 0.0, 0.0],
+            [0.0, 0.0, 1.0],
+            [0.0, 1.0, 0.0],
+        ]),
+    )
+    xys_from_rst_frame = tilted_chord_frame @ rst_basis_frame
+    return tilted_chord_frame, xys_from_rst_frame
+
+
+def rst_start_end_offsets_tilt_from_positions(
+        XYZ_rst_start, E_rst_start, XYZ_elem_start, E_elem_start,
+        XYZ_elem_end, tilt=0.0, angle=0.0, rbend_angle=None):
+    """Return RST endpoint offsets and bgamma from element survey data."""
     displacement_start = XYZ_elem_start - XYZ_rst_start
     displacement_end = XYZ_elem_end - XYZ_rst_start
     offset_start_rst = E_rst_start.T @ displacement_start
     offset_end_rst = E_rst_start.T @ displacement_end
-    return offset_start_rst, offset_end_rst
 
+    _, xys_from_rst_frame = _rst_transform_frames(tilt, angle)
+    rst_start_frame = Frame.from_survey(XYZ_rst_start, E_rst_start)
+    reference_start_frame = (
+        rst_start_frame @ xys_from_rst_frame.inverse())
+    element_start_frame = Frame.from_survey(XYZ_elem_start, E_elem_start)
+    if rbend_angle is not None:
+        element_start_frame.rotate_y(rbend_angle / 2)
 
-def _rst_transform_matrices(tilt, angle):
-    rotation_tilt = Frame().rotate_s(tilt).E_matrix
-    rotation_half_angle = Frame().rotate_y(-angle / 2).E_matrix
-
-    # The columns are R=-x, S=s, T=y, expressed in the tilted chord frame.
-    xys_from_rst = np.array([
-        [-1.0, 0.0, 0.0],
-        [0.0, 0.0, 1.0],
-        [0.0, 1.0, 0.0],
-    ])
-    rst_from_xys = (
-        xys_from_rst.T
-        @ rotation_half_angle.T
-        @ rotation_tilt.T
-    )
-    return rotation_tilt, rotation_half_angle, rst_from_xys
+    relative_frame = reference_start_frame.inverse() @ element_start_frame
+    bgamma = -(relative_frame.psi - tilt)
+    return offset_start_rst, offset_end_rst, bgamma
 
 
 def misalignment_from_rst_offsets(
@@ -125,23 +138,20 @@ def misalignment_from_rst_offsets(
     offset_start_rst = np.asarray(offset_start_rst)
     offset_end_rst = np.asarray(offset_end_rst)
 
-    rotation_tilt, rotation_half_angle, rst_from_xys = (
-        _rst_transform_matrices(tilt, angle))
+    tilted_chord_frame, xys_from_rst_frame = (
+        _rst_transform_frames(tilt, angle))
 
-    displacement_xys = rst_from_xys.T @ offset_start_rst
+    displacement_xys = xys_from_rst_frame.E_matrix @ offset_start_rst
     displaced_chord_rst = offset_end_rst - offset_start_rst
     length = np.linalg.norm(displaced_chord_rst)
     if length <= 0:
         raise ValueError('entry and exit offsets must define a chord')
-    displaced_chord_xys = rst_from_xys.T @ displaced_chord_rst
+    displaced_chord_xys = xys_from_rst_frame.E_matrix @ displaced_chord_rst
 
     rot_s_rad_no_frame = -bgamma
+    longitudinal_rotation = Frame().rotate_s(rot_s_rad_no_frame)
     chord_before_theta_phi = (
-        Frame().rotate_s(rot_s_rad_no_frame).E_matrix
-        @ rotation_tilt
-        @ rotation_half_angle
-        @ np.array([0.0, 0.0, length])
-    )
+        longitudinal_rotation @ tilted_chord_frame).ez * length
 
     uy = chord_before_theta_phi[1]
     uz = chord_before_theta_phi[2]
@@ -176,14 +186,15 @@ def misalignment_from_rst_offsets(
 def rst_start_end_offsets_from_parameters(element, length):
     angle = getattr(element, 'angle', 0.0)
 
-    rotation_tilt, rotation_half_angle, rst_from_xys = (
-        _rst_transform_matrices(element.rot_s_rad, angle))
+    tilted_chord_frame, xys_from_rst_frame = (
+        _rst_transform_frames(element.rot_s_rad, angle))
+    rst_from_xys_frame = xys_from_rst_frame.inverse()
 
     frame_misalignment = Frame()
     frame_misalignment.rotate_y(element.rot_y_rad)
     frame_misalignment.rotate_x(-element.rot_x_rad)
     frame_misalignment.rotate_s(element.rot_s_rad_no_frame)
-    rotation_misalignment = frame_misalignment.E_matrix
+    displaced_chord_frame = frame_misalignment @ tilted_chord_frame
 
     # The screenshot uses (DX, DS, DY). Xtrack uses (x, y, s), hence the
     # corresponding vectors below are (DX, DY, DS) and (0, 0, l_E).
@@ -192,16 +203,9 @@ def rst_start_end_offsets_from_parameters(element, length):
         element.shift_y,
         element.shift_s,
     ])
-    body_chord_xys = np.array([0.0, 0.0, length])
-
-    b_E = rst_from_xys @ displacement_E_xys
-    b_S = rst_from_xys @ (
-        displacement_E_xys
-        + rotation_misalignment
-        @ rotation_tilt
-        @ rotation_half_angle
-        @ body_chord_xys
-    )
+    b_E = rst_from_xys_frame.E_matrix @ displacement_E_xys
+    b_S = rst_from_xys_frame.E_matrix @ (
+        displacement_E_xys + displaced_chord_frame.ez * length)
     return b_E, b_S
 
 
