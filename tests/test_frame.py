@@ -50,6 +50,48 @@ def _reference_advance(XYZ, E_matrix, *, length=0, angle=0, tilt=0,
     )
 
 
+def _local_transform(displacement=None, rotation=None):
+    transform = np.eye(4)
+    if displacement is not None:
+        transform[:3, 3] = displacement
+    if rotation is not None:
+        transform[:3, :3] = rotation
+    return transform
+
+
+def _rotation_x(angle):
+    c = np.cos(angle)
+    s = np.sin(angle)
+    return np.array([[1, 0, 0], [0, c, -s], [0, s, c]])
+
+
+def _rotation_y(angle):
+    c = np.cos(angle)
+    s = np.sin(angle)
+    return np.array([[c, 0, s], [0, 1, 0], [-s, 0, c]])
+
+
+def _rotation_s(angle):
+    c = np.cos(angle)
+    s = np.sin(angle)
+    return np.array([[c, -s, 0], [s, c, 0], [0, 0, 1]])
+
+
+def _arc_transform(length, angle, tilt):
+    if angle == 0:
+        return _local_transform(displacement=[0, 0, length])
+
+    tilt_rotation = _rotation_s(tilt)
+    displacement = tilt_rotation @ np.array([
+        -0.5 * length * angle * np.sinc(angle / (2 * np.pi))**2,
+        0,
+        length * np.sinc(angle / np.pi),
+    ])
+    rotation = (
+        tilt_rotation @ _rotation_y(-angle) @ tilt_rotation.T)
+    return _local_transform(displacement=displacement, rotation=rotation)
+
+
 @pytest.mark.parametrize('kwargs', [
     {'length': 1.7},
     {'shift_x': 0.2, 'shift_y': -0.3},
@@ -234,6 +276,113 @@ def test_frame_arc_conveniences():
 
     np.testing.assert_array_equal(horizontal.matrix, generic_horizontal.matrix)
     np.testing.assert_array_equal(vertical.matrix, generic_vertical.matrix)
+
+
+def test_frame_random_transformation_sequences():
+    rng = np.random.default_rng(20260831)
+
+    for _ in range(100):
+        frame = xt.Frame.from_survey_angles(
+            X=rng.uniform(-10, 10),
+            Y=rng.uniform(-10, 10),
+            Z=rng.uniform(-10, 10),
+            theta=rng.uniform(-np.pi, np.pi),
+            phi=rng.uniform(-np.pi / 2, np.pi / 2),
+            psi=rng.uniform(-np.pi, np.pi),
+        )
+        expected = frame.matrix.copy()
+
+        for _ in range(30):
+            operation = rng.integers(7)
+            if operation < 3:
+                displacement = np.zeros(3)
+                displacement[operation] = rng.uniform(-2, 2)
+                (frame.translate_x, frame.translate_y, frame.translate_s)[
+                    operation](displacement[operation])
+                local_transform = _local_transform(
+                    displacement=displacement)
+            elif operation < 6:
+                angle = rng.uniform(-np.pi, np.pi)
+                rotation = (
+                    _rotation_x, _rotation_y, _rotation_s)[operation - 3](
+                        angle)
+                (frame.rotate_x, frame.rotate_y, frame.rotate_s)[operation - 3](
+                    angle)
+                local_transform = _local_transform(rotation=rotation)
+            else:
+                length = rng.uniform(-3, 3)
+                angle = rng.uniform(-1, 1)
+                tilt = rng.uniform(-np.pi, np.pi)
+                frame.arc(length=length, angle=angle, tilt=tilt)
+                local_transform = _arc_transform(length, angle, tilt)
+
+            expected = expected @ local_transform
+
+        np.testing.assert_allclose(
+            frame.matrix, expected, atol=2e-14, rtol=2e-14)
+        np.testing.assert_allclose(
+            frame.E_matrix.T @ frame.E_matrix,
+            np.eye(3), atol=2e-14, rtol=0)
+        assert np.linalg.det(frame.E_matrix) == pytest.approx(1, abs=2e-14)
+        np.testing.assert_allclose(
+            (frame.inverse() @ frame).matrix,
+            np.eye(4), atol=2e-14, rtol=0)
+
+
+@pytest.mark.parametrize('angle', [
+    1e-3,
+    1e-6,
+    1e-9,
+    1e-12,
+    1e-15,
+    -1e-9,
+])
+def test_frame_arc_is_accurate_for_small_angles(angle):
+    length = 2.3
+    tilt = 0.47
+    frame = xt.Frame().arc(length=length, angle=angle, tilt=tilt)
+
+    np.testing.assert_allclose(
+        frame.matrix, _arc_transform(length, angle, tilt),
+        atol=1e-15, rtol=1e-14)
+
+
+@pytest.mark.parametrize('phi', [
+    -np.pi / 2,
+    -np.pi / 2 + 1e-12,
+    np.pi / 2 - 1e-12,
+    np.pi / 2,
+])
+def test_frame_ccs_round_trip_near_singularities(phi):
+    ccs = xt.CCSFrame(
+        x=1.2, y=-0.7, z=3.1,
+        theta=0.71, phi=phi, psi=-0.37,
+    )
+    frame = xt.Frame.from_ccs(ccs)
+    rebuilt = xt.Frame.from_ccs(frame.to_ccs())
+
+    np.testing.assert_allclose(
+        rebuilt.matrix, frame.matrix, atol=2e-15, rtol=0)
+
+
+def test_frame_validation_setters_and_no_op_transformations():
+    with pytest.raises(ValueError, match='shape'):
+        xt.Frame(np.eye(3))
+
+    frame = xt.Frame()
+    frame.XYZ = [1, 2, 3]
+    frame.E_matrix = _rotation_x(0.2)
+    frame.ey = [0, 1, 0]
+    expected = frame.matrix.copy()
+
+    assert frame.__matmul__(object()) is NotImplemented
+    assert frame.translate_x(0) is frame
+    assert frame.translate_y(0) is frame
+    assert frame.translate_s(0) is frame
+    assert frame.rotate_x(0) is frame
+    assert frame.rotate_y(0) is frame
+    assert frame.rotate_s(0) is frame
+    np.testing.assert_array_equal(frame.matrix, expected)
 
 
 def test_line_survey_uses_track_frame_hook(monkeypatch):

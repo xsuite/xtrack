@@ -305,13 +305,16 @@ class Frame:
         if angle == 0:
             return self.translate_s(length)
 
-        rho = length / angle
         ca = np.cos(angle)
         sa = np.sin(angle)
         ct = np.cos(tilt)
         st = np.sin(tilt)
 
-        displacement = np.array([rho * (ca - 1), 0, rho * sa])
+        displacement = np.array([
+            -0.5 * length * angle * np.sinc(angle / (2 * np.pi))**2,
+            0,
+            length * np.sinc(angle / np.pi),
+        ])
         bend_rotation = np.array([
             [ca, 0, -sa],
             [0, 1, 0],
