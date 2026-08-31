@@ -3,7 +3,7 @@ from dataclasses import dataclass
 import matplotlib.pyplot as plt
 import numpy as np
 
-from ldbpoint import MADPoint
+from xtrack import Frame
 
 
 @dataclass
@@ -48,20 +48,14 @@ def misalignment_from_absolute_position(
     For an RBend, ``rbend_angle`` applies the half-angle transformation from
     its entrance frame to the frame used by the MAD-X misalignment convention.
     """
-    p_mat_elem_start = np.eye(4)
-    p_mat_elem_start[:3, :3] = E_elem_start
-    p_mat_elem_start[:3, 3] = XYZ_elem_start
+    frame_elem_start = Frame.from_survey(XYZ_elem_start, E_elem_start)
 
     if rbend_angle is not None:
-        mp_elem_start = MADPoint(p_mat_elem_start)
-        mp_elem_start.rtheta(rbend_angle / 2)
-        p_mat_elem_start = mp_elem_start.matrix
+        frame_elem_start.rotate_y(rbend_angle / 2)
 
-    p_mat_ref_start = np.eye(4)
-    p_mat_ref_start[:3, :3] = E_ref_start
-    p_mat_ref_start[:3, 3] = XYZ_ref_start
+    frame_ref_start = Frame.from_survey(XYZ_ref_start, E_ref_start)
 
-    A = np.linalg.inv(p_mat_ref_start) @ p_mat_elem_start
+    A = np.linalg.inv(frame_ref_start.matrix) @ frame_elem_start.matrix
 
     theta = np.arctan2(A[0, 2], A[2, 2])
     phi = np.arctan2(A[1, 2], np.sqrt(A[1, 0]**2 + A[1, 1]**2))
@@ -76,21 +70,17 @@ def misalignment_from_absolute_position(
 
 def rst_from_reference_start(
         XYZ_ref_start, E_ref_start, rot_s_rad, angle):
-    p_ref_start = np.eye(4)
-    p_ref_start[:3, :3] = E_ref_start
-    p_ref_start[:3, 3] = XYZ_ref_start
-
-    p_rst_start = MADPoint(p_ref_start)
-    p_rst_start.rpsi(rot_s_rad)
-    p_rst_start.rtheta(-angle / 2)
+    frame_rst_start = Frame.from_survey(XYZ_ref_start, E_ref_start)
+    frame_rst_start.rotate_s(rot_s_rad)
+    frame_rst_start.rotate_y(-angle / 2)
 
     # S is along the chord, T is normal to the curvature plane, and R = S x T.
-    es = p_rst_start.matrix[:3, 2]
-    et = p_rst_start.matrix[:3, 1]
+    es = frame_rst_start.ez
+    et = frame_rst_start.ey
     er = np.cross(es, et)
 
     E_rst_start = np.column_stack((er, es, et))
-    return p_rst_start.matrix[:3, 3].copy(), E_rst_start
+    return frame_rst_start.XYZ.copy(), E_rst_start
 
 
 def rst_start_end_offsets_from_positions(
@@ -105,15 +95,17 @@ def rst_start_end_offsets_from_positions(
 def rst_start_end_offsets_from_parameters(element, length):
     angle = getattr(element, 'angle', 0.0)
 
-    rotation_tilt = MADPoint.psi_matrix(
-        element.rot_s_rad)[:3, :3]
-    rotation_half_angle = MADPoint.theta_matrix(
-        -angle / 2)[:3, :3]
-    rotation_misalignment = (
-        MADPoint.theta_matrix(element.rot_y_rad)
-        @ MADPoint.phi_matrix(element.rot_x_rad)
-        @ MADPoint.psi_matrix(element.rot_s_rad_no_frame)
-    )[:3, :3]
+    frame_tilt = Frame().rotate_s(element.rot_s_rad)
+    rotation_tilt = frame_tilt.E_matrix
+
+    frame_half_angle = Frame().rotate_y(-angle / 2)
+    rotation_half_angle = frame_half_angle.E_matrix
+
+    frame_misalignment = Frame()
+    frame_misalignment.rotate_y(element.rot_y_rad)
+    frame_misalignment.rotate_x(-element.rot_x_rad)
+    frame_misalignment.rotate_s(element.rot_s_rad_no_frame)
+    rotation_misalignment = frame_misalignment.E_matrix
 
     # E_rst = E_ref @ rotation_tilt @ rotation_half_angle @ xys_from_rst.
     # The columns of xys_from_rst are R=-x, S=s, T=y, expressed in the
