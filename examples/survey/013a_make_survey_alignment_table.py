@@ -1,3 +1,4 @@
+import matplotlib.pyplot as plt
 import numpy as np
 import xtrack as xt
 
@@ -157,3 +158,41 @@ tt_align = xt.Table({
 })
 
 tt_align.to_tfs('test_align.tfs', float_precision=17)
+
+# Plot the real survey and the smooth reference used to define the RST offsets.
+plt.close('all')
+plt.figure(1)
+plt.plot(sv.Z, sv.X, '.-', label='survey')
+plt.plot(sv0_nj.Z, sv0_nj.X, '--', label='survey no jumps')
+
+for elem_name in elements_to_process:
+    plt.plot(
+        [sv['Z_elem_start', elem_name], sv['Z_elem_end', elem_name]],
+        [sv['X_elem_start', elem_name], sv['X_elem_end', elem_name]],
+        'x-', color='g')
+    plt.plot(
+        [sv0_nj['Z_ref_start', elem_name],
+         sv0_nj['Z_ref_end', elem_name]],
+        [sv0_nj['X_ref_start', elem_name],
+         sv0_nj['X_ref_end', elem_name]],
+        '+--', color='orange')
+
+    su.plot_exz(
+        sv['E_elem_start', elem_name], sv['XYZ_elem_start', elem_name],
+        length=0.5, color='g')
+    su.plot_exz(
+        sv['E_elem_end', elem_name], sv['XYZ_elem_end', elem_name],
+        length=0.5, color='g')
+    su.plot_exz(
+        sv0_nj['E_ref_start', elem_name],
+        sv0_nj['XYZ_ref_start', elem_name], length=0.5, color='orange')
+    su.plot_exz(
+        sv0_nj['E_ref_end', elem_name],
+        sv0_nj['XYZ_ref_end', elem_name], length=0.5, color='orange')
+
+plt.xlabel('Z [m]')
+plt.ylabel('X [m]')
+plt.axis('equal')
+plt.legend()
+
+plt.show()
