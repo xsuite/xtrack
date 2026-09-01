@@ -16,13 +16,14 @@ class CCSFrame:
     """Pose in the CERN Coordinate System.
 
     The x axis points towards a positive bend, y follows the beam, and z
-    points upwards. The ``theta``, ``phi``, and ``psi`` angles are in radians.
+    points upwards. ``theta_gon`` is in gradians (gon), while ``phi`` and
+    ``psi`` are in radians.
     """
 
     x: float = 0
     y: float = 0
     z: float = 0
-    theta: float = 0
+    theta_gon: float = 0
     phi: float = 0
     psi: float = 0
 
@@ -33,6 +34,8 @@ _SURVEY_TO_CCS = np.array([
     [0, 1, 0],
 ])
 _CCS_TO_SURVEY = _SURVEY_TO_CCS.T
+_GON_TO_RAD = np.pi / 200
+_RAD_TO_GON = 200 / np.pi
 
 
 def _angles_from_E_matrix(E_matrix):
@@ -103,7 +106,7 @@ class Frame:
         """Build a survey frame from CERN Coordinate System coordinates."""
         ccs_XYZ = np.array([ccs.x, ccs.y, ccs.z])
         ccs_E_matrix = cls._ccs_E_matrix_from_angles(
-            ccs.theta, ccs.phi, ccs.psi)
+            ccs.theta_gon * _GON_TO_RAD, ccs.phi, ccs.psi)
         return cls.from_survey(
             XYZ=_CCS_TO_SURVEY @ ccs_XYZ,
             E_matrix=(
@@ -166,12 +169,13 @@ class Frame:
         psi = np.arctan2(ccs_E_matrix[2, 0], ccs_E_matrix[2, 2])
         cosphi = np.hypot(ccs_E_matrix[0, 1], ccs_E_matrix[1, 1])
         phi = np.arctan2(ccs_E_matrix[2, 1], cosphi)
-        theta = np.arctan2(ccs_E_matrix[0, 1], ccs_E_matrix[1, 1])
+        theta_rad = np.arctan2(
+            ccs_E_matrix[0, 1], ccs_E_matrix[1, 1])
         return CCSFrame(
             x=ccs_XYZ[0],
             y=ccs_XYZ[1],
             z=ccs_XYZ[2],
-            theta=theta,
+            theta_gon=theta_rad * _RAD_TO_GON,
             phi=phi,
             psi=psi,
         )

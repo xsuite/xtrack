@@ -23,6 +23,14 @@ __all__ = [
 ]
 
 
+_ELEMENT_FRAME_NAMES = (
+    'ref_start',
+    'ref_end',
+    'elem_start',
+    'elem_end',
+)
+
+
 class SurveyTable(Table):
     """
     Table for survey data.
@@ -207,23 +215,54 @@ class SurveyTable(Table):
 
         return out
 
-    def get_frame(self, at):
+    def get_frame(self, at, *, which=None):
         """Return an independent frame at a surveyed location.
 
         Parameters
         ----------
         at : str or int
-            Element name or row index. The frame is taken at the element
-            entrance; use ``'_end_point'`` or the last row for the line exit.
+            Element name or row index.
+        which : {None, 'ref_start', 'ref_end', 'elem_start', 'elem_end'}
+            Frame to return. By default, use the standard ``XYZ`` and
+            ``E_matrix`` survey columns. The other choices require a survey
+            generated with ``include_element_frames=True``.
 
         Returns
         -------
         Frame
             A new frame initialized from the selected survey row.
         """
+        if which is not None and which not in _ELEMENT_FRAME_NAMES:
+            raise ValueError(
+                f'Invalid frame {which!r}; expected one of '
+                f'{_ELEMENT_FRAME_NAMES}')
+
+        if which is None:
+            XYZ_column = 'XYZ'
+            E_column = 'E_matrix'
+        else:
+            XYZ_column = f'XYZ_{which}'
+            E_column = f'E_{which}'
+            if XYZ_column not in self._data or E_column not in self._data:
+                raise ValueError(
+                    f'Frame {which!r} is unavailable; generate the survey '
+                    'with include_element_frames=True')
+
         if isinstance(at, str):
             at = self.rows.get_index(at)
-        return Frame.from_survey(self.XYZ[at], self.E_matrix[at])
+        return Frame.from_survey(
+            self._data[XYZ_column][at], self._data[E_column][at])
+
+    def get_all_frames(self, at):
+        """Return all reference and element frames at a surveyed location.
+
+        The survey must have been generated with
+        ``include_element_frames=True``.
+        """
+        return {
+            which: self.get_frame(at, which=which)
+            for which in _ELEMENT_FRAME_NAMES
+        }
 
     def plot(self, element_width = None, legend = True, **kwargs):
         """

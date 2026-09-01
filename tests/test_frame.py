@@ -188,7 +188,8 @@ def test_frame_exposes_survey_angles_as_read_only_properties():
 
 def test_frame_from_ccs():
     ccs = xt.CCSFrame(
-        x=1.2, y=-0.7, z=3.1, theta=0.21, phi=-0.17, psi=0.33)
+        x=1.2, y=-0.7, z=3.1,
+        theta_gon=13.37, phi=-0.17, psi=0.33)
     frame = xt.Frame.from_ccs(ccs)
 
     survey_to_ccs = np.array([
@@ -196,8 +197,9 @@ def test_frame_from_ccs():
         [0, 0, 1],
         [0, 1, 0],
     ])
-    ct, cp, cs = np.cos([ccs.theta, ccs.phi, ccs.psi])
-    st, sp, ss = np.sin([ccs.theta, ccs.phi, ccs.psi])
+    theta_rad = ccs.theta_gon * np.pi / 200
+    ct, cp, cs = np.cos([theta_rad, ccs.phi, ccs.psi])
+    st, sp, ss = np.sin([theta_rad, ccs.phi, ccs.psi])
     ccs_E_matrix = (
         np.array([[ct, st, 0], [-st, ct, 0], [0, 0, 1]])
         @ np.array([[1, 0, 0], [0, cp, -sp], [0, sp, cp]])
@@ -216,6 +218,8 @@ def test_frame_from_ccs():
         atol=1e-15,
         rtol=0,
     )
+    assert frame.to_ccs().theta_gon == pytest.approx(
+        ccs.theta_gon, abs=1e-14)
 
 
 def test_frame_to_ccs_round_trip():
@@ -227,7 +231,7 @@ def test_frame_to_ccs_round_trip():
 
     assert is_dataclass(ccs)
     assert asdict(ccs).keys() == {
-        'x', 'y', 'z', 'theta', 'phi', 'psi'}
+        'x', 'y', 'z', 'theta_gon', 'phi', 'psi'}
     np.testing.assert_allclose(rebuilt.matrix, frame.matrix, atol=1e-15, rtol=0)
 
 
@@ -371,7 +375,7 @@ def test_frame_arc_is_accurate_for_small_angles(angle):
 def test_frame_ccs_round_trip_near_singularities(phi):
     ccs = xt.CCSFrame(
         x=1.2, y=-0.7, z=3.1,
-        theta=0.71, phi=phi, psi=-0.37,
+        theta_gon=45.2, phi=phi, psi=-0.37,
     )
     frame = xt.Frame.from_ccs(ccs)
     rebuilt = xt.Frame.from_ccs(frame.to_ccs())
@@ -502,6 +506,46 @@ def test_survey_table_get_frame_by_name_and_index():
 
     by_name.translate_x(1)
     assert not np.array_equal(by_name.XYZ, survey.XYZ[1])
+
+
+def test_survey_table_get_element_frames():
+    survey = xt.Line(elements={
+        'drift': xt.Drift(length=1.2),
+        'bend': xt.Bend(
+            length=2.3,
+            angle=0.37,
+            shift_x=0.02,
+            rot_s_rad=0.15,
+        ),
+    }).survey(include_element_frames=True)
+
+    frames = survey.get_all_frames('bend')
+
+    assert tuple(frames) == (
+        'ref_start', 'ref_end', 'elem_start', 'elem_end')
+    for which, frame in frames.items():
+        expected = survey.get_frame('bend', which=which)
+        np.testing.assert_array_equal(frame.matrix, expected.matrix)
+        np.testing.assert_array_equal(
+            frame.XYZ, survey[f'XYZ_{which}', 'bend'])
+        np.testing.assert_array_equal(
+            frame.E_matrix, survey[f'E_{which}', 'bend'])
+
+
+def test_survey_table_get_element_frames_requires_optional_columns():
+    survey = xt.Line(elements=[xt.Drift(length=1.2)]).survey()
+
+    with pytest.raises(ValueError, match='include_element_frames=True'):
+        survey.get_frame(0, which='elem_start')
+    with pytest.raises(ValueError, match='include_element_frames=True'):
+        survey.get_all_frames(0)
+
+
+def test_survey_table_get_frame_rejects_invalid_selector():
+    survey = xt.Line(elements=[xt.Marker()]).survey()
+
+    with pytest.raises(ValueError, match="Invalid frame 'invalid'"):
+        survey.get_frame(0, which='invalid')
 
 
 @pytest.mark.parametrize('name', [
