@@ -17,7 +17,19 @@ REPS = 50
 WARMUP = 3
 MODES = ("scalar", "tpsa", "param")
 X0 = dict(x=1e-6, px=2e-7, y=-1e-6, py=1e-7, zeta=0.0, delta=0.0)
-TRACK_OPTS = "method=2, nslice=1, model='TKT', save=false"
+TRACK_OPTS = "save=false"
+
+# Per element kind, mirroring the xsuite magnet configuration of the harness.
+# model TKT = thick-kick-thick (xsuite bend-kick-bend, mat-kick-mat), DKD =
+# drift-kick-drift over an exact drift. method is the integrator order, method 2
+# with nslice n is n uniform kicks, so nslice mirrors num_multipole_kicks.
+MADNG_INTEGRATION = {
+    "sbend": dict(model="TKT", method=2, nslice=1),
+    "rbend": dict(model="TKT", method=2, nslice=1),
+    "quadrupole": dict(model="DKD", method="'teapot2'", nslice=1),
+    "sextupole": dict(model="TKT", method=2, nslice=1),
+    "octupole": dict(model="TKT", method=2, nslice=1),
+}
 
 
 def stats(times):
@@ -198,10 +210,34 @@ def bench_line(line, mng, knob_names, knob_values, label, order):
     )
 
 
-def to_madng(line):
+def set_madng_integration(mng, integration=MADNG_INTEGRATION, sequence_name="seq"):
+    """Set model, method and nslice on the sequence elements, by element kind.
+
+    Element attributes win over the track command options in MAD-NG, so this is
+    what pins the integration scheme per magnet family. Kinds left out of
+    ``integration`` keep the MAD-NG defaults.
+    """
+    entries = ", ".join(
+        f"{kind}={{model='{opt['model']}', method={opt['method']}, nslice={opt['nslice']}}}"
+        for kind, opt in integration.items()
+    )
+    mng.send(f"""
+        local integration = {{{entries}}}
+        MADX.{sequence_name}:foreach(function(element)
+            local opt = integration[element.kind]
+            if opt then
+                element.model, element.method, element.nslice =
+                    opt.model, opt.method, opt.nslice
+            end
+        end)
+        """)
+
+
+def to_madng(line, integration=MADNG_INTEGRATION):
     """Create a MAD-NG instance for a line and return its conversion time."""
     t0 = time.perf_counter()
     mng = line.to_madng(sequence_name="seq")
+    set_madng_integration(mng, integration)
     return mng, time.perf_counter() - t0
 
 

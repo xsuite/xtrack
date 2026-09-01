@@ -44,7 +44,12 @@ def build_ir8():
     collider.vars.load(LHC_MADX, format="madx")
     collider.build_trackers()
     line = collider.lhcb1.select(*IR8_RANGE)
-    line.configure_bend_model('bend-kick-bend')
+    # Paired with MADNG_INTEGRATION in benchmarking.py.
+    line.configure_bend_model('bend-kick-bend', edge="full", integrator='uniform', num_multipole_kicks=1)
+    line.configure_quadrupole_model('drift-kick-drift-exact', integrator='teapot', num_multipole_kicks=2)
+    line.configure_sextupole_model('drift-kick-drift-exact')
+    line.configure_octupole_model('drift-kick-drift-exact')
+    line.configure_drift_model('exact')
     line.config.XTRACK_MULTIPOLE_NO_SYNRAD = True
     line.build_tracker()
     return line
