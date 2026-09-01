@@ -1,10 +1,16 @@
-from cpymad.madx import Madx
 import xtrack as xt
+import numpy as np
 
 env = xt.load(['M2_with_jump.seq', 'M2_MTN3p8_v5_notilt.str'])
 line = env['m2']
 
-sv = line.survey(include_element_frames=True)
+# Define T09 survey parameters.
+X0, Y0, Z0 = -677.24488, 2441.56985, 4605.8619
+theta0, phi0, psi0 = 1.406046 - ((np.pi) / 2), -0.000358, 0
+
+sv = line.survey(include_element_frames=True,
+                 X0=X0, Y0=Y0, Z0=Z0,
+                 theta0=theta0, phi0=phi0, psi0=psi0)
 
 # List of elements requiring alignment data
 names_align = sv.rows.match_not(name='.*drift.*|.*_aper|_end_point')\
@@ -14,6 +20,55 @@ names_align = sv.rows.match_not(name='.*drift.*|.*_aper|_end_point')\
 frames = {}
 for nn in names_align:
     frames[nn] = sv.get_all_frames(nn)
+
+# Prepare output table with CCS start/end
+name = []
+x_ccs = []
+y_ccs = []
+z_ccs = []
+theta_gon_ccs = []
+phi_rad_ccs = []
+psi_rad_ccs = []
+
+for nn in names_align:
+    p_start_ccs = frames[nn]['elem_start'].to_ccs()
+    p_end_ccs = frames[nn]['elem_end'].to_ccs()
+
+    name.append(nn+'.u')
+    x_ccs.append(p_start_ccs.x)
+    y_ccs.append(p_start_ccs.y)
+    z_ccs.append(p_start_ccs.z)
+    theta_gon_ccs.append(p_start_ccs.theta_gon)
+    phi_rad_ccs.append(p_start_ccs.phi)
+    psi_rad_ccs.append(p_start_ccs.psi)
+
+    name.append(nn+'.d')
+    x_ccs.append(p_end_ccs.x)
+    y_ccs.append(p_end_ccs.y)
+    z_ccs.append(p_end_ccs.z)
+    theta_gon_ccs.append(p_end_ccs.theta_gon)
+    phi_rad_ccs.append(p_end_ccs.phi)
+    psi_rad_ccs.append(p_end_ccs.psi)
+
+dct_out = {
+    'name': name,
+    'x_ccs': x_ccs,
+    'y_ccs': y_ccs,
+    'z_ccs': z_ccs,
+    'theta_gon_ccs': theta_gon_ccs,
+    'phi_rad_ccs': phi_rad_ccs,
+    'psi_rad_ccs': psi_rad_ccs
+}
+
+for kk in dct_out:
+    dct_out[kk] = np.array(dct_out[kk])
+
+tt_out = xt.Table(dct_out)
+
+tt_out.to_csv('m2_ccs_align.csv')
+tt_out.to_tfs('m2_ccs_align.tfs')
+
+
 
 import matplotlib.pyplot as plt
 plt.close('all')
