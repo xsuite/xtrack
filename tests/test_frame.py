@@ -402,6 +402,93 @@ def test_line_survey_uses_track_frame_hook(monkeypatch):
     np.testing.assert_array_equal(survey.XYZ[-1], [1, 0, 0])
 
 
+@pytest.mark.parametrize('element_class, kwargs', [
+    (xt.Marker, {}),
+    (xt.Drift, {'length': 1.7}),
+    (xt.Bend, {'length': 2.3, 'angle': 0.37}),
+    (xt.Bend, {'length': 2.3, 'angle': -0.37, 'rot_s_rad': 0.61}),
+    (xt.Multipole, {'length': 0.4, 'hxl': 0.12}),
+])
+def test_track_frame_over_single_element_matches_line_survey(
+        element_class, kwargs):
+    element = element_class(**kwargs)
+    initial = xt.Frame.from_survey_angles(
+        X=1.2, Y=-0.7, Z=3.1, theta=0.21, phi=-0.17, psi=0.33)
+    initial_matrix = initial.matrix.copy()
+    expected = xt.Line(elements=[element]).survey(
+        X0=initial.XYZ[0],
+        Y0=initial.XYZ[1],
+        Z0=initial.XYZ[2],
+        theta0=initial.theta,
+        phi0=initial.phi,
+        psi0=initial.psi,
+    )
+
+    result = xt.track_frame(initial, element)
+
+    assert result is initial
+    np.testing.assert_allclose(
+        initial.XYZ, expected.XYZ[-1], atol=2e-15, rtol=0)
+    np.testing.assert_allclose(
+        initial.E_matrix, expected.E_matrix[-1], atol=2e-15, rtol=0)
+
+    xt.track_frame(initial, element, backtrack=True)
+    np.testing.assert_allclose(
+        initial.matrix, initial_matrix, atol=3e-15, rtol=0)
+
+
+def test_track_frame_dispatches_element_hook_and_backtrack():
+    calls = []
+
+    class Element:
+        def track_frame(self, frame, backtrack=False):
+            calls.append((frame, backtrack))
+            frame.translate_x(-2 if backtrack else 2)
+
+    frame = xt.Frame()
+    result = xt.track_frame(frame, Element(), backtrack=True)
+
+    assert result is frame
+    assert calls == [(frame, True)]
+    np.testing.assert_array_equal(frame.XYZ, [-2, 0, 0])
+
+
+def test_track_frame_over_sliced_elements_matches_line_survey():
+    line = xt.Line(elements={
+        'bend': xt.Bend(length=2.3, angle=0.37, rot_s_rad=0.61),
+    })
+    line.slice_thick_elements(
+        slicing_strategies=[xt.Strategy(slicing=xt.Teapot(2))],
+        with_progress=False,
+    )
+    survey = line.survey()
+    frame = xt.Frame()
+
+    for ii, element in enumerate(line._elements):
+        xt.track_frame(frame, element)
+        np.testing.assert_allclose(
+            frame.XYZ, survey.XYZ[ii + 1], atol=2e-15, rtol=0)
+        np.testing.assert_allclose(
+            frame.E_matrix, survey.E_matrix[ii + 1], atol=2e-15, rtol=0)
+
+
+def test_survey_table_get_frame_by_name_and_index():
+    survey = xt.Line(elements={
+        'drift': xt.Drift(length=1.2),
+        'bend': xt.Bend(length=2.3, angle=0.37),
+    }).survey()
+
+    by_name = survey.get_frame('bend')
+    by_index = survey.get_frame(1)
+
+    np.testing.assert_array_equal(by_name.matrix, by_index.matrix)
+    np.testing.assert_array_equal(by_name.XYZ, survey.XYZ[1])
+    np.testing.assert_array_equal(by_name.E_matrix, survey.E_matrix[1])
+
+    by_name.translate_x(1)
+    assert not np.array_equal(by_name.XYZ, survey.XYZ[1])
+
+
 @pytest.mark.parametrize('name', [
     'advance_bend',
     'advance_rotation',

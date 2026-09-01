@@ -19,6 +19,7 @@ __all__ = [
     'get_survey',
     'survey_from_line',
     'survey_relative_transform',
+    'track_frame',
 ]
 
 
@@ -205,6 +206,24 @@ class SurveyTable(Table):
             col_names   = new_cols.keys())
 
         return out
+
+    def get_frame(self, at):
+        """Return an independent frame at a surveyed location.
+
+        Parameters
+        ----------
+        at : str or int
+            Element name or row index. The frame is taken at the element
+            entrance; use ``'_end_point'`` or the last row for the line exit.
+
+        Returns
+        -------
+        Frame
+            A new frame initialized from the selected survey row.
+        """
+        if isinstance(at, str):
+            at = self.rows.get_index(at)
+        return Frame.from_survey(self.XYZ[at], self.E_matrix[at])
 
     def plot(self, element_width = None, legend = True, **kwargs):
         """
@@ -449,14 +468,9 @@ def get_survey(
         E_matrix.append(frame.E_matrix.copy())
         V.append(frame.XYZ.copy())
 
-        if hasattr(ee, 'track_frame'):
-            ee.track_frame(frame, backtrack=backtrack)
-        else:
-            if backtrack:
-                ll = -ll
-                aa = -aa
-
-            frame.arc(length=ll, angle=aa, tilt=tt)
+        _track_frame(
+            frame, ee, length=ll, angle=aa, tilt=tt,
+            backtrack=backtrack)
 
     # Last marker
     E_matrix.append(frame.E_matrix.copy())
@@ -464,6 +478,71 @@ def get_survey(
 
     # Return data for SurveyTable object
     return V, E_matrix
+
+
+def _track_frame(p, element, *, length, angle, tilt, backtrack=False):
+    if hasattr(element, 'track_frame'):
+        element.track_frame(p, backtrack=backtrack)
+    else:
+        if backtrack:
+            length = -length
+            angle = -angle
+        p.arc(length=length, angle=angle, tilt=tilt)
+    return p
+
+
+def track_frame(p, element, backtrack=False):
+    """Track a frame through one beam element, mutating it in place.
+
+    Elements exposing ``track_frame(frame, backtrack=False)`` are dispatched
+    directly. For other elements, a temporary one-element line is used to
+    obtain the same standard length, bend angle, and tilt employed by
+    :meth:`Line.survey`.
+
+    Parameters
+    ----------
+    p : Frame
+        Frame to mutate.
+    element : BeamElement
+        Element through which to propagate the frame.
+    backtrack : bool, optional
+        Propagate backward through the element.
+
+    Returns
+    -------
+    Frame
+        The input frame ``p`` after in-place propagation.
+    """
+    if hasattr(element, 'track_frame'):
+        return _track_frame(
+            p, element, length=0, angle=0, tilt=0,
+            backtrack=backtrack)
+
+    # Local import avoids the survey/line import cycle.
+    from ..line import Line
+
+    if hasattr(element, '_parent') and hasattr(element, 'parent_name'):
+        element_name = '_element'
+        while element_name == element.parent_name:
+            element_name = f'_{element_name}'
+        elements = {
+            element.parent_name: element._parent,
+            element_name: element,
+        }
+        line = Line(elements=elements, element_names=[element_name])
+    else:
+        line = Line(elements=[element])
+
+    table = line.get_table(attr=True)
+    length = table.length[0] if table.isthick[0] else 0
+    return _track_frame(
+        p,
+        element,
+        length=length,
+        angle=table.angle[0],
+        tilt=table.rot_s_rad[0],
+        backtrack=backtrack,
+    )
 
 
 def _get_survey_quantities_from_v_w(V, E_matrix):
