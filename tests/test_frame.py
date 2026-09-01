@@ -174,6 +174,23 @@ def test_frame_exposes_survey_vectors_as_writable_views():
     ])
 
 
+def test_frame_exposes_xyz_scalar_properties():
+    frame = xt.Frame.from_survey(
+        XYZ=[1, 2, 3],
+        E_matrix=np.eye(3),
+    )
+
+    assert frame.X == 1
+    assert frame.Y == 2
+    assert frame.Z == 3
+
+    frame.X = 4
+    frame.Y = 5
+    frame.Z = 6
+
+    np.testing.assert_array_equal(frame.XYZ, [4, 5, 6])
+
+
 def test_frame_exposes_survey_angles_as_read_only_properties():
     expected = dict(theta=0.21, phi=-0.17, psi=0.33)
     frame = xt.Frame.from_survey_angles(**expected)

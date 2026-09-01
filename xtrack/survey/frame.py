@@ -190,6 +190,33 @@ class Frame:
         self.matrix[:3, 3] = value
 
     @property
+    def X(self):
+        """Global horizontal coordinate of the local-frame origin."""
+        return self.XYZ[0]
+
+    @X.setter
+    def X(self, value):
+        self.XYZ[0] = value
+
+    @property
+    def Y(self):
+        """Global vertical coordinate of the local-frame origin."""
+        return self.XYZ[1]
+
+    @Y.setter
+    def Y(self, value):
+        self.XYZ[1] = value
+
+    @property
+    def Z(self):
+        """Global longitudinal coordinate of the local-frame origin."""
+        return self.XYZ[2]
+
+    @Z.setter
+    def Z(self, value):
+        self.XYZ[2] = value
+
+    @property
     def E_matrix(self):
         """Local-to-global basis-vector matrix, as a writable view."""
         return self.matrix[:3, :3]
