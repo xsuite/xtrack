@@ -13,11 +13,11 @@ typedef struct {
     int qemin, nq;
     double h;
     double straight;
-    double *c;   /* c[i,m,k], polynomial coeff of s^k in q^m term */
-    double *V;   /* scratch: c[i,m](s)   */
-    double *D1;   /* scratch: d_s c[i,m]  */
-    double *D2;   /* scratch: d2_s c[i,m]  */
-    double *Q;   /* scratch: q^e, e=qemin.. */
+    GPUGLMEM const double *c;  /* c[i,m,k], polynomial coeff of s^k in q^m term */
+    GPUGLMEM double *V;        /* scratch: c[i,m](s)   */
+    GPUGLMEM double *D1;       /* scratch: d_s c[i,m]  */
+    GPUGLMEM double *D2;       /* scratch: d2_s c[i,m]  */
+    GPUGLMEM double *Q;        /* scratch: q^e, e=qemin.. */
 } Expansion;
 
 typedef struct {
@@ -40,11 +40,32 @@ typedef struct {
     FieldValue pot;
 } HamiltonianFlow;
 
-static inline const double *ccptr(const Expansion *f, int i, int m) {
+GPUFUN
+void fieldexpansion_reset_field_value(FieldValue *out) {
+    out->phi = 0.0;
+    out->Bx = 0.0;
+    out->By = 0.0;
+    out->Bs = 0.0;
+    out->Ax = 0.0;
+    out->Ay = 0.0;
+    out->As = 0.0;
+    out->dAx_dx = 0.0;
+    out->dAx_dy = 0.0;
+    out->dAx_ds = 0.0;
+    out->dAs_dx = 0.0;
+    out->dAs_dy = 0.0;
+    out->dAs_ds = 0.0;
+}
+
+GPUFUN
+GPUGLMEM const double *ccptr(const Expansion *f, int i, int m) {
     return f->c + (((size_t)i * (size_t)f->nm + (size_t)m) * (size_t)(f->deg + 1));
 }
 
-static inline void poly_eval_d2(const double *p, int deg, double s, double *v, double *d1, double *d2) {
+GPUFUN
+void poly_eval_d2(GPUGLMEM const double *p, int deg, double s,
+                  GPUGLMEM double *v, GPUGLMEM double *d1,
+                  GPUGLMEM double *d2) {
     double a = p[deg], b = 0.0, c=0.0;
     for (int k = deg - 1; k >= 0; --k) {
         c = c * s + 2.0 * b;
@@ -56,7 +77,8 @@ static inline void poly_eval_d2(const double *p, int deg, double s, double *v, d
     *d2 = c;
 }
 
-static void fs_prepare_s(Expansion *f, double s) {
+GPUFUN
+void fs_prepare_s(Expansion *f, double s) {
     for (int i = 0; i < f->ncoef; ++i) {
         for (int m = 0; m < f->nm; ++m) {
             poly_eval_d2(ccptr(f, i, m), f->deg, s,
@@ -67,6 +89,7 @@ static void fs_prepare_s(Expansion *f, double s) {
     }
 }
 
+GPUFUN
 void delta_from_ptau(const double beta0, double ptau,
                      double *delta, double *delta1, double *ddelta1) {
     {

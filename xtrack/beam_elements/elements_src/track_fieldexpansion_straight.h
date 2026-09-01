@@ -3,14 +3,16 @@
 
 #include "track_fieldexpansion_helpers.h"
 
-int evaluate_expansion_straight(Expansion *f, double x, double y, double s, FieldValue *out) {
+GPUFUN
+int evaluate_expansion_straight(Expansion *f, double x, double y, double s,
+                                FieldValue *out) {
 
-    memset(out, 0, sizeof(*out));
+    fieldexpansion_reset_field_value(out);
 
-    double *V = f->V;
-    double *D1 = f->D1;
-    double *D2 = f->D2;
-    double *X = f->Q;
+    GPUGLMEM double *V = f->V;
+    GPUGLMEM double *D1 = f->D1;
+    GPUGLMEM double *D2 = f->D2;
+    GPUGLMEM double *X = f->Q;
 
     fs_prepare_s(f, s);
 
@@ -90,12 +92,14 @@ int evaluate_expansion_straight(Expansion *f, double x, double y, double s, Fiel
 #define TRACK_EXPANSION StraightFieldExpansion_track_local_particle
 #define HAMILTONIAN_FLOW hamiltonian_flow_straight
 #define EVALUATE_EXPANSION evaluate_expansion_straight
+#define GET_FIELD StraightFieldExpansion_get_field
 #define FIELDEXPANSIONDATA StraightFieldExpansionData
 #define DATA StraightFieldExpansionData
 #include "track_fieldexpansion.h"
 #undef TRACK_EXPANSION
 #undef HAMILTONIAN_FLOW
 #undef EVALUATE_EXPANSION
+#undef GET_FIELD
 #undef FIELDEXPANSIONDATA
 #undef DATA
 
