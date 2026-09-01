@@ -141,6 +141,21 @@ def test_frame_uses_survey_names():
     assert not hasattr(frame, 'rotation')
 
 
+def test_frame_repr():
+    frame = xt.Frame.from_survey_angles(
+        X=1.25,
+        Y=-2.5,
+        Z=3.75,
+        theta=0.125,
+        phi=-0.25,
+        psi=0.5,
+    )
+
+    assert repr(frame) == (
+        'Frame(X=1.25, Y=-2.5, Z=3.75, '
+        'theta=0.125, phi=-0.25, psi=0.5)')
+
+
 def test_frame_exposes_survey_vectors_as_writable_views():
     frame = xt.Frame()
 

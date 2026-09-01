@@ -69,6 +69,20 @@ class Frame:
 
         self.matrix = matrix
 
+    def __repr__(self):
+        values = (
+            *self.XYZ,
+            self.theta,
+            self.phi,
+            self.psi,
+        )
+        X, Y, Z, theta, phi, psi = (
+            f'{float(value):.12g}' for value in values)
+        return (
+            f'Frame(X={X}, Y={Y}, Z={Z}, '
+            f'theta={theta}, phi={phi}, psi={psi})'
+        )
+
     @classmethod
     def from_survey(cls, XYZ, E_matrix):
         matrix = np.eye(4)
