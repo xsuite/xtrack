@@ -3,11 +3,11 @@ import numpy as np
 
 from legacy_survey_tfs import write_legacy_survey_tfs
 
-# env = xt.load(['M2_with_jump.seq', 'M2_MTN3p8_v5_notilt.str'])
-# line = env['m2']
-
-env = xt.load(['ldb/LS3.seq'])
+env = xt.load(['M2_with_jump.seq', 'M2_MTN3p8_v5_notilt.str'])
 line = env['m2']
+
+# env = xt.load(['ldb/LS3.seq'])
+# line = env['m2']
 
 # Define T09 survey parameters.
 X0, Y0, Z0 = -677.24488, 2441.56985, 4605.8619
@@ -19,7 +19,7 @@ sv = line.survey(include_element_frames=True,
 
 # List of elements requiring alignment data
 names_align = sv.rows.match_not(name='.*drift.*|.*_aper|_end_point')\
-            .rows.match_not(element_type='Limit*|Translation|Rotation').name
+            .rows.match_not(element_type='Limit.*|Translation|Rotation').name
 
 # Extract absolute coordinates of start/end of all elements
 frames = {}

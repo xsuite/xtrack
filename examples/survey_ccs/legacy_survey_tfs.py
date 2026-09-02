@@ -33,7 +33,7 @@ def write_legacy_survey_tfs(
                 s = survey['s', nn + '>>1']
                 length = np.linalg.norm(
                     frames['elem_end'].XYZ - frames['elem_start'].XYZ, 2)
-                slot_id = element_container[nn].extra['slot_id']
+                slot_id = element_container[nn].extra.get('slot_id', 0)
 
             line = ' '
 
