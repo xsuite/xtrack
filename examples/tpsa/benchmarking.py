@@ -17,7 +17,7 @@ REPS = 50
 WARMUP = 3
 MODES = ("scalar", "tpsa", "param")
 X0 = dict(x=1e-6, px=2e-7, y=-1e-6, py=1e-7, zeta=0.0, delta=0.0)
-TRACK_OPTS = "save=false"
+TRACK_OPTS = "save=false, fringe=MAD.dynmap.fringe.none"
 
 # Per element kind, mirroring the xsuite magnet configuration of the harness.
 # model TKT = thick-kick-thick (xsuite bend-kick-bend, mat-kick-mat), DKD =

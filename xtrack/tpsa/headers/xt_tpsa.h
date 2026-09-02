@@ -52,7 +52,7 @@ namespace xt_tpsa {
 
         // Promote scalar constants using the active descriptor at first order only.
         tpsa(double value)
-            : mad::tpsa(mad::tpsa_ref(default_proto), 1) {
+            : mad::tpsa(mad::tpsa_ref(default_proto)) {
             mad::tpsa::operator=(value);
         }
 
