@@ -1,7 +1,7 @@
 import xtrack as xt
 import numpy as np
 
-from legacy_survey_tfs import write_legacy_survey_tfs
+from xtrack._temp import survey_utils as su
 
 env = xt.load(['M2_with_jump.seq', 'M2_MTN3p8_v5_notilt.str'])
 line = env['m2']
@@ -75,7 +75,7 @@ tt_out = xt.Table(dct_out)
 tt_out.to_csv('m2_ccs_align.csv')
 tt_out.to_tfs('m2_ccs_align.tfs', float_precision=15)
 
-write_legacy_survey_tfs(
+su.write_legacy_survey_tfs(
     'survey_output.tfs',
     survey=sv,
     element_names=names_align,
