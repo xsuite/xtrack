@@ -93,14 +93,13 @@ def knob_driven_fields(line, names):
 
 
 MADNG_TEMPLATE = Template("""
-local MADX = MADX {}
 local track, damap in MAD
 local c0 = py:recv()
 local reps, warmup = $reps, $warmup
 local knobs = $knob_names
 
 function fresh_scalar()
-    return { x=c0[1], px=c0[2], y=c0[3], py=c0[4], t=0, pt=0 }
+    return { c0[1], c0[2], c0[3], c0[4], 0, 0 }
 end
 
 function fresh_tpsa()
@@ -121,6 +120,7 @@ function restore_knobs()
 end
 
 function bench(fresh)
+    local MADX = MADX {}
     for i=1,warmup do track { sequence=MADX.seq, X0=fresh(), $track_opts } end
     collectgarbage()
     local ts, tt = MAD.vector(reps), MAD.vector(reps)
