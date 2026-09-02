@@ -1,7 +1,10 @@
 import xtrack as xt
 import numpy as np
 
-env = xt.load(['M2_with_jump.seq', 'M2_MTN3p8_v5_notilt.str'])
+# env = xt.load(['M2_with_jump.seq', 'M2_MTN3p8_v5_notilt.str'])
+# line = env['m2']
+
+env = xt.load(['ldb/LS3.seq'])
 line = env['m2']
 
 # Define T09 survey parameters.
@@ -14,7 +17,7 @@ sv = line.survey(include_element_frames=True,
 
 # List of elements requiring alignment data
 names_align = sv.rows.match_not(name='.*drift.*|.*_aper|_end_point')\
-            .rows.match_not(element_type='Marker|Limit*|Translation|Rotation').name
+            .rows.match_not(element_type='Limit*|Translation|Rotation').name
 
 # Extract absolute coordinates of start/end of all elements
 frames = {}
@@ -63,12 +66,12 @@ dct_out = {
 for kk in dct_out:
     dct_out[kk] = np.array(dct_out[kk])
 
+dct_out['theta_rad'] = dct_out['theta_gon_ccs'] * (np.pi / 200)
+
 tt_out = xt.Table(dct_out)
 
 tt_out.to_csv('m2_ccs_align.csv')
-tt_out.to_tfs('m2_ccs_align.tfs')
-
-
+tt_out.to_tfs('m2_ccs_align.tfs', float_precision=15)
 
 import matplotlib.pyplot as plt
 plt.close('all')
