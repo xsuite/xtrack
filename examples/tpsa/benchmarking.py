@@ -17,7 +17,7 @@ REPS = 50
 WARMUP = 3
 MODES = ("scalar", "tpsa", "param")
 X0 = dict(x=1e-6, px=2e-7, y=-1e-6, py=1e-7, zeta=0.0, delta=0.0)
-TRACK_OPTS = "save=false, fringe=MAD.dynmap.fringe.none"
+TRACK_OPTS = "save=false, fringe=MAD.element.flags.fringe.none"
 
 # Per element kind, mirroring the xsuite magnet configuration of the harness.
 # model TKT = thick-kick-thick (xsuite bend-kick-bend, mat-kick-mat), DKD =
@@ -93,6 +93,7 @@ def knob_driven_fields(line, names):
 
 
 MADNG_TEMPLATE = Template("""
+local MADX = MADX {}
 local track, damap in MAD
 local c0 = py:recv()
 local reps, warmup = $reps, $warmup
@@ -175,12 +176,19 @@ def bench_line(line, mng, knob_names, knob_values, label, order):
         refresh()
         return xtpsa.ParticlesTpsa(order=order, descriptor=parametric, **kwargs)
 
-    build = dict(
-        scalar=lambda: xt.Particles(**kwargs),
-        tpsa=lambda: xtpsa.ParticlesTpsa(order=order, descriptor=plain, **kwargs),
-        param=build_param,
+    def build_scalar():
+        refresh()
+        return xt.Particles(**kwargs)
+
+    # Track the parameter-free map before enabling TPSA strengths. Scalar particles then
+    # exercise the scalar kernel's constant-part projection of those strengths.
+    xs = {}
+    xs["tpsa"] = split_timings_ms(
+        lambda: xtpsa.ParticlesTpsa(order=order, descriptor=plain, **kwargs),
+        line.track,
     )
-    xs = {mode: split_timings_ms(build_mode, line.track) for mode, build_mode in build.items()}
+    xs["scalar"] = split_timings_ms(build_scalar, line.track)
+    xs["param"] = split_timings_ms(build_param, line.track)
     xs_knobs = timings_ms(refresh, reps=5, warmup=1)
     knobs.teardown()
 

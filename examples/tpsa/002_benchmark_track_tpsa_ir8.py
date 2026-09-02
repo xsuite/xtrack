@@ -44,11 +44,19 @@ def build_ir8():
     collider.vars.load(LHC_MADX, format="madx")
     collider.build_trackers()
     line = collider.lhcb1.select(*IR8_RANGE)
+
+    # If there are no high order kicks, MAD-NG can do bend instead of bend-kick-bend
+    # Xsuite is missing this optimisation, so we insert the kick to compare apples-apples
+    for name in line.element_names:
+        if hasattr(line.get(name), 'k2'):
+            line[name].k2 += 1e-4
+
     # Paired with MADNG_INTEGRATION in benchmarking.py.
     line.configure_bend_model('bend-kick-bend', edge="suppressed", integrator='uniform', num_multipole_kicks=1)
     line.configure_quadrupole_model('drift-kick-drift-exact', edge="suppressed", integrator='teapot', num_multipole_kicks=2)
     line.configure_sextupole_model('drift-kick-drift-exact', edge="suppressed")
     line.configure_octupole_model('drift-kick-drift-exact', edge="suppressed")
+    line._configure_mult(xt.Multipole, model='drift-kick-drift-exact')  # MAD-NG uses exact in multipoles too
     line.configure_drift_model('exact')
     line.config.XTRACK_MULTIPOLE_NO_SYNRAD = True
     line.build_tracker()
@@ -77,7 +85,7 @@ def main():
             title=(
                 "Mean track time, HL-LHC IR8 s.ds.l8.b1 -> ip1.l1 "
                 f"({rows[0]['n_elem']} elements)\n"
-                "Xsuite vs MAD-NG, by tracking mode and map order, 20 quadrupole knobs "
+                f"Xsuite vs MAD-NG, by tracking mode and map order, {len(IR8_VARY)} quadrupole knobs "
                 f"({rows[0]['n_driven']} driven fields)."
             ),
         ),
