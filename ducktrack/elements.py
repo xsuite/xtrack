@@ -306,11 +306,15 @@ class Translation(Element):
     _description = [
         ("shift_x", "m", "Horizontal shift", 0),
         ("shift_y", "m", "Vertical shift", 0),
+        ("shift_s", "m", "Longitudinal shift", 0),
     ]
 
     def track(self, p):
         p.x -= self.shift_x
         p.y -= self.shift_y
+        if self.shift_s != 0:
+            DriftExact(length=self.shift_s).track(p)
+            p.s -= self.shift_s
 
 class Elens(Element):
     """Hollow Electron Lens"""

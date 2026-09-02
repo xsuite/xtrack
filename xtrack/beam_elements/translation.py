@@ -8,11 +8,14 @@ import xobjects as xo
 
 class Translation(BeamElement):
     '''
-    Beam element modeling a transverse shift of the reference system, by applying
+    Beam element modeling a shift of the reference system, by applying
     the following transformation to the particle coordinates:
 
         x_new = x_old - shift_x
         y_new = y_old - shift_y
+
+    A longitudinal shift ``shift_s`` is tracked as an exact drift of length
+    ``shift_s`` without advancing the particle's ``s`` coordinate.
 
     Parameters
     ----------
@@ -20,11 +23,14 @@ class Translation(BeamElement):
         Horizontal shift in meters. Default is ``0``.
     shift_y : float
         Vertical shift in meters. Default is ``0``.
+    shift_s : float
+        Longitudinal shift in meters. Default is ``0``.
 
     '''
     _xofields = {
         'shift_x': xo.Float64,
         'shift_y': xo.Float64,
+        'shift_s': xo.Float64,
         }
 
     allow_loss_refinement = True
@@ -39,3 +45,4 @@ class Translation(BeamElement):
         sign = -1 if backtrack else 1
         frame.translate_x(sign * self.shift_x)
         frame.translate_y(sign * self.shift_y)
+        frame.translate_s(sign * self.shift_s)

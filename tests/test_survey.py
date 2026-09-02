@@ -515,6 +515,21 @@ def test_survey_with_ref_transformations():
     xo.assert_allclose(p_mid_no_init[:, 0], 1e-3, atol=1e-14)
     xo.assert_allclose(p_mid_no_init[:, 1], 2e-3, atol=1e-14)
 
+
+def test_survey_translation_shift_s_does_not_advance_s():
+    translation = xt.Translation(
+        shift_x=0.1, shift_y=-0.2, shift_s=0.3)
+    line = xt.Line(elements=[translation])
+
+    survey = line.survey()
+
+    assert_allclose(survey.XYZ[-1], [0.1, -0.2, 0.3], atol=1e-14)
+    assert_allclose(survey.s, [0, 0], atol=1e-14)
+
+    frame = survey.get_frame(-1)
+    xt.track_frame(frame, translation, backtrack=True)
+    assert_allclose(frame.XYZ, [0, 0, 0], atol=1e-14)
+
 def test_survey_prototype():
 
     env = xt.Environment()
@@ -736,7 +751,7 @@ def test_survey_transforms_native_loader(sandbox_cwd):
         on_srot = 1;
         pi = 3.14159265358979323846;
 
-        tr1: translation, dx=1e-2, dy=2e-2;
+        tr1: translation, dx=1e-2, dy=2e-2, ds=3e-2;
 
         rs2: srotation, angle=-1.04*on_srot;
 
