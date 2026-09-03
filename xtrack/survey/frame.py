@@ -244,12 +244,12 @@ class Frame:
         self.E_matrix[:, 1] = value
 
     @property
-    def ez(self):
+    def es(self):
         """Global components of the local longitudinal unit vector."""
         return self.E_matrix[:, 2]
 
-    @ez.setter
-    def ez(self, value):
+    @es.setter
+    def es(self, value):
         self.E_matrix[:, 2] = value
 
     @property

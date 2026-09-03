@@ -161,11 +161,12 @@ def test_frame_exposes_survey_vectors_as_writable_views():
 
     assert np.shares_memory(frame.ex, frame.matrix)
     assert np.shares_memory(frame.ey, frame.matrix)
-    assert np.shares_memory(frame.ez, frame.matrix)
+    assert np.shares_memory(frame.es, frame.matrix)
+    assert not hasattr(frame, 'ez')
 
     frame.ex = [0, 1, 0]
     frame.ey[:] = [0, 0, 1]
-    frame.ez = [1, 0, 0]
+    frame.es = [1, 0, 0]
 
     np.testing.assert_array_equal(frame.E_matrix, [
         [0, 0, 1],

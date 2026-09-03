@@ -93,7 +93,7 @@ def rst_from_reference_start(
     frame_rst_start.rotate_y(-angle / 2)
 
     # S is along the chord, T is normal to the curvature plane, and R = S x T.
-    es = frame_rst_start.ez
+    es = frame_rst_start.es
     et = frame_rst_start.ey
     er = np.cross(es, et)
 
@@ -168,7 +168,7 @@ def misalignment_from_rst_offsets(
     rot_s_rad_no_frame = -bgamma
     longitudinal_rotation = Frame().rotate_s(rot_s_rad_no_frame)
     chord_before_theta_phi = (
-        longitudinal_rotation @ tilted_chord_frame).ez * length
+        longitudinal_rotation @ tilted_chord_frame).es * length
 
     uy = chord_before_theta_phi[1]
     uz = chord_before_theta_phi[2]
@@ -222,7 +222,7 @@ def rst_start_end_offsets_from_parameters(element, length):
     ])
     b_E = rst_from_xys_frame.E_matrix @ displacement_E_xys
     b_S = rst_from_xys_frame.E_matrix @ (
-        displacement_E_xys + displaced_chord_frame.ez * length)
+        displacement_E_xys + displaced_chord_frame.es * length)
     return b_E, b_S
 
 
@@ -298,8 +298,8 @@ def write_legacy_survey_tfs(
         fid.write(output)
 
 
-def plot_exz(rotation_matrix, point, length=0.5, color='k'):
-    """Plot the local x and z directions in the global Z-X plane."""
+def plot_exs(rotation_matrix, point, length=0.5, color='k'):
+    """Plot the local x and s directions in the global Z-X plane."""
     import matplotlib.pyplot as plt
 
     if length <= 0:
