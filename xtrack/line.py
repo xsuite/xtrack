@@ -1761,6 +1761,7 @@ class Line:
 
         return self.tracker._tracker_data_base.cache['attr']
 
+    @doc_group("Cleanup and Simplification")
     def disable_tpsa_elements(self):
         """Convert all TPSA-enabled elements in the line back to scalar storage."""
         tpsa_enabled = self.attr['_tpsa_enabled']

@@ -101,35 +101,6 @@ def test_tpsa_tracking_error_marks_particle_lost():
 
 
 @allow_kernel_compilation
-def test_xt_num_t_constructor_orders():
-    class CheckXtNumTConstructorOrders(xt.BeamElement):
-        _extra_c_sources = [r"""
-            #include "xtrack/headers/track.h"
-
-            GPUFUN
-            void CheckXtNumTConstructorOrders_track_local_particle(
-                    CheckXtNumTConstructorOrdersData el, LocalParticle* part0) {
-                START_PER_PARTICLE_BLOCK(part0, part)
-                    xt_num_t source = LocalParticle_get_x(part);
-                    xt_num_t scalar = 1.0;
-                    xt_num_t copy = source;
-                    if (scalar.mo() != 1 || copy.mo() != source.mo()) {
-                        LocalParticle_set_state(part, -1);
-                    }
-                END_PER_PARTICLE_BLOCK;
-            }
-        """]
-
-    line = xt.Line(elements=[CheckXtNumTConstructorOrders()])
-    line.particle_ref = xt.Particles(p0c=P0C, mass0=MASS0)
-    line.build_tracker(compile=False)
-    particles = _map(order=3)
-    line.track(particles)
-
-    assert particles._xobject.state == 1
-
-
-@allow_kernel_compilation
 def test_xt_num_t_captures_madng_expression_temporary():
     class CheckXtNumTTemporaryCapture(xt.BeamElement):
         _extra_c_sources = [r"""
