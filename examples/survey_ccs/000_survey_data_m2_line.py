@@ -6,9 +6,6 @@ from xtrack._temp import survey_utils as su
 env = xt.load(['M2_with_jump.seq', 'M2_MTN3p8_v5_notilt.str'])
 line = env['m2']
 
-# env = xt.load(['ldb/LS3.seq'])
-# line = env['m2']
-
 # Define T09 survey parameters.
 X0, Y0, Z0 = -677.24488, 2441.56985, 4605.8619
 theta0, phi0, psi0 = 1.406046 - ((np.pi) / 2), -0.000358, 0
@@ -69,12 +66,20 @@ for kk in dct_out:
     dct_out[kk] = np.array(dct_out[kk])
 
 dct_out['theta_rad'] = dct_out['theta_gon_ccs'] * (np.pi / 200)
-
 tt_out = xt.Table(dct_out)
 
+# Save the table in csv and tfs formats
 tt_out.to_csv('m2_ccs_align.csv')
 tt_out.to_tfs('m2_ccs_align.tfs', float_precision=15)
 
+# Prepare a tfs file compatible with import in GEODE
+# - Only selected elements are included in the GEODE-compatible survey file.
+# - Point associated with each element name is the actual position of the
+#  element's end point.
+# - Position of the element's start point is given in the dummy drift before the
+#  element (such drifts have zero length)
+# - All elements are defined as straight (theta, phi, psi, represent the orientation
+#  of the physical axis of the element.
 su.write_legacy_survey_tfs(
     'survey_output.tfs',
     survey=sv,
