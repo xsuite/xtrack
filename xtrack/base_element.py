@@ -10,6 +10,8 @@ import numpy as np
 
 import xobjects as xo
 import xtrack as xt
+from madng_tpsa import Tpsa, ffi
+from xobjects.context import Source
 from xobjects.general import Print
 from xobjects.hybrid_class import _build_xofields_dict
 from .general import _pkg_root
@@ -17,31 +19,193 @@ from .internal_record import RecordIdentifier, RecordIndex, generate_get_record
 from .particles import Particles
 from .track_flags import c_header_flag_mapping
 
-start_per_part_block = """
-    {
-    const int64_t XT_part_block_start_idx = part0->ipart; //only_for_context cpu_openmp
-    const int64_t XT_part_block_end_idx = part0->endpart; //only_for_context cpu_openmp
+_INTERNAL_RECORD_GETTER_SOURCE_NAME = "internal_record_getter"
 
-    const int64_t XT_part_block_start_idx = 0;                                            //only_for_context cpu_serial
-    const int64_t XT_part_block_end_idx = LocalParticle_get__num_active_particles(part0); //only_for_context cpu_serial
 
-    //#pragma omp simd // TODO: currently does not work, needs investigating
-    for (int64_t XT_part_block_ii = XT_part_block_start_idx; XT_part_block_ii<XT_part_block_end_idx; XT_part_block_ii++) { //only_for_context cpu_openmp cpu_serial
+def _float_to_uint64_bits(value):
+    value = np.asarray(value).item()
+    return np.array([float(value)], dtype=np.float64).view(np.uint64)[0]
 
-        LocalParticle lpart = *part0;    //only_for_context cpu_serial cpu_openmp
-        LocalParticle* part = &lpart;    //only_for_context cpu_serial cpu_openmp
-        part->ipart = XT_part_block_ii;  //only_for_context cpu_serial cpu_openmp
 
-        LocalParticle* part = part0;     //only_for_context opencl cuda
+def _uint64_bits_to_float(value):
+    return np.array([np.uint64(value)], dtype=np.uint64).view(np.float64)[0]
 
-        if (LocalParticle_get_state(part) > 0) {  //only_for_context cpu_openmp
-"""
 
-end_part_part_block = """
-        }  //only_for_context cpu_openmp
-    }  //only_for_context cpu_serial cpu_openmp
-    }
-"""
+class FloatOrTpsa(xo.RawUnion):
+    """8-byte field storing either double bits or a ``tpsa_t*`` pointer."""
+
+    scalar = xo.Float64
+    tpsa = xo.UInt64
+    _is_float_or_tpsa = True
+
+    @classmethod
+    def _from_buffer(cls, buffer, offset=0, container=None):
+        data = buffer.to_bytearray(offset, cls._size)
+        bits = np.frombuffer(data, dtype=np.uint64)[0]
+        enabled = False
+        if container is not None:
+            enabled = getattr(container, "_tpsa_enabled", 0)
+            if not enabled and hasattr(container, "_xobject"):
+                enabled = getattr(container._xobject, "_tpsa_enabled", 0)
+        if enabled:
+            ptr = ffi().cast("void*", int(bits))
+            descriptor = getattr(container, "_tpsa_descriptor", None)
+            if descriptor is None and hasattr(container, "_DressingClass"):
+                raise ValueError(
+                    "Cannot decode a TPSA-enabled FloatOrTpsa field without "
+                    "the owning beam element"
+                )
+            return Tpsa.from_ptr(ptr, descriptor=descriptor)
+        return _uint64_bits_to_float(bits)
+
+    @classmethod
+    def _to_buffer(cls, buffer, offset, value, info=None, container=None):
+        if isinstance(value, cls):
+            buffer.update_from_xbuffer(offset, value._buffer, value._offset, cls._size)
+            return
+        if isinstance(value, Tpsa):
+            if container is None:
+                raise ValueError(
+                    "FloatOrTpsa fields can only be initialized from scalars "
+                    "without an owning container"
+                )
+            bits = int(ffi().cast("uintptr_t", value.ptr))
+        else:
+            bits = int(_float_to_uint64_bits(value))
+        data = np.array([bits], dtype=np.uint64).tobytes()
+        buffer.update_from_buffer(offset, data)
+
+
+def _float_or_tpsa_accessor_paths(xostruct):
+    paths = []
+    seen = set()
+    for path in xostruct._gen_data_paths():
+        if not getattr(path[-1], "_is_float_or_tpsa", False):
+            continue
+        field_names = [part.name for part in path if hasattr(part, "name")]
+        key = tuple(field_names)
+        if key in seen:
+            continue
+        seen.add(key)
+        flag_names = field_names[:-1] + ["_tpsa_enabled"]
+        paths.append(("_".join(field_names), "_".join(flag_names)))
+    return paths
+
+
+def _generate_float_or_tpsa_accessors(xostruct):
+    paths = _float_or_tpsa_accessor_paths(xostruct)
+    if not paths:
+        return None
+
+    data_name = xostruct.__name__
+    blocks = ['#include "xtrack/headers/track.h"']
+    for field_name, flag_name in paths:
+        getter = f"{data_name}_get_{field_name}"
+        scalar_getter = f"{getter}_scalar"
+        tpsa_getter = f"{getter}_tpsa"
+        tpsa_enabled_getter = f"{data_name}_get_{flag_name}"
+        blocks.append(f"""
+#ifndef XTRACK_TPSA_TRACK
+GPUFUN double {getter}({data_name} obj) {{
+    if ({tpsa_enabled_getter}(obj)) {{
+        return xt_float_or_tpsa_get_double({tpsa_getter}(obj), 1);
+    }}
+    return {scalar_getter}(obj);
+}}
+#else
+GPUFUN xt_num_t {getter}({data_name} obj) {{
+    uint64_t bits = {tpsa_getter}(obj);
+    if ({tpsa_enabled_getter}(obj)) {{
+        return xt_float_or_tpsa_get(&bits, 1);
+    }}
+    return {scalar_getter}(obj);
+}}
+#endif
+""")
+
+    source = Source(
+        source="\n".join(blocks),
+        name=f"{data_name}_float_or_tpsa_accessors",
+    )
+    return source
+
+
+class _FieldOfBeamElement:
+    def __init__(self, name, xo_field, base_descriptor):
+        self.name = name
+        self.xo_field = xo_field
+        self.base_descriptor = base_descriptor
+
+    def __get__(self, element, owner=None):
+        if element is None:
+            return self
+        if getattr(element._xobject, "_tpsa_enabled", 0):
+            handles = _get_tpsa_handles(element)
+            try:
+                return handles[self.name]
+            except KeyError:
+                value = self._read(element)
+                handles[self.name] = value
+                return value
+        return self._read(element)
+
+    def __set__(self, element, value):
+        if isinstance(value, Tpsa):
+            if not isinstance(element._buffer.context, xo.ContextCpu):
+                raise NotImplementedError(
+                    "TPSA-enabled beam elements are only supported on CPU contexts")
+            if not getattr(element._xobject, "_tpsa_enabled", 0):
+                element.enable_tpsa(value.descriptor)
+            _set_tpsa_handle(element, self.name, value)
+            self._write(element, value)
+            element._xobject._tpsa_enabled = 1
+            return
+
+        if getattr(element._xobject, "_tpsa_enabled", 0):
+            descriptor = _get_tpsa_descriptor(element)
+            value = descriptor.constant(float(np.asarray(value).item()))
+            _set_tpsa_handle(element, self.name, value)
+            self._write(element, value)
+            return
+
+        _get_tpsa_handles(element).pop(self.name, None)
+        self._write(element, float(np.asarray(value).item()))
+
+    def _read(self, element):
+        ftype, offset = self.xo_field.get_offset(element._xobject)
+        return ftype._from_buffer(
+            element._xobject._buffer, offset, container=element)
+
+    def _write(self, element, value):
+        ftype, offset = self.xo_field.get_offset(element._xobject)
+        ftype._to_buffer(
+            element._xobject._buffer, offset, value, container=element)
+
+
+def _get_tpsa_handles(element):
+    handles = element.__dict__.get("_tpsa_handles")
+    if handles is None:
+        handles = {}
+        element.__dict__["_tpsa_handles"] = handles
+    return handles
+
+
+def _get_tpsa_descriptor(element):
+    descriptor = element.__dict__.get("_tpsa_descriptor")
+    if descriptor is None:
+        raise RuntimeError(
+            f"{element.__class__.__name__} is TPSA-enabled but has no descriptor"
+        )
+    return descriptor
+
+
+def _set_tpsa_handle(element, name, value):
+    descriptor = element.__dict__.get("_tpsa_descriptor")
+    if descriptor is None:
+        element.__dict__["_tpsa_descriptor"] = value.descriptor
+    elif descriptor is not value.descriptor:
+        raise ValueError("All TPSA fields on an element need to use the same descriptor")
+    _get_tpsa_handles(element)[name] = value
 
 def _handle_per_particle_blocks(sources):
 
@@ -64,9 +228,11 @@ def _handle_per_particle_blocks(sources):
             lines = strss.splitlines()
             for ill, ll in enumerate(lines):
                 if '//start_per_particle_block' in ll:
-                    lines[ill] = start_per_part_block
+                    indent = ll[:len(ll) - len(ll.lstrip())]
+                    lines[ill] = f"{indent}START_PER_PARTICLE_BLOCK(part0, part);"
                 if '//end_per_particle_block' in ll:
-                    lines[ill] = end_part_part_block
+                    indent = ll[:len(ll) - len(ll.lstrip())]
+                    lines[ill] = f"{indent}END_PER_PARTICLE_BLOCK;"
 
             # TODO: this is very dirty, just for check!!!!!
             out.append('\n'.join(lines))
@@ -127,92 +293,56 @@ def _generate_track_local_particle_with_transformations(
     return '\n'.join(source_lines)
 
 
-def _generate_per_particle_kernel_from_local_particle_function(
-                                                element_name, kernel_name,
-                                                local_particle_function_name,
-                                                additional_args=[]):
+def _generate_per_particle_kernel_source(
+        element_name, kernel_name, local_particle_function_name, additional_args=None):
 
-    if len(additional_args) > 0:
-        add_to_signature = ", ".join([
-            f"{' /*gpuglmem*/ ' if arg.pointer else ''} {arg.get_c_type()} {arg.name}"
-                for arg in additional_args]) + ", "
-        add_to_call = ", " + ", ".join(f"{arg.name}" for arg in additional_args)
+    if additional_args is None:
+        additional_args = []
 
-    source = ('''
-            /*gpukern*/
-            '''
-            f'void {kernel_name}(\n'
-            f'               {element_name}Data el,\n'
+    argument_declarations = ", ".join(
+        f"{' GPUGLMEM' if arg.pointer else ''} {arg.get_c_type()} {arg.name}"
+        for arg in additional_args
+    )
+    if argument_declarations:
+        argument_declarations = ", " + argument_declarations
+
+    argument_values = ", ".join(arg.name for arg in additional_args)
+    if argument_values:
+        argument_values = ", " + argument_values
+
+    return f'''\
+#define ELEMENT_NAME {element_name}
+#define KERNEL_NAME {kernel_name}
+#define LOCAL_PARTICLE_FUNCTION {local_particle_function_name}
+#define KERNEL_EXTRA_ARGUMENTS {argument_declarations}
+#define KERNEL_EXTRA_ARGUMENT_VALUES {argument_values}
+
+#include "xtrack/headers/per_particle_kernel.h"
+
+#undef KERNEL_EXTRA_ARGUMENT_VALUES
+#undef KERNEL_EXTRA_ARGUMENTS
+#undef LOCAL_PARTICLE_FUNCTION
+#undef KERNEL_NAME
+#undef ELEMENT_NAME
 '''
-                             ParticlesData particles,
+
+
+def _generate_beam_element_track_kernel_source(
+        element_name, scalar_kernel_name, tpsa_kernel_name):
+    return f'''\
+#define ELEMENT_NAME {element_name}
+
+#ifndef XTRACK_TPSA_TRACK
+    #define KERNEL_NAME {scalar_kernel_name}
+    #include "xtrack/headers/beam_element_track.h"
+#else
+    #define KERNEL_NAME {tpsa_kernel_name}
+    #include "xtrack/tpsa/headers/beam_element_track.h"
+#endif
+
+#undef KERNEL_NAME
+#undef ELEMENT_NAME
 '''
-            f'{(add_to_signature if len(additional_args) > 0 else "")}'
-'''
-                             int64_t flag_increment_at_element,
-                /*gpuglmem*/ int8_t* io_buffer){
-
-            #define CONTEXT_OPENMP  //only_for_context cpu_openmp
-            #ifdef CONTEXT_OPENMP
-                const int64_t capacity = ParticlesData_get__capacity(particles);
-                const int num_threads = omp_get_max_threads();
-
-                #ifndef XT_OMP_SKIP_REORGANIZE
-                    const int64_t num_particles_to_track = ParticlesData_get__num_active_particles(particles);
-
-                    {
-                        LocalParticle lpart;
-                        lpart.io_buffer = io_buffer;
-                        Particles_to_LocalParticle(particles, &lpart, 0, capacity);
-                        check_is_active(&lpart);
-                        count_reorganized_particles(&lpart);
-                        LocalParticle_to_Particles(&lpart, particles, 0, capacity);
-                    }
-                #else // When we skip reorganize, we cannot just batch active particles
-                    const int64_t num_particles_to_track = capacity;
-                #endif
-
-                const int64_t chunk_size = (num_particles_to_track + num_threads - 1)/num_threads; // ceil division
-            #endif // CONTEXT_OPENMP
-
-            #pragma omp parallel for                                                           //only_for_context cpu_openmp
-            for (int64_t batch_id = 0; batch_id < num_threads; batch_id++) {                   //only_for_context cpu_openmp
-                LocalParticle lpart;
-                lpart.io_buffer = io_buffer;
-                lpart.track_flags = 0;
-                int64_t part_id = batch_id * chunk_size;                                       //only_for_context cpu_openmp
-                int64_t end_id = (batch_id + 1) * chunk_size;                                  //only_for_context cpu_openmp
-                if (end_id > num_particles_to_track) end_id = num_particles_to_track;          //only_for_context cpu_openmp
-
-                int64_t part_id = 0;                    //only_for_context cpu_serial
-                int64_t part_id = blockDim.x * blockIdx.x + threadIdx.x; //only_for_context cuda
-                int64_t part_id = get_global_id(0);                    //only_for_context opencl
-                int64_t end_id = 0; // unused outside of openmp  //only_for_context cpu_serial cuda opencl
-
-                int64_t part_capacity = ParticlesData_get__capacity(particles);
-                if (part_id<part_capacity){
-                    Particles_to_LocalParticle(particles, &lpart, part_id, end_id);
-                    if (check_is_active(&lpart)>0){
-    '''
-            f'          {local_particle_function_name}(el, &lpart{(add_to_call if len(additional_args) > 0 else "")});\n'
-    '''
-                    }
-                    if (check_is_active(&lpart)>0 && flag_increment_at_element){
-                            increment_at_element(&lpart, 1);
-                    }
-                }
-            } //only_for_context cpu_openmp
-
-            // On OpenMP we want to additionally by default reorganize all
-            // the particles.
-            #ifndef XT_OMP_SKIP_REORGANIZE                             //only_for_context cpu_openmp
-            LocalParticle lpart;                                       //only_for_context cpu_openmp
-            lpart.io_buffer = io_buffer;                               //only_for_context cpu_openmp
-            Particles_to_LocalParticle(particles, &lpart, 0, capacity);//only_for_context cpu_openmp
-            check_is_active(&lpart);                                   //only_for_context cpu_openmp
-            #endif                                                     //only_for_context cpu_openmp
-        }
-''')
-    return source
 
 
 def _tranformations_active(beam_element):
@@ -241,15 +371,15 @@ class MetaBeamElement(xo.MetaHybridClass):
                     continue
                 data[kk] = vv
 
-        # If inheriting _extra_c_sources, remove get_record function
+        # Generated record getters are specific to the owning element class. Do not inherit them.
         if '_extra_c_sources' in data:
-            ii_remove = None
-            for ii, ss in enumerate(data['_extra_c_sources']):
-                if isinstance(ss, str) and '/*---GENERATED GET RECORD FUNCTION---*/' in ss:
-                   ii_remove = ii
-                   break
-            if ii_remove is not None:
-                data['_extra_c_sources'].pop(ii_remove)
+            data['_extra_c_sources'] = [
+                source for source in data['_extra_c_sources']
+                if not (
+                    isinstance(source, Source)
+                    and source.name == _INTERNAL_RECORD_GETTER_SOURCE_NAME
+                )
+            ]
 
         data.update(data_in)
 
@@ -283,6 +413,10 @@ class MetaBeamElement(xo.MetaHybridClass):
 
         data = data.copy()
         data['_xofields'] = xofields
+        data['_float_or_tpsa_fields'] = tuple(
+            nn for nn, tt in xofields.items()
+            if getattr(tt, '_is_float_or_tpsa', False)
+        )
 
         depends_on = []
         extra_c_source = [
@@ -305,8 +439,14 @@ class MetaBeamElement(xo.MetaHybridClass):
             depends_on.append(RecordIndex)
             depends_on.append(data['_internal_record_class']._XoStruct)
             extra_c_source.append(
-                generate_get_record(ele_classname=_XoStruct_name,
-                    record_classname=data['_internal_record_class']._XoStruct.__name__))
+                Source(
+                    generate_get_record(
+                        ele_classname=_XoStruct_name,
+                        record_classname=data['_internal_record_class']._XoStruct.__name__,
+                    ),
+                    name=_INTERNAL_RECORD_GETTER_SOURCE_NAME,
+                )
+            )
 
         # Get user-defined source, dependencies and kernels
         if '_extra_c_sources' in data.keys():
@@ -322,6 +462,7 @@ class MetaBeamElement(xo.MetaHybridClass):
         depends_on.append(Particles._XoStruct)
 
         track_kernel_name = None
+        track_kernel_name_tpsa = None
         if ('allow_track' not in data.keys() or data['allow_track']):
             extra_c_source.append(
                 _generate_track_local_particle_with_transformations(
@@ -335,14 +476,17 @@ class MetaBeamElement(xo.MetaHybridClass):
                 )
             )
 
-            # Generate track kernel
-            extra_c_source.append(
-                _generate_per_particle_kernel_from_local_particle_function(
-                    element_name=name, kernel_name=name+'_track_particles',
-                    local_particle_function_name=name+'_track_local_particle_with_transformations'))
-
-            # Define track kernel
             track_kernel_name = f'{name}_track_particles'
+            track_kernel_name_tpsa = f'{name}_track_tpsa_particles'
+            extra_c_source.append(
+                _generate_beam_element_track_kernel_source(
+                    element_name=name,
+                    scalar_kernel_name=track_kernel_name,
+                    tpsa_kernel_name=track_kernel_name_tpsa,
+                )
+            )
+
+            # Define scalar track kernel.
             kernels[track_kernel_name] = xo.Kernel(
                 c_name=track_kernel_name,
                 args=[xo.Arg(xo.ThisClass, name='el'),
@@ -355,7 +499,7 @@ class MetaBeamElement(xo.MetaHybridClass):
         if '_per_particle_kernels' in data.keys():
             for nn, kk in data['_per_particle_kernels'].items():
                 extra_c_source.append(
-                    _generate_per_particle_kernel_from_local_particle_function(
+                    _generate_per_particle_kernel_source(
                         element_name=name, kernel_name=nn,
                         local_particle_function_name=kk.c_name,
                         additional_args=kk.args))
@@ -383,9 +527,20 @@ class MetaBeamElement(xo.MetaHybridClass):
 
         # Attach some information to the class
         new_class._track_kernel_name = track_kernel_name
+        new_class._track_kernel_name_tpsa = track_kernel_name_tpsa
         if '_internal_record_class' in data.keys():
             new_class._XoStruct._internal_record_class = data['_internal_record_class']
             new_class._internal_record_class = data['_internal_record_class']
+
+        float_or_tpsa_accessors = _generate_float_or_tpsa_accessors(new_class._XoStruct)
+        if float_or_tpsa_accessors is not None:
+            new_class._XoStruct._extra_c_sources.insert(0, float_or_tpsa_accessors)
+
+        for ff in new_class._XoStruct._fields:
+            if ff.ftype is FloatOrTpsa:
+                pyname = new_class._rename.get(ff.name, ff.name)
+                setattr(new_class, pyname, _FieldOfBeamElement(
+                    ff.name, ff, new_class.__dict__[pyname]))
 
         # Attach methods corresponding to per-particle kernels
         if '_per_particle_kernels' in data.keys():
@@ -420,6 +575,56 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
 
     def __init__(self, *args, **kwargs):
         xo.HybridClass.__init__(self, *args, **kwargs)
+        if getattr(self, "_float_or_tpsa_fields", ()):
+            self.__dict__.setdefault("_tpsa_handles", {})
+            self.__dict__.setdefault("_tpsa_descriptor", None)
+
+    def _field_raw_bits(self, name):
+        xo_obj = self._xobject
+        offset = xo_obj._get_offset(name)
+        data = xo_obj._buffer.to_bytearray(offset, 8)
+        return int(np.frombuffer(data, dtype=np.uint64)[0])
+
+    def _field_raw_float(self, name):
+        return float(_uint64_bits_to_float(self._field_raw_bits(name)))
+
+    def _set_float_or_tpsa_field(self, name, value):
+        getattr(type(self), name).__set__(self, value)
+
+    def enable_tpsa(self, descriptor_or_proto):
+        if not isinstance(self._buffer.context, xo.ContextCpu):
+            raise NotImplementedError(
+                "TPSA-enabled beam elements are only supported on CPU contexts")
+        if isinstance(descriptor_or_proto, Tpsa):
+            descriptor = descriptor_or_proto.descriptor
+        else:
+            descriptor = descriptor_or_proto
+        self.__dict__["_tpsa_descriptor"] = descriptor
+        handles = {}
+        for name in self._float_or_tpsa_fields:
+            if self._xobject._tpsa_enabled:
+                value = getattr(self, name)
+            else:
+                value = descriptor.constant(self._field_raw_float(name))
+            handles[name] = value
+            setattr(self._xobject, name, value)
+        self.__dict__["_tpsa_handles"] = handles
+        self._xobject._tpsa_enabled = 1
+
+    def disable_tpsa(self):
+        if not getattr(self._xobject, "_tpsa_enabled", 0):
+            return
+        handles = _get_tpsa_handles(self)
+        for name in self._float_or_tpsa_fields:
+            value = handles.get(name)
+            if value is None:
+                value = self._field_raw_float(name)
+            else:
+                value = value.const_part
+            setattr(self._xobject, name, float(value))
+        self._xobject._tpsa_enabled = 0
+        self.__dict__["_tpsa_handles"] = {}
+        self.__dict__["_tpsa_descriptor"] = None
 
     @property
     def isthick(self):
@@ -452,12 +657,74 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
             **kwargs,
         )
 
+    def compile_tpsa_kernels(self, only_if_needed=True):
+        from madng_tpsa.paths import core_library
+        from xtrack.tpsa.particles import TpsaParticleData
+
+        context = self._buffer.context
+        kernel_name = self._track_kernel_name_tpsa
+        if only_if_needed and kernel_name in context.kernels:
+            return
+
+        kernel = xo.Kernel(
+            c_name=kernel_name,
+            args=[
+                xo.Arg(self.__class__._XoStruct, name='el'),
+                xo.Arg(TpsaParticleData, name='particles'),
+                xo.Arg(xo.Int64, name='flag_increment_at_element'),
+                xo.Arg(xo.Int8, pointer=True, name="io_buffer"),
+            ],
+        )
+        kernels = context.build_kernels(
+            sources=[],
+            kernel_descriptions={kernel_name: kernel},
+            extra_classes=[self.__class__._XoStruct, TpsaParticleData],
+            extra_headers=[
+                "#define XTRACK_TPSA_TRACK",
+                "#define restrict __restrict",
+            ],
+            apply_to_source=[_handle_per_particle_blocks],
+            extra_compile_args=("-include", "complex"),
+            preload_libraries=(core_library(),),
+            compiler_language="c++",
+        )
+        context.kernels.update(kernels)
+
     def track(self, particles=None, increment_at_element=False):
         if not self.allow_track:
             raise RuntimeError(f"BeamElement {self.__class__.__name__} "
                              + f"has no valid track method.")
         elif particles is None:
             raise RuntimeError("Please provide particles to track!")
+
+        if not isinstance(particles, xt.Particles):
+            from xtrack.tpsa import ParticlesTpsa
+            if not isinstance(particles, ParticlesTpsa):
+                raise TypeError(f"Cannot track particles of type {type(particles)}")
+            context = self._buffer.context
+            if self._track_kernel_name_tpsa not in context.kernels:
+                self.compile_tpsa_kernels()
+            _track_kernel = context.kernels[self._track_kernel_name_tpsa]
+
+            if hasattr(self, 'io_buffer') and self.io_buffer is not None:
+                io_buffer_arr = self.io_buffer.buffer
+            else:
+                io_buffer_arr = context.zeros(1, dtype=np.int8)  # dummy
+
+            _track_kernel.description.n_threads = 1
+            _track_kernel(el=self._xobject, particles=particles._xobject,
+                          flag_increment_at_element=increment_at_element,
+                          io_buffer=io_buffer_arr)
+            if particles._xobject.state <= 0:
+                raise RuntimeError(
+                    f"TPSA map lost while tracking {self.__class__.__name__}")
+            return None
+
+        if getattr(self, "_tpsa_enabled", 0):
+            raise RuntimeError(
+                "Cannot track normal Particles through a TPSA-enabled "
+                f"{self.__class__.__name__}. Disable TPSA on the element first."
+            )
 
         if self.needs_rng and not particles._has_valid_rng_state():
             particles._init_random_number_generator()
@@ -555,6 +822,9 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
             self.rot_s_rad_no_frame = rot_s_rad_no_frame
 
     def to_dict(self, **kwargs):
+        if getattr(self._xobject, "_tpsa_enabled", 0):
+            raise NotImplementedError(
+                "Serializing TPSA-enabled beam elements is not supported")
         dct = xo.HybridClass.to_dict(self, **kwargs)
         if self.name_associated_aperture is not None:
             dct['name_associated_aperture'] = self.name_associated_aperture
@@ -730,4 +1000,3 @@ class PyMethodDescriptor:
         return PyMethod(kernel_name=self.kernel_name,
                         element=instance,
                         additional_arg_names=self.additional_arg_names)
-

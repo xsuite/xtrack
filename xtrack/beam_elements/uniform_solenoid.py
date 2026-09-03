@@ -3,7 +3,7 @@
 # Copyright (c) CERN, 2025.                 #
 # ######################################### #
 
-from ..base_element import BeamElement
+from ..base_element import BeamElement, FloatOrTpsa
 import xobjects as xo
 import xtrack as xt
 from ..random import (
@@ -50,7 +50,7 @@ class UniformSolenoid(_HasKnlKsl, _HasIntegrator, BeamElement):
     allow_loss_refinement = True
 
     _xofields={
-        'ks': xo.Float64,
+        'ks': FloatOrTpsa,
         'length': xo.Float64,
         'x0': xo.Float64,
         'y0': xo.Float64,
@@ -64,9 +64,11 @@ class UniformSolenoid(_HasKnlKsl, _HasIntegrator, BeamElement):
         'integrator': xo.Int64,
         'radiation_flag': xo.Int64,
         'delta_taper': xo.Float64,
+        '_tpsa_enabled': xo.Field(xo.Int8, default=0),
     }
 
-    _skip_in_to_dict = ['_order', 'inv_factorial_order']  # defined by knl, etc.
+    _skip_in_to_dict = [
+        '_order', 'inv_factorial_order', '_tpsa_enabled']  # defined by knl, etc.
 
     _rename = {
         'order': '_order',

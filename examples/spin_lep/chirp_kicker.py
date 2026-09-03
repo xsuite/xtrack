@@ -2,7 +2,7 @@ import xobjects as xo
 import xtrack as xt
 
 from xtrack.random import RandomUniformAccurate, RandomExponential
-from xtrack.beam_elements.elements import SynchrotronRadiationRecord
+from xtrack.beam_elements import SynchrotronRadiationRecord
 
 class VerticalChirpKicker(xt.BeamElement):
 

@@ -47,21 +47,28 @@ void track_rf_kick_single_particle(
         frequency += (harmonic / t_rev0);
     }
 
+#ifndef XTRACK_TPSA_TRACK
+    // t_sim / at_turn are turn-bookkeeping vars, excluded from non-scalar tracking
+    // Absolute-time cavities are native-only.
     if (absolute_time == 1) {
         double const t_sim = LocalParticle_get_t_sim(part);
         int64_t const at_turn = LocalParticle_get_at_turn(part);
         phase0 += 2 * PI * at_turn * frequency * t_sim;
     }
+#endif
 
-    double const zeta  = LocalParticle_get_zeta(part);
+    xt_num_t const zeta  = LocalParticle_get_zeta(part);
     double const q = fabs(LocalParticle_get_q0(part)) * LocalParticle_get_charge_ratio(part);
-    double const tau = zeta / beta0;
+    xt_num_t const tau = zeta / beta0;
 
-    double const energy_kick = q * voltage
+    xt_num_t const energy_kick = q * voltage
         * sin(phase0 + DEG2RAD * lag + phase
               - (2.0 * PI) / C_LIGHT * frequency * tau);
 
     double rfmultipole_energy_kick = 0;
+#ifndef XTRACK_TPSA_TRACK
+    // rfmultipole kick reads x,y as doubles; only RFMultipole/CrabCavity use order>=0.
+    // A plain Cavity passes order=-1 (inactive), so the TPSA flavor omits this block.
     if (order >= 0) {
 
         double dpx = 0.0;
@@ -154,6 +161,7 @@ void track_rf_kick_single_particle(
         LocalParticle_add_to_py(part, py_kick);
 
     }
+#endif  // XTRACK_TPSA_TRACK (rfmultipole + transverse-kick blocks)
 
 
     if (!kill_energy_kick) {
@@ -215,7 +223,7 @@ void track_rf_body_single_particle(
             code;\
         }
 
-    
+
     // START GENERATED INTEGRATION CODE
 
     if (integrator == 1){ // TEAPOT
@@ -356,7 +364,7 @@ void track_rf_particles(
     double body_length;
     double factor_knl_ksl_body;
 
-    #ifndef XTRACK_MULTIPOLE_NO_SYNRAD
+    #if !defined(XTRACK_TPSA_TRACK) && !defined(XTRACK_MULTIPOLE_NO_SYNRAD)
         lag += lag_taper;
         phase += phase_taper;
     #endif
@@ -395,9 +403,11 @@ void track_rf_particles(
             num_kicks = 1;
         }
 
-        double k0_drift, k1_drift, h_drift, ks_drift;
-        double k0_kick, k1_kick, h_kick;
-        double k0_h_correction, k1_h_correction;
+        xt_num_t k0_drift=0., k1_drift=0., ks_drift=0.;
+        double h_drift;
+        xt_num_t k0_kick=0., k1_kick=0.;
+        double h_kick;
+        xt_num_t k0_h_correction=0., k1_h_correction=0.;
         int8_t kick_rot_frame;
         int8_t drift_model;
         configure_tracking_model(

@@ -198,7 +198,6 @@ def stop_internal_logging_for_elements_of_type(tracker, element_type):
 
 def generate_get_record(ele_classname, record_classname):
     content = '''
-/*---GENERATED GET RECORD FUNCTION---*/
 #include "xtrack/headers/track.h"
 
 GPUFUN

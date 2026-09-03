@@ -77,7 +77,6 @@ class TrackerData:
             _context=None,
             _buffer=None,
             _offset=None,
-            _no_resolve_parents=False,
     ):
         """
         Create an immutable line suitable for serialisation.
@@ -129,12 +128,12 @@ class TrackerData:
         elif _context is not None and _buffer.context is not _context:
             raise ValueError('The given context and buffer are not compatible.')
 
-        check_passed = self.check_elements_in_common_buffer(_buffer, allow_move=allow_move)
-        if not check_passed:
+        ensure_passed = self.ensure_elements_in_common_buffer(
+            _buffer, allow_move=allow_move)
+        if not ensure_passed:
             raise RuntimeError('The elements are not in the same buffer')
 
-        line_element_classes = _expand_element_classes_with_slice_classes(
-            self._elements)
+        line_element_classes = _expand_element_classes_with_slice_classes(self._elements)
 
         self.line_element_classes = line_element_classes
         self.element_s_locations = tuple(element_s_locations)
@@ -157,19 +156,16 @@ class TrackerData:
                                             kernel_element_classes)
         self._element_ref_data = self.build_ref_data(_buffer, ElementRefDataClass)
 
-        # Resolve slice parents
         for nn in element_names:
-            if _no_resolve_parents:
-                break
-            if hasattr(self._element_dict[nn], '_parent'):
-                this_parent = self._element_dict[
-                    self._element_dict[nn].parent_name]
-                this_parent._movable = True # Force movable
-                if this_parent._buffer is not self._element_dict[nn]._buffer:
-                    this_parent.move(_buffer=self._element_dict[nn]._buffer)
-                self._element_dict[nn]._parent = this_parent
-                this_parent._movable = True
-                assert self._element_dict[nn]._parent._offset == self._element_dict[nn]._xobject._parent._offset
+            if not hasattr(self._element_dict[nn], '_parent'):
+                continue
+            this_parent = self._element_dict[self._element_dict[nn].parent_name]
+            this_parent._movable = True # Force movable
+            if this_parent._buffer is not self._element_dict[nn]._buffer:
+                this_parent.move(_buffer=self._element_dict[nn]._buffer)
+            self._element_dict[nn]._parent = this_parent
+            this_parent._movable = True
+            assert self._element_dict[nn]._parent._offset == self._element_dict[nn]._xobject._parent._offset
 
     def __del__(self):
         # Free the element ref data
@@ -218,10 +214,11 @@ class TrackerData:
         raise NotImplementedError('This method is not supported anymore')
 
 
-    def check_elements_in_common_buffer(self, buffer, allow_move=False):
-        """
-        Move all the elements to the common buffer, if they are not already
-        there.
+    def ensure_elements_in_common_buffer(self, buffer, allow_move=False):
+        """Ensure all elements are in the requested common buffer.
+
+        If ``allow_move`` is true, elements not already in ``buffer`` are moved
+        there. Returns true if all elements are in ``buffer`` after this step.
         """
         for nn, ee in self._element_dict.items():
             if not hasattr(ee, '_buffer'):

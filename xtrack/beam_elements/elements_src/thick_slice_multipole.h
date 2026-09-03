@@ -18,7 +18,6 @@
 GPUFUN
 void ThickSliceMultipole_track_local_particle(ThickSliceMultipoleData el, LocalParticle* part0){
 
-
     track_magnet_particles(
         /*weight*/                ThickSliceMultipoleData_get_weight(el),
         /*part0*/                 part0,

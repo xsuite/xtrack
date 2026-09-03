@@ -1704,6 +1704,8 @@ class Line:
 
     @config.setter
     def config(self, value):
+        if not isinstance(value, xt.tracker.TrackerConfig):
+            value = xt.tracker.TrackerConfig(value)
         self._config = value
 
     @property_with_doc_group("Inspection, Variables and Configuration")
@@ -1758,6 +1760,14 @@ class Line:
             self.tracker._tracker_data_base.cache['attr'] = self._get_attr_cache()
 
         return self.tracker._tracker_data_base.cache['attr']
+
+    @doc_group("Cleanup and Simplification")
+    def disable_tpsa_elements(self):
+        """Convert all TPSA-enabled elements in the line back to scalar storage."""
+        tpsa_enabled = self.attr['_tpsa_enabled']
+        for element_name, enabled in zip(self.element_names, tpsa_enabled):
+            if enabled:
+                self[element_name].disable_tpsa()
 
     @doc_group("Reference Particle and Particle Generation")
     def set_particle_ref(self, *args, **kwargs):
@@ -1908,6 +1918,7 @@ class Line:
         num_turns=None,    # defaults to 1
         turn_by_turn_monitor=None,
         multi_element_monitor_at=None,
+        monitor_monomials=None,
         freeze_longitudinal=False,
         time=False,
         with_progress=False,
@@ -1918,7 +1929,7 @@ class Line:
 
         Parameters
         ----------
-        particles: xpart.Particles
+        particles: xpart.Particles or xtrack.tpsa.ParticlesTpsa
             The particles to track
         ele_start: int or str, optional
             The element to start tracking from (inclusive). If an integer is
@@ -1945,8 +1956,15 @@ class Line:
             The recorded data can be retrieved in `line.record_last_track`.
         multi_element_monitor_at: list of str, optional
             If provided, a multi-element monitor is created and coordinates of the
-            trcked particles are recorded at the elements whose names are in the list.
+            tracked particles are recorded at the elements whose names are in the list.
             The recorded data can be retrieved in `line.record_multi_element_last_track`.
+        monitor_monomials: list, array or dict, optional
+            TPSA tracking only. Record the given map coefficients at the multi-element
+            monitor locations instead of the full maps. A monomial is the per-variable
+            orders, of length 6 plus the number of descriptor parameters. Give a list
+            of monomials or a 2D array with one per row, recorded for all six output
+            coordinates, or a mapping `{coord: monomial}` / `{coord: monomials}`.
+            Retrieved with `line.record_multi_element_last_track.coefficient(...)`.
         freeze_longitudinal: bool, optional
             If True, the longitudinal coordinates are frozen during tracking.
         time: bool, optional
@@ -1959,8 +1977,30 @@ class Line:
             equals to False and no progress bar is displayed.
         """
 
+        if not isinstance(particles, xt.Particles):
+            from xtrack.tpsa import ParticlesTpsa
+            if not isinstance(particles, ParticlesTpsa):
+                raise TypeError(f"Cannot track particles of type {type(particles)}")
+            if not self._has_valid_tracker():
+                self.build_tracker()
+            self.tracker.config.XTRACK_TPSA_TRACK = True
+            return self.tracker._track(
+                particles,
+                ele_start=ele_start,
+                ele_stop=ele_stop,
+                num_elements=num_elements,
+                num_turns=num_turns,
+                turn_by_turn_monitor=turn_by_turn_monitor,
+                freeze_longitudinal=freeze_longitudinal,
+                time=time,
+                with_progress=with_progress,
+                multi_element_monitor_at=multi_element_monitor_at,
+                monitor_monomials=monitor_monomials,
+                **kwargs)
+
         if not self._has_valid_tracker():
             self.build_tracker()
+        self.tracker.config.XTRACK_TPSA_TRACK = False
 
         if hasattr(particles, '_needs_pipeline') and particles._needs_pipeline:
             if '_called_by_pipeline' not in kwargs or not kwargs['_called_by_pipeline']:
@@ -1990,6 +2030,7 @@ class Line:
             time=time,
             with_progress=with_progress,
             multi_element_monitor_at=multi_element_monitor_at,
+            monitor_monomials=monitor_monomials,
             **kwargs)
 
     @doc_group("Tracking and Analysis")
@@ -7221,6 +7262,7 @@ class Line:
                 '_own_harmonic': AttrDefinition(name='harmonic'),
 
                 '_own_radiation_flag': AttrDefinition(name='radiation_flag', dtype=np.int64),
+                '_tpsa_enabled': AttrDefinition(name='_tpsa_enabled', dtype=np.int8),
 
                 '_own_ks': AttrDefinition(name='ks'),
                 '_own_ks_profile_0': AttrDefinition(name='ks_profile', index=0),
