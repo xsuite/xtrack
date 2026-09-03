@@ -619,8 +619,11 @@ class TargetRmatrixTerm(Target):
             'Only terms of the R-matrix in the form "r11", "r12", "r21", "r22", etc'
             ' are supported')
 
-        if hasattr(tw._data, 'attrs') and self.tag in tw._data.attrs:
-            return tw._data.attrs[self.tag]
+        # rtag identifies both the range and the term; it is set by OptimizeLine
+        # and is the key under which the MAD-NG interface stores the value
+        rmat_key = getattr(self, 'rtag', None) or self.tag
+        if hasattr(tw._data, 'attrs') and rmat_key in tw._data.attrs:
+            return tw._data.attrs[rmat_key]
 
         if self.start is xt.START:
             self.start = tw.name[0]
