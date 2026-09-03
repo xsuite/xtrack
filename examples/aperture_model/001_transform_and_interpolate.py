@@ -80,7 +80,7 @@ def matrix_from_survey_point(sv_row):
     matrix = np.identity(4)
     matrix[:3, 0] = sv_row.ex
     matrix[:3, 1] = sv_row.ey
-    matrix[:3, 2] = sv_row.ez
+    matrix[:3, 2] = sv_row.es
     matrix[:3, 3] = np.hstack([sv_row.X, sv_row.Y, sv_row.Z])
     return matrix
 
@@ -132,7 +132,7 @@ def poses_at_s(line, s_positions):
         row = survey_sliced.rows[sv_idx]
         poses[idx, :3, 0] = row.ex
         poses[idx, :3, 1] = row.ey
-        poses[idx, :3, 2] = row.ez
+        poses[idx, :3, 2] = row.es
         poses[idx, :, 3] = np.hstack([row.X, row.Y, row.Z, 1])
 
     return poses

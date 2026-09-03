@@ -62,6 +62,10 @@ def test_survey_include_element_frames(angle, sliced):
     optional_columns = frame_columns + coordinate_columns
 
     sv_default = line.survey()
+    assert 'es' in sv_default._col_names
+    assert 'ez' not in sv_default._col_names
+    xo.assert_allclose(
+        sv_default.es, sv_default.E_matrix[:, :, 2], atol=0, rtol=0)
     for column in optional_columns:
         assert column not in sv_default._col_names
 
@@ -491,7 +495,7 @@ def test_survey_with_ref_transformations():
 
     cols_to_check = [
         'X', 'Y', 'Z', 'theta', 'phi', 'psi', 's', 'drift_length',
-        'ex', 'ey', 'ez', 'XYZ',
+        'ex', 'ey', 'es', 'XYZ',
     ]
 
     assert sv_mid_with_init.element0 == 13
@@ -623,7 +627,7 @@ def test_survey_with_h_and_v_bends():
 
     cols_to_check = [
         'X', 'Y', 'Z', 'theta', 'phi', 'psi', 's', 'drift_length',
-        'ex', 'ey', 'ez', 'XYZ',
+        'ex', 'ey', 'es', 'XYZ',
     ]
 
     assert sv_mid_with_init.element0 == 13
