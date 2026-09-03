@@ -51,13 +51,38 @@ def _angles_from_E_matrix(E_matrix):
 class Frame:
     """Mutable local reference frame used by survey propagation.
 
-    The homogeneous 4 x 4 matrix maps local ``(x, y, s, 1)`` coordinates to
-    global ``(X, Y, Z, 1)`` coordinates. Transformations are applied in the
-    local frame and mutate this object in place.
+    The frame is represented by a homogeneous transformation matrix mapping
+    local ``(x, y, s, 1)`` coordinates to global ``(X, Y, Z, 1)``
+    coordinates. Transformations are applied in the local frame and mutate
+    the object in place.
+
+    Parameters
+    ----------
+    matrix : array-like of float, shape (4, 4), optional
+        Homogeneous local-to-global transformation matrix. A copy is stored.
+        If omitted, the identity frame is created.
+
+    Notes
+    -----
+    Translation, rotation, and arc methods return ``self``, so they can be
+    chained. Frame composition with ``@`` and :meth:`inverse` return new
+    frames without modifying their operands.
 
     Custom beam elements can participate in survey propagation by exposing a
     ``track_frame(frame, backtrack=False)`` method and applying their geometry
     through the transformation methods of the supplied frame.
+
+    Examples
+    --------
+    Create an identity frame, advance it by two metres, and rotate it about
+    its local vertical axis:
+
+    .. code-block:: python
+
+        import xtrack as xt
+
+        frame = xt.Frame()
+        frame.translate_s(2.0).rotate_y(0.1)
     """
 
     def __init__(self, matrix=None):
