@@ -27,6 +27,7 @@ void Translation_track_local_particle(TranslationData el, LocalParticle* part0){
         XYShift_single_particle(part, shift_x, shift_y);
         if (shift_s != 0.0) {
             Drift_single_particle_exact(part, shift_s);
+            LocalParticle_add_to_zeta(part, -shift_s);
             LocalParticle_add_to_s(part, -shift_s);
         }
     END_PER_PARTICLE_BLOCK;

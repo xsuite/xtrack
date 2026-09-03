@@ -314,6 +314,7 @@ class Translation(Element):
         p.y -= self.shift_y
         if self.shift_s != 0:
             DriftExact(length=self.shift_s).track(p)
+            p.zeta -= self.shift_s
             p.s -= self.shift_s
 
 class Elens(Element):

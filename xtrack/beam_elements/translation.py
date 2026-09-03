@@ -15,7 +15,9 @@ class Translation(BeamElement):
         y_new = y_old - shift_y
 
     A longitudinal shift ``shift_s`` is tracked as an exact drift of length
-    ``shift_s`` without advancing the particle's ``s`` coordinate.
+    ``shift_s``, compensating its advances in ``s`` and ``zeta`` so that the
+    longitudinal coordinates remain consistent with ``zeta = s - beta0*c*t``
+    while ``s`` stays unchanged.
 
     Parameters
     ----------

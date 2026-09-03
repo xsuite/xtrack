@@ -413,6 +413,7 @@ def test_translation_shift_s_is_exact_drift_without_s_advance(test_context):
     xt.DriftExact(length=shift_s, _context=test_context).track(expected)
     expected.x -= shift_x
     expected.y -= shift_y
+    expected.zeta -= shift_s
     expected.s -= shift_s
 
     line = xt.Line(elements=[xt.Translation(
