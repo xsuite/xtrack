@@ -2738,7 +2738,7 @@ class Line:
 
     @doc_group("Tracking and Analysis")
     def survey(self,X0=0,Y0=0,Z0=0,theta0=0, phi0=0, psi0=0,
-               element0=0, reverse=None):
+               element0=0, reverse=None, include_element_frames=False):
 
         """
         Compute the geometrical layout, i.e. the coordinates of all beam line
@@ -2764,6 +2764,9 @@ class Line:
         element0 : int or str
             Element at which the given coordinates are defined. Default is the
             first element in the beam line.
+        include_element_frames : bool
+            If True, include the aligned reference and physical element frames
+            at both ends of every element. Default is False.
 
         Returns
         -------
@@ -2791,6 +2794,13 @@ class Line:
         - ``drift_length``: length used while advancing the survey (zero for
           thin elements) [m].
         - ``length``: physical length of the element [m].
+
+        With ``include_element_frames=True``, the table also contains
+        ``XYZ_ref_start``, ``E_ref_start``, ``XYZ_ref_end``, ``E_ref_end``,
+        ``XYZ_elem_start``, ``E_elem_start``, ``XYZ_elem_end``, and
+        ``E_elem_end``. Each ``XYZ_*`` column is also exposed as three scalar
+        coordinate columns, for example ``X_elem_start``, ``Y_elem_start``,
+        and ``Z_elem_start``.
 
         Examples
         --------
@@ -2829,7 +2839,8 @@ class Line:
             self.build_tracker()
 
         return survey_from_line(self, X0=X0, Y0=Y0, Z0=Z0, theta0=theta0,
-                                   phi0=phi0, psi0=psi0, element0=element0)
+                                   phi0=phi0, psi0=psi0, element0=element0,
+                                   include_element_frames=include_element_frames)
 
     @doc_group("Matching and Corrections")
     def correct_trajectory(self, run=True, n_iter='auto', start=None, end=None,
@@ -7191,6 +7202,9 @@ class Line:
                 '_own_length': AttrDefinition(name='length'),
 
                 '_own_rot_s_rad': AttrDefinition(name='rot_s_rad'),
+                '_own_rot_x_rad': AttrDefinition(name='rot_x_rad'),
+                '_own_rot_y_rad': AttrDefinition(name='rot_y_rad'),
+                '_own_rot_s_rad_no_frame': AttrDefinition(name='rot_s_rad_no_frame'),
                 '_own_shift_x': AttrDefinition(name='shift_x'),
                 '_own_shift_y': AttrDefinition(name='shift_y'),
                 '_own_shift_s': AttrDefinition(name='shift_s'),
@@ -7261,6 +7275,9 @@ class Line:
 
                 '_parent_length': AttrDefinition(name=('_parent', 'length')),
                 '_parent_rot_s_rad': AttrDefinition(name=('_parent', 'rot_s_rad')),
+                '_parent_rot_x_rad': AttrDefinition(name=('_parent', 'rot_x_rad')),
+                '_parent_rot_y_rad': AttrDefinition(name=('_parent', 'rot_y_rad')),
+                '_parent_rot_s_rad_no_frame': AttrDefinition(name=('_parent', 'rot_s_rad_no_frame')),
                 '_parent_shift_x': AttrDefinition(name=('_parent', 'shift_x')),
                 '_parent_shift_y': AttrDefinition(name=('_parent', 'shift_y')),
                 '_parent_shift_s': AttrDefinition(name=('_parent', 'shift_s')),
@@ -7337,6 +7354,15 @@ class Line:
                 '_main_strength': _main_strength_from_attr,
                 'rot_s_rad': lambda attr:
                     attr['_own_rot_s_rad'] + attr['_parent_rot_s_rad']
+                    * attr._rot_and_shift_from_parent,
+                'rot_x_rad': lambda attr:
+                    attr['_own_rot_x_rad'] + attr['_parent_rot_x_rad']
+                    * attr._rot_and_shift_from_parent,
+                'rot_s_rad_no_frame': lambda attr:
+                    attr['_own_rot_s_rad_no_frame'] + attr['_parent_rot_s_rad_no_frame']
+                    * attr._rot_and_shift_from_parent,
+                'rot_y_rad': lambda attr:
+                    attr['_own_rot_y_rad'] + attr['_parent_rot_y_rad']
                     * attr._rot_and_shift_from_parent,
                 'shift_x': lambda attr:
                     attr['_own_shift_x'] + attr['_parent_shift_x']

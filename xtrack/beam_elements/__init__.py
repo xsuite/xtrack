@@ -12,7 +12,6 @@ from ..internal_record import RecordIndex
 import copy
 from scipy.special import factorial
 import numpy as np
-from ..survey import advance_element as survey_advance_element
 from warnings import warn
 import xobjects as xo
 import xtrack as xt

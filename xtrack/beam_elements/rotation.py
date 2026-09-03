@@ -3,7 +3,6 @@
 # Copyright (c) CERN, 2025.                 #
 # ######################################### #
 
-from ..survey import advance_element as survey_advance_element
 import xobjects as xo
 import xtrack as xt
 from ._common import (
@@ -86,34 +85,20 @@ class Rotation(xt.BeamElement):
         self._second_rot = _ROT_AX_TO_ID[value[1]]
         self._third_rot = _ROT_AX_TO_ID[value[2]]
 
-    def _propagate_survey(self, v, w, backtrack):
+    def track_frame(self, frame, backtrack=False):
 
         seq = self.seq
-        fback = 1
+        sign = 1
         if backtrack:
             seq = seq[::-1]  # reverse the sequence for backtracking
-            fback = -1
+            sign = -1
 
         for ax in seq:
             if ax == 'x':
-                rx, ry, rs = self.rot_x_rad, 0, 0
+                frame.rotate_x(sign * self.rot_x_rad)
             elif ax == 'y':
-                rx, ry, rs = 0, self.rot_y_rad, 0
+                frame.rotate_y(sign * self.rot_y_rad)
             elif ax == 's':
-                rx, ry, rs = 0, 0, self.rot_s_rad
+                frame.rotate_s(sign * self.rot_s_rad)
             else:
                 raise ValueError(f"Invalid rotation axis '{ax}' in sequence '{self.seq}'")
-
-            v, w = survey_advance_element(
-                        v               = v,
-                        w               = w,
-                        length          = 0,
-                        angle           = 0,
-                        tilt            = 0,
-                        ref_shift_x     = 0,
-                        ref_shift_y     = 0,
-                        ref_rot_x_rad   = fback * rx,
-                        ref_rot_y_rad   = -fback * ry,
-                        ref_rot_s_rad   = fback * rs,
-                    )
-        return v, w

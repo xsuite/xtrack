@@ -12,7 +12,6 @@ from .rbend import RBend
 from .sextupole import Sextupole
 from .solenoid import Solenoid
 from .uniform_solenoid import UniformSolenoid
-from ..survey import advance_element as survey_advance_element
 
 class _ThickSliceElementBase(_SliceBase):
 
@@ -37,7 +36,7 @@ class ThickSliceRBend(_ThickSliceElementBase, BeamElement):
         '#include "xtrack/beam_elements/elements_src/thick_slice_rbend.h"'
     ]
 
-    def _propagate_survey(self, v, w, backtrack):
+    def track_frame(self, frame, backtrack=False):
 
         if self._parent.rbend_model == "straight-body":
             ll = self._parent.length_straight * self.weight
@@ -50,20 +49,7 @@ class ThickSliceRBend(_ThickSliceElementBase, BeamElement):
             ll *= -1
             aa *= -1
 
-        v, w = survey_advance_element(
-            v               = v,
-            w               = w,
-            length          = ll,
-            angle           = aa,
-            tilt            = self._parent.rot_s_rad,
-            ref_shift_x     = 0,
-            ref_shift_y     = 0,
-            ref_rot_x_rad   = 0,
-            ref_rot_y_rad   = 0,
-            ref_rot_s_rad   = 0,
-        )
-
-        return v, w
+        frame.arc(length=ll, angle=aa, tilt=self._parent.rot_s_rad)
 
 
 class ThickSliceQuadrupole(_ThickSliceElementBase, BeamElement):
