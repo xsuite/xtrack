@@ -566,9 +566,8 @@ class MadxLoader:
             if (angle := params.pop('angle', None)):
                 params['rot_y_rad'] = angle
         elif parent_name == 'translation':
-            if (ds := params.pop('ds', None)):
-                raise NotImplementedError('`ds` parameter not supported yet for '
-                                          '`translation` elements.')
+            if 'ds' in params:
+                params['shift_s'] = params.pop('ds')
             if (dx := params.pop('dx', None)):
                 params['shift_x'] = dx
             if (dy := params.pop('dy', None)):

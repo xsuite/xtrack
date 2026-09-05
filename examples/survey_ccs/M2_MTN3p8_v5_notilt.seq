@@ -1,0 +1,635 @@
+/************************************************************************************************************************************************************************
+*
+* M2 version EYETS 2024-2025 in MAD X SEQUENCE format
+* Generated the 08-APR-2025 02:41:19 from https://layout.cern.ch
+*
+*************************************************************************************************************************************************************************/
+
+
+
+/************************************************************************************************************************************************************************/
+/* TYPES DEFINITION                                                                                                                                                     */
+/************************************************************************************************************************************************************************/
+
+
+l.M2_BXSCI                     := 0.1;
+l.M2_MBHHEHWC                  := 2;
+l.M2_MBNH_HWP                  := 5;
+l.M2_MBNV_HWP                  := 5;
+l.M2_MBSMAHWC                  := 1.1;
+l.M2_MBSMBHWC                  := 4;
+l.M2_MBXGDCWP                  := 3;
+l.M2_MBXHACWP                  := 2.5;
+l.M2_MCXCAHWC                  := 0.4;
+l.M2_MCXCDHWC                  := 0.3;
+l.M2_MDPX                      := 0.3;
+l.M2_MQNEETWC                  := 1;
+l.M2_MQNFBTWC                  := 2;
+l.M2_MTN__HWP                  := 3.6;
+l.M2_MBSA_HWP                  := 3.8;
+l.M2_OMK                       := 0;
+l.M2_QNLB_8WP                  := 2.99;
+l.M2_QNRB_8WP                  := 2.99;
+l.M2_QWL__8WP                  := 2.948;
+l.M2_TBID                      := 0.25;
+l.M2_TCMAB                     := 0.4;
+l.M2_XBMS_001                  := 0.36;
+l.M2_XBMS_002                  := 0.36;
+l.M2_XBMS_003                  := 0.2;
+l.M2_XCBV                      := 1.2;
+l.M2_XCHV_001                  := 1;
+l.M2_XCIOP001                  := 0.1;
+l.M2_XCMH                      := 5;
+l.M2_XCMIB001                  := 1.6;
+l.M2_XCMIB002                  := 3.2;
+l.M2_XCMV                      := 5;
+l.M2_XFF__001                  := 0.276;
+l.M2_XFFV                      := 0.276;
+l.M2_XFFH                      := 0.276;
+l.M2_XION_001                  := 0.212;
+l.M2_XSCI                      := 0.1;
+l.M2_XTAX_009                  := 1.615;
+l.M2_XTAX_010                  := 1.615;
+l.M2_XTCX_003                  := 2.4;
+l.M2_XVWAA001                  := 0.0001;
+l.M2_XVWAD001                  := 0.0001;
+l.M2_XVWAE001                  := 0.0002;
+l.M2_XVWAF001                  := 0.0001;
+l.M2_XVWAI001                  := 0.0002;
+l.M2_XVWAJ001                  := 0.0002;
+l.M2_XVWAK001                  := 0.0002;
+l.M2_XVWMB001                  := 0.0002;
+l.M2_XVWMF001                  := 0.00012;
+l.M2_XVWMG001                  := 0.00012;
+l.M2_XVWAM001                  := 0.00012;
+l.M2_XWCM_001                  := 0.1;
+l.M2_XWCM_002                  := 0.1;
+l.M2_XWCM_003                  := 0.1;
+l.M2_XCEDN                     := 6.267; ! Mechanical length
+l.M2_VXSS                      := 10.74422;  ! Vacuum chamber T6VXSS, length [m]
+!l.M2_VXSS                      := 10.6;  ! Vacuum chamber T6VXSS, length [m]
+! ===== SCRAPER MULTIPOLE QUADRUPOLE STRENGTHS (knob-driven) =====
+! Fit parameters for quadrupole term (order=2): can be changed for systematic/uncertainty studies
+
+scrA := 4.633689e-4*1e3;      ! amplitude [T/m]
+scrl := 16.721577*1e-3;        ! decay length [m]
+scrC := 4.065420e-5*1e3;      ! offset [T/m]
+scrD := 1.085028e-7*1e6;      ! linear term [T/m^2]
+
+beam_momentum := 160.0;                ! beam momentum [GeV/c]
+scaling := 0.299792458/beam_momentum;  ! scaling factor for conversion from T/m to kG/cm
+! Each scraper quadrupole strength (as function of the actual aperture value in mm)
+kQuad.XCMH.X0610727_SCR3H := -1*scaling*(scrA * exp(-kXCMH.X0610727_SCR3H_COLL1H / scrl) + scrC + scrD * kXCMH.X0610727_SCR3H_COLL1H);
+kQuad.XCMH.X0610752_SCR6H := -1*scaling*(scrA * exp(-kXCMH.X0610752_SCR6H_COLL2H / scrl) + scrC + scrD * kXCMH.X0610752_SCR6H_COLL2H);
+kQuad.XCMH.X0610845_SCR7H := -1*scaling*(scrA * exp(-kXCMH.X0610845_SCR7H_COLL3H / scrl) + scrC + scrD * kXCMH.X0610845_SCR7H_COLL3H);
+
+kQuad.XCMV.X0610190_SCR1V := 1*scaling*(scrA * exp(-kXCMV.X0610190_SCR1V_COLL4V / scrl) + scrC + scrD * kXCMV.X0610190_SCR1V_COLL4V);
+kQuad.XCMV.X0610715_SCR2V := 1*scaling*(scrA * exp(-kXCMV.X0610715_SCR2V_COLL5V / scrl) + scrC + scrD * kXCMV.X0610715_SCR2V_COLL5V);
+kQuad.XCMV.X0610733_SCR4V := 1*scaling*(scrA * exp(-kXCMV.X0610733_SCR4V_COLL6V / scrl) + scrC + scrD * kXCMV.X0610733_SCR4V_COLL6V);
+kQuad.XCMV.X0610741_SCR5V := 1*scaling*(scrA * exp(-kXCMV.X0610741_SCR5V_COLL7V / scrl) + scrC + scrD * kXCMV.X0610741_SCR5V_COLL7V);
+kQuad.XCMV.X0610997_SCR8V := 1*scaling*(scrA * exp(-kXCMV.X0610997_SCR8V_COLL8V / scrl) + scrC + scrD * kXCMV.X0610997_SCR8V_COLL8V);
+kQuad.XCMV.X0611050_SCR9V := 1*scaling*(scrA * exp(-kXCMV.X0611050_SCR9V_COLL9V / scrl) + scrC + scrD * kXCMV.X0611050_SCR9V_COLL9V);
+
+//---------------------- COLLIMATOR     ---------------------------------------------
+M2_TCMAB       : COLLIMATOR  , L := l.M2_TCMAB;          ! Collimation mask type B
+M2_XCBV        : COLLIMATOR  , L := l.M2_XCBV;           ! Big vertical 2 blocks collimator
+M2_XCHV_001    : COLLIMATOR  , L := l.M2_XCHV_001;       ! SPS Collimator horizontal et vertical 4 blocks (design 1970)
+M2_XCIOP001    : COLLIMATOR  , L := l.M2_XCIOP001;       ! Converter IN OUT Plate - Lead 4 mm
+!M2_XCMH        : COLLIMATOR  , L := l.M2_XCMH;           ! Collimator Magnetic Horizontal
+M2_XCMH        : QUADRUPOLE  , L := l.M2_XCMH;           ! Collimator Magnetic Horizontal
+M2_XCMIB001    : COLLIMATOR  , L := l.M2_XCMIB001;       ! Magnetic Collimator Fixed (Magnetized Iron Block), 1.6 m
+M2_XCMIB002    : COLLIMATOR  , L := l.M2_XCMIB002;       ! Magnetic Collimator Fixed (Magnetized Iron Block), 3.2 m
+!M2_XCMV        : COLLIMATOR  , L := l.M2_XCMV;           ! Collimator Magnetic Vertical
+M2_XCMV        : QUADRUPOLE  , L := l.M2_XCMV;           ! Collimator Magnetic Vertical
+M2_XTAX_009    : COLLIMATOR  , L := l.M2_XTAX_009;       ! Target Absorber Type 009
+M2_XTAX_010    : COLLIMATOR  , L := l.M2_XTAX_010;       ! Target Absorber Type 010
+M2_XTCX_003    : COLLIMATOR  , L := l.M2_XTCX_003;       ! XTCX - Fixed collimator 2.4m, W inserts Ø40/120, Cooling, no Vacuum
+//---------------------- INSTRUMENT     ---------------------------------------------
+M2_XVWAA001    : INSTRUMENT  , L := l.M2_XVWAA001;       ! X Vacuum Window, Aluminum [th=0.1], Tube DE 159, Flat Flange 192, aperture 120 + pumping port DN40, [L=100]
+M2_XVWAD001    : INSTRUMENT  , L := l.M2_XVWAD001;       ! X Vacuum Window Aluminum [th=0.1], Tube DE 159, Flat Flange 192, aperture 120, [L=70] (VXW)
+M2_XVWAE001    : INSTRUMENT  , L := l.M2_XVWAE001;       ! X Vacuum Window Aluminium EL900X60X0.2
+M2_XVWAF001    : INSTRUMENT  , L := l.M2_XVWAF001;       ! X Vacuum Window Aluminium EL900X60X0.2 + pumping port
+M2_XCEDN       : INSTRUMENT  , L := l.M2_XCEDN;          ! Cherenkov Differential Counter Nord
+M2_XVWAI001    : INSTRUMENT  , L := l.M2_XVWAI001;       ! X Vacuum Window Aluminium [th=0.2], Flat Flanges 390, aperture EL350x60, [L=60] + pumping portDN40 (MTP)
+M2_XVWAJ001    : INSTRUMENT  , L := l.M2_XVWAJ001;       ! X Vacuum Window Aluminum [th=0.2], Flat Al Flange DE 265, aperture 185 + pumping port, [L=110] (VDWP)
+M2_XVWAK001    : INSTRUMENT  , L := l.M2_XVWAK001;       ! X Vacuum Window, Aluminum [th=0.2], Flat Al Flange DE 265, aperture 185, [L=70] (VDW)
+M2_XVWMB001    : INSTRUMENT  , L := l.M2_XVWMB001;       ! X Vacuum Window, Mylar [th=0.25], Flat Al Flanges DE 265, aperture 185 + pumping port, [L=110] (VDWP)
+M2_XVWMF001    : INSTRUMENT  , L := l.M2_XVWMF001;       ! X Vacuum Window, Mylar [th=0.125], Tube DE 159, Flat Flange 192, aperture 120 + pumping port DN40, [L=100]
+M2_XVWMG001    : INSTRUMENT  , L := l.M2_XVWMG001;       ! X Vacuum Window Mylar [th=0.125] Tube DE 159, Flat Flange 192, aperture 120, [L=70] (VXW)
+M2_XVWAM001    : INSTRUMENT  , L := l.M2_XVWAM001;       ! X Vacuum Window Mylar + pumping port DN40 DN120x100x0.12
+//---------------------- KICKER         ---------------------------------------------
+M2_MCXCAHWC    : KICKER      , L := l.M2_MCXCAHWC;       ! Corrector magnet, H or V, type MDX
+M2_MCXCDHWC    : KICKER      , L := l.M2_MCXCDHWC;       ! Corrector magnet, H or V, type MNPA30 - Old type name:  MNPA30.
+M2_MDPX        : KICKER      , L := l.M2_MDPX;           ! Correcting dipole, H or V, type MDP, north area
+//---------------------- MARKER         ---------------------------------------------
+M2_OMK         : MARKER      , L := l.M2_OMK;            ! M2 markers
+//---------------------- MONITOR        ---------------------------------------------
+M2_BXSCI       : MONITOR     , L := l.M2_BXSCI;          ! Scintillator Counter Detector (Intensity Monitor)
+M2_TBID        : MONITOR     , L := l.M2_TBID;           ! target beam instrumentation, downstream
+M2_XBMS_001    : MONITOR     , L := l.M2_XBMS_001;       ! eXperimental Beam Momentum Station - Narrow and High (Long)
+M2_XBMS_002    : MONITOR     , L := l.M2_XBMS_002;       ! eXperimental Beam Momentum Station - Square (Long)
+M2_XBMS_003    : MONITOR     , L := l.M2_XBMS_003;       ! eXperimental Beam Momentum Station - Fibers (Short)
+M2_XFF__001    : MONITOR     , L := l.M2_XFF__001;       ! Filament Scintillator Profile Monitor
+M2_XION_001    : MONITOR     , L := l.M2_XION_001;       ! Assembly Ionization Chamber
+M2_XSCI        : MONITOR     , L := l.M2_XSCI;           ! Ensemble: Cadre et Scintillateur BXSCI
+M2_XWCM_001    : MONITOR     , L := l.M2_XWCM_001;       ! Ensemble: Multi Wire Proportional Chamber et Support cadre rouge not motorized
+M2_XWCM_002    : MONITOR     , L := l.M2_XWCM_002;       ! Ensemble: Multi Wire Proportional Chamber and Scintillator with Support cadre rouge not motorized
+M2_XWCM_003    : MONITOR     , L := l.M2_XWCM_003;       ! Ensemble: Multi Wire Proportional Chamber et Support cadre rouge motorized
+M2_XFFH        : MONITOR  	 , L := l.M2_XFFH;           ! Finger Scintillator Profile Monitor - Horizontal
+M2_XFFV        : MONITOR  	 , L := l.M2_XFFV;           ! Finger Scintillator Profile Monitor - Vertical
+//---------------------- QUADRUPOLE     ---------------------------------------------
+M2_MQNEETWC    : QUADRUPOLE  , L := l.M2_MQNEETWC;       ! Quadrupole magnet, type Q100, 1m - Magnetic length taken from EDMS 1786085
+M2_MQNFBTWC    : QUADRUPOLE  , L := l.M2_MQNFBTWC;       ! Quadrupole magnet, type Q200, 2m
+M2_QNLB_8WP    : QUADRUPOLE  , L := l.M2_QNLB_8WP;       ! Quadrupole, secondary beams, mineral isolation coil, north area
+M2_QNRB_8WP    : QUADRUPOLE  , L := l.M2_QNRB_8WP;       ! Quadrupole, secondary beams, reduced aperture, mineral isolation coil, north area
+M2_QWL__8WP    : QUADRUPOLE  , L := l.M2_QWL__8WP;       ! Quadrupole, Secondary Beams, West Area Type - dimensions according to drawing EDMS 350768 
+//---------------------- RBEND          ---------------------------------------------
+M2_MBHHEHWC    : RBEND       , L := l.M2_MBHHEHWC;       ! Bending magnet, type M200, straight poles
+M2_MBNH_HWP    : RBEND       , L := l.M2_MBNH_HWP;       ! Bending magnet, secondary beams, horizontal, north area
+M2_MBNV_HWP    : RBEND       , L := l.M2_MBNV_HWP;       ! Bending magnet, secondary beams, vertical, north area - Mechanical dimensions from NORMA
+M2_MBSMAHWC    : RBEND       , L := l.M2_MBSMAHWC;       ! Experimental magnet Compass SM1
+M2_MBSMBHWC    : RBEND       , L := l.M2_MBSMBHWC;       ! Experimental magnet Compass SM2
+M2_MBXGDCWP    : RBEND       , L := l.M2_MBXGDCWP;       ! Bending Magnet, H or V, type MCW
+M2_MBXHACWP    : RBEND       , L := l.M2_MBXHACWP;       ! Bending Magnet, H or V, type VB1, 2.5m gap 108mm
+M2_MTN__HWP    : RBEND       , L := l.M2_MTN__HWP;       ! Bending magnet, Target N
+M2_MBSA_HWP    : RBEND       , L := l.M2_MBSA_HWP;       ! Bending magnet, Target N, longer MTN version
+//---------------------- CHAMBERS       ---------------------------------------------
+M2_VXSS        : INSTRUMENT, L := l.M2_VXSS; ! Vacuum chamber T6VXSS, length 10.656 m
+//---------------------- MARKERS        ---------------------------------------------
+M2_TRANSFORM_MARKER : MARKER; ! Marker for transformation,
+//---------------------- INSTRUMENTS EXPERT NAMES          ---------------------------------------------
+M2_ABS		: M2_XCIOP001;
+M2_CEDAR1	: M2_XCEDN;
+M2_CEDAR2	: M2_XCEDN;
+//---------------------- MONITOR EXPERT NAMES          ---------------------------------------------
+M2_FISC1V	: M2_XFFV;
+M2_FISC2H	: M2_XFFH;
+M2_FISC3V	: M2_XFFV;
+M2_FISC4H	: M2_XFFH;
+
+M2_MWPC1_2		: M2_XWCM_003;
+M2_MWPC3_4		: M2_XWCM_003;
+M2_MWPC5_6		: M2_XWCM_003;
+M2_MWPC7_8		: M2_XWCM_003;
+M2_MWPC9_10		: M2_XWCM_001;
+M2_MWPC11_12	: M2_XWCM_001;
+M2_MWPC13_14	: M2_XWCM_001;
+M2_MWPC15_16	: M2_XWCM_001;
+M2_MWPC17_18	: M2_XWCM_001;
+M2_MWPC19_20	: M2_XWCM_001;  
+
+
+/************************************************************************************************************************************************************************/
+/* STRENGTH CONSTANTS                                                                                                                                                   */
+/************************************************************************************************************************************************************************/
+
+kMBH.X0610026_BEND1H           := 0.005953; !0.0059333;
+kMBH.X0610031_BEND1H           := 0.005953; !0.0059333;
+kMBH.X0610035_BEND1H           := 0.005953; !0.0059333;
+kMBH.X0610109_BEND3H           := 0.00793618; !0.007939;
+kMBH.X0611101_BEND7H           := -0.0;
+kMBH.X0611115_BEND9H           := -0.0;
+kMBV.X0610061_BEND2V           := -0.00317431; !-0.003172;
+kMBV.X0610064_BEND2V           := -0.00317431; !-0.003172;
+kMBV.X0610067_BEND2V           := -0.00317431; !-0.003172;
+kMBV.X0610693_BEND4V           := -0.00479893; !-0.0048;
+kMBV.X0610697_BEND4V           := -0.00479893; !-0.0048;
+kMBV.X0610701_BEND4V           := -0.00479893; !-0.0048;
+kMBV.X0610706_BEND5V           := -0.00960308; !-0.0096;
+kMBV.X0611027_BEND6V           := 0.00999999; !0.01;
+kMBV.X0611033_BEND6V           := 0.00999999; !0.01;
+kMBV.X0611039_BEND6V           := 0.00999999; !0.01;
+kMBV.X0611111_BEND8V           := 0.00369;
+
+tilt.MBH.X0610026_BEND1H       := 0;
+tilt.MBH.X0610031_BEND1H       := 0;
+tilt.MBH.X0610035_BEND1H       := 0;
+tilt.MBV.X0610061_BEND2V       := 1.5707963267948966;
+tilt.MBV.X0610064_BEND2V       := 1.5707963267948966;
+tilt.MBV.X0610067_BEND2V       := 1.5707963267948966;
+tilt.MBH.X0610109_BEND3H       := 0;
+tilt.MBV.X0610693_BEND4V       := 1.5707963267948966;
+tilt.MBV.X0610697_BEND4V       := 1.5707963267948966;
+tilt.MBV.X0610701_BEND4V       := 1.5707963267948966;
+tilt.MBV.X0610706_BEND5V       := 1.5707963267948966;
+tilt.MBV.X0611027_BEND6V       := 1.5707963267948966;
+tilt.MBV.X0611033_BEND6V       := 1.5707963267948966;
+tilt.MBV.X0611039_BEND6V       := 1.5707963267948966;
+tilt.MBH.X0611101_BEND7H       := 0;
+tilt.MBV.X0611111_BEND8V       := 1.5707963267948966;
+tilt.MBH.X0611115_BEND9H       := 0;
+tilt.MBXH.X0611135_SM1         := 0;
+tilt.MBXH.X0611149_SM2         := 0;
+tilt.MCBH.X0610074_TRIM1H      := 0;
+tilt.MCBV.X0610098_TRIM2V      := 1.5707963267948966;
+tilt.MCBH.X0610650_TRIM3H      := 0;
+tilt.MCBV.X0610651_TRIM4V      := 1.5707963267948966;
+tilt.MCBH.X0610854_TRIM5H      := 0;
+tilt.MCBH.X0610988_TRIM6H      := 0;
+tilt.MCBV.X0610989_TRIM7V      := 1.5707963267948966;
+
+/************************************************************************************************************************************************************************/
+/* EXPERT NAMES                                                                                                                                                         */
+/************************************************************************************************************************************************************************/
+M2_VERSION := 7;
+
+// ------ V4 ------
+IF (M2_VERSION == 4) {
+    M2_ANGLE1 := kMBH.X0610026_BEND1H;
+    M2_ANGLE2 := 0;
+    M2_ANGLE3 := 0;
+    M2_ROT_ANG := -0.011906;
+    M2_SHIFT_HOR  := -0.20431343;
+    M2_SHIFT_LONG := 0.00131959;
+};
+// ------ V5 ------
+ELSEIF (M2_VERSION == 5) {
+    M2_ANGLE1 := 0;
+    M2_ANGLE2 := 0;
+    M2_ANGLE3 := 0;
+    M2_ROT_ANG_IN := -0.0029765;
+    M2_ROT_ANG := -0.0148825;
+    M2_SHIFT_HOR  := -0.27007327;
+    M2_SHIFT_LONG := 0.00219484;
+};
+ELSEIF (M2_VERSION == 6) {
+    M2_ANGLE1 := kMBH.X0610026_BEND1H*0.5;
+    M2_ANGLE2 := kMBH.X0610031_BEND1H*0.5;
+    M2_ANGLE3 := kMBH.X0610035_BEND1H*0.5;
+    M2_ROT_ANG := -0.0089295;
+    M2_SHIFT_HOR  := -0.17357626;
+    M2_SHIFT_LONG := 0.00104243;
+};
+// ------ option 4 ------
+ELSEIF (M2_VERSION == 7) {
+    M2_ANGLE1 := kMBH.X0610026_BEND1H*0.5;
+    M2_ANGLE2 := kMBH.X0610031_BEND1H*0.5;
+    M2_ANGLE3 := 0;
+    M2_ROT_ANG := -0.011906;
+    M2_SHIFT_HOR  := -0.21787286;
+    M2_SHIFT_LONG := 0.00150189;
+};
+ELSE {
+    M2_ANGLE1 := kMBH.X0610026_BEND1H;
+    M2_ANGLE2 := kMBH.X0610031_BEND1H;
+    M2_ANGLE3 := kMBH.X0610035_BEND1H;
+};
+
+
+
+MBH.X0610026_BEND1H                               : M2_MBSA_HWP     , APERTYPE=RECTANGLE, APERTURE={.175,.03,.175,.03}, ANGLE := M2_ANGLE1, TILT := tilt.MBH.X0610026_BEND1H, K0 := 2*SIN(kMBH.X0610026_BEND1H*0.5)/l.M2_MBSA_HWP;
+MBH.X0610031_BEND1H                               : M2_MBSA_HWP     , APERTYPE=RECTANGLE, APERTURE={.175,.03,.175,.03}, ANGLE := M2_ANGLE2, TILT := tilt.MBH.X0610031_BEND1H, K0 := 2*SIN(kMBH.X0610031_BEND1H*0.5)/l.M2_MBSA_HWP;
+MBH.X0610035_BEND1H                               : M2_MBSA_HWP     , APERTYPE=RECTANGLE, APERTURE={.175,.03,.175,.03}, ANGLE := M2_ANGLE3, TILT := tilt.MBH.X0610035_BEND1H, K0 := 2*SIN(kMBH.X0610035_BEND1H*0.5)/l.M2_MBSA_HWP;
+MQD.X0610009_QUAD2D                               : M2_QNLB_8WP     , APERTYPE=CIRCLE, APERTURE={.04,.04,.04,.04}, K1 := kMQD.X0610009_QUAD2D;
+MQF.X0610012_QUAD3F                               : M2_QNLB_8WP     , APERTYPE=CIRCLE, APERTURE={.04,.04,.04,.04}, K1 := kMQF.X0610012_QUAD3F;
+MQF.X0610016_QUAD4F                               : M2_QNLB_8WP     , APERTYPE=CIRCLE, APERTURE={.04,.04,.04,.04}, K1 := kMQF.X0610016_QUAD4F;
+MQD.X0610019_QUAD5D                               : M2_QNLB_8WP     , APERTYPE=CIRCLE, APERTURE={.04,.04,.04,.04}, K1 := kMQD.X0610019_QUAD5D;
+MQD.X0610023_QUAD6D                               : M2_QNLB_8WP     , APERTYPE=CIRCLE, APERTURE={.04,.04,.04,.04}, K1 := kMQD.X0610023_QUAD6D;
+MQD.X0610005_QUAD1D                               : M2_QNRB_8WP     , APERTYPE=CIRCLE, APERTURE={.025,.025,.025,.025}, K1 := kMQD.X0610005_QUAD1D;
+XTAX.X0610052_XTAX1                               : M2_XTAX_009     , APERTYPE=RECTANGLE, APERTURE={.120,.016,.120,.016}; !APERTYPE=RECTANGLE, APERTURE={.020001,.020001,.02,.02};
+XTAX.X0610054_XTAX2                               : M2_XTAX_010     , APERTYPE=RECTANGLE, APERTURE={.120,.016,.120,.016}; !APERTYPE=RECTANGLE, APERTURE={.020001,.020001,.02,.02};
+XTCX.X0610002_XTCX1                               : M2_XTCX_003;
+M2_MWPC9_10                                       : M2_XWCM_001;
+M2_MWPC11_12                                      : M2_XWCM_001;
+M2_MWPC13_14                                      : M2_XWCM_001;
+M2_MWPC15_16                                      : M2_XWCM_001;
+M2_MWPC17_18                                      : M2_XWCM_001;
+M2_MWPC19_20                                      : M2_XWCM_001;
+M2_MWPC1_2                                        : M2_XWCM_003;
+M2_MWPC3_4                                        : M2_XWCM_003;
+M2_MWPC5_6                                        : M2_XWCM_003;
+M2_MWPC7_8                                        : M2_XWCM_003;
+M2_ROTATION_IN                                    : YROTATION, ANGLE := M2_ROT_ANG_IN;
+M2_ROTATION                                       : YROTATION, ANGLE := M2_ROT_ANG;
+M2_SHIFT_1                                        : TRANSLATION,  DX := M2_SHIFT_HOR;
+M2_SHIFT_2                                        : TRANSLATION,  DS := M2_SHIFT_LONG;
+MBH.X0611101_BEND7H                               : M2_MBHHEHWC     , APERTYPE=RECTANGLE, APERTURE={0.26,0.07}	, ANGLE := kMBH.X0611101_BEND7H, TILT := tilt.MBH.X0611101_BEND7H;
+MBV.X0611111_BEND8V                               : M2_MBHHEHWC     , APERTYPE=RECTANGLE, APERTURE={0.26,0.07}	, ANGLE := kMBV.X0611111_BEND8V, TILT := tilt.MBV.X0611111_BEND8V;
+MBH.X0611115_BEND9H                               : M2_MBHHEHWC     , APERTYPE=RECTANGLE, APERTURE={0.26,0.055}  , ANGLE := kMBH.X0611115_BEND9H, TILT := tilt.MBH.X0611115_BEND9H;
+MBH.X0610109_BEND3H                               : M2_MBNH_HWP     , APERTYPE=RECTANGLE, APERTURE={0.125,0.03,0.125,0.03}, ANGLE := kMBH.X0610109_BEND3H, TILT := tilt.MBH.X0610109_BEND3H;
+MBV.X0610706_BEND5V                               : M2_MBNV_HWP     , APERTYPE=RACETRACK, APERTURE={0.125,0.03,0.125,0.03}, ANGLE := kMBV.X0610706_BEND5V, TILT := tilt.MBV.X0610706_BEND5V;
+MBV.X0611027_BEND6V                               : M2_MBNV_HWP     , APERTYPE=RACETRACK, APERTURE={0.125,0.03,0.125,0.03}, ANGLE := kMBV.X0611027_BEND6V, TILT := tilt.MBV.X0611027_BEND6V;
+MBV.X0611033_BEND6V                               : M2_MBNV_HWP     , APERTYPE=RACETRACK, APERTURE={0.125,0.03,0.125,0.03}, ANGLE := kMBV.X0611033_BEND6V, TILT := tilt.MBV.X0611033_BEND6V;
+MBV.X0611039_BEND6V                               : M2_MBNV_HWP     , APERTYPE=RACETRACK, APERTURE={0.125,0.03,0.125,0.03}, ANGLE := kMBV.X0611039_BEND6V, TILT := tilt.MBV.X0611039_BEND6V;
+MBXH.X0611135_SM1                                 : M2_MBSMAHWC     , TILT := tilt.MBXH.X0611135_SM1;
+MBXH.X0611149_SM2                                 : M2_MBSMBHWC     , TILT := tilt.MBXH.X0611149_SM2;
+MBV.X0610693_BEND4V                               : M2_MBXGDCWP     , APERTYPE=RECTELLIPSE, APERTURE={.06,.035,.095,.035}, ANGLE := kMBV.X0610693_BEND4V, TILT := tilt.MBV.X0610693_BEND4V;
+MBV.X0610697_BEND4V                               : M2_MBXGDCWP     , APERTYPE=RECTELLIPSE, APERTURE={.06,.035,.095,.035}, ANGLE := kMBV.X0610697_BEND4V, TILT := tilt.MBV.X0610697_BEND4V;
+MBV.X0610701_BEND4V                               : M2_MBXGDCWP     , APERTYPE=RECTELLIPSE, APERTURE={.06,.035,.095,.035}, ANGLE := kMBV.X0610701_BEND4V, TILT := tilt.MBV.X0610701_BEND4V;
+MBV.X0610061_BEND2V                               : M2_MBXHACWP     , APERTYPE=RECTANGLE, APERTURE={.16,.054,.16,.054}, ANGLE := kMBV.X0610061_BEND2V, TILT := tilt.MBV.X0610061_BEND2V;
+MBV.X0610064_BEND2V                               : M2_MBXHACWP     , APERTYPE=RECTANGLE, APERTURE={.16,.054,.16,.054}, ANGLE := kMBV.X0610064_BEND2V, TILT := tilt.MBV.X0610064_BEND2V;
+MBV.X0610067_BEND2V                               : M2_MBXHACWP     , APERTYPE=RECTANGLE, APERTURE={.16,.054,.16,.054}, ANGLE := kMBV.X0610067_BEND2V, TILT := tilt.MBV.X0610067_BEND2V;
+MCBH.X0610074_TRIM1H                              : M2_MCXCAHWC     , APERTYPE=RECTANGLE, APERTURE={0.07,0.05} , TILT := tilt.MCBH.X0610074_TRIM1H, HKICK := kMCBH.X0610074_TRIM1H;
+MCBV.X0610098_TRIM2V                              : M2_MCXCAHWC     , APERTYPE=RECTANGLE, APERTURE={0.07,0.05} , TILT := tilt.MCBV.X0610098_TRIM2V, HKICK := kMCBV.X0610098_TRIM2V;
+MCBV.X0610651_TRIM4V                              : M2_MCXCDHWC     , APERTYPE=RECTANGLE, APERTURE={0.2,0.1025,0.2,0.1025}, TILT := tilt.MCBV.X0610651_TRIM4V, HKICK := kMCBV.X0610651_TRIM4V;
+MCBH.X0610650_TRIM3H                              : M2_MDPX         , APERTYPE=ELLIPSE, APERTURE={.0775,.0415,.0775,.0415}, HKICK := kMCBH.X0610650_TRIM3H;
+MCBH.X0610854_TRIM5H                              : M2_MDPX         , APERTYPE=ELLIPSE, APERTURE={.0775,.0415,.0775,.0415}, TILT := tilt.MCBH.X0610854_TRIM5H, HKICK := kMCBH.X0610854_TRIM5H;
+MCBH.X0610988_TRIM6H                              : M2_MDPX         , APERTYPE=ELLIPSE, APERTURE={.0775,.0415,.0775,.0415}, TILT := tilt.MCBH.X0610988_TRIM6H, HKICK := kMCBH.X0610988_TRIM6H;
+MCBV.X0610989_TRIM7V                              : M2_MDPX         , APERTYPE=ELLIPSE, APERTURE={.0775,.0415,.0775,.0415}, TILT := tilt.MCBV.X0610989_TRIM7V, HKICK := kMCBV.X0610989_TRIM7V;
+MQD.X0610112_QUAD12D                              : M2_MQNEETWC     , APERTYPE=CIRCLE, APERTURE={.1,.1,.1,.1}, K1 := kMQD.X0610112_QUAD12D;
+MQF.X0610148_QUAD13F                              : M2_MQNFBTWC     , APERTYPE=CIRCLE, APERTURE={.1,.1,.1,.1}, K1 := kMQF.X0610148_QUAD13F;
+MQD.X0610184_QUAD14D                              : M2_MQNFBTWC     , APERTYPE=CIRCLE, APERTURE={.1,.1,.1,.1}, K1 := kMQD.X0610184_QUAD14D;
+MQF.X0610220_QUAD13F                              : M2_MQNFBTWC     , APERTYPE=CIRCLE, APERTURE={.1,.1,.1,.1}, K1 := kMQF.X0610220_QUAD13F;
+MQD.X0610256_QUAD14D                              : M2_MQNFBTWC     , APERTYPE=CIRCLE, APERTURE={.1,.1,.1,.1}, K1 := kMQD.X0610256_QUAD14D;
+MQF.X0610292_QUAD13F                              : M2_MQNFBTWC     , APERTYPE=CIRCLE, APERTURE={.1,.1,.1,.1}, K1 := kMQF.X0610292_QUAD13F;
+MQD.X0610328_QUAD14D                              : M2_MQNFBTWC     , APERTYPE=CIRCLE, APERTURE={.1,.1,.1,.1}, K1 := kMQD.X0610328_QUAD14D;
+MQF.X0610364_QUAD15F                              : M2_MQNFBTWC     , APERTYPE=CIRCLE, APERTURE={.1,.1,.1,.1}, K1 := kMQF.X0610364_QUAD15F;
+MQD.X0610400_QUAD16D                              : M2_MQNFBTWC     , APERTYPE=CIRCLE, APERTURE={.1,.1,.1,.1}, K1 := kMQD.X0610400_QUAD16D;
+MQF.X0610436_QUAD15F                              : M2_MQNFBTWC     , APERTYPE=CIRCLE, APERTURE={.1,.1,.1,.1}, K1 := kMQF.X0610436_QUAD15F;
+MQD.X0610472_QUAD16D                              : M2_MQNFBTWC     , APERTYPE=CIRCLE, APERTURE={.1,.1,.1,.1}, K1 := kMQD.X0610472_QUAD16D;
+MQF.X0610508_QUAD15F                              : M2_MQNFBTWC     , APERTYPE=CIRCLE, APERTURE={.1,.1,.1,.1}, K1 := kMQF.X0610508_QUAD15F;
+MQD.X0610544_QUAD16D                              : M2_MQNFBTWC     , APERTYPE=CIRCLE, APERTURE={.1,.1,.1,.1}, K1 := kMQD.X0610544_QUAD16D;
+MQF.X0610580_QUAD17F                              : M2_MQNFBTWC     , APERTYPE=CIRCLE, APERTURE={.1,.1,.1,.1}, K1 := kMQF.X0610580_QUAD17F;
+MQD.X0610616_QUAD18D                              : M2_MQNFBTWC     , APERTYPE=CIRCLE, APERTURE={.1,.1,.1,.1}, K1 := kMQD.X0610616_QUAD18D;
+MQF.X0610652_QUAD17F                              : M2_MQNFBTWC     , APERTYPE=CIRCLE, APERTURE={.1,.1,.1,.1}, K1 := kMQF.X0610652_QUAD17F;
+MQD.X0610654_QUAD19D                              : M2_MQNFBTWC     , APERTYPE=CIRCLE, APERTURE={.1,.1,.1,.1}, K1 := kMQD.X0610654_QUAD19D;
+MQD.X0610745_QUAD24D                              : M2_MQNFBTWC     , APERTYPE=CIRCLE, APERTURE={.1,.1,.1,.1}, K1 := kMQD.X0610745_QUAD24D;
+MQD.X0610748_QUAD25D                              : M2_MQNFBTWC     , APERTYPE=CIRCLE, APERTURE={.1,.1,.1,.1}, K1 := kMQD.X0610748_QUAD25D;
+MQF.X0610784_QUAD25F_INV                          : M2_MQNFBTWC     , APERTYPE=CIRCLE, APERTURE={.1,.1,.1,.1}, K1 := kMQF.X0610784_QUAD25F_INV;
+MQD.X0610820_QUAD25D                              : M2_MQNFBTWC     , APERTYPE=CIRCLE, APERTURE={.1,.1,.1,.1}, K1 := kMQD.X0610820_QUAD25D;
+MQF.X0610856_QUAD26F                              : M2_MQNFBTWC     , APERTYPE=CIRCLE, APERTURE={.1,.1,.1,.1}, K1 := kMQF.X0610856_QUAD26F;
+MQD.X0610900_QUAD27D                              : M2_MQNFBTWC     , APERTYPE=CIRCLE, APERTURE={.1,.1,.1,.1}, K1 := kMQD.X0610900_QUAD27D;
+MQF.X0610945_QUAD27F_INV                          : M2_MQNFBTWC     , APERTYPE=CIRCLE, APERTURE={.1,.1,.1,.1}, K1 := kMQF.X0610945_QUAD27F_INV;
+MQD.X0610990_QUAD27D                              : M2_MQNFBTWC     , APERTYPE=CIRCLE, APERTURE={.1,.1,.1,.1}, K1 := kMQD.X0610990_QUAD27D;
+MQD.X0610992_QUAD28D                              : M2_MQNFBTWC     , APERTYPE=CIRCLE, APERTURE={.1,.1,.1,.1}, K1 := kMQD.X0610992_QUAD28D;
+MQD.X0611072_QUAD33D                              : M2_MQNFBTWC     , APERTYPE=CIRCLE, APERTURE={.1,.1,.1,.1}, K1 := kMQD.X0611072_QUAD33D;
+MQD.X0611074_QUAD33D                              : M2_MQNFBTWC     , APERTYPE=CIRCLE, APERTURE={.1,.1,.1,.1}, K1 := kMQD.X0611074_QUAD33D;
+MQD.X0611077_QUAD33D                              : M2_MQNFBTWC     , APERTYPE=CIRCLE, APERTURE={.1,.1,.1,.1}, K1 := kMQD.X0611077_QUAD33D;
+MQD.X0611095_QUAD34D                              : M2_MQNFBTWC     , APERTYPE=CIRCLE, APERTURE={.1,.1,.1,.1}, K1 := kMQD.X0611095_QUAD34D;
+MQD.X0611097_QUAD34D                              : M2_MQNFBTWC     , APERTYPE=CIRCLE, APERTURE={.1,.1,.1,.1}, K1 := kMQD.X0611097_QUAD34D;
+AMBERTA.X0611132                                  : M2_OMK;
+MQD.X0610009_QUAD2D                               : M2_QNLB_8WP     , APERTYPE=CIRCLE, APERTURE={.04,.04,.04,.04}, K1 := kMQD.X0610009_QUAD2D;
+MQF.X0610012_QUAD3F                               : M2_QNLB_8WP     , APERTYPE=CIRCLE, APERTURE={.04,.04,.04,.04}, K1 := kMQF.X0610012_QUAD3F;
+MQF.X0610016_QUAD4F                               : M2_QNLB_8WP     , APERTYPE=CIRCLE, APERTURE={.04,.04,.04,.04}, K1 := kMQF.X0610016_QUAD4F;
+MQD.X0610019_QUAD5D                               : M2_QNLB_8WP     , APERTYPE=CIRCLE, APERTURE={.04,.04,.04,.04}, K1 := kMQD.X0610019_QUAD5D;
+MQD.X0610023_QUAD6D                               : M2_QNLB_8WP     , APERTYPE=CIRCLE, APERTURE={.04,.04,.04,.04}, K1 := kMQD.X0610023_QUAD6D;
+MQD.X0610005_QUAD1D                               : M2_QNRB_8WP     , APERTYPE=CIRCLE, APERTURE={.025,.025,.025,.025}, K1 := kMQD.X0610005_QUAD1D;
+MQF.X0610056_QUAD7F                               : M2_QWL__8WP     , APERTYPE=CIRCLE, APERTURE={.05,.05,.05,.05}, K1 := kMQF.X0610056_QUAD7F;
+MQF.X0610072_QUAD8F                               : M2_QWL__8WP     , APERTYPE=CIRCLE, APERTURE={.05,.05,.05,.05}, K1 := kMQF.X0610072_QUAD8F;
+MQD.X0610080_QUAD9D                               : M2_QWL__8WP     , APERTYPE=CIRCLE, APERTURE={.05,.05,.05,.05}, K1 := kMQD.X0610080_QUAD9D;
+MQD.X0610096_QUAD10D                              : M2_QWL__8WP     , APERTYPE=CIRCLE, APERTURE={.05,.05,.05,.05}, K1 := kMQD.X0610096_QUAD10D;
+MQF.X0610104_QUAD11F                              : M2_QWL__8WP     , APERTYPE=CIRCLE, APERTURE={.05,.05,.05,.05}, K1 := kMQF.X0610104_QUAD11F;
+MQF.X0610677_QUAD20F                              : M2_QWL__8WP     , APERTYPE=CIRCLE, APERTURE={.05,.05,.05,.05}, K1 := kMQF.X0610677_QUAD20F;
+MQD.X0610690_QUAD21D                              : M2_QWL__8WP     , APERTYPE=CIRCLE, APERTURE={.05,.05,.05,.05}, K1 := kMQD.X0610690_QUAD21D;
+MQD.X0610710_QUAD22D                              : M2_QWL__8WP     , APERTYPE=CIRCLE, APERTURE={.05,.05,.05,.05}, K1 := kMQD.X0610710_QUAD22D;
+MQF.X0610723_QUAD23F                              : M2_QWL__8WP     , APERTYPE=CIRCLE, APERTURE={.05,.05,.05,.05}, K1 := kMQF.X0610723_QUAD23F;
+MQF.X0611011_QUAD29F                              : M2_QWL__8WP     , APERTYPE=CIRCLE, APERTURE={.05,.05,.05,.05}, K1 := kMQF.X0611011_QUAD29F;
+MQD.X0611023_QUAD30D                              : M2_QWL__8WP     , APERTYPE=CIRCLE, APERTURE={.05,.05,.05,.05}, K1 := kMQD.X0611023_QUAD30D;
+MQD.X0611043_QUAD31D                              : M2_QWL__8WP     , APERTYPE=CIRCLE, APERTURE={.05,.05,.05,.05}, K1 := kMQD.X0611043_QUAD31D;
+MQF.X0611056_QUAD32F                              : M2_QWL__8WP     , APERTYPE=CIRCLE, APERTURE={.05,.05,.05,.05}, K1 := kMQF.X0611056_QUAD32F;
+MQF.X0611105_QUAD35F                              : M2_QWL__8WP     , APERTYPE=CIRCLE, APERTURE={.05,.05,.05,.05}, K1 := kMQF.X0611105_QUAD35F;
+MQF.X0611108_QUAD35F                              : M2_QWL__8WP     , APERTYPE=CIRCLE, APERTURE={.05,.05,.05,.05}, K1 := kMQF.X0611108_QUAD35F;
+MQD.X0611118_QUAD36D                              : M2_QWL__8WP     , APERTYPE=CIRCLE, APERTURE={.05,.05,.05,.05}, K1 := kMQD.X0611118_QUAD36D;
+MQD.X0611122_QUAD36D                              : M2_QWL__8WP     , APERTYPE=CIRCLE, APERTURE={.05,.05,.05,.05}, K1 := kMQD.X0611122_QUAD36D;
+BMS_1                                             : M2_XBMS_001;
+BMS_4                                             : M2_XBMS_001;
+BMS_2                                             : M2_XBMS_002;
+BMS_3                                             : M2_XBMS_002;
+BMS_5                                             : M2_XBMS_003;
+BMS_6                                             : M2_XBMS_003;
+XCBV.X0610858_COLL5                               : M2_XCBV         , APERTYPE=RECTANGLE, APERTURE:={0.175,kXCBV.X0610858_COLL5V,0.175,kXCBV.X0610858_COLL5V};
+XCHV.X0610058_COLL1_2                             : M2_XCHV_001     , APERTYPE=RECTANGLE, APERTURE:={kXCHV.X0610058_COLL1_2xH,kXCHV.X0610058_COLL1_2yV,kXCHV.X0610058_COLL1_2xH,kXCHV.X0610058_COLL1_2yV};
+XCHV.X0610070_COLL3_4                             : M2_XCHV_001     , APERTYPE=RECTANGLE, APERTURE:={kXCHV.X0610070_COLL3_4xH,kXCHV.X0610070_COLL3_4yV,kXCHV.X0610070_COLL3_4xH,kXCHV.X0610070_COLL3_4yV};
+XCHV.X0610288_COLL10_11                           : M2_XCHV_001     , APERTYPE=RECTANGLE, APERTURE:={kXCHV.X0610288_COLL10_11xH,kXCHV.X0610288_COLL10_11yV,kXCHV.X0610288_COLL10_11xH,kXCHV.X0610288_COLL10_11yV};
+XCHV.X0611013_COLL6_7                             : M2_XCHV_001     , APERTYPE=RECTANGLE, APERTURE:={kXCHV.X0611013_COLL6_7xH,kXCHV.X0611013_COLL6_7yV,kXCHV.X0611013_COLL6_7xH,kXCHV.X0611013_COLL6_7yV};
+XCHV.X0611054_COLL8_9                             : M2_XCHV_001     , APERTYPE=RECTANGLE, APERTURE:={kXCHV.X0611054_COLL8_9xH,kXCHV.X0611054_COLL8_9yV,kXCHV.X0611054_COLL8_9xH,kXCHV.X0611054_COLL8_9yV};
+M2_ABS                                            : M2_XCIOP001;
+XCMH.X0610727_SCR3H                               : M2_XCMH         , APERTYPE=RECTANGLE, APERTURE:={kXCMH.X0610727_SCR3H_COLL1H,0.175,kXCMH.X0610727_SCR3H_COLL1H,0.175}, K1 := kQuad.XCMH.X0610727_SCR3H;
+XCMH.X0610752_SCR6H                               : M2_XCMH         , APERTYPE=RECTANGLE, APERTURE:={kXCMH.X0610752_SCR6H_COLL2H,0.175,kXCMH.X0610752_SCR6H_COLL2H,0.175}, K1 := kQuad.XCMH.X0610752_SCR6H;
+XCMH.X0610845_SCR7H                               : M2_XCMH         , APERTYPE=RECTANGLE, APERTURE:={kXCMH.X0610845_SCR7H_COLL3H,0.175,kXCMH.X0610845_SCR7H_COLL3H,0.175}, K1 := kQuad.XCMH.X0610845_SCR7H;
+XCM.X0610765_MIB2                                 : M2_XCMIB001     , APERTYPE=RECTANGLE, APERTURE={.1,.1,.1,.1};
+XCM.X0610767_MIB2                                 : M2_XCMIB001     , APERTYPE=RECTANGLE, APERTURE={.1,.1,.1,.1};
+XCM.X0611061_MIB4                                 : M2_XCMIB001     , APERTYPE=RECTANGLE, APERTURE={.1,.1,.1,.1};
+XCM.X0611063_MIB4                                 : M2_XCMIB001     , APERTYPE=RECTANGLE, APERTURE={.1,.1,.1,.1};
+XCM.X0611065_MIB3                                 : M2_XCMIB001     , APERTYPE=RECTANGLE, APERTURE={.1,.1,.1,.1};
+XCM.X0611066_MIB3                                 : M2_XCMIB001     , APERTYPE=RECTANGLE, APERTURE={.1,.1,.1,.1};
+XCM.X0611068_MIB3                                 : M2_XCMIB001     , APERTYPE=RECTANGLE, APERTURE={.1,.1,.1,.1};
+XCM.X0610226_MIB1                                 : M2_XCMIB002     , APERTYPE=RECTANGLE, APERTURE={.1,.1,.1,.1};
+XCM.X0610862_MIB3                                 : M2_XCMIB002     , APERTYPE=RECTANGLE, APERTURE={.1,.1,.1,.1};
+XCMV.X0610190_SCR1V                               : M2_XCMV         , APERTYPE=RECTANGLE, APERTURE:={0.175,kXCMV.X0610190_SCR1V_COLL4V,0.175,kXCMV.X0610190_SCR1V_COLL4V}, K1 := kQuad.XCMV.X0610190_SCR1V;
+XCMV.X0610715_SCR2V                               : M2_XCMV         , APERTYPE=RECTANGLE, APERTURE:={0.175,kXCMV.X0610715_SCR2V_COLL5V,0.175,kXCMV.X0610715_SCR2V_COLL5V}, K1 := kQuad.XCMV.X0610715_SCR2V;
+XCMV.X0610733_SCR4V                               : M2_XCMV         , APERTYPE=RECTANGLE, APERTURE:={0.175,kXCMV.X0610733_SCR4V_COLL6V,0.175,kXCMV.X0610733_SCR4V_COLL6V}, K1 := kQuad.XCMV.X0610733_SCR4V;
+XCMV.X0610741_SCR5V                               : M2_XCMV         , APERTYPE=RECTANGLE, APERTURE:={0.175,kXCMV.X0610741_SCR5V_COLL7V,0.175,kXCMV.X0610741_SCR5V_COLL7V}, K1 := kQuad.XCMV.X0610741_SCR5V;
+XCMV.X0610997_SCR8V                               : M2_XCMV         , APERTYPE=RECTANGLE, APERTURE:={0.175,kXCMV.X0610997_SCR8V_COLL8V,0.175,kXCMV.X0610997_SCR8V_COLL8V}, K1 := kQuad.XCMV.X0610997_SCR8V;
+XCMV.X0611050_SCR9V                               : M2_XCMV         , APERTYPE=RECTANGLE, APERTURE:={0.175,kXCMV.X0611050_SCR9V_COLL9V,0.175,kXCMV.X0611050_SCR9V_COLL9V}, K1 := kQuad.XCMV.X0611050_SCR9V;
+M2_FISC1V                                         : M2_XFF__001;
+M2_FISC2H                                         : M2_XFF__001;
+M2_FISC3V                                         : M2_XFF__001;
+M2_FISC4H                                         : M2_XFF__001;
+M2_MWPC9_10                                       : M2_XWCM_001;
+M2_MWPC11_12                                      : M2_XWCM_001;
+M2_MWPC13_14                                      : M2_XWCM_001;
+M2_MWPC15_16                                      : M2_XWCM_001;
+M2_MWPC17_18                                      : M2_XWCM_001;
+M2_MWPC19_20                                      : M2_XWCM_001;
+M2_MWPC1_2                                        : M2_XWCM_003;
+M2_MWPC3_4                                        : M2_XWCM_003;
+M2_MWPC5_6                                        : M2_XWCM_003;
+M2_MWPC7_8                                        : M2_XWCM_003;
+
+/************************************************************************************************************************************************************************/
+/* SEQUENCE                                                                                                                                                             */
+/************************************************************************************************************************************************************************/
+
+M2 : SEQUENCE, refer = centre,          L = 1185.6281;
+ TBACA.X0600000                : M2_OMK                      , at = 0            , slot_id = 56964656;
+ TBID.251248                   : M2_TBID                     , at = .475         , slot_id = 47601702;
+ TCMAB.X0600001                : M2_TCMAB                    , at = .85          , slot_id = 56992367;
+ XTCX.X0610002                 : XTCX.X0610002_XTCX1     	, at = 2.4          , slot_id = 56503593;
+ XVW.X0610003                  : M2_XVWAF001     			, at = 3.69995      , slot_id = 57603303;
+ QNRB.X0610005                 : MQD.X0610005_QUAD1D     	, at = 5.465        , slot_id = 56049083;
+ QNLB.X0610009                 : MQD.X0610009_QUAD2D     	, at = 8.895        , slot_id = 56500476;
+ QNLB.X0610012                 : MQF.X0610012_QUAD3F     	, at = 12.325       , slot_id = 56500489;
+ QNLB.X0610016                 : MQF.X0610016_QUAD4F     	, at = 15.755       , slot_id = 56500525;
+ QNLB.X0610019                 : MQD.X0610019_QUAD5D     	, at = 19.185       , slot_id = 56500534;
+ QNLB.X0610023                 : MQD.X0610023_QUAD6D     	, at = 22.615       , slot_id = 56500543;
+ TRA.X0610026                  : M2_ROTATION_IN          	, at = 24.724997194472003       , slot_id = 56500585;
+ MBSA.X0610026                 : MBH.X0610026_BEND1H     	, at = 26.625       , slot_id = 56500585;
+ MBSA.X0610031                 : MBH.X0610031_BEND1H     	, at = 31.181       , slot_id = 56500594;
+ MBSA.X0610035                 : MBH.X0610035_BEND1H     	, at = 35.737       , slot_id = 56500603;
+ VXSS.X0610045                 : M2_VXSS                    , at = 43.247       , slot_id = 56500612;
+ REF.X0610046                  : M2_TRANSFORM_MARKER        , at = 50.62;
+ TRA.X0610046                  : M2_ROTATION                , at = 50.62;
+ SHIFT.X0610046                : M2_SHIFT_1                 , at = 50.62;
+ SHIFT.X0610047                : M2_SHIFT_2                 , at = 50.62;
+ XTAX.X0610052                 : XTAX.X0610052_XTAX1     	, at := 51.8775      , slot_id = 56617856;
+ XTAX.X0610054                 : XTAX.X0610054_XTAX2     	, at := 53.5125      , slot_id = 56617865;
+ XVW.X0610055                  : M2_XVWAF001     			, at = 54.400965842 , slot_id = 57603321;
+ QWL.X0610056                  : MQF.X0610056_QUAD7F     	, at = 56.155       , slot_id = 56500638;
+ XCHV.X0610058                 : XCHV.X0610058_COLL1_2     	, at = 58.475       , slot_id = 56051764;
+ MBXHA.X0610061                : MBV.X0610061_BEND2V     	, at = 60.7         , slot_id = 56048944;
+ MBXHA.X0610064                : MBV.X0610064_BEND2V     	, at = 64           , slot_id = 56048953;
+ MBXHA.X0610067                : MBV.X0610067_BEND2V     	, at = 67.3         , slot_id = 56048962;
+ XCHV.X0610070                 : XCHV.X0610070_COLL3_4     	, at = 69.525       , slot_id = 56051773;
+ QWL.X0610072                  : MQF.X0610072_QUAD8F     	, at = 71.845       , slot_id = 56500647;
+ MCXCA.X0610074                : MCBH.X0610074_TRIM1H     	, at = 73.965       , slot_id = 56049522;
+ QWL.X0610080                  : MQD.X0610080_QUAD9D     	, at = 80.155       , slot_id = 56500656;
+ QWL.X0610096                  : MQD.X0610096_QUAD10D     	, at = 95.845       , slot_id = 56500665;
+ MCXCA.X0610098                : MCBV.X0610098_TRIM2V    	, at = 97.965       , slot_id = 56049531;
+ XVW.X0610102                  : M2_XVWAA001     			, at = 101.809968986, slot_id = 57603122;
+ XWCM.X0610102                 : M2_MWPC1_2     			, at = 102.06       , slot_id = 57718169;
+ XVW.X0610103                  : M2_XVWAA001     			, at = 102.309968986, slot_id = 57603131;
+ QWL.X0610104                  : MQF.X0610104_QUAD11F     	, at = 104.155      , slot_id = 56500674;
+ MBNH.X0610109                 : MBH.X0610109_BEND3H     	, at = 108.67       , slot_id = 56048971;
+ MQNEE.X0610112                : MQD.X0610112_QUAD12D     	, at = 112.5        , slot_id = 56049122;
+ MQNFB.X0610148                : MQF.X0610148_QUAD13F     	, at = 148          , slot_id = 56049131;
+ MQNFB.X0610184                : MQD.X0610184_QUAD14D     	, at = 184          , slot_id = 56049158;
+ //MDXSS.X0610190                : M2_MDXSSCWC     			, at = 191          , slot_id = 57430408, assembly_id= 57015015;
+ XCMV.X0610190                 : XCMV.X0610190_SCR1V        , at = 191          , slot_id = 57015015;
+ XVW.X0610218                  : M2_XVWAF001     			, at = 218.44995	, slot_id = 57603330;
+ XWCM.X0610219                 : M2_MWPC3_4     			, at = 218.51       , slot_id = 57719098;
+ XVW.X0610219                  : M2_XVWAF001     			, at = 218.749982319, slot_id = 57603339;
+ MQNFB.X0610220                : MQF.X0610220_QUAD13F     	, at = 220          , slot_id = 56049140;
+ //MDHSP.X0610226                : M2_MDHSPCWC     			, at = 226          , slot_id = 57424454, assembly_id= 56049034;
+ XCMIB.X0610226                : XCM.X0610226_MIB1     		, at = 226          , slot_id = 56049034;
+ MQNFB.X0610256                : MQD.X0610256_QUAD14D     	, at = 256          , slot_id = 56049167;
+ XCHV.X0610288                 : XCHV.X0610288_COLL10_11    , at = 287.5;
+ MQNFB.X0610292                : MQF.X0610292_QUAD13F     	, at = 292          , slot_id = 56049149;
+ MQNFB.X0610328                : MQD.X0610328_QUAD14D     	, at = 328          , slot_id = 56049176;
+ MQNFB.X0610364                : MQF.X0610364_QUAD15F     	, at = 364          , slot_id = 56049185;
+ MQNFB.X0610400                : MQD.X0610400_QUAD16D     	, at = 400          , slot_id = 56049212;
+ MQNFB.X0610436                : MQF.X0610436_QUAD15F     	, at = 436          , slot_id = 56049194;
+ MQNFB.X0610472                : MQD.X0610472_QUAD16D     	, at = 472          , slot_id = 56049221;
+ MQNFB.X0610508                : MQF.X0610508_QUAD15F     	, at = 508          , slot_id = 56049203;
+ XVW.X0610543                  : M2_XVWAA001     			, at = 542.449982319, slot_id = 57603140;
+ XWCM.X0610543                 : M2_MWPC5_6     			, at = 542.51       , slot_id = 57719121;
+ XVW.X0610544                  : M2_XVWAF001     			, at = 542.749982319, slot_id = 57603348;
+ MQNFB.X0610544                : MQD.X0610544_QUAD16D     	, at = 544          , slot_id = 56049230;
+ MQNFB.X0610580                : MQF.X0610580_QUAD17F     	, at = 580          , slot_id = 56049239;
+ MQNFB.X0610616                : MQD.X0610616_QUAD18D     	, at = 616          , slot_id = 56049257;
+ XVW.X0610649                  : M2_XVWAA001     			, at = 648.849982319, slot_id = 57603149;
+ XWCM.X0610649                 : M2_MWPC7_8     			, at = 648.91       , slot_id = 57719146;
+ XVW.X0610650                  : M2_XVWAA001     			, at = 649.149982319, slot_id = 57603158;
+ MDPX.X0610650                 : MCBH.X0610650_TRIM3H       , at = 649.55       , slot_id = 56500823;
+ MCXCD.X0610651                : MCBV.X0610651_TRIM4V     	, at = 650.35       , slot_id = 56049540;
+ MQNFB.X0610652                : MQF.X0610580_QUAD17F     	, at = 652          , slot_id = 56049248;
+ MQNFB.X0610654                : MQD.X0610654_QUAD19D     	, at = 654.5        , slot_id = 56049266;
+ QWL.X0610677                  : MQF.X0610677_QUAD20F     	, at = 677.461      , slot_id = 56500683;
+ XION.X0610677                 : M2_XION_001                 , at = 681.21       , slot_id = 58596928;
+ XCIO.X0610677                 : M2_XCIOP001     			, at = 681.54       , slot_id = 56503584;
+ XVW.X0610682                  : M2_XVWAA001     			, at = 682          , slot_id = 57603167;
+ XVW.X0610683                  : M2_XVWAA001     			, at = 683          , slot_id = 57603176;
+ QWL.X0610690                  : MQD.X0610690_QUAD21D     	, at = 689.825      , slot_id = 56500692;
+ XVW.X0610691                  : M2_XVWAA001     			, at = 691.29905	, slot_id = 57603185;
+ MBXGD.X0610693                : MBV.X0610693_BEND4V     	, at = 693.36       , slot_id = 56048980;
+ MBXGD.X0610697                : MBV.X0610697_BEND4V     	, at = 697.06       , slot_id = 56048989;
+ MBXGD.X0610701                : MBV.X0610701_BEND4V     	, at = 700.76       , slot_id = 56048998;
+ XWCM.X0610703                 : M2_MWPC9_10    			, at = 702.66       , slot_id = 57719169;
+ MBNV.X0610706                 : MBV.X0610706_BEND5V     	, at = 705.66       , slot_id = 56500859;
+ QWL.X0610710                  : MQD.X0610710_QUAD22D     	, at = 710.175      , slot_id = 56500701;
+ //MDXSS.X0610715                : M2_MDXSSCWC     			, at = 715.25       , slot_id = 57430475, assembly_id= 57015032;
+ XCMV.X0610715                 : XCMV.X0610715_SCR2V        , at = 715.25       , slot_id = 57015032;
+ XVW.X0610720                  : M2_XVWAA001     			, at = 720          , slot_id = 57603203;
+ QWL.X0610723                  : MQF.X0610723_QUAD23F     	, at = 722.539      , slot_id = 56500710;
+ XVW.X0610724                  : M2_XVWAA001     			, at = 724.014      , slot_id = 57603212;
+ //MDXSS.X0610727                : M2_MDXSSCWC     			, at = 727.25       , slot_id = 57015006, assembly_id= 57014997;
+ XCMH.X0610727                 : XCMH.X0610727_SCR3H        , at = 727.25       , slot_id = 57014997;
+ XVW.X0610730                  : M2_XVWAA001     			, at = 730          , slot_id = 57603221;
+ XVW.X0610732                  : M2_XVWAA001     			, at = 732.20	    , slot_id = 57603230;
+ //MDXSS.X0610733                : M2_MDXSSCWC     			, at = 734.75       , slot_id = 57430720, assembly_id= 57015045;
+ XCMV.X0610733                 : XCMV.X0610733_SCR4V        , at = 734.75       , slot_id = 57015045;
+ XVW.X0610739                  : M2_XVWAA001     			, at = 738.70          , slot_id = 57603239;
+ //MDXSS.X0610741                : M2_MDXSSCWC     			, at = 741.25       , slot_id = 57430540, assembly_id= 57015054;
+ XCMV.X0610741                 : XCMV.X0610741_SCR5V        , at = 741.25       , slot_id = 57015054;
+ XVW.X0610743                  : M2_XVWAF001     			, at = 743.80	    , slot_id = 57603370;
+ MQNFB.X0610745                : MQD.X0610745_QUAD24D     	, at = 745.5        , slot_id = 56617876;
+ MQNFB.X0610748                : MQD.X0610748_QUAD25D     	, at = 748          , slot_id = 56049284;
+ //MDXSS.X0610752                : M2_MDXSSCWC     			, at = 752.25       , slot_id = 57430657, assembly_id= 57015063;
+ XCMH.X0610752                 : XCMH.X0610752_SCR6H        , at = 752.25       , slot_id = 57015063;
+ XVW.X0610758                  : M2_XVWAF001     			, at = 758          , slot_id = 57603379;
+ //MDHSP.X0610765                : M2_MDHSPCWC     			, at = 764.75       , slot_id = 57424511, assembly_id= 56049043;
+ XCMIB.X0610765                : XCM.X0610765_MIB2     		, at = 764.75       , slot_id = 56049043;
+ //MDHSP.X0610767                : M2_MDHSPCWC     			, at = 766.65       , slot_id = 57424588, assembly_id= 56049052;
+ XCMIB.X0610767                : XCM.X0610767_MIB2     		, at = 766.65       , slot_id = 56049052;
+ MQNFB.X0610784                : MQF.X0610784_QUAD25F_inv   , at = 784          , slot_id = 56049293;
+ MQNFB.X0610820                : MQD.X0610820_QUAD25D     	, at = 820          , slot_id = 56617885;
+ //MDXSS.X0610845                : M2_MDXSSCWC     			, at = 842.7        , slot_id = 57430786, assembly_id= 57015086;
+ XCMH.X0610845                 : XCMH.X0610845_SCR7H        , at = 842.7        , slot_id = 57015086;
+ XVW.X0610843                  : M2_XVWAM001     			, at = 845.25       , slot_id = 57603388;
+ XVW.X0610848                  : M2_XVWAM001     			, at = 848          , slot_id = 57603397;
+ MDPX.X0610854                 : MCBH.X0610854_TRIM5H       , at = 854.35       , slot_id = 56500832;
+ MQNFB.X0610856                : MQF.X0610856_QUAD26F     	, at = 856          , slot_id = 56049311;
+ XVW.X0610858                  : M2_XVWAM001     			, at = 858          , slot_id = 57603406;
+ XCBV.X0610858                 : XCBV.X0610858_COLL5        , at = 859.04       , slot_id = 56617897;
+ //MDHSP.X0610862                : M2_MDHSPCWC     			, at = 862.2        , slot_id = 57424651, assembly_id= 57424624;
+ XCMIB.X0610862                : XCM.X0610862_MIB3     		, at = 862.2        , slot_id = 57424624;
+ MQNFB.X0610900                : MQD.X0610900_QUAD27D     	, at = 900.8        , slot_id = 56049320;
+ MQNFB.X0610945                : MQF.X0610945_QUAD27F_inv   , at = 945.6        , slot_id = 56049329;
+ MDPX.X0610988                 : MCBH.X0610988_TRIM6H       , at = 987.95       , slot_id = 56500841;
+ MDPX.X0610989                 : MCBV.X0610989_TRIM7V       , at = 988.75       , slot_id = 57430964;
+ MQNFB.X0610990                : MQD.X0610990_QUAD27D     	, at = 990.4        , slot_id = 56049338;
+ MQNFB.X0610992                : MQD.X0610992_QUAD28D     	, at = 992.9        , slot_id = 56049347;
+ XVW.X0610994                  : M2_XVWAM001     			, at = 994.15000016 , slot_id = 57603446;
+ //MDXSS.X0610997                : M2_MDXSSCWC     			, at = 997.91       , slot_id = 57430849, assembly_id= 57015123;
+ XCMV.X0610997                 : XCMV.X0610997_SCR8V        , at = 997.91       , slot_id = 57015123;
+ XVW.X0611001                  : M2_XVWAM001     			, at = 1000.61000016, slot_id = 57603455;
+ XWCM.X0611009                 : M2_MWPC11_12     			, at = 1008.583     , slot_id = 57719192;
+ XVW.X0611008                  : M2_XVWAM001     			, at = 1008.78300016, slot_id = 57603464;
+ XVW.X0611010                  : M2_XVWAM001     			, at = 1009.0729    , slot_id = 57603473;
+ QWL.X0611011                  : MQF.X0611011_QUAD29F     	, at = 1010.547     , slot_id = 56500719;
+ XCHV.X0611013                 : XCHV.X0611013_COLL6_7     	, at = 1012.927     , slot_id = 56051782;
+ QWL.X0611023                  : MQD.X0611023_QUAD30D     	, at = 1022.911     , slot_id = 56500728;
+ MBNV.X0611027                 : MBV.X0611027_BEND6V     	, at = 1027.426     , slot_id = 56500868;
+ MBNV.X0611033                 : MBV.X0611033_BEND6V     	, at = 1033.086     , slot_id = 56500878;
+ MBNV.X0611039                 : MBV.X0611039_BEND6V     	, at = 1038.746     , slot_id = 56500887;
+ QWL.X0611043                  : MQD.X0611043_QUAD31D     	, at = 1043.261     , slot_id = 56500737;
+ XVW.X0611045                  : M2_XVWAM001     			, at = 1045         , slot_id = 57603482;
+ //MDXSS.X0611050                : M2_MDXSSCWC     			, at = 1049.651     , slot_id = 57430912, assembly_id= 57015166;
+ XCMV.X0611050                 : XCMV.X0611050_SCR9V        , at = 1049.651     , slot_id = 57015166;
+ XCHV.X0611054                 : XCHV.X0611054_COLL8_9     	, at = 1053.245     , slot_id = 56051791;
+ XVW.X0611055                  : M2_XVWAM001     			, at = 1054.1509    , slot_id = 57603491;
+ QWL.X0611056                  : MQF.X0611056_QUAD32F     	, at = 1055.625     , slot_id = 56500746;
+ XVW.X0611057                  : M2_XVWAM001     			, at = 1057.41006266, slot_id = 57603500;
+ XWCM.X0611057                 : M2_MWPC13_14     			, at = 1057.589     , slot_id = 57719215;
+ XVW.X0611058                  : M2_XVWAM001     			, at = 1058.74906266, slot_id = 57603509;
+ XVW.X0611060                  : M2_XVWAM001     			, at = 1060         , slot_id = 57603518;
+ XVW.X0611061                  : M2_XVWAM001     			, at = 1061         , slot_id = 57603527;
+ XCMIB.X0611061                : XCM.X0611061_MIB4     		, at = 1062.159     , slot_id = 57446660;
+ XCMIB.X0611063                : XCM.X0611063_MIB4     		, at = 1063.809     , slot_id = 57446592;
+ //MDHSP.X0611065                : M2_MDHSPCWC     			, at = 1065.459     , slot_id = 57424756, assembly_id= 57424687;
+ XCMIB.X0611065                : XCM.X0611065_MIB3     		, at = 1065.459     , slot_id = 57424687;
+ XCMIB.X0611066                : XCM.X0611066_MIB3     		, at = 1067.109     , slot_id = 57446556;
+ XCMIB.X0611068                : XCM.X0611068_MIB3     		, at = 1068.759     , slot_id = 57446520;
+ XVW.X0611069                  : M2_XVWAM001     			, at = 1069.96206266, slot_id = 57603536;
+ XVW.X0611070                  : M2_XVWAM001     			, at = 1070.82206266, slot_id = 57603545;
+ MQNFB.X0611072                : MQD.X0611072_QUAD33D     	, at = 1072.122     , slot_id = 56049360;
+ MQNFB.X0611074                : MQD.X0611074_QUAD33D     	, at = 1074.622     , slot_id = 56049369;
+ MQNFB.X0611077                : MQD.X0611077_QUAD33D     	, at = 1077.272     , slot_id = 56049378;
+ XVW.X0611078                  : M2_XVWAM001     			, at = 1078.3       , slot_id = 57603554;
+ XFFV.X0611078                 : M2_FISC1V       			, at = 1078.76      , slot_id = 57718819;
+ XFFH.X0611078                 : M2_FISC2H         			, at = 1079.036     , slot_id = 57718851;
+ XVW.X0611079                  : M2_XVWAM001     			, at = 1079.27406266, slot_id = 57603563;
+ XSCI.X0611079                 : M2_XSCI                     , at = 1079.354     , slot_id = 61178654;
+ XWCM.X0611079                 : M2_MWPC15_16     			, at = 1079.514     , slot_id = 57719249;
+ XCED.X0611083                 : M2_CEDAR1        			, at = 1082.8525    , slot_id = 57572821;
+ XCED.X0611089                 : M2_CEDAR2        			, at = 1089.3695    , slot_id = 57572958;
+ XVW.X0611091                  : M2_XVWAM001     			, at = 1092.53      , slot_id = 57603572;
+ XSCI.X0611092                 : M2_XSCI                     , at = 1092.678     , slot_id = 61183374;
+ XION.X0611093                 : M2_XION_001                 , at = 1093.238     , slot_id = 61183549;
+ XVW.X0611093                  : M2_XVWAM001     			, at = 1093.39806266, slot_id = 57603581;
+ MQNFB.X0611095                : MQD.X0611095_QUAD34D     	, at = 1095.398     , slot_id = 56049387;
+ MQNFB.X0611097                : MQD.X0611097_QUAD34D     	, at = 1097.898     , slot_id = 56049401;
+ XFFV.X0611099                 : M2_FISC3V         			, at = 1099.414     , slot_id = 57718933;
+ XFFH.X0611099                 : M2_FISC4H         			, at = 1099.69      , slot_id = 57718956;
+ MBHHE.X0611101                : MBH.X0611101_BEND7H     	, at = 1101.228     , slot_id = 56049007;
+ XVW.X0611102                  : M2_XVWAM001     			, at = 1102.75706266, slot_id = 57603590;
+ XWCM.X0611102                 : M2_MWPC17_18     			, at = 1102.837     , slot_id = 57719272;
+ XVW.X0611103                  : M2_XVWAM001     			, at = 1102.91706266, slot_id = 57603599;
+ QWL.X0611105                  : MQF.X0611105_QUAD35F     	, at = 1104.702     , slot_id = 56500755;
+ QWL.X0611108                  : MQF.X0611108_QUAD35F     	, at = 1108.132     , slot_id = 56500764;
+ MBHHE.X0611111                : MBV.X0611111_BEND8V     	, at = 1111.785     , slot_id = 56049016;
+ XVW.X0611113                  : M2_XVWAM001     			, at = 1113.48506379, slot_id = 57603608;
+ XVW.X0611114                  : M2_XVWAM001     			, at = 1113.58506379, slot_id = 57603617;
+ MBHHE.X0611115                : MBH.X0611115_BEND9H     	, at = 1115.285     , slot_id = 56049025;
+ QWL.X0611118                  : MQD.X0611118_QUAD36D     	, at = 1118.42      , slot_id = 56500773;
+ QWL.X0611122                  : MQD.X0611122_QUAD36D     	, at = 1121.85      , slot_id = 56500782;
+ XWCM.X0611123                 : M2_MWPC19_20     			, at = 1123.775     , slot_id = 57719295;
+ XVW.X0611128                  : M2_XVWAM001     			, at = 1128         , slot_id = 57603626;
+ EXP.X0611132                  : AMBERTA.X0611132            , at = 1131.824     , slot_id = 62387268;
+ MBSMA.X0611135                : MBXH.X0611135_SM1     		, at = 1135.324     , slot_id = 56048926;
+ MBSMB.X0611149                : MBXH.X0611149_SM2     		, at = 1149.159     , slot_id = 56048935;
+ XWCM.X0611185                 : M2_XWCM_002                 , at = 1185.396     , slot_id = 57829286;
+ XSCI.X0611185                 : M2_BXSCI                    , at = 1185.5281    , slot_id = 57829759;
+ENDSEQUENCE;
+
+return;

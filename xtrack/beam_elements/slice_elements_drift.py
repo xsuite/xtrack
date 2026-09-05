@@ -12,7 +12,6 @@ from .rbend import RBend
 from .sextupole import Sextupole
 from .slice_base import _SliceBase, COMMON_SLICE_XO_FIELDS
 from ..base_element import BeamElement
-from ..survey import advance_element as survey_advance_element
 
 
 class _DriftSliceElementBase(_SliceBase):
@@ -48,7 +47,7 @@ class DriftSliceRBend(_DriftSliceElementBase, BeamElement):
                      _buffer=self._buffer)
         return out
 
-    def _propagate_survey(self, v, w, backtrack):
+    def track_frame(self, frame, backtrack=False):
 
         if self._parent.rbend_model == "straight-body":
             ll = self._parent.length_straight * self.weight
@@ -58,20 +57,7 @@ class DriftSliceRBend(_DriftSliceElementBase, BeamElement):
         if backtrack:
             ll *= -1
 
-        v, w = survey_advance_element(
-            v               = v,
-            w               = w,
-            length          = ll,
-            angle           = 0,
-            tilt            = 0,
-            ref_shift_x     = 0,
-            ref_shift_y     = 0,
-            ref_rot_x_rad   = 0,
-            ref_rot_y_rad   = 0,
-            ref_rot_s_rad   = 0,
-        )
-
-        return v, w
+        frame.translate_s(ll)
 
 class DriftSliceQuadrupole(_DriftSliceElementBase, BeamElement):
 

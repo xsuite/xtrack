@@ -6,7 +6,6 @@
 from ..base_element import BeamElement
 from ..general import DEPRECATION_INFO_PREP_1_0
 import numpy as np
-from ..survey import advance_element as survey_advance_element
 from warnings import warn
 import xobjects as xo
 from ._common import _angle_from_trig
@@ -110,25 +109,6 @@ class YRotation(BeamElement):
         self.sin_angle = np.sin(anglerad)
         self.tan_angle = np.tan(anglerad)
 
-    def _propagate_survey(self, v, w, backtrack):
-
-        fback = 1
-        if backtrack:
-            fback = -1
-
-        rx, ry, rs = 0, np.deg2rad(self.angle), 0
-
-        v, w = survey_advance_element(
-                    v               = v,
-                    w               = w,
-                    length          = 0,
-                    angle           = 0,
-                    tilt            = 0,
-                    ref_shift_x     = 0,
-                    ref_shift_y     = 0,
-                    ref_rot_x_rad   = fback * rx,
-                    ref_rot_y_rad   = -fback * ry,
-                    ref_rot_s_rad   = fback * rs,
-                )
-
-        return v, w
+    def track_frame(self, frame, backtrack=False):
+        sign = -1 if backtrack else 1
+        frame.rotate_y(sign * np.deg2rad(self.angle))

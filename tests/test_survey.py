@@ -12,6 +12,302 @@ if hasattr(np, 'trapezoid'): # numpy >= 2.0
 else:
     trapz = np.trapz
 
+
+@pytest.mark.parametrize('angle', [0.0, np.deg2rad(0.1), np.deg2rad(20)])
+@pytest.mark.parametrize('sliced', [False, True])
+def test_survey_include_element_frames(angle, sliced):
+    env = xt.Environment()
+    env.new(
+        'b', 'Bend',
+        length=2,
+        angle=angle,
+        shift_x=0.01,
+        shift_y=-0.02,
+        shift_s=0.03,
+        rot_y_rad=0.05,
+        rot_x_rad=-0.04,
+        rot_s_rad_no_frame=0.03,
+        rot_s_rad=0.2,
+        rot_shift_anchor=0.7,
+    )
+    line = env.new_line(length=4, components=[env.place('b', at=2)])
+
+    if sliced:
+        line.cut_at_s(np.linspace(0, 4, 17))
+        name = 'b..3'
+    else:
+        name = 'b'
+
+    frame_columns = [
+        'XYZ_ref_start',
+        'E_ref_start',
+        'XYZ_ref_end',
+        'E_ref_end',
+        'XYZ_elem_start',
+        'E_elem_start',
+        'XYZ_elem_end',
+        'E_elem_end',
+    ]
+    position_frames = [
+        'ref_start',
+        'ref_end',
+        'elem_start',
+        'elem_end',
+    ]
+    coordinate_columns = [
+        f'{coordinate}_{frame}'
+        for frame in position_frames
+        for coordinate in 'XYZ'
+    ]
+    optional_columns = frame_columns + coordinate_columns
+
+    sv_default = line.survey()
+    for column in optional_columns:
+        assert column not in sv_default._col_names
+
+    sv = line.survey(include_element_frames=True)
+    for column in optional_columns:
+        assert column in sv._col_names
+    for column in ('E_rst_start', 'E_rst_end'):
+        assert column not in sv._col_names
+
+    n_rows = len(sv.name)
+    assert sv.XYZ_ref_start.shape == (n_rows, 3)
+    assert sv.E_ref_start.shape == (n_rows, 3, 3)
+
+    xo.assert_allclose(sv.XYZ_ref_start, sv.XYZ, atol=0, rtol=0)
+    xo.assert_allclose(sv.E_ref_start, sv.E_matrix, atol=0, rtol=0)
+    xo.assert_allclose(sv.XYZ_ref_end[:-1], sv.XYZ[1:], atol=0, rtol=0)
+    xo.assert_allclose(
+        sv.E_ref_end[:-1], sv.E_matrix[1:], atol=0, rtol=0)
+    xo.assert_allclose(sv.XYZ_ref_end[-1], sv.XYZ[-1], atol=0, rtol=0)
+    xo.assert_allclose(
+        sv.E_ref_end[-1], sv.E_matrix[-1], atol=0, rtol=0)
+
+    for frame in position_frames:
+        XYZ_frame = sv[f'XYZ_{frame}']
+        for ii, coordinate in enumerate('XYZ'):
+            xo.assert_allclose(
+                sv[f'{coordinate}_{frame}'],
+                XYZ_frame[:, ii],
+                atol=0,
+                rtol=0,
+            )
+    elem = line[name]
+    if getattr(elem, 'rot_and_shift_from_parent', False):
+        source = elem._parent
+        weight = elem.weight
+    else:
+        source = elem
+        weight = 1.0
+
+    expected_frame = xt.Frame.from_survey(
+        sv['XYZ_elem_start', name], sv['E_elem_start', name])
+    expected_frame.arc_x(
+        length=source.length * weight,
+        angle=source.angle * weight,
+    )
+    xo.assert_allclose(
+        sv['XYZ_elem_end', name], expected_frame.XYZ, atol=1e-14, rtol=0)
+    xo.assert_allclose(
+        sv['E_elem_end', name], expected_frame.E_matrix,
+        atol=1e-14, rtol=0)
+
+    sv_reverse = sv.reverse()
+    for column in optional_columns:
+        assert column in sv_reverse._col_names
+    xo.assert_allclose(
+        sv_reverse.XYZ_ref_end[:-1],
+        sv_reverse.XYZ_ref_start[1:],
+        atol=0,
+        rtol=0,
+    )
+    for frame in position_frames:
+        XYZ_frame = sv_reverse[f'XYZ_{frame}']
+        for ii, coordinate in enumerate('XYZ'):
+            xo.assert_allclose(
+                sv_reverse[f'{coordinate}_{frame}'],
+                XYZ_frame[:, ii],
+                atol=0,
+                rtol=0,
+            )
+
+
+def test_survey_element_frame_hook(monkeypatch):
+    calls = []
+
+    def _survey_start_end_elem(
+            self,
+            XYZ_ref_start,
+            E_ref_start,
+            XYZ_ref_end,
+            E_ref_end,
+    ):
+        calls.append((
+            XYZ_ref_start,
+            E_ref_start,
+            XYZ_ref_end,
+            E_ref_end,
+        ))
+        return (
+            XYZ_ref_start + np.array([1.0, 0.0, 0.0]),
+            E_ref_start,
+            XYZ_ref_end + np.array([2.0, 0.0, 0.0]),
+            E_ref_end,
+        )
+
+    monkeypatch.setattr(
+        xt.Marker,
+        '_survey_start_end_elem',
+        _survey_start_end_elem,
+        raising=False,
+    )
+
+    line = xt.Line(elements=[xt.Marker()])
+    sv = line.survey(include_element_frames=True)
+
+    assert len(calls) == 1
+    xo.assert_allclose(
+        sv.XYZ_elem_start[0], sv.XYZ_ref_start[0] + [1, 0, 0])
+    xo.assert_allclose(
+        sv.XYZ_elem_end[0], sv.XYZ_ref_end[0] + [2, 0, 0])
+
+
+def test_survey_rbend_straight_body_element_frames():
+    from xtrack.survey.misalignment_survey import (
+        get_misaligned_element_survey,
+    )
+
+    rbend = xt.RBend(
+        length_straight=2.0,
+        angle=np.deg2rad(20),
+        rbend_angle_diff=0.04,
+        rbend_shift=0.03,
+        rbend_compensate_sagitta=False,
+        rbend_model='straight-body',
+        shift_x=0.01,
+        shift_y=-0.02,
+        shift_s=0.03,
+        rot_x_rad=-0.04,
+        rot_y_rad=0.05,
+        rot_s_rad_no_frame=0.03,
+        rot_s_rad=0.2,
+        rot_shift_anchor=0.7,
+    )
+    line = xt.Line(
+        elements={'rbend': rbend},
+        element_names=['rbend'],
+    )
+
+    sv = line.survey(include_element_frames=True)
+
+    (
+        expected_start,
+        expected_start_matrix,
+        expected_end,
+        expected_end_matrix,
+    ) = get_misaligned_element_survey(
+        rbend,
+        sv.XYZ_ref_start[0],
+        sv.E_ref_start[0],
+        sv.XYZ_ref_end[0],
+        sv.E_ref_end[0],
+    )
+    expected_start_frame = xt.Frame.from_survey(
+        expected_start, expected_start_matrix)
+    expected_start_frame.arc_x(angle=rbend._angle_in)
+    expected_start_frame.translate_x(-rbend._x0_in)
+    expected_end_frame = xt.Frame.from_survey(
+        expected_end, expected_end_matrix)
+    expected_end_frame.arc_x(angle=-rbend._angle_out)
+    expected_end_frame.translate_x(-rbend._x0_out)
+
+    xo.assert_allclose(
+        sv.XYZ_elem_start[0], expected_start_frame.XYZ,
+        atol=1e-14, rtol=0)
+    xo.assert_allclose(
+        sv.E_elem_start[0], expected_start_frame.E_matrix,
+        atol=1e-14, rtol=0)
+    xo.assert_allclose(
+        sv.XYZ_elem_end[0], expected_end_frame.XYZ,
+        atol=1e-14, rtol=0)
+    xo.assert_allclose(
+        sv.E_elem_end[0], expected_end_frame.E_matrix,
+        atol=1e-14, rtol=0)
+
+    element_axis = sv.E_elem_start[0, :, 2]
+    xo.assert_allclose(
+        sv.XYZ_elem_end[0] - sv.XYZ_elem_start[0],
+        rbend.length_straight * element_axis,
+        atol=1e-14,
+        rtol=0,
+    )
+    xo.assert_allclose(
+        sv.E_elem_end[0], sv.E_elem_start[0], atol=1e-14, rtol=0)
+
+    line_sliced = line.copy(shallow=True)
+    line_sliced.cut_at_s(np.linspace(0, rbend.length, 9))
+    sv_sliced = line_sliced.survey(include_element_frames=True)
+
+    entry = 'rbend..entry_map'
+    exit_ = 'rbend..exit_map'
+    body_slices = [
+        nn for nn in line_sliced.element_names
+        if nn.startswith('rbend..') and nn not in (entry, exit_)
+    ]
+    first_body_slice = body_slices[0]
+    last_body_slice = body_slices[-1]
+
+    xo.assert_allclose(
+        sv_sliced['XYZ_elem_start', entry],
+        sv_sliced['XYZ_elem_end', entry],
+        atol=1e-14,
+        rtol=0,
+    )
+    xo.assert_allclose(
+        sv_sliced['XYZ_elem_end', entry],
+        sv_sliced['XYZ_elem_start', first_body_slice],
+        atol=1e-14,
+        rtol=0,
+    )
+    xo.assert_allclose(
+        sv_sliced['E_elem_start', entry],
+        sv_sliced['E_elem_end', entry],
+        atol=1e-14,
+        rtol=0,
+    )
+    xo.assert_allclose(
+        sv_sliced['E_elem_end', entry],
+        sv_sliced['E_elem_start', first_body_slice],
+        atol=1e-14,
+        rtol=0,
+    )
+    xo.assert_allclose(
+        sv_sliced['XYZ_elem_start', exit_],
+        sv_sliced['XYZ_elem_end', exit_],
+        atol=1e-14,
+        rtol=0,
+    )
+    xo.assert_allclose(
+        sv_sliced['XYZ_elem_start', exit_],
+        sv_sliced['XYZ_elem_end', last_body_slice],
+        atol=1e-14,
+        rtol=0,
+    )
+    xo.assert_allclose(
+        sv_sliced['E_elem_start', exit_],
+        sv_sliced['E_elem_end', exit_],
+        atol=1e-14,
+        rtol=0,
+    )
+    xo.assert_allclose(
+        sv_sliced['E_elem_start', exit_],
+        sv_sliced['E_elem_end', last_body_slice],
+        atol=1e-14,
+        rtol=0,
+    )
+
+
 @for_all_test_contexts
 @pytest.mark.parametrize(
     'slice_mode',
@@ -218,6 +514,21 @@ def test_survey_with_ref_transformations():
 
     xo.assert_allclose(p_mid_no_init[:, 0], 1e-3, atol=1e-14)
     xo.assert_allclose(p_mid_no_init[:, 1], 2e-3, atol=1e-14)
+
+
+def test_survey_translation_shift_s_does_not_advance_s():
+    translation = xt.Translation(
+        shift_x=0.1, shift_y=-0.2, shift_s=0.3)
+    line = xt.Line(elements=[translation])
+
+    survey = line.survey()
+
+    assert_allclose(survey.XYZ[-1], [0.1, -0.2, 0.3], atol=1e-14)
+    assert_allclose(survey.s, [0, 0], atol=1e-14)
+
+    frame = survey.get_frame(-1)
+    xt.track_frame(frame, translation, backtrack=True)
+    assert_allclose(frame.XYZ, [0, 0, 0], atol=1e-14)
 
 def test_survey_prototype():
 
@@ -440,7 +751,7 @@ def test_survey_transforms_native_loader(sandbox_cwd):
         on_srot = 1;
         pi = 3.14159265358979323846;
 
-        tr1: translation, dx=1e-2, dy=2e-2;
+        tr1: translation, dx=1e-2, dy=2e-2, ds=3e-2;
 
         rs2: srotation, angle=-1.04*on_srot;
 
