@@ -228,7 +228,7 @@ xo.assert_allclose(p_test.delta, p0.delta, atol=1e-15, rtol=0)
 
 # Bend
 mm.model = 'rot-kick-rot'
-mm.integrator = 'yoshida4'
+mm.integrator = 'yoshida6'
 mm.num_multipole_kicks = 15
 mm.length=2.0
 mm.h = 0.05
@@ -265,7 +265,7 @@ xo.assert_allclose(p_test.delta, p0.delta, atol=1e-15, rtol=0)
 
 # Bend auto no kicks
 mm.model = 'bend-kick-bend'
-mm.integrator = 'yoshida4'
+mm.integrator = 'yoshida6'
 mm.num_multipole_kicks = 0
 mm.h = 0.05
 mm.k1 = 0
@@ -301,7 +301,7 @@ xo.assert_allclose(p_test.delta, p0.delta, atol=1e-15, rtol=0)
 
 # Bend auto quad kick
 mm.model = 'bend-kick-bend'
-mm.integrator = 'yoshida4'
+mm.integrator = 'yoshida6'
 mm.num_multipole_kicks = 1
 mm.h = 0.05
 mm.k1 = 0.3
@@ -339,7 +339,7 @@ xo.assert_allclose(p_test.py, p0.py, atol=1e-15, rtol=0)
 xo.assert_allclose(p_test.delta, p0.delta, atol=1e-15, rtol=0)
 
 # Bend dip quad kick
-mm.integrator = 'yoshida4'
+mm.integrator = 'yoshida6'
 mm.num_multipole_kicks = 10
 mm.h = 0.1
 mm.k1 = 0.3
@@ -381,7 +381,7 @@ for model in ['bend-kick-bend', 'rot-kick-rot', 'expanded']:
     xo.assert_allclose(p_test.delta, p0.delta, atol=1e-15, rtol=0)
 
 # Bend dip quad kick with multipoles
-mm.integrator = 'yoshida4'
+mm.integrator = 'yoshida6'
 mm.num_multipole_kicks = 10
 mm.h = 0.1
 mm.k1 = 0.3

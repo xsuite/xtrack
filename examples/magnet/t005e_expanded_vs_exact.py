@@ -5,12 +5,12 @@ magnet = xt.Magnet(k0=0.002, h=0.002, k1=0.02, length=2)
 
 m_exact = magnet.copy()
 m_exact.model = 'bend-kick-bend'
-m_exact.integrator='yoshida4'
+m_exact.integrator='yoshida6'
 m_exact.num_multipole_kicks = 1000
 
 m_expanded = magnet.copy()
 m_expanded.model = 'mat-kick-mat'
-m_expanded.integrator='yoshida4'
+m_expanded.integrator='yoshida6'
 m_expanded.num_multipole_kicks = 1000
 
 p0 = xt.Particles(x=1e-3, y=2e-3, px=5e-6)

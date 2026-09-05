@@ -2665,7 +2665,7 @@ def test_configure_model():
 
     line.configure_bend_model(core='drift-kick-drift-exact', edge='dipole-only', integrator='teapot', num_multipole_kicks=4)
     line.configure_quadrupole_model(model='drift-kick-drift-expanded', edge='full', integrator='uniform', num_multipole_kicks=5)
-    line.configure_sextupole_model(model='drift-kick-drift-exact', edge='full', integrator='yoshida4', num_multipole_kicks=6)
+    line.configure_sextupole_model(model='drift-kick-drift-exact', edge='full', integrator='yoshida6', num_multipole_kicks=6)
     line.configure_octupole_model(model='mat-kick-mat', edge=None, integrator='uniform', num_multipole_kicks=7)
 
     assert line['b1'].model == 'drift-kick-drift-exact'
@@ -2691,7 +2691,7 @@ def test_configure_model():
     assert line['s1'].model == 'drift-kick-drift-exact'
     assert line['s1'].edge_entry_active == True
     assert line['s1'].edge_exit_active == True
-    assert line['s1'].integrator == 'yoshida4'
+    assert line['s1'].integrator == 'yoshida6'
     assert line['s1'].num_multipole_kicks == 6
 
     assert line['o1'].model == 'mat-kick-mat'

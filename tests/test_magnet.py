@@ -1,5 +1,6 @@
 import numpy as np
 import pytest
+import warnings
 
 import xtrack as xt
 import xobjects as xo
@@ -19,6 +20,49 @@ def make_particles(context):
         delta=1e-2,
         _context=context,
     )
+
+
+def test_yoshida_integrator_names_and_warning():
+    expected_indices = {
+        'adaptive': 0,
+        'yoshida6': 2,  # preserve the historical sixth-order behaviour
+        'uniform': 3,
+        'yoshida4': 4,
+        'yoshida8': 5,
+    }
+    for name, index in expected_indices.items():
+        if name == 'yoshida4':
+            with pytest.warns(UserWarning, match="select 'yoshida6'"):
+                magnet = Magnet(integrator=name)
+        else:
+            with warnings.catch_warnings():
+                warnings.simplefilter('error')
+                magnet = Magnet(integrator=name)
+        assert magnet.integrator == name
+        assert magnet._integrator == index
+
+
+@for_all_test_contexts
+def test_adaptive_integrator_keeps_historical_yoshida6(test_context):
+    kwargs = {
+        'length': 1.3,
+        'angle': 0.07,
+        'k1': 0.21,
+        'k2': -0.13,
+        'num_multipole_kicks': 7,
+        'model': 'bend-kick-bend',
+        '_context': test_context,
+    }
+    adaptive = Magnet(integrator='adaptive', **kwargs)
+    yoshida6 = Magnet(integrator='yoshida6', **kwargs)
+    p_adaptive = make_particles(test_context)
+    p_yoshida6 = p_adaptive.copy()
+    adaptive.track(p_adaptive)
+    yoshida6.track(p_yoshida6)
+    for coordinate in ('x', 'px', 'y', 'py', 'zeta', 'delta', 's'):
+        xo.assert_allclose(
+            getattr(p_adaptive, coordinate),
+            getattr(p_yoshida6, coordinate), rtol=0, atol=0)
 
 
 @for_all_test_contexts
@@ -381,7 +425,7 @@ def test_magnet_curved_quad(test_context):
         angle=0.05 * 2.0,
         k1=-0.3,
         num_multipole_kicks=15,
-        integrator='yoshida4',
+        integrator='yoshida6',
         model='rot-kick-rot',
         _context=test_context,
     )
@@ -436,7 +480,7 @@ def test_magnet_bend_auto_no_kicks(test_context):
         k0=0,
         k1=0,
         model='bend-kick-bend',
-        integrator='yoshida4',
+        integrator='yoshida6',
         num_multipole_kicks=0,
         _context=test_context,
     )
@@ -487,7 +531,7 @@ def test_magnet_bend_auto_quad_kick(test_context):
     magnet = Magnet(
         length=2.0,
         model='bend-kick-bend',
-        integrator='yoshida4',
+        integrator='yoshida6',
         num_multipole_kicks=1,
         angle=0.05 * 2.0,
         k0=0,
@@ -548,7 +592,7 @@ def test_magnet_bend_dip_quad_kick(model, test_context):
         k0=0.2,
         k1=0.3,
         angle=0.1 * 2.0,
-        integrator='yoshida4',
+        integrator='yoshida6',
         num_multipole_kicks=10,
         _context=test_context,
     )
@@ -617,7 +661,7 @@ def test_magnet_bend_dip_quad_kick_with_multipoles(model, test_context):
         knl=[0.1, 0.2, 0.3, 0.4, 0.5, 0.6],
         ksl=[0.6, 0.5, 0.4, 0.15, 0.2, 0.1],
         num_multipole_kicks=10,
-        integrator='yoshida4',
+        integrator='yoshida6',
         _context=test_context,
     )
 
@@ -1594,7 +1638,7 @@ def test_magnet_and_edge_octupole_nonlinear_fringes(test_context):
 def test_bend_convergence_on_axis():
 
     bb = xt.Bend(k0=0.001, angle=0.001*2.0, length=2.0)
-    bb.integrator = 'yoshida4'
+    bb.integrator = 'yoshida6'
     bb.num_multipole_kicks = 20
 
     p0 = xt.Particles(x=0.0, y=0.0, delta=[0, 1e-3])
@@ -1682,7 +1726,7 @@ def test_convergence_mat_kick_mat():
 
     m_yoshida = magnet.copy()
     m_yoshida.model = 'drift-kick-drift-expanded'
-    m_yoshida.integrator='yoshida4'
+    m_yoshida.integrator='yoshida6'
     m_yoshida.num_multipole_kicks = 500
 
     p_ref = p0.copy()
@@ -1724,7 +1768,7 @@ def test_convergence_rot_kick_rot(model_to_test):
                     k1s=0.01, k2s=0.005, k3s=0.05,
                     knl=[0.003, 0.001, 0.01, 0.02, 4., 6e2, 7e6],
                     ksl=[-0.005, 0.002, -0.02, 0.03, -2, 700., 4e6])
-    magnet.integrator = 'yoshida4'
+    magnet.integrator = 'yoshida6'
     magnet.num_multipole_kicks = 50
 
     p0 = xt.Particles(x=1e-2, y=2e-2, py=1e-3, delta=3e-2)
@@ -1746,7 +1790,7 @@ def test_convergence_rot_kick_rot(model_to_test):
 
     m_yoshida = magnet.copy()
     m_yoshida.model = model_to_test
-    m_yoshida.integrator='yoshida4'
+    m_yoshida.integrator='yoshida6'
     m_yoshida.num_multipole_kicks = 100
 
     p_ref = p0.copy()
@@ -1787,7 +1831,7 @@ def test_convergence_drift_kick_drift_exact():
                     k1s=0.01, k2s=0.005, k3s=0.05,
                     knl=[0.003, 0.001, 0.01, 0.02, 4., 6e2, 7e6],
                     ksl=[-0.005, 0.002, -0.02, 0.03, -2, 700., 4e6])
-    magnet.integrator = 'yoshida4'
+    magnet.integrator = 'yoshida6'
     magnet.num_multipole_kicks = 100
 
     p0 = xt.Particles(x=1e-2, y=2e-2, py=1e-3, delta=3e-2)
@@ -1809,7 +1853,7 @@ def test_convergence_drift_kick_drift_exact():
 
     m_yoshida = magnet.copy()
     m_yoshida.model = model_to_test
-    m_yoshida.integrator='yoshida4'
+    m_yoshida.integrator='yoshida6'
     m_yoshida.num_multipole_kicks = 100
 
 
@@ -1850,12 +1894,12 @@ def test_bend_expanded_exact_small_px():
 
     m_exact = magnet.copy()
     m_exact.model = 'bend-kick-bend'
-    m_exact.integrator='yoshida4'
+    m_exact.integrator='yoshida6'
     m_exact.num_multipole_kicks = 1000
 
     m_expanded = magnet.copy()
     m_expanded.model = 'mat-kick-mat'
-    m_expanded.integrator='yoshida4'
+    m_expanded.integrator='yoshida6'
     m_expanded.num_multipole_kicks = 1000
 
     p0 = xt.Particles(x=1e-3, y=2e-3, px=5e-6)

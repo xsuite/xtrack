@@ -25,7 +25,7 @@ class Magnet(_BendCommon, BeamElement):
     parameters can be used to specify the integration scheme and drift model to
     be used in the kick-splitting scheme. Default value is ``adaptive`` for
     both, which aims to provide best results in the general case (``rot-kick-rot``
-    using the polar/exact, drift depending on h, for the model, and ``yoshida4``
+    using the polar/exact drift depending on h for the model, and ``yoshida6``
     for the integration scheme).
 
     Parameters
@@ -87,11 +87,14 @@ class Magnet(_BendCommon, BeamElement):
     integrator : str, optional
         Integration scheme to be used. The options are:
 
-            - ``adaptive``: default option, same as ``yoshida4``.
+            - ``adaptive``: default option, same as ``yoshida6``.
             - ``teapot``: use the Teapot integration scheme.
-            - ``yoshida4``: use the Yoshida 4 integration scheme. The number of
-                kicks will be implicitly rounded up to the nearest multiple of 7,
-                as required by the scheme.
+            - ``yoshida4``, ``yoshida6``, ``yoshida8``: use the
+                corresponding even-order Yoshida scheme. The number of kicks is
+                rounded up to a complete 1, 3, 7, or 15-kick slice. Selecting
+                ``yoshida4`` warns because older xtrack versions mislabeled the
+                sixth-order scheme with this name; use ``yoshida6`` to retain
+                that historical accuracy.
             - ``uniform``: slice uniformly.
 
         The integration scheme setting will be ignored if the length is zero, or

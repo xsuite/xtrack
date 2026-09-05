@@ -28,7 +28,7 @@ m_teapot.num_multipole_kicks = 50000
 
 m_yoshida = magnet.copy()
 m_yoshida.model = 'drift-kick-drift-expanded'
-m_yoshida.integrator='yoshida4'
+m_yoshida.integrator='yoshida6'
 m_yoshida.num_multipole_kicks = 500
 
 p_ref = p0.copy()

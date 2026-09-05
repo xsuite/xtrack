@@ -28,7 +28,7 @@ tt_bend = tt.rows[tt.element_type == 'Bend']
 tt_quad = tt.rows[tt.element_type == 'Quadrupole']
 for nn in tt_bend.name:
     line.get(nn).model = 'mat-kick-mat'
-    line.get(nn).integrator = 'yoshida4'
+    line.get(nn).integrator = 'yoshida6'
     line[nn].num_multipole_kicks = 20
 # # for nn in tt_quad.name:
 # #     line[nn].radiation_flag = 0

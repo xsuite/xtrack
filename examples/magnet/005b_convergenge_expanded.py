@@ -26,7 +26,7 @@ m_teapot.integrator='teapot'
 
 m_yoshida = magnet.copy()
 m_yoshida.model = 'drift-kick-drift-expanded'
-m_yoshida.integrator='yoshida4'
+m_yoshida.integrator='yoshida6'
 
 num_kicks = [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000,
              100000, 200000, 500000]

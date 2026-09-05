@@ -6,7 +6,7 @@ magnet = xt.Magnet(k0=0.02, h=0., k1=0.01, length=2.,
                    k1s=0.01, k2s=0.005, k3s=0.05,
                    knl=[0.003, 0.001, 0.01, 0.02, 4., 6e2, 7e6],
                    ksl=[-0.005, 0.002, -0.02, 0.03, -2, 700., 4e6])
-magnet.integrator = 'yoshida4'
+magnet.integrator = 'yoshida6'
 magnet.num_multipole_kicks = 100
 
 p0 = xt.Particles(x=1e-2, y=2e-2, py=1e-3, delta=3e-2)
@@ -29,7 +29,7 @@ m_teapot.integrator='teapot'
 
 m_yoshida = magnet.copy()
 m_yoshida.model = model_to_test
-m_yoshida.integrator='yoshida4'
+m_yoshida.integrator='yoshida6'
 
 num_kicks = [1, 2, 5, 10, 20, 50, 100, 200, 500,
              1000, 2000, 5000, 10000, 20000, 50000, 100000]

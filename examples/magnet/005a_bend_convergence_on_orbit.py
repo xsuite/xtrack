@@ -2,7 +2,7 @@ import xtrack as xt
 import xobjects as xo
 
 bb = xt.Bend(k0=0.001, h=0.001, length=2)
-bb.integrator = 'yoshida4'
+bb.integrator = 'yoshida6'
 bb.num_multipole_kicks = 20
 
 p0 = xt.Particles(x=0.0, y=0.0, delta=[0, 1e-3])

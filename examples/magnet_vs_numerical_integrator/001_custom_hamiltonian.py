@@ -51,7 +51,7 @@ bb.edge_entry_active = False
 bb.edge_exit_active = False
 
 bb.num_multipole_kicks = 100
-bb.integrator = 'yoshida4'
+bb.integrator = 'yoshida6'
 
 bb.model =  'bend-kick-bend'
 bb.model =  'mat-kick-mat'

@@ -4559,7 +4559,7 @@ class Line:
             Number of multipole kicks to consider.
         integrator: str
             Integration scheme to be used. Can be 'adaptive', 'teapot',
-            'yoshida4', or 'uniform'.
+            'yoshida4', 'yoshida6', 'yoshida8', or 'uniform'.
         """
 
         self._method_incompatible_with_compose()
@@ -4605,7 +4605,7 @@ class Line:
             Number of multipole kicks to consider.
         integrator: str
             Integration scheme to be used. Can be 'adaptive', 'teapot',
-            'yoshida4', or 'uniform'.
+            'yoshida4', 'yoshida6', 'yoshida8', or 'uniform'.
         """
 
         self._method_incompatible_with_compose()

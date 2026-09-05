@@ -59,7 +59,7 @@ env = xt.Environment()
 line = env.new_line(components=[
     env.new('b', 'Bend', length=length, angle=angle, knl=knl,
             model=xsuite_models[0],
-            integrator='yoshida4', # is actually yoshida6
+            integrator='yoshida6', # is actually yoshida6
             num_multipole_kicks=1)
 ])
 

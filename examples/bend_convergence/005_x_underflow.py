@@ -10,7 +10,7 @@ env = xt.Environment()
 line = env.new_line(components=[
     env.new('b', 'Bend', length=length, angle=angle,
             model='bend-kick-bend',
-            integrator='yoshida4', # is actually yoshida6
+            integrator='yoshida6', # is actually yoshida6
             num_multipole_kicks=1)
 ])
 line.set_particle_ref('positron', energy0=1e9)

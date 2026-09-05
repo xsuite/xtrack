@@ -9,7 +9,7 @@ line.set_particle_ref('proton', kinetic_energy0=500e6)
 tt = line.get_table()
 tt_bend = tt.rows[tt.element_type == 'Bend']
 
-env.set(tt_bend, model='rot-kick-rot', integrator='yoshida4',
+env.set(tt_bend, model='rot-kick-rot', integrator='yoshida6',
         num_multipole_kicks=20)
 
 tw4d = line.twiss4d()
