@@ -35,6 +35,7 @@ _INDEX_TO_MODEL_CURVED = {
     6: 'drift-kick-drift-expanded',
     7: 'rot-kick-rot-low-order',
     8: 'rot-kick-rot-high-order',
+    10: 'mat-kick-mat-exact',
 }
 
 _MODEL_TO_INDEX_CURVED = {k: v for v, k in _INDEX_TO_MODEL_CURVED.items()} | {'expanded': 4}
@@ -73,6 +74,8 @@ _INDEX_TO_MODEL_RF = _INDEX_TO_MODEL_STRAIGHT.copy()
 _INDEX_TO_MODEL_RF.pop(1)
 
 _INDEX_TO_MODEL_RF.pop(4)
+
+_INDEX_TO_MODEL_RF.pop(10)
 
 _MODEL_TO_INDEX_RF = {k: v for v, k in _INDEX_TO_MODEL_RF.items()}
 

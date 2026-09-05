@@ -32,6 +32,36 @@ void kick_simple_single_particle(
 
 
 GPUFUN
+void track_magnet_kick_path_correction_transverse_single_particle(
+    LocalParticle* part, double length
+) {
+    // The x/y-only half of the TKT path correction (see
+    // track_magnet_kick_path_correction_single_particle in the
+    // quad-kick-quad branch), used by mat-kick-mat-exact (drift_model == 10,
+    // guaranteed h == 0). Its thick map
+    // (track_expanded_combined_dipole_quad_single_particle) already keeps
+    // 1/(1 + delta) in its transverse harmonic solution but transports x, y
+    // with the paraxial px*length/P just like TKT's does, so this correction
+    // between the exact and paraxial path is needed and valid here too. Its
+    // zeta, however, is not corrected the same way: the thick map's own zeta
+    // advance already carries an expanded-convention path-length estimate
+    // (matching the exact one to O(px^2+py^2)), so correcting it again here
+    // would double-count that leading term.
+    if (length == 0.0) return;
+    const double px = LocalParticle_get_px(part);
+    const double py = LocalParticle_get_py(part);
+    const double one_plus_delta = 1.0 + LocalParticle_get_delta(part);
+    const double inv_p = LocalParticle_get_rpp(part);  // == 1/(1 + delta)
+    const double p_perp2 = px * px + py * py;
+    const double one_over_pz = 1.0 / sqrt(one_plus_delta * one_plus_delta - p_perp2);
+    const double d_length = length * (one_over_pz - inv_p);
+
+    LocalParticle_add_to_x(part, px * d_length);
+    LocalParticle_add_to_y(part, py * d_length);
+}
+
+
+GPUFUN
 void track_magnet_kick_single_particle(
     LocalParticle* part,
     double length,
@@ -58,12 +88,36 @@ void track_magnet_kick_single_particle(
     double hxl,
     xt_float_or_tpsa_arg k0_h_correction,
     xt_float_or_tpsa_arg k1_h_correction,
-    uint8_t rot_frame
+    uint8_t rot_frame,
+    int8_t drift_model,
+    uint8_t kick_is_empty
 ){
+
+    double const length_of_this_kick = length * kick_weight;
+
+    if (kick_is_empty) {
+        // Every field this function would apply is exactly zero (the caller
+        // checked), so the multipole kicks and the curvature corrections
+        // below are all no-ops and are skipped outright.
+        //
+        // For mat-kick-mat-exact that leaves nothing between the two path
+        // corrections, and the correction is a momentum-only map, so
+        // B(l/2) B(l/2) = B(l) and a single call does the job.
+        if (drift_model == 10) {
+            track_magnet_kick_path_correction_transverse_single_particle(
+                part, length_of_this_kick);
+        }
+        return;
+    }
 
     double const chi = LocalParticle_get_chi(part);
     xt_float_or_tpsa const x = LocalParticle_get_x(part);
     xt_float_or_tpsa const y = LocalParticle_get_y(part);
+
+    if (drift_model == 10) {
+        track_magnet_kick_path_correction_transverse_single_particle(
+            part, 0.5 * length_of_this_kick);
+    }
 
     // Staging arrays scaled by length; brace-init avoids default-constructing
     // the non-default-constructible xt_float_or_tpsa (tpsa) elements.
@@ -149,6 +203,11 @@ void track_magnet_kick_single_particle(
     LocalParticle_add_to_px(part, dpx);
     LocalParticle_add_to_py(part, dpy);
     LocalParticle_add_to_zeta(part, dzeta);
+
+    if (drift_model == 10) {
+        track_magnet_kick_path_correction_transverse_single_particle(
+            part, 0.5 * length_of_this_kick);
+    }
 
 }
 

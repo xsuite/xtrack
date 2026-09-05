@@ -40,6 +40,7 @@ void track_magnet_body_single_particle(
     const int64_t num_multipole_kicks,
     const int8_t kick_rot_frame,
     const int8_t drift_model,
+    const uint8_t kick_is_empty,
     const int8_t integrator,
     xt_float_or_tpsa_arg k0_drift,
     xt_float_or_tpsa_arg k1_drift,
@@ -75,7 +76,8 @@ void track_magnet_body_single_particle(
             order_rel, inv_factorial_order_rel, knl_rel, ksl_rel, rel_ref_strength,\
             factor_knl_ksl, (weight),\
             k0_kick, k1_kick, k2, k3, k0s, k1s, k2s, k3s, h_kick,\
-            hxl, k0_h_correction, k1_h_correction, kick_rot_frame\
+            hxl, k0_h_correction, k1_h_correction, kick_rot_frame,\
+            drift_model, kick_is_empty\
         )
 
     #define MAGNET_DRIFT(part, dlength) \
@@ -508,6 +510,19 @@ void track_magnet_particles(
             &drift_model
         );
 
+        /* True when the kick has no field left to apply at all: every
+         * multipole and curvature correction it would compute is exactly
+         * zero. Thick models routinely leave the kick empty -- in
+         * mat-kick-mat-exact the exact path correction is applied instead;
+         * see track_magnet_kick_single_particle. */
+        uint8_t const kick_is_empty = (hxl == 0.0)
+            && kick_is_inactive(
+                order, knl, ksl,
+                k0_kick, k1_kick, k2, k3, k0s, k1s, k2s, k3s, h_kick)
+            && kick_is_inactive(
+                order_rel, knl_rel, ksl_rel,
+                0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+
         double dp_record_exit, dpx_record_exit, dpy_record_exit;
 
         START_PER_PARTICLE_BLOCK(part0, part);
@@ -516,7 +531,8 @@ void track_magnet_particles(
                 knl, ksl,
                 order_rel, inv_factorial_order_rel, knl_rel, ksl_rel, rel_ref_strength,
                 factor_knl_ksl_body,
-                num_multipole_kicks, kick_rot_frame, drift_model, integrator,
+                num_multipole_kicks, kick_rot_frame, drift_model,
+                kick_is_empty, integrator,
                 k0_drift, k1_drift, ks_drift, h_drift,
                 k0_kick, k1_kick, h_kick, hxl,
                 k0_h_correction, k1_h_correction,
