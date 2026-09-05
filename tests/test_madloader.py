@@ -342,6 +342,30 @@ def test_srotation():
     assert line[1].rot_s_rad == line.vars['angle']._value
 
 
+def test_translation_shift_s():
+    mad = Madx(stdout=False)
+
+    mad.input("""
+    longitudinal_shift = 0.2;
+    tr: translation, dx=0.01, dy=-0.02, ds:=longitudinal_shift;
+
+    ss: sequence, l=1; tr: tr, at=0; endsequence;
+
+    beam; use, sequence=ss;
+    """)
+
+    line = MadLoader(
+        mad.sequence.ss, enable_expressions=True).make_line()
+
+    assert isinstance(line['tr'], xt.Translation)
+    assert line['tr'].shift_x == 0.01
+    assert line['tr'].shift_y == -0.02
+    assert line['tr'].shift_s == line.vars['longitudinal_shift']._value
+
+    line.vars['longitudinal_shift'] = -0.4
+    assert line['tr'].shift_s == -0.4
+
+
 def test_thick_kicker_option():
     mad = Madx(stdout=False)
 

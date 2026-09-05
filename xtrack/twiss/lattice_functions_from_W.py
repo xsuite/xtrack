@@ -80,6 +80,35 @@ def _get_lattice_functions(Ws, use_full_inverse, s_co):
     gamx1 = gamx
     gamy2 = gamy
 
+    # Edwards-Teng modal Twiss parameters and matrix-equivalent coupling RDTs
+    # obtained directly from the phase-gauged normal-form matrix W.
+    #
+    # The determinant of the principal horizontal Mais-Ripken block is g^4:
+    #   beta_x1 * gamma_x1 - alpha_x1**2 = g^4.
+    g_squared = np.sqrt(np.maximum(
+        betx1 * gamx1 - alfx1**2, 0.0))
+    g_edw_teng = np.sqrt(g_squared)
+
+    betx_edw_teng = betx1 / g_squared
+    alfx_edw_teng = alfx1 / g_squared
+    bety_edw_teng = bety2 / g_squared
+    alfy_edw_teng = alfy2 / g_squared
+
+    # Normalize the horizontal components of the complex mode-2 eigenvector.
+    # Its phase has already been fixed above by making its y component real
+    # and positive.
+    sqrt_betx_edw_teng = np.sqrt(betx_edw_teng)
+    ux = v2[:, 0] / sqrt_betx_edw_teng
+    upx = (
+        alfx_edw_teng * v2[:, 0]
+        + betx_edw_teng * v2[:, 1]
+    ) / sqrt_betx_edw_teng
+
+    f1001 = (upx + 1j * ux) / (4.0 * g_edw_teng)
+    f1010 = np.conj(upx - 1j * ux) / (4.0 * g_edw_teng)
+    f0110 = np.conj(f1001)
+    f0101 = np.conj(f1010)
+
     temp_phix = phix.copy()
     temp_phiy = phiy.copy()
     temp_phix[i_replace] = temp_phix[i_replace_with]
@@ -140,6 +169,15 @@ def _get_lattice_functions(Ws, use_full_inverse, s_co):
         'gamy1': gamy1,
         'gamx2': gamx2,
         'gamy2': gamy2,
+        'betx_edw_teng': betx_edw_teng,
+        'alfx_edw_teng': alfx_edw_teng,
+        'bety_edw_teng': bety_edw_teng,
+        'alfy_edw_teng': alfy_edw_teng,
+        'g_edw_teng': g_edw_teng,
+        'f1001': f1001,
+        'f1010': f1010,
+        'f0110': f0110,
+        'f0101': f0101,
         'mux': mux,
         'muy': muy,
         'muzeta': muzeta,

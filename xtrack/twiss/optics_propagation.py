@@ -248,10 +248,13 @@ def _propagate_twiss_from_init(
 
     if hide_thin_groups:
         _vars_hide_changes = [
-        'x', 'px', 'y', 'py', 'zeta', 'delta', 'ptau',
-        'betx', 'bety', 'alfx', 'alfy', 'gamx', 'gamy',
-        'betx1', 'bety1', 'betx2', 'bety2',
-        'dx', 'dpx', 'dy', 'dpy',
+            'x', 'px', 'y', 'py', 'zeta', 'delta', 'ptau',
+            'betx', 'bety', 'alfx', 'alfy', 'gamx', 'gamy',
+            'betx1', 'bety1', 'betx2', 'bety2',
+            'betx_edw_teng', 'bety_edw_teng',
+            'alfx_edw_teng', 'alfy_edw_teng', 'g_edw_teng',
+            'f1001', 'f1010', 'f0110', 'f0101',
+            'dx', 'dpx', 'dy', 'dpy',
         ]
 
         for key in _vars_hide_changes:

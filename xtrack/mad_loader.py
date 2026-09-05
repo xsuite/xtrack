@@ -1374,15 +1374,14 @@ class MadLoader:
     def convert_translation(self, ee):
         if self.bv == -1:
             raise NotImplementedError("Translation for bv=-1 are not yet supported.")
-        el_transverse = self.Assembler(
-            ee.name, self.classes.Translation, shift_x=ee.dx, shift_y=ee.dy
+        el_translation = self.Assembler(
+            ee.name, self.classes.Translation,
+            shift_x=ee.dx, shift_y=ee.dy, shift_s=ee.ds,
         )
-        if ee.ds:
-            raise NotImplementedError # Need to implement ShiftS element
         ee.dx = 0
         ee.dy = 0
         ee.ds = 0
-        return self.make_composite_element([el_transverse], ee)
+        return self.make_composite_element([el_translation], ee)
 
     def convert_nllens(self, mad_elem):
         if self.bv == -1:

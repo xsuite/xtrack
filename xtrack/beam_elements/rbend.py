@@ -271,6 +271,70 @@ class RBend(_BendCommon, BeamElement):
             out += 1 / self.h * (cos_theta_out - sqrt_mid)
         return out
 
+    def _survey_ref_start_to_body_start(self, XYZ, E):
+        from ..survey.frame import Frame
+
+        frame = Frame.from_survey(XYZ, E)
+        if self.rbend_model == 'straight-body':
+            frame.arc_x(angle=self._angle_in)
+            frame.translate_x(-self._x0_in)
+        else:
+            frame.arc_x(angle=self.angle / 2)
+        return frame.XYZ.copy(), frame.E_matrix.copy()
+
+    def _survey_ref_end_to_body_end(self, XYZ, E):
+        from ..survey.frame import Frame
+
+        frame = Frame.from_survey(XYZ, E)
+        if self.rbend_model == 'straight-body':
+            frame.arc_x(angle=-self._angle_out)
+            frame.translate_x(-self._x0_out)
+        else:
+            frame.arc_x(angle=-self.angle / 2)
+        return frame.XYZ.copy(), frame.E_matrix.copy()
+
+    def _survey_start_end_elem(
+            self,
+            XYZ_ref_start,
+            E_ref_start,
+            XYZ_ref_end,
+            E_ref_end,
+    ):
+        """Return the entrance and exit frames of the rectangular body."""
+        from ..survey.misalignment_survey import get_misaligned_element_survey
+
+        out = get_misaligned_element_survey(
+            self,
+            XYZ_ref_start,
+            E_ref_start,
+            XYZ_ref_end,
+            E_ref_end,
+        )
+
+        # if self.rbend_model != 'straight-body':
+        #     return out
+
+        (
+            XYZ_elem_start,
+            E_elem_start,
+            XYZ_elem_end,
+            E_elem_end,
+        ) = out
+
+        # Move from the curved reference-trajectory frames to the straight
+        # magnet-body frames. The outer element misalignment has already been
+        # applied, therefore these rotations and shifts are in the element's
+        # local frame and need no additional tilt.
+        XYZ_elem_start, E_elem_start = (
+            self._survey_ref_start_to_body_start(
+                XYZ_elem_start, E_elem_start)
+        )
+        XYZ_elem_end, E_elem_end = self._survey_ref_end_to_body_end(
+            XYZ_elem_end, E_elem_end,
+        )
+
+        return XYZ_elem_start, E_elem_start, XYZ_elem_end, E_elem_end
+
     @property
     def radiation_flag(self): return 0.0
 

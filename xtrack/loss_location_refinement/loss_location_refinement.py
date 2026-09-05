@@ -231,7 +231,9 @@ def check_for_active_shifts_and_rotations(line, i_aper_0, i_aper_1):
                 presence_shifts_rotations = True
                 break
         if ee.__class__ in [xt.Translation]:
-            if not np.allclose([ee.shift_x, ee.shift_y], 0, rtol=0, atol=1e-15):
+            if not np.allclose(
+                    [ee.shift_x, ee.shift_y, ee.shift_s],
+                    0, rtol=0, atol=1e-15):
                 presence_shifts_rotations = True
                 break
         if ee.__class__ is xt.XYShift:

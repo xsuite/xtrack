@@ -700,6 +700,8 @@ def test_twiss_range(test_context, cycle_to, line_name, check, init_at_edge, col
         s=2e-8,
         zeta=5e-5,
         alfx=1e-8, alfy=1e-8, alfx1=1e-8, alfy2=1e-8, alfx2=1e-6, alfy1=1e-6,
+        alfx_edw_teng=1e-8, alfy_edw_teng=1e-8,
+        f1001=1e-8, f1010=1e-8, f0110=1e-8, f0101=1e-8,
         dzeta=1e-4, dx=1e-4, dy=1e-4, dpx=1e-5, dpy=1e-5,
         nuzeta=1e-5, dx_zeta=1e-7, dy_zeta=1e-7, dpx_zeta=1e-8, dpy_zeta=1e-8,
         nux=1e-8, nuy=1e-8,
@@ -709,15 +711,26 @@ def test_twiss_range(test_context, cycle_to, line_name, check, init_at_edge, col
 
     rtols = dict(
         alfx=5e-9, alfy=5e-8, alfx1=5e-9, alfy2=5e-8, alfx2=5e-8, alfy1=5e-8,
+        alfx_edw_teng=5e-9, alfy_edw_teng=5e-8,
         betx=1e-8, bety=1e-8, betx1=1e-8, bety2=1e-8, betx2=1e-7, bety1=1e-7,
+        betx_edw_teng=1e-8, bety_edw_teng=1e-8,
+        g_edw_teng=1e-8,
+        f1001=5e-8, f1010=5e-8, f0110=5e-8, f0101=5e-8,
         gamx=5e-9, gamy=5e-9, gamx1=5e-9, gamy2=5e-9, gamx2=1e-7, gamy1=1e-7,
     )
 
     if loop_around or not init_at_edge:
         rtols['betx'] = 2e-5
         rtols['bety'] = 2e-5
+        rtols['betx_edw_teng'] = 2e-5
+        rtols['bety_edw_teng'] = 2e-5
+        rtols['g_edw_teng'] = 2e-5
+        rtols['f1001'] = rtols['f0110'] = 2e-5
+        rtols['f1010'] = rtols['f0101'] = 2e-5
         rtols['alfx'] = rtols['alfx1'] = 4e-5
         rtols['alfy'] = rtols['alfy2'] = 4e-5
+        rtols['alfx_edw_teng'] = 4e-5
+        rtols['alfy_edw_teng'] = 4e-5
         rtols['gamx'] = 2e-5
         rtols['gamy'] = 2e-5
         rtols['betx1'] = 2e-5
@@ -733,6 +746,8 @@ def test_twiss_range(test_context, cycle_to, line_name, check, init_at_edge, col
 
         atols['alfy'] = atols['alfy2'] = 4e-5
         atols['alfx'] = atols['alfx1'] = 4e-5
+        atols['alfy_edw_teng'] = 4e-5
+        atols['alfx_edw_teng'] = 4e-5
         atols['mux'] = 1e-5
         atols['muy'] = 1e-5
         atols['nux'] = 1e-8
@@ -744,6 +759,12 @@ def test_twiss_range(test_context, cycle_to, line_name, check, init_at_edge, col
 
     atol_default = 1e-11
     rtol_default = 1e-9
+
+    if check.endswith('_kw'):
+        # Scalar Twiss initialization does not provide the coupled W matrix,
+        # therefore the coupling RDTs cannot be meaningfully compared here.
+        atols['f1001'] = atols['f1010'] = 100
+        atols['f0110'] = atols['f0101'] = 100
 
     line = collider[line_name]
 
