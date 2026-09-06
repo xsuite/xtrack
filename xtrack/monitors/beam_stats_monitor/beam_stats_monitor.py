@@ -2,6 +2,7 @@ import numpy as np
 import xobjects as xo
 
 from ...base_element import BeamElement
+from ..._filling_pattern import _FillingPattern
 from .covariance import (
     CANONICAL_COORDS as _CANONICAL_COORDS,
     COVARIANCE_OPTICS_STATS as _COVARIANCE_OPTICS_STATS,
@@ -145,8 +146,10 @@ class BeamStatsMonitor(BeamElement):
     `filling_pattern` or `filled_slots`. For example,
     `filling_pattern=[1, 0, 1, 1]` is equivalent to
     `filled_slots=[0, 2, 3]`. The `selected_slots` argument can be used to
-    record only a subset of the filled slots. A "slice" is a longitudinal
-    subdivision inside a bunch, or a full-turn subdivision in coasting mode.
+    record only a subset of the filled slots. Filling inputs are copied, and
+    the public `filled_slots` property returns a copy. A "slice" is a
+    longitudinal subdivision inside a bunch, or a full-turn subdivision in
+    coasting mode.
 
     All statistics are weighted by ``particles.weight``. The public
     ``num_particles`` quantity is therefore the sum of particle weights in each
@@ -298,12 +301,16 @@ class BeamStatsMonitor(BeamElement):
             self._output_file = None
             return
 
-        if filling_pattern is not None and filling_scheme is not None:
+        provided_slot_definitions = sum(value is not None for value in (
+            num_bunches, filling_pattern, filled_slots, filling_scheme))
+        if provided_slot_definitions > 1:
             raise ValueError(
-                'Only one of `filling_pattern` and `filling_scheme` can be '
-                'provided')
-        if filling_pattern is None:
-            filling_pattern = filling_scheme
+                'Only one of `num_bunches`, `filled_slots`, and '
+                '`filling_pattern` can be provided')
+        filling = _FillingPattern.from_inputs(
+            filling_pattern=filling_pattern,
+            filled_slots=filled_slots,
+            filling_scheme=filling_scheme)
 
         coasting = bool(coasting)
         if coasting and num_slices is None:
@@ -338,14 +345,12 @@ class BeamStatsMonitor(BeamElement):
         bunch_mode = (
             not slice_mode
             and not coasting
-            and (filled_slots is not None
-                 or filling_pattern is not None
+            and (filling is not None
                  or selected_slots is not None
                  or bunch_spacing_zeta is not None
                  or num_bunches_provided))
         if coasting and (
-                filled_slots is not None
-                or filling_pattern is not None
+                filling is not None
                 or selected_slots is not None
                 or bunch_spacing_zeta is not None
                 or num_bunches_provided):
@@ -358,30 +363,8 @@ class BeamStatsMonitor(BeamElement):
         elif slice_mode or bunch_mode:
             # Normalize the public filling inputs into physical filled slots
             # and selected slots. The output bunch axis follows selected_slots.
-            provided_slot_definitions = [
-                name for name, is_provided in (
-                    ('`num_bunches`', num_bunches_provided),
-                    ('`filled_slots`', filled_slots is not None),
-                    ('`filling_pattern`', filling_pattern is not None),
-                )
-                if is_provided]
-            if len(provided_slot_definitions) > 1:
-                raise ValueError(
-                    'Only one of `num_bunches`, `filled_slots`, and '
-                    '`filling_pattern` can be provided')
-            if filling_pattern is not None:
-                filling_pattern = np.asarray(filling_pattern)
-                if filling_pattern.ndim != 1:
-                    raise ValueError(
-                        '`filling_pattern` must be one-dimensional')
-                if not np.all(
-                        (filling_pattern == 0) | (filling_pattern == 1)):
-                    raise ValueError(
-                        '`filling_pattern` can contain only zero and one')
-                filling_pattern = filling_pattern.astype(np.int64)
-                filled_slots = np.nonzero(filling_pattern)[0].astype(np.int64)
-            elif filled_slots is not None:
-                filled_slots = np.asarray(filled_slots, dtype=np.int64)
+            if filling is not None:
+                filled_slots = filling.filled_slots
             elif num_bunches_provided:
                 filled_slots = np.arange(int(num_bunches), dtype=np.int64)
             else:
@@ -389,8 +372,6 @@ class BeamStatsMonitor(BeamElement):
 
             if len(filled_slots) == 0:
                 raise ValueError('At least one filled slot is required')
-            if len(np.unique(filled_slots)) != len(filled_slots):
-                raise ValueError('`filled_slots` cannot contain duplicates')
             if selected_slots is None:
                 selected_slots = filled_slots.copy()
             else:

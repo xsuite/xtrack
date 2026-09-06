@@ -29,6 +29,14 @@ def test_beam_stats_monitor_filling_scheme_compatibility_alias():
         xt.BeamStatsMonitor(
             filling_pattern=[1, 0, 2], bunch_spacing_zeta=5)
 
+    source_slots = np.array([2, 0], dtype=np.int64)
+    monitor = xt.BeamStatsMonitor(
+        filled_slots=source_slots, bunch_spacing_zeta=5)
+    source_slots[:] = 1
+    exposed_slots = monitor.filled_slots
+    exposed_slots[:] = 1
+    assert np.array_equal(monitor.filled_slots, [0, 2])
+
 
 def _to_numpy(test_context, array):
     return test_context.nparray_from_context_array(array)

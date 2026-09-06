@@ -2461,8 +2461,10 @@ class Environment:
             separation_bumps=separation_bumps)
 
     @doc_group("Upcoming deprecations")
-    def apply_filling_pattern(self, filling_pattern_cw, filling_pattern_acw,
-                              i_bunch_cw, i_bunch_acw):
+    def apply_filling_pattern(
+            self, filling_pattern_cw=None, filling_pattern_acw=None,
+            i_bunch_cw=None, i_bunch_acw=None, *,
+            filled_slots_cw=None, filled_slots_acw=None):
         """
         Deprecated alias for ``env.xfields.apply_filling_pattern(...)``.
 
@@ -2476,6 +2478,9 @@ class Environment:
             Filling pattern for the clockwise beam.
         filling_pattern_acw : array_like
             Filling pattern for the anticlockwise beam.
+        filled_slots_cw, filled_slots_acw : array_like, optional
+            Sparse filled physical slots for each beam. Mutually exclusive
+            with the corresponding filling pattern.
         i_bunch_cw : int
             Bunch index for the clockwise beam.
         i_bunch_acw : int
@@ -2490,11 +2495,16 @@ class Environment:
              'in a future version. Please use '
              '`Environment.xfields.apply_filling_pattern(...)` instead.',
              FutureWarning, stacklevel=2)
-        return self.xfields.apply_filling_pattern(
+        kwargs = dict(
             filling_pattern_cw=filling_pattern_cw,
             filling_pattern_acw=filling_pattern_acw,
             i_bunch_cw=i_bunch_cw,
             i_bunch_acw=i_bunch_acw)
+        if filled_slots_cw is not None or filled_slots_acw is not None:
+            kwargs.update(
+                filled_slots_cw=filled_slots_cw,
+                filled_slots_acw=filled_slots_acw)
+        return self.xfields.apply_filling_pattern(**kwargs)
 
 
 Environment.__doc_groups__ = _ENVIRONMENT_DOC_GROUP_COLLECTOR.collect(Environment)
