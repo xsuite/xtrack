@@ -66,7 +66,7 @@ import xpart as xp
 train0 = xp.generate_matched_gaussian_multibunch_beam(
     sigma_z=0.1, nemitt_x=0, nemitt_y=0, line=line,
     bunch_intensity_particles=1e11,
-    bunch_num_particles=500, filling_scheme=5*[1, 0, 0, 0, 0])
+    bunch_num_particles=500, filling_pattern=5*[1, 0, 0, 0, 0])
 line['on_rf2'] = 1.
 line['dfreq'] = dfreq_tmp
 

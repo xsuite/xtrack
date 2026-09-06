@@ -70,14 +70,14 @@ def test_multi_bunch_gaussian_generation(test_context, arc_type):
     bucket_length = circumference/h
     bunch_spacing_in_buckets = 10
     bunch_spacing = bunch_spacing_in_buckets * bucket_length
-    filling_scheme = np.zeros(int(np.amin(h)/bunch_spacing_in_buckets))
+    filling_pattern = np.zeros(int(np.amin(h)/bunch_spacing_in_buckets))
     n_bunches_tot = 10
-    filling_scheme[0:int(n_bunches_tot/2)] = 1
-    filling_scheme[n_bunches_tot:int(3*n_bunches_tot/2)] = 1
-    filled_slots = filling_scheme.nonzero()[0]
+    filling_pattern[0:int(n_bunches_tot/2)] = 1
+    filling_pattern[n_bunches_tot:int(3*n_bunches_tot/2)] = 1
+    filled_slots = filling_pattern.nonzero()[0]
     n_procs = 2
-    bunch_numbers_per_rank = xp.matched_gaussian.split_scheme(
-        filling_scheme=filling_scheme,
+    bunch_numbers_per_rank = xp.split_filling_pattern(
+        filling_pattern=filling_pattern,
         n_chunk=n_procs)
 
     if arc_type == 'arc_linear_fixed_qs':
@@ -119,7 +119,7 @@ def test_multi_bunch_gaussian_generation(test_context, arc_type):
     for rank in range(n_procs):
         part = xp.generate_matched_gaussian_multibunch_beam(
             _context=test_context,
-            filling_scheme=filling_scheme,
+            filling_pattern=filling_pattern,
             bunch_num_particles=n_part_per_bunch,
             bunch_intensity_particles=bunch_intensity,
             nemitt_x=nemitt_x, nemitt_y=nemitt_y, sigma_z=sigma_z,

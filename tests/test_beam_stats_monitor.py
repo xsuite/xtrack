@@ -15,6 +15,21 @@ test_data_folder = pathlib.Path(
     __file__).parent.joinpath('../test_data').absolute()
 
 
+def test_beam_stats_monitor_filling_scheme_compatibility_alias():
+    legacy = xt.BeamStatsMonitor(
+        filling_scheme=[1, 0, 1], bunch_spacing_zeta=5)
+    assert np.array_equal(legacy.filled_slots, [0, 2])
+
+    with pytest.raises(ValueError, match='Only one'):
+        xt.BeamStatsMonitor(
+            filling_pattern=[1, 0, 1], filling_scheme=[1, 0, 1],
+            bunch_spacing_zeta=5)
+
+    with pytest.raises(ValueError, match='only zero and one'):
+        xt.BeamStatsMonitor(
+            filling_pattern=[1, 0, 2], bunch_spacing_zeta=5)
+
+
 def _to_numpy(test_context, array):
     return test_context.nparray_from_context_array(array)
 
@@ -92,12 +107,12 @@ def test_beam_stats_monitor_example_bunch_by_bunch_end_to_end(
     bunch_intensity = 1e10
     line = _load_pimms_line_with_cavity(harmonic=num_slots)
     bunch_spacing_zeta = line.get_length() / num_slots
-    filling_scheme = np.ones(num_slots, dtype=int)
+    filling_pattern = np.ones(num_slots, dtype=int)
 
     monitor = xt.BeamStatsMonitor(
         start_at_turn=0,
         stop_at_turn=num_turns,
-        filling_scheme=filling_scheme,
+        filling_pattern=filling_pattern,
         bunch_spacing_zeta=bunch_spacing_zeta,
         stats=['num_particles', 'mean_x', 'mean_zeta', 'sigma_x'],
     )
@@ -108,7 +123,7 @@ def test_beam_stats_monitor_example_bunch_by_bunch_end_to_end(
     np.random.seed(12345)
     particles = line.xpart.generate_matched_gaussian_multibunch_beam(
         _context=test_context,
-        filling_scheme=filling_scheme,
+        filling_pattern=filling_pattern,
         bunch_num_particles=20,
         bunch_intensity_particles=bunch_intensity,
         nemitt_x=1e-8,
@@ -153,12 +168,12 @@ def test_beam_stats_monitor_example_slice_by_slice_end_to_end(
     zeta_range = (-5.0, 5.0)
     line = _load_pimms_line_with_cavity(harmonic=num_slots)
     bunch_spacing_zeta = line.get_length() / num_slots
-    filling_scheme = np.ones(num_slots, dtype=int)
+    filling_pattern = np.ones(num_slots, dtype=int)
 
     monitor = xt.BeamStatsMonitor(
         start_at_turn=0,
         stop_at_turn=num_turns,
-        filling_scheme=filling_scheme,
+        filling_pattern=filling_pattern,
         selected_slots=[0, 1],
         bunch_spacing_zeta=bunch_spacing_zeta,
         zeta_range=zeta_range,
@@ -172,7 +187,7 @@ def test_beam_stats_monitor_example_slice_by_slice_end_to_end(
     np.random.seed(12345)
     particles = line.xpart.generate_matched_gaussian_multibunch_beam(
         _context=test_context,
-        filling_scheme=filling_scheme,
+        filling_pattern=filling_pattern,
         bunch_num_particles=80,
         bunch_intensity_particles=bunch_intensity,
         nemitt_x=1e-12,
@@ -377,7 +392,7 @@ def test_beam_stats_monitor_bunch_stats(test_context):
         _context=test_context,
         start_at_turn=0,
         stop_at_turn=1,
-        filling_scheme=[1, 1],
+        filling_pattern=[1, 1],
         bunch_spacing_zeta=10.,
         stats=['num_particles', 'mean_x'],
     )
@@ -414,7 +429,7 @@ def test_beam_stats_monitor_charge_and_mass_ratio_stats(test_context):
         _context=test_context,
         start_at_turn=0,
         stop_at_turn=1,
-        filling_scheme=[1, 1],
+        filling_pattern=[1, 1],
         bunch_spacing_zeta=10.,
         stats=[
             'num_particles',
@@ -490,7 +505,7 @@ def test_beam_stats_monitor_particle_id_range_bunched_and_sliced(
         _context=test_context,
         start_at_turn=0,
         stop_at_turn=1,
-        filling_scheme=[1, 1],
+        filling_pattern=[1, 1],
         bunch_spacing_zeta=10.,
         particle_id_range=(2, 5),
         stats=['num_particles', 'mean_x'],
@@ -499,7 +514,7 @@ def test_beam_stats_monitor_particle_id_range_bunched_and_sliced(
         _context=test_context,
         start_at_turn=0,
         stop_at_turn=1,
-        filling_scheme=[1, 1],
+        filling_pattern=[1, 1],
         bunch_spacing_zeta=10.,
         zeta_range=(-0.5, 0.5),
         num_slices=2,
@@ -1041,7 +1056,7 @@ def test_beam_stats_monitor_rejects_multiple_slot_definitions():
             start_at_turn=0,
             stop_at_turn=1,
             num_bunches=2,
-            filling_scheme=[1, 1],
+            filling_pattern=[1, 1],
             stats=['num_particles'],
         )
 
@@ -1050,7 +1065,7 @@ def test_beam_stats_monitor_rejects_multiple_slot_definitions():
             start_at_turn=0,
             stop_at_turn=1,
             filled_slots=[0, 1],
-            filling_scheme=[1, 1],
+            filling_pattern=[1, 1],
             stats=['num_particles'],
         )
 

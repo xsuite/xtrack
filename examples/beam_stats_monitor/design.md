@@ -177,7 +177,7 @@ tt = mon.time_centers(line_length=line.get_length(), beta0=particles.beta0[0])
 plt.plot(tt.ravel(), mon.mean_x.ravel())
 ```
 
-## Filling Scheme and Bunch Selection
+## Filling Pattern and Bunch Selection
 
 The first version should keep the filling API simple.
 
@@ -185,13 +185,13 @@ Accepted inputs:
 
 - `num_bunches`: number of consecutive filled slots, starting at slot 0.
 - `filled_slots`: explicit physical filled slot numbers.
-- `filling_scheme`: low-level explicit boolean/integer filling scheme.
+- `filling_pattern`: low-level explicit boolean/integer occupancy pattern.
 - `selected_slots`: physical slot numbers to monitor.
 
 Rules:
 
 ```text
-if filling_scheme is provided:
+if filling_pattern is provided:
     use it as authoritative
 elif filled_slots is provided:
     use it
@@ -326,7 +326,7 @@ ambiguous:
 ```text
 zeta_range
 filled_slots
-filling_scheme
+filling_pattern
 selected_slots
 bunch_spacing_zeta
 num_bunches != 1
@@ -1285,7 +1285,7 @@ Implemented:
    ```text
    filled_slots
    selected_slots
-   filling_scheme
+   filling_pattern
    num_bunches
    bunch_spacing_zeta
    ```
