@@ -27,7 +27,7 @@ class Magnet(_BendCommon, BeamElement):
     parameters can be used to specify the integration scheme and drift model to
     be used in the kick-splitting scheme. Default value is ``adaptive`` for
     both, which aims to provide best results in the general case (``rot-kick-rot``
-    using the polar/exact drift depending on h for the model, and ``yoshida6``
+    using the polar/exact drift depending on h for the model, and ``yoshida-6``
     for the integration scheme).
 
     Parameters
