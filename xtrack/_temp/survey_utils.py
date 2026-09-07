@@ -225,7 +225,7 @@ def rst_start_end_offsets_from_parameters(element, length):
         displacement_E_xys + displaced_chord_frame.es * length)
     return b_E, b_S
 
-def compensate_psi_vbend(frame_start, frame_end, psi_tol_deg=20):
+def comp_psi_vbend(frame_start, frame_end, psi_tol_deg=20):
     psi = frame_start.psi
     if np.isclose(np.abs(psi), np.pi/2, atol=np.deg2rad(psi_tol_deg)):
         assert np.isclose(np.abs(frame_end.psi), np.pi/2, atol=np.deg2rad(psi_tol_deg))
@@ -245,7 +245,7 @@ def write_legacy_survey_tfs(
         if compensate_psi_vbend:
             ff_elem_start = frames['elem_start']
             ff_elem_end = frames['elem_end']
-            compensate_psi_vbend(ff_elem_start, ff_elem_end, psi_tol_deg=psi_tol_deg)
+            comp_psi_vbend(ff_elem_start, ff_elem_end, psi_tol_deg=psi_tol_deg)
 
         for place in ('start', 'end'):
 
