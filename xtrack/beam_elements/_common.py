@@ -191,7 +191,7 @@ class _HasIntegrator:
         if value == 'yoshida4':
             warn(
                 "The 'yoshida4' integrator is now deprecated and will be removed in a future version. "
-                'In the past this was equivalent to yoshida-6. '
+                'In the past this was equivalent to the present yoshida-6. '
                 "To get the same behaviour, please use 'yoshida-6' instead."
                 + DEPRECATION_INFO_PREP_1_0,
                 FutureWarning,
