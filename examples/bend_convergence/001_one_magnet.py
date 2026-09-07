@@ -1,14 +1,14 @@
-from pymadng import MAD
 import numpy as np
+from pymadng import MAD
 
 length = 2
 angle = np.pi / 4
-k2l = 0.
+k2l = 0.0
 x_test = 1e-4
 
 length = 14
 angle = 2 * np.pi / 1200
-k2l = 2.
+k2l = 2.0
 x_test = 1e-4
 
 
@@ -27,9 +27,8 @@ madng_method = 6
 madng_reference_slices = slices[-1]
 
 with MAD() as mad:
-
-    mad.load('MAD', "sequence")
-    mad.load('MAD.element', "sbend")
+    mad.load('MAD', 'sequence')
+    mad.load('MAD.element', 'sbend')
 
     mad.send(f"""
 seq = sequence {{
@@ -43,9 +42,14 @@ seq = sequence {{
     t_list = []
     for ss in slices:
         mad['tbl', 'flw'] = mad.track(
-            sequence='seq', observe=0, save='"atall"', X0={'x': x_test},
-            method=madng_method, model=f"'{madng_model}'",
-            nslice=ss)
+            sequence='seq',
+            observe=0,
+            save='"atall"',
+            X0={'x': x_test},
+            method=madng_method,
+            model=f"'{madng_model}'",
+            nslice=ss,
+        )
         df = mad.tbl.to_df()
         x_list.append(df['x'].values[-1])
         t_list.append(df['t'].values[-1])
@@ -56,12 +60,20 @@ madng_reference_t = t_list[-1]
 import xtrack as xt
 
 env = xt.Environment()
-line = env.new_line(components=[
-    env.new('b', 'Bend', length=length, angle=angle, knl=knl,
+line = env.new_line(
+    components=[
+        env.new(
+            'b',
+            'Bend',
+            length=length,
+            angle=angle,
+            knl=knl,
             model=xsuite_models[0],
-            integrator='yoshida6', # is actually yoshida6
-            num_multipole_kicks=1)
-])
+            integrator='yoshida-6',
+            num_multipole_kicks=1,
+        )
+    ]
+)
 
 line.set_particle_ref('positron', energy0=1e9)
 xsuite_x_by_model = {}
@@ -70,8 +82,7 @@ for model in xsuite_models:
     x_list_xt = []
     zeta_list_xt = []
     for ss in slices:
-        line.configure_bend_model(
-            edge='full', core=model, num_multipole_kicks=7 * ss)
+        line.configure_bend_model(edge='full', core=model, num_multipole_kicks=7 * ss)
         tw = line.twiss(betx=1, bety=1, x=x_test)
         x_list_xt.append(tw.x[-1])
         zeta_list_xt.append(tw.zeta[-1])
@@ -79,6 +90,7 @@ for model in xsuite_models:
     xsuite_zeta_by_model[model] = zeta_list_xt
 
 import matplotlib.pyplot as plt
+
 title = f'length={length:.3f} angle={angle:.3g}, k2l={k2l:.3g}, x_in={x_test:.3e}'
 
 plt.close('all')

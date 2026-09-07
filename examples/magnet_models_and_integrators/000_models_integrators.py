@@ -14,8 +14,8 @@ xt.Bend.get_available_models()
 
 xt.Bend.get_available_integrators()
 # returns:
-# ['adaptive', 'teapot', 'yoshida6', 'uniform', 'yoshida4',
-#  'yoshida8']
+# ['adaptive', 'teapot', 'yoshida-6', 'uniform', 'yoshida-4',
+#  'yoshida-8']
 
 # Get table with all elements in the line
 tt = line.get_table()
@@ -28,16 +28,20 @@ tt_quad = tt.rows[tt.element_type == 'Quadrupole']
 line.set(tt_bend, model='rot-kick-rot', integrator='teapot', num_multipole_kicks=4)
 
 # Set model and integrators for all quadrupoles
-line.set(tt_quad, model='mat-kick-mat', integrator='yoshida6', num_multipole_kicks=7)
+line.set(tt_quad, model='mat-kick-mat', integrator='yoshida-6', num_multipole_kicks=7)
 
 # Set model and integrator for a specific family of quadrupoles
 tt_mqxf = tt_quad.rows['mqxf.*']
-line.set(tt_mqxf, model='drift-kick-drift-exact', integrator='yoshida6',
-         num_multipole_kicks=21)
+line.set(
+    tt_mqxf,
+    model='drift-kick-drift-exact',
+    integrator='yoshida-6',
+    num_multipole_kicks=21,
+)
 
 # Inspect a single element
 line['mqxfa.b1l5'].model # is 'drift-kick-drift-exact'
-line['mqxfa.b1l5'].integrator # is 'yoshida6'
+line['mqxfa.b1l5'].integrator  # is 'yoshida-6'
 line['mqxfa.b1l5'].num_multipole_kicks # is 21
 
 # Alter a single element

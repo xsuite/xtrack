@@ -1,8 +1,8 @@
 import bpmeth
-import xtrack as xt
+import numpy as np
 import sympy
 
-import numpy as np
+import xtrack as xt
 
 b1 = "0.2"
 b2 = "0.1"
@@ -51,7 +51,7 @@ bb.edge_entry_active = False
 bb.edge_exit_active = False
 
 bb.num_multipole_kicks = 100
-bb.integrator = 'yoshida6'
+bb.integrator = 'yoshida-6'
 
 bb.model =  'bend-kick-bend'
 bb.model =  'mat-kick-mat'
@@ -63,6 +63,7 @@ print(f'Max difference on x: {np.max(np.abs(p_silke.x - p_xsuite.x))}')
 
 # I want to see the trajectory along the object
 import matplotlib.pyplot as plt
+
 plt.close('all')
 plt.figure()
 for ss in sol:

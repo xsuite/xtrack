@@ -1,16 +1,17 @@
-import xtrack as xt
 from scipy.constants import c as clight
 
-env = xt.load(['../../test_data/ps_sftpro/ps.seq',
-               '../../test_data/ps_sftpro/ps_hs_sftpro.str'])
+import xtrack as xt
+
+env = xt.load(
+    ['../../test_data/ps_sftpro/ps.seq', '../../test_data/ps_sftpro/ps_hs_sftpro.str']
+)
 line = env.ps
 line.set_particle_ref('proton', kinetic_energy0=500e6)
 
 tt = line.get_table()
 tt_bend = tt.rows[tt.element_type == 'Bend']
 
-env.set(tt_bend, model='rot-kick-rot', integrator='yoshida6',
-        num_multipole_kicks=20)
+env.set(tt_bend, model='rot-kick-rot', integrator='yoshida-6', num_multipole_kicks=20)
 
 tw4d = line.twiss4d()
 
@@ -24,17 +25,18 @@ line['pa.c40.77'].frequency = 'frf'
 tw6d = line.twiss6d()
 
 env['circumference'] = tw4d.line_length
-env['df_hz'] = 0.  # desired shift in RF frequency
+env['df_hz'] = 0.0  # desired shift in RF frequency
 
 env['dzeta'] = 'circumference * df_hz / frf'
 env.new('z_shift', xt.TimeDelay, shift_zeta='dzeta')
 line.append('z_shift')
 
 tw0 = line.twiss6d()
-env['df_hz'] = 1000.
+env['df_hz'] = 1000.0
 tw1 = line.twiss6d()
 
 import matplotlib.pyplot as plt
+
 plt.close('all')
 plt.figure(1)
 plt.plot(tw0.s, tw0.x, label=f'df_hz=0 Hz, delta={tw0.delta[0]:.2e}')

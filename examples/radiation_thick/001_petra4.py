@@ -1,9 +1,8 @@
-import xtrack as xt
 import numpy as np
-
-from scipy.constants import hbar
-from scipy.constants import electron_volt
 from scipy.constants import c as clight
+from scipy.constants import electron_volt, hbar
+
+import xtrack as xt
 
 line = xt.load('line_thick_P4_H6BA_v4.2.4.json')
 line.particle_ref = xt.Particles(energy0=6e9, mass0=xt.ELECTRON_MASS_EV)
@@ -16,7 +15,7 @@ tt_bend = tt.rows[tt.element_type == 'Bend']
 tt_quad = tt.rows[tt.element_type == 'Quadrupole']
 tt_sext = tt.rows[tt.element_type == 'Sextupole']
 
-line.set(tt_sext, integrator='yoshida6', num_multipole_kicks=7)
+line.set(tt_sext, integrator='yoshida-6', num_multipole_kicks=7)
 line.set(tt_bend, model='mat-kick-mat', integrator='teapot', num_multipole_kicks=1)
 line.set(tt_bend.rows['wgl.*'], model='drift-kick-drift-expanded',
          integrator='teapot', num_multipole_kicks=1)
