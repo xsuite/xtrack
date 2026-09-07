@@ -225,13 +225,28 @@ def rst_start_end_offsets_from_parameters(element, length):
         displacement_E_xys + displaced_chord_frame.es * length)
     return b_E, b_S
 
+def compensate_psi_vbend(frame_start, frame_end, psi_tol_deg=20):
+    psi = frame_start.psi
+    if np.isclose(np.abs(psi), np.pi/2, atol=np.deg2rad(psi_tol_deg)):
+        assert np.isclose(np.abs(frame_end.psi), np.pi/2, atol=np.deg2rad(psi_tol_deg))
+        # Done inplace
+        frame_start.rotate_s(-np.sign(psi) * np.pi/2)
+        frame_end.rotate_s(-np.sign(psi) * np.pi/2)
+
 
 def write_legacy_survey_tfs(
-        file_name, *, survey, element_names, element_container):
+        file_name, *, survey, element_names, element_container,
+        compensate_psi_vbend=False, psi_tol_deg=20):
     """Write element entrance and exit frames in the legacy survey format."""
     lines = []
     for ii, nn in enumerate(element_names):
         frames = survey.get_all_frames(nn)
+
+        if compensate_psi_vbend:
+            ff_elem_start = frames['elem_start']
+            ff_elem_end = frames['elem_end']
+            compensate_psi_vbend(ff_elem_start, ff_elem_end, psi_tol_deg=psi_tol_deg)
+
         for place in ('start', 'end'):
 
             if place == 'start':
