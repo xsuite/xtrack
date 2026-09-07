@@ -4,16 +4,18 @@
 #include "track_fieldexpansion_helpers.h"
 
 
-int evaluate_expansion_bent(Expansion *f, double x, double y, double s, FieldValue *out) {
+GPUFUN
+int evaluate_expansion_bent(Expansion *f, double x, double y, double s,
+                            FieldValue *out) {
     const double q = 1.0 + f->h * x;
         if (q == 0.0) return -1; /* singular chart */
 
-    memset(out, 0, sizeof(*out));
+    fieldexpansion_reset_field_value(out);
 
-    double *V = f->V;
-    double *D1 = f->D1;
-    double *D2 = f->D2;
-    double *Q = f->Q;
+    GPUGLMEM double *V = f->V;
+    GPUGLMEM double *D1 = f->D1;
+    GPUGLMEM double *D2 = f->D2;
+    GPUGLMEM double *Q = f->Q;
 
     fs_prepare_s(f, s);
 
@@ -99,12 +101,14 @@ int evaluate_expansion_bent(Expansion *f, double x, double y, double s, FieldVal
 #define TRACK_EXPANSION BentFieldExpansion_track_local_particle
 #define HAMILTONIAN_FLOW hamiltonian_flow_bent
 #define EVALUATE_EXPANSION evaluate_expansion_bent
+#define GET_FIELD BentFieldExpansion_get_field
 #define FIELDEXPANSIONDATA BentFieldExpansionData
 #define DATA BentFieldExpansionData
 #include "track_fieldexpansion.h"
 #undef TRACK_EXPANSION
 #undef HAMILTONIAN_FLOW
 #undef EVALUATE_EXPANSION
+#undef GET_FIELD
 #undef FIELDEXPANSIONDATA
 #undef DATA
 
