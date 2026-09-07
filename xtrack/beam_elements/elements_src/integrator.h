@@ -73,10 +73,20 @@ do { \
         for (int64_t i_slice = 0; i_slice < num_slices; i_slice++) { \
             RADIATION_MACRO(slice_length, \
                 DRIFT_FUNCTION((PART), slice_length * d_yoshida[0]); \
-                for (int64_t i_kick = 0; i_kick < n_kicks_yoshida; i_kick++) { \
-                    KICK_FUNCTION((PART), kick_weight * k_yoshida[i_kick]); \
-                    DRIFT_FUNCTION((PART), slice_length * d_yoshida[i_kick + 1]); \
-                } \
+                KICK_FUNCTION((PART), kick_weight * k_yoshida[0]); \
+                DRIFT_FUNCTION((PART), slice_length * d_yoshida[1]); \
+                KICK_FUNCTION((PART), kick_weight * k_yoshida[1]); \
+                DRIFT_FUNCTION((PART), slice_length * d_yoshida[2]); \
+                KICK_FUNCTION((PART), kick_weight * k_yoshida[2]); \
+                DRIFT_FUNCTION((PART), slice_length * d_yoshida[3]); \
+                KICK_FUNCTION((PART), kick_weight * k_yoshida[3]); \
+                DRIFT_FUNCTION((PART), slice_length * d_yoshida[4]); \
+                KICK_FUNCTION((PART), kick_weight * k_yoshida[4]); \
+                DRIFT_FUNCTION((PART), slice_length * d_yoshida[5]); \
+                KICK_FUNCTION((PART), kick_weight * k_yoshida[5]); \
+                DRIFT_FUNCTION((PART), slice_length * d_yoshida[6]); \
+                KICK_FUNCTION((PART), kick_weight * k_yoshida[6]); \
+                DRIFT_FUNCTION((PART), slice_length * d_yoshida[7]); \
             ) \
         } \
     } \
@@ -94,10 +104,12 @@ do { \
         for (int64_t i_slice = 0; i_slice < num_slices; i_slice++) { \
             RADIATION_MACRO(slice_length, \
                 DRIFT_FUNCTION((PART), slice_length * d_yoshida[0]); \
-                for (int64_t i_kick = 0; i_kick < n_kicks_yoshida; i_kick++) { \
-                    KICK_FUNCTION((PART), kick_weight * k_yoshida[i_kick]); \
-                    DRIFT_FUNCTION((PART), slice_length * d_yoshida[i_kick + 1]); \
-                } \
+                KICK_FUNCTION((PART), kick_weight * k_yoshida[0]); \
+                DRIFT_FUNCTION((PART), slice_length * d_yoshida[1]); \
+                KICK_FUNCTION((PART), kick_weight * k_yoshida[1]); \
+                DRIFT_FUNCTION((PART), slice_length * d_yoshida[2]); \
+                KICK_FUNCTION((PART), kick_weight * k_yoshida[2]); \
+                DRIFT_FUNCTION((PART), slice_length * d_yoshida[3]); \
             ) \
         } \
     } \
@@ -115,10 +127,36 @@ do { \
         for (int64_t i_slice = 0; i_slice < num_slices; i_slice++) { \
             RADIATION_MACRO(slice_length, \
                 DRIFT_FUNCTION((PART), slice_length * d_yoshida[0]); \
-                for (int64_t i_kick = 0; i_kick < n_kicks_yoshida; i_kick++) { \
-                    KICK_FUNCTION((PART), kick_weight * k_yoshida[i_kick]); \
-                    DRIFT_FUNCTION((PART), slice_length * d_yoshida[i_kick + 1]); \
-                } \
+                KICK_FUNCTION((PART), kick_weight * k_yoshida[0]); \
+                DRIFT_FUNCTION((PART), slice_length * d_yoshida[1]); \
+                KICK_FUNCTION((PART), kick_weight * k_yoshida[1]); \
+                DRIFT_FUNCTION((PART), slice_length * d_yoshida[2]); \
+                KICK_FUNCTION((PART), kick_weight * k_yoshida[2]); \
+                DRIFT_FUNCTION((PART), slice_length * d_yoshida[3]); \
+                KICK_FUNCTION((PART), kick_weight * k_yoshida[3]); \
+                DRIFT_FUNCTION((PART), slice_length * d_yoshida[4]); \
+                KICK_FUNCTION((PART), kick_weight * k_yoshida[4]); \
+                DRIFT_FUNCTION((PART), slice_length * d_yoshida[5]); \
+                KICK_FUNCTION((PART), kick_weight * k_yoshida[5]); \
+                DRIFT_FUNCTION((PART), slice_length * d_yoshida[6]); \
+                KICK_FUNCTION((PART), kick_weight * k_yoshida[6]); \
+                DRIFT_FUNCTION((PART), slice_length * d_yoshida[7]); \
+                KICK_FUNCTION((PART), kick_weight * k_yoshida[7]); \
+                DRIFT_FUNCTION((PART), slice_length * d_yoshida[8]); \
+                KICK_FUNCTION((PART), kick_weight * k_yoshida[8]); \
+                DRIFT_FUNCTION((PART), slice_length * d_yoshida[9]); \
+                KICK_FUNCTION((PART), kick_weight * k_yoshida[9]); \
+                DRIFT_FUNCTION((PART), slice_length * d_yoshida[10]); \
+                KICK_FUNCTION((PART), kick_weight * k_yoshida[10]); \
+                DRIFT_FUNCTION((PART), slice_length * d_yoshida[11]); \
+                KICK_FUNCTION((PART), kick_weight * k_yoshida[11]); \
+                DRIFT_FUNCTION((PART), slice_length * d_yoshida[12]); \
+                KICK_FUNCTION((PART), kick_weight * k_yoshida[12]); \
+                DRIFT_FUNCTION((PART), slice_length * d_yoshida[13]); \
+                KICK_FUNCTION((PART), kick_weight * k_yoshida[13]); \
+                DRIFT_FUNCTION((PART), slice_length * d_yoshida[14]); \
+                KICK_FUNCTION((PART), kick_weight * k_yoshida[14]); \
+                DRIFT_FUNCTION((PART), slice_length * d_yoshida[15]); \
             ) \
         } \
     } \
