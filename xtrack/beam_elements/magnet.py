@@ -3,19 +3,21 @@
 # Copyright (c) CERN, 2025.                 #
 # ######################################### #
 
-from ..base_element import BeamElement
 import xobjects as xo
+
+from ..base_element import BeamElement
 from ..random import (
     RandomExponential,
     RandomUniformAccurate,
 )
 from ._common import (
+    _EDGE_MODEL_TO_INDEX,
+    _INDEX_TO_EDGE_MODEL,
     SynchrotronRadiationRecord,
     _BendCommon,
-    _EDGE_MODEL_TO_INDEX,
     _HasKnlKsl,
-    _INDEX_TO_EDGE_MODEL,
 )
+
 
 class Magnet(_BendCommon, BeamElement):
     """General transverse field magnet with curvature and fringe fields.
@@ -87,13 +89,13 @@ class Magnet(_BendCommon, BeamElement):
     integrator : str, optional
         Integration scheme to be used. The options are:
 
-            - ``adaptive``: default option, same as ``yoshida6``.
+            - ``adaptive``: default option, same as ``yoshida-6``.
             - ``teapot``: use the Teapot integration scheme.
-            - ``yoshida4``, ``yoshida6``, ``yoshida8``: use the
+            - ``yoshida-4``, ``yoshida-6``, ``yoshida-8``: use the
                 corresponding even-order Yoshida scheme. The number of kicks is
-                rounded up to a complete 1, 3, 7, or 15-kick slice. Selecting
+                rounded up to a complete 3, 7, or 15-kick slice. Selecting
                 ``yoshida4`` warns because older xtrack versions mislabeled the
-                sixth-order scheme with this name; use ``yoshida6`` to retain
+                sixth-order scheme with this name; use ``yoshida-6`` to retain
                 that historical accuracy.
             - ``uniform``: slice uniformly.
 
