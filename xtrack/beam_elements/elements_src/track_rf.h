@@ -206,9 +206,7 @@ void track_rf_body_single_particle(
 
     #define RF_DRIFT(part, dlength) \
         track_magnet_drift_single_particle(\
-            part, (dlength), 0., 0., 0., 0., 0.,\
-            0., 1., 0.,\
-            0., 0., drift_model\
+            part, (dlength), 0., 0., 0., 0., 0., 0., drift_model\
         )
 
     // No radiation implemented for RF elements for now
@@ -311,33 +309,26 @@ void track_rf_particles(
             num_kicks = 1;
         }
 
-        double k0_drift, k1_drift, k1s_drift, h_drift, ks_drift;
-        double k0_kick, k1_kick, k1s_kick, h_kick;
+        double k0_drift, k1_drift, h_drift, ks_drift;
+        double k0_kick, k1_kick, h_kick;
         double k0_h_correction, k1_h_correction;
-        double quad_k1_eff, quad_ca, quad_sa;
         int8_t kick_rot_frame;
         int8_t drift_model;
         configure_tracking_model(
             model,
             0, // k0
             0, // k1
-            0, // k1s
             0, // h
             0, // ks
             &k0_drift,
             &k1_drift,
-            &k1s_drift,
             &h_drift,
             &ks_drift,
             &k0_kick,
             &k1_kick,
-            &k1s_kick,
             &h_kick,
             &k0_h_correction,
             &k1_h_correction,
-            &quad_k1_eff,
-            &quad_ca,
-            &quad_sa,
             &kick_rot_frame,
             &drift_model
         );
