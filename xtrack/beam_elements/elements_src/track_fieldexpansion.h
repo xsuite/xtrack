@@ -1,3 +1,37 @@
+#ifndef CONCATDATA2
+#define CONCATDATA2(a,b) a##b
+#endif
+#ifndef CONCATDATA
+#define CONCATDATA(a,b) CONCATDATA2(a,b)
+#endif
+
+#ifndef FIELDEXPANSION_FIELD_VALUE_SIZE
+#define FIELDEXPANSION_FIELD_VALUE_SIZE 13
+#endif
+
+GPUFUN
+void CONCATDATA(DATA, _init_expansion)(FIELDEXPANSIONDATA el, Expansion *f) {
+    f->ny       = CONCATDATA(DATA, _get_ny)(el);
+    f->ncoef    = CONCATDATA(DATA, _get__ncoef)(el);
+    f->na       = CONCATDATA(DATA, _get_na)(el);
+    f->nb       = CONCATDATA(DATA, _get_nb)(el);
+    f->deg      = CONCATDATA(DATA, _get_deg)(el);
+    f->mmin     = CONCATDATA(DATA, _get__mmin)(el);
+    f->mmax     = CONCATDATA(DATA, _get__mmax)(el);
+    f->moff     = CONCATDATA(DATA, _get__moff)(el);
+    f->nm       = CONCATDATA(DATA, _get__nm)(el);
+    f->qemin    = CONCATDATA(DATA, _get__qemin)(el);
+    f->nq       = CONCATDATA(DATA, _get__nq)(el);
+    f->h        = CONCATDATA(DATA, _get_h)(el);
+    f->straight = CONCATDATA(DATA, _get_straight)(el);
+    f->c        = (GPUGLMEM const double *)CONCATDATA(DATA, _getp__c)(el);
+    f->V        = (GPUGLMEM double *)CONCATDATA(DATA, _getp__V)(el);
+    f->D1       = (GPUGLMEM double *)CONCATDATA(DATA, _getp__D1)(el);
+    f->D2       = (GPUGLMEM double *)CONCATDATA(DATA, _getp__D2)(el);
+    f->Q        = (GPUGLMEM double *)CONCATDATA(DATA, _getp__Q)(el);
+}
+
+GPUFUN
 void HAMILTONIAN_FLOW(Expansion *f, const double beta0,
                       double s, const double z[6], HamiltonianFlow *flow) {
     double delta1, delta, ddelta1;
@@ -37,12 +71,55 @@ void HAMILTONIAN_FLOW(Expansion *f, const double beta0,
     flow->dH_ds = -q * (pix * flow->pot.dAx_ds / root + flow->pot.dAs_ds);   
 }
 
-#ifndef CONCATDATA2
-#define CONCATDATA2(a,b) a##b
-#endif
-#ifndef CONCATDATA
-#define CONCATDATA(a,b) CONCATDATA2(a,b)
-#endif
+GPUKERN
+void GET_FIELD(
+    FIELDEXPANSIONDATA el,
+    GPUGLMEM const double *x,
+    GPUGLMEM const double *y,
+    GPUGLMEM const double *s,
+    const int64_t n_points,
+    GPUGLMEM double *field_values,
+    GPUGLMEM double *work_v,
+    GPUGLMEM double *work_d1,
+    GPUGLMEM double *work_d2,
+    GPUGLMEM double *work_q)
+{
+    VECTORIZE_OVER(ii, n_points);
+        Expansion f;
+        CONCATDATA(DATA, _init_expansion)(el, &f);
+
+        const int64_t n_values = (int64_t)f.ncoef * (int64_t)f.nm;
+        f.V = work_v + ii * n_values;
+        f.D1 = work_d1 + ii * n_values;
+        f.D2 = work_d2 + ii * n_values;
+        f.Q = work_q + ii * (int64_t)f.nq;
+
+        FieldValue field;
+        const int status = EVALUATE_EXPANSION(
+            &f, x[ii], y[ii], s[ii], &field);
+        const int64_t offset = ii * FIELDEXPANSION_FIELD_VALUE_SIZE;
+        if (status == 0) {
+            field_values[offset + 0] = field.phi;
+            field_values[offset + 1] = field.Bx;
+            field_values[offset + 2] = field.By;
+            field_values[offset + 3] = field.Bs;
+            field_values[offset + 4] = field.Ax;
+            field_values[offset + 5] = field.Ay;
+            field_values[offset + 6] = field.As;
+            field_values[offset + 7] = field.dAx_dx;
+            field_values[offset + 8] = field.dAx_dy;
+            field_values[offset + 9] = field.dAx_ds;
+            field_values[offset + 10] = field.dAs_dx;
+            field_values[offset + 11] = field.dAs_dy;
+            field_values[offset + 12] = field.dAs_ds;
+        }
+        else {
+            for (int jj = 0; jj < FIELDEXPANSION_FIELD_VALUE_SIZE; ++jj) {
+                field_values[offset + jj] = NAN;
+            }
+        }
+    END_VECTORIZE;
+}
 
 void TRACK_EXPANSION(
     FIELDEXPANSIONDATA el,
@@ -54,24 +131,7 @@ void TRACK_EXPANSION(
     double sstart = CONCATDATA(DATA, _get_sstart)(el);
 
     Expansion f;
-    f.ny         = CONCATDATA(DATA, _get_ny)(el);
-    f.ncoef      = CONCATDATA(DATA, _get__ncoef)(el);
-    f.na         = CONCATDATA(DATA, _get_na)(el);
-    f.nb         = CONCATDATA(DATA, _get_nb)(el);
-    f.deg        = CONCATDATA(DATA, _get_deg)(el);
-    f.mmin       = CONCATDATA(DATA, _get__mmin)(el);
-    f.mmax       = CONCATDATA(DATA, _get__mmax)(el);
-    f.moff       = CONCATDATA(DATA, _get__moff)(el);
-    f.nm         = CONCATDATA(DATA, _get__nm)(el);
-    f.qemin      = CONCATDATA(DATA, _get__qemin)(el);
-    f.nq         = CONCATDATA(DATA, _get__nq)(el);
-    f.h          = CONCATDATA(DATA, _get_h)(el);
-    f.straight   = CONCATDATA(DATA, _get_straight)(el);
-    f.c          = (double *)CONCATDATA(DATA, _getp__c)(el);
-    f.V          = (double *)CONCATDATA(DATA, _getp__V)(el);
-    f.D1         = (double *)CONCATDATA(DATA, _getp__D1)(el);
-    f.D2         = (double *)CONCATDATA(DATA, _getp__D2)(el);
-    f.Q          = (double *)CONCATDATA(DATA, _getp__Q)(el);
+    CONCATDATA(DATA, _init_expansion)(el, &f);
 
     int64_t const backtrack = LocalParticle_check_track_flag(part0, XS_FLAG_BACKTRACK);
     if (backtrack) {sstart = ds * nstep; ds = -ds;}

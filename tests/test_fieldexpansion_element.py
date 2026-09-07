@@ -2,6 +2,106 @@ import xtrack as xt
 import numpy as np
 import xobjects as xo
 
+
+def test_get_field_straight():
+    a = np.array([[0.04, 0.2, 0.08], [0, 0, 0.1]])
+    b = np.array([[0.05, 0.04, 0.07], [0.01, 0, 0]])
+    bs = np.array([0.1, 0.02, 0])
+    element = xt.StraightFieldExpansion(
+        length=1, a=a, b=b, bs=bs, ny=5)
+
+    x = np.array([[0.01], [0.02]])
+    y = np.array([0.005, -0.004, 0.003])
+    s = np.array([0.001, 0.4, 0.9])
+    x_broadcast, y_broadcast, s_broadcast = np.broadcast_arrays(x, y, s)
+
+    bx_expected = (
+        0.1 * s_broadcast**2 * x_broadcast
+        + 0.08 * s_broadcast**2
+        + 0.2 * s_broadcast
+        - y_broadcast**2 * (0.4 * x_broadcast + 0.32) / 4
+        + 0.01 * y_broadcast
+        + 0.04
+    )
+    by_expected = (
+        0.07 * s_broadcast**2
+        + 0.04 * s_broadcast
+        + 0.01 * x_broadcast
+        + y_broadcast**3 / 15
+        - 0.07 * y_broadcast**2
+        - y_broadcast * (
+            0.2 * s_broadcast**2
+            + 0.2 * x_broadcast**2
+            + 0.32 * x_broadcast
+            + 0.04
+        ) / 2
+        + 0.05
+    )
+    bs_expected = (
+        0.1 * s_broadcast * x_broadcast**2
+        - 0.1 * s_broadcast * y_broadcast**2
+        + 0.02 * s_broadcast
+        + x_broadcast * (0.16 * s_broadcast + 0.2)
+        + y_broadcast * (0.14 * s_broadcast + 0.04)
+        + 0.1
+    )
+
+    field = element.get_field(x=x, y=y, s=s)
+
+    assert isinstance(field, np.ndarray)
+    assert field.shape == x_broadcast.shape
+    assert field.dtype.names == (
+        'phi',
+        'Bx', 'By', 'Bs',
+        'Ax', 'Ay', 'As',
+        'dAx_dx', 'dAx_dy', 'dAx_ds',
+        'dAs_dx', 'dAs_dy', 'dAs_ds',
+    )
+    xo.assert_allclose(field['Bx'], bx_expected, rtol=0, atol=1e-14)
+    xo.assert_allclose(field['By'], by_expected, rtol=0, atol=1e-14)
+    xo.assert_allclose(field['Bs'], bs_expected, rtol=0, atol=1e-14)
+    xo.assert_allclose(field['Ay'], 0, rtol=0, atol=1e-14)
+    xo.assert_allclose(field['dAx_dy'], -field['Bs'], rtol=0, atol=1e-14)
+    xo.assert_allclose(field['dAs_dy'], field['Bx'], rtol=0, atol=1e-14)
+    xo.assert_allclose(
+        field['dAx_ds'] - field['dAs_dx'],
+        field['By'],
+        rtol=0,
+        atol=1e-14,
+    )
+
+    scalar_field = element.get_field(x=x[0, 0], y=y[0], s=s[0])
+    assert isinstance(scalar_field, np.ndarray)
+    assert scalar_field.shape == ()
+    assert scalar_field.dtype == field.dtype
+    xo.assert_allclose(
+        scalar_field['Bx'], bx_expected[0, 0], rtol=0, atol=1e-14)
+    xo.assert_allclose(
+        scalar_field['By'], by_expected[0, 0], rtol=0, atol=1e-14)
+    xo.assert_allclose(
+        scalar_field['Bs'], bs_expected[0, 0], rtol=0, atol=1e-14)
+
+
+def test_get_field_bent():
+    element = xt.BentFieldExpansion(
+        length=1,
+        h=0.1,
+        a=np.array([[0.0]]),
+        b=np.array([[0.5]]),
+        bs=np.array([0.0]),
+        ny=5,
+    )
+    x = np.array([-0.2, 0.0, 0.3])
+    y = np.array([0.01, -0.03, 0.02])
+    s = np.array([0.0, 0.5, 1.0])
+
+    field = element.get_field(x=x, y=y, s=s)
+
+    xo.assert_allclose(field['Bx'], np.zeros(3), rtol=0, atol=1e-14)
+    xo.assert_allclose(field['By'], np.full(3, 0.5), rtol=0, atol=1e-14)
+    xo.assert_allclose(field['Bs'], np.zeros(3), rtol=0, atol=1e-14)
+
+
 def test_h_sdep():
     h = 0.1
     a = np.array([[1.0, 0.1], [0.2, 0.0], [0.3, 0.1]])

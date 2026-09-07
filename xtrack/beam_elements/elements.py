@@ -5019,6 +5019,72 @@ class ElectronCooler(BeamElement):
 class ThinSliceNotNeededError(Exception):
     pass
 
+
+_FIELD_VALUE_NAMES = (
+    'phi',
+    'Bx', 'By', 'Bs',
+    'Ax', 'Ay', 'As',
+    'dAx_dx', 'dAx_dy', 'dAx_ds',
+    'dAs_dx', 'dAs_dy', 'dAs_ds',
+)
+_FIELD_VALUE_DTYPE = np.dtype([
+    (name, np.float64) for name in _FIELD_VALUE_NAMES
+])
+
+
+def _field_expansion_get_field(element, x, y, s):
+    """Run a field-expansion evaluation kernel on broadcast input arrays."""
+    context = element._context
+
+    def _to_numpy(value):
+        if isinstance(value, context.nplike_array_type):
+            value = context.nparray_from_context_array(value)
+        return np.asarray(value, dtype=np.float64)
+
+    x_arr, y_arr, s_arr = np.broadcast_arrays(
+        _to_numpy(x), _to_numpy(y), _to_numpy(s))
+    output_shape = x_arr.shape
+    n_points = x_arr.size
+
+    if not element.straight and np.any(1.0 + element.h * x_arr == 0.0):
+        raise ValueError("x contains a point on the singular curved coordinate axis")
+
+    field_values = context.zeros(
+        n_points * len(_FIELD_VALUE_NAMES), dtype=np.float64)
+
+    if n_points:
+        x_context = context.nparray_to_context_array(
+            np.ascontiguousarray(x_arr).reshape(-1))
+        y_context = context.nparray_to_context_array(
+            np.ascontiguousarray(y_arr).reshape(-1))
+        s_context = context.nparray_to_context_array(
+            np.ascontiguousarray(s_arr).reshape(-1))
+
+        n_values = int(element._ncoef) * int(element._nm)
+        work_v = context.zeros(n_points * n_values, dtype=np.float64)
+        work_d1 = context.zeros(n_points * n_values, dtype=np.float64)
+        work_d2 = context.zeros(n_points * n_values, dtype=np.float64)
+        work_q = context.zeros(n_points * int(element._nq), dtype=np.float64)
+
+        element.compile_kernels(only_if_needed=True)
+        kernel = context.kernels[element._field_evaluation_kernel_name]
+        kernel(
+            el=element,
+            x=x_context,
+            y=y_context,
+            s=s_context,
+            n_points=n_points,
+            field_values=field_values,
+            work_v=work_v,
+            work_d1=work_d1,
+            work_d2=work_d2,
+            work_q=work_q,
+        )
+
+    field_values = context.nparray_from_context_array(field_values)
+    return np.asarray(field_values).view(_FIELD_VALUE_DTYPE).reshape(output_shape)
+
+
 class StraightFieldExpansion(BeamElement):
     """
     Specifies the field expansion in general derivatives on axis in straight frame.
@@ -5083,10 +5149,28 @@ class StraightFieldExpansion(BeamElement):
         '#include "xtrack/beam_elements/elements_src/create_fieldexpansion_straight.h"',
     ]
     
+    _field_evaluation_kernel_name = 'StraightFieldExpansion_get_field'
+
     _kernels = {'build_expansion_straight': xo.Kernel(
             c_name='build_expansion_straight',
             args=[xo.Arg(xo.ThisClass, name='el')]
-        ), 
+        ),
+        'StraightFieldExpansion_get_field': xo.Kernel(
+            c_name='StraightFieldExpansion_get_field',
+            args=[
+                xo.Arg(xo.ThisClass, name='el'),
+                xo.Arg(xo.Float64, pointer=True, const=True, name='x'),
+                xo.Arg(xo.Float64, pointer=True, const=True, name='y'),
+                xo.Arg(xo.Float64, pointer=True, const=True, name='s'),
+                xo.Arg(xo.Int64, name='n_points'),
+                xo.Arg(xo.Float64, pointer=True, name='field_values'),
+                xo.Arg(xo.Float64, pointer=True, name='work_v'),
+                xo.Arg(xo.Float64, pointer=True, name='work_d1'),
+                xo.Arg(xo.Float64, pointer=True, name='work_d2'),
+                xo.Arg(xo.Float64, pointer=True, name='work_q'),
+            ],
+            n_threads='n_points',
+        ),
     }
     
     def __init__(self, length, a, b, bs, ny, nstep=10, sstart=0, **kwargs):
@@ -5139,6 +5223,15 @@ class StraightFieldExpansion(BeamElement):
         super().__init__(**kwargs)
         
         self.build_expansion_straight(el=self)
+
+    def get_field(self, x, y, s):
+        """Evaluate ``FieldValue`` at broadcastable ``x, y, s``.
+
+        Returns a structured NumPy array with the broadcast input shape and
+        fields ``phi``, ``Bx``, ``By``, ``Bs``, ``Ax``, ``Ay``, ``As``, and
+        all derivatives stored by the C ``FieldValue`` structure.
+        """
+        return _field_expansion_get_field(self, x=x, y=y, s=s)
         
 class BentFieldExpansion(BeamElement):
     """
@@ -5206,10 +5299,28 @@ class BentFieldExpansion(BeamElement):
         '#include "xtrack/beam_elements/elements_src/create_fieldexpansion_bent.h"',
     ]
     
+    _field_evaluation_kernel_name = 'BentFieldExpansion_get_field'
+
     _kernels = {'build_expansion_bent': xo.Kernel(
             c_name='build_expansion_bent',
             args=[xo.Arg(xo.ThisClass, name='el')]
-        ), 
+        ),
+        'BentFieldExpansion_get_field': xo.Kernel(
+            c_name='BentFieldExpansion_get_field',
+            args=[
+                xo.Arg(xo.ThisClass, name='el'),
+                xo.Arg(xo.Float64, pointer=True, const=True, name='x'),
+                xo.Arg(xo.Float64, pointer=True, const=True, name='y'),
+                xo.Arg(xo.Float64, pointer=True, const=True, name='s'),
+                xo.Arg(xo.Int64, name='n_points'),
+                xo.Arg(xo.Float64, pointer=True, name='field_values'),
+                xo.Arg(xo.Float64, pointer=True, name='work_v'),
+                xo.Arg(xo.Float64, pointer=True, name='work_d1'),
+                xo.Arg(xo.Float64, pointer=True, name='work_d2'),
+                xo.Arg(xo.Float64, pointer=True, name='work_q'),
+            ],
+            n_threads='n_points',
+        ),
     }
     
     def __init__(self, length, h, a, b, bs, ny, nstep=10, sstart=0, **kwargs):
@@ -5264,6 +5375,15 @@ class BentFieldExpansion(BeamElement):
         super().__init__(**kwargs)
         
         self.build_expansion_bent(el=self)
+
+    def get_field(self, x, y, s):
+        """Evaluate ``FieldValue`` at broadcastable ``x, y, s``.
+
+        Returns a structured NumPy array with the broadcast input shape and
+        fields ``phi``, ``Bx``, ``By``, ``Bs``, ``Ax``, ``Ay``, ``As``, and
+        all derivatives stored by the C ``FieldValue`` structure.
+        """
+        return _field_expansion_get_field(self, x=x, y=y, s=s)
 
 
 class FieldExpansion(BeamElement):
