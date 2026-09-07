@@ -3,23 +3,25 @@
 # Copyright (c) CERN, 2025.                 #
 # ######################################### #
 
-from ..base_element import BeamElement
 import xtrack as xt
+
+from ..base_element import BeamElement
 from ..random import (
     RandomExponential,
     RandomUniformAccurate,
 )
 from ._common import (
+    _NOEXPR_FIELDS,
     SynchrotronRadiationRecord,
     _BendCommon,
-    _HasIntegrator,
-    _HasKnlKsl,
-    _HasModelCurved,
-    _NOEXPR_FIELDS,
     _docstring_general_notes,
     _for_docstring_alignment,
     _for_docstring_edge_bend,
+    _HasIntegrator,
+    _HasKnlKsl,
+    _HasModelCurved,
 )
+
 
 class Bend(_BendCommon, BeamElement):
 

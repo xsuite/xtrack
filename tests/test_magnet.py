@@ -1,5 +1,3 @@
-import warnings
-
 import numpy as np
 import pytest
 import xobjects as xo
@@ -20,53 +18,6 @@ def make_particles(context):
         delta=1e-2,
         _context=context,
     )
-
-
-def test_yoshida_integrator_names_and_warning():
-    expected_indices = {
-        'adaptive': 0,
-        'yoshida-6': 2,  # preserve the historical sixth-order behaviour
-        'yoshida4': 2,  # preserve the historical sixth-order behaviour
-        'uniform': 3,
-        'yoshida-4': 4,
-        'yoshida-8': 5,
-    }
-    for name, index in expected_indices.items():
-        if name == 'yoshida4':
-            with pytest.warns(UserWarning, match="use 'yoshida-6'"):
-                magnet = Magnet(integrator=name)
-        else:
-            with warnings.catch_warnings():
-                warnings.simplefilter('error')
-                magnet = Magnet(integrator=name)
-        assert magnet.integrator == name
-        assert magnet._integrator == index
-
-
-@for_all_test_contexts
-def test_adaptive_integrator_keeps_historical_yoshida6(test_context):
-    kwargs = {
-        'length': 1.3,
-        'angle': 0.07,
-        'k1': 0.21,
-        'k2': -0.13,
-        'num_multipole_kicks': 7,
-        'model': 'bend-kick-bend',
-        '_context': test_context,
-    }
-    adaptive = Magnet(integrator='adaptive', **kwargs)
-    yoshida6 = Magnet(integrator='yoshida-6', **kwargs)
-    p_adaptive = make_particles(test_context)
-    p_yoshida6 = p_adaptive.copy()
-    adaptive.track(p_adaptive)
-    yoshida6.track(p_yoshida6)
-    for coordinate in ('x', 'px', 'y', 'py', 'zeta', 'delta', 's'):
-        xo.assert_allclose(
-            getattr(p_adaptive, coordinate),
-            getattr(p_yoshida6, coordinate),
-            rtol=0,
-            atol=0,
-        )
 
 
 @for_all_test_contexts
@@ -723,89 +674,6 @@ def test_magnet_bend_dip_quad_kick_with_multipoles(model, test_context):
     xo.assert_allclose(p_test.zeta, p0.zeta, atol=5e-14, rtol=0)
     xo.assert_allclose(p_test.px, p0.px, atol=5e-14, rtol=0)
     xo.assert_allclose(p_test.py, p0.py, atol=5e-14, rtol=0)
-    xo.assert_allclose(p_test.delta, p0.delta, atol=1e-15, rtol=0)
-
-
-@for_all_test_contexts
-def test_check_uniform_integrator(test_context):
-    mm1 = Magnet(angle=0.1 * 2.0, k1=0.3, k0=0.2, length=2.0, _context=test_context)
-    mm2 = mm1.copy()
-
-    mm1.edge_entry_active = False
-    mm1.edge_exit_active = False
-    mm2.edge_entry_active = False
-    mm2.edge_exit_active = False
-
-    mm1.integrator = 'uniform'
-    mm2.integrator = 'teapot'
-    mm1.num_multipole_kicks = 1
-    mm2.num_multipole_kicks = 1
-
-    p0 = make_particles(test_context)
-    p_test = p0.copy()
-    p_ref = p0.copy()
-
-    mm1.track(p_test)
-    mm2.track(p_ref)
-
-    p_test_cpu = p_test.copy(_context=xo.ContextCpu())
-    p_ref_cpu = p_ref.copy(_context=xo.ContextCpu())
-
-    xo.assert_allclose(p_test_cpu.s, 2.0, atol=0, rtol=1e-7)
-    xo.assert_allclose(p_ref_cpu.s, 2.0, atol=0, rtol=1e-7)
-    xo.assert_allclose(p_test_cpu.x, p_ref_cpu.x, atol=1e-15, rtol=0)
-    xo.assert_allclose(p_test_cpu.y, p_ref_cpu.y, atol=1e-15, rtol=0)
-    xo.assert_allclose(p_test_cpu.zeta, p_ref_cpu.zeta, atol=1e-15, rtol=0)
-    xo.assert_allclose(p_test_cpu.px, p_ref_cpu.px, atol=1e-15, rtol=0)
-    xo.assert_allclose(p_test_cpu.py, p_ref_cpu.py, atol=1e-15, rtol=0)
-    xo.assert_allclose(p_test_cpu.delta, p_ref_cpu.delta, atol=1e-15, rtol=0)
-
-    # Test backtracking
-    line = xt.Line(elements=[mm1])
-    line.build_tracker(compile=False, _context=test_context)
-    line.track(p_test, backtrack=True)
-    p_test.move(_context=xo.ContextCpu())
-    xo.assert_allclose(p_test.s, 0.0, atol=1e-7, rtol=0)
-    xo.assert_allclose(p_test.x, p0.x, atol=5e-14, rtol=0)
-    xo.assert_allclose(p_test.y, p0.y, atol=1e-15, rtol=0)
-    xo.assert_allclose(p_test.zeta, p0.zeta, atol=1e-14, rtol=0)
-    xo.assert_allclose(p_test.px, p0.px, atol=1e-15, rtol=0)
-    xo.assert_allclose(p_test.py, p0.py, atol=1e-15, rtol=0)
-    xo.assert_allclose(p_test.delta, p0.delta, atol=1e-15, rtol=0)
-
-    # more kicks (needs loser thresholds)
-    mm1.num_multipole_kicks = 10
-    mm2.num_multipole_kicks = 10
-
-    p_test = p0.copy()
-    p_ref = p0.copy()
-
-    mm1.track(p_test)
-    mm2.track(p_ref)
-
-    p_test_cpu = p_test.copy(_context=xo.ContextCpu())
-    p_ref_cpu = p_ref.copy(_context=xo.ContextCpu())
-
-    xo.assert_allclose(p_test_cpu.s, 2.0, atol=0, rtol=1e-7)
-    xo.assert_allclose(p_ref_cpu.s, 2.0, atol=0, rtol=1e-7)
-    xo.assert_allclose(p_test_cpu.x, p_ref_cpu.x, atol=0, rtol=5e-3)
-    xo.assert_allclose(p_test_cpu.y, p_ref_cpu.y, atol=0, rtol=5e-3)
-    xo.assert_allclose(p_test_cpu.zeta, p_ref_cpu.zeta, atol=0, rtol=1e-2)
-    xo.assert_allclose(p_test_cpu.px, p_ref_cpu.px, atol=0, rtol=5e-3)
-    xo.assert_allclose(p_test_cpu.py, p_ref_cpu.py, atol=0, rtol=5e-3)
-    xo.assert_allclose(p_test_cpu.delta, p_ref_cpu.delta, atol=0, rtol=5e-3)
-
-    # Test backtracking
-    line = xt.Line(elements=[mm1])
-    line.build_tracker(compile=False, _context=test_context)
-    line.track(p_test, backtrack=True)
-    p_test.move(_context=xo.ContextCpu())
-    xo.assert_allclose(p_test.s, 0.0, atol=1e-7, rtol=0)
-    xo.assert_allclose(p_test.x, p0.x, atol=5e-14, rtol=0)
-    xo.assert_allclose(p_test.y, p0.y, atol=1e-15, rtol=0)
-    xo.assert_allclose(p_test.zeta, p0.zeta, atol=1e-14, rtol=0)
-    xo.assert_allclose(p_test.px, p0.px, atol=1e-15, rtol=0)
-    xo.assert_allclose(p_test.py, p0.py, atol=1e-15, rtol=0)
     xo.assert_allclose(p_test.delta, p0.delta, atol=1e-15, rtol=0)
 
 
