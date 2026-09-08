@@ -132,21 +132,24 @@ def test_per_element_prebuild_kernels(mocker, tmp_path, temp_context_default_fun
                 xt.ThickSliceCavity,
                 xt.ThinSliceCavity,
             ],
-            'extra_classes': [xt.Particles]
+            'extra_classes': [xt.Particles, xt.ParticlesMonitor, xt.MultiElementMonitor]
         }),
         ("test_module_per_elem_rand", {
             "config": {},
-            "classes": [],
+            "classes": [xt.Marker],
             "extra_classes": [
                 xt.RandomNormal,
                 xt.Particles,
+                xt.ParticlesMonitor,
+                xt.MultiElementMonitor,
             ],
         }),
     ]
 
     all_classes = [xt.Cavity, xt.Drift, xt.DriftSlice, xt.DriftSliceCavity,
                    xt.MultiElementMonitor, xt.ParticlesMonitor, xt.ThickSliceCavity,
-                   xt.ThinSliceCavity, xt.Translation, xt.Particles, xt.RandomNormal]
+                   xt.ThinSliceCavity, xt.Translation, xt.Marker, xt.Particles,
+                   xt.RandomNormal]
     NAME_CLASS_MAP = {cls.__name__: cls for cls in all_classes}
 
     # Override the definitions with the temporary ones
@@ -293,6 +296,7 @@ def test_regenerate_kernels_multiple_contexts(mocker, tmp_path, temp_context_def
         ("test_module", {
             "config": {},
             "classes": [xt.Drift],
+            "extra_classes": [xt.ParticlesMonitor, xt.MultiElementMonitor],
         }),
     ]
 

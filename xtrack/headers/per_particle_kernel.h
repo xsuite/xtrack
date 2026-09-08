@@ -65,6 +65,7 @@ GPUKERN void KERNEL_NAME(
         LocalParticle lpart;
         lpart.io_buffer = io_buffer;
         lpart.track_flags = 0;
+        lpart.line_length = 0.0;
         int64_t part_id = batch_id * chunk_size;
         int64_t end_id = (batch_id + 1) * chunk_size;
         if (end_id > num_particles_to_track) end_id = num_particles_to_track;
@@ -90,6 +91,8 @@ GPUKERN void KERNEL_NAME(
     #else
         LocalParticle lpart;
         lpart.io_buffer = io_buffer;
+        lpart.track_flags = 0;
+        lpart.line_length = 0.0;
 
         #if defined(XO_CONTEXT_CUDA)
             const int64_t part_id = blockDim.x * blockIdx.x + threadIdx.x;

@@ -338,7 +338,7 @@ def test_scalar_track_tpsa_enabled_element_uses_const_part():
 def test_tpsa_tracking_rejects_turn_by_turn_monitor():
     line = _line()
 
-    with pytest.raises(NotImplementedError, match="turn_by_turn_monitor"):
+    with pytest.raises(NotImplementedError, match="turn-by-turn"):
         line.track(_map(), turn_by_turn_monitor=True)
 
 
