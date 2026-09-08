@@ -170,18 +170,18 @@ uint8_t kick_is_inactive(
     double h
 ){
     if (h != 0) return 0;
-    if (xt_num_truncate_to_double(k0) != 0) return 0;
-    if (xt_num_truncate_to_double(k1) != 0) return 0;
-    if (xt_num_truncate_to_double(k2) != 0) return 0;
-    if (xt_num_truncate_to_double(k3) != 0) return 0;
-    if (xt_num_truncate_to_double(k0s) != 0) return 0;
-    if (xt_num_truncate_to_double(k1s) != 0) return 0;
-    if (xt_num_truncate_to_double(k2s) != 0) return 0;
-    if (xt_num_truncate_to_double(k3s) != 0) return 0;
+    if (!xt_float_or_tpsa_is_zero(k0)) return 0;
+    if (!xt_float_or_tpsa_is_zero(k1)) return 0;
+    if (!xt_float_or_tpsa_is_zero(k2)) return 0;
+    if (!xt_float_or_tpsa_is_zero(k3)) return 0;
+    if (!xt_float_or_tpsa_is_zero(k0s)) return 0;
+    if (!xt_float_or_tpsa_is_zero(k1s)) return 0;
+    if (!xt_float_or_tpsa_is_zero(k2s)) return 0;
+    if (!xt_float_or_tpsa_is_zero(k3s)) return 0;
 
     for (int index = order; index >= 0; index--) {
-        if (xt_num_truncate_to_double(knl[index]) != 0) return 0;
-        if (xt_num_truncate_to_double(ksl[index]) != 0) return 0;
+        if (knl[index] != 0) return 0;
+        if (ksl[index] != 0) return 0;
     }
 
     return 1;

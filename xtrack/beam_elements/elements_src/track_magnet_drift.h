@@ -115,8 +115,8 @@ void track_expanded_combined_dipole_quad_single_particle(
 
     const xt_num_t Kx = k0 * h + k1;
     const xt_num_t Ky = -k1;
-    const double Kx0 = xt_num_truncate_to_double(Kx);
-    const double Ky0 = xt_num_truncate_to_double(Ky);
+    const double Kx0 = xt_float_or_tpsa_const_part(Kx);
+    const double Ky0 = xt_float_or_tpsa_const_part(Ky);
 
     xt_num_t Sx = 0.0, Sy = 0.0, Cx = 0.0, Cy = 0.0;
 

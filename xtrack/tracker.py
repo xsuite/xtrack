@@ -106,8 +106,7 @@ class Tracker:
             element_s_locations=element_s_locations,
             line_length=line_length,
             kernel_element_classes=None,
-            extra_element_classes=(particles_monitor_class._XoStruct,
-                                   xt.MultiElementMonitor._XoStruct),
+            extra_element_classes=(xt.MultiElementMonitor._XoStruct,),
             _context=_context,
             _buffer=_buffer)
 
@@ -289,9 +288,17 @@ class Tracker:
                 "This tracker is not anymore valid, most probably because the corresponding line has been unfrozen. "
                 "Please rebuild the tracker, for example using `line.build_tracker(...)`.")
 
-    def _track(self, particles, *args, with_progress: Union[bool, int] = False,
-               time=False, multi_element_monitor_at=None,
-               monitor_monomials=None, **kwargs):
+    def _track(self, particles, *args, **kwargs):
+        original_tpsa_track = self.config.XTRACK_TPSA_TRACK
+        self.config.XTRACK_TPSA_TRACK = isinstance(particles, ParticlesTpsa)
+        try:
+            return self._track_with_current_config(particles, *args, **kwargs)
+        finally:
+            self.config.XTRACK_TPSA_TRACK = original_tpsa_track
+
+    def _track_with_current_config(
+            self, particles, *args, with_progress: Union[bool, int] = False,
+            time=False, multi_element_monitor_at=None, monitor_monomials=None, **kwargs):
 
         out = None
 
@@ -471,7 +478,6 @@ class Tracker:
             num_turns=num_turns,
         )
 
-        self.config.XTRACK_TPSA_TRACK = True
         track_kernel, tracker_data = self.get_track_kernel_and_data_for_present_config()
         track_kernel.description.n_threads = 1
 
@@ -656,6 +662,11 @@ class Tracker:
             extra_classes=[],
             extra_kernels={},
     ):
+        extra_classes = list(extra_classes)
+        if (not self.config.XTRACK_TPSA_TRACK
+                and self.particles_monitor_class._XoStruct not in extra_classes):
+            extra_classes.append(self.particles_monitor_class._XoStruct)
+
         if compile == 'force' or xo.settings.force_kernel_compilation:
             use_prebuilt_kernels = False
         elif not self._context.allow_prebuilt_kernels:  # only CPU serial
@@ -743,14 +754,6 @@ class Tracker:
         tpsa_track = config.XTRACK_TPSA_TRACK
         kernel_element_classes = _expand_element_classes_with_slice_classes(
             tracker_element_classes)
-        if tpsa_track:
-            # The multi-element monitor records maps too, the other monitors are
-            # doubles-only and their sources do not compile against TPSA coordinates.
-            kernel_element_classes = [
-                cc for cc in kernel_element_classes
-                if "Monitor" not in cc.__name__
-                or cc is xt.MultiElementMonitor._XoStruct
-            ]
         kernel_element_classes = sorted(
             kernel_element_classes,
             key=lambda cc: cc._DressingClass.__name__)

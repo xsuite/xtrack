@@ -421,8 +421,8 @@ void global_aperture_check(LocalParticle* part0) {
     START_PER_PARTICLE_BLOCK(part0, part);
         xt_num_t const x = LocalParticle_get_x(part);
         xt_num_t const y = LocalParticle_get_y(part);
-        double const x0 = xt_num_truncate_to_double(x);
-        double const y0 = xt_num_truncate_to_double(y);
+        double const x0 = xt_float_or_tpsa_const_part(x);
+        double const y0 = xt_float_or_tpsa_const_part(y);
         int64_t const is_within_global_aperture = (int64_t)(
             x0 >= -XTRACK_GLOBAL_XY_LIMIT && x0 <= XTRACK_GLOBAL_XY_LIMIT
             && y0 >= -XTRACK_GLOBAL_XY_LIMIT && y0 <= XTRACK_GLOBAL_XY_LIMIT);

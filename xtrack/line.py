@@ -1983,7 +1983,16 @@ class Line:
                 raise TypeError(f"Cannot track particles of type {type(particles)}")
             if not self._has_valid_tracker():
                 self.build_tracker()
-            self.tracker.config.XTRACK_TPSA_TRACK = True
+            if turn_by_turn_monitor is not None and turn_by_turn_monitor is not False:
+                raise NotImplementedError(
+                    "turn_by_turn_monitor is not supported with TPSA tracking; "
+                    "use multi_element_monitor_at instead"
+                )
+            if any(isinstance(element, xt.ParticlesMonitor)
+                   for element in self.tracker._tracker_data_base.elements):
+                raise NotImplementedError(
+                    "ParticlesMonitor elements are not supported with TPSA tracking"
+                )
             return self.tracker._track(
                 particles,
                 ele_start=ele_start,
@@ -2000,8 +2009,6 @@ class Line:
 
         if not self._has_valid_tracker():
             self.build_tracker()
-        self.tracker.config.XTRACK_TPSA_TRACK = False
-
         if hasattr(particles, '_needs_pipeline') and particles._needs_pipeline:
             if '_called_by_pipeline' not in kwargs or not kwargs['_called_by_pipeline']:
                 all_kwargs = locals()

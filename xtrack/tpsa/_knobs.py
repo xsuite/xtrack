@@ -56,10 +56,6 @@ class KnobParameters:
             # The expression topology is fixed, so the reached elements are too.
             self._reached = sorted({name for name, _ in self.driven_elements()})
 
-    def refresh(self, values: list[float]) -> None:
-        """Move the knobs, re-seeding the parameters (one xdeps propagation each)."""
-        self.apply(values)
-
     def teardown(self) -> None:
         """Plain doubles back in the variables and in every element they reached."""
         if not self._applied:

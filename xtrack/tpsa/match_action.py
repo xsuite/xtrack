@@ -201,7 +201,7 @@ class ActionTpsaTrack(Action):
         parametric = self._build_parametric
         values = [float(self.line[n]) for n in self.vary_names]
         if parametric:
-            self._knobs.refresh(values)
+            self._knobs.apply(values)
         else:
             self._knobs.apply_doubles(values)
 

@@ -8,7 +8,7 @@ from benchmarking import bench_line, print_tables, to_madng, write_report
 from plotting import plot_report
 
 IR8_RANGE = ("s.ds.l8.b1", "ip1.l1")
-IR8_ORDERS = [1, 2, 3, 4]
+IR8_ORDERS = [1, 2, 3, 4, 5]
 IR8_VARY = [
     "kq6.l8b1",
     "kq7.l8b1",

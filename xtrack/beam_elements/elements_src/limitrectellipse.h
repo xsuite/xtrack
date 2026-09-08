@@ -28,9 +28,9 @@ void LimitRectEllipse_track_local_particle(LimitRectEllipseData el, LocalParticl
         xt_num_t const y = LocalParticle_get_y(part);
 
         xt_num_t const temp = x*x*b_squ + y*y*a_squ;
-        double const x0 = xt_num_truncate_to_double(x);
-        double const y0 = xt_num_truncate_to_double(y);
-        double const temp0 = xt_num_truncate_to_double(temp);
+        double const x0 = xt_float_or_tpsa_const_part(x);
+        double const y0 = xt_float_or_tpsa_const_part(y);
+        double const temp0 = xt_float_or_tpsa_const_part(temp);
 
         int64_t const is_alive = (int64_t)(
             (x0 <= max_x) &&

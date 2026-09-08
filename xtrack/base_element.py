@@ -42,21 +42,24 @@ class FloatOrTpsa(xo.RawUnion):
     def _from_buffer(cls, buffer, offset=0, container=None):
         data = buffer.to_bytearray(offset, cls._size)
         bits = np.frombuffer(data, dtype=np.uint64)[0]
-        enabled = False
-        if container is not None:
-            enabled = getattr(container, "_tpsa_enabled", 0)
-            if not enabled and hasattr(container, "_xobject"):
-                enabled = getattr(container._xobject, "_tpsa_enabled", 0)
-        if enabled:
-            ptr = ffi().cast("void*", int(bits))
-            descriptor = getattr(container, "_tpsa_descriptor", None)
-            if descriptor is None and hasattr(container, "_DressingClass"):
-                raise ValueError(
-                    "Cannot decode a TPSA-enabled FloatOrTpsa field without "
-                    "the owning beam element"
-                )
-            return Tpsa.from_ptr(ptr, descriptor=descriptor)
-        return _uint64_bits_to_float(bits)
+
+        if container is None:
+            # Trying to read outside the context of a BeamElement field. This should not normally happen.
+            return _uint64_bits_to_float(bits)
+
+        if not getattr(container, "_tpsa_enabled", 0):
+            # TPSA disabled, return value as scalar
+            return _uint64_bits_to_float(bits)
+
+        ptr = ffi().cast("void*", int(bits))
+        descriptor = getattr(container, "_tpsa_descriptor", None)
+        if descriptor is None and hasattr(container, "_DressingClass"):
+            raise ValueError(
+                "Cannot decode a TPSA-enabled FloatOrTpsa field without "
+                "the owning beam element"
+            )
+        return Tpsa.from_ptr(ptr, descriptor=descriptor)
+
 
     @classmethod
     def _to_buffer(cls, buffer, offset, value, info=None, container=None):
@@ -851,6 +854,9 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
         return instance
 
     def copy(self, **kwargs):
+        if getattr(self._xobject, "_tpsa_enabled", 0):
+            raise NotImplementedError(
+                "Copying TPSA-enabled beam elements is not supported")
         out = super().copy(**kwargs)
         if hasattr(self, 'extra'):
             try:

@@ -8,8 +8,12 @@
 typedef double xt_num_t;
 typedef const xt_num_t xt_num_arg_t;
 
-static inline double xt_num_truncate_to_double(xt_num_arg_t value){
+static inline double xt_float_or_tpsa_const_part(xt_num_arg_t value){
     return value;
+}
+
+static inline int xt_float_or_tpsa_is_zero(xt_num_arg_t value){
+    return value == 0.0;
 }
 
 // Decode a scalar FloatOrTpsa slot stored as raw uint64_t bits.

@@ -37,13 +37,13 @@ void MultiElementMonitor_track_local_particle(MultiElementMonitorData el,
 
                 // Truncation constant part of TPSA map or takes scalar directly
                 // if scalar tracking.
-                double const x = xt_num_truncate_to_double(LocalParticle_get_x(part));
-                double const px = xt_num_truncate_to_double(LocalParticle_get_px(part));
-                double const y = xt_num_truncate_to_double(LocalParticle_get_y(part));
-                double const py = xt_num_truncate_to_double(LocalParticle_get_py(part));
-                double const zeta = xt_num_truncate_to_double(LocalParticle_get_zeta(part));
-                double const delta = xt_num_truncate_to_double(LocalParticle_get_delta(part));
-                double const s = xt_num_truncate_to_double(LocalParticle_get_s(part));
+                double const x = xt_float_or_tpsa_const_part(LocalParticle_get_x(part));
+                double const px = xt_float_or_tpsa_const_part(LocalParticle_get_px(part));
+                double const y = xt_float_or_tpsa_const_part(LocalParticle_get_y(part));
+                double const py = xt_float_or_tpsa_const_part(LocalParticle_get_py(part));
+                double const zeta = xt_float_or_tpsa_const_part(LocalParticle_get_zeta(part));
+                double const delta = xt_float_or_tpsa_const_part(LocalParticle_get_delta(part));
+                double const s = xt_float_or_tpsa_const_part(LocalParticle_get_s(part));
 
                 MultiElementMonitorData_set_data(
                     el, turn_index, particle_index, 0, store_at, x);

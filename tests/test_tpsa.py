@@ -173,16 +173,21 @@ def test_tpsa_quadrupole_zero_strength_parameter_element_track():
         0.5 * length**2 * x0 * px0 + length**3 * px0**2 / 6.0)
 
 
-def test_particles_tpsa_uses_tracker_tpsa_config():
+def test_tracking_scopes_tracker_tpsa_config():
     line = _line()
-    m = _map()
-    line.track(m)
+    assert line.tracker.config.XTRACK_TPSA_TRACK is False
 
-    assert line.tracker.config.XTRACK_TPSA_TRACK is True
+    line.track(_map())
+
+    assert line.tracker.config.XTRACK_TPSA_TRACK is False
     assert any(
         ("XTRACK_TPSA_TRACK", True) in key
         for key in line.tracker.track_kernel
     )
+
+    line.tracker.config.XTRACK_TPSA_TRACK = True
+    line.track(_particle())
+    assert line.tracker.config.XTRACK_TPSA_TRACK is True
 
 
 def test_particles_tpsa_requires_synrad_disabled():
@@ -192,6 +197,8 @@ def test_particles_tpsa_requires_synrad_disabled():
 
     with pytest.raises(NotImplementedError, match="synchrotron radiation"):
         line.track(m)
+
+    assert line.tracker.config.XTRACK_TPSA_TRACK is False
 
 
 def test_tpsa_line_track_matches_scalar_const_part():
@@ -328,6 +335,23 @@ def test_scalar_track_tpsa_enabled_element_uses_const_part():
     )
 
 
+def test_tpsa_tracking_rejects_turn_by_turn_monitor():
+    line = _line()
+
+    with pytest.raises(NotImplementedError, match="turn_by_turn_monitor"):
+        line.track(_map(), turn_by_turn_monitor=True)
+
+
+def test_tpsa_tracking_rejects_particles_monitor_element():
+    monitor = xt.ParticlesMonitor(num_particles=1, start_at_turn=0, stop_at_turn=1)
+    line = xt.Line(elements=[monitor])
+    line.particle_ref = xt.Particles(p0c=P0C, mass0=MASS0)
+    line.build_tracker(compile=False)
+
+    with pytest.raises(NotImplementedError, match="ParticlesMonitor elements"):
+        line.track(_map())
+
+
 def test_line_disable_tpsa_elements():
     line = _line(k1=0.125)
     descriptor = madng_tpsa.Descriptor(6, 1, num_params=1, param_order=1)
@@ -409,22 +433,14 @@ def test_build_tracker_preserves_tpsa_enabled_elements_moved_to_common_buffer():
     )
 
 
-def test_tpsa_enabled_element_copy_preserves_handles():
+def test_tpsa_enabled_element_copy_is_rejected():
     q = xt.Quadrupole(length=1.0, k1=0.1)
     descriptor = madng_tpsa.Descriptor(6, 1, num_params=1, param_order=1)
     k1_tpsa = descriptor.param(1, 0.1)
     q.k1 = k1_tpsa
 
-    q_copy = q.copy()
-
-    assert q_copy is not q
-    assert q_copy._xobject is not q._xobject
-    assert q_copy._buffer is not q._buffer
-    assert q_copy._xobject._tpsa_enabled
-    assert q_copy._tpsa_descriptor is q._tpsa_descriptor
-    assert q_copy._tpsa_handles is not q._tpsa_handles
-    assert q_copy.k1 is k1_tpsa
-    assert q_copy._field_raw_bits("k1") == q._field_raw_bits("k1")
+    with pytest.raises(NotImplementedError, match="Copying TPSA-enabled"):
+        q.copy()
 
 
 def test_float_or_tpsa_field_assignment():
@@ -1392,7 +1408,7 @@ def test_knob_parameters_refresh_moves_a_nonlinear_knob():
                        rtol=0, atol=1e-14)
 
     for value in (0.05, -0.03, 0.11):
-        knobs.refresh([value])
+        knobs.apply([value])
         xo.assert_allclose(knobs.strength_jacobian()[("mq1", "k1")], [2 * value],
                            rtol=0, atol=1e-14)
         assert line.element_dict["mq1"].k1.const_part == pytest.approx(value ** 2)

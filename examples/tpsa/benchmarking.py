@@ -170,7 +170,7 @@ def bench_line(line, mng, knob_names, knob_values, label, order):
     n_driven = len(knob_driven_fields(line, knob_names))
 
     def refresh():
-        knobs.refresh(knob_values)
+        knobs.apply(knob_values)
 
     def build_param():
         refresh()
