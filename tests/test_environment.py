@@ -4769,7 +4769,7 @@ def test_insert_from_anchor_center():
 def test_environment_xfields_beambeam_facade(monkeypatch):
 
     from xfields.environment_tools import XfieldsEnvironmentAPI
-    from xfields.config_tools.beambeam_config_tools import weak_strong
+    from xfields.config_tools.beambeam_config_tools import particles_mode
 
     env = xt.Environment()
     calls = []
@@ -4786,11 +4786,11 @@ def test_environment_xfields_beambeam_facade(monkeypatch):
         calls.append(('apply', env_arg, args, kwargs))
         return 'applied'
 
-    monkeypatch.setattr(weak_strong, 'install_beambeam_interactions',
+    monkeypatch.setattr(particles_mode, 'install_beambeam_interactions',
                         fake_install)
-    monkeypatch.setattr(weak_strong, 'configure_beambeam_interactions',
+    monkeypatch.setattr(particles_mode, 'configure_beambeam_interactions',
                         fake_configure)
-    monkeypatch.setattr(weak_strong, 'apply_filling_pattern', fake_apply)
+    monkeypatch.setattr(particles_mode, 'apply_filling_pattern', fake_apply)
 
     assert isinstance(env.xfields, XfieldsEnvironmentAPI)
     assert env.xfields is env.xfields
@@ -4829,6 +4829,12 @@ def test_environment_xfields_beambeam_facade(monkeypatch):
             'crab_strong_beam': True,
             'use_antisymmetry': False,
             'separation_bumps': None,
+            'filling_pattern_cw': None,
+            'filling_pattern_acw': None,
+            'i_bunch_cw': None,
+            'i_bunch_acw': None,
+            'filled_slots_cw': None,
+            'filled_slots_acw': None,
         })
 
     assert env.xfields.apply_filling_pattern([1], [1], 0, 0) == 'applied'
@@ -4838,6 +4844,8 @@ def test_environment_xfields_beambeam_facade(monkeypatch):
             'filling_pattern_acw': [1],
             'i_bunch_cw': 0,
             'i_bunch_acw': 0,
+            'filled_slots_cw': None,
+            'filled_slots_acw': None,
         })
 
     with pytest.warns(
