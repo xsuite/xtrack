@@ -563,7 +563,7 @@ class _BendCommon(_HasKnlKsl, _HasIntegrator, _HasModelCurved):
     has_backtrack = True
     allow_loss_refinement = True
 
-    _skip_in_to_dict = ['inv_factorial_order', 'h', 'k0_from_h', '_tpsa_enabled']
+    _skip_in_to_dict = ['inv_factorial_order', 'h', 'k0_from_h']
 
     _common_xofields = {
         'k0': FloatOrTpsa,
@@ -596,7 +596,6 @@ class _BendCommon(_HasKnlKsl, _HasIntegrator, _HasModelCurved):
         'knl_rel': xo.Float64[:],
         'ksl_rel': xo.Float64[:],
         'k0_from_h': xo.Field(xo.UInt64, default=1),
-        '_tpsa_enabled': xo.Field(xo.Int8, default=0),
     }
 
     _common_rename = {

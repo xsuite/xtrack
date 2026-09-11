@@ -79,11 +79,10 @@ class Sextupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
         'integrator': xo.Int64,
         'radiation_flag': xo.Int64,
         'delta_taper': xo.Float64,
-        '_tpsa_enabled': xo.Field(xo.Int8, default=0),
     }
 
     _skip_in_to_dict = [
-        '_order', 'inv_factorial_order', '_tpsa_enabled']  # defined by knl, etc.
+        '_order', 'inv_factorial_order']  # defined by knl, etc.
 
     _rename = {
         'order': '_order',

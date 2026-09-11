@@ -420,6 +420,12 @@ class MetaBeamElement(xo.MetaHybridClass):
             nn for nn, tt in xofields.items()
             if getattr(tt, '_is_float_or_tpsa', False)
         )
+        if data['_float_or_tpsa_fields']:
+            xofields['_tpsa_enabled'] = xo.Field(xo.Int8, default=0)
+            skip_in_to_dict = list(data.get('_skip_in_to_dict', ()))
+            if '_tpsa_enabled' not in skip_in_to_dict:
+                skip_in_to_dict.append('_tpsa_enabled')
+            data['_skip_in_to_dict'] = skip_in_to_dict
 
         depends_on = []
         extra_c_source = [
