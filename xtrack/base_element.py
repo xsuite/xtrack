@@ -667,6 +667,7 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
             extra_classes=[self.__class__._XoStruct, TpsaParticleData],
             extra_headers=[
                 "#define XTRACK_TPSA_TRACK",
+                "#define XTRACK_MULTIPOLE_NO_SYNRAD",
                 "#define restrict __restrict",
             ],
             apply_to_source=[_handle_per_particle_blocks],

@@ -1097,15 +1097,10 @@ class Tracker:
             compiler_language = "c++"
             headers.insert(0, "#define restrict __restrict")
 
-        skip_config_headers = set()
-        if tpsa_track:
-            skip_config_headers.add("XTRACK_MULTIPOLE_NO_SYNRAD")
-
         build_kwargs = {
             'sources': sources,
             'kernel_descriptions': kernels,
-            'extra_headers': cls._config_to_headers_from_config(
-                config, skip=skip_config_headers) + headers,
+            'extra_headers': cls._config_to_headers_from_config(config) + headers,
             'extra_classes': all_classes,
             'apply_to_source': apply_to_source,
             'specialize': True,

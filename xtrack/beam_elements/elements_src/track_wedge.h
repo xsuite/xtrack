@@ -58,7 +58,7 @@ void Wedge_single_particle(
 
     // For spin we implement the effect of the reference frame rotation,
     // but we do not yet implement the effect of the magnetic field on the spin.
-    #if !defined(XTRACK_TPSA_TRACK) && !defined(XTRACK_MULTIPOLE_NO_SYNRAD) // Spin tracking is disabled by the synrad compile flag
+    #ifndef XTRACK_MULTIPOLE_NO_SYNRAD // Spin tracking is disabled by the synrad compile flag
         double const sin_angle = -sin(theta);
         double const cos_angle = cos(theta);
         /* Rotate spin */
@@ -99,4 +99,3 @@ void Quad_wedge_single_particle(
 
 
 #endif // XTRACK_TRACK_WEDGE_H
-

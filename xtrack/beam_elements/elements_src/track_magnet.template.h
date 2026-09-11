@@ -11,7 +11,7 @@
 #include "xtrack/beam_elements/elements_src/track_magnet_edge.h"
 #include "xtrack/beam_elements/elements_src/track_magnet_configure.h"
 
-#if !defined(XTRACK_TPSA_TRACK) && !defined(XTRACK_MULTIPOLE_NO_SYNRAD)
+#ifndef XTRACK_MULTIPOLE_NO_SYNRAD
 #include "xtrack/beam_elements/elements_src/track_magnet_radiation.h"
 #endif
 
@@ -360,7 +360,7 @@ void track_magnet_particles(
         factor_backtrack_edge = 1.;
     }
 
-    #if !defined(XTRACK_TPSA_TRACK) && !defined(XTRACK_MULTIPOLE_NO_SYNRAD)
+    #ifndef XTRACK_MULTIPOLE_NO_SYNRAD
         if (radiation_flag == 10){ // from parent
             radiation_flag = radiation_flag_parent;
         }
@@ -374,7 +374,7 @@ void track_magnet_particles(
                                                       // when doing the tapering
     }
 
-    #if !defined(XTRACK_TPSA_TRACK) && !defined(XTRACK_MULTIPOLE_NO_SYNRAD)
+    #ifndef XTRACK_MULTIPOLE_NO_SYNRAD
         if (radiation_flag){
             // knl and ksl are scaled by the called functions below using factor_knl_ksl
             factor_knl_ksl_body *= (1. + delta_taper);
