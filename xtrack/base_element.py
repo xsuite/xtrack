@@ -51,7 +51,7 @@ class FloatOrTpsa(xo.RawUnion):
             # TPSA disabled, return value as scalar
             return _uint64_bits_to_float(bits)
 
-        ptr = ffi().cast("void*", int(bits))
+        ptr = ffi.cast("void*", int(bits))
         descriptor = getattr(container, "_tpsa_descriptor", None)
         if descriptor is None and hasattr(container, "_DressingClass"):
             raise ValueError(
@@ -72,7 +72,7 @@ class FloatOrTpsa(xo.RawUnion):
                     "FloatOrTpsa fields can only be initialized from scalars "
                     "without an owning container"
                 )
-            bits = int(ffi().cast("uintptr_t", value.ptr))
+            bits = int(ffi.cast("uintptr_t", value.ptr))
         else:
             bits = int(_float_to_uint64_bits(value))
         data = np.array([bits], dtype=np.uint64).tobytes()

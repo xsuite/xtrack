@@ -144,7 +144,7 @@ class ParticlesTpsa:
         The reference (double) variables never change during tracking. The kernel copies
         this data into an unrolled ``LocalParticle`` and synchronizes tracking state back.
         """
-        ffi = madng_tpsa.ffi()
+        ffi = madng_tpsa.ffi
         bp = TpsaParticleData()
         for c, t in zip(COORDS, self.coords):
             setattr(bp, c, int(ffi.cast("uintptr_t", t.ptr)))

@@ -228,7 +228,7 @@ class MultiElementMonitor(xt.BeamElement):
             [[descriptor.zero() for _ in COORDS] for _ in range(num_locations)]
             for _ in range(num_turns)
         ]
-        ffi = madng_tpsa.ffi()
+        ffi = madng_tpsa.ffi
         addresses = np.array(
             [
                 int(ffi.cast("uintptr_t", one_series.ptr))

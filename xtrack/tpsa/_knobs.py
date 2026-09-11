@@ -12,6 +12,12 @@ from typing import Any
 from madng_tpsa import Descriptor, Tpsa
 
 
+def _scalar_value(value: Any) -> float:
+    if isinstance(value, Tpsa):
+        return float(value.const_part)
+    return float(value)
+
+
 class KnobParameters:
     """Line variables ``names`` held as parameters ``1..len(names)`` of ``descriptor``.
 
@@ -48,9 +54,9 @@ class KnobParameters:
     def apply(self, values: list[float] | None = None) -> None:
         """Assign parameter ``k+1`` to knob ``k``, seeded at its current value."""
         if values is None:
-            values = [float(self.line[name]) for name in self.names]
+            values = [_scalar_value(self.line[name]) for name in self.names]
         for index, (name, value) in enumerate(zip(self.names, values), start=1):
-            self.line.vars[name] = self.descriptor.param(index, float(value))
+            self.line.vars[name] = self.descriptor.param(index, _scalar_value(value))
         self._applied = True
         if self._reached is None:
             # The expression topology is fixed, so the reached elements are too.
@@ -60,12 +66,12 @@ class KnobParameters:
         """Plain doubles back in the variables and in every element they reached."""
         if not self._applied:
             return
-        self.apply_doubles([float(self.line[name]) for name in self.names])
+        self.apply_doubles([_scalar_value(self.line[name]) for name in self.names])
 
     def apply_doubles(self, values: list[float]) -> None:
         """Set the knobs to floats and drop TPSA storage from the elements they drive."""
         for name, value in zip(self.names, values):
-            self.line.vars[name] = float(value)
+            self.line.vars[name] = _scalar_value(value)
         # xdeps re-propagates the new floats, but an enabled element stores them as
         # constant series, so the switch back to doubles is explicit by disabling tpsa
         # for the reached elements.

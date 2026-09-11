@@ -530,9 +530,10 @@ def test_tpsa_match_optics():
     ],
     use_tpsa=True, tpsa_backend="madng_tpsa")
 
-    # Assert that all variables are TPSAs
+    # The action keeps the parametric maps internally; line variables stay scalar so
+    # that the optimizer can log and update them.
     for name in opt.actions[0].vary_names:
-        assert isinstance(line.vars.val[name], madng_tpsa.tpsa.Tpsa)
+        assert isinstance(line.vars.val[name], float)
 
     opt.step(30)
 

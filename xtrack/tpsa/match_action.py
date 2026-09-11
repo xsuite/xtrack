@@ -15,7 +15,7 @@ import xtrack as xt
 
 from ..match import Action, TargetRelPhaseAdvance
 from ..twiss.twiss_init import _6d_w_matrix
-from ._knobs import KnobParameters
+from ._knobs import KnobParameters, _scalar_value
 from .particles import ParticlesTpsa
 
 # Optics quantities served by TpsaOptics, orbit quantities by the map's param_jacobian.
@@ -199,39 +199,44 @@ class ActionTpsaTrack(Action):
         # directly (reload, clipping), so their current contents are unknown.
         # Parametric needs the knob parameters, value-only needs plain doubles.
         parametric = self._build_parametric
-        values = [float(self.line[n]) for n in self.vary_names]
+        values = [_scalar_value(self.line[n]) for n in self.vary_names]
         if parametric:
             self._knobs.apply(values)
         else:
             self._knobs.apply_doubles(values)
 
-        m = self._seed_map(parametric)
-        # Unique physical positions (distinct logical locations may resolve to the same
-        # element, e.g. 'ip1' and 'ip1.l1' after the ring-cut remap).
-        obs = list(dict.fromkeys(self._obs_name[loc]
-                                 for loc in self.optics_target_locations))
-        self.line.track(
-            m,
-            ele_start=self.tw_kwargs.get("start", 0),
-            ele_stop=self._track_stop,
-            multi_element_monitor_at=obs,
-        )
-        self._monitor = self.line.tracker.record_multi_element_last_track
-        self._last_parametric = parametric
+        try:
+            m = self._seed_map(parametric)
+            # Unique physical positions (distinct logical locations may resolve to the same
+            # element, e.g. 'ip1' and 'ip1.l1' after the ring-cut remap).
+            obs = list(dict.fromkeys(self._obs_name[loc]
+                                     for loc in self.optics_target_locations))
+            self.line.track(
+                m,
+                ele_start=self.tw_kwargs.get("start", 0),
+                ele_stop=self._track_stop,
+                multi_element_monitor_at=obs,
+            )
+            self._monitor = self.line.tracker.record_multi_element_last_track
+            self._last_parametric = parametric
 
-        # One map view + one TpsaOptics per location, reused for all quantities and the Jacobian.
-        self._views = {loc: self._monitor.map_at(self._obs_name[loc])
-                       for loc in self.optics_target_locations}
-        self._optics = {loc: v.optics() for loc, v in self._views.items()}
-        self._phase_cont = self._continuous_phases()
+            # One map view + one TpsaOptics per location, reused for all quantities and the
+            # Jacobian.
+            self._views = {loc: self._monitor.map_at(self._obs_name[loc])
+                           for loc in self.optics_target_locations}
+            self._optics = {loc: v.optics() for loc, v in self._views.items()}
+            self._phase_cont = self._continuous_phases()
 
-        # Result table: fill every requested column at every observed location.
-        cols: dict[str, Any] = {"name": np.array(self.optics_target_locations, dtype=object)}
-        for c in self._col_names:
-            cols[c] = np.array([self._value(loc, c) for loc in self.optics_target_locations])
-        res = xt.TwissTable(data=cols)
-        self._last_res = res
-        return res
+            # Result table: fill every requested column at every observed location.
+            cols: dict[str, Any] = {"name": np.array(self.optics_target_locations, dtype=object)}
+            for c in self._col_names:
+                cols[c] = np.array([self._value(loc, c) for loc in self.optics_target_locations])
+            res = xt.TwissTable(data=cols)
+            self._last_res = res
+            return res
+        finally:
+            # xdeps reads the line variables after every action evaluation.
+            self._knobs.teardown()
 
     def _continuous_phases(self):
         """mux/muy per observed location, unwrapped vs the reference twiss (phase from
