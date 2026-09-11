@@ -2,11 +2,11 @@ import xtrack as xt
 import numpy as np
 
 r0 = 0.13
-ds_start = 1.5
-ds_end = 2.29
+ds_start = 1.6
+ds_end = 2.13
 
 B0_list = np.array([2, 2.5, 2.75, 3])
-s_screen_sol_list = np.array([1.2, 1.3, 1.4, 1.5])
+s_screen_sol_list = np.array([1.4, 1.45,1.5, 1.55, 1.6])
 
 cols = {str(ss): 0*B0_list for ss in s_screen_sol_list}
 cols['B'] = np.array(list(map(str, B0_list)))
