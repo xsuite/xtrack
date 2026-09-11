@@ -582,18 +582,6 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
             self.__dict__.setdefault("_tpsa_handles", {})
             self.__dict__.setdefault("_tpsa_descriptor", None)
 
-    def _field_raw_bits(self, name):
-        xo_obj = self._xobject
-        offset = xo_obj._get_offset(name)
-        data = xo_obj._buffer.to_bytearray(offset, 8)
-        return int(np.frombuffer(data, dtype=np.uint64)[0])
-
-    def _field_raw_float(self, name):
-        return float(_uint64_bits_to_float(self._field_raw_bits(name)))
-
-    def _set_float_or_tpsa_field(self, name, value):
-        getattr(type(self), name).__set__(self, value)
-
     def enable_tpsa(self, descriptor_or_proto):
         if not isinstance(self._buffer.context, xo.ContextCpu):
             raise NotImplementedError(
@@ -608,7 +596,7 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
             if self._xobject._tpsa_enabled:
                 value = getattr(self, name)
             else:
-                value = descriptor.constant(self._field_raw_float(name))
+                value = descriptor.constant(getattr(self, name))
             handles[name] = value
             setattr(self._xobject, name, value)
         self.__dict__["_tpsa_handles"] = handles
@@ -617,14 +605,9 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
     def disable_tpsa(self):
         if not getattr(self._xobject, "_tpsa_enabled", 0):
             return
-        handles = _get_tpsa_handles(self)
         for name in self._float_or_tpsa_fields:
-            value = handles.get(name)
-            if value is None:
-                value = self._field_raw_float(name)
-            else:
-                value = value.const_part
-            setattr(self._xobject, name, float(value))
+            value = getattr(self, name)
+            setattr(self._xobject, name, float(value.const_part))
         self._xobject._tpsa_enabled = 0
         self.__dict__["_tpsa_handles"] = {}
         self.__dict__["_tpsa_descriptor"] = None
@@ -827,7 +810,9 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
     def to_dict(self, **kwargs):
         if getattr(self._xobject, "_tpsa_enabled", 0):
             raise NotImplementedError(
-                "Serializing TPSA-enabled beam elements is not supported")
+                "Serializing TPSA-enabled beam elements is not supported. "
+                "Call `disable_tpsa` to discard TPSA parameters in the elements."
+            )
         dct = xo.HybridClass.to_dict(self, **kwargs)
         if self.name_associated_aperture is not None:
             dct['name_associated_aperture'] = self.name_associated_aperture
