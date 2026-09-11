@@ -276,8 +276,6 @@ def _add_edwards_teng_coupling_to_twiss_result(twiss_config, twiss_res):
 
     coupling_result = _get_coupling_elements_edwards_teng(
         W_matrix=twiss_res['W_matrix'],
-        mux=twiss_res['mux'],
-        muy=twiss_res['muy'],
         qx=twiss_res['qx'],
         qy=twiss_res['qy'])
     for key in coupling_result:

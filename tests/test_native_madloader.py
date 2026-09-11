@@ -1651,3 +1651,23 @@ def test_native_loader_yrotation():
     assert isinstance(line[0], xt.Rotation)
     line.vars['angle'] = 2.0
     assert line[0].rot_y_rad == line.vars['angle']._value
+
+
+def test_native_loader_translation_shift_s():
+    mad_src = """
+    longitudinal_shift = 0.2;
+    tr: translation, dx=0.01, dy=-0.02, ds:=longitudinal_shift;
+
+    ss: sequence, l=1; tr: tr, at=0; endsequence;
+    """
+
+    env = xt.load(string=mad_src, format='madx')
+    line = env.ss
+
+    assert isinstance(line['tr'], xt.Translation)
+    assert line['tr'].shift_x == 0.01
+    assert line['tr'].shift_y == -0.02
+    assert line['tr'].shift_s == line.vars['longitudinal_shift']._value
+
+    line.vars['longitudinal_shift'] = -0.4
+    assert line['tr'].shift_s == -0.4

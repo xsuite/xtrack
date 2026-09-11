@@ -8,155 +8,27 @@
 
 
 import numpy as np
-from warnings import warn
 
-from .table import Table
-from .general import DEPRECATION_INFO_PREP_1_0
-
-# Required functions
-# ==================================================
-def get_E_from_angles(theta, phi, psi):
-    costhe = np.cos(theta)
-    cosphi = np.cos(phi)
-    cospsi = np.cos(psi)
-    sinthe = np.sin(theta)
-    sinphi = np.sin(phi)
-    sinpsi = np.sin(psi)
-    w = np.zeros([3, 3])
-    w[0, 0] = +costhe * cospsi - sinthe * sinphi * sinpsi
-    w[0, 1] = -costhe * sinpsi - sinthe * sinphi * cospsi
-    w[0, 2] = sinthe * cosphi
-    w[1, 0] = cosphi * sinpsi
-    w[1, 1] = cosphi * cospsi
-    w[1, 2] = sinphi
-    w[2, 0] = -sinthe * cospsi - costhe * sinphi * sinpsi
-    w[2, 1] = +sinthe * sinpsi - costhe * sinphi * cospsi
-    w[2, 2] = costhe * cosphi
-
-    return w
+from .frame import Frame, _angles_from_E_matrix
+from ..table import Table
+from ..general import DEPRECATION_INFO_PREP_1_0
 
 
-def get_angles_from_w(w):
-    """Inverse function of get_w_from_angles()"""
-    # w[0, 2]/w[2, 2] = (sinthe * cosphi)/(costhe * cosphi)
-    # w[1, 0]/w[1, 1] = (cosphi * sinpsi)/(cosphi * cospsi)
-    # w[1, 2]/w[1, 1] = (sinphi)/(cosphi * cospsi)
-
-    theta = np.arctan2(w[0, 2], w[2, 2])
-    psi = np.arctan2(w[1, 0], w[1, 1])
-    phi = np.arctan2(w[1, 2], w[1, 1] / np.cos(psi))
-
-    # TODO: arctan2 returns angle between [-pi,pi].
-    # Hence theta ends up not at 2pi after a full survey
-    return theta, phi, psi
+__all__ = [
+    'SurveyTable',
+    'get_survey',
+    'survey_from_line',
+    'survey_relative_transform',
+    'track_frame',
+]
 
 
-def advance_bend(v, w, R, S):
-    """Advancing through bending element, see MAD-X manual:
-    v2 = w1*R + v1  | w2 = w1*S"""
-    return np.dot(w, R) + v, np.dot(w, S)
-
-
-def advance_rotation(v, w, S):
-    """Advancing through rotation element:
-    Rotate w matrix according to transformation matrix S"""
-    return v, np.dot(w, S)
-
-
-def advance_drift(v, w, R):
-    """Advancing through drift element, see MAD-X manual:
-    v2 = w1*R + v1  | w2 = w1*S -> S is unity"""
-    return np.dot(w, R) + v, w
-
-
-def advance_element(
-        v, w, length = 0, angle = 0, tilt = 0,
-        ref_shift_x = 0, ref_shift_y = 0, ref_rot_x_rad = 0, ref_rot_y_rad = 0, ref_rot_s_rad = 0):
-    """Computing the advance element-by-element.
-    See MAD-X manual for generation of R and S"""
-    # XYShift Handling
-    if ref_shift_x != 0 or ref_shift_y != 0:
-        assert angle == 0,  "ref_shift_x and ref_shift_y are only supported for angle = 0"
-        assert tilt == 0,   "ref_shift_x and ref_shift_y are only supported for tilt = 0"
-        assert length == 0, "ref_shift_x and ref_shift_y are only supported for length = 0"
-
-        R = np.array([ref_shift_x, ref_shift_y, 0])
-        # XYShift transforms as a drift
-        return advance_drift(v, w, R)
-
-    # XRotation Handling
-    if ref_rot_x_rad != 0:
-        assert angle == 0,  "rot_x_rad is only supported for angle = 0"
-        assert tilt == 0,   "rot_x_rad is only supported for tilt = 0"
-        assert length == 0, "rot_x_rad is only supported for length = 0"
-
-        # Rotation sine/cosine
-        cr = np.cos(-ref_rot_x_rad)
-        sr = np.sin(-ref_rot_x_rad)
-        # ------
-        S = np.array([[1, 0, 0], [0, cr, sr], [0, -sr, cr]]) # x rotation matrix
-        return advance_rotation(v, w, S)
-
-    # YRotation Handling
-    if ref_rot_y_rad != 0:
-        assert angle == 0,  "rot_y_rad is only supported for angle = 0"
-        assert tilt == 0,   "rot_y_rad is only supported for tilt = 0"
-        assert length == 0, "rot_y_rad is only supported for length = 0"
-
-        # Rotation sine/cosine
-        cr = np.cos(ref_rot_y_rad)
-        sr = np.sin(ref_rot_y_rad)
-        # ------
-        S = np.array([[cr, 0, -sr], [0, 1, 0], [sr, 0, cr]]) # y rotation matrix
-        return advance_rotation(v, w, S)
-
-    # SRotation Handling
-    if ref_rot_s_rad != 0:
-        assert angle == 0,  "rot_s_rad is only supported for angle = 0"
-        assert tilt == 0,   "rot_s_rad is only supported for tilt = 0"
-        assert length == 0, "rot_s_rad is only supported for length = 0"
-
-        # Rotation sine/cosine
-        cr = np.cos(ref_rot_s_rad)
-        sr = np.sin(ref_rot_s_rad)
-        # ------
-        S = np.array([[cr, -sr, 0], [sr, cr, 0], [0, 0, 1]]) # z rotation matrix
-        return advance_rotation(v, w, S)
-
-    # Non bending elements
-    if angle == 0:
-        R = np.array([0, 0, length])
-        return advance_drift(v, w, R)
-
-    # Horizontal bending elements
-    elif tilt == 0:
-        # Angle sine/cosine
-        ca = np.cos(angle)
-        sa = np.sin(angle)
-        # ------
-        rho = length / angle
-        R = np.array([rho * (ca - 1), 0, rho * sa])
-        S = np.array([[ca, 0, -sa], [0, 1, 0], [sa, 0, ca]])
-        return advance_bend(v, w, R, S)
-
-    # Tilted bending elements
-    else:
-        # Angle sine/cosine
-        ca = np.cos(angle)
-        sa = np.sin(angle)
-        # Tilt sine/cosine
-        ct = np.cos(tilt)
-        st = np.sin(tilt)
-        # ------
-        rho = length / angle
-        R = np.array([rho * (ca - 1), 0, rho * sa])
-        S = np.array([[ca, 0, -sa], [0, 1, 0], [sa, 0, ca]])
-
-        # Orthogonal rotation matrix for tilt
-        T       = np.array([[ct, -st, 0], [st, ct, 0], [0, 0, 1]])
-        Tinv    = np.array([[ct, st, 0], [-st, ct, 0], [0, 0, 1]])
-
-        return advance_bend(v, w, np.dot(T, R), np.dot(T, np.dot(S, Tinv)))
+_ELEMENT_FRAME_NAMES = (
+    'ref_start',
+    'ref_end',
+    'elem_start',
+    'elem_end',
+)
 
 
 class SurveyTable(Table):
@@ -296,11 +168,101 @@ class SurveyTable(Table):
         derived_quantities = _get_survey_quantities_from_v_w(new_V, new_E_matrix)
         new_cols.update(derived_quantities)
 
+        if 'XYZ_ref_start' in self._data:
+            position_pairs = [
+                ('XYZ_ref_start', 'XYZ_ref_end'),
+                ('XYZ_elem_start', 'XYZ_elem_end'),
+            ]
+            orientation_pairs = [
+                ('E_ref_start', 'E_ref_end'),
+                ('E_elem_start', 'E_elem_end'),
+            ]
+
+            for start_name, end_name in position_pairs:
+                reversed_start = self._data[start_name].copy()
+                reversed_end = self._data[end_name].copy()
+                reversed_start[:-1] = self._data[end_name][:-1][::-1]
+                reversed_end[:-1] = self._data[start_name][:-1][::-1]
+                reversed_start[-1] = self.XYZ[0]
+                reversed_end[-1] = self.XYZ[0]
+                reversed_start[:, (0, 2)] *= -1
+                reversed_end[:, (0, 2)] *= -1
+                new_cols[start_name] = reversed_start
+                new_cols[end_name] = reversed_end
+
+            for start_name, end_name in orientation_pairs:
+                reversed_start = self._data[start_name].copy()
+                reversed_end = self._data[end_name].copy()
+                reversed_start[:-1] = self._data[end_name][:-1][::-1]
+                reversed_end[:-1] = self._data[start_name][:-1][::-1]
+                reversed_start[-1] = self.E_matrix[0]
+                reversed_end[-1] = self.E_matrix[0]
+                for reversed_matrix in (reversed_start, reversed_end):
+                    reversed_matrix[:, (0, 2), :] *= -1
+                    reversed_matrix[:, :, (0, 2)] *= -1
+                new_cols[start_name] = reversed_start
+                new_cols[end_name] = reversed_end
+
+            for frame_name in (
+                    'ref_start', 'ref_end', 'elem_start', 'elem_end'):
+                XYZ_frame = new_cols[f'XYZ_{frame_name}']
+                for ii, coordinate in enumerate('XYZ'):
+                    new_cols[f'{coordinate}_{frame_name}'] = XYZ_frame[:, ii]
+
         out = SurveyTable(
             data        = (new_cols | {'element0': self.element0}),
             col_names   = new_cols.keys())
 
         return out
+
+    def get_frame(self, at, *, which=None):
+        """Return an independent frame at a surveyed location.
+
+        Parameters
+        ----------
+        at : str or int
+            Element name or row index.
+        which : {None, 'ref_start', 'ref_end', 'elem_start', 'elem_end'}
+            Frame to return. By default, use the standard ``XYZ`` and
+            ``E_matrix`` survey columns. The other choices require a survey
+            generated with ``include_element_frames=True``.
+
+        Returns
+        -------
+        Frame
+            A new frame initialized from the selected survey row.
+        """
+        if which is not None and which not in _ELEMENT_FRAME_NAMES:
+            raise ValueError(
+                f'Invalid frame {which!r}; expected one of '
+                f'{_ELEMENT_FRAME_NAMES}')
+
+        if which is None:
+            XYZ_column = 'XYZ'
+            E_column = 'E_matrix'
+        else:
+            XYZ_column = f'XYZ_{which}'
+            E_column = f'E_{which}'
+            if XYZ_column not in self._data or E_column not in self._data:
+                raise ValueError(
+                    f'Frame {which!r} is unavailable; generate the survey '
+                    'with include_element_frames=True')
+
+        if isinstance(at, str):
+            at = self.rows.get_index(at)
+        return Frame.from_survey(
+            self._data[XYZ_column][at], self._data[E_column][at])
+
+    def get_all_frames(self, at):
+        """Return all reference and element frames at a surveyed location.
+
+        The survey must have been generated with
+        ``include_element_frames=True``.
+        """
+        return {
+            which: self.get_frame(at, which=which)
+            for which in _ELEMENT_FRAME_NAMES
+        }
 
     def plot(self, element_width = None, legend = True, **kwargs):
         """
@@ -389,7 +351,8 @@ class SurveyTable(Table):
 def survey_from_line(
         line,
         X0=0, Y0=0, Z0=0, theta0=0, phi0=0, psi0=0,
-        element0=0, values_at_element_exit=False, reverse=False):
+        element0=0, values_at_element_exit=False, reverse=False,
+        include_element_frames=False):
     """Execute SURVEY command. Based on MAD-X equivalent.
     Attributes, must be given in this order in the dictionary:
     X0        (float)    Initial X position in meters.
@@ -436,6 +399,15 @@ def survey_from_line(
 
     out_columns = derived_quantities
     out_scalars = {}
+
+    if include_element_frames:
+        from .misalignment_survey import get_element_frame_columns
+
+        out_columns.update(get_element_frame_columns(
+            elements=line._elements,
+            XYZ=V,
+            E_matrix=E_matrix,
+        ))
 
     # element properties
     out_columns["name"]             = tt.name
@@ -519,56 +491,97 @@ def get_survey(
     V = []
 
     # Initial position and orientation
-    v   = np.array([X0, Y0, Z0])
-    w   = get_E_from_angles(
-        theta       = theta0,
-        phi         = phi0,
-        psi         = psi0)
+    frame = Frame.from_survey_angles(
+        X=X0,
+        Y=Y0,
+        Z=Z0,
+        theta=theta0,
+        phi=phi0,
+        psi=psi0,
+    )
 
     # Advancing element by element
     for ee, ll, aa, tt in zip(elements, drift_length, angle, tilt):
 
         # Store position and orientation at element entrance
-        E_matrix.append(w)
-        V.append(v)
+        E_matrix.append(frame.E_matrix.copy())
+        V.append(frame.XYZ.copy())
 
-        if hasattr(ee, '_propagate_survey'):
-            v, w = ee._propagate_survey(v=v, w=w, backtrack=backtrack)
-        else:
-
-            if backtrack:
-                ll = -ll
-                aa = -aa
-
-            # Advancing
-            v, w = advance_element(
-                v               = v,
-                w               = w,
-                length          = ll,
-                angle           = aa,
-                tilt            = tt,
-                ref_shift_x     = 0.,
-                ref_shift_y     = 0.,
-                ref_rot_x_rad   = 0.,
-                ref_rot_y_rad   = 0.,
-                ref_rot_s_rad   = 0.)
+        _track_frame(
+            frame, ee, length=ll, angle=aa, tilt=tt,
+            backtrack=backtrack)
 
     # Last marker
-    E_matrix.append(w)
-    V.append(v)
+    E_matrix.append(frame.E_matrix.copy())
+    V.append(frame.XYZ.copy())
 
     # Return data for SurveyTable object
     return V, E_matrix
 
 
-def compute_survey(*args, **kwargs):
-    warn(
-        '`compute_survey()` is deprecated and will be removed in future '
-        'versions. Please use `get_survey()` instead.'
-        + DEPRECATION_INFO_PREP_1_0,
-        FutureWarning,
+def _track_frame(p, element, *, length, angle, tilt, backtrack=False):
+    if hasattr(element, 'track_frame'):
+        element.track_frame(p, backtrack=backtrack)
+    else:
+        if backtrack:
+            length = -length
+            angle = -angle
+        p.arc(length=length, angle=angle, tilt=tilt)
+    return p
+
+
+def track_frame(p, element, backtrack=False):
+    """Track a frame through one beam element, mutating it in place.
+
+    Elements exposing ``track_frame(frame, backtrack=False)`` are dispatched
+    directly. For other elements, a temporary one-element line is used to
+    obtain the same standard length, bend angle, and tilt employed by
+    :meth:`Line.survey`.
+
+    Parameters
+    ----------
+    p : Frame
+        Frame to mutate.
+    element : BeamElement
+        Element through which to propagate the frame.
+    backtrack : bool, optional
+        Propagate backward through the element.
+
+    Returns
+    -------
+    Frame
+        The input frame ``p`` after in-place propagation.
+    """
+    if hasattr(element, 'track_frame'):
+        return _track_frame(
+            p, element, length=0, angle=0, tilt=0,
+            backtrack=backtrack)
+
+    # Local import avoids the survey/line import cycle.
+    from ..line import Line
+
+    if hasattr(element, '_parent') and hasattr(element, 'parent_name'):
+        element_name = '_element'
+        while element_name == element.parent_name:
+            element_name = f'_{element_name}'
+        elements = {
+            element.parent_name: element._parent,
+            element_name: element,
+        }
+        line = Line(elements=elements, element_names=[element_name])
+    else:
+        line = Line(elements=[element])
+
+    table = line.get_table(attr=True)
+    length = table.length[0] if table.isthick[0] else 0
+    return _track_frame(
+        p,
+        element,
+        length=length,
+        angle=table.angle[0],
+        tilt=table.rot_s_rad[0],
+        backtrack=backtrack,
     )
-    return get_survey(*args, **kwargs)
 
 
 def _get_survey_quantities_from_v_w(V, E_matrix):
@@ -576,9 +589,7 @@ def _get_survey_quantities_from_v_w(V, E_matrix):
     E_matrix = np.array(E_matrix)
     V = np.array(V)
 
-    theta = np.arctan2(E_matrix[:, 0, 2], E_matrix[:, 2, 2])
-    psi = np.arctan2(E_matrix[:, 1, 0], E_matrix[:, 1, 1])
-    phi = np.arctan2(E_matrix[:, 1, 2], E_matrix[:, 1, 1] / np.cos(psi))
+    theta, phi, psi = _angles_from_E_matrix(E_matrix)
 
     ex = E_matrix[:, :, 0]
     ey = E_matrix[:, :, 1]
@@ -624,13 +635,12 @@ def survey_relative_transform(survey: SurveyTable, source: str | int, destinatio
     src_row = survey.rows[source]
     dest_row = survey.rows[destination]
 
-    def _row_to_matrix(row):
-        matrix = np.identity(4)
-        matrix[:3, :3] = row.E_matrix
-        matrix[:3, 3] = row.XYZ
-        return matrix
+    src_matrix = np.eye(4)
+    src_matrix[:3, :3] = src_row.E_matrix
+    src_matrix[:3, 3] = src_row.XYZ
 
-    src_mat = _row_to_matrix(src_row)
-    dest_mat = _row_to_matrix(dest_row)
+    dest_matrix = np.eye(4)
+    dest_matrix[:3, :3] = dest_row.E_matrix
+    dest_matrix[:3, 3] = dest_row.XYZ
 
-    return np.linalg.inv(src_mat) @ dest_mat
+    return np.linalg.inv(src_matrix) @ dest_matrix
