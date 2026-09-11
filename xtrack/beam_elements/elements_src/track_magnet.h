@@ -34,28 +34,28 @@ void track_magnet_body_single_particle(
     double inv_factorial_order_rel,
     GPUGLMEM const double* knl_rel,
     GPUGLMEM const double* ksl_rel,
-    xt_num_arg_t rel_ref_strength,
+    xt_float_or_tpsa_arg rel_ref_strength,
     const double factor_knl_ksl,
     const int64_t num_multipole_kicks,
     const int8_t kick_rot_frame,
     const int8_t drift_model,
     const int8_t integrator,
-    xt_num_arg_t k0_drift,
-    xt_num_arg_t k1_drift,
-    xt_num_arg_t ks_drift,
+    xt_float_or_tpsa_arg k0_drift,
+    xt_float_or_tpsa_arg k1_drift,
+    xt_float_or_tpsa_arg ks_drift,
     const double h_drift,
-    xt_num_arg_t k0_kick,
-    xt_num_arg_t k1_kick,
+    xt_float_or_tpsa_arg k0_kick,
+    xt_float_or_tpsa_arg k1_kick,
     const double h_kick,
     const double hxl,
-    xt_num_arg_t k0_h_correction,
-    xt_num_arg_t k1_h_correction,
-    xt_num_arg_t k2,
-    xt_num_arg_t k3,
-    xt_num_arg_t k0s,
-    xt_num_arg_t k1s,
-    xt_num_arg_t k2s,
-    xt_num_arg_t k3s,
+    xt_float_or_tpsa_arg k0_h_correction,
+    xt_float_or_tpsa_arg k1_h_correction,
+    xt_float_or_tpsa_arg k2,
+    xt_float_or_tpsa_arg k3,
+    xt_float_or_tpsa_arg k0s,
+    xt_float_or_tpsa_arg k1s,
+    xt_float_or_tpsa_arg k2s,
+    xt_float_or_tpsa_arg k3s,
     const double dks_ds,
     const double x0_solenoid,
     const double y0_solenoid,
@@ -299,7 +299,7 @@ void track_magnet_particles(
     double inv_factorial_order_rel,
     GPUGLMEM const double* knl_rel,
     GPUGLMEM const double* ksl_rel,
-    xt_num_arg_t rel_ref_strength,
+    xt_float_or_tpsa_arg rel_ref_strength,
     int64_t num_multipole_kicks,
     int8_t model,
     int8_t default_model,
@@ -311,15 +311,15 @@ void track_magnet_particles(
     double delta_taper,
     double h,
     double hxl,
-    xt_num_t k0,
-    xt_num_t k1,
-    xt_num_t k2,
-    xt_num_t k3,
-    xt_num_t k0s,
-    xt_num_t k1s,
-    xt_num_t k2s,
-    xt_num_t k3s,
-    xt_num_t ks,
+    xt_float_or_tpsa k0,
+    xt_float_or_tpsa k1,
+    xt_float_or_tpsa k2,
+    xt_float_or_tpsa k3,
+    xt_float_or_tpsa k0s,
+    xt_float_or_tpsa k1s,
+    xt_float_or_tpsa k2s,
+    xt_float_or_tpsa k3s,
+    xt_float_or_tpsa ks,
     double dks_ds,
     double x0_solenoid,
     double y0_solenoid,
@@ -450,7 +450,7 @@ void track_magnet_particles(
 
     // Tapering
 #ifndef XTRACK_TPSA_TRACK
-    // delta_taper is a double param, get_delta is xt_num_t. Tapering is a radiation-
+    // delta_taper is a double param, get_delta is xt_float_or_tpsa. Tapering is a radiation-
     // adjacent double feature, so it is disabled for the TPSA flavor.
     if (LocalParticle_check_track_flag(part0, XS_FLAG_SR_TAPER)){
         part0->ipart = 0;
@@ -556,11 +556,11 @@ void track_magnet_particles(
             }
         }
 
-        xt_num_t k0_drift=0., k1_drift=0., ks_drift=0.;
+        xt_float_or_tpsa k0_drift=0., k1_drift=0., ks_drift=0.;
         double h_drift=0;
-        xt_num_t k0_kick=0., k1_kick=0.;
+        xt_float_or_tpsa k0_kick=0., k1_kick=0.;
         double h_kick=0;
-        xt_num_t k0_h_correction=0., k1_h_correction=0.;
+        xt_float_or_tpsa k0_h_correction=0., k1_h_correction=0.;
         int8_t kick_rot_frame=0;
         int8_t drift_model=0;
         configure_tracking_model(

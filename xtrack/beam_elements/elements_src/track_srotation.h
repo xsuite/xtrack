@@ -11,15 +11,15 @@
 GPUFUN
 void SRotation_single_particle(LocalParticle* part, double sin_z, double cos_z)
 {
-    xt_num_t const x  = LocalParticle_get_x(part);
-    xt_num_t const y  = LocalParticle_get_y(part);
-    xt_num_t const px = LocalParticle_get_px(part);
-    xt_num_t const py = LocalParticle_get_py(part);
+    xt_float_or_tpsa const x  = LocalParticle_get_x(part);
+    xt_float_or_tpsa const y  = LocalParticle_get_y(part);
+    xt_float_or_tpsa const px = LocalParticle_get_px(part);
+    xt_float_or_tpsa const py = LocalParticle_get_py(part);
 
-    xt_num_t const x_hat  =  cos_z * x  + sin_z * y;
-    xt_num_t const y_hat  = -sin_z * x  + cos_z * y;
-    xt_num_t const px_hat =  cos_z * px + sin_z * py;
-    xt_num_t const py_hat = -sin_z * px + cos_z * py;
+    xt_float_or_tpsa const x_hat  =  cos_z * x  + sin_z * y;
+    xt_float_or_tpsa const y_hat  = -sin_z * x  + cos_z * y;
+    xt_float_or_tpsa const px_hat =  cos_z * px + sin_z * py;
+    xt_float_or_tpsa const py_hat = -sin_z * px + cos_z * py;
 
     /* Spin tracking is disabled by the synrad compile flag */
     #ifndef XTRACK_MULTIPOLE_NO_SYNRAD

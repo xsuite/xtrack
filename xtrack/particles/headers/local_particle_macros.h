@@ -143,30 +143,30 @@
 #define XT_LP_IS_FROZEN_IMPL(NAME) (sizeof(STRINGIFY(FREEZE_VAR_ ## NAME)) == 1)
 
 /*
- * Generate get/set/add_to/scale accessors for an xt_num_t field. Before expansion, a backend
+ * Generate get/set/add_to/scale accessors for an xt_float_or_tpsa field. Before expansion, a backend
  * defines NUM_GET, NUM_SET, NUM_ADD, and NUM_SCALE for its storage layout, then undefines them.
  * Read access is unconditional; modifying accessors honor the corresponding freeze flag.
  * The test for frozen is known at compile time, so even at -O1 will be optimized away.
  */
 #define XT_LP_NUM_ACCESSORS(NAME)                                                  \
     GPUFUN                                                                         \
-    void LocalParticle_add_to_ ## NAME(LocalParticle* part, xt_num_arg_t value){   \
+    void LocalParticle_add_to_ ## NAME(LocalParticle* part, xt_float_or_tpsa_arg value){   \
         if (!XT_LP_IS_FROZEN(NAME)) {                                              \
             NUM_ADD(part, NAME, value);                                            \
         }                                                                          \
     }                                                                              \
     GPUFUN                                                                         \
-    xt_num_t LocalParticle_get_ ## NAME(LocalParticle* part){                      \
+    xt_float_or_tpsa LocalParticle_get_ ## NAME(LocalParticle* part){                      \
         return NUM_GET(part, NAME);                                                \
     }                                                                              \
     GPUFUN                                                                         \
-    void LocalParticle_set_ ## NAME(LocalParticle* part, xt_num_arg_t value){      \
+    void LocalParticle_set_ ## NAME(LocalParticle* part, xt_float_or_tpsa_arg value){      \
         if (!XT_LP_IS_FROZEN(NAME)) {                                              \
             NUM_SET(part, NAME, value);                                            \
         }                                                                          \
     }                                                                              \
     GPUFUN                                                                         \
-    void LocalParticle_scale_ ## NAME(LocalParticle* part, xt_num_arg_t value){    \
+    void LocalParticle_scale_ ## NAME(LocalParticle* part, xt_float_or_tpsa_arg value){    \
         if (!XT_LP_IS_FROZEN(NAME)) {                                              \
             NUM_SCALE(part, NAME, value);                                          \
         }                                                                          \

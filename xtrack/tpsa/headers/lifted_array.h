@@ -8,18 +8,18 @@
 #include <new>
 #include <type_traits>
 
-// C++ can convert one scalar to xt_num_t, e.g. `xt_num_t x = 1.0`, but it
-// cannot convert an existing `double*` array to an `xt_num_t*` array. For
-// example, a call expecting `const xt_num_t*` cannot accept a `const double*`,
+// C++ can convert one scalar to xt_float_or_tpsa, e.g. `xt_float_or_tpsa x = 1.0`, but it
+// cannot convert an existing `double*` array to an `xt_float_or_tpsa*` array. For
+// example, a call expecting `const xt_float_or_tpsa*` cannot accept a `const double*`,
 // even though each individual double could be converted to a constant TPSA.
 //
-// This class builds a short-lived xt_num_t array from a double array by
-// constructing each entry separately. The xt_num_t scalar constructor uses the
+// This class builds a short-lived xt_float_or_tpsa array from a double array by
+// constructing each entry separately. The xt_float_or_tpsa scalar constructor uses the
 // active TPSA descriptor, so each double becomes a constant TPSA. The class owns
 // the temporary array and destroys it when it goes out of scope.
 //
 // This is a convenience class that might be able to be removed once we
-// remove double* -> xt_num_t* promotions, which should be possible.
+// remove double* -> xt_float_or_tpsa* promotions, which should be possible.
 class xt_tpsa_lifted_array
 {
 public:

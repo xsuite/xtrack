@@ -116,16 +116,16 @@ struct default_scope {
 };
 }
 
-typedef xt_tpsa::tpsa xt_num_t;
-typedef const xt_num_t& xt_num_arg_t;
+typedef xt_tpsa::tpsa xt_float_or_tpsa;
+typedef const xt_float_or_tpsa& xt_float_or_tpsa_arg;
 
 // Obtain only the constant part of a FloatOrTpsa value.
-static inline double xt_float_or_tpsa_const_part(xt_num_arg_t value) {
+static inline double xt_float_or_tpsa_const_part(xt_float_or_tpsa_arg value) {
     return value[0];
 }
 
 // Test whether a FloatOrTpsa value has no non-zero TPSA coefficients.
-static inline int xt_float_or_tpsa_is_zero(xt_num_arg_t value) {
+static inline int xt_float_or_tpsa_is_zero(xt_float_or_tpsa_arg value) {
     return value.isnul();
 }
 
@@ -137,19 +137,19 @@ static inline double xt_float_or_tpsa_bits_to_double(uint64_t bits) {
 }
 
 // Promote a scalar constant to the active TPSA descriptor.
-static inline xt_num_t xt_float_or_tpsa_lift(double value) {
-    return xt_num_t(value);
+static inline xt_float_or_tpsa xt_float_or_tpsa_lift(double value) {
+    return xt_float_or_tpsa(value);
 }
 
 // Decode a scalar FloatOrTpsa slot and promote it to the active TPSA descriptor.
-static inline xt_num_t xt_float_or_tpsa_lift(uint64_t bits) {
+static inline xt_float_or_tpsa xt_float_or_tpsa_lift(uint64_t bits) {
     return xt_float_or_tpsa_lift(xt_float_or_tpsa_bits_to_double(bits));
 }
 
 // Read a FloatOrTpsa slot as either a TPSA pointer or a lifted scalar.
-static inline xt_num_t xt_float_or_tpsa_get(uint64_t* slot, int64_t tpsa_enabled) {
+static inline xt_float_or_tpsa xt_float_or_tpsa_get(uint64_t* slot, int64_t tpsa_enabled) {
     if (tpsa_enabled) {
-        return xt_num_t(mad::tpsa_ref(reinterpret_cast<tpsa_t*>(*slot)));
+        return xt_float_or_tpsa(mad::tpsa_ref(reinterpret_cast<tpsa_t*>(*slot)));
     }
     return xt_float_or_tpsa_lift(*slot);
 }

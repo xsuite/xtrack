@@ -57,11 +57,11 @@ void track_rf_kick_single_particle(
     }
 #endif
 
-    xt_num_t const zeta  = LocalParticle_get_zeta(part);
+    xt_float_or_tpsa const zeta  = LocalParticle_get_zeta(part);
     double const q = fabs(LocalParticle_get_q0(part)) * LocalParticle_get_charge_ratio(part);
-    xt_num_t const tau = zeta / beta0;
+    xt_float_or_tpsa const tau = zeta / beta0;
 
-    xt_num_t const energy_kick = q * voltage
+    xt_float_or_tpsa const energy_kick = q * voltage
         * sin(phase0 + DEG2RAD * lag + phase
               - (2.0 * PI) / C_LIGHT * frequency * tau);
 
@@ -403,11 +403,11 @@ void track_rf_particles(
             num_kicks = 1;
         }
 
-        xt_num_t k0_drift=0., k1_drift=0., ks_drift=0.;
+        xt_float_or_tpsa k0_drift=0., k1_drift=0., ks_drift=0.;
         double h_drift;
-        xt_num_t k0_kick=0., k1_kick=0.;
+        xt_float_or_tpsa k0_kick=0., k1_kick=0.;
         double h_kick;
-        xt_num_t k0_h_correction=0., k1_h_correction=0.;
+        xt_float_or_tpsa k0_h_correction=0., k1_h_correction=0.;
         int8_t kick_rot_frame;
         int8_t drift_model;
         configure_tracking_model(

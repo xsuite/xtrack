@@ -20,7 +20,7 @@ typedef struct {
         XT_LP_SCALAR_FIELDS(SCALAR_STRUCT_FIELD)
     #undef SCALAR_STRUCT_FIELD
 
-    #define NUM_STRUCT_FIELD(NAME) GPUGLMEM xt_num_t* NAME;
+    #define NUM_STRUCT_FIELD(NAME) GPUGLMEM xt_float_or_tpsa* NAME;
         XT_LP_SCALAR_NUM_FIELDS(NUM_STRUCT_FIELD)
     #undef NUM_STRUCT_FIELD
 

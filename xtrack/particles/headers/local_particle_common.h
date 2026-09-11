@@ -24,7 +24,7 @@ void LocalParticle_exchange(LocalParticle* part, int64_t i1, int64_t i2) {
 #ifndef XTRACK_TPSA_TRACK
     #define EXCHANGE_NUM_FIELD(NAME) \
         {                                              \
-            xt_num_t temp = part->NAME[i2];            \
+            xt_float_or_tpsa temp = part->NAME[i2];            \
             part->NAME[i2] = part->NAME[i1];           \
             part->NAME[i1] = temp;                     \
         }
@@ -49,137 +49,137 @@ void LocalParticle_exchange(LocalParticle* part, int64_t i1, int64_t i2) {
 
 // Transverse slopes derived from canonical momenta.
 GPUFUN
-xt_num_t LocalParticle_get_xp(LocalParticle* part) {
+xt_float_or_tpsa LocalParticle_get_xp(LocalParticle* part) {
     return LocalParticle_get_px(part) * LocalParticle_get_rpp(part);
 }
 
 GPUFUN
-xt_num_t LocalParticle_get_yp(LocalParticle* part) {
+xt_float_or_tpsa LocalParticle_get_yp(LocalParticle* part) {
     return LocalParticle_get_py(part) * LocalParticle_get_rpp(part);
 }
 
 GPUFUN
-xt_num_t LocalParticle_get_exact_xp(LocalParticle* part) {
-    xt_num_t const px = LocalParticle_get_px(part);
-    xt_num_t const py = LocalParticle_get_py(part);
-    xt_num_t const one_plus_delta = 1.0 + LocalParticle_get_delta(part);
-    xt_num_t const rpp = 1.0 / sqrt(one_plus_delta * one_plus_delta - px * px - py * py);
+xt_float_or_tpsa LocalParticle_get_exact_xp(LocalParticle* part) {
+    xt_float_or_tpsa const px = LocalParticle_get_px(part);
+    xt_float_or_tpsa const py = LocalParticle_get_py(part);
+    xt_float_or_tpsa const one_plus_delta = 1.0 + LocalParticle_get_delta(part);
+    xt_float_or_tpsa const rpp = 1.0 / sqrt(one_plus_delta * one_plus_delta - px * px - py * py);
     return px * rpp;
 }
 
 GPUFUN
-xt_num_t LocalParticle_get_exact_yp(LocalParticle* part) {
-    xt_num_t const px = LocalParticle_get_px(part);
-    xt_num_t const py = LocalParticle_get_py(part);
-    xt_num_t const one_plus_delta = 1.0 + LocalParticle_get_delta(part);
-    xt_num_t const rpp = 1.0 / sqrt(one_plus_delta * one_plus_delta - px * px - py * py);
+xt_float_or_tpsa LocalParticle_get_exact_yp(LocalParticle* part) {
+    xt_float_or_tpsa const px = LocalParticle_get_px(part);
+    xt_float_or_tpsa const py = LocalParticle_get_py(part);
+    xt_float_or_tpsa const one_plus_delta = 1.0 + LocalParticle_get_delta(part);
+    xt_float_or_tpsa const rpp = 1.0 / sqrt(one_plus_delta * one_plus_delta - px * px - py * py);
     return py * rpp;
 }
 
 GPUFUN
-void LocalParticle_set_xp(LocalParticle* part, xt_num_arg_t xp) {
+void LocalParticle_set_xp(LocalParticle* part, xt_float_or_tpsa_arg xp) {
     LocalParticle_set_px(part, xp / LocalParticle_get_rpp(part));
 }
 
 GPUFUN
-void LocalParticle_set_yp(LocalParticle* part, xt_num_arg_t yp) {
+void LocalParticle_set_yp(LocalParticle* part, xt_float_or_tpsa_arg yp) {
     LocalParticle_set_py(part, yp / LocalParticle_get_rpp(part));
 }
 
 GPUFUN
-void LocalParticle_set_exact_xp(LocalParticle* part, xt_num_arg_t xp) {
-    xt_num_t const yp = LocalParticle_get_exact_yp(part);
-    xt_num_t rpp = LocalParticle_get_rpp(part);
+void LocalParticle_set_exact_xp(LocalParticle* part, xt_float_or_tpsa_arg xp) {
+    xt_float_or_tpsa const yp = LocalParticle_get_exact_yp(part);
+    xt_float_or_tpsa rpp = LocalParticle_get_rpp(part);
     rpp *= sqrt(1.0 + xp * xp + yp * yp);
     LocalParticle_set_px(part, xp / rpp);
 }
 
 GPUFUN
-void LocalParticle_set_exact_yp(LocalParticle* part, xt_num_arg_t yp) {
-    xt_num_t const xp = LocalParticle_get_exact_xp(part);
-    xt_num_t rpp = LocalParticle_get_rpp(part);
+void LocalParticle_set_exact_yp(LocalParticle* part, xt_float_or_tpsa_arg yp) {
+    xt_float_or_tpsa const xp = LocalParticle_get_exact_xp(part);
+    xt_float_or_tpsa rpp = LocalParticle_get_rpp(part);
     rpp *= sqrt(1.0 + xp * xp + yp * yp);
     LocalParticle_set_py(part, yp / rpp);
 }
 
 GPUFUN
-void LocalParticle_add_to_xp(LocalParticle* part, xt_num_arg_t xp) {
+void LocalParticle_add_to_xp(LocalParticle* part, xt_float_or_tpsa_arg xp) {
     LocalParticle_set_xp(part, LocalParticle_get_xp(part) + xp);
 }
 
 GPUFUN
-void LocalParticle_add_to_yp(LocalParticle* part, xt_num_arg_t yp) {
+void LocalParticle_add_to_yp(LocalParticle* part, xt_float_or_tpsa_arg yp) {
     LocalParticle_set_yp(part, LocalParticle_get_yp(part) + yp);
 }
 
 GPUFUN
-void LocalParticle_add_to_exact_xp(LocalParticle* part, xt_num_arg_t xp) {
+void LocalParticle_add_to_exact_xp(LocalParticle* part, xt_float_or_tpsa_arg xp) {
     LocalParticle_set_exact_xp(part, LocalParticle_get_exact_xp(part) + xp);
 }
 
 GPUFUN
-void LocalParticle_add_to_exact_yp(LocalParticle* part, xt_num_arg_t yp) {
+void LocalParticle_add_to_exact_yp(LocalParticle* part, xt_float_or_tpsa_arg yp) {
     LocalParticle_set_exact_yp(part, LocalParticle_get_exact_yp(part) + yp);
 }
 
 GPUFUN
-void LocalParticle_scale_xp(LocalParticle* part, xt_num_arg_t value) {
+void LocalParticle_scale_xp(LocalParticle* part, xt_float_or_tpsa_arg value) {
     LocalParticle_set_xp(part, LocalParticle_get_xp(part) * value);
 }
 
 GPUFUN
-void LocalParticle_scale_yp(LocalParticle* part, xt_num_arg_t value) {
+void LocalParticle_scale_yp(LocalParticle* part, xt_float_or_tpsa_arg value) {
     LocalParticle_set_yp(part, LocalParticle_get_yp(part) * value);
 }
 
 GPUFUN
-void LocalParticle_scale_exact_xp(LocalParticle* part, xt_num_arg_t value) {
+void LocalParticle_scale_exact_xp(LocalParticle* part, xt_float_or_tpsa_arg value) {
     LocalParticle_set_exact_xp(part, LocalParticle_get_exact_xp(part) * value);
 }
 
 GPUFUN
-void LocalParticle_scale_exact_yp(LocalParticle* part, xt_num_arg_t value) {
+void LocalParticle_scale_exact_yp(LocalParticle* part, xt_float_or_tpsa_arg value) {
     LocalParticle_set_exact_yp(part, LocalParticle_get_exact_yp(part) * value);
 }
 
 GPUFUN
-void LocalParticle_set_xp_yp(LocalParticle* part, xt_num_arg_t xp, xt_num_arg_t yp) {
-    xt_num_t const rpp = LocalParticle_get_rpp(part);
+void LocalParticle_set_xp_yp(LocalParticle* part, xt_float_or_tpsa_arg xp, xt_float_or_tpsa_arg yp) {
+    xt_float_or_tpsa const rpp = LocalParticle_get_rpp(part);
     LocalParticle_set_px(part, xp / rpp);
     LocalParticle_set_py(part, yp / rpp);
 }
 
 GPUFUN
-void LocalParticle_set_exact_xp_yp(LocalParticle* part, xt_num_arg_t xp, xt_num_arg_t yp) {
-    xt_num_t rpp = LocalParticle_get_rpp(part);
+void LocalParticle_set_exact_xp_yp(LocalParticle* part, xt_float_or_tpsa_arg xp, xt_float_or_tpsa_arg yp) {
+    xt_float_or_tpsa rpp = LocalParticle_get_rpp(part);
     rpp *= sqrt(1.0 + xp * xp + yp * yp);
     LocalParticle_set_px(part, xp / rpp);
     LocalParticle_set_py(part, yp / rpp);
 }
 
 GPUFUN
-void LocalParticle_add_to_xp_yp(LocalParticle* part, xt_num_arg_t xp, xt_num_arg_t yp) {
+void LocalParticle_add_to_xp_yp(LocalParticle* part, xt_float_or_tpsa_arg xp, xt_float_or_tpsa_arg yp) {
     LocalParticle_set_xp_yp(
         part, LocalParticle_get_xp(part) + xp, LocalParticle_get_yp(part) + yp);
 }
 
 GPUFUN
 void LocalParticle_add_to_exact_xp_yp(
-        LocalParticle* part, xt_num_arg_t xp, xt_num_arg_t yp) {
+        LocalParticle* part, xt_float_or_tpsa_arg xp, xt_float_or_tpsa_arg yp) {
     LocalParticle_set_exact_xp_yp(
         part, LocalParticle_get_exact_xp(part) + xp, LocalParticle_get_exact_yp(part) + yp);
 }
 
 GPUFUN
 void LocalParticle_scale_xp_yp(
-        LocalParticle* part, xt_num_arg_t value_x, xt_num_arg_t value_y) {
+        LocalParticle* part, xt_float_or_tpsa_arg value_x, xt_float_or_tpsa_arg value_y) {
     LocalParticle_set_xp_yp(
         part, LocalParticle_get_xp(part) * value_x, LocalParticle_get_yp(part) * value_y);
 }
 
 GPUFUN
 void LocalParticle_scale_exact_xp_yp(
-        LocalParticle* part, xt_num_arg_t value_x, xt_num_arg_t value_y) {
+        LocalParticle* part, xt_float_or_tpsa_arg value_x, xt_float_or_tpsa_arg value_y) {
     LocalParticle_set_exact_xp_yp(
         part,
         LocalParticle_get_exact_xp(part) * value_x,
@@ -196,12 +196,12 @@ double LocalParticle_get_energy0(LocalParticle* part) {
 }
 
 GPUFUN
-void LocalParticle_update_ptau(LocalParticle* part, xt_num_arg_t new_ptau_value) {
+void LocalParticle_update_ptau(LocalParticle* part, xt_float_or_tpsa_arg new_ptau_value) {
     double const beta0 = LocalParticle_get_beta0(part);
-    xt_num_t const ptau = new_ptau_value;
-    xt_num_t const irpp = sqrt(ptau * ptau + 2.0 * ptau / beta0 + 1.0);
-    xt_num_t const new_rpp = 1.0 / irpp;
-    xt_num_t const new_rvv = irpp / (1.0 + beta0 * ptau);
+    xt_float_or_tpsa const ptau = new_ptau_value;
+    xt_float_or_tpsa const irpp = sqrt(ptau * ptau + 2.0 * ptau / beta0 + 1.0);
+    xt_float_or_tpsa const new_rpp = 1.0 / irpp;
+    xt_float_or_tpsa const new_rvv = irpp / (1.0 + beta0 * ptau);
 
     LocalParticle_set_delta(part, irpp - 1.0);
     LocalParticle_set_rvv(part, new_rvv);
@@ -210,15 +210,15 @@ void LocalParticle_update_ptau(LocalParticle* part, xt_num_arg_t new_ptau_value)
 }
 
 GPUFUN
-void LocalParticle_update_delta(LocalParticle* part, xt_num_arg_t new_delta_value) {
+void LocalParticle_update_delta(LocalParticle* part, xt_float_or_tpsa_arg new_delta_value) {
     double const beta0 = LocalParticle_get_beta0(part);
-    xt_num_t const delta_beta0 = new_delta_value * beta0;
-    xt_num_t const ptau_beta0 = sqrt(
+    xt_float_or_tpsa const delta_beta0 = new_delta_value * beta0;
+    xt_float_or_tpsa const ptau_beta0 = sqrt(
         delta_beta0 * delta_beta0 + 2.0 * delta_beta0 * beta0 + 1.0) - 1.0;
-    xt_num_t const one_plus_delta = 1.0 + new_delta_value;
-    xt_num_t const rvv = one_plus_delta / (1.0 + ptau_beta0);
-    xt_num_t const rpp = 1.0 / one_plus_delta;
-    xt_num_t const ptau = ptau_beta0 / beta0;
+    xt_float_or_tpsa const one_plus_delta = 1.0 + new_delta_value;
+    xt_float_or_tpsa const rvv = one_plus_delta / (1.0 + ptau_beta0);
+    xt_float_or_tpsa const rpp = 1.0 / one_plus_delta;
+    xt_float_or_tpsa const ptau = ptau_beta0 / beta0;
 
     LocalParticle_set_delta(part, new_delta_value);
     LocalParticle_set_rvv(part, rvv);
@@ -227,12 +227,12 @@ void LocalParticle_update_delta(LocalParticle* part, xt_num_arg_t new_delta_valu
 }
 
 GPUFUN
-xt_num_t LocalParticle_get_pzeta(LocalParticle* part) {
+xt_float_or_tpsa LocalParticle_get_pzeta(LocalParticle* part) {
     return LocalParticle_get_ptau(part) / LocalParticle_get_beta0(part);
 }
 
 GPUFUN
-void LocalParticle_update_pzeta(LocalParticle* part, xt_num_arg_t new_pzeta_value) {
+void LocalParticle_update_pzeta(LocalParticle* part, xt_float_or_tpsa_arg new_pzeta_value) {
     LocalParticle_update_ptau(part, LocalParticle_get_beta0(part) * new_pzeta_value);
 }
 
@@ -357,20 +357,20 @@ int64_t check_is_active(LocalParticle* part) {
 
 // Energy kicks and reference-momentum updates.
 GPUFUN
-void LocalParticle_add_to_energy(LocalParticle* part, xt_num_arg_t delta_energy, int pz_only) {
-    xt_num_t ptau = LocalParticle_get_ptau(part);
+void LocalParticle_add_to_energy(LocalParticle* part, xt_float_or_tpsa_arg delta_energy, int pz_only) {
+    xt_float_or_tpsa ptau = LocalParticle_get_ptau(part);
     double const p0c = LocalParticle_get_p0c(part);
     double const charge_ratio = LocalParticle_get_charge_ratio(part);
     double const chi = LocalParticle_get_chi(part);
     double const mass_ratio = charge_ratio / chi;
 
     ptau += delta_energy / p0c / mass_ratio;
-    xt_num_t const old_rpp = LocalParticle_get_rpp(part);
+    xt_float_or_tpsa const old_rpp = LocalParticle_get_rpp(part);
     LocalParticle_update_ptau(part, ptau);
 
     if (!pz_only) {
-        xt_num_t const new_rpp = LocalParticle_get_rpp(part);
-        xt_num_t const factor = old_rpp / new_rpp;
+        xt_float_or_tpsa const new_rpp = LocalParticle_get_rpp(part);
+        xt_float_or_tpsa const factor = old_rpp / new_rpp;
         LocalParticle_scale_px(part, factor);
         LocalParticle_scale_py(part, factor);
     }
@@ -380,11 +380,11 @@ GPUFUN
 void LocalParticle_update_p0c(LocalParticle* part, double new_p0c_value) {
     double const mass0 = LocalParticle_get_mass0(part);
     double const old_p0c = LocalParticle_get_p0c(part);
-    xt_num_t const old_delta = LocalParticle_get_delta(part);
+    xt_float_or_tpsa const old_delta = LocalParticle_get_delta(part);
     double const old_beta0 = LocalParticle_get_beta0(part);
 
-    xt_num_t const ppc = old_p0c * old_delta + old_p0c;
-    xt_num_t const new_delta = (ppc - new_p0c_value) / new_p0c_value;
+    xt_float_or_tpsa const ppc = old_p0c * old_delta + old_p0c;
+    xt_float_or_tpsa const new_delta = (ppc - new_p0c_value) / new_p0c_value;
     double const new_energy0 = sqrt(new_p0c_value * new_p0c_value + mass0 * mass0);
     double const new_beta0 = new_p0c_value / new_energy0;
     double const new_gamma0 = new_energy0 / mass0;
@@ -419,8 +419,8 @@ void global_aperture_check(LocalParticle* part0) {
     }
 
     START_PER_PARTICLE_BLOCK(part0, part);
-        xt_num_t const x = LocalParticle_get_x(part);
-        xt_num_t const y = LocalParticle_get_y(part);
+        xt_float_or_tpsa const x = LocalParticle_get_x(part);
+        xt_float_or_tpsa const y = LocalParticle_get_y(part);
         double const x0 = xt_float_or_tpsa_const_part(x);
         double const y0 = xt_float_or_tpsa_const_part(y);
         int64_t const is_within_global_aperture = (int64_t)(

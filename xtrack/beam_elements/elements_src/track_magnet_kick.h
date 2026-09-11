@@ -24,9 +24,9 @@ void kick_simple_single_particle(
     LocalParticle* part,
     int64_t order,
     double inv_factorial,
-    const xt_num_t* knl,
-    const xt_num_t* ksl,
-    xt_num_arg_t factor,
+    const xt_float_or_tpsa* knl,
+    const xt_float_or_tpsa* ksl,
+    xt_float_or_tpsa_arg factor,
     double kick_weight
 );
 
@@ -43,32 +43,32 @@ void track_magnet_kick_single_particle(
     double inv_factorial_order_rel,
     GPUGLMEM const double* knl_rel,
     GPUGLMEM const double* ksl_rel,
-    xt_num_arg_t rel_ref_strength,
+    xt_float_or_tpsa_arg rel_ref_strength,
     double const factor_knl_ksl,
     double kick_weight,
-    xt_num_arg_t k0,
-    xt_num_arg_t k1,
-    xt_num_arg_t k2,
-    xt_num_arg_t k3,
-    xt_num_arg_t k0s,
-    xt_num_arg_t k1s,
-    xt_num_arg_t k2s,
-    xt_num_arg_t k3s,
+    xt_float_or_tpsa_arg k0,
+    xt_float_or_tpsa_arg k1,
+    xt_float_or_tpsa_arg k2,
+    xt_float_or_tpsa_arg k3,
+    xt_float_or_tpsa_arg k0s,
+    xt_float_or_tpsa_arg k1s,
+    xt_float_or_tpsa_arg k2s,
+    xt_float_or_tpsa_arg k3s,
     double h,
     double hxl,
-    xt_num_arg_t k0_h_correction,
-    xt_num_arg_t k1_h_correction,
+    xt_float_or_tpsa_arg k0_h_correction,
+    xt_float_or_tpsa_arg k1_h_correction,
     uint8_t rot_frame
 ){
 
     double const chi = LocalParticle_get_chi(part);
-    xt_num_t const x = LocalParticle_get_x(part);
-    xt_num_t const y = LocalParticle_get_y(part);
+    xt_float_or_tpsa const x = LocalParticle_get_x(part);
+    xt_float_or_tpsa const y = LocalParticle_get_y(part);
 
     // Staging arrays scaled by length; brace-init avoids default-constructing
-    // the non-default-constructible xt_num_t (tpsa) elements.
-    xt_num_t knl_main[4] = {k0 * length, k1 * length, k2 * length, k3 * length};
-    xt_num_t ksl_main[4] = {k0s * length, k1s * length, k2s * length, k3s * length};
+    // the non-default-constructible xt_float_or_tpsa (tpsa) elements.
+    xt_float_or_tpsa knl_main[4] = {k0 * length, k1 * length, k2 * length, k3 * length};
+    xt_float_or_tpsa ksl_main[4] = {k0s * length, k1s * length, k2s * length, k3s * length};
 
     // multipolar kick (element knl/ksl are doubles; lifted to const tpsa in TPSA tracking)
     XT_KICK_SIMPLE(
@@ -92,7 +92,7 @@ void track_magnet_kick_single_particle(
         kick_weight
     );
 
-    // main kick: knl_main/ksl_main are already xt_num_t (tpsa in TPSA tracking)
+    // main kick: knl_main/ksl_main are already xt_float_or_tpsa (tpsa in TPSA tracking)
     kick_simple_single_particle(
         part,
         /* order */ 3,
@@ -104,14 +104,14 @@ void track_magnet_kick_single_particle(
     );
 
     // Correct for the curvature
-    xt_num_t dpx = 0.0;
-    xt_num_t dpy = 0.0;
-    xt_num_t dzeta = 0.0;
+    xt_float_or_tpsa dpx = 0.0;
+    xt_float_or_tpsa dpy = 0.0;
+    xt_float_or_tpsa dzeta = 0.0;
 
     if (rot_frame) {
         double const hl = h * length * kick_weight + hxl * kick_weight;
         dpx += hl * (1. + LocalParticle_get_delta(part));
-        xt_num_t const rv0v = 1./LocalParticle_get_rvv(part);
+        xt_float_or_tpsa const rv0v = 1./LocalParticle_get_rvv(part);
         dzeta += -rv0v * hl * x;
     }
 
@@ -124,7 +124,7 @@ void track_magnet_kick_single_particle(
     // k0h correction can be computed from this term in the hamiltonian
     // H = 1/2 h k0 x^2
     // (see MAD 8 physics manual, eq. 5.15, and apply Hamilton's eq. dp/ds = -dH/dx)
-    xt_num_t k0l_mult = 0.0;
+    xt_float_or_tpsa k0l_mult = 0.0;
     if (order >= 0) {
         k0l_mult = knl[0] * factor_knl_ksl;
     }
@@ -136,7 +136,7 @@ void track_magnet_kick_single_particle(
     // k1h correction can be computed from this term in the hamiltonian
     // H = 1/3 hk1 x^3 - 1/2 hk1 xy^2
     // (see MAD 8 physics manual, eq. 5.15, and apply Hamilton's eq. dp/ds = -dH/dx)
-    xt_num_t k1l_mult = 0.0;
+    xt_float_or_tpsa k1l_mult = 0.0;
     if (order >= 1) {
         k1l_mult = knl[1] * factor_knl_ksl;
     }
@@ -159,14 +159,14 @@ uint8_t kick_is_inactive(
     int64_t order,
     GPUGLMEM const double* knl,
     GPUGLMEM const double* ksl,
-    xt_num_arg_t k0,
-    xt_num_arg_t k1,
-    xt_num_arg_t k2,
-    xt_num_arg_t k3,
-    xt_num_arg_t k0s,
-    xt_num_arg_t k1s,
-    xt_num_arg_t k2s,
-    xt_num_arg_t k3s,
+    xt_float_or_tpsa_arg k0,
+    xt_float_or_tpsa_arg k1,
+    xt_float_or_tpsa_arg k2,
+    xt_float_or_tpsa_arg k3,
+    xt_float_or_tpsa_arg k0s,
+    xt_float_or_tpsa_arg k1s,
+    xt_float_or_tpsa_arg k2s,
+    xt_float_or_tpsa_arg k3s,
     double h
 ){
     if (h != 0) return 0;
@@ -190,17 +190,17 @@ uint8_t kick_is_inactive(
 
 GPUFUN
 void kick_simple_single_coordinates(
-    xt_num_arg_t x,
-    xt_num_arg_t y,
+    xt_float_or_tpsa_arg x,
+    xt_float_or_tpsa_arg y,
     double const chi,
     int64_t order,
     double inv_factorial,
-    const xt_num_t* knl,
-    const xt_num_t* ksl,
-    xt_num_arg_t factor,
+    const xt_float_or_tpsa* knl,
+    const xt_float_or_tpsa* ksl,
+    xt_float_or_tpsa_arg factor,
     double kick_weight,
-    xt_num_t *dpx,
-    xt_num_t *dpy
+    xt_float_or_tpsa *dpx,
+    xt_float_or_tpsa *dpy
 ) {
 
     // Return if null knl/ksl pointers
@@ -212,19 +212,19 @@ void kick_simple_single_coordinates(
 
     int64_t index = order;
 
-    xt_num_t dpx_mul = chi * knl[index] * factor * inv_factorial;
-    xt_num_t dpy_mul = chi * ksl[index] * factor * inv_factorial;
+    xt_float_or_tpsa dpx_mul = chi * knl[index] * factor * inv_factorial;
+    xt_float_or_tpsa dpy_mul = chi * ksl[index] * factor * inv_factorial;
 
     while( index > 0 )
     {
-        xt_num_t const zre = dpx_mul * x - dpy_mul * y;
-        xt_num_t const zim = dpx_mul * y + dpy_mul * x;
+        xt_float_or_tpsa const zre = dpx_mul * x - dpy_mul * y;
+        xt_float_or_tpsa const zim = dpx_mul * y + dpy_mul * x;
 
         inv_factorial *= index;
         index -= 1;
 
-        xt_num_t this_knl = chi * knl[index] * factor;
-        xt_num_t this_ksl = chi * ksl[index] * factor;
+        xt_float_or_tpsa this_knl = chi * knl[index] * factor;
+        xt_float_or_tpsa this_ksl = chi * ksl[index] * factor;
 
         dpx_mul = this_knl * inv_factorial + zre;
         dpy_mul = this_ksl * inv_factorial + zim;
@@ -242,16 +242,16 @@ void kick_simple_single_particle(
     LocalParticle* part,
     int64_t order,
     double inv_factorial,
-    const xt_num_t* knl,
-    const xt_num_t* ksl,
-    xt_num_arg_t factor,
+    const xt_float_or_tpsa* knl,
+    const xt_float_or_tpsa* ksl,
+    xt_float_or_tpsa_arg factor,
     double kick_weight
 ) {
     double const chi = LocalParticle_get_chi(part);
-    xt_num_t const x = LocalParticle_get_x(part);
-    xt_num_t const y = LocalParticle_get_y(part);
+    xt_float_or_tpsa const x = LocalParticle_get_x(part);
+    xt_float_or_tpsa const y = LocalParticle_get_y(part);
 
-    xt_num_t dpx = 0.0, dpy = 0.0;
+    xt_float_or_tpsa dpx = 0.0, dpy = 0.0;
 
     kick_simple_single_coordinates(
         x,
@@ -274,7 +274,7 @@ void kick_simple_single_particle(
 // Radiation/field helper: emits physical fields to double* outputs, so it cannot be a
 // Taylor map. This is unreachable in TPSA tracking (only called from WITH_RADIATION, which is
 // excluded through a macro by XTRACK_MULTIPOLE_NO_SYNRAD); excluded from TPSA tracking so the
-// coordinate args don't need to be xt_num_t.
+// coordinate args don't need to be xt_float_or_tpsa.
 GPUFUN
 void evaluate_field_from_strengths(
     double const p0c,
@@ -290,7 +290,7 @@ void evaluate_field_from_strengths(
     double inv_factorial_order_rel,
     GPUGLMEM const double* knl_rel,
     GPUGLMEM const double* ksl_rel,
-    xt_num_arg_t rel_ref_strength,
+    xt_float_or_tpsa_arg rel_ref_strength,
     double const factor_knl_ksl,
     double k0,
     double k1,

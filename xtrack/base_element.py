@@ -116,7 +116,7 @@ GPUFUN double {getter}({data_name} obj) {{
     return {scalar_getter}(obj);
 }}
 #else
-GPUFUN xt_num_t {getter}({data_name} obj) {{
+GPUFUN xt_float_or_tpsa {getter}({data_name} obj) {{
     uint64_t bits = {tpsa_getter}(obj);
     if ({tpsa_enabled_getter}(obj)) {{
         return xt_float_or_tpsa_get(&bits, 1);

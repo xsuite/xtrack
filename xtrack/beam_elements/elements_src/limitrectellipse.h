@@ -24,10 +24,10 @@ void LimitRectEllipse_track_local_particle(LimitRectEllipseData el, LocalParticl
 
     START_PER_PARTICLE_BLOCK(part0, part);
 
-        xt_num_t const x = LocalParticle_get_x(part);
-        xt_num_t const y = LocalParticle_get_y(part);
+        xt_float_or_tpsa const x = LocalParticle_get_x(part);
+        xt_float_or_tpsa const y = LocalParticle_get_y(part);
 
-        xt_num_t const temp = x*x*b_squ + y*y*a_squ;
+        xt_float_or_tpsa const temp = x*x*b_squ + y*y*a_squ;
         double const x0 = xt_float_or_tpsa_const_part(x);
         double const y0 = xt_float_or_tpsa_const_part(y);
         double const temp0 = xt_float_or_tpsa_const_part(temp);
