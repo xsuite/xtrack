@@ -370,7 +370,6 @@ void track_straight_exact_bend_single_particle(
     const double s = length;
 
     const double one_plus_delta = LocalParticle_get_delta(part) + 1.0;
-    const double A = 1.0 / sqrt(POW2(one_plus_delta) - POW2(py));
     const double pz = sqrt(POW2(one_plus_delta) - POW2(px) - POW2(py));
 
     double new_x, new_px, new_y, delta_ell;
@@ -378,9 +377,16 @@ void track_straight_exact_bend_single_particle(
     // STRAIGHT EXACT BEND
     // The case for zero curvature -- straight bend, s is Cartesian length
     new_px = px - k0_chi * s;
-    new_x = x + (sqrt(POW2(one_plus_delta) - POW2(new_px) - POW2(py)) - pz) / k0_chi;
+    double const new_pz = sqrt(POW2(one_plus_delta) - POW2(new_px) - POW2(py));
 
-    const double D = asin(A * px) - asin(A * new_px);
+    double const d_px = -k0_chi * s;
+    double const d_pz = -d_px * (new_px + px) / (new_pz + pz);
+
+    // (new_pz - pz)/k0_chi, with k0_chi cancelled exactly
+    new_x = x + s * (new_px + px) / (new_pz + pz);
+
+    // asin(A*px) - asin(A*new_px), from its sine and cosine
+    const double D = atan2(px * d_pz - pz * d_px, pz * new_pz + px * new_px);
     new_y = y + (py / k0_chi) * D;
 
     delta_ell = (one_plus_delta / k0_chi) * D;

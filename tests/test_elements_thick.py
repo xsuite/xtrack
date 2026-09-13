@@ -8,13 +8,16 @@ import pathlib
 
 import numpy as np
 import pytest
-from cpymad.madx import Madx
-
 import xobjects as xo
 import xpart as xp
-import xtrack as xt
+from cpymad.madx import Madx
 from xobjects.test_helpers import (
-    allow_kernel_compilation, for_all_test_contexts, skip_if_forbid_compile)
+    allow_kernel_compilation,
+    for_all_test_contexts,
+    skip_if_forbid_compile,
+)
+
+import xtrack as xt
 from xtrack.mad_loader import MadLoader
 from xtrack.slicing import Strategy, Uniform
 
@@ -434,12 +437,13 @@ def test_rbend_param_handling_set_after():
     assert_eq(bend.length, 10.016686131634778)
     assert_eq(bend.h, 0.01996668332936563)
 
+
 @for_all_test_contexts
 def test_rbend(test_context):
     k0 = 0.15
     angle = 0.1
     radius = 2
-    curvature = 1 / radius
+    # curvature = 1 / radius
     length = angle * radius
     length_straight = 2 * radius * np.sin(angle / 2)
     e1_rbend = 0.05
@@ -1139,97 +1143,90 @@ def test_fringe_implementations(test_context):
     xo.assert_allclose(np.linalg.det(R_ptc), 1, rtol=0, atol=1e-8) # Symplecticity check
 
 
-@for_all_test_contexts
-def test_backtrack_with_bend_quadrupole_and_cfm(test_context):
+def _check_backtrack_roundtrip(line, test_context, atol=1e-15):
+    p0 = line.build_particles(x=0.01, px=0.02, y=0.03, py=0.04,
+                               zeta=0.05, delta=0.01)
+    p1 = p0.copy(_context=test_context)
+    line.track(p1)
+    p2 = p1.copy(_context=test_context)
+    line.track(p2, backtrack=True)
 
-    # Check bend
+    p0.move(_context=xo.context_default)
+    p1.move(_context=xo.context_default)
+    p2.move(_context=xo.context_default)
+
+    assert np.all(p1.state == 1)
+    assert np.all(p2.state == 1)
+    xo.assert_allclose(p2.s, p0.s, atol=atol, rtol=0)
+    xo.assert_allclose(p2.x, p0.x, atol=atol, rtol=0)
+    xo.assert_allclose(p2.px, p0.px, atol=atol, rtol=0)
+    xo.assert_allclose(p2.y, p0.y, atol=atol, rtol=0)
+    xo.assert_allclose(p2.py, p0.py, atol=atol, rtol=0)
+    xo.assert_allclose(p2.zeta, p0.zeta, atol=atol, rtol=0)
+    xo.assert_allclose(p2.delta, p0.delta, atol=atol, rtol=0)
+
+
+@for_all_test_contexts
+def test_backtrack_with_bend(test_context):
     b = xt.Bend(k0=0.2, angle=0.1, length=1.0)
     line = xt.Line(elements=[b])
     line.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV, beta0=0.5)
     line.reset_s_at_end_turn = False
     line.build_tracker(_context=test_context)
 
-    p0 = line.build_particles(x=0.01, px=0.02, y=0.03, py=0.04,
-                            zeta=0.05, delta=0.01)
-    p1 = p0.copy(_context=test_context)
-    line.track(p1)
-    p2 = p1.copy(_context=test_context)
-    line.track(p2, backtrack=True)
+    _check_backtrack_roundtrip(line, test_context)
 
-    p0.move(_context=xo.context_default)
-    p2.move(_context=xo.context_default)
-    xo.assert_allclose(p2.s, p0.s, atol=1e-15, rtol=0)
-    xo.assert_allclose(p2.x, p0.x, atol=1e-15, rtol=0)
-    xo.assert_allclose(p2.px, p0.px, atol=1e-15, rtol=0)
-    xo.assert_allclose(p2.y, p0.y, atol=1e-15, rtol=0)
-    xo.assert_allclose(p2.py, p0.py, atol=1e-15, rtol=0)
-    xo.assert_allclose(p2.zeta, p0.zeta, atol=1e-15, rtol=0)
-    xo.assert_allclose(p2.delta, p0.delta, atol=1e-15, rtol=0)
 
-    # Same for quadrupole
+@for_all_test_contexts
+def test_backtrack_with_quadrupole(test_context):
     q = xt.Quadrupole(k1=0.2, length=1.0)
     line = xt.Line(elements=[q])
     line.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV, beta0=0.5)
     line.reset_s_at_end_turn = False
     line.build_tracker(_context=test_context)
-    p0 = line.build_particles(x=0.01, px=0.02, y=0.03, py=0.04,
-                                zeta=0.05, delta=0.01)
-    p1 = p0.copy(_context=test_context)
-    line.track(p1)
-    p2 = p1.copy(_context=test_context)
-    line.track(p2, backtrack=True)
 
-    p0.move(_context=xo.context_default)
-    p2.move(_context=xo.context_default)
-    xo.assert_allclose(p2.s, p0.s, atol=1e-15, rtol=0)
-    xo.assert_allclose(p2.x, p0.x, atol=1e-15, rtol=0)
-    xo.assert_allclose(p2.px, p0.px, atol=1e-15, rtol=0)
-    xo.assert_allclose(p2.y, p0.y, atol=1e-15, rtol=0)
-    xo.assert_allclose(p2.py, p0.py, atol=1e-15, rtol=0)
-    xo.assert_allclose(p2.zeta, p0.zeta, atol=1e-15, rtol=0)
-    xo.assert_allclose(p2.delta, p0.delta, atol=1e-15, rtol=0)
+    _check_backtrack_roundtrip(line, test_context)
 
-    # Same for dipole edge
-    de = xt.DipoleEdge(e1=0.1, k=3, fint=0.3)
-    line = xt.Line(elements=[de])
-    line.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV, beta0=0.5)
-    line.reset_s_at_end_turn = False
-    line.build_tracker(_context=test_context)
-    p0 = line.build_particles(x=0.01, px=0.02, y=0.03, py=0.04,
-                                zeta=0.05, delta=0.01)
-    p1 = p0.copy(_context=test_context)
-    line.track(p1)
-    p1.move(_context=xo.context_default)
-    assert np.all(p1.state == 1)
-    line.configure_bend_model(edge='full')
-    p2 = p1.copy(_context=test_context)
-    line.track(p2, backtrack=True)
-    p2.move(_context=xo.context_default)
-    assert np.all(p2.state == -32)
 
-    # Same for combined function magnet
+@for_all_test_contexts
+def test_backtrack_with_cfm(test_context):
     cfm = xt.Bend(length=1.0, k1=0.2, angle=0.1)
     line = xt.Line(elements=[cfm])
     line.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV, beta0=0.5)
     line.reset_s_at_end_turn = False
     line.build_tracker(_context=test_context)
 
+    _check_backtrack_roundtrip(line, test_context)
+
+
+@for_all_test_contexts
+@pytest.mark.parametrize('edge_model', ['linear', 'full'])
+def test_backtrack_with_dipole_edge(test_context, edge_model):
+    de = xt.DipoleEdge(e1=0.1, k=3, fint=0.3)
+    line = xt.Line(elements=[de])
+    line.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV, beta0=0.5)
+    line.reset_s_at_end_turn = False
+    line.build_tracker(_context=test_context)
+    line.configure_bend_model(edge=edge_model)
+
     p0 = line.build_particles(x=0.01, px=0.02, y=0.03, py=0.04,
-                            zeta=0.05, delta=0.01)
+                               zeta=0.05, delta=0.01)
     p1 = p0.copy(_context=test_context)
     line.track(p1)
     p2 = p1.copy(_context=test_context)
     line.track(p2, backtrack=True)
 
     p0.move(_context=xo.context_default)
+    p1.move(_context=xo.context_default)
     p2.move(_context=xo.context_default)
-    xo.assert_allclose(p2.s, p0.s, atol=1e-15, rtol=0)
-    xo.assert_allclose(p2.x, p0.x, atol=1e-15, rtol=0)
-    xo.assert_allclose(p2.px, p0.px, atol=1e-15, rtol=0)
-    xo.assert_allclose(p2.y, p0.y, atol=1e-15, rtol=0)
-    xo.assert_allclose(p2.py, p0.py, atol=1e-15, rtol=0)
-    xo.assert_allclose(p2.zeta, p0.zeta, atol=1e-15, rtol=0)
-    xo.assert_allclose(p2.delta, p0.delta, atol=1e-15, rtol=0)
+    assert np.all(p1.state == 1)
+    assert np.all(p2.state == 1)
+    xo.assert_allclose(p2.x, p0.x, atol=1e-14, rtol=0)
+    xo.assert_allclose(p2.px, p0.px, atol=1e-14, rtol=0)
+    xo.assert_allclose(p2.y, p0.y, atol=1e-14, rtol=0)
+    xo.assert_allclose(p2.py, p0.py, atol=1e-14, rtol=0)
+    xo.assert_allclose(p2.zeta, p0.zeta, atol=1e-14, rtol=0)
+    xo.assert_allclose(p2.delta, p0.delta, atol=1e-14, rtol=0)
 
 def test_import_thick_with_apertures_and_slice_cpymad():
     mad = Madx(stdout=False)
@@ -3091,15 +3088,15 @@ def test_api_bend():
 
 def test_delta_dipole_fringe():
     # Test momentum dependence of dipole fringe, as corrected with respect to the PTC implementation
-    
+
     dd = np.linspace(-0.05, 0.05, 11)
     p0 = xt.Particles(y=0.002, delta=dd)
     p1 = p0.copy()
 
     length = 0.05
     b1 = 0.1
-    
-    def fieldvalue(x,y,z):  
+
+    def fieldvalue(x,y,z):
         # Polynomial dipole fringe field between 0 and 0.05 with max b1=0.1
         # b1 = -1600 z^3 + 120 z^2 converted to tesla
         return [0, (-1600*z**3 + 120*z**2 - 120*y**2*(1 - 40*z))* p0.rigidity0[0], (1600*y**3 + y*(-4800*z**2 + 240*z))* p0.rigidity0[0]]
@@ -3112,18 +3109,18 @@ def test_delta_dipole_fringe():
     drift.track(p0, backtrack=True)
     exactfringe.track(p0)
     bend.track(p0, backtrack=True)
-    
+
     # Xsuite fringe with same parameters
     gap = 0.04
     ss = np.linspace(0,length,100)
     bvals = -1600 * ss**3 + 120 * ss**2
     fint = np.trapezoid((b1 - bvals)*bvals / b1**2 / gap, ss)
     PTCfringe = xt.Bend(length=0, k0=b1, edge_entry_model="full", edge_entry_fint=fint, edge_entry_hgap=gap/2, edge_exit_active=0)
-    
+
     PTCfringe.track(p1)
-    
+
     # Slopes of py vs delta should be similar, original implementation had sign difference
     deg0 = np.polyfit(p0.delta, p0.py, 1)
     deg1 = np.polyfit(p1.delta, p1.py, 1)
-    
+
     assert np.allclose(deg0/deg1, 1, rtol=1e-2)
