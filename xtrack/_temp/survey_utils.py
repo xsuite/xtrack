@@ -93,7 +93,7 @@ def rst_from_reference_start(
     frame_rst_start.rotate_y(-angle / 2)
 
     # S is along the chord, T is normal to the curvature plane, and R = S x T.
-    es = frame_rst_start.ez
+    es = frame_rst_start.es
     et = frame_rst_start.ey
     er = np.cross(es, et)
 
@@ -168,7 +168,7 @@ def misalignment_from_rst_offsets(
     rot_s_rad_no_frame = -bgamma
     longitudinal_rotation = Frame().rotate_s(rot_s_rad_no_frame)
     chord_before_theta_phi = (
-        longitudinal_rotation @ tilted_chord_frame).ez * length
+        longitudinal_rotation @ tilted_chord_frame).es * length
 
     uy = chord_before_theta_phi[1]
     uz = chord_before_theta_phi[2]
@@ -222,16 +222,31 @@ def rst_start_end_offsets_from_parameters(element, length):
     ])
     b_E = rst_from_xys_frame.E_matrix @ displacement_E_xys
     b_S = rst_from_xys_frame.E_matrix @ (
-        displacement_E_xys + displaced_chord_frame.ez * length)
+        displacement_E_xys + displaced_chord_frame.es * length)
     return b_E, b_S
+
+def comp_psi_vbend(frame_start, frame_end, psi_tol_deg=20):
+    psi = frame_start.psi
+    if np.isclose(np.abs(psi), np.pi/2, atol=np.deg2rad(psi_tol_deg)):
+        assert np.isclose(np.abs(frame_end.psi), np.pi/2, atol=np.deg2rad(psi_tol_deg))
+        # Done inplace
+        frame_start.rotate_s(-np.sign(psi) * np.pi/2)
+        frame_end.rotate_s(-np.sign(psi) * np.pi/2)
 
 
 def write_legacy_survey_tfs(
-        file_name, *, survey, element_names, element_container):
+        file_name, *, survey, element_names, element_container,
+        compensate_psi_vbend=False, psi_tol_deg=20):
     """Write element entrance and exit frames in the legacy survey format."""
     lines = []
     for ii, nn in enumerate(element_names):
         frames = survey.get_all_frames(nn)
+
+        if compensate_psi_vbend:
+            ff_elem_start = frames['elem_start']
+            ff_elem_end = frames['elem_end']
+            comp_psi_vbend(ff_elem_start, ff_elem_end, psi_tol_deg=psi_tol_deg)
+
         for place in ('start', 'end'):
 
             if place == 'start':
@@ -298,8 +313,8 @@ def write_legacy_survey_tfs(
         fid.write(output)
 
 
-def plot_exz(rotation_matrix, point, length=0.5, color='k'):
-    """Plot the local x and z directions in the global Z-X plane."""
+def plot_exs(rotation_matrix, point, length=0.5, color='k'):
+    """Plot the local x and s directions in the global Z-X plane."""
     import matplotlib.pyplot as plt
 
     if length <= 0:

@@ -3,7 +3,10 @@ import numpy as np
 
 from xtrack._temp import survey_utils as su
 
-env = xt.load(['M2_with_jump.seq', 'M2_MTN3p8_v5_notilt.str'])
+compensate_psi_vbend = True
+psi_tol_deg = 20
+
+env = xt.load('M2_MTN3p8_v6_notilt.seq')
 line = env['m2']
 
 # Define T09 survey parameters.
@@ -22,6 +25,11 @@ names_align = sv.rows.match_not(name='.*drift.*|.*_aper|_end_point')\
 frames = {}
 for nn in names_align:
     frames[nn] = sv.get_all_frames(nn)
+    if compensate_psi_vbend:
+        ff_elem_start = frames[nn]['elem_start']
+        ff_elem_end = frames[nn]['elem_end']
+        su.comp_psi_vbend(ff_elem_start, ff_elem_end,
+                                psi_tol_deg=psi_tol_deg)
 
 # Prepare output table with CCS start/end
 name = []
@@ -85,6 +93,8 @@ su.write_legacy_survey_tfs(
     survey=sv,
     element_names=names_align,
     element_container=env,
+    compensate_psi_vbend=compensate_psi_vbend,
+    psi_tol_deg=psi_tol_deg
 )
 
 import matplotlib.pyplot as plt
