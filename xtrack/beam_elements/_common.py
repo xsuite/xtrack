@@ -3,16 +3,14 @@
 # Copyright (c) CERN, 2025.                 #
 # ######################################### #
 
+from numbers import Number
 from warnings import warn
 
 import numpy as np
-
-from numbers import Number
-
+import xobjects as xo
 from scipy.special import factorial
 
-import xobjects as xo
-
+from ..general import DEPRECATION_INFO_PREP_1_0
 from ..internal_record import RecordIndex
 
 DEFAULT_MULTIPOLE_ORDER = 5
@@ -42,8 +40,11 @@ _MODEL_TO_INDEX_CURVED = {k: v for v, k in _INDEX_TO_MODEL_CURVED.items()} | {'e
 _INDEX_TO_INTEGRATOR = {
     0: 'adaptive',
     1: 'teapot',
-    2: 'yoshida4',
+    # We used to have yoshida4 here, but it was actually yoshida6; keeping the behaviour linked to the same index.
+    2: 'yoshida-6',
     3: 'uniform',
+    4: 'yoshida-4',
+    5: 'yoshida-8',
 }
 
 _INTEGRATOR_TO_INDEX = {k: v for v, k in _INDEX_TO_INTEGRATOR.items()}
@@ -167,16 +168,19 @@ class _HasIntegrator:
     with integrator fields.
     """
 
-    _for_docstring = ('''
+    _for_docstring = (
+        """
     integrator : str
         Integrator used for the element. Available integrators are: "adaptive",
-        "teapot", "yoshida4", "uniform". Default is "adaptive".
+        "teapot", "yoshida-4", "yoshida-6", "yoshida-8",
+        "uniform". Default is "adaptive" (sixth-order Yoshida).
     num_multipole_kicks : int
         Number of multipole kicks to be used. For the yoshida integrator, this
         is rounded up to the nearest number compatible with the integrator scheme.
         Default is ``0``, for which the number of kicks is chosen automatically
         based on the element length and strength.
-    ''').strip()
+    """
+    ).strip()
 
     @property
     def integrator(self):
@@ -184,6 +188,15 @@ class _HasIntegrator:
 
     @integrator.setter
     def integrator(self, value):
+        if value == 'yoshida4':
+            warn(
+                "The 'yoshida4' integrator is now deprecated and will be removed in a future version. "
+                'In the past this was equivalent to the present yoshida-6. '
+                "To get the same behaviour, please use 'yoshida-6' instead."
+                + DEPRECATION_INFO_PREP_1_0,
+                FutureWarning,
+            )
+            value = 'yoshida-6'
         try:
             self._integrator = _INTEGRATOR_TO_INDEX[value]
         except KeyError:
@@ -200,7 +213,7 @@ class _HasIntegrator:
         List[str]
             List of available integrators.
         """
-        out = [kk for kk in _INTEGRATOR_TO_INDEX.keys()]
+        out = [kk for kk in _INTEGRATOR_TO_INDEX]
         return out
 
 class _HasModelDrift:
@@ -232,7 +245,7 @@ class _HasModelDrift:
         List[str]
             List of available models.
         """
-        out = [kk for kk in _MODEL_TO_INDEX_DRIFT.keys()]
+        out = [kk for kk in _MODEL_TO_INDEX_DRIFT]
         return out
 
 class _HasModelStraight:
@@ -270,7 +283,7 @@ class _HasModelStraight:
         List[str]
             List of available models.
         """
-        out = [kk for kk in _MODEL_TO_INDEX_STRAIGHT.keys() if kk != 'full']
+        out = [kk for kk in _MODEL_TO_INDEX_STRAIGHT if kk != 'full']
         return out
 
 class _HasModelCurved:
@@ -310,7 +323,7 @@ class _HasModelCurved:
         List[str]
             List of available models.
         """
-        out = [kk for kk in _MODEL_TO_INDEX_CURVED.keys()
+        out = [kk for kk in _MODEL_TO_INDEX_CURVED
                if kk not in ('full', 'expanded')]
         return out
 
@@ -338,7 +351,7 @@ class _HasModelRF:
     def get_available_models():
         """Get list of available RF models for this element.
         """
-        out = [kk for kk in _MODEL_TO_INDEX_RF.keys() if kk != 'full']
+        out = [kk for kk in _MODEL_TO_INDEX_RF if kk != 'full']
         return out
 
 class _HasKnlKsl:
