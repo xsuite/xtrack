@@ -200,6 +200,58 @@ def misalignment_from_rst_offsets(
     )
 
 
+def rst_rigid_chord(displ_start_rst, displ_end_rst, length):
+    """Chord of a rigidly displaced element, in its own RST frame.
+
+    ``displ_start_rst`` and ``displ_end_rst`` are the displacements of the
+    element entrance and exit from their nominal positions, as given in an
+    alignment request. Their transverse (R, T) components fix the direction of
+    the chord, whose S component then follows from the nominal chord
+    ``length`` being preserved. The requested exit S displacement plays no
+    part: for a rigid element it is determined by the other two, not free.
+    """
+    displ_start_rst = np.asarray(displ_start_rst, dtype=float)
+    displ_end_rst = np.asarray(displ_end_rst, dtype=float)
+
+    chord_r = displ_end_rst[0] - displ_start_rst[0]
+    chord_t = displ_end_rst[2] - displ_start_rst[2]
+    transverse_sq = chord_r**2 + chord_t**2
+    if transverse_sq >= length**2:
+        raise ValueError(
+            'transverse displacement larger than the element chord')
+
+    return np.array([chord_r, np.sqrt(length**2 - transverse_sq), chord_t])
+
+
+def misalignment_from_rst_displacements(
+        displ_start_rst, displ_end_rst, length, bgamma, tilt=0.0, angle=0.0):
+    """Infer MAD-X misalignments from requested RST end-point displacements.
+
+    This is the entry point for an alignment (bump) request, which gives the
+    displacement of each element end point from its nominal position, rather
+    than the absolute offsets taken by
+    :func:`misalignment_from_rst_offsets`.
+
+    The two displacements and ``bgamma`` are seven numbers, while a rigid body
+    has only six degrees of freedom, so the request is over-determined: in
+    general no rigid motion puts both end points exactly where asked. The
+    element is kept rigid here, at its nominal chord ``length``; see
+    :func:`rst_rigid_chord` for which part of the request that discards.
+    """
+    displ_start_rst = np.asarray(displ_start_rst, dtype=float)
+    chord_rst = rst_rigid_chord(displ_start_rst, displ_end_rst, length)
+
+    # A nominal element runs from (0, 0, 0) to (0, length, 0) in its own RST
+    # frame, independently of its tilt and bending angle.
+    return misalignment_from_rst_offsets(
+        offset_start_rst=displ_start_rst,
+        offset_end_rst=displ_start_rst + chord_rst,
+        bgamma=bgamma,
+        tilt=tilt,
+        angle=angle,
+    )
+
+
 def rst_start_end_offsets_from_parameters(element, length):
     angle = getattr(element, 'angle', 0.0)
 

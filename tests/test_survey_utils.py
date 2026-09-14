@@ -218,3 +218,106 @@ def test_survey_frame_plot_helpers(plot_function):
         plot_function(np.eye(3), np.zeros(3), length=0)
 
     plt.close()
+
+
+def test_rst_rigid_chord_preserves_the_chord_length():
+    length = 2.5
+
+    # A pure translation leaves the chord along S.
+    chord = su.rst_rigid_chord([1e-3, -2e-3, 3e-3], [1e-3, 5e-3, 3e-3], length)
+    np.testing.assert_allclose(chord, [0, length, 0], atol=5e-15, rtol=0)
+
+    # A crab request tilts the chord, which keeps its length.
+    displacement = 0.1
+    chord = su.rst_rigid_chord(
+        [0, 0, displacement], [0, 0, -displacement], length)
+    expected_s = np.sqrt(length**2 - (2 * displacement)**2)
+    np.testing.assert_allclose(
+        chord, [0, expected_s, -2 * displacement], atol=5e-15, rtol=0)
+    assert np.linalg.norm(chord) == pytest.approx(length, abs=5e-15)
+
+    # The requested exit S displacement is not used.
+    for exit_s in (-0.3, 0., 0.7):
+        np.testing.assert_allclose(
+            su.rst_rigid_chord([0, 0, 0], [2e-3, exit_s, -1e-3], length),
+            su.rst_rigid_chord([0, 0, 0], [2e-3, 0., -1e-3], length),
+            atol=0, rtol=0)
+
+
+def test_rst_rigid_chord_rejects_oversized_transverse_displacement():
+    with pytest.raises(ValueError, match='larger than the element chord'):
+        su.rst_rigid_chord([0, 0, 0], [0, 0, 1.], length=0.5)
+
+
+def test_misalignment_from_rst_displacements_round_trip():
+    rng = np.random.default_rng(2024)
+
+    for ii in range(32):
+        length = rng.uniform(0.5, 5.)
+        tilt = rng.uniform(-np.pi, np.pi)
+        angle = 0. if ii % 3 == 0 else rng.uniform(-0.3, 0.3)
+        element = SimpleNamespace(
+            angle=angle,
+            rot_s_rad=tilt,
+            rot_y_rad=rng.uniform(-0.2, 0.2),
+            rot_x_rad=rng.uniform(-0.2, 0.2),
+            rot_s_rad_no_frame=rng.uniform(-0.2, 0.2),
+            shift_x=rng.uniform(-0.05, 0.05),
+            shift_y=rng.uniform(-0.05, 0.05),
+            shift_s=rng.uniform(-0.05, 0.05),
+        )
+
+        # An exactly rigid motion, expressed as end-point displacements from
+        # the nominal (0, 0, 0) and (0, length, 0).
+        offset_start_rst, offset_end_rst = (
+            su.rst_start_end_offsets_from_parameters(element, length))
+        displ_start_rst = offset_start_rst
+        displ_end_rst = offset_end_rst - np.array([0., length, 0.])
+
+        misalignment = su.misalignment_from_rst_displacements(
+            displ_start_rst=displ_start_rst,
+            displ_end_rst=displ_end_rst,
+            length=length,
+            bgamma=-element.rot_s_rad_no_frame,
+            tilt=tilt,
+            angle=angle,
+        )
+
+        # A rigid request is honoured exactly: nothing has to be discarded.
+        expected = np.array([
+            element.rot_y_rad,
+            element.rot_x_rad,
+            element.rot_s_rad + element.rot_s_rad_no_frame,
+            element.shift_x,
+            element.shift_y,
+            element.shift_s,
+        ])
+        actual = _misalignment_values(misalignment)
+        np.testing.assert_allclose(
+            actual[3:], expected[3:], atol=5e-13, rtol=0)
+        for actual_angle, expected_angle in zip(actual[:3], expected[:3]):
+            assert _angle_difference(
+                actual_angle, expected_angle) == pytest.approx(0, abs=5e-13)
+
+
+def test_misalignment_from_rst_displacements_keeps_the_element_rigid():
+    # A crab request with no longitudinal component: a rigid element can only
+    # answer it by rotating about its centre, which pulls the exit back along
+    # the chord. The rotation follows from the preserved length.
+    length = 2.99
+    displacement = 0.1
+
+    misalignment = su.misalignment_from_rst_displacements(
+        displ_start_rst=[0., 0., displacement],
+        displ_end_rst=[0., 0., -displacement],
+        length=length,
+        bgamma=0.,
+    )
+
+    chord_s = np.sqrt(length**2 - (2 * displacement)**2)
+    assert misalignment.dphi == pytest.approx(
+        -np.arctan(2 * displacement / chord_s), abs=5e-15)
+    assert misalignment.dtheta == pytest.approx(0, abs=5e-15)
+    np.testing.assert_allclose(
+        [misalignment.shift_x, misalignment.shift_y, misalignment.shift_s],
+        [0., displacement, 0.], atol=5e-15, rtol=0)
