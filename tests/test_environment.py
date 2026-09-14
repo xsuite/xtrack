@@ -2549,6 +2549,231 @@ def test_insert_list():
         30.  , 40.5 , 50.  , 50.  ]),
         rtol=0., atol=1e-14)
 
+def test_insert_thin_next_to_thick_in_long_line():
+    # The elements adjacent to a zero-length insertion must survive it. For
+    # s >= 2**20 m, `s - s_tol` equals `s` exactly in float64, so the
+    # comparisons in insert() lost their strictness and both neighbours of the
+    # insertion point looked enclosed by it. They were removed and replaced by
+    # drifts, silently turning the quadrupole into a field-free region.
+    env = xt.Environment()
+
+    line = env.new_line(
+        components=[
+            env.new('d1', 'Drift', length=1.5e6),
+            env.new('mk', 'Marker'),
+            env.new('qf', 'Quadrupole', length=2.0, k1=0.5),
+            env.new('d2', 'Drift', length=1.5e6),
+        ])
+
+    env.new('mon', 'Marker')
+    line.insert(env.place('mon', at='mk@start'))
+
+    tt = line.get_table()
+
+    assert np.all(tt.name == np.array(
+        ['d1', 'mon', 'mk', 'qf', 'd2', '_end_point']))
+    assert tt['element_type', 'qf'] == 'Quadrupole'
+    xo.assert_allclose(line['qf'].k1, 0.5, rtol=0., atol=1e-14)
+    xo.assert_allclose(tt.s_center, np.array(
+        [7.5e5, 1.5e6, 1.5e6, 1500001., 2250002., 3000002.]),
+        rtol=0., atol=1e-8)
+
+
+def test_insert_thick_abutting_thick_in_long_line():
+    # An element whose start coincides with the end of the insertion is
+    # downstream of it and must be kept. Removal must be decided by
+    # containment in the insertion span, not by the position of a single edge:
+    # `qf` starts exactly where the insertion ends, and `d1` ends exactly
+    # where it begins, so testing one edge alone flags both for removal.
+    env = xt.Environment()
+
+    line = env.new_line(
+        components=[
+            env.new('d1', 'Drift', length=1.5e6),
+            env.new('dgap', 'Drift', length=3.0),
+            env.new('qf', 'Quadrupole', length=2.0, k1=0.5),
+            env.new('d2', 'Drift', length=1.5e6),
+        ])
+
+    env.new('sx', 'Sextupole', length=3.0, k2=1.0)
+    line.insert(env.place('sx', at='dgap@center'))
+
+    tt = line.get_table()
+
+    # `dgap` is fully covered by the insertion and is the only element removed
+    assert np.all(tt.name == np.array(['d1', 'sx', 'qf', 'd2', '_end_point']))
+    assert tt['element_type', 'qf'] == 'Quadrupole'
+    xo.assert_allclose(line['qf'].k1, 0.5, rtol=0., atol=1e-14)
+    xo.assert_allclose(tt.s_end[-1], 3000005., rtol=0., atol=1e-8)
+
+
+def test_insert_thick_replaces_overlapped_span():
+    # The mirror of the test above: elements that *are* covered by the
+    # insertion must still be removed, and partially covered drifts trimmed.
+    env = xt.Environment()
+
+    line = env.new_line(
+        components=[
+            env.new('a1', 'Drift', length=10.0),
+            env.new('q1', 'Quadrupole', length=2.0, k1=0.5),
+            env.new('a2', 'Drift', length=10.0),
+        ])
+
+    env.new('sx', 'Sextupole', length=3.0, k2=1.0)
+    line.insert(env.place('sx', at='q1@center'))
+
+    tt = line.get_table()
+
+    assert np.all(tt.name == np.array(['a1..0', 'sx', 'a2..1', '_end_point']))
+    assert 'q1' not in line.element_names
+    xo.assert_allclose(tt.s_center, np.array([4.75, 11.0, 17.25, 22.0]),
+                       rtol=0., atol=1e-14)
+
+
+def test_insert_thin_inside_thick():
+    # A thin insertion strictly inside a thick element slices it; both halves
+    # must remain slices of the parent, which keeps its strength.
+    env = xt.Environment()
+
+    line = env.new_line(
+        components=[
+            env.new('b1', 'Drift', length=10.0),
+            env.new('q2', 'Quadrupole', length=2.0, k1=0.5),
+            env.new('b2', 'Drift', length=10.0),
+        ])
+
+    env.new('mk3', 'Marker')
+    line.insert(env.place('mk3', at='q2@center'))
+
+    tt = line.get_table()
+
+    assert np.all(tt.name == np.array(
+        ['b1', 'q2_entry', 'q2..entry_map', 'q2..0', 'mk3', 'q2..1',
+         'q2..exit_map', 'q2_exit', 'b2', '_end_point']))
+    assert tt['element_type', 'q2..0'] == 'ThickSliceQuadrupole'
+    assert tt['element_type', 'q2..1'] == 'ThickSliceQuadrupole'
+    xo.assert_allclose(line['q2'].k1, 0.5, rtol=0., atol=1e-14)
+    xo.assert_allclose(tt.s_end[-1], 22.0, rtol=0., atol=1e-14)
+
+
+def test_insert_thin_preserves_line_length():
+    # Zero-length insertions add no material, so the length must be unchanged
+    # exactly. Gaps are no longer materialized as drifts, so an element lost
+    # here would silently shorten the line instead of being padded.
+    env = xt.Environment()
+
+    line = env.new_line(
+        components=[
+            env.new('c1', 'Drift', length=1.5e6),
+            env.new('qa', 'Quadrupole', length=2.0, k1=0.5),
+            env.new('c2', 'Drift', length=1.5e6),
+            env.new('qb', 'Quadrupole', length=2.0, k1=-0.5),
+            env.new('c3', 'Drift', length=1.5e6),
+        ])
+
+    length_before = line.get_table().s[-1]
+
+    for ii, at in enumerate(['qa@start', 'qa@end', 'c2@center',
+                             'qb@start', 'qb@end']):
+        env.new(f'mm{ii}', 'Marker')
+        line.insert(env.place(f'mm{ii}', at=at))
+
+    tt = line.get_table()
+
+    assert tt.s[-1] == length_before
+    assert not [nn for nn in line.element_names if nn.startswith('||drift')]
+    for nn in ['qa', 'qb']:
+        assert tt['element_type', nn] == 'Quadrupole'
+
+
+def test_insert_overlapping_insertions_raises():
+    # Mutually overlapping insertions cannot be honoured. The error must name
+    # the first offender along the line, not an arbitrary one.
+    env = xt.Environment()
+
+    line = env.new_line(components=[env.new('e1', 'Drift', length=40.0)])
+
+    for nn in ['sx1', 'sx2', 'sx3']:
+        env.new(nn, 'Sextupole', length=3.0, k2=1.0)
+
+    # spans [8.5, 11.5], [9.5, 12.5] and [10.5, 13.5]
+    with pytest.raises(ValueError) as excinfo:
+        line.insert([env.place('sx1', at=10.0),
+                     env.place('sx2', at=11.0),
+                     env.place('sx3', at=12.0)])
+
+    assert 'sx2' in str(excinfo.value)
+    assert 'sx3' not in str(excinfo.value)
+
+
+@pytest.mark.parametrize('l_drift', [2**20, 2**20 + 1])
+def test_insert_thin_across_float_resolution_threshold(l_drift):
+    # `s_tol` is used to emulate strict inequalities, which requires that
+    # `s +/- s_tol` actually changes `s`. In float64 that stops being true at
+    # s = 2**20 m for the default s_tol=1e-10, so the outcome must not depend
+    # on which side of that threshold the insertion sits.
+    env = xt.Environment()
+
+    line = env.new_line(
+        components=[
+            env.new('g1', 'Drift', length=float(l_drift)),
+            env.new('mg', 'Marker'),
+            env.new('qg', 'Quadrupole', length=2.0, k1=0.5),
+            env.new('g2', 'Drift', length=10.0),
+        ])
+
+    env.new('mng', 'Marker')
+    line.insert(env.place('mng', at='mg@start'))
+
+    tt = line.get_table()
+
+    assert np.all(tt.name == np.array(
+        ['g1', 'mng', 'mg', 'qg', 'g2', '_end_point']))
+    assert tt['element_type', 'qg'] == 'Quadrupole'
+    xo.assert_allclose(line['qg'].k1, 0.5, rtol=0., atol=1e-14)
+
+
+def test_insert_many_thin_in_long_line():
+    # Scaled-down version of the failure reported for a ~2e6 m rapid cycling
+    # synchrotron: a monitor and an aperture placed at the marker of every
+    # cell, in two separate insert() calls. Cells beyond s = 2**20 m used to
+    # lose their quadrupole to a drift.
+    n_cells = 100
+    l_cell = 20000.
+
+    env = xt.Environment()
+    components = []
+    for ii in range(n_cells):
+        components += [
+            env.new(f'mk_{ii}', 'Marker'),
+            env.new(f'q_{ii}', 'Quadrupole', length=4.0, k1=0.5),
+            env.new(f'dr_{ii}', 'Drift', length=l_cell - 4.0),
+        ]
+    line = env.new_line(components=components)
+
+    length_before = line.get_table().s[-1]
+
+    for ii in range(n_cells):
+        env.new(f'mon_{ii}', 'Marker')
+        env.new(f'ap_{ii}', 'LongitudinalLimitRect', min_zeta=-0.02,
+                max_zeta=0.02, min_pzeta=-0.009, max_pzeta=0.009)
+
+    line.insert([env.place(f'mon_{ii}', at=f'mk_{ii}@start')
+                 for ii in range(n_cells)])
+    line.insert([env.place(f'ap_{ii}', at=f'mk_{ii}@start')
+                 for ii in range(n_cells)])
+
+    tt = line.get_table()
+
+    assert len(line.element_names) == 3 * n_cells + 2 * n_cells
+    assert len(set(line.element_names)) == len(line.element_names)
+    assert not [nn for nn in line.element_names if nn.startswith('||drift')]
+    assert tt.s[-1] == length_before
+    for ii in range(n_cells):
+        assert tt['element_type', f'q_{ii}'] == 'Quadrupole'
+        xo.assert_allclose(line[f'q_{ii}'].k1, 0.5, rtol=0., atol=1e-14)
+
+
 def test_anchors_in_new_and_place():
     env = xt.Environment()
 

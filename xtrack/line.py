@@ -40,7 +40,6 @@ from .beam_elements.slice_base import ID_RADIATION_FROM_PARENT
 from .composer.composer import (
     _all_places,
     _flatten_components,
-    _generate_element_names_with_drifts,
 )
 from .composer.ordering import _sort_places
 from .composer.resolve_positions import _resolve_s_positions
@@ -105,21 +104,13 @@ LINE_DOC_GROUP_ORDER = (
 
 _LINE_DOC_GROUP_COLLECTOR = GroupedAPICollector(LINE_DOC_GROUP_ORDER)
 
-def find_index_repeated(item, lst,count=0):
-    res=[ii for ii, nn in enumerate(lst) if nn == item]
+def find_index_repeated(item, lst, count=0):
+    res = [ii for ii, nn in enumerate(lst) if nn == item]
     _print(item)
-    if count>=len(res):
+    if count >= len(res):
         raise ValueError(f'Item {item} not found')
     return res[count]
 
-def find_index_repeated2(item, lst,count=0):
-    cc=0
-    for ii, nn in enumerate(lst):
-        if nn == item:
-            if cc==count:
-                return ii
-            cc+=1
-    raise ValueError(f'Item {item} not found')
 
 class Line:
 
@@ -3796,8 +3787,7 @@ class Line:
     @doc_group("Line Editing")
     def insert(self, what, obj=None, at=None, from_=None, anchor=None,
                from_anchor=None, s_tol=1e-10, with_progress=True):
-        """
-        Insert elements in the line.
+        """Insert elements in the line.
 
         If there are multiple valid options for the insertion (which is sometimes the
         case for thin elements), the first suitable place will usually be chosen.
@@ -3868,7 +3858,6 @@ class Line:
             # Alternatively, add the element to the environment and then do the insertion:
             env.elements['ap1'] = myaperture
             line.insert('ap1', at='q0@start')
-
         """
 
         self._method_incompatible_with_compose()
@@ -3925,9 +3914,7 @@ class Line:
         s_cuts = list(tab_insertions['s_start']) + list(tab_insertions['s_end'])
         s_cuts = list(set(s_cuts))
 
-        self.cut_at_s(
-            s_cuts, s_tol=s_tol, return_slices=True,
-            with_progress=with_progress)
+        self.cut_at_s(s_cuts, s_tol=s_tol, with_progress=with_progress)
 
         tt_after_cut = self.get_table()
         tt_after_cut['length'] = np.diff(tt_after_cut.s, append=tt_after_cut.s[-1])
@@ -3937,6 +3924,11 @@ class Line:
         for ii in range(len(tab_insertions)):
             s_ins_start = tab_insertions['s_start', ii]
             s_ins_end = tab_insertions['s_end', ii]
+
+            if s_ins_end - s_ins_start <= s_tol:
+                # A zero-length interval cannot contain anything
+                continue
+
             entry_is_inside = ((tt_after_cut.s_start >= s_ins_start - s_tol)
                             & (tt_after_cut.s_start <= s_ins_end - s_tol))
             exit_is_inside = ((tt_after_cut.s_end >= s_ins_start + s_tol)
@@ -3944,8 +3936,8 @@ class Line:
             thin_at_entry = ((tt_after_cut.s_start >= s_ins_start - s_tol)
                             & (tt_after_cut.s_end <= s_ins_start + s_tol))
             thin_at_exit = ((tt_after_cut.s_start >= s_ins_end - s_tol)
-                        & (tt_after_cut.s_end <= s_ins_end + s_tol))
-            remove = (entry_is_inside | exit_is_inside) & (~thin_at_entry) & (~thin_at_exit)
+                            & (tt_after_cut.s_end <= s_ins_end + s_tol))
+            remove = entry_is_inside & exit_is_inside & ~(thin_at_entry | thin_at_exit)
             idx_remove.extend(list(np.where(remove)[0]))
 
         mask_keep = np.ones(len(tt_after_cut), dtype=bool)
@@ -3961,15 +3953,31 @@ class Line:
 
         # Sort elements
         tab_sorted = _sort_places(tab_unsorted_with_insertions,
-                                  allow_non_existent_from=True # If from_ is removed s only is conisiderer
+                                  allow_non_existent_from=True # If from_ is removed s only is considered
                                                                # (right order comes form previous sorting,
                                                                # (done before removing elements)
         )
-        element_names = _generate_element_names_with_drifts(self.env, tab_sorted, s_tol=s_tol)
+
+        # Sanity check: no overlaps or gaps should be present after the insertion
+        ds_upstream = tab_sorted['ds_upstream']
+        if np.any(np.abs(ds_upstream) > s_tol):
+            # Only identify the culprit on the error path
+            ii = int(np.argmax(np.abs(ds_upstream) > s_tol))
+            gap = ds_upstream[ii]
+            if gap < 0:
+                raise ValueError(
+                    f'Element {tab_sorted.env_name[ii]!r} (at s={tab_sorted["s_start", ii]}) '
+                    f'overlaps the preceding element by {abs(gap)} m after the insertion.'
+                )
+            else:
+                raise RuntimeError(
+                    'A gap is present after the insertion. This is likely a bug: '
+                    'please report it.'
+                )
 
         # Update line
         self.element_names.clear()
-        self.element_names.extend(element_names)
+        self.element_names.extend(tab_sorted.env_name)
 
     @doc_group("Line Editing")
     def remove(self, name, s_tol=1e-10):
