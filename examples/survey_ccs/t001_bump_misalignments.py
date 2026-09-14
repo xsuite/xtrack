@@ -46,22 +46,17 @@ df.rename(columns={'El�ment': 'Element'}, inplace=True)
 
 # Each row of the report is a *point*, not an element: the name ends in `.E`
 # (entrée, the element start) or `.S` (sortie, the element end). Collect the
-# requested displacement of each point, plus the roll, per element.
+# requested displacement and roll of each point under its own name; the two
+# points of an element are brought together in the loop below.
 requests = {}
 for _, row in df.iterrows():
     name, point = row['Element'].rsplit('.', 1)
     assert name == row['Nom Layout']
     assert point in ('E', 'S')
-
-    request = requests.setdefault(name, {})
-    request[point] = np.array([report_value(row, cc) for cc in RST_COLUMNS])
-
-    # The roll is stored redundantly on both points; check the two agree.
-    roll = report_value(row, ROLL_COLUMN)
-    assert request.setdefault('roll', roll) == roll
-    request['roll'] = roll
-
-element_names = sorted(requests)
+    requests[row['Element']] = (
+        np.array([report_value(row, cc) for cc in RST_COLUMNS]),
+        report_value(row, ROLL_COLUMN),
+    )
 
 # --------------------------------------------------------------- load lattice
 
@@ -70,19 +65,28 @@ line = env['h4']
 
 # ------------------------------------------- convert, one element at a time
 
+# Walk the lattice and pick out the elements that carry a bump request, so
+# that the results come out in machine order.
 results = []
-for name in element_names:
-    request = requests[name]
-    roll = request['roll']
-    displ_start = request['E']
+for element_name in line.get_table().name:
+    name = element_name.upper()
+    if f'{name}.E' not in requests:
+        continue
+
+    displ_start, roll = requests[f'{name}.E']
 
     # The thin instruments (XSCI, XDWC) are reported on their entrance point
     # only. One point cannot define a rotation, so the request is a rigid
     # translation: the exit moves with the entrance.
-    single_point = 'S' not in request
-    displ_end = displ_start if single_point else request['S']
+    single_point = f'{name}.S' not in requests
+    if single_point:
+        displ_end = displ_start
+    else:
+        displ_end, roll_exit = requests[f'{name}.S']
+        # The roll is stored redundantly on both points; check the two agree.
+        assert roll_exit == roll
 
-    element = line[name.lower()]
+    element = line[element_name]
 
     # Chord length: the RBends keep the arc in `length` and the chord in
     # `length_straight`. The elements modelled as drifts (instruments,
@@ -156,6 +160,9 @@ for name in element_names:
         'ds_exit_dropped': ds_exit_dropped,
         'round_trip_error': round_trip_error,
     })
+
+# Every element named in the report must have been found in the lattice.
+assert len(results) == len({nn.rsplit('.', 1)[0] for nn in requests})
 
 out = pd.DataFrame(results).set_index('name')
 
