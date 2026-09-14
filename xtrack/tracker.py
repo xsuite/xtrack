@@ -718,13 +718,18 @@ class Tracker:
                     kernel_element_classes=kernel_info['tracker_element_classes'],
                     particle_data_class=particle_data_class,
                     include_auxiliary_kernels=include_auxiliary_kernels,
-                )['track_line']
+                )
+                if self.config.XTRACK_TPSA_TRACK:
+                    kernel_description.update(
+                        self._tpsa_element_kernel_descriptions(
+                            kernel_info['tracker_element_classes']))
                 kernels = self._context.kernels_from_file(
                     module_name=kernel_info['module_name'],
                     containing_dir=PREBUILT_KERNELS_LOCATION,
-                    kernel_descriptions={'track_line': kernel_description},
+                    kernel_descriptions=kernel_description,
                     preload_libraries=preload_libraries,
                 )
+                self._context.kernels.update(kernels)
                 return kernels['track_line']
 
         kernel_info = self._compile_kernel_from_classes(
@@ -770,7 +775,10 @@ class Tracker:
                 all_classes.append(extra_class)
 
         extra_kernels = {}
-        if not tpsa_track:
+        if tpsa_track:
+            extra_kernels.update(cls._tpsa_element_kernel_descriptions(
+                kernel_element_classes))
+        else:
             for element_class in all_classes:
                 extra_kernels.update(element_class._kernels)
 
@@ -1122,6 +1130,16 @@ class Tracker:
             'tracker_element_classes': kernel_element_classes,
             'all_classes': all_classes,
         }
+
+    @staticmethod
+    def _tpsa_element_kernel_descriptions(element_classes):
+        descriptions = {}
+        for element_class in element_classes:
+            dressing_class = getattr(element_class, '_DressingClass', element_class)
+            description = dressing_class._tpsa_track_kernel_description()
+            if description is not None:
+                descriptions[description.c_name] = description
+        return descriptions
 
     @staticmethod
     def get_kernel_descriptions(

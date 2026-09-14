@@ -273,6 +273,7 @@ def test_tpsa_multiturn_track_matches_scalar_const_part():
     )
 
 
+@allow_kernel_compilation
 def test_tpsa_local_particle_freezing_and_turn_state():
     line = xt.Line(elements=[xt.Drift(length=1.0)])
     line.particle_ref = xt.Particles(p0c=7e12, mass0=xt.PROTON_MASS_EV)
@@ -289,12 +290,13 @@ def test_tpsa_local_particle_freezing_and_turn_state():
 
 def test_tpsa_reference_energy_change_matches_scalar():
     delta_p0c = 1e9
-    line_scalar = xt.Line(elements=[xt.ReferenceEnergyIncrease(Delta_p0c=delta_p0c)])
+    p0c = P0C + delta_p0c
+    line_scalar = xt.Line(elements=[xt.ReferenceEnergyChange(p0c=p0c)])
     part = _particle()
     line_scalar.track(part)
 
-    line_tpsa = xt.Line(elements=[xt.ReferenceEnergyIncrease(Delta_p0c=delta_p0c)])
-    line_tpsa.build_tracker(use_prebuilt_kernels=False)
+    line_tpsa = xt.Line(elements=[xt.ReferenceEnergyChange(p0c=p0c)])
+    line_tpsa.build_tracker()
     m = _map()
     line_tpsa.track(m)
 
@@ -381,7 +383,7 @@ def test_build_tracker_preserves_tpsa_enabled_elements_moved_to_common_buffer():
     line.particle_ref = xt.Particles(p0c=7e12, mass0=xt.PROTON_MASS_EV)
 
     assert line._element_dict["q1"]._buffer is not line._element_dict["q2"]._buffer
-    line.build_tracker(compile=False, use_prebuilt_kernels=False)
+    line.build_tracker(compile=False)
 
     q1_after = line._element_dict["q1"]
     q2_after = line._element_dict["q2"]
@@ -401,7 +403,7 @@ def test_build_tracker_preserves_tpsa_enabled_elements_moved_to_common_buffer():
         element_names=["q1", "q2"],
     )
     scalar_line.particle_ref = xt.Particles(p0c=7e12, mass0=xt.PROTON_MASS_EV)
-    scalar_line.build_tracker(use_prebuilt_kernels=False)
+    scalar_line.build_tracker()
 
     p_ref = xt.Particles(
         x=1e-4, px=2e-5, y=0.0, py=0.0, zeta=0.0, delta=0.0,

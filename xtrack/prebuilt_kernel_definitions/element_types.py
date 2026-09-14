@@ -122,6 +122,8 @@ TPSA_SUPPORTED_ELEMENTS = [
     Drift,
     DriftExact,
     Marker,
+    ReferenceEnergyIncrease,
+    ReferenceEnergyChange,
     Multipole,
     Bend,
     RBend,

@@ -222,10 +222,14 @@ def test_tpsa_prebuild_kernel(mocker, tmp_path, temp_context_default_func):
     line.build_tracker(_context=xo.ContextCpu(), compile=False)
 
     cffi_compile = mocker.patch.object(cffi.FFI, 'compile')
+    standalone_element = xt.Quadrupole(length=1.0, k1=0.2, _context=xo.ContextCpu())
+    standalone_element.track(ParticlesTpsa(order=1, p0c=1e9))
+
     particles = ParticlesTpsa(order=1, p0c=1e9)
     line.track(particles)
 
     np.testing.assert_allclose(particles.const_part, 0, atol=1e-15)
+    line['e2'].track(ParticlesTpsa(order=1, p0c=1e9))
     cffi_compile.assert_not_called()
 
 

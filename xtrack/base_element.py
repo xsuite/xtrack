@@ -651,22 +651,38 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
 
     def compile_tpsa_kernels(self, only_if_needed=True):
         from madng_tpsa.paths import core_library
-        from xtrack.tpsa.particles import TpsaParticleData
 
         context = self._buffer.context
         kernel_name = self._track_kernel_name_tpsa
         if only_if_needed and kernel_name in context.kernels:
             return
 
-        kernel = xo.Kernel(
-            c_name=kernel_name,
-            args=[
-                xo.Arg(self.__class__._XoStruct, name='el'),
-                xo.Arg(TpsaParticleData, name='particles'),
-                xo.Arg(xo.Int64, name='flag_increment_at_element'),
-                xo.Arg(xo.Int8, pointer=True, name="io_buffer"),
-            ],
-        )
+        kernel = type(self)._tpsa_track_kernel_description()
+        if context.allow_prebuilt_kernels and not xo.settings.force_kernel_compilation:
+            try:
+                from xsuite import PREBUILT_KERNELS_LOCATION, get_suitable_kernel
+                from xsuite.kernel_definitions import BASE_CONFIG
+            except ImportError:
+                kernel_info = None
+            else:
+                kernel_info = get_suitable_kernel(
+                    config={**BASE_CONFIG, "XTRACK_TPSA_TRACK": True},
+                    tracker_element_classes=[self._XoStruct],
+                    classes=(),
+                    context=context,
+                )
+            if kernel_info:
+                kernels = context.kernels_from_file(
+                    module_name=kernel_info["module_name"],
+                    containing_dir=PREBUILT_KERNELS_LOCATION,
+                    kernel_descriptions={kernel_name: kernel},
+                    preload_libraries=(core_library(),),
+                )
+                context.kernels.update(kernels)
+
+        if only_if_needed and kernel_name in context.kernels:
+            return
+
         kernels = context.build_kernels(
             sources=[],
             kernel_descriptions={kernel_name: kernel},
@@ -682,6 +698,23 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
             compiler_language="c++",
         )
         context.kernels.update(kernels)
+
+    @classmethod
+    def _tpsa_track_kernel_description(cls):
+        from xtrack.tpsa.particles import TpsaParticleData
+
+        kernel_name = cls._track_kernel_name_tpsa
+        if kernel_name is None:
+            return None
+        return xo.Kernel(
+            c_name=kernel_name,
+            args=[
+                xo.Arg(cls._XoStruct, name='el'),
+                xo.Arg(TpsaParticleData, name='particles'),
+                xo.Arg(xo.Int64, name='flag_increment_at_element'),
+                xo.Arg(xo.Int8, pointer=True, name="io_buffer"),
+            ],
+        )
 
     def track(self, particles=None, increment_at_element=False):
         if not self.allow_track:
