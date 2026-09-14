@@ -5,6 +5,7 @@ from .slice_base import _SliceBase, COMMON_SLICE_XO_FIELDS
 from .bend import Bend
 from .cavity import Cavity
 from .crab_cavity import CrabCavity
+from .device import Device
 from .multipole import Multipole
 from .octupole import Octupole
 from .quadrupole import Quadrupole
@@ -116,3 +117,22 @@ class ThickSliceSolenoid(_ThickSliceElementBase, BeamElement):
     _extra_c_sources = [
         '#include "xtrack/beam_elements/elements_src/thick_slice_solenoid.h"'
     ]
+
+class ThickSliceDevice(_ThickSliceElementBase, BeamElement):
+
+    # A device has no strengths to inherit, but it does inherit the parent's
+    # misalignment through `rot_and_shift_from_parent`, which is why this is
+    # not a `_DriftSliceElementBase`: that one switches the transformations off
+    # and would silently drop the misalignment of a sliced device.
+    _inherit_strengths = False
+
+    _xofields = {'_parent': xo.Ref(Device), **COMMON_SLICE_XO_FIELDS}
+
+    _extra_c_sources = [
+        '#include "xtrack/beam_elements/elements_src/thick_slice_device.h"'
+    ]
+
+    def get_equivalent_element(self):
+        return Device(length=self._parent.length * self.weight,
+                      model=self._parent.model,
+                      _buffer=self._buffer)

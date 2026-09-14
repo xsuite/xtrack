@@ -32,6 +32,7 @@ from .reference_energy_increase import ReferenceEnergyIncrease
 from .reference_energy_change import ReferenceEnergyChange
 from .marker import Marker
 from .drift import Drift
+from .device import Device
 from .drift_exact import DriftExact
 from .cavity import Cavity
 from .crab_cavity import CrabCavity
@@ -94,7 +95,8 @@ from .slice_elements_edge import (
                              ThinSliceOctupoleEntry, ThinSliceOctupoleExit,
                              ThinSliceUniformSolenoidEntry,
                              ThinSliceUniformSolenoidExit)
-from .slice_elements_thick import (ThickSliceBend, ThickSliceRBend,
+from .slice_elements_thick import (ThickSliceDevice,
+                                   ThickSliceBend, ThickSliceRBend,
                                    ThickSliceQuadrupole, ThickSliceSextupole,
                                    ThickSliceOctupole, ThickSliceUniformSolenoid,
                                    ThickSliceCavity, ThickSliceCrabCavity,
