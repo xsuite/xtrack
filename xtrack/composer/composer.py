@@ -841,7 +841,7 @@ def _generate_element_names_with_drifts(env, tt_sorted, length=None, s_tol=1e-6)
     if not len(tt_sorted):
         if length is not None and length > s_tol:
             names_with_drifts.append(env._get_drift(length))
-        return list(map(str, names_with_drifts))
+        return [str(nn) for nn in names_with_drifts]
 
     for index, name in enumerate(tt_sorted.env_name):
         gap = tt_sorted['ds_upstream', index]
@@ -863,7 +863,8 @@ def _generate_element_names_with_drifts(env, tt_sorted, length=None, s_tol=1e-6)
             )
         if line_length < length - s_tol:
             names_with_drifts.append(env._get_drift(length - line_length))
-    return list(map(str, names_with_drifts))
+
+    return [str(nn) for nn in names_with_drifts]
 
 
 def _validate_placement_geometry(
