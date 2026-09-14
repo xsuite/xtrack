@@ -177,16 +177,16 @@ for elem_name in elements_to_process:
          sv0_nj['X_ref_end', elem_name]],
         '+--', color='orange')
 
-    su.plot_exz(
+    su.plot_exs(
         sv['E_elem_start', elem_name], sv['XYZ_elem_start', elem_name],
         length=0.5, color='g')
-    su.plot_exz(
+    su.plot_exs(
         sv['E_elem_end', elem_name], sv['XYZ_elem_end', elem_name],
         length=0.5, color='g')
-    su.plot_exz(
+    su.plot_exs(
         sv0_nj['E_ref_start', elem_name],
         sv0_nj['XYZ_ref_start', elem_name], length=0.5, color='orange')
-    su.plot_exz(
+    su.plot_exs(
         sv0_nj['E_ref_end', elem_name],
         sv0_nj['XYZ_ref_end', elem_name], length=0.5, color='orange')
 

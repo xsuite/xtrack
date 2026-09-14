@@ -199,7 +199,7 @@ def test_misalignment_from_rst_offsets_rejects_degenerate_chords():
         )
 
 
-@pytest.mark.parametrize('plot_function', [su.plot_exz, su.plot_exy])
+@pytest.mark.parametrize('plot_function', [su.plot_exs, su.plot_exy])
 def test_survey_frame_plot_helpers(plot_function):
     plt = pytest.importorskip('matplotlib.pyplot')
 
