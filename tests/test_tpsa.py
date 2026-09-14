@@ -83,7 +83,7 @@ def test_tpsa_tracking_error_marks_particle_lost():
             void IllegalTpsaOperation_track_local_particle(
                     IllegalTpsaOperationData el, LocalParticle* part0) {
                 START_PER_PARTICLE_BLOCK(part0, part)
-                    xt_num_t zero = 0.0;
+                    xt_float_or_tpsa zero = 0.0;
                     LocalParticle_set_x(part, sqrt(zero));
                 END_PER_PARTICLE_BLOCK;
             }
@@ -101,18 +101,18 @@ def test_tpsa_tracking_error_marks_particle_lost():
 
 
 @allow_kernel_compilation
-def test_xt_num_t_captures_madng_expression_temporary():
-    class CheckXtNumTTemporaryCapture(xt.BeamElement):
+def test_xt_float_or_tpsa_captures_madng_expression_temporary():
+    class CheckXtFloatOrTpsaTemporaryCapture(xt.BeamElement):
         _extra_c_sources = [r"""
             #include "xtrack/headers/track.h"
 
             GPUFUN
-            void CheckXtNumTTemporaryCapture_track_local_particle(
-                    CheckXtNumTTemporaryCaptureData el, LocalParticle* part0) {
+            void CheckXtFloatOrTpsaTemporaryCapture_track_local_particle(
+                    CheckXtFloatOrTpsaTemporaryCaptureData el, LocalParticle* part0) {
                 START_PER_PARTICLE_BLOCK(part0, part)
-                    xt_num_t source = LocalParticle_get_x(part);
+                    xt_float_or_tpsa source = LocalParticle_get_x(part);
                     auto expression = source + source;
-                    xt_num_t result = expression;
+                    xt_float_or_tpsa result = expression;
                     if (expression.ptr() != nullptr || result[0] != 2.0 * source[0]) {
                         LocalParticle_set_state(part, -1);
                     }
@@ -120,7 +120,7 @@ def test_xt_num_t_captures_madng_expression_temporary():
             }
         """]
 
-    line = xt.Line(elements=[CheckXtNumTTemporaryCapture()])
+    line = xt.Line(elements=[CheckXtFloatOrTpsaTemporaryCapture()])
     line.particle_ref = xt.Particles(p0c=P0C, mass0=MASS0)
     line.build_tracker(compile=False)
     particles = _map(order=3)

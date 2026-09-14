@@ -651,6 +651,7 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
 
     def compile_tpsa_kernels(self, only_if_needed=True):
         from madng_tpsa.paths import core_library
+        from xtrack.tpsa.particles import TpsaParticleData
 
         context = self._buffer.context
         kernel_name = self._track_kernel_name_tpsa
