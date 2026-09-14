@@ -11,20 +11,22 @@ from xtrack._temp import survey_utils as su
 #
 # The report gives, for each element, the requested displacement of its
 # entrance (`.E`) and exit (`.S`) points in the element's own RST frame, plus a
-# roll about the chord. `su.misalignment_from_rst_offsets` wants the *absolute*
-# RST positions of the two end points, both measured from the nominal entrance:
-# a nominal element runs from (0, 0, 0) to (0, L_chord, 0) in that frame,
-# independently of its tilt and bending angle (verified at the end of this
-# script).
+# roll about the chord. Together with the nominal chord length, that is exactly
+# what `su.misalignment_from_rst_displacements` takes.
 #
-# The two end-point displacements plus the roll are seven numbers, while a rigid
-# body has only six degrees of freedom, so the request is over-determined: in
-# general no rigid motion puts both end points exactly where asked. The element
-# is kept rigid here, which means its chord length is preserved. The transverse
-# (R, T) part of the requested exit displacement fixes the chord direction, and
-# the exit longitudinal (S) coordinate then follows from the fixed length, so
-# the requested exit S displacement is discarded. Its entrance counterpart is
-# kept: that one is the `ds` shift of the whole element.
+# The two displacements plus the roll are seven numbers, while a rigid body has
+# only six degrees of freedom, so the request is over-determined: in general no
+# rigid motion puts both end points exactly where asked. The element is kept
+# rigid, which means its chord length is preserved, so the requested exit
+# longitudinal (S) displacement is discarded -- for a rigid element it follows
+# from the other two rather than being free. The entrance counterpart is kept:
+# that one is the `ds` shift of the whole element. This script reports, element
+# by element, how much of the request that drops.
+#
+# The script is in three parts: the computation, then the checks that verify
+# it, then the report. The computation hands over `out`, a table with one row
+# per element, and `rst_offsets`, the RST end-point positions of each displaced
+# element.
 
 # RST component order matches survey_utils: E_rst = column_stack((er, es, et)).
 RST_COLUMNS = ['Radial (m)', 'Longitudinal (m)', 'Vertical (m)']
@@ -36,6 +38,10 @@ def report_value(row, column):
     value = row[column]
     return 0. if pd.isna(value) else float(value)
 
+
+# #############################################################################
+# Part 1 - computation
+# #############################################################################
 
 # ------------------------------------------------------- read the bump report
 
@@ -50,9 +56,6 @@ df.rename(columns={'El�ment': 'Element'}, inplace=True)
 # points of an element are brought together in the loop below.
 requests = {}
 for _, row in df.iterrows():
-    name, point = row['Element'].rsplit('.', 1)
-    assert name == row['Nom Layout']
-    assert point in ('E', 'S')
     requests[row['Element']] = (
         np.array([report_value(row, cc) for cc in RST_COLUMNS]),
         report_value(row, ROLL_COLUMN),
@@ -68,6 +71,7 @@ line = env['h4']
 # Walk the lattice and pick out the elements that carry a bump request, so
 # that the results come out in machine order.
 results = []
+rst_offsets = {}
 for element_name in line.get_table().name:
     name = element_name.upper()
     if f'{name}.E' not in requests:
@@ -79,12 +83,7 @@ for element_name in line.get_table().name:
     # only. One point cannot define a rotation, so the request is a rigid
     # translation: the exit moves with the entrance.
     single_point = f'{name}.S' not in requests
-    if single_point:
-        displ_end = displ_start
-    else:
-        displ_end, roll_exit = requests[f'{name}.S']
-        # The roll is stored redundantly on both points; check the two agree.
-        assert roll_exit == roll
+    displ_end = displ_start if single_point else requests[f'{name}.S'][0]
 
     element = line[element_name]
 
@@ -95,49 +94,17 @@ for element_name in line.get_table().name:
     tilt = getattr(element, 'rot_s_rad', 0.) or 0.
     angle = getattr(element, 'angle', 0.) or 0.
 
-    # Chord of the displaced element. Its R and T components are set by the
-    # requested end-point displacements (the nominal end points both have
-    # R = T = 0), while its S component is the one that keeps the chord length
-    # equal to the nominal one, i.e. that keeps the element rigid.
-    chord_r = displ_end[0] - displ_start[0]
-    chord_t = displ_end[2] - displ_start[2]
-    transverse_sq = chord_r**2 + chord_t**2
-    assert transverse_sq < length**2, \
-        f'{name}: transverse bump larger than the element chord'
-    chord_s = np.sqrt(length**2 - transverse_sq)
+    mis = su.misalignment_from_rst_displacements(
+        displ_start, displ_end, length, bgamma=roll, tilt=tilt, angle=angle)
 
-    # Nominal entrance at (0, 0, 0), nominal exit at (0, length, 0).
-    offset_start_rst = displ_start
-    offset_end_rst = displ_start + np.array([chord_r, chord_s, chord_t])
+    # Chord that the rigid motion gives the element, to compare the
+    # longitudinal exit displacement it produces with the requested one that
+    # had to be dropped. The nominal element runs from (0, 0, 0) to
+    # (0, length, 0) in its own RST frame.
+    chord_rst = su.rst_rigid_chord(displ_start, displ_end, length)
+    rst_offsets[name] = (displ_start, displ_start + chord_rst)
 
-    mis = su.misalignment_from_rst_offsets(
-        offset_start_rst, offset_end_rst, bgamma=roll, tilt=tilt, angle=angle)
-
-    # Longitudinal exit displacement that the rigid motion produces, against
-    # the one that was requested and had to be dropped.
-    ds_exit_rigid = offset_end_rst[1] - length
-    ds_exit_dropped = displ_end[1] - ds_exit_rigid
-
-    # Push the misalignment back through the forward transformation, at the
-    # nominal chord length, and check the RST end points are recovered. A
-    # stand-in object is used so that the check also covers the elements
-    # modelled as drifts, which have no misalignment attributes, and so that
-    # the loaded line is left untouched.
-    probe = SimpleNamespace(
-        angle=angle,
-        rot_s_rad=tilt,
-        rot_y_rad=mis.dtheta,
-        rot_x_rad=mis.dphi,
-        rot_s_rad_no_frame=mis.dpsi - tilt,
-        shift_x=mis.shift_x,
-        shift_y=mis.shift_y,
-        shift_s=mis.shift_s,
-    )
-    back_start, back_end = su.rst_start_end_offsets_from_parameters(
-        probe, length)
-    round_trip_error = max(np.max(np.abs(back_start - offset_start_rst)),
-                           np.max(np.abs(back_end - offset_end_rst)))
-    assert round_trip_error < 1e-12, f'{name}: round trip failed'
+    ds_exit_rigid = displ_start[1] + chord_rst[1] - length
 
     results.append({
         'name': name,
@@ -157,16 +124,72 @@ for element_name in line.get_table().name:
         'single_point': single_point,
         'ds_exit_requested': displ_end[1],
         'ds_exit_rigid': ds_exit_rigid,
-        'ds_exit_dropped': ds_exit_dropped,
-        'round_trip_error': round_trip_error,
+        'ds_exit_dropped': displ_end[1] - ds_exit_rigid,
     })
-
-# Every element named in the report must have been found in the lattice.
-assert len(results) == len({nn.rsplit('.', 1)[0] for nn in requests})
 
 out = pd.DataFrame(results).set_index('name')
 
-# ------------------------------------------------------- convention checks
+# #############################################################################
+# Part 2 - checks
+# #############################################################################
+
+print('checks:')
+
+# The element name and point suffix parsed out of the `Elément` column must
+# agree with the `Nom Layout` column, and every point must be an end point.
+for _, row in df.iterrows():
+    name, point = row['Element'].rsplit('.', 1)
+    assert name == row['Nom Layout']
+    assert point in ('E', 'S')
+print(f'  {len(df)} report points, names consistent with Nom Layout')
+
+# The roll is stored redundantly on both points of an element.
+for point_name, (_, roll) in requests.items():
+    name, point = point_name.rsplit('.', 1)
+    if point == 'S':
+        assert roll == requests[f'{name}.E'][1]
+print('  roll consistent on both points of every element')
+
+# Walking the lattice skips whatever carries no request, so a report element
+# missing from the lattice would go unnoticed.
+assert len(out) == len({nn.rsplit('.', 1)[0] for nn in requests})
+print(f'  all {len(out)} report elements found in the lattice')
+
+# The element must come out rigid: the chord of the displaced element has to
+# keep its nominal length.
+length_error = np.array([
+    np.linalg.norm(offset_end - offset_start) - out.loc[name, 'length_chord']
+    for name, (offset_start, offset_end) in rst_offsets.items()])
+assert np.abs(length_error).max() < 1e-12
+print('  chord length preserved: max error = '
+      f'{np.abs(length_error).max():.2e} m')
+
+# Push each misalignment back through the forward transformation, at the
+# nominal chord length, and check the RST end points are recovered. A stand-in
+# object is used so that the check also covers the elements modelled as drifts,
+# which have no misalignment attributes, and so that the line is untouched.
+round_trip_error = {}
+for name, (offset_start, offset_end) in rst_offsets.items():
+    row = out.loc[name]
+    probe = SimpleNamespace(
+        angle=row['angle'],
+        rot_s_rad=row['tilt'],
+        rot_y_rad=row['dtheta'],
+        rot_x_rad=row['dphi'],
+        rot_s_rad_no_frame=row['dpsi_no_tilt'],
+        shift_x=row['dx'],
+        shift_y=row['dy'],
+        shift_s=row['ds'],
+    )
+    back_start, back_end = su.rst_start_end_offsets_from_parameters(
+        probe, row['length_chord'])
+    round_trip_error[name] = max(np.max(np.abs(back_start - offset_start)),
+                                 np.max(np.abs(back_end - offset_end)))
+
+round_trip_error = pd.Series(round_trip_error)
+assert round_trip_error.max() < 1e-12
+print(f'  round trip over {len(out)} elements: max error = '
+      f'{round_trip_error.max():.2e} m')
 
 # Closed-form checks of the RST -> MAD-X mapping, on a straight untilted
 # element of unit chord: R = -x, S = +s, T = +y, and the SU roll is minus the
@@ -174,10 +197,8 @@ out = pd.DataFrame(results).set_index('name')
 # so a non-zero design tilt rotates R and T into dx and dy (as seen e.g. on the
 # vertical benders MBNV, which have tilt = pi/2).
 def check(displ_e, displ_s, bgamma=0.):
-    return su.misalignment_from_rst_offsets(
-        np.array(displ_e, dtype=float),
-        np.array([0., 1., 0.]) + np.array(displ_s, dtype=float),
-        bgamma=bgamma)
+    return su.misalignment_from_rst_displacements(
+        displ_e, displ_s, length=1., bgamma=bgamma)
 
 
 dd = 1e-3
@@ -190,18 +211,18 @@ assert np.allclose([mm.shift_x, mm.shift_y, mm.shift_s], [0, dd, 0])
 mm = check([0, 0, 0], [0, 0, 0], bgamma=dd)         # roll
 assert np.isclose(mm.dpsi, -dd)
 mm = check([dd, 0, 0], [-dd, 0, 0])                 # radial crab
-assert np.isclose(mm.dtheta, np.arctan(2 * dd))
+assert np.isclose(mm.dtheta, np.arctan(2 * dd / np.sqrt(1 - (2 * dd)**2)))
 mm = check([0, 0, dd], [0, 0, -dd])                 # vertical crab
-assert np.isclose(mm.dphi, -np.arctan(2 * dd))
+assert np.isclose(mm.dphi, -np.arctan(2 * dd / np.sqrt(1 - (2 * dd)**2)))
+print('  RST -> MAD-X conventions: 6 closed-form cases')
 
-# ---------------------------------------------------------------------- report
-
-print(f'round trip: max error over {len(out)} elements = '
-      f'{out["round_trip_error"].max():.2e} m')
+# #############################################################################
+# Part 3 - report
+# #############################################################################
 
 misalignment_columns = ['dtheta', 'dphi', 'dpsi_no_tilt', 'dx', 'dy', 'ds']
 moved = ~np.isclose(out[misalignment_columns], 0.).all(axis=1)
-print(f'{moved.sum()} of {len(out)} elements are actually misaligned\n')
+print(f'\n{moved.sum()} of {len(out)} elements are actually misaligned\n')
 
 with pd.option_context('display.width', 200, 'display.max_rows', None):
     print(out.loc[moved, ['element_type', 'length_chord'] +
@@ -224,5 +245,5 @@ for column in misalignment_columns:
     print(f'{column:14s} max|.| = {out[column].abs().max():.6e} {unit}   '
           f'n non-zero = {(~np.isclose(out[column], 0.)).sum()}')
 
-out.drop(columns='round_trip_error').to_csv('bump_misalignments.csv')
+out.to_csv('bump_misalignments.csv')
 print('\nwritten to bump_misalignments.csv')

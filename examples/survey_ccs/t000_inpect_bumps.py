@@ -46,8 +46,9 @@ for total, base in DOFS.items():
     print(f'{total:20s} {df[total].notna().sum():3d} points  ({per_source})')
 
 # Pivot the .E/.S point rows into one row per element, which is the form
-# consumed by su.misalignment_from_rst_offsets: two endpoint offsets plus the
-# roll about the chord (which cannot be inferred from the endpoints).
+# consumed by su.misalignment_from_rst_displacements: the two end-point
+# displacements plus the roll about the chord (which cannot be inferred from
+# the end points).
 piv = {}
 for total in DOFS:
     piv[total] = df.pivot_table(index='layout', columns='point', values=total,
@@ -56,11 +57,12 @@ for total in DOFS:
 elements = piv['Radial (m)'].index
 
 # RST component order follows survey_utils: E_rst = column_stack((er, es, et)),
-# i.e. (radial, longitudinal, transverse).
-offset_start_rst = np.column_stack([piv[kk]['E'].values for kk in
+# i.e. (radial, longitudinal, transverse). These are displacements from the
+# nominal positions, not absolute offsets.
+displ_start_rst = np.column_stack([piv[kk]['E'].values for kk in
                                     ('Radial (m)', 'Longitudinal (m)',
                                      'Vertical (m)')])
-offset_end_rst = np.column_stack([piv[kk]['S'].values for kk in
+displ_end_rst = np.column_stack([piv[kk]['S'].values for kk in
                                   ('Radial (m)', 'Longitudinal (m)',
                                    'Vertical (m)')])
 roll = piv['Roll (rad)']['E'].values
@@ -97,12 +99,12 @@ kinds = comments.str.extract(r'^(Test [^:]+):')[0].value_counts()
 print('\n=== test cases declared in the comments ===')
 print(kinds.to_string())
 
-print('\n=== per-element RST offsets (first 12) ===')
+print('\n=== per-element RST displacements (first 12) ===')
 out = pd.DataFrame({
-    'R_E': offset_start_rst[:, 0], 'S_E': offset_start_rst[:, 1],
-    'T_E': offset_start_rst[:, 2],
-    'R_S': offset_end_rst[:, 0], 'S_S': offset_end_rst[:, 1],
-    'T_S': offset_end_rst[:, 2],
+    'R_E': displ_start_rst[:, 0], 'S_E': displ_start_rst[:, 1],
+    'T_E': displ_start_rst[:, 2],
+    'R_S': displ_end_rst[:, 0], 'S_S': displ_end_rst[:, 1],
+    'T_S': displ_end_rst[:, 2],
     'roll': roll,
 }, index=elements)
 print(out.head(12).to_string())
