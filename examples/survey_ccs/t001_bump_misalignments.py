@@ -27,102 +27,137 @@ from xtrack._temp import survey_utils as su
 # kept: that one is the `ds` shift of the whole element.
 
 # RST component order matches survey_utils: E_rst = column_stack((er, es, et)).
-RST = ['Radial (m)', 'Longitudinal (m)', 'Vertical (m)']
-ROLL = 'Roll (rad)'
+RST_COLUMNS = ['Radial (m)', 'Longitudinal (m)', 'Vertical (m)']
+ROLL_COLUMN = 'Roll (rad)'
 
-# ----------------------------------------------------------------- bump report
+
+def report_value(row, column):
+    """Read one cell; a blank means no bump requested, i.e. zero."""
+    value = row[column]
+    return 0. if pd.isna(value) else float(value)
+
+
+# ------------------------------------------------------- read the bump report
 
 df = pd.read_csv('Bumps_sp_report.csv')
 
 # The accented character in 'Elément' was lost in the csv export
 df.rename(columns={'El�ment': 'Element'}, inplace=True)
 
-df['layout'] = df['Element'].str.rsplit('.', n=1).str[0]
-df['point'] = df['Element'].str.rsplit('.', n=1).str[1]
-assert (df['layout'] == df['Nom Layout']).all()
+# Each row of the report is a *point*, not an element: the name ends in `.E`
+# (entrée, the element start) or `.S` (sortie, the element end). Collect the
+# requested displacement of each point, plus the roll, per element.
+requests = {}
+for _, row in df.iterrows():
+    name, point = row['Element'].rsplit('.', 1)
+    assert name == row['Nom Layout']
+    assert point in ('E', 'S')
 
-piv = {kk: df.pivot_table(index='layout', columns='point', values=kk,
-                          dropna=False).reindex(columns=['E', 'S'])
-       for kk in RST + [ROLL]}
-elements = piv[ROLL].index
+    request = requests.setdefault(name, {})
+    request[point] = np.array([report_value(row, cc) for cc in RST_COLUMNS])
 
-# A blank cell means "no bump requested on this axis", i.e. zero displacement.
-displ_start = np.column_stack([piv[kk]['E'].fillna(0.).values for kk in RST])
-displ_end = np.column_stack([piv[kk]['S'].fillna(0.).values for kk in RST])
+    # The roll is stored redundantly on both points; check the two agree.
+    roll = report_value(row, ROLL_COLUMN)
+    assert request.setdefault('roll', roll) == roll
+    request['roll'] = roll
 
-# The roll is stored redundantly on both points; check the two agree, then use
-# it as the single per-element `bgamma`.
-both = piv[ROLL].notna().all(axis=1)
-assert np.array_equal(piv[ROLL]['E'][both].values, piv[ROLL]['S'][both].values)
-roll = piv[ROLL]['E'].fillna(0.).values
+element_names = sorted(requests)
 
-# The thin instruments (XSCI, XDWC) are reported on their entrance point only.
-# One point cannot define a rotation, so the request is a rigid translation.
-points = df.groupby('layout')['point'].apply(lambda ss: ''.join(sorted(ss)))
-single_point = (points.reindex(elements) == 'E').values
-displ_end[single_point] = displ_start[single_point]
-
-# --------------------------------------------------------------------- lattice
+# --------------------------------------------------------------- load lattice
 
 env = xt.load('survey-h4-post-ls3-cern-coords-v4.seq')
 line = env['h4']
 
-# Chord length, design tilt and bending angle of each element. The elements
-# modelled as drifts (instruments, collimators) carry none of these attributes.
-length = np.array([getattr(line[nn.lower()], 'length_straight', None)
-                   or line[nn.lower()].length for nn in elements])
-tilt = np.array([getattr(line[nn.lower()], 'rot_s_rad', 0.) or 0.
-                 for nn in elements])
-angle = np.array([getattr(line[nn.lower()], 'angle', 0.) or 0.
-                  for nn in elements])
-el_type = [type(line[nn.lower()]._xobject).__name__.replace('Data', '')
-           for nn in elements]
+# ------------------------------------------- convert, one element at a time
 
-# ---------------------------------------------------------------- conversion
+results = []
+for name in element_names:
+    request = requests[name]
+    roll = request['roll']
+    displ_start = request['E']
 
-offset_start_rst = displ_start
+    # The thin instruments (XSCI, XDWC) are reported on their entrance point
+    # only. One point cannot define a rotation, so the request is a rigid
+    # translation: the exit moves with the entrance.
+    single_point = 'S' not in request
+    displ_end = displ_start if single_point else request['S']
 
-# Chord of the displaced element. Its R and T components are set by the
-# requested end-point displacements (the nominal end points have R = T = 0),
-# while its S component is what keeps the chord length equal to the nominal one.
-chord_rst = np.zeros_like(displ_start)
-chord_rst[:, 0] = displ_end[:, 0] - displ_start[:, 0]
-chord_rst[:, 2] = displ_end[:, 2] - displ_start[:, 2]
-transverse_sq = chord_rst[:, 0]**2 + chord_rst[:, 2]**2
-assert (transverse_sq < length**2).all(), \
-    'transverse bump larger than the element chord'
-chord_rst[:, 1] = np.sqrt(length**2 - transverse_sq)
+    element = line[name.lower()]
 
-offset_end_rst = offset_start_rst + chord_rst
+    # Chord length: the RBends keep the arc in `length` and the chord in
+    # `length_straight`. The elements modelled as drifts (instruments,
+    # collimators) carry neither a tilt nor a bending angle.
+    length = getattr(element, 'length_straight', None) or element.length
+    tilt = getattr(element, 'rot_s_rad', 0.) or 0.
+    angle = getattr(element, 'angle', 0.) or 0.
 
-# Longitudinal exit displacement that the rigid motion produces, against the
-# one that was requested and had to be dropped.
-displ_end_s_rigid = offset_end_rst[:, 1] - length
-displ_end_s_dropped = displ_end[:, 1] - displ_end_s_rigid
+    # Chord of the displaced element. Its R and T components are set by the
+    # requested end-point displacements (the nominal end points both have
+    # R = T = 0), while its S component is the one that keeps the chord length
+    # equal to the nominal one, i.e. that keeps the element rigid.
+    chord_r = displ_end[0] - displ_start[0]
+    chord_t = displ_end[2] - displ_start[2]
+    transverse_sq = chord_r**2 + chord_t**2
+    assert transverse_sq < length**2, \
+        f'{name}: transverse bump larger than the element chord'
+    chord_s = np.sqrt(length**2 - transverse_sq)
 
-mis = [su.misalignment_from_rst_offsets(
-           offset_start_rst[ii], offset_end_rst[ii], bgamma=roll[ii],
-           tilt=tilt[ii], angle=angle[ii])
-       for ii in range(len(elements))]
+    # Nominal entrance at (0, 0, 0), nominal exit at (0, length, 0).
+    offset_start_rst = displ_start
+    offset_end_rst = displ_start + np.array([chord_r, chord_s, chord_t])
 
-out = pd.DataFrame({
-    'element_type': el_type,
-    'length_chord': length,
-    'tilt': tilt,
-    'angle': angle,
-    'dtheta': [mm.dtheta for mm in mis],
-    'dphi': [mm.dphi for mm in mis],
-    'dpsi': [mm.dpsi for mm in mis],
-    'dx': [mm.shift_x for mm in mis],
-    'dy': [mm.shift_y for mm in mis],
-    'ds': [mm.shift_s for mm in mis],
-    'single_point': single_point,
-}, index=elements)
-out.index.name = 'name'
+    mis = su.misalignment_from_rst_offsets(
+        offset_start_rst, offset_end_rst, bgamma=roll, tilt=tilt, angle=angle)
 
-# `dpsi` returned by survey_utils includes the design tilt; the bump-induced
-# part alone is what MAD-X would receive on top of the nominal tilt.
-out['dpsi_no_tilt'] = out['dpsi'] - out['tilt']
+    # Longitudinal exit displacement that the rigid motion produces, against
+    # the one that was requested and had to be dropped.
+    ds_exit_rigid = offset_end_rst[1] - length
+    ds_exit_dropped = displ_end[1] - ds_exit_rigid
+
+    # Push the misalignment back through the forward transformation, at the
+    # nominal chord length, and check the RST end points are recovered. A
+    # stand-in object is used so that the check also covers the elements
+    # modelled as drifts, which have no misalignment attributes, and so that
+    # the loaded line is left untouched.
+    probe = SimpleNamespace(
+        angle=angle,
+        rot_s_rad=tilt,
+        rot_y_rad=mis.dtheta,
+        rot_x_rad=mis.dphi,
+        rot_s_rad_no_frame=mis.dpsi - tilt,
+        shift_x=mis.shift_x,
+        shift_y=mis.shift_y,
+        shift_s=mis.shift_s,
+    )
+    back_start, back_end = su.rst_start_end_offsets_from_parameters(
+        probe, length)
+    round_trip_error = max(np.max(np.abs(back_start - offset_start_rst)),
+                           np.max(np.abs(back_end - offset_end_rst)))
+    assert round_trip_error < 1e-12, f'{name}: round trip failed'
+
+    results.append({
+        'name': name,
+        'element_type': type(element._xobject).__name__.replace('Data', ''),
+        'length_chord': length,
+        'tilt': tilt,
+        'angle': angle,
+        'dtheta': mis.dtheta,
+        'dphi': mis.dphi,
+        # `dpsi` from survey_utils includes the design tilt; the bump-induced
+        # part alone is what MAD-X receives on top of the nominal tilt.
+        'dpsi': mis.dpsi,
+        'dpsi_no_tilt': mis.dpsi - tilt,
+        'dx': mis.shift_x,
+        'dy': mis.shift_y,
+        'ds': mis.shift_s,
+        'single_point': single_point,
+        'ds_exit_requested': displ_end[1],
+        'ds_exit_rigid': ds_exit_rigid,
+        'ds_exit_dropped': ds_exit_dropped,
+        'round_trip_error': round_trip_error,
+    })
+
+out = pd.DataFrame(results).set_index('name')
 
 # ------------------------------------------------------- convention checks
 
@@ -131,88 +166,56 @@ out['dpsi_no_tilt'] = out['dpsi'] - out['tilt']
 # MAD-X dpsi. Everything is expressed in the element's own tilted chord frame,
 # so a non-zero design tilt rotates R and T into dx and dy (as seen e.g. on the
 # vertical benders MBNV, which have tilt = pi/2).
-def _check(displ_e, displ_s, bgamma=0.):
+def check(displ_e, displ_s, bgamma=0.):
     return su.misalignment_from_rst_offsets(
         np.array(displ_e, dtype=float),
         np.array([0., 1., 0.]) + np.array(displ_s, dtype=float),
         bgamma=bgamma)
 
+
 dd = 1e-3
-mm = _check([dd, 0, 0], [dd, 0, 0])                  # radial translation
+mm = check([dd, 0, 0], [dd, 0, 0])                  # radial translation
 assert np.allclose([mm.shift_x, mm.shift_y, mm.shift_s], [-dd, 0, 0])
-mm = _check([0, dd, 0], [0, dd, 0])                  # longitudinal translation
+mm = check([0, dd, 0], [0, dd, 0])                  # longitudinal translation
 assert np.allclose([mm.shift_x, mm.shift_y, mm.shift_s], [0, 0, dd])
-mm = _check([0, 0, dd], [0, 0, dd])                  # vertical translation
+mm = check([0, 0, dd], [0, 0, dd])                  # vertical translation
 assert np.allclose([mm.shift_x, mm.shift_y, mm.shift_s], [0, dd, 0])
-mm = _check([0, 0, 0], [0, 0, 0], bgamma=dd)         # roll
+mm = check([0, 0, 0], [0, 0, 0], bgamma=dd)         # roll
 assert np.isclose(mm.dpsi, -dd)
-mm = _check([dd, 0, 0], [-dd, 0, 0])                 # radial crab
+mm = check([dd, 0, 0], [-dd, 0, 0])                 # radial crab
 assert np.isclose(mm.dtheta, np.arctan(2 * dd))
-mm = _check([0, 0, dd], [0, 0, -dd])                 # vertical crab
+mm = check([0, 0, dd], [0, 0, -dd])                 # vertical crab
 assert np.isclose(mm.dphi, -np.arctan(2 * dd))
-
-# ------------------------------------------------------- round-trip validation
-
-# The chord built above is rigid by construction, so the length that
-# `misalignment_from_rst_offsets` infers from it is the nominal one.
-assert np.allclose(np.linalg.norm(offset_end_rst - offset_start_rst, axis=1),
-                   length, rtol=0, atol=1e-12)
-
-# Push the misalignments back through the forward transformation, at the
-# nominal chord length, and check the RST end points are recovered. A stand-in
-# object is used so that the check also covers the elements modelled as drifts,
-# which have no misalignment attributes, and so that the line is left untouched.
-err = np.zeros(len(elements))
-for ii, nn in enumerate(elements):
-    probe = SimpleNamespace(
-        angle=angle[ii],
-        rot_s_rad=tilt[ii],
-        rot_y_rad=mis[ii].dtheta,
-        rot_x_rad=mis[ii].dphi,
-        rot_s_rad_no_frame=mis[ii].dpsi - tilt[ii],
-        shift_x=mis[ii].shift_x,
-        shift_y=mis[ii].shift_y,
-        shift_s=mis[ii].shift_s,
-    )
-    back_start, back_end = su.rst_start_end_offsets_from_parameters(
-        probe, length[ii])
-    err[ii] = max(np.max(np.abs(back_start - offset_start_rst[ii])),
-                  np.max(np.abs(back_end - offset_end_rst[ii])))
-
-print(f'round trip: max error over {len(elements)} elements = {err.max():.2e} m'
-      f'  (worst: {elements[err.argmax()]})')
-assert err.max() < 1e-12
 
 # ---------------------------------------------------------------------- report
 
-moved = ~np.isclose(out[['dtheta', 'dphi', 'dpsi_no_tilt', 'dx', 'dy', 'ds']],
-                    0.).all(axis=1)
+print(f'round trip: max error over {len(out)} elements = '
+      f'{out["round_trip_error"].max():.2e} m')
+
+misalignment_columns = ['dtheta', 'dphi', 'dpsi_no_tilt', 'dx', 'dy', 'ds']
+moved = ~np.isclose(out[misalignment_columns], 0.).all(axis=1)
 print(f'{moved.sum()} of {len(out)} elements are actually misaligned\n')
 
-cols = ['element_type', 'length_chord', 'dtheta', 'dphi', 'dpsi_no_tilt',
-        'dx', 'dy', 'ds']
 with pd.option_context('display.width', 200, 'display.max_rows', None):
-    print(out.loc[moved, cols].to_string(
+    print(out.loc[moved, ['element_type', 'length_chord'] +
+                  misalignment_columns].to_string(
         float_format=lambda vv: f'{vv: .6e}' if abs(vv) > 0 else f'{0.: .6e}'))
 
 print('\n=== requested exit S displacement dropped to keep the element rigid '
       '===')
-out['ds_exit_requested'] = displ_end[:, 1]
-out['ds_exit_rigid'] = displ_end_s_rigid
-out['ds_exit_dropped'] = displ_end_s_dropped
 dropped = out['ds_exit_dropped'].abs() > 1e-6
 print(f'{dropped.sum()} elements differ by more than 1 um '
-      f'(max {out["ds_exit_dropped"].abs().max()*1e3:.3f} mm)')
+      f'(max {out["ds_exit_dropped"].abs().max() * 1e3:.3f} mm)')
 if dropped.any():
     print(out.loc[dropped, ['length_chord', 'ds_exit_requested',
                             'ds_exit_rigid', 'ds_exit_dropped']].sort_values(
         'ds_exit_dropped', key=abs, ascending=False).to_string())
 
 print('\n=== magnitudes ===')
-for cc in ['dtheta', 'dphi', 'dpsi_no_tilt', 'dx', 'dy', 'ds']:
-    unit = 'rad' if cc.startswith(('dt', 'dph', 'dps')) else 'm'
-    print(f'{cc:14s} max|.| = {out[cc].abs().max():.6e} {unit}   '
-          f'n non-zero = {(~np.isclose(out[cc], 0.)).sum()}')
+for column in misalignment_columns:
+    unit = 'm' if column in ('dx', 'dy', 'ds') else 'rad'
+    print(f'{column:14s} max|.| = {out[column].abs().max():.6e} {unit}   '
+          f'n non-zero = {(~np.isclose(out[column], 0.)).sum()}')
 
-out.to_csv('bump_misalignments.csv')
+out.drop(columns='round_trip_error').to_csv('bump_misalignments.csv')
 print('\nwritten to bump_misalignments.csv')
