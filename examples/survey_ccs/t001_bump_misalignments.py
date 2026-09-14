@@ -15,8 +15,16 @@ from xtrack._temp import survey_utils as su
 # RST positions of the two end points, both measured from the nominal entrance:
 # a nominal element runs from (0, 0, 0) to (0, L_chord, 0) in that frame,
 # independently of its tilt and bending angle (verified at the end of this
-# script). So the end-point positions are the nominal ones plus the requested
-# displacements.
+# script).
+#
+# The two end-point displacements plus the roll are seven numbers, while a rigid
+# body has only six degrees of freedom, so the request is over-determined: in
+# general no rigid motion puts both end points exactly where asked. The element
+# is kept rigid here, which means its chord length is preserved. The transverse
+# (R, T) part of the requested exit displacement fixes the chord direction, and
+# the exit longitudinal (S) coordinate then follows from the fixed length, so
+# the requested exit S displacement is discarded. Its entrance counterpart is
+# kept: that one is the `ds` shift of the whole element.
 
 # RST component order matches survey_utils: E_rst = column_stack((er, es, et)).
 RST = ['Radial (m)', 'Longitudinal (m)', 'Vertical (m)']
@@ -72,10 +80,25 @@ el_type = [type(line[nn.lower()]._xobject).__name__.replace('Data', '')
 
 # ---------------------------------------------------------------- conversion
 
-nominal_end = np.column_stack([np.zeros_like(length), length,
-                               np.zeros_like(length)])
 offset_start_rst = displ_start
-offset_end_rst = nominal_end + displ_end
+
+# Chord of the displaced element. Its R and T components are set by the
+# requested end-point displacements (the nominal end points have R = T = 0),
+# while its S component is what keeps the chord length equal to the nominal one.
+chord_rst = np.zeros_like(displ_start)
+chord_rst[:, 0] = displ_end[:, 0] - displ_start[:, 0]
+chord_rst[:, 2] = displ_end[:, 2] - displ_start[:, 2]
+transverse_sq = chord_rst[:, 0]**2 + chord_rst[:, 2]**2
+assert (transverse_sq < length**2).all(), \
+    'transverse bump larger than the element chord'
+chord_rst[:, 1] = np.sqrt(length**2 - transverse_sq)
+
+offset_end_rst = offset_start_rst + chord_rst
+
+# Longitudinal exit displacement that the rigid motion produces, against the
+# one that was requested and had to be dropped.
+displ_end_s_rigid = offset_end_rst[:, 1] - length
+displ_end_s_dropped = displ_end[:, 1] - displ_end_s_rigid
 
 mis = [su.misalignment_from_rst_offsets(
            offset_start_rst[ii], offset_end_rst[ii], bgamma=roll[ii],
@@ -130,19 +153,15 @@ assert np.isclose(mm.dphi, -np.arctan(2 * dd))
 
 # ------------------------------------------------------- round-trip validation
 
-# The two end-point displacements plus the roll are seven numbers, while a
-# rigid body has only six degrees of freedom: the redundant one is the chord
-# length. `misalignment_from_rst_offsets` resolves this by taking the length
-# from the displaced chord, so it honours both requested end points exactly and
-# lets the element stretch. `length_displaced - length_chord` below says how far
-# each request is from a rigid-body motion; it is second order in the bump
-# (~d^2 / 2L) and only matters for the large-amplitude crab tests.
-length_displaced = np.linalg.norm(offset_end_rst - offset_start_rst, axis=1)
+# The chord built above is rigid by construction, so the length that
+# `misalignment_from_rst_offsets` infers from it is the nominal one.
+assert np.allclose(np.linalg.norm(offset_end_rst - offset_start_rst, axis=1),
+                   length, rtol=0, atol=1e-12)
 
-# Push the misalignments back through the forward transformation and check the
-# requested RST end points are recovered. A stand-in object is used so that the
-# check also covers the elements modelled as drifts, which have no misalignment
-# attributes, and so that the loaded line is left untouched.
+# Push the misalignments back through the forward transformation, at the
+# nominal chord length, and check the RST end points are recovered. A stand-in
+# object is used so that the check also covers the elements modelled as drifts,
+# which have no misalignment attributes, and so that the line is left untouched.
 err = np.zeros(len(elements))
 for ii, nn in enumerate(elements):
     probe = SimpleNamespace(
@@ -156,7 +175,7 @@ for ii, nn in enumerate(elements):
         shift_s=mis[ii].shift_s,
     )
     back_start, back_end = su.rst_start_end_offsets_from_parameters(
-        probe, length_displaced[ii])
+        probe, length[ii])
     err[ii] = max(np.max(np.abs(back_start - offset_start_rst[ii])),
                   np.max(np.abs(back_end - offset_end_rst[ii])))
 
@@ -176,14 +195,18 @@ with pd.option_context('display.width', 200, 'display.max_rows', None):
     print(out.loc[moved, cols].to_string(
         float_format=lambda vv: f'{vv: .6e}' if abs(vv) > 0 else f'{0.: .6e}'))
 
-print('\n=== requests that are not rigid-body motions ===')
-out['dlength'] = length_displaced - out['length_chord']
-stretch = out['dlength'].abs() > 1e-6
-print(f'{stretch.sum()} elements need a chord-length change above 1 um '
-      f'(max {out["dlength"].abs().max()*1e3:.3f} mm)')
-if stretch.any():
-    print(out.loc[stretch, ['length_chord', 'dlength']].sort_values(
-        'dlength', key=abs, ascending=False).to_string())
+print('\n=== requested exit S displacement dropped to keep the element rigid '
+      '===')
+out['ds_exit_requested'] = displ_end[:, 1]
+out['ds_exit_rigid'] = displ_end_s_rigid
+out['ds_exit_dropped'] = displ_end_s_dropped
+dropped = out['ds_exit_dropped'].abs() > 1e-6
+print(f'{dropped.sum()} elements differ by more than 1 um '
+      f'(max {out["ds_exit_dropped"].abs().max()*1e3:.3f} mm)')
+if dropped.any():
+    print(out.loc[dropped, ['length_chord', 'ds_exit_requested',
+                            'ds_exit_rigid', 'ds_exit_dropped']].sort_values(
+        'ds_exit_dropped', key=abs, ascending=False).to_string())
 
 print('\n=== magnitudes ===')
 for cc in ['dtheta', 'dphi', 'dpsi_no_tilt', 'dx', 'dy', 'ds']:
