@@ -376,6 +376,7 @@ def test_tracker_missing_xsuite_raises_actionable_error(missing_xsuite):
     )()
     tracker._tracker_data_cache = {None: tracker_data}
     tracker.line = type('Line', (), {'config': {}})()
+    tracker.particles_monitor_class = xt.ParticlesMonitor
     tracker.use_prebuilt_kernels = True
 
     with pytest.raises(ImportError) as err:
@@ -486,6 +487,7 @@ def test_tracker_missing_xsuite_allows_jit_when_class_allows_compilation(
     )()
     tracker._tracker_data_cache = {None: tracker_data}
     tracker.line = type('Line', (), {'config': {}})()
+    tracker.particles_monitor_class = xt.ParticlesMonitor
     tracker.use_prebuilt_kernels = True
     tracker.extra_headers = []
     tracker.track_flags = type('TrackFlags', (), {'c_header_flag_mapping': ''})()
