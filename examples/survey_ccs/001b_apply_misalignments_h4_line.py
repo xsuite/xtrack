@@ -47,8 +47,26 @@ for name in element_names:
     line.element_dict[name] = device
     converted.append(name)
 
+# Starting point
+f0_ccs = xt.CCSFrame(
+    x=669.234140,
+    y=4590.727900,
+    z=2441.574200,
+    theta_gon=7.4198200,
+    phi=-0.000370000,
+    psi=0,
+)
+f0 = xt.Frame.from_ccs(f0_ccs)
+
+
 # Reference (nominal) survey, taken before anything is misaligned.
-survey_nominal = line.survey(include_element_frames=True)
+survey_nominal = line.survey(include_element_frames=True,
+                             X0=f0.X,
+                             Y0=f0.Y,
+                             Z0=f0.Z,
+                             theta0=f0.theta,
+                             phi0=f0.phi,
+                             psi0=f0.psi)
 
 for name, row in zip(element_names, table.to_dict('records')):
     su.Misalignment(
@@ -60,7 +78,13 @@ for name, row in zip(element_names, table.to_dict('records')):
         shift_s=row['ds'],
     ).apply_to_element(line[name])
 
-survey_aligned = line.survey(include_element_frames=True)
+survey_aligned = line.survey(include_element_frames=True,
+                             X0=f0.X,
+                             Y0=f0.Y,
+                             Z0=f0.Z,
+                             theta0=f0.theta,
+                             phi0=f0.phi,
+                             psi0=f0.psi)
 
 # #############################################################################
 # Part 2 - export
