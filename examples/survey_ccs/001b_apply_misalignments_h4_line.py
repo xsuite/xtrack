@@ -99,13 +99,11 @@ line.to_json('h4_misaligned.json')
 print('written to h4_misaligned.json')
 
 su.write_legacy_survey_tfs(
-    'h4_misaligned_survey.tfs',
+    'h4_survey_output.tfs',
     survey=survey_aligned,
     element_names=names_align,
     element_container=env,
 )
-print('written to h4_misaligned_survey.tfs '
-      f'({2 * len(names_align)} points, one per element end)')
 
 # #############################################################################
 # Part 3 - checks
