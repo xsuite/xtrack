@@ -2,8 +2,8 @@
 @ TYPE             %06s "SURVEY"
 @ TITLE            %08s "no-title"
 @ ORIGIN           %17s "5.09.03 Darwin 64"
-@ DATE             %08s "02/09/26"
-@ TIME             %08s "12.10.29"
+@ DATE             %08s "15/09/26"
+@ TIME             %08s "13.47.24"
 * NAME               KEYWORD                                    S                         L                     ANGLE                         X                         Y                         Z                     THETA                       PHI                       PSI                GLOBALTILT                      TILT    SLOT_ID ASSEMBLY_ID                  MECH_SEP                     V_POS
 $ %s                 %s                                       %le                       %le                       %le                       %le                       %le                       %le                       %le                       %le                       %le                       %le                       %le         %d         %d                       %le                       %le
  "DRIFT_0"           "ELEMENT"                          0.000000000               0.000000000               0.000000000            -677.244880000            2441.569850000            4605.861900000              -0.164750327              -0.000358000               0.000000000               0.000000000               0.000000000          0          0               0.000000000               0.000000000

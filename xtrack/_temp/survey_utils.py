@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from datetime import datetime
 
 import numpy as np
 
@@ -10,8 +11,8 @@ _LEGACY_SURVEY_TFS_HEADER = """
 @ TYPE             %06s "SURVEY"
 @ TITLE            %08s "no-title"
 @ ORIGIN           %17s "5.09.03 Darwin 64"
-@ DATE             %08s "02/09/26"
-@ TIME             %08s "12.10.29"
+@ DATE             %08s "{date}"
+@ TIME             %08s "{time}"
 * NAME               KEYWORD                                    S                         L                     ANGLE                         X                         Y                         Z                     THETA                       PHI                       PSI                GLOBALTILT                      TILT    SLOT_ID ASSEMBLY_ID                  MECH_SEP                     V_POS
 $ %s                 %s                                       %le                       %le                       %le                       %le                       %le                       %le                       %le                       %le                       %le                       %le                       %le         %d         %d                       %le                       %le
 """.lstrip()
@@ -360,7 +361,13 @@ def write_legacy_survey_tfs(
 
             lines.append(line)
 
-    output = _LEGACY_SURVEY_TFS_HEADER + '\n'.join(lines)
+    # The %08s field descriptors above fix the widths: MAD-X writes the date
+    # as dd/mm/yy and the time as HH.MM.SS, eight characters each.
+    now = datetime.now()
+    header = _LEGACY_SURVEY_TFS_HEADER.format(
+        date=now.strftime('%d/%m/%y'), time=now.strftime('%H.%M.%S'))
+
+    output = header + '\n'.join(lines)
     with open(file_name, 'w') as fid:
         fid.write(output)
 
