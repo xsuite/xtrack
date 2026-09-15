@@ -28,8 +28,7 @@ from bumps_report import read_bumps_report
 #
 # The script is in three parts: the computation, then the checks that verify
 # it, then the report. The computation hands over `out`, a table with one row
-# per element, and `rst_offsets`, the RST end-point positions of each displaced
-# element.
+# per element; the checks rebuild from it whatever geometry they need.
 
 ENTRY_COLUMNS = ['r_entry', 's_entry', 't_entry']
 EXIT_COLUMNS = ['r_exit', 's_exit', 't_exit']
@@ -50,7 +49,6 @@ line = env['h4']
 # Walk the lattice and pick out the elements that carry a bump request, so
 # that the results come out in machine order.
 results = []
-rst_offsets = {}
 for element_name in line.get_table().name:
     name = element_name.upper()
     if name not in requests.index:
@@ -73,13 +71,9 @@ for element_name in line.get_table().name:
     mis = su.misalignment_from_rst_displacements(
         displ_start, displ_end, length, bgamma=roll, tilt=tilt, angle=angle)
 
-    # Chord that the rigid motion gives the element, to compare the
-    # longitudinal exit displacement it produces with the requested one that
-    # had to be dropped. The nominal element runs from (0, 0, 0) to
-    # (0, length, 0) in its own RST frame.
+    # Longitudinal exit displacement that the rigid motion produces, to
+    # compare with the requested one that had to be dropped.
     chord_rst = su.rst_rigid_chord(displ_start, displ_end, length)
-    rst_offsets[name] = (displ_start, displ_start + chord_rst)
-
     ds_exit_rigid = displ_start[1] + chord_rst[1] - length
 
     # The thin instruments (XSCI, XDWC) are reported on their entrance point
@@ -119,6 +113,18 @@ out = pd.DataFrame(results).set_index('name')
 # #############################################################################
 
 print('checks:')
+
+# RST end-point positions of each displaced element, rebuilt from the table
+# for the geometric checks below. A nominal element runs from (0, 0, 0) to
+# (0, length, 0) in its own RST frame, independently of its tilt and bending
+# angle, so an end point offset is the nominal position plus the rigid chord.
+rst_offsets = {}
+for name, row in out.iterrows():
+    request = requests.loc[name]
+    displ_start = request[ENTRY_COLUMNS].to_numpy(dtype=float)
+    displ_end = request[EXIT_COLUMNS].to_numpy(dtype=float)
+    chord_rst = su.rst_rigid_chord(displ_start, displ_end, row['length_chord'])
+    rst_offsets[name] = (displ_start, displ_start + chord_rst)
 
 # The report itself is checked by `read_bumps_report`: the column totals
 # against their four sources, the names against `Nom Layout`, the roll against
