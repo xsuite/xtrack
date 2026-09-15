@@ -1930,7 +1930,8 @@ class Line:
         Parameters
         ----------
         particles: xpart.Particles or xtrack.tpsa.ParticlesTpsa
-            The particles to track
+            The particles to track. Using ParticlesTpsa to track truncated
+            polynomial expansions through the line is currently *experimental*.
         ele_start: int or str, optional
             The element to start tracking from (inclusive). If an integer is
             provided, it is interpreted as the index of the element in the line.

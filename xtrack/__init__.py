@@ -8,6 +8,7 @@ from xobjects import settings
 from .survey import CCSFrame, Frame, track_frame
 from .particles import (Particles, PROTON_MASS_EV, ELECTRON_MASS_EV,
                         enable_pyheadtail_interface, disable_pyheadtail_interface, masses)
+from .tpsa import ParticlesTpsa
 
 from .base_element import BeamElement, Replica, FloatOrTpsa
 from .beam_elements import *

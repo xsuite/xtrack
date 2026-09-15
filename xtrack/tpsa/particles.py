@@ -120,7 +120,7 @@ class ParticlesTpsa:
                     f"descriptor is order {desc.order}, map asks for {order}"
                 )
         else:
-            desc = madng_tpsa.Descriptor(6, order)
+            desc = madng_tpsa.Descriptor(variables=COORDS, order=order)
         self.coords = [
             desc.var(i + 1, self._ref(c))
             for i, c in enumerate(COORDS)
