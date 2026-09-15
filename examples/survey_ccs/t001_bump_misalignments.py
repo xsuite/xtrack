@@ -59,14 +59,7 @@ for element_name in line.get_table().name:
     request = requests.loc[name]
     roll = request['roll']
     displ_start = request[ENTRY_COLUMNS].to_numpy(dtype=float)
-
     displ_end = request[EXIT_COLUMNS].to_numpy(dtype=float)
-
-    # The thin instruments (XSCI, XDWC) are reported on their entrance point
-    # only; the reader gives their exit the same displacement, which comes out
-    # here as a rigid translation with no rotation about x or y. See
-    # `read_bumps_report` for why that is the reading.
-    single_point = bool(request['single_point'])
 
     element = line[element_name]
 
@@ -89,9 +82,13 @@ for element_name in line.get_table().name:
 
     ds_exit_rigid = displ_start[1] + chord_rst[1] - length
 
-    # What the report asked for at the exit. A single-point element asked for
-    # nothing there, so its exit displacement is the reader's filling-in, not
-    # a request, and nothing can have been dropped.
+    # The thin instruments (XSCI, XDWC) are reported on their entrance point
+    # only; the reader gives their exit the same displacement, which comes out
+    # here as a rigid translation with no rotation about x or y. See
+    # `read_bumps_report` for why that is the reading. That filling-in is not
+    # a request, so there is nothing it could have dropped, and the requested
+    # exit displacement is left empty for those elements.
+    single_point = bool(request['single_point'])
     ds_exit_requested = np.nan if single_point else request['s_exit']
 
     results.append({
