@@ -28,9 +28,6 @@ element_names = [nn.lower() for nn in table.index]
 env = xt.load('survey-h4-post-ls3-cern-coords-v4.seq')
 line = env['h4']
 
-# Reference (nominal) survey, taken before anything is misaligned.
-survey_nominal = line.survey(include_element_frames=True)
-
 # Swap the drift-modelled elements for devices of the same length, keeping
 # their names so that they stay matched to the report.
 converted = []
@@ -38,13 +35,20 @@ for name in element_names:
     element = line[name]
     if not isinstance(element, xt.Drift):
         continue
-    device = xt.Device(length=element.length, model=element.model)
+    device = xt.Device(
+        length=element.length,
+        model=element.model,
+        rot_s_rad=getattr(element, 'rot_s_rad', 0.),
+    )
     # `extra` carries the layout database slot_id, which the legacy survey
     # export writes out, so it has to survive the conversion.
     if hasattr(element, 'extra'):
         device.extra = element.extra
     line.element_dict[name] = device
     converted.append(name)
+
+# Reference (nominal) survey, taken before anything is misaligned.
+survey_nominal = line.survey(include_element_frames=True)
 
 for name, row in zip(element_names, table.to_dict('records')):
     su.Misalignment(
