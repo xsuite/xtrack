@@ -6,13 +6,16 @@ import pandas as pd
 import xtrack as xt
 from xtrack._temp import survey_utils as su
 
+from bumps_report import read_bumps_report
+
 # Convert the SU bump requests (RST displacements of the element end points)
 # into MAD-X misalignments (dtheta, dphi, dpsi, dx, dy, ds).
 #
-# The report gives, for each element, the requested displacement of its
-# entrance (`.E`) and exit (`.S`) points in the element's own RST frame, plus a
-# roll about the chord. Together with the nominal chord length, that is exactly
-# what `su.misalignment_from_rst_displacements` takes.
+# `bumps_report` reads the report, checks it over and gives one row per
+# element: the requested displacement of the entrance and the exit points in
+# the element's own RST frame, plus a roll about the chord. Together with the
+# nominal chord length, that is exactly what
+# `su.misalignment_from_rst_displacements` takes.
 #
 # The two displacements plus the roll are seven numbers, while a rigid body has
 # only six degrees of freedom, so the request is over-determined: in general no
@@ -28,38 +31,14 @@ from xtrack._temp import survey_utils as su
 # per element, and `rst_offsets`, the RST end-point positions of each displaced
 # element.
 
-# RST component order matches survey_utils: E_rst = column_stack((er, es, et)).
-RST_COLUMNS = ['Radial (m)', 'Longitudinal (m)', 'Vertical (m)']
-ROLL_COLUMN = 'Roll (rad)'
-
-
-def report_value(row, column):
-    """Read one cell; a blank means no bump requested, i.e. zero."""
-    value = row[column]
-    return 0. if pd.isna(value) else float(value)
-
+ENTRY_COLUMNS = ['r_entry', 's_entry', 't_entry']
+EXIT_COLUMNS = ['r_exit', 's_exit', 't_exit']
 
 # #############################################################################
 # Part 1 - computation
 # #############################################################################
 
-# ------------------------------------------------------- read the bump report
-
-df = pd.read_csv('Bumps_sp_report.csv')
-
-# The accented character in 'Elément' was lost in the csv export
-df.rename(columns={'El�ment': 'Element'}, inplace=True)
-
-# Each row of the report is a *point*, not an element: the name ends in `.E`
-# (entrée, the element start) or `.S` (sortie, the element end). Collect the
-# requested displacement and roll of each point under its own name; the two
-# points of an element are brought together in the loop below.
-requests = {}
-for _, row in df.iterrows():
-    requests[row['Element']] = (
-        np.array([report_value(row, cc) for cc in RST_COLUMNS]),
-        report_value(row, ROLL_COLUMN),
-    )
+requests = read_bumps_report('Bumps_sp_report.csv')
 
 # --------------------------------------------------------------- load lattice
 
@@ -74,16 +53,20 @@ results = []
 rst_offsets = {}
 for element_name in line.get_table().name:
     name = element_name.upper()
-    if f'{name}.E' not in requests:
+    if name not in requests.index:
         continue
 
-    displ_start, roll = requests[f'{name}.E']
+    request = requests.loc[name]
+    roll = request['roll']
+    displ_start = request[ENTRY_COLUMNS].to_numpy(dtype=float)
+
+    displ_end = request[EXIT_COLUMNS].to_numpy(dtype=float)
 
     # The thin instruments (XSCI, XDWC) are reported on their entrance point
-    # only. One point cannot define a rotation, so the request is a rigid
-    # translation: the exit moves with the entrance.
-    single_point = f'{name}.S' not in requests
-    displ_end = displ_start if single_point else requests[f'{name}.S'][0]
+    # only; the reader gives their exit the same displacement, which comes out
+    # here as a rigid translation with no rotation about x or y. See
+    # `read_bumps_report` for why that is the reading.
+    single_point = bool(request['single_point'])
 
     element = line[element_name]
 
@@ -106,6 +89,11 @@ for element_name in line.get_table().name:
 
     ds_exit_rigid = displ_start[1] + chord_rst[1] - length
 
+    # What the report asked for at the exit. A single-point element asked for
+    # nothing there, so its exit displacement is the reader's filling-in, not
+    # a request, and nothing can have been dropped.
+    ds_exit_requested = np.nan if single_point else request['s_exit']
+
     results.append({
         'name': name,
         'element_type': type(element._xobject).__name__.replace('Data', ''),
@@ -122,9 +110,9 @@ for element_name in line.get_table().name:
         'dy': mis.shift_y,
         'ds': mis.shift_s,
         'single_point': single_point,
-        'ds_exit_requested': displ_end[1],
+        'ds_exit_requested': ds_exit_requested,
         'ds_exit_rigid': ds_exit_rigid,
-        'ds_exit_dropped': displ_end[1] - ds_exit_rigid,
+        'ds_exit_dropped': ds_exit_requested - ds_exit_rigid,
     })
 
 out = pd.DataFrame(results).set_index('name')
@@ -135,24 +123,14 @@ out = pd.DataFrame(results).set_index('name')
 
 print('checks:')
 
-# The element name and point suffix parsed out of the `Elément` column must
-# agree with the `Nom Layout` column, and every point must be an end point.
-for _, row in df.iterrows():
-    name, point = row['Element'].rsplit('.', 1)
-    assert name == row['Nom Layout']
-    assert point in ('E', 'S')
-print(f'  {len(df)} report points, names consistent with Nom Layout')
-
-# The roll is stored redundantly on both points of an element.
-for point_name, (_, roll) in requests.items():
-    name, point = point_name.rsplit('.', 1)
-    if point == 'S':
-        assert roll == requests[f'{name}.E'][1]
-print('  roll consistent on both points of every element')
+# The report itself is checked by `read_bumps_report`: the column totals
+# against their four sources, the names against `Nom Layout`, the roll against
+# its duplicate on the other point.
+print(f'  {len(requests)} elements read from the report')
 
 # Walking the lattice skips whatever carries no request, so a report element
 # missing from the lattice would go unnoticed.
-assert len(out) == len({nn.rsplit('.', 1)[0] for nn in requests})
+assert len(out) == len(requests)
 print(f'  all {len(out)} report elements found in the lattice')
 
 # The element must come out rigid: the chord of the displaced element has to
@@ -233,7 +211,9 @@ print('\n=== requested exit S displacement dropped to keep the element rigid '
       '===')
 dropped = out['ds_exit_dropped'].abs() > 1e-6
 print(f'{dropped.sum()} elements differ by more than 1 um '
-      f'(max {out["ds_exit_dropped"].abs().max() * 1e3:.3f} mm)')
+      f'(max {out["ds_exit_dropped"].abs().max() * 1e3:.3f} mm); '
+      f'{out["ds_exit_requested"].isna().sum()} single-point elements '
+      f'requested nothing at the exit')
 if dropped.any():
     print(out.loc[dropped, ['length_chord', 'ds_exit_requested',
                             'ds_exit_rigid', 'ds_exit_dropped']].sort_values(
