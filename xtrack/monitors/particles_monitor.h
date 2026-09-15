@@ -77,5 +77,3 @@ void ParticlesMonitor_track_local_particle(ParticlesMonitorData el,
 }
 
 #endif
-
-

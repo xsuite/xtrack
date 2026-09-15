@@ -118,6 +118,35 @@ NO_SYNRAD_ELEMENTS = [
     Exciter,
 ]
 
+TPSA_SUPPORTED_ELEMENTS = [
+    Drift,
+    DriftExact,
+    Marker,
+    ReferenceEnergyIncrease,
+    ReferenceEnergyChange,
+    Multipole,
+    Bend,
+    RBend,
+    Quadrupole,
+    Sextupole,
+    Octupole,
+    Magnet,
+    MagnetEdge,
+    Wedge,
+    MultipoleEdge,
+    Cavity,
+    CrabCavity,
+    RFMultipole,
+    UniformSolenoid,
+    Translation,
+    Rotation,
+    XYShift,
+    SRotation,
+    XRotation,
+    YRotation,
+    LimitRectEllipse,
+]
+
 NON_TRACKING_ELEMENTS = [
     RandomUniform,
     RandomExponential,

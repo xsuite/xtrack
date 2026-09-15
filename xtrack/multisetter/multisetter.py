@@ -38,6 +38,14 @@ class MultiSetter(xo.HybridClass):
                 xo.Arg(xo.Int32, pointer=True, name='out'),
             ],
         ),
+        'get_values_at_offsets_int8': xo.Kernel(
+            c_name='get_values_at_offsets_int8',
+            args=[
+                xo.Arg(xo.ThisClass, name='data'),
+                xo.Arg(xo.Int8, pointer=True, name='buffer'),
+                xo.Arg(xo.Int8, pointer=True, name='out'),
+            ],
+        ),
         'set_values_at_offsets_float64': xo.Kernel(
             c_name='set_values_at_offsets_float64',
             args=[
@@ -119,10 +127,11 @@ class MultiSetter(xo.HybridClass):
             np.float64: xo.Float64,
             np.int64: xo.Int64,
             np.int32: xo.Int32,
+            np.int8: xo.Int8,
         }[self.dtype]
 
-        assert self.dtype in [np.float64, np.int64, np.int32], (
-            'Only float64, int64, and int32 are supported for now')
+        assert self.dtype in [np.float64, np.int64, np.int32, np.int8], (
+            'Only float64, int64, int32, and int8 are supported for now')
 
         assert np.all([line.get(nn)._buffer is tracker_buffer for nn in elements])
         offsets = [_extract_offset(line.get(nn), field, index, self.dtype, self.xodtype,
@@ -140,13 +149,14 @@ class MultiSetter(xo.HybridClass):
             np.float64: self._context.kernels.get_values_at_offsets_float64,
             np.int64: self._context.kernels.get_values_at_offsets_int64,
             np.int32: self._context.kernels.get_values_at_offsets_int32,
+            np.int8: self._context.kernels.get_values_at_offsets_int8,
         }[self.dtype]
 
         self._set_kernel = {
             np.float64: self._context.kernels.set_values_at_offsets_float64,
             np.int64: self._context.kernels.set_values_at_offsets_int64,
             np.int32: self._context.kernels.set_values_at_offsets_int32,
-        }[self.dtype]
+        }.get(self.dtype)
 
     def get_values(self):
         """Get the values of the multisetter fields."""
@@ -168,6 +178,8 @@ class MultiSetter(xo.HybridClass):
         """
         if self._empty:
             return
+        if self.dtype is np.int8:
+            raise NotImplementedError("MultiSetter does not support setting int8 fields")
 
         self._set_kernel.set_n_threads(len(self.offsets))
         self._set_kernel(data=self, buffer=self._tracker_buffer.buffer,
