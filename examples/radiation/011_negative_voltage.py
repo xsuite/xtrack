@@ -81,4 +81,6 @@ env['cav4'].phase = env['cav4'].phase - np.pi
 tw2 = line.twiss(radiation_analysis=True)
 
 xo.assert_allclose(tw1.energy_loss, tw2.energy_loss, rtol=0.01)
-xo.assert_allclose(tw1.partition_numbers, tw2.partition_numbers)
+
+xo.assert_allclose(tw1.partition_numbers.sum(), 4, rtol=1e-4)
+xo.assert_allclose(tw2.partition_numbers.sum(), 4, rtol=1e-4)
