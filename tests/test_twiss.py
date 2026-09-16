@@ -2220,3 +2220,20 @@ def test_twiss_disable_apertures():
     xo.assert_allclose(tw.x[-1], 0.2)
     with pytest.raises(AssertionError):
         line.twiss(betx=1, bety=1, x=0.2, y=0, disable_apertures=False)
+
+
+def test_twiss_backward_s_matches_forward():
+    env = xt.Environment()
+    line = env.new_line(components=[
+        env.new("qf", xt.Quadrupole, length=0.5, k1=0.3),
+        env.new("d1", xt.Drift, length=1.0),
+        env.new("qd", xt.Quadrupole, length=0.5, k1=-0.3),
+        env.new("d2", xt.Drift, length=1.0),
+    ])
+    line.particle_ref = xt.Particles(p0c=1e9)
+    tw = line.twiss4d()
+    for end in ("qd", "d2"):
+        fwd = line.twiss4d(init=tw.get_twiss_init("d1"), start="d1", end=end)
+        bwd = line.twiss4d(init=tw.get_twiss_init(end), start="d1", end=end)
+        xo.assert_allclose(bwd.s, fwd.s, rtol=0, atol=1e-12)
+        xo.assert_allclose(bwd.s[0], tw["s", "d1"], rtol=0, atol=1e-12)
