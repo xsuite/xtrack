@@ -7,7 +7,7 @@ import numpy as np
 import xobjects as xo
 from scipy.constants import c as clight
 
-from .chromatic_functions import _get_chromatic_functions, trapz
+from .chromatic_functions import _chromatic_functions_requested, trapz
 from .coupling_edw_teng import _get_coupling_elements_edwards_teng
 from .periodic_solution import _find_periodic_solution
 from .radiation import (
@@ -154,12 +154,11 @@ def _add_chromatic_functions_to_twiss_result(twiss_config, twiss_res):
     if twiss_config['only_orbit']:
         return
 
-    if not (twiss_config['chrom'] is True
-            or (twiss_config['chrom'] is None and twiss_config['periodic'])):
+    if not _chromatic_functions_requested(twiss_config):
         return
 
-    cols_chrom, scalars_chrom = _get_chromatic_functions(
-        twiss_config, on_momentum_twiss_res=twiss_res)
+    cols_chrom, scalars_chrom = twiss_config['_twiss_backend'].chromatic_functions(
+        twiss_config, twiss_res)
     twiss_res._data.update(cols_chrom)
     twiss_res._data.update(scalars_chrom)
     twiss_res._col_names += list(cols_chrom.keys())

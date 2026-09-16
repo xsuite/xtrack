@@ -190,14 +190,34 @@ def test_tracking_scopes_tracker_tpsa_config():
     assert line.tracker.config.XTRACK_TPSA_TRACK is True
 
 
-def test_particles_tpsa_requires_synrad_disabled():
+@pytest.mark.parametrize("enable", ["model", "element_flag"])
+def test_particles_tpsa_rejects_synrad(enable):
     line = _line()
-    line.config.XTRACK_MULTIPOLE_NO_SYNRAD = False
+    if enable == "model":
+        line.configure_radiation(model="mean")
+    else:
+        line["b"].radiation_flag = 1
+        line.config.XTRACK_MULTIPOLE_NO_SYNRAD = False
     m = _map()
 
     with pytest.raises(NotImplementedError, match="synchrotron radiation"):
         line.track(m)
 
+    assert line.tracker.config.XTRACK_TPSA_TRACK is False
+    assert line.config.get("XTRACK_MULTIPOLE_NO_SYNRAD", False) is False
+
+
+def test_particles_tpsa_compiles_without_synrad_and_restores_config():
+    line = _line()
+    reference = _map()
+    line.track(reference)
+
+    line.config.XTRACK_MULTIPOLE_NO_SYNRAD = False   # as left by a spin model
+    m = _map()
+    line.track(m)
+
+    assert np.array_equal(m.jacobian(), reference.jacobian())
+    assert line.config.get("XTRACK_MULTIPOLE_NO_SYNRAD", False) is False
     assert line.tracker.config.XTRACK_TPSA_TRACK is False
 
 
@@ -1546,3 +1566,180 @@ def test_action_tpsa_track_rejects_unsupported_targets():
             line, ["kqf"],
             targets=[xt.TargetRelPhaseAdvance("dqx", value=0.0,
                                             start="qf0", end="qd2")], **kwargs)
+
+
+def _chromatic_fodo_ring(num_cells=4, with_cavity=False):
+    """FODO with bends and sextupoles, so the chromaticity is not trivial."""
+    env = xt.Environment()
+    env["kqf"], env["kqd"] = 0.28, -0.28
+    components = []
+    for i in range(num_cells):
+        components += [
+            env.new(f"qf{i}", xt.Quadrupole, length=0.5, k1="kqf"),
+            env.new(f"b{i}a", xt.Bend, length=1.0, angle=2 * np.pi / (2 * num_cells)),
+            env.new(f"qd{i}", xt.Quadrupole, length=0.5, k1="kqd"),
+            env.new(f"s{i}", xt.Sextupole, length=0.3, k2=0.5),
+            env.new(f"d{i}", xt.Drift, length=1.0),
+        ]
+    if with_cavity:
+        components += [env.new("cav", xt.Cavity, voltage=5e6, frequency=400e6,
+                               phase=np.pi)]
+    line = env.new_line(components=components)
+    line.particle_ref = xt.Particles(p0c=P0C, mass0=MASS0)
+    return line
+
+
+_TWISS_OPTICS_COLUMNS = ("betx", "bety", "alfx", "alfy", "mux", "muy",
+                         "dx", "dpx", "s", "x", "px")
+_TWISS_CHROM_COLUMNS = ("dmux", "dmuy", "dzeta", "bx_chrom", "ax_chrom", "wx_chrom",
+                        "by_chrom", "ay_chrom", "wy_chrom", "ddx", "ddpx")
+
+
+def _assert_columns_close(tw_tpsa, tw_ref, columns, rtol):
+    for name in columns:
+        reference = np.array(tw_ref[name])
+        scale = max(np.max(np.abs(reference)), 1e-12)
+        xo.assert_allclose(np.array(tw_tpsa[name]), reference,
+                           rtol=0, atol=rtol * scale + 1e-13)
+
+
+@pytest.mark.parametrize("method", ["4d", "6d"])
+def test_twiss_tpsa_optics_vs_finite_differences(method):
+    """The TPSA backend reproduces line.twiss column by column."""
+    line = _chromatic_fodo_ring(with_cavity=(method == "6d"))
+    tw_ref = line.twiss(method=method, chrom=False)
+    tw_tpsa = line.twiss(method=method, chrom=False, tpsa=True)
+
+    assert list(tw_tpsa.name) == list(tw_ref.name)
+    _assert_columns_close(tw_tpsa, tw_ref, _TWISS_OPTICS_COLUMNS, rtol=1e-6)
+    xo.assert_allclose(tw_tpsa.qx, tw_ref.qx, rtol=0, atol=1e-9)
+    xo.assert_allclose(tw_tpsa.qy, tw_ref.qy, rtol=0, atol=1e-9)
+
+
+def test_twiss_tpsa_chromatic_functions_vs_finite_differences():
+    """The order-2 coefficients give what two off-momentum twisses give."""
+    line = _chromatic_fodo_ring()
+    tw_ref = line.twiss(method="4d", chrom=True)
+    tw_tpsa = line.twiss(method="4d", tpsa=True)
+
+    _assert_columns_close(tw_tpsa, tw_ref, _TWISS_CHROM_COLUMNS, rtol=1e-4)
+    xo.assert_allclose(tw_tpsa.dqx, tw_ref.dqx, rtol=0, atol=1e-5)
+    xo.assert_allclose(tw_tpsa.dqy, tw_ref.dqy, rtol=0, atol=1e-5)
+
+
+def test_twiss_tpsa_chromaticity_is_the_exact_derivative():
+    """The finite-difference dq closes in on the TPSA value as delta_chrom shrinks."""
+    line = _chromatic_fodo_ring()
+    tw_tpsa = line.twiss(method="4d", tpsa=True)
+    # big enough steps that the finite-difference truncation, not its noise, dominates
+    errors = [abs(line.twiss(method="4d", delta_chrom=d).dqx - tw_tpsa.dqx)
+              for d in (1e-2, 1e-3)]
+    assert errors[1] < errors[0] / 50   # second order in delta_chrom
+
+
+def test_twiss_tpsa_table_shaping_routes():
+    """Ranges, reverse and zero_at come from twiss_line and must survive the swap."""
+    line = _chromatic_fodo_ring()
+    init = line.twiss(method="4d", chrom=False).get_twiss_init("qf1")
+    cases = [
+        dict(init=init, start="qf1", end="s2"),
+        # backward: the start orbit is shot to the init, TPSA has no backtrack
+        dict(init=line.twiss(method="4d", chrom=False).get_twiss_init("s2"),
+             start="qf1", end="s2"),
+        dict(init=line.twiss(method="4d", chrom=False).get_twiss_init("_end_point"),
+             start="qf1", end="_end_point"),
+        dict(reverse=True),
+        dict(zero_at="qd2"),
+        dict(start="qd1"),
+    ]
+    for kwargs in cases:
+        tw_ref = line.twiss(method="4d", chrom=False, **kwargs)
+        tw_tpsa = line.twiss(method="4d", chrom=False, tpsa=True, **kwargs)
+        assert list(tw_tpsa.name) == list(tw_ref.name)
+        _assert_columns_close(tw_tpsa, tw_ref, _TWISS_OPTICS_COLUMNS, rtol=1e-6)
+
+
+def test_twiss_tpsa_rejects_what_it_cannot_do():
+    line = _chromatic_fodo_ring()
+    with pytest.raises(NotImplementedError):
+        line.twiss(method="4d", tpsa=True, spin=True)
+    with pytest.raises(NotImplementedError):
+        line.twiss(method="4d", tpsa=True, num_turns=3)
+    with pytest.raises(NotImplementedError):
+        line.twiss(method="4d", tpsa=True, _keep_tracking_data=True)
+
+
+def test_twiss_tpsa_6d_chromatic_falls_back_to_finite_differences():
+    """6d has no delta variable to differentiate against, so chrom stays FD."""
+    line = _chromatic_fodo_ring(with_cavity=True)
+    tw_ref = line.twiss(method="6d", chrom=True)
+    tw_tpsa = line.twiss(method="6d", tpsa=True)
+    # loose: both sides difference two off-momentum twisses, from a TPSA and an FD
+    # on-momentum solution respectively
+    _assert_columns_close(tw_tpsa, tw_ref, _TWISS_CHROM_COLUMNS, rtol=1e-3)
+
+
+def _kicked_chromatic_fodo_ring():
+    """A dipole error, so the closed orbit is not zero and feeds down in the sextupoles."""
+    line = _chromatic_fodo_ring()
+    line["qf1"].knl[0] = 1e-4
+    return line
+
+
+def test_twiss_tpsa_kicked_orbit_one_recording(monkeypatch):
+    """The closed-orbit Newton runs on order-1 maps, only the result is recorded."""
+    import xtrack.tpsa.twiss as tpsa_twiss
+
+    recordings = []
+    original_init = tpsa_twiss.TpsaEbeTrack.__init__
+
+    def counting_init(self, *args, **kwargs):
+        original_init(self, *args, **kwargs)
+        recordings.append(self.order)
+
+    monkeypatch.setattr(tpsa_twiss.TpsaEbeTrack, "__init__", counting_init)
+    line = _kicked_chromatic_fodo_ring()
+    tw_ref = line.twiss(method="4d")
+    tw_tpsa = line.twiss(method="4d", tpsa=True)
+
+    assert recordings == [2]
+    assert tw_tpsa.particle_on_co._fsolve_info["num_iter"] > 1
+    _assert_columns_close(tw_tpsa, tw_ref, _TWISS_OPTICS_COLUMNS, rtol=1e-6)
+
+
+def test_twiss_tpsa_chromatic_columns_are_the_exact_derivatives():
+    """Every chromatic column: the FD error shrinks with delta_chrom, TPSA is the limit."""
+    line = _kicked_chromatic_fodo_ring()
+    tw_tpsa = line.twiss(method="4d", tpsa=True)
+    # steps where the FD truncation, not its noise, dominates
+    coarse = line.twiss(method="4d", delta_chrom=1e-2)
+    fine = line.twiss(method="4d", delta_chrom=1e-3)
+    for name in _TWISS_CHROM_COLUMNS + ("dqx", "dqy"):
+        reference = np.array(tw_tpsa[name])
+        error_coarse = np.max(np.abs(np.array(coarse[name]) - reference))
+        error_fine = np.max(np.abs(np.array(fine[name]) - reference))
+        assert error_fine < error_coarse / 30, name   # second order in delta_chrom
+
+
+def test_twiss_tpsa_kin_columns_inside_solenoid():
+    """ax, ay are recorded, so kin_px differs from px at a boundary inside a solenoid."""
+    env = xt.Environment()
+    line = env.new_line(components=[
+        env.new("qf", xt.Quadrupole, length=0.5, k1=0.3),
+        env.new("d1", xt.Drift, length=1.0),
+        env.new("sol1", xt.UniformSolenoid, length=1.0, ks=0.4, edge_exit_active=False),
+        env.new("sol2", xt.UniformSolenoid, length=1.0, ks=0.4, edge_entry_active=False),
+        env.new("qd", xt.Quadrupole, length=0.5, k1=-0.3),
+        env.new("d2", xt.Drift, length=1.0),
+    ])
+    line.particle_ref = xt.Particles(p0c=P0C, mass0=MASS0)
+    init = xt.TwissInit(betx=2.0, bety=3.0, x=1e-3, y=2e-3)
+    tw_ref = line.twiss(method="4d", init=init, start=line.element_names[0],
+                        end="_end_point")
+    tw_tpsa = line.twiss(method="4d", init=init, start=line.element_names[0],
+                         end="_end_point", tpsa=True)
+    inside = np.array(tw_ref.kin_px) != np.array(tw_ref.px)
+    assert inside.any()
+    _assert_columns_close(tw_tpsa, tw_ref,
+                          _TWISS_OPTICS_COLUMNS + ("kin_px", "kin_py", "kin_xp"),
+                          rtol=1e-6)

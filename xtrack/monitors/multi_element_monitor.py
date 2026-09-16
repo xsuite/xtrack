@@ -90,7 +90,7 @@ class MultiElementMonitor(xt.BeamElement):
     ]
 
     _coord_name_to_index = {'x': 0, 'px': 1, 'y': 2, 'py': 3,
-                            'zeta': 4, 'delta': 5, 's': 6}
+                            'zeta': 4, 'delta': 5, 's': 6, 'ax': 7, 'ay': 8}
 
     def __init__(self, start_at_turn, stop_at_turn,
                  part_id_start, part_id_end,

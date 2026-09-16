@@ -2496,6 +2496,7 @@ class Line:
         compute_R_element_by_element=None,
         compute_lattice_functions=None,
         chrom=None,
+        tpsa=None,
         coupling_edw_teng=False,
         init_at=None,
         x=None, px=None, y=None, py=None, zeta=None, delta=None,

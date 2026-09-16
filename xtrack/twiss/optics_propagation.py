@@ -7,6 +7,7 @@ import numpy as np
 import xobjects as xo
 
 from .lattice_functions_from_W import _get_lattice_functions
+from .twiss_backend import FiniteDifferenceTwiss
 from .twiss_table import TwissTable
 
 import xtrack as xt  # To avoid circular imports
@@ -35,14 +36,54 @@ def _propagate_twiss_from_init(
         keep_initial_particles=False,
         initial_particles=None,
         ebe_monitor=None,
+        backend=None,
 ):
     """Track an orbit and basis particles from a completed Twiss init."""
+
+    if backend is None:
+        backend = FiniteDifferenceTwiss()
 
     if init.reference_frame == 'reverse':
         init = init.reverse()
 
-    particle_on_co = init.particle_on_co
-    W_matrix = init.W_matrix
+    start, end, twiss_orientation = _resolve_propagation_range(
+        line, init, start, end)
+
+    orbit, Ws, i_start, i_stop, extra_data = backend.track_orbit_and_W(
+        line=line,
+        init=init,
+        start=start,
+        end=end,
+        twiss_orientation=twiss_orientation,
+        nemitt_x=nemitt_x,
+        nemitt_y=nemitt_y,
+        step_W_sigma=step_W_sigma,
+        delta_disp=delta_disp,
+        spin=spin,
+        continue_if_lost=continue_if_lost,
+        keep_tracking_data=keep_tracking_data,
+        keep_initial_particles=keep_initial_particles,
+        initial_particles=initial_particles,
+        ebe_monitor=ebe_monitor)
+
+    return _twiss_table_from_orbit_and_W(
+        line=line,
+        particle_on_co=init.particle_on_co,
+        orbit=orbit,
+        Ws=Ws,
+        i_start=i_start,
+        i_stop=i_stop,
+        twiss_orientation=twiss_orientation,
+        use_full_inverse=use_full_inverse,
+        hide_thin_groups=hide_thin_groups,
+        only_markers=only_markers,
+        only_orbit=only_orbit,
+        compute_lattice_functions=compute_lattice_functions,
+        extra_data=extra_data)
+
+
+def _resolve_propagation_range(line, init, start, end):
+    """Element indices of the range, and whether ``init`` sits at its start or end."""
 
     if start is not None and end is None:
         raise ValueError('end must be specified if start is not None')
@@ -70,6 +111,31 @@ def _propagate_twiss_from_init(
     else:
         raise ValueError(
             '``init`` must be given at the start or end of the specified element range.')
+
+    return start, end, twiss_orientation
+
+
+def _track_orbit_and_W_with_particles(
+        line,
+        init,
+        start,
+        end,
+        twiss_orientation,
+        nemitt_x,
+        nemitt_y,
+        step_W_sigma,
+        delta_disp,
+        spin=False,
+        continue_if_lost=False,
+        keep_tracking_data=False,
+        keep_initial_particles=False,
+        initial_particles=None,
+        ebe_monitor=None,
+):
+    """Orbit and W along the range by tracking the orbit and 12 particles displaced along W."""
+
+    particle_on_co = init.particle_on_co
+    W_matrix = init.W_matrix
 
     ctx2np = line._context.nparray_from_context_array
 
@@ -107,7 +173,9 @@ def _propagate_twiss_from_init(
             part_for_twiss.s = line.tracker._tracker_data_base.element_s_locations[start]
         elif twiss_orientation == 'backward':
             part_for_twiss.at_element = end + 1 # to include the last element
-            part_for_twiss.s = line.tracker._tracker_data_base.element_s_locations[end]
+            s_locations = line.tracker._tracker_data_base.element_s_locations
+            part_for_twiss.s = (s_locations[end + 1] if end + 1 < len(s_locations)
+                                else line.tracker._tracker_data_base.line_length)
         else:
             raise ValueError('Invalid twiss_orientation')
 
@@ -166,23 +234,24 @@ def _propagate_twiss_from_init(
           + f'(state {np.unique(recorded_state)}, '
           + f'at element {np.unique(line.record_last_track.at_element[:, i_start:i_stop+1].copy())})')
 
-    x_co = line.record_last_track.x[0, i_start:i_stop+1].copy()
-    y_co = line.record_last_track.y[0, i_start:i_stop+1].copy()
-    px_co = line.record_last_track.px[0, i_start:i_stop+1].copy()
-    py_co = line.record_last_track.py[0, i_start:i_stop+1].copy()
-    zeta_co = line.record_last_track.zeta[0, i_start:i_stop+1].copy()
-    delta_co = np.array(line.record_last_track.delta[0, i_start:i_stop+1].copy())
-    ptau_co = np.array(line.record_last_track.ptau[0, i_start:i_stop+1].copy())
-    s_co = line.record_last_track.s[0, i_start:i_stop+1].copy()
-    kin_px_co = line.record_last_track.kin_px[0, i_start:i_stop+1].copy()
-    kin_py_co = line.record_last_track.kin_py[0, i_start:i_stop+1].copy()
-    kin_ps_co = line.record_last_track.kin_ps[0, i_start:i_stop+1].copy()
-    kin_xp_co = line.record_last_track.kin_xp[0, i_start:i_stop+1].copy()
-    kin_yp_co = line.record_last_track.kin_yp[0, i_start:i_stop+1].copy()
+    orbit = {}
+    orbit['x'] = x_co = line.record_last_track.x[0, i_start:i_stop+1].copy()
+    orbit['y'] = y_co = line.record_last_track.y[0, i_start:i_stop+1].copy()
+    orbit['px'] = px_co = line.record_last_track.px[0, i_start:i_stop+1].copy()
+    orbit['py'] = py_co = line.record_last_track.py[0, i_start:i_stop+1].copy()
+    orbit['zeta'] = zeta_co = line.record_last_track.zeta[0, i_start:i_stop+1].copy()
+    orbit['delta'] = np.array(line.record_last_track.delta[0, i_start:i_stop+1].copy())
+    orbit['ptau'] = ptau_co = np.array(line.record_last_track.ptau[0, i_start:i_stop+1].copy())
+    orbit['s'] = s_co = line.record_last_track.s[0, i_start:i_stop+1].copy()
+    orbit['kin_px'] = line.record_last_track.kin_px[0, i_start:i_stop+1].copy()
+    orbit['kin_py'] = line.record_last_track.kin_py[0, i_start:i_stop+1].copy()
+    orbit['kin_ps'] = line.record_last_track.kin_ps[0, i_start:i_stop+1].copy()
+    orbit['kin_xp'] = line.record_last_track.kin_xp[0, i_start:i_stop+1].copy()
+    orbit['kin_yp'] = line.record_last_track.kin_yp[0, i_start:i_stop+1].copy()
     if spin:
-        spin_x_co = line.record_last_track.spin_x[0, i_start:i_stop+1].copy()
-        spin_y_co = line.record_last_track.spin_y[0, i_start:i_stop+1].copy()
-        spin_z_co = line.record_last_track.spin_z[0, i_start:i_stop+1].copy()
+        orbit['spin_x'] = line.record_last_track.spin_x[0, i_start:i_stop+1].copy()
+        orbit['spin_y'] = line.record_last_track.spin_y[0, i_start:i_stop+1].copy()
+        orbit['spin_z'] = line.record_last_track.spin_z[0, i_start:i_stop+1].copy()
 
     Ws = np.zeros(shape=(len(s_co), 6, 6), dtype=np.float64)
     Ws[:, 0, :] = 0.5 * (line.record_last_track.x[1:7, i_start:i_stop+1] - x_co).T / scale_eigen
@@ -199,6 +268,33 @@ def _propagate_twiss_from_init(
     Ws[:, 4, :] -= 0.5 * (line.record_last_track.zeta[7:13, i_start:i_stop+1] - zeta_co).T / scale_eigen
     Ws[:, 5, :] -= 0.5 * (line.record_last_track.ptau[7:13, i_start:i_stop+1] - ptau_co).T / particle_on_co._xobject.beta0[0] / scale_eigen
 
+    extra_data = {}
+    if keep_tracking_data:
+        extra_data['tracking_data'] = line.record_last_track.copy()
+
+    if keep_initial_particles:
+        extra_data['_initial_particles'] = part_for_twiss0.copy()
+
+    return orbit, Ws, i_start, i_stop, extra_data
+
+
+def _twiss_table_from_orbit_and_W(
+        line,
+        particle_on_co,
+        orbit,
+        Ws,
+        i_start,
+        i_stop,
+        twiss_orientation,
+        use_full_inverse,
+        hide_thin_groups=False,
+        only_markers=False,
+        only_orbit=False,
+        compute_lattice_functions=True,
+        extra_data=None,
+):
+    """Twiss table from the orbit and W at the elements ``i_start:i_stop`` and the end point."""
+
     name_co = np.array(line._element_names_unique[i_start:i_stop] + ('_end_point',))
     name_co_env = np.array(line.element_names[i_start:i_stop] + ('_end_point',))
 
@@ -209,42 +305,33 @@ def _propagate_twiss_from_init(
 
     twiss_res_element_by_element.update({
         'name': name_co,
-        's': s_co,
-        'x': x_co,
-        'px': px_co,
-        'y': y_co,
-        'py': py_co,
-        'zeta': zeta_co,
-        'delta': delta_co,
-        'ptau': ptau_co,
+        's': orbit['s'],
+        'x': orbit['x'],
+        'px': orbit['px'],
+        'y': orbit['y'],
+        'py': orbit['py'],
+        'zeta': orbit['zeta'],
+        'delta': orbit['delta'],
+        'ptau': orbit['ptau'],
         'W_matrix': Ws,
-        'kin_px': kin_px_co,
-        'kin_py': kin_py_co,
-        'kin_ps': kin_ps_co,
-        'kin_xp': kin_xp_co,
-        'kin_yp': kin_yp_co,
-        'kin_xprime': kin_xp_co,
-        'kin_yprime': kin_yp_co,
+        'kin_px': orbit['kin_px'],
+        'kin_py': orbit['kin_py'],
+        'kin_ps': orbit['kin_ps'],
+        'kin_xp': orbit['kin_xp'],
+        'kin_yp': orbit['kin_yp'],
+        'kin_xprime': orbit['kin_xp'],
+        'kin_yprime': orbit['kin_yp'],
         'env_name': name_co_env,
     })
-    if spin:
-        twiss_res_element_by_element.update({
-            'spin_x': spin_x_co,
-            'spin_y': spin_y_co,
-            'spin_z': spin_z_co,
-        })
+    for name in ('spin_x', 'spin_y', 'spin_z'):
+        if name in orbit:
+            twiss_res_element_by_element[name] = orbit[name]
 
     if not only_orbit and compute_lattice_functions:
-        lattice_functions, i_replace = _get_lattice_functions(Ws, use_full_inverse, s_co)
+        lattice_functions, i_replace = _get_lattice_functions(Ws, use_full_inverse, orbit['s'])
         twiss_res_element_by_element.update(lattice_functions)
 
-    extra_data = {}
-    extra_data['only_markers'] = only_markers
-    if keep_tracking_data:
-        extra_data['tracking_data'] = line.record_last_track.copy()
-
-    if keep_initial_particles:
-        extra_data['_initial_particles'] = part_for_twiss0.copy()
+    extra_data = {'only_markers': only_markers, **(extra_data or {})}
 
     if hide_thin_groups:
         _vars_hide_changes = [
