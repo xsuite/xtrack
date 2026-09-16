@@ -18,6 +18,9 @@ from xtrack._temp import survey_utils as su
 
 MISALIGNMENT_COLUMNS = ['dtheta', 'dphi', 'dpsi', 'dx', 'dy', 'ds']
 
+compensate_psi_vbend = True
+psi_tol_deg = 20
+
 # #############################################################################
 # Part 1 - computation
 # #############################################################################
@@ -99,10 +102,12 @@ line.to_json('h4_misaligned.json')
 print('written to h4_misaligned.json')
 
 su.write_legacy_survey_tfs(
-    'h4_survey_output.tfs',
+    'h4_survey_comp_vbend_output.tfs',
     survey=survey_aligned,
     element_names=names_align,
     element_container=env,
+    compensate_psi_vbend=compensate_psi_vbend,
+    psi_tol_deg=psi_tol_deg
 )
 
 # #############################################################################
