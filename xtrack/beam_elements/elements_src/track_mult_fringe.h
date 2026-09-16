@@ -33,24 +33,24 @@ void MultFringe_track_single_particle(
     const double direction = is_exit ? -1 : 1;
 
     // Particle coordinates
-    const double x = LocalParticle_get_x(part);
-    const double px = LocalParticle_get_px(part);
-    const double y = LocalParticle_get_y(part);
-    const double py = LocalParticle_get_py(part);
-    const double t = LocalParticle_get_zeta(part) / beta0;
-    const double pt = LocalParticle_get_ptau(part);
+    xt_float_or_tpsa const x = LocalParticle_get_x(part);
+    xt_float_or_tpsa const px = LocalParticle_get_px(part);
+    xt_float_or_tpsa const y = LocalParticle_get_y(part);
+    xt_float_or_tpsa const py = LocalParticle_get_py(part);
+    xt_float_or_tpsa const t = LocalParticle_get_zeta(part) / beta0;
+    xt_float_or_tpsa const pt = LocalParticle_get_ptau(part);
 
-    const double rpp = LocalParticle_get_rpp(part);
+    xt_float_or_tpsa const rpp = LocalParticle_get_rpp(part);
     const double chi = LocalParticle_get_chi(part);
 
-    double rx = 1;
-    double ix = 0;
-    double fx = 0;
-    double fxx = 0;
-    double fxy = 0;
-    double fy = 0;
-    double fyx = 0;
-    double fyy = 0;
+    xt_float_or_tpsa rx = 1.0;
+    xt_float_or_tpsa ix = 0.0;
+    xt_float_or_tpsa fx = 0.0;
+    xt_float_or_tpsa fxx = 0.0;
+    xt_float_or_tpsa fxy = 0.0;
+    xt_float_or_tpsa fy = 0.0;
+    xt_float_or_tpsa fyx = 0.0;
+    xt_float_or_tpsa fyy = 0.0;
 
     uint32_t order = (k_order > kl_order) ? k_order : kl_order;
     double inv_factorial = 1;
@@ -59,8 +59,8 @@ void MultFringe_track_single_particle(
     {
         if (ii > 1) inv_factorial /= ii;
         double component = ii + 1;
-        double drx = rx;
-        double dix = ix;
+        xt_float_or_tpsa const drx = rx;
+        xt_float_or_tpsa const dix = ix;
         rx = drx * x - dix * y;
         ix = drx * y + dix * x;
 
@@ -82,8 +82,7 @@ void MultFringe_track_single_particle(
         double nf = (component + 2) / component;
         double kj = kn_total * chi;
         double ksj = ks_total * chi;
-        double u, v, du, dv;
-
+        xt_float_or_tpsa u = 0.0, v = 0.0, du = 0.0, dv = 0.0;
 
         if (ii == 0) {
             u = nj * (-ksj * ix);
@@ -97,10 +96,10 @@ void MultFringe_track_single_particle(
             dv = nj * (kj * dix + ksj * drx);
         }
 
-        double dux = component * du;
-        double dvx = component * dv;
-        double duy = -component * dv;
-        double dvy = component * du;
+        xt_float_or_tpsa const dux = component * du;
+        xt_float_or_tpsa const dvx = component * dv;
+        xt_float_or_tpsa const duy = -component * dv;
+        xt_float_or_tpsa const dvy = component * du;
 
         fx = fx + u * x + nf * v * y;
         fy = fy + u * y - nf * v * x;
@@ -111,15 +110,15 @@ void MultFringe_track_single_particle(
 
     }
 
-    double a = 1 - fxx * rpp;
-    double b = -fyx * rpp;
-    double c = -fxy * rpp;
-    double d = 1 - fyy * rpp;
-    double det = (a * d - b * c);
+    xt_float_or_tpsa const a = 1 - fxx * rpp;
+    xt_float_or_tpsa const b = -fyx * rpp;
+    xt_float_or_tpsa const c = -fxy * rpp;
+    xt_float_or_tpsa const d = 1 - fyy * rpp;
+    xt_float_or_tpsa const det = (a * d - b * c);
 
-    double new_px = (d * px - b * py) / det;
-    double new_py = (a * py - c * px) / det;
-    double delta_t = (1 / beta0 + pt) * (new_px * fx + new_py * fy) * POW3(rpp);
+    xt_float_or_tpsa const new_px = (d * px - b * py) / det;
+    xt_float_or_tpsa const new_py = (a * py - c * px) / det;
+    xt_float_or_tpsa const delta_t = (1 / beta0 + pt) * (new_px * fx + new_py * fy) * POW3(rpp);
 
     LocalParticle_add_to_x(part, -fx * rpp);
     LocalParticle_add_to_y(part, -fy * rpp);
