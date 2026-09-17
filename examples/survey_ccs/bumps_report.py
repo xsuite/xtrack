@@ -10,6 +10,9 @@ freedom has a total and four additive contributions, `Beamb` (beam based),
 element, with the requested displacement of each end point in the element's
 own RST frame. The RST component order matches ``xtrack._temp.survey_utils``,
 whose functions call the two points start and end rather than entry and exit.
+The report's positive radial deviation means motion along negative R
+("Radial Position Deviation", section 5.4.2), so its radial values are negated
+when converted to geometric RST displacements. S, T and roll are read as given.
 """
 
 import pandas as pd
@@ -44,6 +47,8 @@ def read_bumps_report(file_name):
     the two end points, in metres, and `roll` the requested roll about the
     chord, in radians. A blank cell in the report means no bump requested on
     that axis, and is read as zero.
+    In particular, `r_entry` and `r_exit` are the negatives of the report's
+    `Radial (m)` values, not the raw radial deviations.
 
     The thin instruments are reported on their entrance point only, since a
     single fiducial point is what gets measured on a body a few centimetres
@@ -92,10 +97,12 @@ def read_bumps_report(file_name):
 
         record = {'roll': roll, 'single_point': exit_ is None}
         for component, column in TOTALS.items():
-            displacement = _value(entry, column)
+            # Positive radial deviation is a displacement along negative R.
+            sign = -1. if component == 'r' else 1.
+            displacement = sign * _value(entry, column)
             record[f'{component}_entry'] = displacement
             record[f'{component}_exit'] = (
-                displacement if exit_ is None else _value(exit_, column))
+                displacement if exit_ is None else sign * _value(exit_, column))
         out[name] = record
 
     orphans = {name for name, point in points if point == 'S'} - set(out)

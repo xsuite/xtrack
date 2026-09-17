@@ -16,6 +16,8 @@ from bumps_report import read_bumps_report
 # the element's own RST frame, plus a roll about the chord. Together with the
 # nominal chord length, that is exactly what
 # `su.misalignment_from_rst_displacements` takes.
+# The reader has already negated the report's radial deviations to obtain
+# geometric R displacements; no further sign conversion is needed here.
 #
 # The two displacements plus the roll are seven numbers, while a rigid body has
 # only six degrees of freedom, so the request is over-determined: in general no
