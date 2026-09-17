@@ -298,27 +298,24 @@ def misalignment_from_geode_displacements(
     theta = np.arctan2(-chord_r, chord_s)
     phi = np.arctan2(chord_t, np.hypot(chord_r, chord_s))
 
-    # Point local s along (-chord_r, chord_t, chord_s). This is the crab C:
-    # equal transverse displacements at both ends give zero crab, while
-    # different displacements change the magnet's longitudinal direction.
-    crab = Frame().rotate_y(theta).rotate_x(-phi)
+    # C transforms coordinates from the misaligned chord frame (before
+    # additional roll) to the nominal chord frame.
+    C = Frame().rotate_y(theta).rotate_x(-phi)
 
-    # B maps nominal chord coordinates into entrance reference axes:
-    #   B = Frame().rotate_s(tilt).rotate_y(-angle / 2).
-    # It includes the design tilt and the half-angle between the entrance
-    # tangent and the chord.
-    nominal, xys_from_rst = _rst_transform_frames(tilt, angle)
+    # B transforms coordinates from the nominal chord frame to the
+    # reference frame tangent to the trajectory at the element entrance.
+    B, xys_from_rst = _rst_transform_frames(tilt, angle)
 
     # Additional roll R about the nominal entrance tangent, with the
     # GEODE-to-Xsuite sign convention.
-    tangent_roll = Frame().rotate_s(-bgamma)
+    R = Frame().rotate_s(-bgamma)
 
     # Express the chord-frame crab in entrance reference axes: B C B^-1.
-    crab_in_reference = nominal @ crab @ nominal.inverse()
+    crab_in_reference = B @ C @ B.inverse()
 
     # Roll the nominal chord frame about the entrance tangent. For a bend this
     # axis differs from the chord, so the roll can also move the exit.
-    rolled_chord_frame = tangent_roll @ nominal
+    rolled_chord_frame = R @ B
 
     # Apply the crab after the roll, even though we calculated it first.
     # Products act right to left: displaced_chord_frame = (B C B^-1) R B.
