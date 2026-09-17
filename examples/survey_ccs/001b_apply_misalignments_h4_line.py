@@ -55,7 +55,7 @@ f0_ccs = xt.CCSFrame(
     x=669.234140,
     y=4590.727900,
     z=2441.574200,
-    theta_gon=7.4198200,
+    theta_gon=7.4198240,  # Match the legacy GEODE starting bearing.
     phi=-0.000370000,
     psi=0,
 )

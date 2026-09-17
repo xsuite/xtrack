@@ -53,7 +53,7 @@ def main():
               f'new only: {after.index.difference(before.index).tolist()}')
     env = xt.load(ROOT / 'survey-h4-post-ls3-cern-coords-v4.seq')
     nominal = survey(env['h4'])
-    # The legacy CSV starts at 7.419824 gon; 001b starts at 7.419820 gon.
+    # The legacy CSV starts at 7.419824 gon; the H4TEST3 import used 7.419820 gon.
     seed = dict(x=669.234140, y=4590.727900, z=2441.574200, phi=-0.000370000)
     baseline_transform = (xt.Frame.from_ccs(xt.CCSFrame(**seed, theta_gon=7.419824))
                           @ xt.Frame.from_ccs(xt.CCSFrame(**seed, theta_gon=7.419820)).inverse())
