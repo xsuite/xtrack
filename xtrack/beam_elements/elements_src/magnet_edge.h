@@ -38,6 +38,7 @@ void MagnetEdge_track_local_particle(MagnetEdgeData el, LocalParticle* part0)
         part0,
         model,
         is_exit,
+        is_exit, // physical_is_exit
         half_gap,
         knorm,
         kskew,

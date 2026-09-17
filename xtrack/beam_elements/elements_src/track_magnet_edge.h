@@ -14,10 +14,36 @@
 
 
 GPUFUN
+int64_t MagnetEdge_has_multipole_fringe(
+    const double* knorm,
+    const double* kskew,
+    const int64_t k_order,
+    GPUGLMEM const double* knl,
+    GPUGLMEM const double* ksl,
+    const double factor_knl_ksl,
+    const int64_t kl_order,
+    const double length
+) {
+    for (int64_t ii = 1; ii <= k_order; ++ii) {
+        if (knorm[ii] != 0. || kskew[ii] != 0.) return 1;
+    }
+
+    if (length != 0. && factor_knl_ksl != 0.) {
+        for (int64_t ii = 1; ii <= kl_order; ++ii) {
+            if (knl[ii] != 0. || ksl[ii] != 0.) return 1;
+        }
+    }
+
+    return 0;
+}
+
+
+GPUFUN
 void track_magnet_edge_particles(
     LocalParticle* part0,
     const int8_t model,  // 0: linear, 1: full, 2: dipole-only, 3: ax ay cancellation
-    const uint8_t is_exit,
+    const uint8_t is_exit,  // Exit in the current tracking direction
+    const uint8_t physical_is_exit,  // Exit in the forward tracking direction
     const double half_gap,
     const double* knorm,
     const double* kskew,
@@ -78,12 +104,19 @@ void track_magnet_edge_particles(
         END_PER_PARTICLE_BLOCK;
         return;
     }
-    else if (model == 1 || model == 2) { // Full model
+    else if (model == 1 || model == 2) { // Full or dipole-only model
 
-        if (factor_for_backtrack < 0) {
+        const int64_t backtrack = factor_for_backtrack < 0.;
+        if (backtrack && model == 1
+                && MagnetEdge_has_multipole_fringe(
+                    knorm, kskew, k_order, knl, ksl,
+                    factor_knl_ksl, kl_order, length)) {
+            /* The inverse implemented here covers the dipole fringe. The
+             * higher-order MAD-NG multipole fringe still has no inverse. */
             START_PER_PARTICLE_BLOCK(part0, part);
                 LocalParticle_kill_particle(part, -32);
             END_PER_PARTICLE_BLOCK;
+            return;
         }
 
         uint8_t should_rotate = 0;
@@ -95,13 +128,20 @@ void track_magnet_edge_particles(
             tan_ = tan(face_angle);
         }
 
-        if (is_exit) k0 = -k0;
+        if (physical_is_exit) k0 = -k0;
 
         #define MAGNET_Y_ROTATE(PART) \
             if (should_rotate) YRotation_single_particle((PART), -sin_, cos_, -tan_)
 
+        #define MAGNET_Y_ROTATE_BACKTRACK(PART) \
+            if (should_rotate) YRotation_single_particle((PART), sin_, cos_, tan_)
+
         #define MAGNET_DIPOLE_FRINGE(PART) \
             DipoleFringe_single_particle((PART), fringe_integral, half_gap, k0)
+
+        #define MAGNET_DIPOLE_FRINGE_BACKTRACK(PART) \
+            DipoleFringe_single_particle_backtrack( \
+                (PART), fringe_integral, half_gap, k0)
 
         #define MAGNET_MULTIPOLE_FRINGE(PART) \
             MultFringe_track_single_particle( \
@@ -113,7 +153,7 @@ void track_magnet_edge_particles(
                 ksl, \
                 kl_order, \
                 length / factor_knl_ksl, \
-                is_exit, \
+                physical_is_exit, \
                 /* min_order */ 1 \
             );
         // Above, I use the length to rescale knl and ksl. Here I am relying on
@@ -124,41 +164,67 @@ void track_magnet_edge_particles(
         #define MAGNET_WEDGE(PART) \
             if (should_rotate & (k_order >= 0)) Wedge_single_particle((PART), -face_angle, knorm[0])
 
+        #define MAGNET_WEDGE_BACKTRACK(PART) \
+            if (should_rotate & (k_order >= 0)) Wedge_single_particle((PART), face_angle, knorm[0])
+
         #define MAGNET_QUAD_WEDGE(PART) \
             if (should_rotate & (k_order >= 1)) Quad_wedge_single_particle((PART), -face_angle, knorm[1])
 
-        if (is_exit == 0){ // entry
+        #define MAGNET_QUAD_WEDGE_BACKTRACK(PART) \
+            if (should_rotate & (k_order >= 1)) Quad_wedge_single_particle((PART), face_angle, knorm[1])
+
+        if (!backtrack && physical_is_exit == 0){ // entry
             START_PER_PARTICLE_BLOCK(part0, part);
                 MAGNET_Y_ROTATE(part);
                 MAGNET_DIPOLE_FRINGE(part);
                 if (model == 1){
                     MAGNET_MULTIPOLE_FRINGE(part);
-                }
-                if (model == 1){
                     MAGNET_QUAD_WEDGE(part);
                 }
                 MAGNET_WEDGE(part);
             END_PER_PARTICLE_BLOCK;
         }
-        else { // exit
+        else if (!backtrack) { // exit
             START_PER_PARTICLE_BLOCK(part0, part);
                 MAGNET_WEDGE(part);
                 if (model == 1){
                     MAGNET_QUAD_WEDGE(part);
-                }
-                if (model == 1){
                     MAGNET_MULTIPOLE_FRINGE(part);
                 }
                 MAGNET_DIPOLE_FRINGE(part);
                 MAGNET_Y_ROTATE(part);
+            END_PER_PARTICLE_BLOCK;
+        }
+        else if (physical_is_exit == 0) { // inverse of an entry edge
+            START_PER_PARTICLE_BLOCK(part0, part);
+                MAGNET_WEDGE_BACKTRACK(part);
+                if (model == 1){
+                    MAGNET_QUAD_WEDGE_BACKTRACK(part);
+                }
+                MAGNET_DIPOLE_FRINGE_BACKTRACK(part);
+                MAGNET_Y_ROTATE_BACKTRACK(part);
+            END_PER_PARTICLE_BLOCK;
+        }
+        else { // inverse of an exit edge
+            START_PER_PARTICLE_BLOCK(part0, part);
+                MAGNET_Y_ROTATE_BACKTRACK(part);
+                MAGNET_DIPOLE_FRINGE_BACKTRACK(part);
+                if (model == 1){
+                    MAGNET_QUAD_WEDGE_BACKTRACK(part);
+                }
+                MAGNET_WEDGE_BACKTRACK(part);
             END_PER_PARTICLE_BLOCK;
         }
 
         #undef MAGNET_Y_ROTATE
+        #undef MAGNET_Y_ROTATE_BACKTRACK
         #undef MAGNET_DIPOLE_FRINGE
+        #undef MAGNET_DIPOLE_FRINGE_BACKTRACK
         #undef MAGNET_MULTIPOLE_FRINGE
         #undef MAGNET_WEDGE
+        #undef MAGNET_WEDGE_BACKTRACK
         #undef MAGNET_QUAD_WEDGE
+        #undef MAGNET_QUAD_WEDGE_BACKTRACK
     }
     else if (model == 3) { // only ax ay cancellation (already done above)
         // do nothing
