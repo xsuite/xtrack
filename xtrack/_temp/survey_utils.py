@@ -310,7 +310,7 @@ def misalignment_from_geode_displacements(
     # GEODE-to-Xsuite sign convention.
     R = Frame().rotate_s(-bgamma)
 
-    # Express the chord-frame crab in entrance reference axes: B C B^-1.
+    # Express the C transformation in the entrance reference frame.
     crab_in_reference = B @ C @ B.inverse()
 
     # Roll the nominal chord frame about the entrance tangent. For a bend this
