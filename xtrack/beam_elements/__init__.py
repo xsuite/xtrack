@@ -79,6 +79,7 @@ from .limit_ellipse import LimitEllipse
 from .limit_polygon import LimitPolygon
 from .limit_rect_ellipse import LimitRectEllipse
 from .longitudinal_limit_rect import LongitudinalLimitRect
+from ..synctime import SyncTime
 
 from .acdipole import ACDipole
 from .exciter import Exciter
