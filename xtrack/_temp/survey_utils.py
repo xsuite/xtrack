@@ -53,17 +53,14 @@ def clear_element_misalignments(element):
 
 
 def misalignment_from_absolute_position(
-        XYZ_elem_start, E_elem_start, XYZ_ref_start, E_ref_start,
-        rbend_angle=None):
+        XYZ_elem_start, E_elem_start, XYZ_ref_start, E_ref_start):
     """Infer MAD-X misalignments from absolute entrance position and frame.
 
-    For an RBend, ``rbend_angle`` applies the half-angle transformation from
-    its entrance frame to the frame used by the MAD-X misalignment convention.
+    The supplied element frame must use the entrance tangent orientation
+    used by the alignment parameters. Callers starting from a bend's chord
+    frame must convert its orientation before calling this function.
     """
     frame_elem_start = Frame.from_survey(XYZ_elem_start, E_elem_start)
-
-    if rbend_angle is not None:
-        frame_elem_start.rotate_y(rbend_angle / 2)
 
     frame_ref_start = Frame.from_survey(XYZ_ref_start, E_ref_start)
 
@@ -326,15 +323,19 @@ def misalignment_from_geode_displacements(
     # the entrance at the origin; the exit and sockets follow the rigid body.
     misaligned_chord_frame.XYZ = xys_from_rst.E_matrix @ displ_start_rst
 
-    # The frame holds the displaced entrance position and chord orientation.
-    # Convert these to Xsuite/MAD-X shifts and rotation parameters, including
-    # the RBend half-angle conversion from chord to entrance orientation.
+    # The alignment parameters describe the entrance tangent orientation,
+    # whereas we have constructed the chord orientation. Undo the nominal
+    # -angle/2 rotation included in B by rotating +angle/2 about the frame's
+    # local y axis. This keeps the displaced entrance position unchanged.
+    misaligned_entrance_frame = misaligned_chord_frame.copy()
+    misaligned_entrance_frame.rotate_y(angle / 2)
+
+    # Extract shifts and rotations relative to the entrance reference frame.
     return misalignment_from_absolute_position(
-        XYZ_elem_start=misaligned_chord_frame.XYZ,
-        E_elem_start=misaligned_chord_frame.E_matrix,
+        XYZ_elem_start=misaligned_entrance_frame.XYZ,
+        E_elem_start=misaligned_entrance_frame.E_matrix,
         XYZ_ref_start=np.zeros(3),
         E_ref_start=np.eye(3),
-        rbend_angle=angle,
     )
 
 

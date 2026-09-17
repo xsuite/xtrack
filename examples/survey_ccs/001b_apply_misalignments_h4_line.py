@@ -151,12 +151,19 @@ print(f'  {len(untouched)} other survey rows stayed where they were')
 recovered = {}
 for name in bump_element_names:
     element = line[name]
+    entrance_frame = xt.Frame.from_survey(
+        survey_aligned['XYZ_elem_start', name],
+        survey_aligned['E_elem_start', name])
+    if isinstance(element, xt.RBend):
+        # RBend survey frames follow the chord. Rotate locally by half the
+        # bend angle to obtain the entrance tangent used by the alignment
+        # parameters, keeping the surveyed entrance position unchanged.
+        entrance_frame.rotate_y(element.angle / 2)
     misalignment = su.misalignment_from_absolute_position(
-        XYZ_elem_start=survey_aligned['XYZ_elem_start', name],
-        E_elem_start=survey_aligned['E_elem_start', name],
+        XYZ_elem_start=entrance_frame.XYZ,
+        E_elem_start=entrance_frame.E_matrix,
         XYZ_ref_start=survey_nominal['XYZ_ref_start', name],
         E_ref_start=survey_nominal['E_ref_start', name],
-        rbend_angle=(element.angle if isinstance(element, xt.RBend) else None),
     )
     recovered[name.upper()] = [
         misalignment.dtheta, misalignment.dphi, misalignment.dpsi,

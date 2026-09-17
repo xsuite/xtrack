@@ -142,12 +142,16 @@ def test_randomized_rst_misalignment_round_trips():
             tilt=tilt,
             angle=angle,
         )
+        # Convert the chord orientation to the entrance tangent orientation
+        # before extracting alignment parameters from the absolute frames.
+        entrance_frame = element_start_frame.copy()
+        if rbend_angle is not None:
+            entrance_frame.rotate_y(rbend_angle / 2)
         from_absolute = su.misalignment_from_absolute_position(
             XYZ_elem_start=XYZ_elem_start,
-            E_elem_start=element_start_frame.E_matrix,
+            E_elem_start=entrance_frame.E_matrix,
             XYZ_ref_start=reference_frame.XYZ,
             E_ref_start=reference_frame.E_matrix,
-            rbend_angle=rbend_angle,
         )
 
         np.testing.assert_allclose(
