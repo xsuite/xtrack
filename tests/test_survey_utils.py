@@ -321,3 +321,92 @@ def test_misalignment_from_rst_displacements_keeps_the_element_rigid():
     np.testing.assert_allclose(
         [misalignment.shift_x, misalignment.shift_y, misalignment.shift_s],
         [0., displacement, 0.], atol=5e-15, rtol=0)
+
+
+def _geode_body_frame(misalignment, tilt, angle):
+    element = SimpleNamespace(rot_s_rad=tilt, angle=angle)
+    misalignment.apply_to_element(element)
+    body = (xt.Frame().rotate_y(element.rot_y_rad)
+            .rotate_x(-element.rot_x_rad)
+            .rotate_s(element.rot_s_rad_no_frame)
+            .rotate_s(tilt).rotate_y(-angle/2))
+    body.XYZ = [element.shift_x, element.shift_y, element.shift_s]
+    return element, body
+
+
+@pytest.mark.parametrize('tilt', [0., np.pi/2, -np.pi/2, .7])
+@pytest.mark.parametrize('angle', [-.12, 0., .12])
+def test_geode_crab_has_zero_roll_in_nominal_chord_frame(tilt, angle):
+    start = np.array([.01, .02, .03])
+    end = np.array([-.02, .8, -.01])  # Exit S is intentionally incompatible.
+    length = 2.
+    mis = su.misalignment_from_geode_displacements(
+        start, end, length, bgamma=0., tilt=tilt, angle=angle)
+    element, body = _geode_body_frame(mis, tilt, angle)
+    recovered_start, recovered_end = su.rst_start_end_offsets_from_parameters(
+        element, length)
+    np.testing.assert_allclose(recovered_start, start, atol=1e-14, rtol=0)
+    np.testing.assert_allclose(recovered_end[[0, 2]], end[[0, 2]], atol=1e-14, rtol=0)
+    assert np.linalg.norm(recovered_end-recovered_start) == pytest.approx(length)
+
+    nominal = xt.Frame().rotate_s(tilt).rotate_y(-angle/2)
+    relative = nominal.inverse() @ body
+    assert relative.psi == pytest.approx(0., abs=1e-14)
+
+
+@pytest.mark.parametrize('angle', [-.12, .12])
+@pytest.mark.parametrize('roll', [-.01, .01])
+def test_geode_roll_moves_bend_exit_about_entrance_tangent(angle, roll):
+    length = 2.
+    mis = su.misalignment_from_geode_displacements(
+        [0, 0, 0], [0, 0, 0], length, bgamma=roll, angle=angle)
+    # GEODE does not introduce a compensating crab to keep the exit fixed.
+    np.testing.assert_allclose(
+        [mis.dtheta, mis.dphi, mis.dpsi], [0., 0., -roll], atol=1e-14, rtol=0)
+    element, _ = _geode_body_frame(mis, tilt=0., angle=angle)
+    start, end = su.rst_start_end_offsets_from_parameters(element, length)
+    np.testing.assert_allclose(start, 0., atol=1e-14, rtol=0)
+    assert end[2] == pytest.approx(length*np.sin(angle/2)*np.sin(roll), abs=1e-14)
+    assert np.linalg.norm(end-start) == pytest.approx(length)
+
+
+@pytest.mark.parametrize('tilt', [0., .99, np.pi/2])
+def test_geode_combined_crab_roll_rotates_about_crabbed_tangent(tilt):
+    start, end = [.003, .002, .001], [-.003, .002, -.001]
+    length, angle, roll = 2., .12, .01
+    no_roll = su.misalignment_from_geode_displacements(
+        start, end, length, bgamma=0., tilt=tilt, angle=angle)
+    with_roll = su.misalignment_from_geode_displacements(
+        start, end, length, bgamma=roll, tilt=tilt, angle=angle)
+    _, body_before = _geode_body_frame(no_roll, tilt, angle)
+    _, body_after = _geode_body_frame(with_roll, tilt, angle)
+    nominal = xt.Frame().rotate_s(tilt).rotate_y(-angle/2)
+    tangent = body_before.E_matrix @ nominal.E_matrix.T @ [0., 0., 1.]
+    # Rotate a socket about the displaced entrance tangent using Rodrigues'
+    # formula, independently of the Euler parameter extraction.
+    socket = np.array([.3, .6, 1.7])
+    before = body_before.E_matrix @ socket
+    expected = (before*np.cos(roll) - np.cross(tangent, before)*np.sin(roll)
+                + tangent*np.dot(tangent, before)*(1-np.cos(roll)))
+    np.testing.assert_allclose(body_after.E_matrix @ socket, expected, atol=1e-14, rtol=0)
+    np.testing.assert_allclose(body_after.XYZ, body_before.XYZ, atol=1e-14, rtol=0)
+
+
+def test_geode_straight_untilted_matches_existing_conversion():
+    args = dict(displ_start_rst=[.002, .003, -.004],
+                displ_end_rst=[-.001, .003, .007], length=1., bgamma=.02)
+    new = su.misalignment_from_geode_displacements(**args)
+    old = su.misalignment_from_rst_displacements(**args)
+    np.testing.assert_allclose(_misalignment_values(new), _misalignment_values(old),
+                               atol=1e-14, rtol=0)
+
+
+@pytest.mark.parametrize('length', [0., -1.])
+def test_geode_displacements_reject_nonpositive_length(length):
+    with pytest.raises(ValueError, match='length must be positive'):
+        su.misalignment_from_geode_displacements([0, 0, 0], [0, 0, 0], length, bgamma=0.)
+
+
+def test_geode_displacements_reject_oversized_crab():
+    with pytest.raises(ValueError, match='larger than the element chord'):
+        su.misalignment_from_geode_displacements([0, 0, 0], [2, 0, 0], 1., bgamma=0.)

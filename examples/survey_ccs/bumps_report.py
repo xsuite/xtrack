@@ -44,8 +44,9 @@ def read_bumps_report(file_name):
     """Return one row per element, indexed by element name.
 
     The `*_entry` and `*_exit` columns hold the requested RST displacements of
-    the two end points, in metres, and `roll` the requested roll about the
-    chord, in radians. A blank cell in the report means no bump requested on
+    the two end points before adding roll, in metres, and `roll` the requested
+    GEODE rotation about the entrance reference tangent, in radians.
+    A blank cell in the report means no bump requested on
     that axis, and is read as zero.
     In particular, `r_entry` and `r_exit` are the negatives of the report's
     `Radial (m)` values, not the raw radial deviations.

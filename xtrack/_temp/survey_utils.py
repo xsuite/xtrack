@@ -253,6 +253,97 @@ def misalignment_from_rst_displacements(
     )
 
 
+def misalignment_from_geode_displacements(
+        displ_start_rst, displ_end_rst, length, bgamma, tilt=0.0, angle=0.0):
+    """Convert GEODE displacements and roll to MAD-X alignment parameters.
+
+    The displacements are geometric RST vectors in the nominal tilted chord
+    frame. A report's radial *deviation* must therefore already be negated.
+    ``length`` is the chord length; ``angle`` is the RBend angle (zero for a
+    straight element), and ``tilt`` is its nominal longitudinal rotation.
+
+    Infer the crab in the chord frame, independently of ``bgamma``. As in
+    :func:`rst_rigid_chord`, exit S is determined by rigidity. Compose this
+    crab with the additional rotation ``-bgamma`` about the entrance reference
+    tangent. With B the nominal chord frame, C the crab in that frame, and R
+    the tangent roll, the final body orientation is ``B C B^-1 R B``.
+
+    Unlike :func:`misalignment_from_rst_displacements`, a rolled bend need
+    not retain the transverse exit position specified before adding roll.
+    Entrance translation and chord length are preserved. The returned dpsi
+    includes design tilt and the crab/half-bend-angle coupling; in general it
+    is not simply ``tilt - bgamma``.
+    """
+    # A rigid magnet needs a positive chord length.
+    if length <= 0:
+        raise ValueError('length must be positive')
+
+    # The input is already geometric RST: the caller has corrected the
+    # bump-report radial sign.
+    displ_start_rst = np.asarray(displ_start_rst, dtype=float)
+
+    # Infer the entrance-to-exit vector before the additional roll.
+    # For entrance/exit displacements (r0, s0, t0) and (r1, s1, t1):
+    #   chord_r = r1 - r0, chord_t = t1 - t0,
+    #   chord_s = sqrt(length**2 - chord_r**2 - chord_t**2).
+    # Rigidity determines chord_s, so the requested exit S is ignored.
+    chord_r, chord_s, chord_t = rst_rigid_chord(
+        displ_start_rst, displ_end_rst, length)
+
+    # Rotations of the element chord from its nominal direction to the
+    # misaligned direction implied by the endpoint displacements,
+    # before applying the additional roll.
+
+    # theta and phi are defined with respect to x = -R, y = T, s = S.
+    theta = np.arctan2(-chord_r, chord_s)
+    phi = np.arctan2(chord_t, np.hypot(chord_r, chord_s))
+
+    # Point local s along (-chord_r, chord_t, chord_s). This is the crab C:
+    # equal transverse displacements at both ends give zero crab, while
+    # different displacements change the magnet's longitudinal direction.
+    crab = Frame().rotate_y(theta).rotate_x(-phi)
+
+    # B maps nominal chord coordinates into entrance reference axes:
+    #   B = Frame().rotate_s(tilt).rotate_y(-angle / 2).
+    # It includes the design tilt and the half-angle between the entrance
+    # tangent and the chord.
+    nominal, xys_from_rst = _rst_transform_frames(tilt, angle)
+
+    # Additional roll R about the nominal entrance tangent, with the
+    # GEODE-to-Xsuite sign convention.
+    tangent_roll = Frame().rotate_s(-bgamma)
+
+    # Express the chord-frame crab in entrance reference axes: B C B^-1.
+    crab_in_reference = nominal @ crab @ nominal.inverse()
+
+    # Roll the nominal chord frame about the entrance tangent. For a bend this
+    # axis differs from the chord, so the roll can also move the exit.
+    rolled_chord_frame = tangent_roll @ nominal
+
+    # Apply the crab after the roll, even though we calculated it first.
+    # Products act right to left: displaced_chord_frame = (B C B^-1) R B.
+    # We do not adjust the crab to cancel the rolled bend's exit motion.
+    # Zero roll gives B C; zero crab gives R B.
+    displaced_chord_frame = crab_in_reference @ rolled_chord_frame
+
+    # Place the entrance at its requested displacement. xys_from_rst maps
+    # RST to reference coordinates, including x = -R, y = T, s = S in the
+    # chord frame and the nominal orientation B. The rotations above leave
+    # the entrance at the origin; the exit and sockets follow the rigid body.
+    displaced_chord_frame.XYZ = xys_from_rst.E_matrix @ displ_start_rst
+
+    # The frame holds the displaced entrance position and chord orientation.
+    # Convert these to Xsuite/MAD-X shifts and rotation parameters, including
+    # the RBend half-angle conversion from chord to entrance orientation.
+    return misalignment_from_absolute_position(
+        XYZ_elem_start=displaced_chord_frame.XYZ,
+        E_elem_start=displaced_chord_frame.E_matrix,
+        XYZ_ref_start=np.zeros(3),
+        E_ref_start=np.eye(3),
+        rbend_angle=angle,
+    )
+
+
 def rst_start_end_offsets_from_parameters(element, length):
     angle = getattr(element, 'angle', 0.0)
 

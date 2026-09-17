@@ -13,9 +13,9 @@ from bumps_report import read_bumps_report
 #
 # `bumps_report` reads the report, checks it over and gives one row per
 # element: the requested displacement of the entrance and the exit points in
-# the element's own RST frame, plus a roll about the chord. Together with the
+# the element's own RST frame, plus the GEODE roll. Together with the
 # nominal chord length, that is exactly what
-# `su.misalignment_from_rst_displacements` takes.
+# `su.misalignment_from_geode_displacements` takes.
 # The reader has already negated the report's radial deviations to obtain
 # geometric R displacements; no further sign conversion is needed here.
 #
@@ -24,9 +24,11 @@ from bumps_report import read_bumps_report
 # rigid motion puts both end points exactly where asked. The element is kept
 # rigid, which means its chord length is preserved, so the requested exit
 # longitudinal (S) displacement is discarded -- for a rigid element it follows
-# from the other two rather than being free. The entrance counterpart is kept:
-# that one is the `ds` shift of the whole element. This script reports, element
-# by element, how much of the request that drops.
+# from the other two rather than being free. The entrance counterpart is kept.
+# This determines the crab in the tilted chord frame. The additional GEODE
+# roll is composed about the entrance reference tangent, so it can further
+# move a bend's exit. The report separates the rigidity adjustment from the
+# exit displacement introduced by roll.
 #
 # The script is in three parts: the computation, then the checks that verify
 # it, then the report. The computation hands over `out`, a table with one row
@@ -64,17 +66,15 @@ for element_name in line.get_table().name:
     element = line[element_name]
 
     # Chord length: the RBends keep the arc in `length` and the chord in
-    # `length_straight`. The elements modelled as drifts (instruments,
-    # collimators) carry neither a tilt nor a bending angle.
+    # `length_straight`. Drift-modelled instruments can carry a design tilt.
     length = getattr(element, 'length_straight', None) or element.length
     tilt = getattr(element, 'rot_s_rad', 0.) or 0.
     angle = getattr(element, 'angle', 0.) or 0.
 
-    mis = su.misalignment_from_rst_displacements(
+    mis = su.misalignment_from_geode_displacements(
         displ_start, displ_end, length, bgamma=roll, tilt=tilt, angle=angle)
 
-    # Longitudinal exit displacement that the rigid motion produces, to
-    # compare with the requested one that had to be dropped.
+    # Longitudinal adjustment from rigidity, before the additional roll.
     chord_rst = su.rst_rigid_chord(displ_start, displ_end, length)
     ds_exit_rigid = displ_start[1] + chord_rst[1] - length
 
@@ -92,8 +92,8 @@ for element_name in line.get_table().name:
         'angle': angle,
         'dtheta': mis.dtheta,
         'dphi': mis.dphi,
-        # `dpsi` from survey_utils includes the design tilt; the bump-induced
-        # part alone is what MAD-X receives on top of the nominal tilt.
+        # The additional MAD-X rotation includes crab/bend coupling as well
+        # as the requested roll. It is generally not just minus that roll.
         'dpsi': mis.dpsi,
         'dpsi_no_tilt': mis.dpsi - tilt,
         'dx': mis.shift_x,
@@ -113,17 +113,31 @@ out = pd.DataFrame(results).set_index('name')
 
 print('checks:')
 
-# RST end-point positions of each displaced element, rebuilt from the table
-# for the geometric checks below. A nominal element runs from (0, 0, 0) to
-# (0, length, 0) in its own RST frame, independently of its tilt and bending
-# angle, so an end point offset is the nominal position plus the rigid chord.
+# Independently construct the expected GEODE chord: roll the nominal chord
+# about the entrance tangent, then apply the crab inferred without roll.
+# A nominal element runs from (0, 0, 0) to (0, length, 0) in its RST frame.
 rst_offsets = {}
+rst_basis = np.array([[-1., 0, 0], [0, 0, 1], [0, 1, 0]])
 for name, row in out.iterrows():
     request = requests.loc[name]
     displ_start = request[ENTRY_COLUMNS].to_numpy(dtype=float)
     displ_end = request[EXIT_COLUMNS].to_numpy(dtype=float)
     chord_rst = su.rst_rigid_chord(displ_start, displ_end, row['length_chord'])
-    rst_offsets[name] = (displ_start, displ_start + chord_rst)
+    nominal = xt.Frame().rotate_s(row['tilt']).rotate_y(-row['angle']/2)
+    axis_rst = rst_basis.T @ nominal.E_matrix.T @ np.array([0., 0., 1.])
+    nominal_chord = np.array([0., row['length_chord'], 0.])
+    gamma = -request['roll']
+    rolled_chord = (nominal_chord*np.cos(gamma)
+                    + np.cross(axis_rst, nominal_chord)*np.sin(gamma)
+                    + axis_rst*np.dot(axis_rst, nominal_chord)*(1-np.cos(gamma)))
+    crab_theta = np.arctan2(-chord_rst[0], chord_rst[1])
+    crab_phi = np.arcsin(chord_rst[2]/row['length_chord'])
+    crab = xt.Frame().rotate_y(crab_theta).rotate_x(-crab_phi)
+    final_chord = rst_basis.T @ crab.E_matrix @ rst_basis @ rolled_chord
+    rst_offsets[name] = (displ_start, displ_start + final_chord)
+    out.loc[name, 'ds_exit_final'] = displ_start[1] + final_chord[1] - row['length_chord']
+    for component, delta in zip('rst', final_chord-chord_rst):
+        out.loc[name, f'd{component}_exit_from_roll'] = delta
 
 # The report itself is checked by `read_bumps_report`: the column totals
 # against their four sources, the names against `Nom Layout`, the roll against
@@ -185,7 +199,7 @@ print(f'  {len(single_point_names)} unreported exits have zero R and T')
 # so a non-zero design tilt rotates R and T into dx and dy (as seen e.g. on the
 # vertical benders MBNV, which have tilt = pi/2).
 def check(displ_e, displ_s, bgamma=0.):
-    return su.misalignment_from_rst_displacements(
+    return su.misalignment_from_geode_displacements(
         displ_e, displ_s, length=1., bgamma=bgamma)
 
 
@@ -217,8 +231,7 @@ with pd.option_context('display.width', 200, 'display.max_rows', None):
                   misalignment_columns].to_string(
         float_format=lambda vv: f'{vv: .6e}' if abs(vv) > 0 else f'{0.: .6e}'))
 
-print('\n=== requested exit S displacement dropped to keep the element rigid '
-      '===')
+print('\n=== requested exit S displacement dropped for rigidity, before roll ===')
 dropped = out['ds_exit_dropped'].abs() > 1e-6
 print(f'{dropped.sum()} elements differ by more than 1 um '
       f'(max {out["ds_exit_dropped"].abs().max() * 1e3:.3f} mm); '
@@ -228,6 +241,13 @@ if dropped.any():
     print(out.loc[dropped, ['length_chord', 'ds_exit_requested',
                             'ds_exit_rigid', 'ds_exit_dropped']].sort_values(
         'ds_exit_dropped', key=abs, ascending=False).to_string())
+
+print('\n=== additional exit displacement from entrance-tangent roll ===')
+roll_columns = ['dr_exit_from_roll', 'ds_exit_from_roll', 'dt_exit_from_roll']
+rolled = out[roll_columns].abs().max(axis=1) > 1e-6
+print(f'{rolled.sum()} elements move by more than 1 um in at least one component')
+if rolled.any():
+    print(out.loc[rolled, roll_columns + ['ds_exit_final']].to_string())
 
 print('\n=== magnitudes ===')
 for column in misalignment_columns:
