@@ -78,12 +78,9 @@ for element_name in line.get_table().name:
     chord_rst = su.rst_rigid_chord(displ_start, displ_end, length)
     ds_exit_rigid = displ_start[1] + chord_rst[1] - length
 
-    # The thin instruments (XSCI, XDWC) are reported on their entrance point
-    # only; the reader gives their exit the same displacement, which comes out
-    # here as a rigid translation with no rotation about x or y. See
-    # `read_bumps_report` for why that is the reading. That filling-in is not
-    # a request, so there is nothing it could have dropped, and the requested
-    # exit displacement is left empty for those elements.
+    # For entrance-only requests, the reader defaults exit R and T to zero
+    # to match GEODE, so the instrument can crab. Exit S follows from rigidity;
+    # no exit S was requested, hence nothing can be reported as discarded.
     single_point = bool(request['single_point'])
     ds_exit_requested = np.nan if single_point else request['s_exit']
 
@@ -173,6 +170,14 @@ round_trip_error = pd.Series(round_trip_error)
 assert round_trip_error.max() < 1e-12
 print(f'  round trip over {len(out)} elements: max error = '
       f'{round_trip_error.max():.2e} m')
+
+# An unreported exit stays at nominal transverse coordinates, including for
+# instruments whose only socket is at their centre rather than their entrance.
+single_point_names = out.index[out['single_point']]
+for name in single_point_names:
+    np.testing.assert_allclose(rst_offsets[name][1][[0, 2]], [0., 0.],
+                               atol=1e-12, rtol=0)
+print(f'  {len(single_point_names)} unreported exits have zero R and T')
 
 # Closed-form checks of the RST -> MAD-X mapping, on a straight untilted
 # element of unit chord: R = -x, S = +s, T = +y, and the SU roll is minus the

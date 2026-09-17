@@ -50,17 +50,14 @@ def read_bumps_report(file_name):
     In particular, `r_entry` and `r_exit` are the negatives of the report's
     `Radial (m)` values, not the raw radial deviations.
 
-    The thin instruments are reported on their entrance point only, since a
-    single fiducial point is what gets measured on a body a few centimetres
-    long. The orientation of the chord comes from the *difference* between the
-    two end-point displacements, so those elements constrain only four of the
-    six degrees of freedom: three of translation, plus the roll, which does
-    not come from the end points. Their exit is given the same displacement as
-    their entrance, which states the minimal reading of that explicitly --
-    both ends move by the same vector, so the element is translated and left
-    parallel to its nominal axis, with no rotation about x or y. The
-    `single_point` column flags them, so a caller that wants to treat them
-    differently, or to tell a real request from this filled-in one, still can.
+    Some instruments have an entrance row only. To match GEODE, an unreported
+    exit gets zero radial and vertical displacement. The different transverse
+    displacements at the two ends then produce a crab: a centre socket moves
+    by half the entrance transverse displacement. The longitudinal exit value
+    is filled from the entrance as a placeholder; the rigid-body conversion
+    determines the actual exit S from the chord length and transverse offsets.
+    `single_point` flags the missing exit row, not the physical socket location
+    (which the socket report specifies through its Origine and S columns).
     """
     raw = pd.read_csv(file_name)
 
@@ -101,8 +98,10 @@ def read_bumps_report(file_name):
             sign = -1. if component == 'r' else 1.
             displacement = sign * _value(entry, column)
             record[f'{component}_entry'] = displacement
-            record[f'{component}_exit'] = (
-                displacement if exit_ is None else sign * _value(exit_, column))
+            if exit_ is None:
+                record[f'{component}_exit'] = displacement if component == 's' else 0.
+            else:
+                record[f'{component}_exit'] = sign * _value(exit_, column)
         out[name] = record
 
     orphans = {name for name, point in points if point == 'S'} - set(out)
