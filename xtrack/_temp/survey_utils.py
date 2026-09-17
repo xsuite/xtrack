@@ -265,8 +265,9 @@ def misalignment_from_geode_displacements(
     Infer the crab in the chord frame, independently of ``bgamma``. As in
     :func:`rst_rigid_chord`, exit S is determined by rigidity. Compose this
     crab with the additional rotation ``-bgamma`` about the entrance reference
-    tangent. With B the nominal chord frame, C the crab in that frame, and R
-    the tangent roll, the final body orientation is ``B C B^-1 R B``.
+    tangent. With B the nominal chord frame and C_local the crab in that
+    frame, ``C = B C_local B^-1`` expresses the crab in the entrance reference
+    frame. With R the tangent roll, the final chord orientation is ``C R B``.
 
     Unlike :func:`misalignment_from_rst_displacements`, a rolled bend need
     not retain the transverse exit position specified before adding roll.
@@ -298,9 +299,9 @@ def misalignment_from_geode_displacements(
     theta = np.arctan2(-chord_r, chord_s)
     phi = np.arctan2(chord_t, np.hypot(chord_r, chord_s))
 
-    # C transforms coordinates from the misaligned chord frame (before
+    # C_local transforms coordinates from the misaligned chord frame (before
     # additional roll) to the nominal chord frame.
-    C = Frame().rotate_y(theta).rotate_x(-phi)
+    C_local = Frame().rotate_y(theta).rotate_x(-phi)
 
     # B transforms coordinates from the nominal chord frame to the
     # reference frame tangent to the trajectory at the element entrance.
@@ -310,31 +311,27 @@ def misalignment_from_geode_displacements(
     # GEODE-to-Xsuite sign convention.
     R = Frame().rotate_s(-bgamma)
 
-    # Express the C transformation in the entrance reference frame.
-    crab_in_reference = B @ C @ B.inverse()
+    # The same crab rotation expressed in the entrance reference frame.
+    C = B @ C_local @ B.inverse()
 
-    # Roll the nominal chord frame about the entrance tangent. For a bend this
-    # axis differs from the chord, so the roll can also move the exit.
-    rolled_chord_frame = R @ B
+    # Apply the roll to the nominal chord frame, then apply the crab.
+    misaligned_chord_frame = C @ R @ B
 
-    # Apply the crab after the roll, even though we calculated it first.
-    # Products act right to left: displaced_chord_frame = (B C B^-1) R B.
-    # We do not adjust the crab to cancel the rolled bend's exit motion.
-    # Zero roll gives B C; zero crab gives R B.
-    displaced_chord_frame = crab_in_reference @ rolled_chord_frame
+    # For a bend, rolling about the entrance tangent can move the exit.
+    # The crab is not adjusted to cancel this motion.
 
     # Place the entrance at its requested displacement. xys_from_rst maps
     # RST to reference coordinates, including x = -R, y = T, s = S in the
     # chord frame and the nominal orientation B. The rotations above leave
     # the entrance at the origin; the exit and sockets follow the rigid body.
-    displaced_chord_frame.XYZ = xys_from_rst.E_matrix @ displ_start_rst
+    misaligned_chord_frame.XYZ = xys_from_rst.E_matrix @ displ_start_rst
 
     # The frame holds the displaced entrance position and chord orientation.
     # Convert these to Xsuite/MAD-X shifts and rotation parameters, including
     # the RBend half-angle conversion from chord to entrance orientation.
     return misalignment_from_absolute_position(
-        XYZ_elem_start=displaced_chord_frame.XYZ,
-        E_elem_start=displaced_chord_frame.E_matrix,
+        XYZ_elem_start=misaligned_chord_frame.XYZ,
+        E_elem_start=misaligned_chord_frame.E_matrix,
         XYZ_ref_start=np.zeros(3),
         E_ref_start=np.eye(3),
         rbend_angle=angle,
