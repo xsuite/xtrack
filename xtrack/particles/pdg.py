@@ -115,6 +115,9 @@ elements_long = {
   116: "Livermorium",   117: "Tennessine",    118: "Oganesson"
 }
 _elements_long_inv = {vv: kk for kk, vv in elements_long.items()}
+_elements_lower_inv = {vv.lower(): kk for kk, vv in elements.items()}
+_elements_lower_inv.update(
+    {vv.lower(): kk for kk, vv in elements_long.items()})
 
 
 def is_proton(pdg_id):
@@ -188,10 +191,19 @@ def get_pdg_id_from_name(name=None):
 
     if name is None:
         return 0  # undefined
-    elif hasattr(name, '__len__') and not isinstance(name, str):
-        return np.array([get_pdg_id_from_name(nn) for nn in name])
     elif isinstance(name, Number):
         return int(name) # fallback
+    elif not isinstance(name, str) and hasattr(name, '__len__'):
+        name_array = np.asarray(name)
+        if name_array.ndim == 0:
+            return get_pdg_id_from_name(name_array.item())
+        if name_array.dtype.kind in 'biu' or (
+                name_array.dtype.kind == 'f'
+                and np.all(np.isfinite(name_array))):
+            # PDG IDs are commonly supplied as one integer per particle. Avoid
+            # recursively dispatching every element through this function.
+            return name_array.astype(np.int64, copy=False)
+        return np.array([get_pdg_id_from_name(nn) for nn in name])
 
     lname = _to_normal_script(name).lower().replace('ς', 'σ')
     aname = ""
@@ -205,27 +217,37 @@ def get_pdg_id_from_name(name=None):
     _PDG_inv = get_pdg_inv()
 
     # particle
-    if lname in _PDG_inv.keys():
+    if lname in _PDG_inv:
         return _PDG_inv[lname]
 
     # anti-particle
-    elif aname in _PDG_inv.keys():
+    elif aname in _PDG_inv:
         return -_PDG_inv[aname]
 
     else:
-        ion_name = lname.lower()
-        ion_name = ion_name.replace('_','').replace('-','')
+        ion_name = lname.replace('_','').replace('-','')
         ion_name = ion_name.replace(' ','').replace('.','')
-        for Z, ion in elements_long.items():
-            if ion.lower() in ion_name:
-                A = ion_name.replace(ion.lower(), '')
-                if A.isnumeric() and int(A) > 0:
-                    return get_pdg_id_ion(int(A), Z)
-        for Z, ion in elements.items():
-            if ion.lower() in ion_name:
-                A = ion_name.replace(ion.lower(), '')
-                if A.isnumeric() and int(A) > 0:
-                    return get_pdg_id_ion(int(A), Z)
+
+        # Split an ion name into an element and a leading or trailing mass
+        # number, then use the inverse element table for an O(1) lookup. The
+        # previous implementation scanned and lower-cased all 236 short and
+        # long element names for every lookup.
+        if ion_name and ion_name[0].isdigit():
+            split = 0
+            while split < len(ion_name) and ion_name[split].isdigit():
+                split += 1
+            A = ion_name[:split]
+            element = ion_name[split:]
+        else:
+            split = len(ion_name)
+            while split > 0 and ion_name[split - 1].isdigit():
+                split -= 1
+            element = ion_name[:split]
+            A = ion_name[split:]
+
+        Z = _elements_lower_inv.get(element)
+        if Z is not None and A.isnumeric() and int(A) > 0:
+            return get_pdg_id_ion(int(A), Z)
         raise ValueError(f"Particle {name} not found in pdg dictionary, or wrongly "
                         + f"formatted ion name!\nFor ions, use e.g. 'Pb208', 'Pb 208', "
                         + f"'Pb-208', 'Pb_208', 'Pb.208', '208Pb', 'lead-208', ...")
