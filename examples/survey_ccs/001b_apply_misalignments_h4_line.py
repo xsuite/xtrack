@@ -7,10 +7,8 @@ from xtrack._temp import survey_utils as su
 # Apply the misalignments computed by 001a_bump_to_misalignments_h4_line.py to
 # the H4 line, then export the misaligned line and its survey.
 #
-# Many of the requested elements (instruments, collimators) are modelled as
-# drifts, and a Drift carries no alignment attributes. They are replaced by
-# Device, which tracks as a drift but can hold a misalignment, so that every
-# requested element ends up with the position the report asks for.
+# The MAD loader imports passive elements as Device, which can hold the
+# misalignments needed for the survey.
 #
 # The script is in three parts: the computation, then the exports, then the
 # checks that verify the whole thing. The checks come last here, unlike in
@@ -30,25 +28,6 @@ bump_element_names = [nn.lower() for nn in table.index]
 
 env = xt.load('survey-h4-post-ls3-cern-coords-v4.seq')
 line = env['h4']
-
-# Swap the drift-modelled elements for devices of the same length, keeping
-# their names so that they stay matched to the report.
-converted = []
-for name in bump_element_names:
-    element = line[name]
-    if not isinstance(element, xt.Drift):
-        continue
-    device = xt.Device(
-        length=element.length,
-        model=element.model,
-        rot_s_rad=getattr(element, 'rot_s_rad', 0.),
-    )
-    # `extra` carries the layout database slot_id, which the legacy survey
-    # export writes out, so it has to survive the conversion.
-    if hasattr(element, 'extra'):
-        device.extra = element.extra
-    line.element_dict[name] = device
-    converted.append(name)
 
 # Starting point
 f0_ccs = xt.CCSFrame(
@@ -116,15 +95,14 @@ su.write_legacy_survey_tfs(
 
 print('checks:')
 
-print(f'  {len(bump_element_names)} requested elements, '
-      f'{len(converted)} drifts converted to devices')
+print(f'  {len(bump_element_names)} requested elements')
 
 # Every requested element must now be able to hold a misalignment.
 for name in bump_element_names:
     assert hasattr(line[name], 'rot_s_rad'), name
 print('  all requested elements can hold a misalignment')
 
-# The slot_id must survive the conversion: the legacy survey export needs it.
+# The legacy survey export needs the slot_id imported from MAD.
 for name in bump_element_names:
     assert 'slot_id' in line[name].extra, name
 print(f'  slot_id preserved on all {len(bump_element_names)} elements')

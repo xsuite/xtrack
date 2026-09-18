@@ -4593,7 +4593,7 @@
  ],
  "elements": {
   "collimator": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "crabcavity": {
    "__class__": "CrabCavity"
@@ -4617,7 +4617,7 @@
    "prototype": "h4_exp"
   },
   "ecollimator": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "exp.x0220506": {
    "__class__": "Drift",
@@ -4677,7 +4677,7 @@
    "prototype": "drift"
   },
   "h4_hxgol001": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 2.02,
    "prototype": "instrument"
   },
@@ -4950,206 +4950,206 @@
    "prototype": "quadrupole"
   },
   "h4_tbid": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.25,
    "prototype": "monitor"
   },
   "h4_tcmaa": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.4,
    "prototype": "collimator"
   },
   "h4_vle_target_t24": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.1,
    "prototype": "h4_xciop002"
   },
   "h4_xbpf_l01": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.152,
    "prototype": "monitor"
   },
   "h4_xbtf": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.152,
    "prototype": "monitor"
   },
   "h4_xcet_001": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "prototype": "instrument"
   },
   "h4_xcet_002": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.34,
    "prototype": "instrument"
   },
   "h4_xcet_003": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.34,
    "prototype": "instrument"
   },
   "h4_xcetwaap01": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.0014,
    "prototype": "instrument"
   },
   "h4_xcetwaap02": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.0014,
    "prototype": "instrument"
   },
   "h4_xcetwba001": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.0014,
    "prototype": "instrument"
   },
   "h4_xcetwba002": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.0014,
    "prototype": "instrument"
   },
   "h4_xchv_001": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0,
    "prototype": "collimator"
   },
   "h4_xciob001": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.5,
    "prototype": "collimator"
   },
   "h4_xciop001": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.1,
    "prototype": "collimator"
   },
   "h4_xciop002": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.1,
    "prototype": "collimator"
   },
   "h4_xcon_007": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.001,
    "prototype": "collimator"
   },
   "h4_xcon_008": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.3,
    "prototype": "collimator"
   },
   "h4_xcsh_001": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0,
    "prototype": "collimator"
   },
   "h4_xcsv": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0,
    "prototype": "collimator"
   },
   "h4_xcsv_001": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0,
    "prototype": "collimator"
   },
   "h4_xdwc": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.06,
    "prototype": "monitor"
   },
   "h4_xemc_001": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.8,
    "prototype": "instrument"
   },
   "h4_xff__001": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.276,
    "prototype": "monitor"
   },
   "h4_xsci": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.1,
    "prototype": "monitor"
   },
   "h4_xtax_003": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.615,
    "prototype": "collimator"
   },
   "h4_xtax_004": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.615,
    "prototype": "collimator"
   },
   "h4_xtdv_001": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.6,
    "prototype": "collimator"
   },
   "h4_xtdv_002": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.6,
    "prototype": "collimator"
   },
   "h4_xvvsa001": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.32,
    "prototype": "instrument"
   },
   "h4_xvwaa001": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.0001,
    "prototype": "instrument"
   },
   "h4_xvwad001": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.0001,
    "prototype": "instrument"
   },
   "h4_xvwae001": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.0002,
    "prototype": "instrument"
   },
   "h4_xvwai001": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.0002,
    "prototype": "instrument"
   },
   "h4_xvwas003": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.0002,
    "prototype": "instrument"
   },
   "h4_xvwma001": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.0001,
    "prototype": "instrument"
   },
   "h4_xvwmd001": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.0002,
    "prototype": "instrument"
   },
   "h4_xvwmf001": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.00012,
    "prototype": "instrument"
   },
   "h4_xwca": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.06,
    "prototype": "monitor"
   },
   "h4_xwcm_001": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.1,
    "prototype": "monitor"
   },
   "h4_xwcm_002": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.1,
    "prototype": "monitor"
   },
@@ -5175,10 +5175,10 @@
    ]
   },
   "hmonitor": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "hxgol.x0220496": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "extra": {
     "slot_id": 63384564.0
    },
@@ -5186,10 +5186,10 @@
    "prototype": "h4_hxgol001"
   },
   "imonitor": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "instrument": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "kicker": {
    "__class__": "Multipole",
@@ -7429,7 +7429,7 @@
    "rot_s_rad": 1.5707963267948966
   },
   "monitor": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mqd.x0220049_quad3d": {
    "__class__": "Quadrupole",
@@ -8335,12 +8335,12 @@
    "order": 5
   },
   "photons_producer": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.001,
    "prototype": "h4_xcon_007"
   },
   "placeholder": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "qnl.x0220034": {
    "__class__": "Quadrupole",
@@ -8796,7 +8796,7 @@
    "rbend_model": "adaptive"
   },
   "rcollimator": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "rfcavity": {
    "__class__": "Cavity"
@@ -8841,7 +8841,7 @@
    "prototype": "h4_omk"
   },
   "tbid.230950": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "extra": {
     "slot_id": 46651909.0
    },
@@ -8849,7 +8849,7 @@
    "prototype": "h4_tbid"
   },
   "tcmaa.x0200001": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "extra": {
     "slot_id": 56992098.0
    },
@@ -8878,15 +8878,15 @@
    ]
   },
   "vmonitor": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "vxwt": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.0002,
    "prototype": "h4_xvwai001"
   },
   "wire": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "xbpf.x0220697": {
    "__class__": "Device",
@@ -8894,6 +8894,7 @@
     "slot_id": 57702794.0
    },
    "length": 0.152,
+   "prototype": "h4_xbpf_l01",
    "rot_s_rad": 0.9947844037808626,
    "rot_s_rad_no_frame": -0.0010000000000000009,
    "shift_s": 0.002
@@ -8904,17 +8905,19 @@
     "slot_id": 57702824.0
    },
    "length": 0.152,
+   "prototype": "h4_xbpf_l01",
    "rot_s_rad": 1.0045144037808627,
    "rot_s_rad_no_frame": -0.0030000000000003357,
    "shift_s": 0.002
   },
   "xbpf.x0220702": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "extra": {
     "slot_id": 57702851.0
    },
    "length": 0.152,
-   "prototype": "h4_xbpf_l01"
+   "prototype": "h4_xbpf_l01",
+   "rot_s_rad": 1.0045144037808627
   },
   "xbpf.x0220707": {
    "__class__": "Device",
@@ -8922,6 +8925,7 @@
     "slot_id": 57702874.0
    },
    "length": 0.152,
+   "prototype": "h4_xbpf_l01",
    "rot_s_rad": 0.019910262,
    "rot_s_rad_no_frame": -0.0020000000000000018,
    "shift_x": -3.9817893119863075e-05,
@@ -8933,6 +8937,7 @@
     "slot_id": 57702918.0
    },
    "length": 0.152,
+   "prototype": "h4_xbpf_l01",
    "rot_s_rad": 0.019910262,
    "rot_s_rad_no_frame": -0.0030000000000000027,
    "shift_x": -3.9817893119863075e-05,
@@ -8944,88 +8949,97 @@
     "slot_id": 57709654.0
    },
    "length": 0.152,
+   "prototype": "h4_xbpf_l01",
    "rot_s_rad": 0.9914397346867357,
    "rot_s_rad_no_frame": -0.001000000000000112,
    "shift_x": 0.0010949712734501,
    "shift_y": 0.0016736301593598
   },
   "xbtf.x0220702": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "extra": {
     "slot_id": 63132162.0
    },
    "length": 0.152,
-   "prototype": "h4_xbtf"
+   "prototype": "h4_xbtf",
+   "rot_s_rad": 0.014285462
   },
   "xbtf.x0220716": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "extra": {
     "slot_id": 58281976.0
    },
    "length": 0.152,
-   "prototype": "h4_xbtf"
+   "prototype": "h4_xbtf",
+   "rot_s_rad": 0.019910262
   },
   "xcet.x0220459": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "extra": {
     "slot_id": 56032641.0
    },
    "prototype": "h4_xcet_001"
   },
   "xcet.x0220465": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "extra": {
     "slot_id": 56032650.0
    },
    "prototype": "h4_xcet_001"
   },
   "xcet.x0220713": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "extra": {
     "slot_id": 57603635.0
    },
    "length": 0.34,
-   "prototype": "h4_xcet_002"
+   "prototype": "h4_xcet_002",
+   "rot_s_rad": 0.019910262
   },
   "xcet.x0220716": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "extra": {
     "slot_id": 57603671.0
    },
    "length": 0.34,
-   "prototype": "h4_xcet_003"
+   "prototype": "h4_xcet_003",
+   "rot_s_rad": 0.019910262
   },
   "xcetw.x0220711": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "extra": {
     "slot_id": 62488601.0
    },
    "length": 0.0014,
-   "prototype": "h4_xcetwba001"
+   "prototype": "h4_xcetwba001",
+   "rot_s_rad": 0.019910262
   },
   "xcetw.x0220713": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "extra": {
     "slot_id": 62488638.0
    },
    "length": 0.0014,
-   "prototype": "h4_xcetwaap01"
+   "prototype": "h4_xcetwaap01",
+   "rot_s_rad": 0.019910262
   },
   "xcetw.x0220714": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "extra": {
     "slot_id": 62490744.0
    },
    "length": 0.0014,
-   "prototype": "h4_xcetwba002"
+   "prototype": "h4_xcetwba002",
+   "rot_s_rad": 0.019910262
   },
   "xcetw.x0220715": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "extra": {
     "slot_id": 62490590.0
    },
    "length": 0.0014,
-   "prototype": "h4_xcetwaap02"
+   "prototype": "h4_xcetwaap02",
+   "rot_s_rad": 0.019910262
   },
   "xchv.x0220130": {
    "__class__": "Device",
@@ -9033,11 +9047,13 @@
     "slot_id": 56051656.0
    },
    "length": 1.0,
+   "name_associated_aperture": "xchv.x0220130_coll2_aper",
+   "prototype": "xchv.x0220130_coll2",
    "rot_x_rad": -0.0040000106667434,
    "shift_y": 0.002
   },
   "xchv.x0220130_coll2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0,
    "name_associated_aperture": "xchv.x0220130_coll2_aper",
    "prototype": "h4_xchv_001"
@@ -9055,10 +9071,12 @@
     "slot_id": 56051665.0
    },
    "length": 1.0,
+   "name_associated_aperture": "xchv.x0220196_coll4_aper",
+   "prototype": "xchv.x0220196_coll4",
    "shift_x": -0.02
   },
   "xchv.x0220196_coll4": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0,
    "name_associated_aperture": "xchv.x0220196_coll4_aper",
    "prototype": "h4_xchv_001"
@@ -9076,12 +9094,14 @@
     "slot_id": 56051674.0
    },
    "length": 1.0,
+   "name_associated_aperture": "xchv.x0220452_coll7_aper",
+   "prototype": "xchv.x0220452_coll7",
    "shift_s": 0.002,
    "shift_x": 0.002,
    "shift_y": 0.002
   },
   "xchv.x0220452_coll7": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0,
    "name_associated_aperture": "xchv.x0220452_coll7_aper",
    "prototype": "h4_xchv_001"
@@ -9094,7 +9114,7 @@
    "min_y": 0.0
   },
   "xcio.x0220026": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "extra": {
     "slot_id": 57372026.0
    },
@@ -9102,7 +9122,7 @@
    "prototype": "h4_xciop001"
   },
   "xcio.x0220450": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "extra": {
     "slot_id": 57247350.0
    },
@@ -9110,7 +9130,7 @@
    "prototype": "h4_xciob001"
   },
   "xcio.x0220634": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "extra": {
     "slot_id": 57247359.0
    },
@@ -9118,7 +9138,7 @@
    "prototype": "h4_vle_target_t24"
   },
   "xcon.x0220256": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "extra": {
     "slot_id": 57588540.0
    },
@@ -9126,7 +9146,7 @@
    "prototype": "photons_producer"
   },
   "xcon.x0220681": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "extra": {
     "slot_id": 57588577.0
    },
@@ -9139,11 +9159,13 @@
     "slot_id": 56051851.0
    },
    "length": 1.0,
+   "name_associated_aperture": "xcsh.x0220068_coll1_aper",
+   "prototype": "xcsh.x0220068_coll1",
    "rot_y_rad": -0.0160006827453218,
    "shift_x": 0.008
   },
   "xcsh.x0220068_coll1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0,
    "name_associated_aperture": "xcsh.x0220068_coll1_aper",
    "prototype": "h4_xcsh_001"
@@ -9161,13 +9183,15 @@
     "slot_id": 56998575.0
    },
    "length": 1.0,
+   "name_associated_aperture": "xcsh.x0220694_coll8_aper",
+   "prototype": "xcsh.x0220694_coll8",
    "rot_s_rad": 0.9947844037808626,
    "rot_s_rad_no_frame": -0.0039999999999997815,
    "shift_x": 0.0010893674202051,
    "shift_y": 0.0016772831078251
   },
   "xcsh.x0220694_coll8": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0,
    "name_associated_aperture": "xcsh.x0220694_coll8_aper",
    "prototype": "h4_xcsh_001"
@@ -9185,10 +9209,12 @@
     "slot_id": 57015475.0
    },
    "length": 1.0,
+   "name_associated_aperture": "xcsv.x0220179_coll3_aper",
+   "prototype": "xcsv.x0220179_coll3",
    "shift_x": -0.1
   },
   "xcsv.x0220179_coll3": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0,
    "name_associated_aperture": "xcsv.x0220179_coll3_aper",
    "prototype": "h4_xcsv"
@@ -9206,10 +9232,12 @@
     "slot_id": 57015484.0
    },
    "length": 1.0,
+   "name_associated_aperture": "xcsv.x0220213_coll5_aper",
+   "prototype": "xcsv.x0220213_coll5",
    "shift_x": 0.001
   },
   "xcsv.x0220213_coll5": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0,
    "name_associated_aperture": "xcsv.x0220213_coll5_aper",
    "prototype": "h4_xcsv"
@@ -9227,10 +9255,12 @@
     "slot_id": 57015412.0
    },
    "length": 1.0,
+   "name_associated_aperture": "xcsv.x0220386_coll6_aper",
+   "prototype": "xcsv.x0220386_coll6",
    "shift_y": 0.05
   },
   "xcsv.x0220386_coll6": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0,
    "name_associated_aperture": "xcsv.x0220386_coll6_aper",
    "prototype": "h4_xcsv"
@@ -9248,6 +9278,7 @@
     "slot_id": 57699260.0
    },
    "length": 0.06,
+   "prototype": "h4_xdwc",
    "rot_s_rad_no_frame": -0.003,
    "rot_x_rad": -0.033339509261302,
    "rot_y_rad": -0.0333580535371936,
@@ -9260,6 +9291,7 @@
     "slot_id": 57753875.0
    },
    "length": 0.06,
+   "prototype": "h4_xdwc",
    "rot_s_rad_no_frame": -0.004,
    "rot_x_rad": -0.033339509261302,
    "rot_y_rad": -0.0333580535371936,
@@ -9272,6 +9304,7 @@
     "slot_id": 57753914.0
    },
    "length": 0.06,
+   "prototype": "h4_xdwc",
    "rot_s_rad_no_frame": -0.005,
    "rot_x_rad": -0.033339509261302,
    "rot_y_rad": -0.0333580535371936,
@@ -9284,6 +9317,7 @@
     "slot_id": 57576892.0
    },
    "length": 0.8,
+   "prototype": "h4_xemc_001",
    "shift_s": 0.02,
    "shift_y": 0.02
   },
@@ -9293,6 +9327,7 @@
     "slot_id": 57697617.0
    },
    "length": 0.276,
+   "prototype": "h4_xff__001",
    "shift_x": 0.05
   },
   "xffh.x0220262": {
@@ -9301,6 +9336,7 @@
     "slot_id": 57697640.0
    },
    "length": 0.276,
+   "prototype": "h4_xff__001",
    "shift_s": -0.05
   },
   "xffh.x0220324": {
@@ -9309,6 +9345,7 @@
     "slot_id": 57697790.0
    },
    "length": 0.276,
+   "prototype": "h4_xff__001",
    "shift_s": 0.02
   },
   "xffh.x0220403": {
@@ -9317,6 +9354,7 @@
     "slot_id": 57697985.0
    },
    "length": 0.276,
+   "prototype": "h4_xff__001",
    "shift_x": 0.002,
    "shift_y": 0.002
   },
@@ -9326,6 +9364,7 @@
     "slot_id": 57698095.0
    },
    "length": 0.276,
+   "prototype": "h4_xff__001",
    "shift_x": 0.05,
    "shift_y": 0.05
   },
@@ -9335,10 +9374,11 @@
     "slot_id": 57699237.0
    },
    "length": 0.276,
+   "prototype": "h4_xff__001",
    "rot_s_rad_no_frame": -0.002
   },
   "xffh.x0220489": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "extra": {
     "slot_id": 57768983.0
    },
@@ -9351,6 +9391,7 @@
     "slot_id": 57697594.0
    },
    "length": 0.276,
+   "prototype": "h4_xff__001",
    "shift_x": 0.1
   },
   "xffv.x0220323": {
@@ -9359,6 +9400,7 @@
     "slot_id": 57697689.0
    },
    "length": 0.276,
+   "prototype": "h4_xff__001",
    "shift_s": 0.05
   },
   "xffv.x0220402": {
@@ -9367,6 +9409,7 @@
     "slot_id": 57697912.0
    },
    "length": 0.276,
+   "prototype": "h4_xff__001",
    "shift_s": 0.05,
    "shift_x": 0.05
   },
@@ -9376,6 +9419,7 @@
     "slot_id": 57698066.0
    },
    "length": 0.276,
+   "prototype": "h4_xff__001",
    "shift_s": 0.002,
    "shift_y": 0.002
   },
@@ -9385,10 +9429,11 @@
     "slot_id": 57699214.0
    },
    "length": 0.276,
+   "prototype": "h4_xff__001",
    "rot_s_rad_no_frame": -0.003
   },
   "xffv.x0220488": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "extra": {
     "slot_id": 57768947.0
    },
@@ -9404,6 +9449,7 @@
     "slot_id": 57662343.0
    },
    "length": 0.1,
+   "prototype": "h4_xsci",
    "rot_s_rad_no_frame": -0.004,
    "rot_x_rad": -0.0200013335733904,
    "shift_y": 0.002
@@ -9414,6 +9460,7 @@
     "slot_id": 57662391.0
    },
    "length": 0.1,
+   "prototype": "h4_xsci",
    "rot_s_rad_no_frame": -0.005,
    "rot_x_rad": -0.0200013335733904,
    "shift_y": 0.002
@@ -9424,13 +9471,14 @@
     "slot_id": 57697881.0
    },
    "length": 0.1,
+   "prototype": "h4_xsci",
    "rot_s_rad_no_frame": -0.002,
    "rot_y_rad": -0.0200013335733904,
    "shift_s": 0.002,
    "shift_x": 0.002
   },
   "xsci.x0220408": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "extra": {
     "slot_id": 57698039.0
    },
@@ -9443,6 +9491,7 @@
     "slot_id": 57698122.0
    },
    "length": 0.1,
+   "prototype": "h4_xsci",
    "rot_s_rad_no_frame": -0.004,
    "rot_y_rad": -0.0200013335733904,
    "shift_s": 0.002,
@@ -9454,13 +9503,14 @@
     "slot_id": 57699122.0
    },
    "length": 0.1,
+   "prototype": "h4_xsci",
    "rot_s_rad_no_frame": -0.005,
    "rot_y_rad": -0.0200013335733904,
    "shift_s": 0.002,
    "shift_x": 0.002
   },
   "xsci.x0220466": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "extra": {
     "slot_id": 57699145.0
    },
@@ -9468,7 +9518,7 @@
    "prototype": "h4_xsci"
   },
   "xsci.x0220480": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "extra": {
     "slot_id": 57699168.0
    },
@@ -9481,6 +9531,7 @@
     "slot_id": 57699191.0
    },
    "length": 0.1,
+   "prototype": "h4_xsci",
    "rot_s_rad_no_frame": -0.002,
    "rot_x_rad": -0.0200013335733904,
    "rot_y_rad": -0.020005335574431,
@@ -9488,7 +9539,7 @@
    "shift_y": 0.002
   },
   "xsci.x0220515": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "extra": {
     "slot_id": 57699283.0
    },
@@ -9501,6 +9552,7 @@
     "slot_id": 57699314.0
    },
    "length": 0.1,
+   "prototype": "h4_xsci",
    "rot_s_rad_no_frame": -0.001,
    "rot_x_rad": -0.0200013335733904,
    "shift_s": 0.002,
@@ -9512,6 +9564,7 @@
     "slot_id": 57699393.0
    },
    "length": 0.1,
+   "prototype": "h4_xsci",
    "rot_s_rad_no_frame": -0.002,
    "rot_x_rad": -0.0200013335733904,
    "shift_s": 0.002,
@@ -9523,13 +9576,14 @@
     "slot_id": 57702771.0
    },
    "length": 0.1,
+   "prototype": "h4_xsci",
    "rot_s_rad_no_frame": -0.005,
    "rot_x_rad": -0.0200013335733904,
    "shift_s": 0.002,
    "shift_y": 0.002
   },
   "xtax.x0220023": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "extra": {
     "slot_id": 57112661.0
    },
@@ -9537,7 +9591,7 @@
    "prototype": "h4_xtax_003"
   },
   "xtax.x0220025": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "extra": {
     "slot_id": 57112679.0
    },
@@ -9545,7 +9599,7 @@
    "prototype": "h4_xtax_004"
   },
   "xtdv.x0220520": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "extra": {
     "slot_id": 57611781.0
    },
@@ -9553,7 +9607,7 @@
    "prototype": "h4_xtdv_001"
   },
   "xtdv.x0220521": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "extra": {
     "slot_id": 58237801.0
    },
@@ -9561,7 +9615,7 @@
    "prototype": "h4_xtdv_001"
   },
   "xtdv.x0220603": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "extra": {
     "slot_id": 57611869.0
    },
@@ -9569,7 +9623,7 @@
    "prototype": "h4_xtdv_001"
   },
   "xtdv.x0220604": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "extra": {
     "slot_id": 58237931.0
    },
@@ -9577,7 +9631,7 @@
    "prototype": "h4_xtdv_001"
   },
   "xtdv.x0220628": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "extra": {
     "slot_id": 57611921.0
    },
@@ -9585,7 +9639,7 @@
    "prototype": "h4_xtdv_001"
   },
   "xtdv.x0220629": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "extra": {
     "slot_id": 58238836.0
    },
@@ -9593,7 +9647,7 @@
    "prototype": "h4_xtdv_001"
   },
   "xtdv.x0220667": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "extra": {
     "slot_id": 57611957.0
    },
@@ -9601,7 +9655,7 @@
    "prototype": "h4_xtdv_002"
   },
   "xtdv.x0220668": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "extra": {
     "slot_id": 58238889.0
    },
@@ -9609,7 +9663,7 @@
    "prototype": "h4_xtdv_002"
   },
   "xvsv.022.109": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.32,
    "name_associated_aperture": "xvsv.022.109_aper",
    "prototype": "h4_xvvsa001"
@@ -9623,7 +9677,7 @@
    "b_squ": 0.01703025
   },
   "xvvs.x0220105": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "extra": {
     "slot_id": 57596728.0
    },
@@ -9632,7 +9686,7 @@
    "prototype": "xvsv.022.109"
   },
   "xvw.x0200001": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "extra": {
     "slot_id": 57601341.0
    },
@@ -9640,7 +9694,7 @@
    "prototype": "vxwt"
   },
   "xvw.x0200021": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "extra": {
     "slot_id": 57570058.0
    },
@@ -9648,7 +9702,7 @@
    "prototype": "vxwt"
   },
   "xvw.x0220025": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "extra": {
     "slot_id": 57601744.0
    },
@@ -9656,7 +9710,7 @@
    "prototype": "h4_xvwad001"
   },
   "xvw.x0220128": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "extra": {
     "slot_id": 62432497.0
    },
@@ -9664,7 +9718,7 @@
    "prototype": "h4_xvwmd001"
   },
   "xvw.x0220129": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "extra": {
     "slot_id": 62432520.0
    },
@@ -9672,7 +9726,7 @@
    "prototype": "h4_xvwmd001"
   },
   "xvw.x0220257": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "extra": {
     "slot_id": 57601753.0
    },
@@ -9680,7 +9734,7 @@
    "prototype": "h4_xvwaa001"
   },
   "xvw.x0220258": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "extra": {
     "slot_id": 57601762.0
    },
@@ -9688,7 +9742,7 @@
    "prototype": "h4_xvwaa001"
   },
   "xvw.x0220373": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "extra": {
     "slot_id": 57601771.0
    },
@@ -9696,7 +9750,7 @@
    "prototype": "h4_xvwaa001"
   },
   "xvw.x0220374": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "extra": {
     "slot_id": 57601780.0
    },
@@ -9704,7 +9758,7 @@
    "prototype": "h4_xvwaa001"
   },
   "xvw.x0220406": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "extra": {
     "slot_id": 62447971.0
    },
@@ -9712,7 +9766,7 @@
    "prototype": "h4_xvwmf001"
   },
   "xvw.x0220407": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "extra": {
     "slot_id": 57601789.0
    },
@@ -9720,7 +9774,7 @@
    "prototype": "h4_xvwmf001"
   },
   "xvw.x0220446": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "extra": {
     "slot_id": 62450442.0
    },
@@ -9728,7 +9782,7 @@
    "prototype": "h4_xvwmf001"
   },
   "xvw.x0220466": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "extra": {
     "slot_id": 57601816.0
    },
@@ -9736,7 +9790,7 @@
    "prototype": "h4_xvwmf001"
   },
   "xvw.x0220480": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "extra": {
     "slot_id": 57601825.0
    },
@@ -9744,7 +9798,7 @@
    "prototype": "h4_xvwmf001"
   },
   "xvw.x0220481": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "extra": {
     "slot_id": 57601834.0
    },
@@ -9752,7 +9806,7 @@
    "prototype": "h4_xvwmf001"
   },
   "xvw.x0220487": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "extra": {
     "slot_id": 57601843.0
    },
@@ -9760,7 +9814,7 @@
    "prototype": "h4_xvwmf001"
   },
   "xvw.x0220488": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "extra": {
     "slot_id": 57601852.0
    },
@@ -9768,7 +9822,7 @@
    "prototype": "h4_xvwmf001"
   },
   "xvw.x0220515": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "extra": {
     "slot_id": 57601861.0
    },
@@ -9776,7 +9830,7 @@
    "prototype": "h4_xvwmf001"
   },
   "xvw.x0220520": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "extra": {
     "slot_id": 57601870.0
    },
@@ -9784,7 +9838,7 @@
    "prototype": "h4_xvwmf001"
   },
   "xvw.x0220521": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "extra": {
     "slot_id": 57601879.0
    },
@@ -9792,7 +9846,7 @@
    "prototype": "h4_xvwmf001"
   },
   "xvw.x0220627": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "extra": {
     "slot_id": 57601888.0
    },
@@ -9800,7 +9854,7 @@
    "prototype": "h4_xvwmf001"
   },
   "xvw.x0220631": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "extra": {
     "slot_id": 57601906.0
    },
@@ -9808,7 +9862,7 @@
    "prototype": "h4_xvwmf001"
   },
   "xvw.x0220645": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "extra": {
     "slot_id": 57601915.0
    },
@@ -9816,7 +9870,7 @@
    "prototype": "h4_xvwmf001"
   },
   "xvw.x0220669": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "extra": {
     "slot_id": 62242998.0
    },
@@ -9824,7 +9878,7 @@
    "prototype": "h4_xvwas003"
   },
   "xvw.x0220672": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "extra": {
     "slot_id": 62243064.0
    },
@@ -9832,7 +9886,7 @@
    "prototype": "h4_xvwas003"
   },
   "xvw.x0220682": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "extra": {
     "slot_id": 61761193.0
    },
@@ -9840,7 +9894,7 @@
    "prototype": "h4_xvwma001"
   },
   "xvw.x0220687": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "extra": {
     "slot_id": 61598007.0
    },
@@ -9848,7 +9902,7 @@
    "prototype": "h4_xvwma001"
   },
   "xvw.x0220688": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "extra": {
     "slot_id": 61598114.0
    },
@@ -9856,15 +9910,16 @@
    "prototype": "h4_xvwma001"
   },
   "xvw.x0220709": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "extra": {
     "slot_id": 62245481.0
    },
    "length": 0.0001,
-   "prototype": "h4_xvwma001"
+   "prototype": "h4_xvwma001",
+   "rot_s_rad": 0.019910262
   },
   "xwca.x0220130": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "extra": {
     "slot_id": 57662368.0
    },
@@ -9872,7 +9927,7 @@
    "prototype": "h4_xwca"
   },
   "xwca.x0220374": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "extra": {
     "slot_id": 57697816.0
    },
@@ -9880,7 +9935,7 @@
    "prototype": "h4_xwca"
   },
   "xwca.x0220408": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "extra": {
     "slot_id": 57698012.0
    },
@@ -9888,7 +9943,7 @@
    "prototype": "h4_xwca"
   },
   "xwca.x0220540": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "extra": {
     "slot_id": 57699337.0
    },
@@ -9896,7 +9951,7 @@
    "prototype": "h4_xwca"
   },
   "xwca.x0220680": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "extra": {
     "slot_id": 57702748.0
    },
@@ -9904,7 +9959,7 @@
    "prototype": "h4_xwca"
   },
   "xwcm.x0220596": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "extra": {
     "slot_id": 57717887.0
    },
