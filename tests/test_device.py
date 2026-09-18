@@ -48,6 +48,37 @@ def test_device_is_misalignable_unlike_drift():
         assert hasattr(device, name)
 
 
+@pytest.mark.parametrize('mode', [None, 'thin', 'thick'])
+def test_configure_device_drift_model(mode):
+    line = xt.Line(elements={
+        'drift': xt.Drift(length=1.),
+        'dev': xt.Device(length=2.),
+        'replica': xt.Replica(parent_name='dev'),
+    })
+    if mode is not None:
+        line.slice_thick_elements(slicing_strategies=[
+            xt.Strategy(xt.Teapot(2, mode=mode), element_type=xt.Device)])
+    line.build_tracker()
+
+    # Switching the model after building the tracker must also affect device
+    # replicas and slices, which read the model from their parent.
+    p0 = xt.Particles(p0c=1e9, px=0.1, py=0.03, delta=0.01)
+    for model in ('exact', 'expanded', 'adaptive'):
+        line.configure_drift_model(model=model)
+        assert line['drift'].model == model
+        assert line['dev'].model == model
+
+        particles = p0.copy()
+        line.track(particles)
+        assert np.all(particles.state == 1)
+        denominator = (np.sqrt((1 + p0.delta)**2 - p0.px**2 - p0.py**2)
+                       if model == 'exact' else 1 + p0.delta)
+        np.testing.assert_allclose(
+            particles.x, 5 * p0.px / denominator, atol=1e-14, rtol=0)
+        np.testing.assert_allclose(
+            particles.y, 5 * p0.py / denominator, atol=1e-14, rtol=0)
+
+
 @pytest.mark.parametrize(
     'misalignment',
     [dict(), dict(shift_x=2e-3, shift_y=-1e-3, shift_s=5e-4),

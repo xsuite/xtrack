@@ -4565,7 +4565,7 @@ class Line:
     def configure_drift_model(self, model=None):
 
         """
-        Configure the method used to track drifts.
+        Configure the method used to track drifts and devices.
 
         See documentation of ``xt.Drift`` for more details on the values of the
         models used below.
@@ -4573,7 +4573,7 @@ class Line:
         Parameters
         ----------
         model: str
-            Model to be used for the drifts. Can be 'adaptive', 'exact' or
+            Model to be used for drifts and devices. Can be 'adaptive', 'exact' or
             'expanded'.
         """
 
@@ -4583,7 +4583,7 @@ class Line:
             raise ValueError(f'Unknown drift model {model}')
 
         for ee in self._element_dict.values():
-            if model is not None and isinstance(ee, xt.Drift):
+            if model is not None and isinstance(ee, (xt.Drift, xt.Device)):
                 ee.model = model
 
     @doc_group("Magnet Model Configuration")
