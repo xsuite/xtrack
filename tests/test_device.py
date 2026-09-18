@@ -88,7 +88,8 @@ def test_misaligned_device_survey_matches_the_misalignment():
         - survey['XYZ_elem_start', 'dev']) == pytest.approx(length, abs=5e-14)
 
 
-def test_slicing_a_device_keeps_its_misalignment():
+@pytest.mark.parametrize('mode', ['thin', 'thick'])
+def test_slicing_a_device_keeps_its_misalignment(mode):
     # The thick slices of a device take their transformation from the parent.
     # Were they modelled on the drift slices, which switch transformations
     # off, slicing would silently move the device back to its nominal place.
@@ -100,7 +101,8 @@ def test_slicing_a_device_keeps_its_misalignment():
     survey_thick = line.survey(include_element_frames=True)
 
     line.slice_thick_elements(
-        slicing_strategies=[xt.Strategy(xt.Uniform(3, mode='thick'))])
+        slicing_strategies=[xt.Strategy(
+            xt.Uniform(2 if mode == 'thin' else 3, mode=mode))])
     survey_sliced = line.survey(include_element_frames=True)
 
     # The slices themselves, skipping the entry and exit markers that slicing
@@ -124,14 +126,16 @@ def test_slicing_a_device_keeps_its_misalignment():
             survey_sliced['XYZ_elem_start', downstream], atol=5e-14, rtol=0)
 
 
-def test_sliced_device_tracks_like_a_drift():
+@pytest.mark.parametrize('mode', ['thin', 'thick'])
+def test_sliced_device_tracks_like_a_drift(mode):
     length = 2.5
     line = xt.Line(elements=[_make_device(length, model='exact',
                                           **MISALIGNMENT)],
                    element_names=['dev'])
     line.particle_ref = xt.Particles(p0c=1e10)
     line.slice_thick_elements(
-        slicing_strategies=[xt.Strategy(xt.Uniform(3, mode='thick'))])
+        slicing_strategies=[xt.Strategy(
+            xt.Uniform(2 if mode == 'thin' else 3, mode=mode))])
 
     particles = line.build_particles(
         x=[1e-3, -2e-3, 0.], px=[1e-4, 0., -3e-4],
@@ -143,6 +147,32 @@ def test_sliced_device_tracks_like_a_drift():
 
     expected = _track_coordinates(xt.Drift(length=length, model='exact'))
     np.testing.assert_allclose(actual, expected, atol=5e-14, rtol=0)
+
+
+def test_generic_thin_slicing_with_device_aperture():
+    line = xt.Line(elements={
+        'aper': xt.LimitRect(min_x=-0.01, max_x=0.01,
+                             min_y=-0.01, max_y=0.01),
+        'dev': xt.Device(length=1.5, model='exact'),
+        'quad': xt.Quadrupole(length=0.5, k1=0.2),
+    })
+    line.get('dev').name_associated_aperture = 'aper'
+    line.slice_thick_elements([xt.Strategy(xt.Teapot(2))])
+
+    assert sum(isinstance(ee, xt.ThickSliceDevice)
+               for ee in line.elements) == 3
+    assert sum(isinstance(ee, xt.ThinSliceQuadrupole)
+               for ee in line.elements) == 2
+    assert line.get_length() == pytest.approx(2.)
+
+    particles = xt.Particles(p0c=1e10, x=[0., 0.], px=[0., 0.02])
+    line.track(particles)
+    assert np.count_nonzero(particles.state == 1) == 1
+    lost = particles.state == 0
+    assert np.count_nonzero(lost) == 1
+    # The second particle crosses the aperture inside the device; the check
+    # before the third transport segment detects it at s = 1.25 m.
+    np.testing.assert_allclose(particles.s[lost], 1.25, atol=1e-14, rtol=0)
 
 
 @pytest.mark.parametrize('model', ['adaptive', 'expanded', 'exact'])

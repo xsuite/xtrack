@@ -85,5 +85,6 @@ class Device(_HasModelDrift, BeamElement):
 
     @property
     def _drift_slice_class(self):
-        # Only used together with thin slices, which a device does not have.
-        return None
+        # A thin scheme needs only transport segments for a device. Keep the
+        # parent's survey alignment on those segments, without adding kicks.
+        return xt.ThickSliceDevice
