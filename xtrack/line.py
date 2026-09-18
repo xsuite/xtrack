@@ -65,7 +65,7 @@ from .trajectory_correction import TrajectoryCorrection
 log = logging.getLogger(__name__)
 
 _ALLOWED_ELEMENT_TYPES_IN_NEW = [
-    xt.Drift, xt.DriftExact,
+    xt.Drift, xt.DriftExact, xt.Device,
     xt.Magnet, xt.Replica, xt.Marker,
     xt.Bend, xt.RBend, xt.Quadrupole, xt.Sextupole, xt.Octupole, xt.Multipole,
     xt.UniformSolenoid, xt.Solenoid, xt.VariableSolenoid,

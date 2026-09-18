@@ -995,18 +995,23 @@ class MadLoader:
         el = self.Assembler(mad_elem.name, self.classes.Marker)
         return self.make_composite_element([el], mad_elem)
 
+    def convert_device(self, mad_elem):
+        el = self.Assembler(mad_elem.name, self.classes.Device, length=mad_elem.l)
+        return self.make_composite_element([el], mad_elem)
+
     def convert_drift_like(self, mad_elem):
         el = self.Assembler(mad_elem.name, self._drift, length=mad_elem.l)
         return self.make_composite_element([el], mad_elem)
 
-    convert_monitor = convert_drift_like
-    convert_hmonitor = convert_drift_like
-    convert_vmonitor = convert_drift_like
-    convert_collimator = convert_drift_like
-    convert_rcollimator = convert_drift_like
-    convert_ecollimator = convert_drift_like
-    convert_elseparator = convert_drift_like
-    convert_instrument = convert_drift_like
+    convert_monitor = convert_device
+    convert_hmonitor = convert_device
+    convert_vmonitor = convert_device
+    convert_imonitor = convert_device
+    convert_collimator = convert_device
+    convert_rcollimator = convert_device
+    convert_ecollimator = convert_device
+    convert_elseparator = convert_device
+    convert_instrument = convert_device
 
     def convert_solenoid(self, mad_elem): # bv done
         if get_value(mad_elem.l) == 0:
@@ -1321,7 +1326,7 @@ class MadLoader:
         elif ee.slot_id == 3:
             el = self.Assembler(ee.name, self.classes.SCInterpolatedProfile)
         else:
-            el = self.Assembler(ee.name, self._drift, length=ee.l)
+            el = self.Assembler(ee.name, self.classes.Device, length=ee.l)
         return self.make_composite_element([el], ee)
 
     def convert_matrix(self, ee):

@@ -599,7 +599,7 @@ def test_instrument(example_sequence):
     env, positions, _ = example_sequence
     in1 = env['in1/line']
     xo.assert_allclose(positions['in1/line'], 9, atol=1e-14)
-    assert isinstance(in1, xt.Drift)
+    assert isinstance(in1, xt.Device)
     assert in1.length == 2
 
 
@@ -607,7 +607,7 @@ def test_monitor(example_sequence):
     env, positions, _ = example_sequence
     mo1 = env['mo1/line']
     xo.assert_allclose(positions['mo1/line'], 11, atol=1e-14)
-    assert isinstance(mo1, xt.Drift)
+    assert isinstance(mo1, xt.Device)
     assert mo1.length == 1
 
 
@@ -615,7 +615,7 @@ def test_placeholder(example_sequence):
     env, positions, _ = example_sequence
     pl1 = env['pl1/line']
     xo.assert_allclose(positions['pl1/line'], 13, atol=1e-14)
-    assert isinstance(pl1, xt.Drift)
+    assert isinstance(pl1, xt.Device)
     assert pl1.length == 1
 
 
@@ -845,7 +845,7 @@ def test_reversed_instrument(example_sequence):
     env, _, positions_reversed = example_sequence
     in1 = env['in1/line_reversed']
     xo.assert_allclose(positions_reversed['in1/line_reversed'], 36 - 9, atol=1e-14)
-    assert isinstance(in1, xt.Drift)
+    assert isinstance(in1, xt.Device)
     assert in1.length == 2
 
 
@@ -853,7 +853,7 @@ def test_reversed_monitor(example_sequence):
     env, _, positions_reversed = example_sequence
     mo1 = env['mo1/line_reversed']
     xo.assert_allclose(positions_reversed['mo1/line_reversed'], 36 - 11, atol=1e-14)
-    assert isinstance(mo1, xt.Drift)
+    assert isinstance(mo1, xt.Device)
     assert mo1.length == 1
 
 
@@ -861,7 +861,7 @@ def test_reversed_placeholder(example_sequence):
     env, _, positions_reversed = example_sequence
     pl1 = env['pl1/line_reversed']
     xo.assert_allclose(positions_reversed['pl1/line_reversed'], 36 - 13, atol=1e-14)
-    assert isinstance(pl1, xt.Drift)
+    assert isinstance(pl1, xt.Device)
     assert pl1.length == 1
 
 
