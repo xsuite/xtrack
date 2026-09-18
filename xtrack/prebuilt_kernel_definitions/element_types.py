@@ -122,6 +122,8 @@ NO_SYNRAD_ELEMENTS = [
 
 TPSA_SUPPORTED_ELEMENTS = [
     Drift,
+    Device,
+    ThickSliceDevice,
     DriftExact,
     Marker,
     ReferenceEnergyIncrease,
