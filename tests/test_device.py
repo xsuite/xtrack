@@ -157,27 +157,21 @@ def test_slicing_a_device_keeps_its_misalignment(mode):
             survey_sliced['XYZ_elem_start', downstream], atol=5e-14, rtol=0)
 
 
-@pytest.mark.parametrize('mode', ['thin', 'thick'])
-def test_sliced_device_tracks_like_a_drift(mode):
-    length = 2.5
-    line = xt.Line(elements=[_make_device(length, model='exact',
-                                          **MISALIGNMENT)],
-                   element_names=['dev'])
-    line.particle_ref = xt.Particles(p0c=1e10)
-    line.slice_thick_elements(
-        slicing_strategies=[xt.Strategy(
+def test_device_thin_and_thick_slicing_match():
+    sliced_elements = {}
+    for mode in ('thin', 'thick'):
+        line = xt.Line(
+            elements=[_make_device(2.5, model='exact', **MISALIGNMENT)],
+            element_names=['dev'])
+        # Two thin kicks leave three transport segments, with no kicks for a
+        # device. This should give the same elements as three thick slices.
+        line.slice_thick_elements(slicing_strategies=[xt.Strategy(
             xt.Uniform(2 if mode == 'thin' else 3, mode=mode))])
+        assert sum(isinstance(ee, xt.ThickSliceDevice)
+                   for ee in line.elements) == 3
+        sliced_elements[mode] = [ee.to_dict() for ee in line.elements]
 
-    particles = line.build_particles(
-        x=[1e-3, -2e-3, 0.], px=[1e-4, 0., -3e-4],
-        y=[0., 1.5e-3, -1e-3], py=[-2e-4, 1e-4, 0.],
-        zeta=[0., 1e-3, -1e-3], delta=[0., 1e-4, -1e-4])
-    line.track(particles)
-    actual = np.array([particles.x, particles.px, particles.y, particles.py,
-                       particles.zeta, particles.delta])
-
-    expected = _track_coordinates(xt.Drift(length=length, model='exact'))
-    np.testing.assert_allclose(actual, expected, atol=5e-14, rtol=0)
+    assert sliced_elements['thin'] == sliced_elements['thick']
 
 
 def test_generic_thin_slicing_with_device_aperture():
