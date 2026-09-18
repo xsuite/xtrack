@@ -143,3 +143,53 @@ def test_sliced_device_tracks_like_a_drift():
 
     expected = _track_coordinates(xt.Drift(length=length, model='exact'))
     np.testing.assert_allclose(actual, expected, atol=5e-14, rtol=0)
+
+
+@pytest.mark.parametrize('model', ['adaptive', 'expanded', 'exact'])
+@pytest.mark.parametrize('sliced', [False, True])
+def test_optimize_devices_as_drifts(model, sliced):
+    line = xt.Line(elements={
+        'zero': _make_device(0, model=model, **MISALIGNMENT),
+        'keep': xt.Marker(),
+        'before': xt.Drift(length=0.5, model=model),
+        'dev': _make_device(1.5, model=model, **MISALIGNMENT),
+        'after': xt.Drift(length=0.75, model=model),
+    }, element_names=['zero', 'keep', 'before', 'dev', 'dev', 'after'])
+    line.particle_ref = xt.Particles(p0c=1e10)
+    if sliced:
+        line.slice_thick_elements(slicing_strategies=[
+            xt.Strategy(xt.Uniform(3, mode='thick'), element_type=xt.Device)])
+
+    particles = line.build_particles(
+        x=[1e-3, -2e-3], px=[0.03, -0.02],
+        y=[-1e-3, 2e-3], py=[-0.02, 0.01], delta=[0.01, -0.01])
+    expected = particles.copy()
+    reference = xt.Line(elements=[xt.Drift(length=4.25, model=model)])
+    reference.track(expected)
+
+    line.optimize_for_tracking(compile=False, verbose=False, keep_markers=['keep'])
+
+    assert list(line.element_names) == ['keep', 'before']
+    assert isinstance(line['before'], xt.Drift)
+    assert line['before'].length == 4.25
+    assert line['before'].model == model
+    line.track(particles)
+    for field in ('x', 'px', 'y', 'py', 'zeta', 'delta'):
+        np.testing.assert_allclose(
+            getattr(particles, field), getattr(expected, field),
+            atol=5e-14, rtol=0)
+
+
+def test_optimize_device_replicas_as_drifts():
+    line = xt.Line(elements={
+        'dev': _make_device(1.5, model='exact', **MISALIGNMENT),
+        'replica': xt.Replica(parent_name='dev'),
+    }, element_names=['dev', 'replica', 'replica'])
+    line.build_tracker()
+    line.optimize_for_tracking(compile=False, verbose=False)
+
+    assert len(line.element_names) == 1
+    drift = line[line.element_names[0]]
+    assert isinstance(drift, xt.Drift)
+    assert drift.length == 4.5
+    assert drift.model == 'exact'

@@ -5008,7 +5008,8 @@ class Line:
         """
         Optimize the line for tracking by removing inactive elements and
         merging consecutive elements where possible. Deferred expressions are
-        disabled.
+        disabled. Devices are replaced with drifts, discarding their survey
+        misalignments.
 
         Parameters
         ----------
@@ -5039,8 +5040,18 @@ class Line:
         # Unfreeze the line
         self.discard_tracker()
 
+        if verbose: _print("Replace replicas with independent elements")
+        self.replace_all_replicas()
+
         if verbose: _print("Replace slices with equivalent elements")
         self._replace_with_equivalent_elements()
+
+        if verbose: _print("Replace devices with drifts")
+        with xt.environment._disable_name_clash_checks(self.env):
+            for nn, ee in zip(self.element_names, self._elements):
+                if isinstance(ee, xt.Device):
+                    self.env.elements[nn] = xt.Drift(
+                        length=ee.length, model=ee.model, _buffer=ee._buffer)
 
         if keep_markers is True:
             if verbose: _print('Markers are kept')
