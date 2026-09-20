@@ -1,20 +1,39 @@
 import xobjects as xo
 
+from .base_element import BeamElement
+
 COAST_STATE_RANGE_START= 1000000
 DEFAULT_FRAME_RELATIVE_LENGTH = 0.9
 
-class SyncTime:
+class SyncTime(BeamElement):
+
+    _xofields = {
+        "id": xo.Int64,
+        "frame_relative_length": xo.Float64,
+        "circumference": xo.Float64,
+        "at_start": xo.Int64,
+        "at_end": xo.Int64,
+    }
+
+    iscollective = True
+    allow_track = False
+    allow_rot_and_shift = False
 
     def __init__(self, circumference, id, frame_relative_length=None,
-                 at_start=False, at_end=False):
+                 at_start=False, at_end=False, **kwargs):
+
         if frame_relative_length is None:
             frame_relative_length = DEFAULT_FRAME_RELATIVE_LENGTH
         assert id > COAST_STATE_RANGE_START
-        self.id = id
-        self.frame_relative_length = frame_relative_length
-        self.circumference = circumference
-        self.at_start = at_start
-        self.at_end = at_end
+        
+        super().__init__(
+            circumference=circumference,
+            id=id,
+            frame_relative_length=frame_relative_length,
+            at_start=int(at_start),
+            at_end=int(at_end),
+            **kwargs,
+        )
 
     def track(self, particles):
 
