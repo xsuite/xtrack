@@ -51,10 +51,10 @@ assert body_length >= 0, "Different shape needed to describe such short magnets"
 
 dipole = xt.Line(elements = [
     xt.FieldExpansion(length=fringe_length/2, b=np.array([b1_in]), a=0*np.array([b1_in]), bs=0*b1_in, ny=5, nstep=10),
-    xt.FieldExpansion(length=fringe_length/2, b=np.array([b1_in]), a=0*np.array([b1_in]), bs=0*b1_in, ny=5, nstep=10, h=h),
+    xt.FieldExpansion(length=fringe_length/2, b=np.array([b1_in]), a=0*np.array([b1_in]), bs=0*b1_in, ny=5, nstep=10, h=h, sstart=fringe_length/2),
     xt.FieldExpansion(length=body_length, b=np.array([b1_body]), a=0*np.array([b1_body]), bs=0*b1_body, ny=5, nstep=10, h=h),
     xt.FieldExpansion(length=fringe_length/2, b=np.array([b1_out]), a=0*np.array([b1_out]), bs=0*b1_out, ny=5, nstep=10, h=h),
-    xt.FieldExpansion(length=fringe_length/2, b=np.array([b1_out]), a=0*np.array([b1_out]), bs=0*b1_out, ny=5, nstep=10)
+    xt.FieldExpansion(length=fringe_length/2, b=np.array([b1_out]), a=0*np.array([b1_out]), bs=0*b1_out, ny=5, nstep=10, sstart=fringe_length/2)
 ])
 
 p0 = xt.Particles()
@@ -68,10 +68,10 @@ env.new("quad1", xt.Quadrupole, k1='k1quad', length='lengthquad')
 env.new("quad2", xt.Quadrupole, k1='-k1quad', length='lengthquad')
 nstep=5
 env.elements['e0']=xt.FieldExpansion(length=fringe_length/2, b=np.array([b1_in]), a=0*np.array([b1_in]), bs=0*b1_in, ny=5, nstep=nstep)
-env.elements['e1']=xt.FieldExpansion(length=fringe_length/2, b=np.array([b1_in]), a=0*np.array([b1_in]), bs=0*b1_in, ny=5, nstep=nstep, h=h)
+env.elements['e1']=xt.FieldExpansion(length=fringe_length/2, b=np.array([b1_in]), a=0*np.array([b1_in]), bs=0*b1_in, ny=5, nstep=nstep, h=h, sstart=fringe_length/2)
 env.elements['e2']=xt.FieldExpansion(length=body_length, b=np.array([b1_body]), a=0*np.array([b1_body]), bs=0*b1_body, ny=5, nstep=nstep, h=h)
 env.elements['e3']=xt.FieldExpansion(length=fringe_length/2, b=np.array([b1_out]), a=0*np.array([b1_out]), bs=0*b1_out, ny=5, nstep=nstep, h=h)
-env.elements['e4']=xt.FieldExpansion(length=fringe_length/2, b=np.array([b1_out]), a=0*np.array([b1_out]), bs=0*b1_out, ny=5, nstep=nstep)
+env.elements['e4']=xt.FieldExpansion(length=fringe_length/2, b=np.array([b1_out]), a=0*np.array([b1_out]), bs=0*b1_out, ny=5, nstep=nstep, sstart=fringe_length/2)
 env.new_line(name="dipole",components=['e0', 'e1', 'e2', 'e3', 'e4'])
 fodo= env.new_line(name='myline', length=5,
                  components=[
@@ -87,7 +87,7 @@ x0,px0=tw.x[0],tw.px[0]
 part=fodo.build_particles(x=x0+np.array([0.0,0.01,0.0]),
                           px=px0+np.array([0,0,0]),
                           y=np.array([0.0,0.0,0.01]))
-fodo.track(part,num_turns=100000,turn_by_turn_monitor=True)
+fodo.track(part,num_turns=100,turn_by_turn_monitor=True)
 out=fodo.record_last_track
 fig,(a1,a2)=plt.subplots(2,1)
 
@@ -95,7 +95,17 @@ for i in range(len(out.x)):
     a1.plot(fodo.record_last_track.x[i],fodo.record_last_track.px[i],',')
     a2.plot(fodo.record_last_track.y[i],fodo.record_last_track.py[i],',')
 
+def plot_s_By(line,x=0.0,y=0.0,nstep=101):
+    s0=0
+    for el in line.elements:
+      slocal=np.linspace(0,el.length,nstep)
+      s=s0+slocal
+      plt.plot(s0+slocal,
+               el.get_field(x=x+0*slocal,y=y+0*slocal,s=slocal+el.sstart)['By'],
+               label=f"By(x={x},y={y},s)")
+      s0+=el.length
+    plt.xlabel('s')
+    plt.legend()
 
-
-
-
+plot_s_By(env['dipole'],0,0)
+plot_s_By(env['dipole'],0,0.05)
