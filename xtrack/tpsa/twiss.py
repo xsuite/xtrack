@@ -5,16 +5,17 @@ It provides functions to calculate the closed orbit, the one-turn matrix,
 the element-by-element W and the chromatic functions from one
 element-by-element TPSA track. Everything else is taken from the regular twiss.
 
-``M[i]`` is the Jacobian from the range start to the entry of element ``i``, and
-``R = M[-1]`` the one of the whole range (the one-turn matrix when it is periodic).
-``W`` is the normalizing matrix of ``R = W Rot W^-1`` (``linear_normal_form``), the
-matrix the twiss reads betx, alfx, the dispersion .. off, propagated as
-``W_i = M_i W``. At order 2 the same recording carries ``H[i]``, the second
-derivatives, and
+``R_matrices_ebe[i]`` is the Jacobian from the range start to the entry of element ``i``,
+``R_matrix = R_matrices_ebe[-1]`` the one of the whole range (one-turn matrix when it is periodic).
+``W_matrix`` is the normalizing matrix of ``R_matrix = W Rot W^-1`` (``linear_normal_form``).
+This is the matrix the twiss reads betx, alfx, the dispersion, etc. off, propagated as
+``W_matrices_ebe[i] = R_matrices_ebe[i] W_matrix``.
+At order 2 the same recording carries ``hessians_ebe[i]``, the second derivatives, and
 
-    dW_i = (H_i . direction) W + M_i dW
+    dW_i/ddelta = (hessians_ebe[i] . orbit_shift_per_delta) W_matrix
+                  + R_matrices_ebe[i] dW_matrix/ddelta
 
-with ``direction = (u1, 1)`` the delta-derivative of the off-momentum closed orbit.
+with ``orbit_shift_per_delta`` the delta-derivative of the off-momentum closed orbit.
 """
 
 from __future__ import annotations
@@ -165,7 +166,7 @@ def _newton_start_orbit(
     orbit = np.array(guess, dtype=float)
     block = slice(0, 4) if transverse_only else slice(0, 6)
     size = 4 if transverse_only else 6
-    R = None
+    R_matrix = None
     previous_residual = np.inf
     for num_iter in range(1, max_iter + 1):
         image = _scalar_turn(line, reference_particle, orbit, start, end)
@@ -175,10 +176,10 @@ def _newton_start_orbit(
         residual = np.max(np.abs(error[block]))
         if residual < tol:
             return orbit, num_iter, residual
-        if R is None or residual > 0.5 * previous_residual:
-            _, R = _one_turn(line, reference_particle, orbit, start, end)
+        if R_matrix is None or residual > 0.5 * previous_residual:
+            _, R_matrix = _one_turn(line, reference_particle, orbit, start, end)
         previous_residual = residual
-        jacobian = R[block, block] - (np.eye(size) if periodic else 0.0)
+        jacobian = R_matrix[block, block] - (np.eye(size) if periodic else 0.0)
         orbit[block] -= np.linalg.solve(jacobian, error[block])
     return None, num_iter, residual
 
@@ -187,7 +188,8 @@ class TpsaEbeTrack:
     """One element-by-element TPSA track over the elements ``start..end``, and its coefficients.
 
     Rows are the entries of the tracked elements plus a final row after ``end``.
-    ``M`` is ``(rows, 6, 6)``, ``H`` is ``(rows, 6, 6, 6)`` and ``None`` below order 2.
+    ``R_matrices_ebe`` is ``(rows, 6, 6)``, ``hessians_ebe`` is ``(rows, 6, 6, 6)`` or
+    ``None`` below order 2.
     ``spin`` is the ``(rows, 3)`` spin of the reference particle along the orbit.
     """
 
@@ -213,15 +215,15 @@ class TpsaEbeTrack:
         monitor = line.tracker.record_multi_element_last_track
 
         num_rows = end - start + 2
-        self.M = np.zeros((num_rows, 6, 6))
+        self.R_matrices_ebe = np.zeros((num_rows, 6, 6))
         for i in range(6):
             for j in range(6):
-                self.M[:-1, i, j] = monitor.coefficient(i, monomials[j], turn=0)
-        self.M[-1] = self.map.jacobian()
+                self.R_matrices_ebe[:-1, i, j] = monitor.coefficient(i, monomials[j], turn=0)
+        self.R_matrices_ebe[-1] = self.map.jacobian()
 
-        self.H = None
+        self.hessians_ebe = None
         if order >= 2:
-            self.H = np.zeros((num_rows, 6, 6, 6))
+            self.hessians_ebe = np.zeros((num_rows, 6, 6, 6))
             for i in range(6):
                 for row, (j, k) in enumerate(_QUADRATIC_PAIRS):
                     coefficients = np.empty(num_rows)
@@ -231,8 +233,8 @@ class TpsaEbeTrack:
                     # the coefficient of z_j**2 is half the second derivative
                     if j == k:
                         coefficients *= 2.0
-                    self.H[:, i, j, k] = coefficients
-                    self.H[:, i, k, j] = coefficients
+                    self.hessians_ebe[:, i, j, k] = coefficients
+                    self.hessians_ebe[:, i, k, j] = coefficients
 
         self.orbit = np.zeros((num_rows, 6))
         for i, coord in enumerate(COORDS):
@@ -257,9 +259,9 @@ class TpsaEbeTrack:
         self.s = np.append(s_locations[start:end + 1], s_after_end)
 
     @property
-    def R(self) -> np.ndarray:
+    def R_matrix(self) -> np.ndarray:
         """The transfer matrix of the whole tracked range."""
-        return self.M[-1]
+        return self.R_matrices_ebe[-1]
 
     def covers(
         self, coordinates: np.ndarray, spin: np.ndarray, order: int, start: int, end: int
@@ -283,7 +285,7 @@ class TpsaTwiss:
     """Twiss derivatives from element-by-element TPSA tracks.
 
     One instance lives for one ``line.twiss`` call and keeps its last recording, so
-    R, W and the chromatic functions share one track. Options that reach the three
+    the R matrix, the W matrices and the chromatic functions share one track. Options that reach the three
     backend methods are checked there, the rest in ``from_twiss_config``.
     """
 
@@ -428,16 +430,16 @@ class TpsaTwiss:
         nemitt_y: float,
         factor_adapt_steps: float,
     ) -> tuple[np.ndarray, np.ndarray | None]:
-        """Read ``R`` off the recording, with the per-element ``M`` if asked."""
+        """Read the R matrix off the recording, with the per-element ones if asked."""
         _unsupported(only_markers=only_markers, include_collective=include_collective)
         if num_turns > 1:
             raise NotImplementedError("``num_turns`` > 1 is not supported by the TPSA twiss")
         track = self._track(line, particle_on_co, _coordinates(particle_on_co),
                             start, end)
         if matrix_responsiveness_tol is not None:
-            lnf._assert_matrix_responsiveness(track.R, matrix_responsiveness_tol,
+            lnf._assert_matrix_responsiveness(track.R_matrix, matrix_responsiveness_tol,
                                               only_4d=(method == "4d"))
-        return track.R, (track.M if element_by_element else None)
+        return track.R_matrix, (track.R_matrices_ebe if element_by_element else None)
 
     def track_orbit_and_W(
         self,
@@ -459,10 +461,10 @@ class TpsaTwiss:
     ) -> tuple[dict[str, np.ndarray], np.ndarray, int, int, dict[str, Any]]:
         """Propagate the orbit and the normalizing matrix to every row.
 
-        A backward twiss is given ``W`` after the last element, so the ``W`` the rows
-        propagate from is the solution of ``R W_start = W_end``.
+        A backward twiss is given the W matrix after the last element, so the one the
+        rows propagate from is the solution of ``R_matrix W_matrix_start = W_matrix_end``.
 
-        Returns the orbit columns, ``W`` per row, the first and one-past-last element index
+        Returns the orbit columns, the W matrix per row, the first and one-past-last element index
         the table names its rows from, and the ``extra_data`` the regular twiss puts its tracking data in
         (always empty here, that option is unsupported).
         """
@@ -473,13 +475,13 @@ class TpsaTwiss:
         if twiss_orientation == "forward":
             track = self._track(line, particle_on_co, _coordinates(particle_on_co),
                                 start, end)
-            W_start = init.W_matrix
+            W_matrix_start = init.W_matrix
         else:
             if spin:
                 raise NotImplementedError(
                     "``spin`` with a backward twiss is not supported by the TPSA twiss")
             track = self._shoot_to_end(line, particle_on_co, start, end)
-            W_start = np.linalg.solve(track.R, init.W_matrix)
+            W_matrix_start = np.linalg.solve(track.R_matrix, init.W_matrix)
 
         # ptau and the kin_* columns are xsuite's own algebra over the tracked orbit
         orbit_particles = xt.Particles(
@@ -497,7 +499,8 @@ class TpsaTwiss:
             for i, name in enumerate(SPIN_COORDS):
                 orbit[name] = track.spin[:, i].copy()
 
-        return orbit, track.M @ W_start, track.start, track.end + 1, {}
+        W_matrices_ebe = track.R_matrices_ebe @ W_matrix_start   # (rows, 6, 6) @ (6, 6)
+        return orbit, W_matrices_ebe, track.start, track.end + 1, {}
 
     def _shoot_to_end(
         self,
@@ -530,55 +533,64 @@ class TpsaTwiss:
         track = self._track(twiss_config["line"], particle_on_co,
                             _coordinates(particle_on_co),
                             twiss_config["start"], twiss_config["end"])
-        R = track.R
-        _, u2, direction, dR = _off_momentum_expansion(track.H[-1], R)
-        W, dW, dq = _4d_w_matrix_and_derivatives(R, dR, u2)
+        R_matrix = track.R_matrix
+        _, orbit_delta2_coefficient, orbit_shift_per_delta, dR_matrix_ddelta = (
+            _off_momentum_expansion(track.hessians_ebe[-1], R_matrix))
+        W_matrix, dW_matrix_ddelta, chromaticity = _4d_w_matrix_and_derivatives(
+            R_matrix, dR_matrix_ddelta, orbit_delta2_coefficient)
 
-        dWs = np.einsum("nijk,k->nij", track.H, direction) @ W + track.M @ dW
-        columns = _chromatic_columns(track.M @ W, dWs)
-        return columns, {"dqx": dq[0], "dqy": dq[1]}
+        # (rows, 6, 6, 6) @ (6,) -> (rows, 6, 6), then @ (6, 6) -> (rows, 6, 6)
+        dW_matrices_ebe_ddelta = (
+            (track.hessians_ebe @ orbit_shift_per_delta) @ W_matrix
+            + track.R_matrices_ebe @ dW_matrix_ddelta)     # (rows, 6, 6) @ (6, 6)
+        W_matrices_ebe = track.R_matrices_ebe @ W_matrix   # (rows, 6, 6) @ (6, 6)
+        columns = _chromatic_columns(W_matrices_ebe, dW_matrices_ebe_ddelta)
+        return columns, {"dqx": chromaticity[0], "dqy": chromaticity[1]}
 
 
 def _off_momentum_expansion(
-    H: np.ndarray, R: np.ndarray
+    one_turn_hessian: np.ndarray, R_matrix: np.ndarray
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-    """The delta-expansion of the closed orbit and of the one-turn matrix.
+    """Expand the closed orbit and the one-turn matrix in delta.
 
-    ``x_co(delta) = u1 delta + u2 delta**2`` about the on-momentum orbit, and the
-    linear map about that orbit is ``R + delta * dR``. Only the transverse block is
-    made periodic, as in a 4d twiss.
+    ``x_co(delta) = orbit_delta_coefficient delta + orbit_delta2_coefficient delta**2``
+    about the on-momentum orbit, and the linear map about that orbit is
+    ``R_matrix + delta * dR_matrix_ddelta``. Only the transverse block is made
+    periodic, as in a 4d twiss.
     """
-    A = R[:4, :4] - np.eye(4)
-    u1 = -np.linalg.solve(A, R[:4, _DELTA])
-    direction = np.zeros(6)                    # first-order shift per unit delta
-    direction[:4], direction[_DELTA] = u1, 1.0
-    dR = np.einsum("ijk,k->ij", H, direction)
-    # delta**2 of the periodicity condition: the map's own quadratic part
-    # contracted twice with the first-order shift.
-    quadratic = 0.5 * np.einsum("ijk,j,k->i", H, direction, direction)
-    u2 = -np.linalg.solve(A, quadratic[:4])
-    return u1, u2, direction, dR
+    transverse_R_minus_identity = R_matrix[:4, :4] - np.eye(4)
+    orbit_delta_coefficient = -np.linalg.solve(transverse_R_minus_identity,
+                                               R_matrix[:4, _DELTA])
+    orbit_shift_per_delta = np.zeros(6)
+    orbit_shift_per_delta[:4] = orbit_delta_coefficient
+    orbit_shift_per_delta[_DELTA] = 1.0
+    dR_matrix_ddelta = one_turn_hessian @ orbit_shift_per_delta   # (6, 6, 6) @ (6,) -> (6, 6)
+    # delta**2 term of the periodicity condition, 0.5 * H[shift, shift]
+    quadratic = 0.5 * dR_matrix_ddelta @ orbit_shift_per_delta     # (6, 6) @ (6,) -> (6,)
+    orbit_delta2_coefficient = -np.linalg.solve(transverse_R_minus_identity, quadratic[:4])
+    return (orbit_delta_coefficient, orbit_delta2_coefficient,
+            orbit_shift_per_delta, dR_matrix_ddelta)
 
 
 def _4d_w_matrix_and_derivatives(
-    R: np.ndarray, dR: np.ndarray, u2: np.ndarray
+    R_matrix: np.ndarray, dR_matrix_ddelta: np.ndarray, orbit_delta2_coefficient: np.ndarray
 ) -> tuple[np.ndarray, np.ndarray, list[float]]:
-    """The 4d W of ``lnf``, its delta-derivative and ``dqx, dqy``.
+    """Build the 4d W matrix of ``lnf``, its delta-derivative and ``dqx, dqy``.
 
     First-order eigenvector perturbation, so it needs distinct eigenvalues: two planes
     on the same tune make the derivative blow up.
     """
-    M = lnf._with_dummy_longitudinal_block(R)
-    dM = dR.copy()
-    dM[4:, :] = dM[:, 4:] = 0
+    R_with_dummy_block = lnf._with_dummy_longitudinal_block(R_matrix)
+    dR_with_dummy_block = dR_matrix_ddelta.copy()
+    dR_with_dummy_block[4:, :] = dR_with_dummy_block[:, 4:] = 0
 
-    eigenvalues, eigenvectors = np.linalg.eig(M)
-    # the dummy modes live in the longitudinal block and dM does not touch them.
+    eigenvalues, eigenvectors = np.linalg.eig(R_with_dummy_block)
+    # the dummy modes live in the longitudinal block and its derivative does not touch them.
     # A transverse tune on the dummy tune mixes the eigenvectors instead.
     dummy = np.all(np.abs(eigenvectors[:4, :]) < 1e-12, axis=0)
     if dummy.sum() != 2:
         raise ValueError("a transverse tune coincides with the dummy longitudinal tune")
-    projected = np.linalg.solve(eigenvectors, dM @ eigenvectors)
+    projected = np.linalg.solve(eigenvectors, dR_with_dummy_block @ eigenvectors)
     projected[dummy, :] = projected[:, dummy] = 0.0
     gaps = eigenvalues[None, :] - eigenvalues[:, None]   # gaps[l, k] = lam_k - lam_l
     np.fill_diagonal(gaps, np.inf)             # own-mode component is a free scale
@@ -589,28 +601,34 @@ def _4d_w_matrix_and_derivatives(
         projected, gaps, out=np.zeros_like(projected), where=projected != 0)
 
     modes = lnf.sort_modes(eigenvectors, eigenvalues)
-    W, dW = lnf._build_w_matrix_and_derivative_from_eigenvectors(
+    W_matrix, dW_matrix_ddelta = lnf._build_w_matrix_and_derivative_from_eigenvectors(
         eigenvectors, deigenvectors, modes, only_4d_block=True)
-    dq = [(projected[mode, mode] / eigenvalues[mode]).imag / (2 * np.pi)
-          for mode in modes[:2]]
+    chromaticity = [(projected[mode, mode] / eigenvalues[mode]).imag / (2 * np.pi)
+                    for mode in modes[:2]]
 
     # the longitudinal columns hold the dispersion instead
-    _set_4d_dispersion_columns(W, R)
-    A = R[:4, :4] - np.eye(4)
-    dW[4:, :] = dW[:, 4:] = 0
-    dW[:4, _DELTA] = 2.0 * u2                  # d(dispersion)/ddelta
-    dW[:4, 4] = -np.linalg.solve(A, dR[:4, 4] + dR[:4, :4] @ W[:4, 4])
-    return W, dW, dq
+    _set_4d_dispersion_columns(W_matrix, R_matrix)
+    transverse_R_minus_identity = R_matrix[:4, :4] - np.eye(4)
+    dW_matrix_ddelta[4:, :] = dW_matrix_ddelta[:, 4:] = 0
+    dW_matrix_ddelta[:4, _DELTA] = 2.0 * orbit_delta2_coefficient   # d(dispersion)/ddelta
+    dW_matrix_ddelta[:4, 4] = -np.linalg.solve(
+        transverse_R_minus_identity,
+        dR_matrix_ddelta[:4, 4] + dR_matrix_ddelta[:4, :4] @ W_matrix[:4, 4])
+    return W_matrix, dW_matrix_ddelta, chromaticity
 
 
-def _chromatic_columns(Ws: np.ndarray, dWs: np.ndarray) -> dict[str, np.ndarray]:
-    """The chromatic functions from W and ``dW/ddelta`` at every element (MAD-8 6.3)."""
+def _chromatic_columns(
+    W_matrices_ebe: np.ndarray, dW_matrices_ebe_ddelta: np.ndarray
+) -> dict[str, np.ndarray]:
+    """Compute the chromatic functions from W and ``dW/ddelta`` at every element (MAD-8 6.3)."""
     columns = {}
-    for plane, i0 in (("x", 0), ("y", 2)):
-        w00, w01 = Ws[:, i0, i0], Ws[:, i0, i0 + 1]
-        w10, w11 = Ws[:, i0 + 1, i0], Ws[:, i0 + 1, i0 + 1]
-        d00, d01 = dWs[:, i0, i0], dWs[:, i0, i0 + 1]
-        d10, d11 = dWs[:, i0 + 1, i0], dWs[:, i0 + 1, i0 + 1]
+    for plane, plane_index in (("x", 0), ("y", 2)):
+        # entries of the plane's 2x2 block of W and dW/ddelta
+        i, j = plane_index, plane_index + 1
+        w00, w01 = W_matrices_ebe[:, i, i], W_matrices_ebe[:, i, j]
+        w10, w11 = W_matrices_ebe[:, j, i], W_matrices_ebe[:, j, j]
+        d00, d01 = dW_matrices_ebe_ddelta[:, i, i], dW_matrices_ebe_ddelta[:, i, j]
+        d10, d11 = dW_matrices_ebe_ddelta[:, j, i], dW_matrices_ebe_ddelta[:, j, j]
 
         bet = w00**2 + w01**2
         dbet = 2 * (w00 * d00 + w01 * d01)
@@ -624,8 +642,8 @@ def _chromatic_columns(Ws: np.ndarray, dWs: np.ndarray) -> dict[str, np.ndarray]
         columns[f"w{plane}_chrom"] = np.sqrt(a_chrom**2 + b_chrom**2)
         columns[f"dmu{plane}"] = (w00 * d01 - w01 * d00) / bet / (2 * np.pi)
 
-    dzeta = Ws[:, 4, _DELTA]
+    dzeta = W_matrices_ebe[:, 4, _DELTA]
     columns["dzeta"] = dzeta - dzeta[0]
     for i, name in enumerate(("ddx", "ddpx", "ddy", "ddpy")):
-        columns[name] = dWs[:, i, _DELTA]      # d(dispersion)/ddelta
+        columns[name] = dW_matrices_ebe_ddelta[:, i, _DELTA]   # d(dispersion)/ddelta
     return columns
