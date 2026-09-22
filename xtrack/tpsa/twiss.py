@@ -31,6 +31,7 @@ from ..twiss.optics_propagation import AT_TURN_FOR_TWISS
 from ..twiss.periodic_solution import _set_4d_dispersion_columns
 from ..twiss.twiss_backend import FiniteDifferenceTwiss
 from .particles import COORDS, ParticlesTpsa
+from .particles import _SPIN_COORDS as SPIN_COORDS
 
 if TYPE_CHECKING:
     import madng_tpsa
@@ -93,13 +94,19 @@ def _monomials(descriptor: madng_tpsa.Descriptor, order: int) -> np.ndarray:
 
 
 def _new_map(
-    reference_particle: xt.Particles, coordinates: np.ndarray, order: int
+    reference_particle: xt.Particles, coordinates: np.ndarray, order: int,
+    spin: bool = False,
 ) -> ParticlesTpsa:
+    # Zero spin skips the spin code, so seed it only when asked
+    spin_seed = ({name: _scalar(reference_particle, name) for name in SPIN_COORDS}
+                 if spin else {})
     return ParticlesTpsa(
         order=order,
         mass0=_scalar(reference_particle, "mass0"),
         q0=_scalar(reference_particle, "q0"),
         p0c=_scalar(reference_particle, "p0c"),
+        anomalous_magnetic_moment=_scalar(reference_particle, "anomalous_magnetic_moment"),
+        **spin_seed,
         **dict(zip(COORDS, coordinates)),
     )
 
@@ -181,6 +188,7 @@ class TpsaEbeTrack:
 
     Rows are the entries of the tracked elements plus a final row after ``end``.
     ``M`` is ``(rows, 6, 6)``, ``H`` is ``(rows, 6, 6, 6)`` and ``None`` below order 2.
+    ``spin`` is the ``(rows, 3)`` spin of the reference particle along the orbit.
     """
 
     def __init__(
@@ -191,11 +199,12 @@ class TpsaEbeTrack:
         order: int,
         start: int,
         end: int,
+        spin: bool = False,
     ) -> None:
         self.start, self.end, self.order = start, end, order
         self.coordinates = np.array(coordinates, dtype=float)
 
-        self.map = _new_map(reference_particle, self.coordinates, order)
+        self.map = _new_map(reference_particle, self.coordinates, order, spin=spin)
         monomials = _monomials(self.map.descriptor, order)
         line.track(self.map,
                    ele_start=start, ele_stop=end + 1,
@@ -229,6 +238,10 @@ class TpsaEbeTrack:
         for i, coord in enumerate(COORDS):
             self.orbit[:-1, i] = monitor.get(coord, turn=0)[0]
         self.orbit[-1] = self.map.const_part
+        self.spin = np.zeros((num_rows, 3))
+        for i, name in enumerate(SPIN_COORDS):
+            self.spin[:-1, i] = monitor.get(name, turn=0)[0]
+            self.spin[-1, i] = getattr(self.map, name).const_part
 
         # vector potential, nonzero at boundaries inside a sliced solenoid
         self.ax = np.append(monitor.get("ax", turn=0)[0],
@@ -248,9 +261,12 @@ class TpsaEbeTrack:
         """The transfer matrix of the whole tracked range."""
         return self.M[-1]
 
-    def covers(self, coordinates: np.ndarray, order: int, start: int, end: int) -> bool:
+    def covers(
+        self, coordinates: np.ndarray, spin: np.ndarray, order: int, start: int, end: int
+    ) -> bool:
         return (self.order >= order and self.start == start and self.end == end
-                and np.allclose(self.coordinates, coordinates, rtol=0, atol=1e-14))
+                and np.allclose(self.coordinates, coordinates, rtol=0, atol=1e-14)
+                and np.allclose(self.spin[0], spin, rtol=0, atol=1e-14))
 
 
 def _chromatic_functions_from_map(twiss_config: dict[str, Any]) -> bool:
@@ -271,8 +287,9 @@ class TpsaTwiss:
     backend methods are checked there, the rest in ``from_twiss_config``.
     """
 
-    def __init__(self, order: int) -> None:
+    def __init__(self, order: int, spin: bool = False) -> None:
         self.order = order
+        self.spin = spin
         self._recording = None
 
     @classmethod
@@ -284,7 +301,8 @@ class TpsaTwiss:
             raise NotImplementedError("the TPSA twiss does not support radiation")
         if twiss_config["tpsa"] is not True:
             raise ValueError("``tpsa`` must be True or False")
-        return cls(order=2 if _chromatic_functions_from_map(twiss_config) else 1)
+        return cls(order=2 if _chromatic_functions_from_map(twiss_config) else 1,
+                   spin=twiss_config["spin"])
 
     def _track(
         self,
@@ -294,12 +312,21 @@ class TpsaTwiss:
         start: str | int | None,
         end: str | int | None,
     ) -> TpsaEbeTrack:
-        """The element-by-element recording, reused if the last one covers the request."""
+        """The element-by-element recording, reused if the last one covers the request.
+
+        A spin twiss seeds the map with the reference particle's spin. Spin shares
+        the radiation compile flag, so a spin twiss switches it on for the track.
+        """
         start, end = _range_indices(line, start, end)
+        spin = (np.array([_scalar(reference_particle, name) for name in SPIN_COORDS])
+                if self.spin else np.zeros(len(SPIN_COORDS)))
         if (self._recording is None
-                or not self._recording.covers(coordinates, self.order, start, end)):
-            self._recording = TpsaEbeTrack(line, reference_particle, coordinates,
-                                           self.order, start, end)
+                or not self._recording.covers(coordinates, spin, self.order, start, end)):
+            with xt.line._preserve_config(line):
+                if self.spin:
+                    line.config.XTRACK_MULTIPOLE_NO_SYNRAD = False
+                self._recording = TpsaEbeTrack(line, reference_particle, coordinates,
+                                               self.order, start, end, spin=self.spin)
         return self._recording
 
     def find_closed_orbit(
@@ -333,8 +360,7 @@ class TpsaTwiss:
 
         _unsupported(co_search_settings=co_search_settings, zeta_shift=zeta_shift,
                      co_search_at=co_search_at, search_for_t_rev=search_for_t_rev,
-                     spin=spin, symmetrize=symmetrize,
-                     include_collective=include_collective)
+                     symmetrize=symmetrize, include_collective=include_collective)
         if num_turns > 1:
             raise NotImplementedError("``num_turns`` > 1 is not supported by the TPSA twiss")
 
@@ -377,6 +403,11 @@ class TpsaTwiss:
         for name, value in zip(COORDS, orbit):
             setattr(particle_on_co, name, value)
         particle_on_co._fsolve_info = {"num_iter": num_iter, "residual": residual}
+        if spin:
+            from ..twiss.spin import _find_spin_fixed_point
+            for name, value in zip(SPIN_COORDS,
+                                   _find_spin_fixed_point(line, particle_on_co)):
+                setattr(particle_on_co, name, value)
         return particle_on_co
 
     def get_R_matrix(
@@ -435,7 +466,7 @@ class TpsaTwiss:
         the table names its rows from, and the ``extra_data`` the regular twiss puts its tracking data in
         (always empty here, that option is unsupported).
         """
-        _unsupported(spin=spin, keep_tracking_data=keep_tracking_data,
+        _unsupported(keep_tracking_data=keep_tracking_data,
                      keep_initial_particles=keep_initial_particles,
                      initial_particles=initial_particles, ebe_monitor=ebe_monitor)
         particle_on_co = init.particle_on_co
@@ -444,6 +475,9 @@ class TpsaTwiss:
                                 start, end)
             W_start = init.W_matrix
         else:
+            if spin:
+                raise NotImplementedError(
+                    "``spin`` with a backward twiss is not supported by the TPSA twiss")
             track = self._shoot_to_end(line, particle_on_co, start, end)
             W_start = np.linalg.solve(track.R, init.W_matrix)
 
@@ -459,6 +493,9 @@ class TpsaTwiss:
         orbit["s"] = track.s.copy()
         for name in ("ptau", "kin_px", "kin_py", "kin_ps", "kin_xp", "kin_yp"):
             orbit[name] = np.array(getattr(orbit_particles, name))
+        if spin:
+            for i, name in enumerate(SPIN_COORDS):
+                orbit[name] = track.spin[:, i].copy()
 
         return orbit, track.M @ W_start, track.start, track.end + 1, {}
 

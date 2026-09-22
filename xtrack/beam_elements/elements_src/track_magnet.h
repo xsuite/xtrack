@@ -83,34 +83,17 @@ void track_magnet_body_single_particle(
             x0_solenoid, y0_solenoid, drift_model\
         )
 
-    #if defined(XTRACK_TPSA_TRACK) || defined(XTRACK_MULTIPOLE_NO_SYNRAD)
-        #define WITH_RADIATION(ll, code)\
-        {\
-            code;\
-        }
-    #else
-        #define WITH_RADIATION(ll, code) \
-        { \
-            double const old_x = LocalParticle_get_x(part); \
-            double const old_y = LocalParticle_get_y(part); \
-            double const old_zeta = LocalParticle_get_zeta(part); \
-            double const old_kin_px = LocalParticle_get_px(part) - LocalParticle_get_ax(part);\
-            double const old_kin_py = LocalParticle_get_py(part) - LocalParticle_get_ay(part);\
-            code; \
-            if ((radiation_flag || spin_flag) && length > 0){ \
+    // Mean field over `code` and path length, for spin and radiation.
+    #define MAGNET_MEAN_FIELD(ll) \
                 double h_for_rad = h_kick + hxl / length; \
                 if (fabs(h_drift) > 0){ h_for_rad = h_drift; } \
-                double Bx_T, By_T, Bz_T; \
+                xt_float_or_tpsa Bx_T = 0., By_T = 0., Bz_T = 0.; \
                 double const p0c = LocalParticle_get_p0c(part); \
                 double const q0 = LocalParticle_get_q0(part); \
-                double const new_x = LocalParticle_get_x(part); \
-                double const new_y = LocalParticle_get_y(part); \
-                double const new_kin_px = LocalParticle_get_px(part) - LocalParticle_get_ax(part);\
-                double const new_kin_py = LocalParticle_get_py(part) - LocalParticle_get_ay(part);\
-                double const mean_x = 0.5 * (old_x + new_x); \
-                double const mean_y = 0.5 * (old_y + new_y); \
-                double const mean_kin_px = 0.5 * (old_kin_px + new_kin_px); \
-                double const mean_kin_py = 0.5 * (old_kin_py + new_kin_py); \
+                xt_float_or_tpsa const new_x = LocalParticle_get_x(part); \
+                xt_float_or_tpsa const new_y = LocalParticle_get_y(part); \
+                xt_float_or_tpsa const mean_x = 0.5 * (old_x + new_x); \
+                xt_float_or_tpsa const mean_y = 0.5 * (old_y + new_y); \
                 evaluate_field_from_strengths( \
                     p0c, \
                     q0, \
@@ -143,9 +126,9 @@ void track_magnet_body_single_particle(
                     &By_T, \
                     &Bz_T \
                 ); \
-                double const dzeta = LocalParticle_get_zeta(part) - old_zeta; \
-                double const rvv = LocalParticle_get_rvv(part); \
-                double l_path = rvv * (ll - dzeta); \
+                xt_float_or_tpsa const dzeta = LocalParticle_get_zeta(part) - old_zeta; \
+                xt_float_or_tpsa const rvv = LocalParticle_get_rvv(part); \
+                xt_float_or_tpsa const l_path = rvv * (ll - dzeta); \
                 if (spin_flag){ \
                     magnet_spin( \
                         part, \
@@ -155,7 +138,43 @@ void track_magnet_body_single_particle(
                         h_for_rad, \
                         ll, \
                         l_path); \
-                } \
+                }
+
+    #if defined(XTRACK_MULTIPOLE_NO_SYNRAD)
+        #define WITH_RADIATION(ll, code)\
+        {\
+            code;\
+        }
+    #elif defined(XTRACK_TPSA_TRACK)
+        // Spin only. Snapshots are TPSA copies, so skip them for a spinless map.
+        #define WITH_RADIATION(ll, code) \
+        { \
+            if (spin_flag && length > 0 && !spin_is_zero(part)){ \
+                xt_float_or_tpsa const old_x = LocalParticle_get_x(part); \
+                xt_float_or_tpsa const old_y = LocalParticle_get_y(part); \
+                xt_float_or_tpsa const old_zeta = LocalParticle_get_zeta(part); \
+                code; \
+                MAGNET_MEAN_FIELD(ll) \
+            } \
+            else { \
+                code; \
+            } \
+        }
+    #else
+        #define WITH_RADIATION(ll, code) \
+        { \
+            double const old_x = LocalParticle_get_x(part); \
+            double const old_y = LocalParticle_get_y(part); \
+            double const old_zeta = LocalParticle_get_zeta(part); \
+            double const old_kin_px = LocalParticle_get_px(part) - LocalParticle_get_ax(part);\
+            double const old_kin_py = LocalParticle_get_py(part) - LocalParticle_get_ay(part);\
+            code; \
+            if ((radiation_flag || spin_flag) && length > 0){ \
+                MAGNET_MEAN_FIELD(ll) \
+                double const new_kin_px = LocalParticle_get_px(part) - LocalParticle_get_ax(part);\
+                double const new_kin_py = LocalParticle_get_py(part) - LocalParticle_get_ay(part);\
+                double const mean_kin_px = 0.5 * (old_kin_px + new_kin_px); \
+                double const mean_kin_py = 0.5 * (old_kin_py + new_kin_py); \
                 if (radiation_flag){ \
                     double const B_perp_T = compute_b_perp_mod( \
                         mean_kin_px, \
@@ -185,7 +204,6 @@ void track_magnet_body_single_particle(
         )
     }
     else{
-
 
     // START GENERATED INTEGRATION CODE
 
@@ -276,12 +294,12 @@ void track_magnet_body_single_particle(
 
     // END GENERATED INTEGRATION CODE
 
-
     }
 
     #undef MAGNET_KICK
     #undef MAGNET_DRIFT
     #undef WITH_RADIATION
+    #undef MAGNET_MEAN_FIELD
 
 }
 

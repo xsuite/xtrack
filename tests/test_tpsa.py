@@ -207,7 +207,7 @@ def test_particles_tpsa_rejects_synrad(enable):
     assert line.config.get("XTRACK_MULTIPOLE_NO_SYNRAD", False) is False
 
 
-def test_particles_tpsa_compiles_without_synrad_and_restores_config():
+def test_particles_tpsa_spin_kernel_matches_no_spin_kernel():
     line = _line()
     reference = _map()
     line.track(reference)
@@ -219,6 +219,106 @@ def test_particles_tpsa_compiles_without_synrad_and_restores_config():
     assert np.array_equal(m.jacobian(), reference.jacobian())
     assert line.config.get("XTRACK_MULTIPOLE_NO_SYNRAD", False) is False
     assert line.tracker.config.XTRACK_TPSA_TRACK is False
+
+
+@pytest.mark.parametrize("on_axis", [False, True])
+def test_tpsa_spin_track_matches_native_and_fd(on_axis):
+    # On axis the quad field is zero on the orbit but its spin derivative is not.
+    coords_and_spin = COORDS + ("spin_x", "spin_y", "spin_z")
+    seed = dict.fromkeys(COORDS, 0.0) if on_axis else X0
+    kwargs = dict(p0c=20e9, mass0=xt.ELECTRON_MASS_EV,
+                  anomalous_magnetic_moment=0.00115965218128,
+                  spin_x=0.1, spin_y=np.sqrt(0.95), spin_z=0.2)
+    elements = {"q": xt.Quadrupole(length=1.0, k1=0.3), "xr": xt.XRotation(angle=0.3)}
+    if not on_axis:
+        elements["b"] = xt.Bend(length=2.0, k0=0.01, angle=0.02)
+    line = xt.Line(elements=list(elements.values()), element_names=list(elements))
+    line.configure_spin(spin_model="auto")
+    line.build_tracker()
+
+    m = xtpsa.ParticlesTpsa(order=1, **kwargs, **seed)
+    line.track(m)
+
+    step = 1e-7
+    offsets = np.vstack([np.zeros(6), np.eye(6) * step, -np.eye(6) * step])
+    particles = xt.Particles(
+        **{name: np.full(13, value) if name.startswith("spin") else value
+           for name, value in kwargs.items()},
+        **{c: seed[c] + offsets[:, i] for i, c in enumerate(COORDS)},
+    )
+    line.track(particles)
+    native = np.array([getattr(particles, f) for f in coords_and_spin])
+    jac_fd = (native[:, 1:7] - native[:, 7:]) / (2 * step)
+
+    const_part = [getattr(m, f).const_part for f in coords_and_spin]
+    jac = np.array([getattr(m, f).grad()[:6] for f in coords_and_spin])
+    xo.assert_allclose(const_part, native[:, 0], rtol=0, atol=1e-14)
+    xo.assert_allclose(jac, jac_fd, rtol=0, atol=1e-7)
+    if on_axis:
+        assert abs(jac[6, 0]) > 1.0
+
+
+@allow_kernel_compilation
+def test_tpsa_element_track_with_spin_matches_native():
+    kwargs = dict(p0c=20e9, mass0=xt.ELECTRON_MASS_EV,
+                  anomalous_magnetic_moment=0.00115965218128,
+                  spin_x=0.1, spin_y=np.sqrt(0.95), spin_z=0.2, **X0)
+    particles = xt.Particles(**kwargs)
+    xt.Quadrupole(length=1.0, k1=0.3).track(particles)
+
+    m = xtpsa.ParticlesTpsa(order=1, **kwargs)
+    quad = xt.Quadrupole(length=1.0, k1=0.3)
+    # a line build registers its own per-element kernels under the same name
+    quad.compile_tpsa_kernels(only_if_needed=False)
+    quad.track(m)
+
+    spin = [getattr(m, name).const_part for name in ("spin_x", "spin_y", "spin_z")]
+    xo.assert_allclose(spin, [particles.spin_x[0], particles.spin_y[0], particles.spin_z[0]],
+                       rtol=0, atol=1e-15)
+    assert abs(m.spin_x.grad()[0]) > 1.0
+
+
+def _spin_ring():
+    env = xt.Environment()
+    env.particle_ref = xt.Particles(p0c=20e9, mass0=xt.ELECTRON_MASS_EV,
+                                    anomalous_magnetic_moment=0.00115965218128)
+    components = []
+    for i in range(8):
+        components += [
+            env.new(f"qf{i}", xt.Quadrupole, length=0.5, k1=0.28),
+            env.new(f"b{i}", xt.Bend, length=1.0, angle=2 * np.pi / 16),
+            env.new(f"qd{i}", xt.Quadrupole, length=0.5, k1=-0.28),
+            env.new(f"d{i}", xt.Drift, length=1.0),
+        ]
+    # a solenoid tilts n0 away from the vertical
+    components.append(env.new("sol", xt.UniformSolenoid, length=0.5, ks=0.02))
+    line = env.new_line(components=components)
+    line.configure_spin(spin_model="auto")
+    line.build_tracker()
+    return line
+
+
+@allow_kernel_compilation
+def test_tpsa_twiss_spin_matches_regular():
+    line = _spin_ring()
+    tw = line.twiss(spin=True, method="4d")
+    tw_tpsa = line.twiss(spin=True, method="4d", tpsa=True)
+    for name in ("spin_x", "spin_y", "spin_z"):
+        xo.assert_allclose(tw_tpsa[name], tw[name], rtol=0, atol=1e-9)
+    assert abs(tw_tpsa.spin_x[0]) > 1e-3 or abs(tw_tpsa.spin_z[0]) > 1e-3
+    xo.assert_allclose(tw_tpsa.betx, tw.betx, rtol=1e-8, atol=0)   # the regular twiss is FD
+
+    # open twiss propagates the init spin
+    init = tw_tpsa.get_twiss_init("qf2")
+    tw_open = line.twiss(start="qf2", end="d5", init=init, spin=True, method="4d")
+    tw_open_tpsa = line.twiss(start="qf2", end="d5", init=init, spin=True,
+                              method="4d", tpsa=True)
+    for name in ("spin_x", "spin_y", "spin_z"):
+        xo.assert_allclose(tw_open_tpsa[name], tw_open[name], rtol=0, atol=1e-12)
+
+    line.config.XTRACK_MULTIPOLE_NO_SYNRAD = True
+    line.twiss(spin=True, method="4d", tpsa=True)   # the spin twiss switches the flag on itself
+    assert line.config.XTRACK_MULTIPOLE_NO_SYNRAD is True
 
 
 def test_tpsa_line_track_matches_scalar_const_part():
@@ -1661,8 +1761,6 @@ def test_twiss_tpsa_table_shaping_routes():
 
 def test_twiss_tpsa_rejects_what_it_cannot_do():
     line = _chromatic_fodo_ring()
-    with pytest.raises(NotImplementedError):
-        line.twiss(method="4d", tpsa=True, spin=True)
     with pytest.raises(NotImplementedError):
         line.twiss(method="4d", tpsa=True, num_turns=3)
     with pytest.raises(NotImplementedError):

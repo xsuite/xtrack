@@ -291,22 +291,19 @@ class Tracker:
     def _track(self, particles, *args, **kwargs):
         tpsa_track = isinstance(particles, ParticlesTpsa)
         original_tpsa_track = self.config.XTRACK_TPSA_TRACK
-        original_no_synrad = self.config.get("XTRACK_MULTIPOLE_NO_SYNRAD", False)
-        if (tpsa_track and not original_no_synrad
+        no_synrad = self.config.get("XTRACK_MULTIPOLE_NO_SYNRAD", False)
+        if (tpsa_track and not no_synrad
                 and np.any(self.line.attr["radiation_flag"])):
             raise NotImplementedError(
                 "TPSA tracking does not support synchrotron radiation. "
                 "Use line.configure_radiation(model=None)."
             )
+        # Radiation is never compiled for TPSA, so the synrad flag only gates spin there.
         self.config.XTRACK_TPSA_TRACK = tpsa_track
-        if tpsa_track:
-            # The synrad and spin code is not compiled for TPSA.
-            self.config.XTRACK_MULTIPOLE_NO_SYNRAD = True
         try:
             return self._track_with_current_config(particles, *args, **kwargs)
         finally:
             self.config.XTRACK_TPSA_TRACK = original_tpsa_track
-            self.config.XTRACK_MULTIPOLE_NO_SYNRAD = original_no_synrad
 
     def _track_with_current_config(
             self, particles, *args, with_progress: Union[bool, int] = False,

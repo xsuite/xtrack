@@ -241,3 +241,10 @@ def test_energy0_setter():
     xo.assert_allclose(p.energy0, energy0_expected, rtol=1e-14, atol=1e-14)
     xo.assert_allclose(p.kinetic_energy0, kin_energy0_expected, rtol=1e-14, atol=1e-14)
     xo.assert_allclose(p.p0c, p0c_expected, rtol=1e-14, atol=1e-14)
+
+
+@pytest.mark.parametrize("name", ["mass0", "q0"])
+def test_particles_reference_scalars_reject_arrays(name):
+    xt.Particles(x=np.zeros(3), **{name: np.full(3, 2.0)})
+    with pytest.raises(ValueError, match=name):
+        xt.Particles(x=np.zeros(3), **{name: [1.0, 2.0, 3.0]})

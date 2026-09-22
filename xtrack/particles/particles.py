@@ -82,6 +82,14 @@ per_particle_vars = (
 )
 
 
+def _scalar_reference_value(name, value):
+    """A uniform array is accepted, anything else corrupts the struct."""
+    values = np.unique(np.atleast_1d(value))
+    if len(values) != 1:
+        raise ValueError(f"`{name}` must be a scalar, got {value!r}")
+    return values[0]
+
+
 class Particles(xo.HybridClass):
     _cname = 'ParticlesData'
 
@@ -331,9 +339,10 @@ class Particles(xo.HybridClass):
             kwargs.pop(field, None)
 
         # Init scalar vars
-        self.q0 = kwargs.get('q0', 1.0)
-        self.mass0 = kwargs.get('mass0', PROTON_MASS_EV)
-        self.t_sim = kwargs.get('t_sim', 0)
+        self.q0 = _scalar_reference_value('q0', kwargs.get('q0', 1.0))
+        self.mass0 = _scalar_reference_value(
+            'mass0', kwargs.get('mass0', PROTON_MASS_EV))
+        self.t_sim = _scalar_reference_value('t_sim', kwargs.get('t_sim', 0))
         self.start_tracking_at_element = kwargs.get(
                             'start_tracking_at_element', -1)
 
