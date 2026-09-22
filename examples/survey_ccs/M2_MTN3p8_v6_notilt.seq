@@ -233,47 +233,47 @@ tilt.MCBV.X0610989_TRIM7V      := 1.5707963267948966;
 /************************************************************************************************************************************************************************/
 M2_VERSION := 7;
 
-// ------ V4 ------
-IF (M2_VERSION == 4) {
-    M2_ANGLE1 := kMBH.X0610026_BEND1H;
-    M2_ANGLE2 := 0;
-    M2_ANGLE3 := 0;
-    M2_ROT_ANG := -0.011906;
-    M2_SHIFT_HOR  := -0.20431343;
-    M2_SHIFT_LONG := 0.00131959;
-};
-// ------ V5 ------
-ELSEIF (M2_VERSION == 5) {
-    M2_ANGLE1 := 0;
-    M2_ANGLE2 := 0;
-    M2_ANGLE3 := 0;
-    M2_ROT_ANG_IN := -0.0029765;
-    M2_ROT_ANG := -0.0148825;
-    M2_SHIFT_HOR  := -0.27007327;
-    M2_SHIFT_LONG := 0.00219484;
-};
-ELSEIF (M2_VERSION == 6) {
-    M2_ANGLE1 := kMBH.X0610026_BEND1H*0.5;
-    M2_ANGLE2 := kMBH.X0610031_BEND1H*0.5;
-    M2_ANGLE3 := kMBH.X0610035_BEND1H*0.5;
-    M2_ROT_ANG := -0.0089295;
-    M2_SHIFT_HOR  := -0.17357626;
-    M2_SHIFT_LONG := 0.00104243;
-};
-// ------ option 4 ------
-ELSEIF (M2_VERSION == 7) {
+! // ------ V4 ------
+! IF (M2_VERSION == 4) {
+!     M2_ANGLE1 := kMBH.X0610026_BEND1H;
+!     M2_ANGLE2 := 0;
+!     M2_ANGLE3 := 0;
+!     M2_ROT_ANG := -0.011906;
+!     M2_SHIFT_HOR  := -0.20431343;
+!     M2_SHIFT_LONG := 0.00131959;
+! };
+! // ------ V5 ------
+! ELSEIF (M2_VERSION == 5) {
+!     M2_ANGLE1 := 0;
+!     M2_ANGLE2 := 0;
+!     M2_ANGLE3 := 0;
+!     M2_ROT_ANG_IN := -0.0029765;
+!     M2_ROT_ANG := -0.0148825;
+!     M2_SHIFT_HOR  := -0.27007327;
+!     M2_SHIFT_LONG := 0.00219484;
+! };
+! ELSEIF (M2_VERSION == 6) {
+!     M2_ANGLE1 := kMBH.X0610026_BEND1H*0.5;
+!     M2_ANGLE2 := kMBH.X0610031_BEND1H*0.5;
+!     M2_ANGLE3 := kMBH.X0610035_BEND1H*0.5;
+!     M2_ROT_ANG := -0.0089295;
+!     M2_SHIFT_HOR  := -0.17357626;
+!     M2_SHIFT_LONG := 0.00104243;
+! };
+! // ------ option 4 ------
+! ELSEIF (M2_VERSION == 7) {
     M2_ANGLE1 := kMBH.X0610026_BEND1H*0.5;
     M2_ANGLE2 := kMBH.X0610031_BEND1H*0.5;
     M2_ANGLE3 := 0;
     M2_ROT_ANG := -0.011906;
     M2_SHIFT_HOR  := -0.21787286;
     M2_SHIFT_LONG := 0.00150189;
-};
-ELSE {
-    M2_ANGLE1 := kMBH.X0610026_BEND1H;
-    M2_ANGLE2 := kMBH.X0610031_BEND1H;
-    M2_ANGLE3 := kMBH.X0610035_BEND1H;
-};
+! };
+! ELSE {
+!     M2_ANGLE1 := kMBH.X0610026_BEND1H;
+!     M2_ANGLE2 := kMBH.X0610031_BEND1H;
+!     M2_ANGLE3 := kMBH.X0610035_BEND1H;
+! };
 
 
 
@@ -462,7 +462,7 @@ M2 : SEQUENCE, refer = centre,          L = 1185.6281;
  MBXHA.X0610067                : MBV.X0610067_BEND2V     	, at = 67.3         , slot_id = 56048962;
  XCHV.X0610070                 : XCHV.X0610070_COLL3_4     	, at = 69.525       , slot_id = 56051773;
  QWL.X0610072                  : MQF.X0610072_QUAD8F     	, at = 71.845       , slot_id = 56500647;
- MCXCA.X0610074                : MCBH.X0610074_TRIM1H     	, at = 73.965       , slot_id = 56049522;
+ MCXCA.X0610074                : MCBH.X0610074_TRIM1H     	, at = 74.10225     , slot_id = 56049522;
  QWL.X0610080                  : MQD.X0610080_QUAD9D     	, at = 80.155       , slot_id = 56500656;
  QWL.X0610096                  : MQD.X0610096_QUAD10D     	, at = 95.845       , slot_id = 56500665;
  MCXCA.X0610098                : MCBV.X0610098_TRIM2V    	, at = 97.965       , slot_id = 56049531;

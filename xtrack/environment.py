@@ -3111,7 +3111,7 @@ def _reverse_element(env, name):
 
     SUPPORTED = {'RBend', 'Bend', 'Quadrupole', 'Sextupole', 'Octupole',
                 'Multipole', 'Cavity', 'UniformSolenoid',
-                'Marker', 'Drift', 'LimitRect', 'LimitEllipse', 'LimitPolygon',
+                'Marker', 'Drift', 'Device', 'LimitRect', 'LimitEllipse', 'LimitPolygon',
                 'LimitRectEllipse', 'CrabCavity'}
 
     ee = env.get(name)

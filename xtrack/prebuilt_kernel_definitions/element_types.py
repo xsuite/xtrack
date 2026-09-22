@@ -12,6 +12,7 @@ from ..aperture.structures import ApertureModel, Profile, Polygon, SurveyData
 
 ONLY_XTRACK_ELEMENTS = [
     Drift,
+    Device,
     Multipole,
     Bend,
     RBend,
@@ -46,6 +47,7 @@ ONLY_XTRACK_ELEMENTS = [
     SplineBoris,
     # Drift Slices
     DriftSlice,
+    ThickSliceDevice,
     DriftExactSlice,
     DriftSliceBend,
     DriftSliceRBend,
@@ -120,6 +122,8 @@ NO_SYNRAD_ELEMENTS = [
 
 TPSA_SUPPORTED_ELEMENTS = [
     Drift,
+    Device,
+    ThickSliceDevice,
     DriftExact,
     Marker,
     ReferenceEnergyIncrease,

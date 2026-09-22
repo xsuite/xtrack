@@ -112,15 +112,18 @@ def test_sps_thick_native_loader(test_context):
     line.build_tracker(_context=test_context)
 
     # Check a bend
-    assert line.element_names[113] == 'mbb.10150_entry'
-    assert line.element_names[114] == 'mbb.10150..entry_map'
-    assert line.element_names[115] == 'drift_mbb.10150..0'
-    assert line.element_names[116] == 'mbb.10150..0'
-    assert line.element_names[117] == 'drift_mbb.10150..1'
-    assert line.element_names[118] == 'mbb.10150..1'
-    assert line.element_names[119] == 'drift_mbb.10150..2'
-    assert line.element_names[120] == 'mbb.10150..exit_map'
-    assert line.element_names[121] == 'mbb.10150_exit'
+    i_start = line.element_names.index('mbb.10150_entry')
+    assert list(line.element_names[i_start:i_start + 9]) == [
+        'mbb.10150_entry',
+        'mbb.10150..entry_map',
+        'drift_mbb.10150..0',
+        'mbb.10150..0',
+        'drift_mbb.10150..1',
+        'mbb.10150..1',
+        'drift_mbb.10150..2',
+        'mbb.10150..exit_map',
+        'mbb.10150_exit',
+    ]
 
     assert isinstance(line['mbb.10150_entry'], xt.Marker)
     assert isinstance(line['mbb.10150..entry_map'], xt.ThinSliceRBendEntry)
@@ -133,27 +136,30 @@ def test_sps_thick_native_loader(test_context):
     assert isinstance(line['mbb.10150_exit'], xt.Marker)
 
     # Check a quadrupole
-    assert line.element_names[159] == 'qf.10210_entry'
-    assert line.element_names[160] == 'qf.10210..entry_map'
-    assert line.element_names[161] == 'drift_qf.10210..0'
-    assert line.element_names[162] == 'qf.10210..0'
-    assert line.element_names[163] == 'drift_qf.10210..1'
-    assert line.element_names[164] == 'qf.10210..1'
-    assert line.element_names[165] == 'drift_qf.10210..2'
-    assert line.element_names[166] == 'qf.10210..2'
-    assert line.element_names[167] == 'drift_qf.10210..3'
-    assert line.element_names[168] == 'qf.10210..3'
-    assert line.element_names[169] == 'drift_qf.10210..4'
-    assert line.element_names[170] == 'qf.10210..4'
-    assert line.element_names[171] == 'drift_qf.10210..5'
-    assert line.element_names[172] == 'qf.10210..5'
-    assert line.element_names[173] == 'drift_qf.10210..6'
-    assert line.element_names[174] == 'qf.10210..6'
-    assert line.element_names[175] == 'drift_qf.10210..7'
-    assert line.element_names[176] == 'qf.10210..7'
-    assert line.element_names[177] == 'drift_qf.10210..8'
-    assert line.element_names[178] == 'qf.10210..exit_map'
-    assert line.element_names[179] == 'qf.10210_exit'
+    i_start = line.element_names.index('qf.10210_entry')
+    assert list(line.element_names[i_start:i_start + 21]) == [
+        'qf.10210_entry',
+        'qf.10210..entry_map',
+        'drift_qf.10210..0',
+        'qf.10210..0',
+        'drift_qf.10210..1',
+        'qf.10210..1',
+        'drift_qf.10210..2',
+        'qf.10210..2',
+        'drift_qf.10210..3',
+        'qf.10210..3',
+        'drift_qf.10210..4',
+        'qf.10210..4',
+        'drift_qf.10210..5',
+        'qf.10210..5',
+        'drift_qf.10210..6',
+        'qf.10210..6',
+        'drift_qf.10210..7',
+        'qf.10210..7',
+        'drift_qf.10210..8',
+        'qf.10210..exit_map',
+        'qf.10210_exit',
+    ]
 
     assert isinstance(line['qf.10210..7'], xt.ThinSliceQuadrupole)
 
@@ -212,4 +218,3 @@ def test_sps_thick_native_loader(test_context):
                     rtol=0, atol=1e-10)
     assert_allclose(tw_backwards.muy[-1] - tw_edge_linear.muy[0], tw_edge_linear.qy,
                     rtol=0, atol=1e-10)
-

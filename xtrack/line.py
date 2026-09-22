@@ -65,7 +65,7 @@ from .trajectory_correction import TrajectoryCorrection
 log = logging.getLogger(__name__)
 
 _ALLOWED_ELEMENT_TYPES_IN_NEW = [
-    xt.Drift, xt.DriftExact,
+    xt.Drift, xt.DriftExact, xt.Device,
     xt.Magnet, xt.Replica, xt.Marker,
     xt.Bend, xt.RBend, xt.Quadrupole, xt.Sextupole, xt.Octupole, xt.Multipole,
     xt.UniformSolenoid, xt.Solenoid, xt.VariableSolenoid,
@@ -4566,7 +4566,7 @@ class Line:
     def configure_drift_model(self, model=None):
 
         """
-        Configure the method used to track drifts.
+        Configure the method used to track drifts and devices.
 
         See documentation of ``xt.Drift`` for more details on the values of the
         models used below.
@@ -4574,7 +4574,7 @@ class Line:
         Parameters
         ----------
         model: str
-            Model to be used for the drifts. Can be 'adaptive', 'exact' or
+            Model to be used for drifts and devices. Can be 'adaptive', 'exact' or
             'expanded'.
         """
 
@@ -4584,7 +4584,7 @@ class Line:
             raise ValueError(f'Unknown drift model {model}')
 
         for ee in self._element_dict.values():
-            if model is not None and isinstance(ee, xt.Drift):
+            if model is not None and isinstance(ee, (xt.Drift, xt.Device)):
                 ee.model = model
 
     @doc_group("Magnet Model Configuration")
@@ -5009,7 +5009,8 @@ class Line:
         """
         Optimize the line for tracking by removing inactive elements and
         merging consecutive elements where possible. Deferred expressions are
-        disabled.
+        disabled. Devices are replaced with drifts, discarding their survey
+        misalignments.
 
         Parameters
         ----------
@@ -5040,8 +5041,18 @@ class Line:
         # Unfreeze the line
         self.discard_tracker()
 
+        if verbose: _print("Replace replicas with independent elements")
+        self.replace_all_replicas()
+
         if verbose: _print("Replace slices with equivalent elements")
         self._replace_with_equivalent_elements()
+
+        if verbose: _print("Replace devices with drifts")
+        with xt.environment._disable_name_clash_checks(self.env):
+            for nn, ee in zip(self.element_names, self._elements):
+                if isinstance(ee, xt.Device):
+                    self.env.elements[nn] = xt.Drift(
+                        length=ee.length, model=ee.model, _buffer=ee._buffer)
 
         if keep_markers is True:
             if verbose: _print('Markers are kept')

@@ -173,6 +173,50 @@ def test_radiation(test_context, thick):
     assert record._index.num_recorded == 0
 
 
+def test_radiation_analysis_with_decelerating_cavity():
+    env = xt.load([test_data_folder / 'sps_thick/sps.seq',
+                   test_data_folder / 'sps_thick/lhc_q20.str'])
+    line = env.sps
+
+    line.particle_ref = xt.Particles(
+        mass0=xt.ELECTRON_MASS_EV, q0=-1, p0c=50e9)
+    line.cycle('bpv.11706', inplace=True)
+
+    voltage = 250e6
+    num_cavities = 6
+    env['actcse.31632'].voltage = voltage * 10 / num_cavities
+    env['actcse.31632'].frequency = 3e6
+    env['actcse.31632'].phase = np.pi
+
+    for index in range(1, num_cavities + 1):
+        env.new(f'cav{index}', 'actcse.31632', length=0)
+
+    line.insert([
+        env.place('cav1', at='bpv.11706'),
+        env.place('cav2', at='bpv.21508'),
+        env.place('cav3', at='bpv.31508'),
+        env.place('cav4', at='bpv.41508'),
+        env.place('cav5', at='bpv.51508'),
+        env.place('cav6', at='bpv.61508'),
+    ])
+
+    line.configure_radiation(model='mean')
+    twiss_accelerating = line.twiss(radiation_analysis=True)
+
+    env['cav4'].phase -= np.pi
+    twiss_one_decelerating = line.twiss(radiation_analysis=True)
+
+    xo.assert_allclose(
+        twiss_accelerating.energy_loss,
+        twiss_one_decelerating.energy_loss,
+        rtol=0.01,
+    )
+    xo.assert_allclose(
+        twiss_accelerating.partition_numbers.sum(), 4, rtol=1e-4)
+    xo.assert_allclose(
+        twiss_one_decelerating.partition_numbers.sum(), 4, rtol=1e-4)
+
+
 @for_all_test_contexts(excluding=('ContextCupy', 'ContextPyopencl'))
 @pytest.mark.parametrize('thick', [False, True])
 @fix_random_seed(8438475)
