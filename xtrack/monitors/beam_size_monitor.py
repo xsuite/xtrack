@@ -5,10 +5,13 @@ Author: Philipp Niedermayer
 Date: 2023-08-14
 """
 
+from warnings import warn
+
 import numpy as np
 
 import xobjects as xo
 from ..base_element import BeamElement
+from ..general import DEPRECATION_INFO_PREP_1_0
 from ..beam_elements import Marker
 from ..internal_record import RecordIndex
 
@@ -87,6 +90,11 @@ class BeamSizeMonitor(BeamElement):
             sampling_frequency (float): Sampling frequency in Hz.
 
         """
+        warn("BeamSizeMonitor is deprecated and will be removed in a future version. "
+             "Please use BeamStatsMonitor instead."
+             + DEPRECATION_INFO_PREP_1_0,
+             DeprecationWarning, stacklevel=2)
+
         if _xobject is not None:
             super().__init__(_xobject=_xobject)
         else:
