@@ -8,6 +8,7 @@ EXPECTED_BEAM_ELEMENT_EXPORTS = {
     'RandomNormal', 'DEPRECATION_INFO_PREP_1_0',
     'RecordIndex', 'DEFAULT_MULTIPOLE_ORDER',
     'SynchrotronRadiationRecord', 'Spline4', 'SplineBoris',
+    'FieldExpansion', 'StraightFieldExpansion', 'BentFieldExpansion',
     'ReferenceEnergyIncrease', 'ReferenceEnergyChange', 'Marker', 'Drift',
     'DriftExact', 'Cavity', 'CrabCavity', 'XYShift', 'Translation', 'Elens',
     'NonLinearLens', 'Wire', 'Rotation', 'SRotation', 'XRotation',

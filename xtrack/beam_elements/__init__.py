@@ -28,6 +28,7 @@ from ._common import (
 )
 
 from .splineboris import Spline4, SplineBoris
+from .field_expansion import FieldExpansion, StraightFieldExpansion, BentFieldExpansion
 from .reference_energy_increase import ReferenceEnergyIncrease
 from .reference_energy_change import ReferenceEnergyChange
 from .marker import Marker
