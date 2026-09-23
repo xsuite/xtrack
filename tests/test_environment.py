@@ -1793,6 +1793,20 @@ def test_env_new_whole_array_reference():
     assert env['dst'].knl[0] == 9.
 
 
+def test_env_clone_numeric_overrides_clear_expressions():
+    env = xt.Environment()
+    env['a'] = 2.
+    env.new('source', 'Quadrupole', length='a', k1='3*a', knl=['a', '2*a'])
+    env.new('clone', 'source', length=0.5, knl=[4.])
+    env['a'] = 5.
+    assert env['clone'].length == 0.5
+    assert env['clone'].knl[0] == 4.
+    assert env['clone'].knl[1] == 10.
+    assert env['clone'].k1 == 15.
+    assert env['source'].length == 5.
+    assert env['source'].knl[0] == 5.
+
+
 def test_env_new_prototype_keyword_and_deprecated_parent():
 
     env = xt.Environment()
