@@ -21,7 +21,7 @@ _FIELD_VALUE_DTYPE = np.dtype([
 ])
 
 
-def _bfield_expansion_get_field(element, x, y, s):
+def _bfield_expansion_get_field(element, x, y, s_local):
     """Run a field-expansion evaluation kernel on broadcast input arrays."""
     context = element._context
 
@@ -31,7 +31,7 @@ def _bfield_expansion_get_field(element, x, y, s):
         return np.asarray(value, dtype=np.float64)
 
     x_arr, y_arr, s_arr = np.broadcast_arrays(
-        _to_numpy(x), _to_numpy(y), _to_numpy(s))
+        _to_numpy(x), _to_numpy(y), _to_numpy(s_local) + element.s_start)
     output_shape = x_arr.shape
     n_points = x_arr.size
 
@@ -180,7 +180,8 @@ class _BFieldExpansionGeometry:
         'h': '_h',
         'straight': '_straight',
         'angle': '_angle',
-        'sstart': '_sstart',
+        's_start': '_s_start',
+        'num_phi': '_num_phi',
         'nstep': '_nstep',
         'knc': '_knc',
         'ksc': '_ksc',
@@ -203,9 +204,44 @@ class _BFieldExpansionGeometry:
             transverse.append(values)
         return transverse[0], transverse[1], ksol
 
-    def _check_tracking_modes(self, particles):
-        if getattr(self, 'radiation_flag', 0):
-            raise NotImplementedError('BFieldExpansion does not support radiation tracking.')
+    @staticmethod
+    def _resolve_num_phi(num_phi, na, nb, deg, straight):
+        if isinstance(num_phi, str) and num_phi == 'auto':
+            # For a seed x**m*s**d in phi_p (p=0 or 1), the straight
+            # recurrence -(d_x**2 + d_s**2) terminates at
+            # phi_{p + 2*(m//2 + d//2)}. Keep one more y power for Ax/As.
+            # Use allocated shapes, not nonzero entries, so subsequent
+            # coefficient updates and deferred expressions remain covered.
+            phi_even = 2 * (na // 2 + deg // 2)
+            phi_odd = 1 + 2 * ((nb - 1) // 2 + deg // 2) if nb else 0
+            # The integrated ksol seed has degree <= deg (trailing zero).
+            num_phi = max(phi_even, phi_odd, 2 * (deg // 2)) + 1
+            if not straight:
+                # D_h = D_0 + h*(d_x - 2*x*d_s**2) + O(h**2).
+                # One insertion of the linear-h operator permits at most
+                # one extra recurrence step, i.e. two extra powers of y.
+                num_phi += 2
+        if not isinstance(num_phi, (int, np.integer)) or num_phi < 0:
+            raise ValueError("num_phi must be 'auto' or a nonnegative integer")
+        return int(num_phi)
+
+    @property
+    def num_phi(self):
+        """Resolved expansion order, fixed by the allocated coefficient cache."""
+        return self._num_phi
+
+    @num_phi.setter
+    def num_phi(self, value):
+        value = self._resolve_num_phi(value, self.na, self.nb, self.deg, self.straight)
+        # Environment.new writes constructor arguments back to the element.
+        # Accept the same order (including 'auto'), but do not invalidate
+        # the allocated cache or references from existing slices.
+        if value != self._num_phi:
+            raise ValueError('num_phi is fixed at construction; create a new '
+                             'BFieldExpansion to change the expansion order')
+
+    @staticmethod
+    def _check_spin_tracking(particles):
         if particles is not None and hasattr(particles, 'spin_x'):
             for name in ('spin_x', 'spin_y', 'spin_z'):
                 spin = particles._context.nparray_from_context_array(getattr(particles, name))
@@ -213,7 +249,7 @@ class _BFieldExpansionGeometry:
                     raise NotImplementedError('BFieldExpansion does not support spin tracking.')
 
     def track(self, particles=None, increment_at_element=False):
-        self._check_tracking_modes(particles)
+        self._check_spin_tracking(particles)
         return super().track(particles, increment_at_element=increment_at_element)
 
     @property
@@ -277,24 +313,24 @@ class _BFieldExpansionGeometry:
 
     def _update_integrated_strengths(self):
         for source, target in [('knc', 'knl'), ('ksc', 'ksl'), ('ksol', 'ksoll')]:
-            integrated = self._integrate_coefficients(source, self.sstart, self.length)
+            integrated = self._integrate_coefficients(source, self.s_start, self.length)
             getattr(self, '_' + target)[:] = self._context.nparray_to_context_array(integrated)
 
-    def _integrate_coefficients(self, name, sstart, length):
+    def _integrate_coefficients(self, name, s_start, length):
         # Each row uses ascending powers of the polynomial coordinate.
         powers = np.arange(1, self.deg + 2)
-        weights = ((sstart + length)**powers - sstart**powers) / powers
+        weights = ((s_start + length)**powers - s_start**powers) / powers
         coefficients = self._context.nparray_from_context_array(
             getattr(self, '_' + name)).reshape(-1, self.deg + 1)
         return coefficients @ weights
 
     @property
-    def sstart(self):
-        return self._sstart
+    def s_start(self):
+        return self._s_start
 
-    @sstart.setter
-    def sstart(self, value):
-        self._sstart = value
+    @s_start.setter
+    def s_start(self, value):
+        self._s_start = value
         self._update_integrated_strengths()
 
     @staticmethod
@@ -372,18 +408,43 @@ class BFieldExpansion(_BFieldExpansionGeometry, BeamElement):
         at x=y=0. Column j multiplies s**j; transverse powers include 1/i!.
     knc : array, shape (nb, deg+1)
         Normal field coefficients, with the same convention as ksc for
-        By/(B rho). Row zero is the normal dipole profile.
+        By/(B rho). The coefficient knc[i, 0] has the same normalization and
+        factorial convention as Xtrack's k_i (k0, k1, k2, ...):
+        By(x, 0, s)/(B rho) = sum_i sum_j knc[i, j]*s**j*x**i/i!.
+        Thus knc[0, 0], knc[1, 0], and knc[2, 0] are respectively the
+        constant dipole, quadrupole, and sextupole strengths. They are not
+        integrated strengths; knl contains the longitudinal integrals.
     ksol : array, shape (deg+1,)
         On-axis Bs/(B rho) in ascending powers of s. Include a trailing zero
         coefficient so its integral fits in the scalar-potential polynomial.
-    ny : int
-        Number of powers of y to include.
+    num_phi : int or 'auto', optional
+        Vertical truncation order of the scalar-potential reconstruction.
+        Default 'auto' uses the coefficient array shapes and polynomial
+        degree to retain the complete straight-field polynomial expansion,
+        including the vector potential. This also covers initially zero
+        coefficients that are changed later. Curved geometry adds two orders
+        to retain every term through first order in h. Terms of higher order
+        in h are generally not complete: use an explicit larger integer and
+        check convergence when they matter over the transverse region of
+        interest. A curved expansion generally does not terminate.
+
+        The row count alone is insufficient: longitudinal derivatives also
+        generate higher powers of y. The resolved integer is stored in
+        num_phi and is fixed at construction, when the cache is allocated.
+
+        Fields are evaluated through y**num_phi, with phi_0 through
+        phi_{num_phi+1} stored internally to differentiate the scalar
+        potential for By.
+    s_start : float, optional
+        Polynomial coordinate at the element entrance, in metres. Tracking
+        evaluates the profiles from s_start to s_start + length. Default is 0.
 
     Coefficient arrays retain their fixed input shapes. Update values with
     ``element.knc[...] = values`` (likewise for ksc and ksol); reassignment is
     prohibited. In-place updates rebuild the cached field expansion. NumPy
-    conversions return detached copies. Radiation and spin tracking are not
-    supported and raise NotImplementedError.
+    conversions return detached copies. This element does not radiate yet,
+    even when radiation is enabled for the line. Spin tracking is not
+    supported and raises NotImplementedError.
 
     ``Environment.new`` and ``Environment.set`` accept coefficient matrices
     containing numbers or deferred expressions, without special handling.
@@ -396,8 +457,8 @@ class BFieldExpansion(_BFieldExpansionGeometry, BeamElement):
     Attributes
     ----------
     knl, ksl : arrays
-        Read-only normal and skew strengths integrated from sstart to
-        sstart + length, with one entry per transverse derivative order.
+        Read-only normal and skew strengths integrated from s_start to
+        s_start + length, with one entry per transverse derivative order.
     ksoll : array, shape (1,)
         Read-only integral of ksol over the same interval.
     straight : int
@@ -411,13 +472,14 @@ class BFieldExpansion(_BFieldExpansionGeometry, BeamElement):
     has_backtrack = True
     allow_loss_refinement = False
     allow_rot_and_shift = False
+    _noexpr_fields = {'num_phi'}
 
     _xofields = {
         "length" : xo.Float64,
         "h": xo.Float64,
         "angle": xo.Float64,
         "straight": xo.Int64,
-        "ny": xo.Int64,
+        "num_phi": xo.Int64,
         "deg": xo.Int64,
         "nstep": xo.Int64,
         "ds": xo.Float64,
@@ -449,13 +511,13 @@ class BFieldExpansion(_BFieldExpansionGeometry, BeamElement):
         "_Q": xo.Float64[:],
 
         "pkin_const": xo.Int64,
-        "sstart": xo.Float64,
+        "s_start": xo.Float64,
     }
 
     _rename = _BFieldExpansionGeometry._geometry_rename
 
     _extra_c_sources = [
-        '#include "xtrack/beam_elements/elements_src/track_bfieldexpansion.h"',
+        '#include "xtrack/beam_elements/elements_src/bfieldexpansion.h"',
         '#include "xtrack/beam_elements/elements_src/create_bfieldexpansion.h"',
     ]
 
@@ -492,7 +554,8 @@ class BFieldExpansion(_BFieldExpansionGeometry, BeamElement):
         ),
     }
 
-    def __init__(self, length, ksc, knc, ksol, ny, h=0, nstep=10, sstart=0, **kwargs):
+    def __init__(self, length, ksc, knc, ksol, num_phi='auto', h=0, nstep=10,
+                 s_start=0, **kwargs):
         ksc, knc, ksol = self._coefficient_arrays(ksc, knc, ksol)
         self._validate_nstep(nstep)
         kwargs['length'] = length
@@ -504,7 +567,7 @@ class BFieldExpansion(_BFieldExpansionGeometry, BeamElement):
         kwargs['straight'] = straight
         kwargs['nstep'] = nstep
         kwargs['ds'] = length/nstep
-        kwargs['sstart'] = sstart
+        kwargs['s_start'] = s_start
 
         kwargs['ksc'] = ksc
         kwargs['knc'] = knc
@@ -512,7 +575,8 @@ class BFieldExpansion(_BFieldExpansionGeometry, BeamElement):
 
         kwargs['na'] = ksc.shape[0]
         kwargs['nb'] = knc.shape[0]
-        kwargs['ny'] = ny
+        kwargs['num_phi'] = self._resolve_num_phi(
+            num_phi, kwargs['na'], kwargs['nb'], ksc.shape[1] - 1, straight)
         kwargs['knl'] = np.zeros(kwargs['nb'])
         kwargs['ksl'] = np.zeros(kwargs['na'])
         kwargs['ksoll'] = np.zeros(1)
@@ -524,7 +588,8 @@ class BFieldExpansion(_BFieldExpansionGeometry, BeamElement):
         else:
             kwargs["pkin_const"] = 0  # Default is symplectic option
 
-        kwargs['_ncoef'] = kwargs['ny'] + 2  # store phi_0..phi_{ny+1} so By is also order ny
+        # Store one extra scalar-potential order for the y derivative in By.
+        kwargs['_ncoef'] = kwargs['num_phi'] + 2
 
         kwargs['_mmax'] = kwargs['na'] if kwargs['na'] > (kwargs['nb'] - 1) else (kwargs['nb'] - 1)
         if kwargs['straight']:
@@ -549,11 +614,14 @@ class BFieldExpansion(_BFieldExpansionGeometry, BeamElement):
 
         self._update_expansion()
 
-    def get_field(self, x, y, s):
-        """Evaluate ``FieldValue`` at broadcastable ``x, y, s``.
+    def get_field(self, x, y, s_local):
+        """Evaluate ``FieldValue`` at broadcastable ``x, y, s_local``.
+
+        ``s_local`` is measured from this element's entrance, in metres.
+        The polynomial coordinate is ``s_start + s_local``, as in tracking.
 
         Returns a structured NumPy array with the broadcast input shape and
         fields ``phi``, ``Bx``, ``By``, ``Bs``, ``Ax``, ``Ay``, ``As``, and
         all derivatives stored by the C ``FieldValue`` structure.
         """
-        return _bfield_expansion_get_field(self, x=x, y=y, s=s)
+        return _bfield_expansion_get_field(self, x=x, y=y, s_local=s_local)

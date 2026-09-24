@@ -1704,7 +1704,7 @@ def test_env_new_allowed_elements(cls_name):
         env.new('e', cls, x_vertices=[-1, 1, 1, -1], y_vertices=[-1, -1, 1, 1])
     elif cls_name == 'BFieldExpansion':
         env.new('e', cls, length=0.2, ksc=[[0., 0.]], knc=[[0., 0.]],
-                ksol=[0., 0.], ny=3)
+                ksol=[0., 0.])
     else:
         env.new('e', cls)
 

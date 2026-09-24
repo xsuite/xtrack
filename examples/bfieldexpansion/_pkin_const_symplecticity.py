@@ -8,7 +8,7 @@ in the preprint, on RK variational equations:
 https://arxiv.org/html/1503.04021#S3.SS3
 
 This implementation is deliberately specific to ksc=ksol=0, one normal dipole
-coefficient of degree <=6, and ny=7. The calling example checks its outputs
+coefficient of degree <=6, and num_phi=7. The calling example checks its outputs
 and Jacobians against native BFieldExpansion tracking. It is not a generic
 replacement for Xtrack's tracking kernels.
 """
@@ -102,7 +102,7 @@ def native_map(elements, initial, particle_ref, steps, pkin_const):
         tau=initial[:, 4], ptau=initial[:, 5],
     )
     if pkin_const:
-        entrance = elements[0].get_field(particles.x, particles.y, s=0)
+        entrance = elements[0].get_field(particles.x, particles.y, s_local=0)
         particles.px -= entrance['Ax']
         particles.py -= entrance['Ay']
     for element in elements:
@@ -112,7 +112,7 @@ def native_map(elements, initial, particle_ref, steps, pkin_const):
     output = np.array([particles.x, particles.px, particles.y, particles.py,
                        particles.zeta/particles.beta0, particles.ptau]).T
     if pkin_const:
-        exit_field = elements[-1].get_field(particles.x, particles.y, s=elements[-1].length)
+        exit_field = elements[-1].get_field(particles.x, particles.y, s_local=elements[-1].length)
         output[:, 1] += exit_field['Ax']
         output[:, 3] += exit_field['Ay']
     if not np.all(particles.state > 0) or not np.all(np.isfinite(output)):

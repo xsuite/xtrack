@@ -7,8 +7,8 @@ int cidx(int i, int m, int k, int nm, int moff, int deg) {
 }
 
 typedef struct {
-    int ny;      /* requested output order in y */
-    int ncoef;   /* stored phi_i coefficients: 0..ny+1 */
+    int num_phi; /* requested output order in y */
+    int ncoef;   /* stored phi_i coefficients: 0..num_phi+1 */
     int na, nb, deg;
     int mmin, mmax, moff, nm;
     int qemin, nq;

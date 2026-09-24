@@ -25,7 +25,7 @@ int evaluate_expansion_straight(Expansion *f, double x, double y, double s,
     }
 
     double yi = 1.0; /* y^i / i! */
-    for (int i = 0; i <= f->ny; ++i) {
+    for (int i = 0; i <= f->num_phi; ++i) {
         double sphi = 0.0, gx = 0.0, gs = 0.0, gy = 0.0;
         double dgx_dx = 0.0, dgx_ds = 0.0;
         double dgs_dx = 0.0, dgs_ds = 0.0;
@@ -57,8 +57,8 @@ int evaluate_expansion_straight(Expansion *f, double x, double y, double s,
         out->By  -= gy   * yi;  /* -c[i+1,m] x^m y^i/i! */
         out->Bs  -= gs   * yi;  /* -c[i,m]' x^(m-1) y^i/i! */
 
-        /* A_x, A_s through order ny in y: need i = 0..ny-1 */
-        if (i < f->ny) {
+        /* A_x, A_s through order num_phi in y: need i = 0..num_phi-1 */
+        if (i < f->num_phi) {
             double yi1 = yi * y / (double)(i + 1);  /* y^(i+1)/(i+1)! */
             out->Ax += gs * yi1;                    /* -c[i,m]' x^(m-1) y^(i+1)/(i+1)! */
             out->As -= gx * yi1;                    /* -m c[i,m] x^(m-1) y^i/i! */

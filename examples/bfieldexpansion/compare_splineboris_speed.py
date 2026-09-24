@@ -65,8 +65,8 @@ def make_elements(context, length, rigidity):
     ksol = np.array([0.10, 0.02, -0.03, 0.01, 0.0])
     expansion = xt.BFieldExpansion(
         _context=context, length=length, ksc=ksc, knc=knc, ksol=ksol,
-        # ny=7 includes the full potential for this sextupole/quartic case.
-        ny=7, nstep=1, sstart=0,
+        # num_phi=7 includes the full potential for this sextupole/quartic case.
+        num_phi=7, nstep=1, s_start=0,
         # Preserve kinetic momentum across the entrance/exit gauge changes.
         # With this option, both elements accept and return kinetic px, py.
         pkin_const=True,

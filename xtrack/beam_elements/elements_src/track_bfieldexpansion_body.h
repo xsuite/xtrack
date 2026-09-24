@@ -47,7 +47,7 @@ void TRACK_EXPANSION(
     BFieldExpansionData el,
     LocalParticle* part0,
     const double length,
-    double sstart,
+    double s_start,
     const int64_t nstep)
 {
     double ds = length / nstep;
@@ -56,7 +56,7 @@ void TRACK_EXPANSION(
     BFieldExpansionData_init_expansion(el, &f);
 
     int64_t const backtrack = LocalParticle_check_track_flag(part0, XS_FLAG_BACKTRACK);
-    if (backtrack) {sstart += length; ds = -ds;}
+    if (backtrack) {s_start += length; ds = -ds;}
 
     int pkin_const = BFieldExpansionData_get_pkin_const(el);
 
@@ -78,12 +78,12 @@ void TRACK_EXPANSION(
 
         // Momentum has to be continuous, vector potential discontinuous, update canonical momentum
         if (pkin_const) {
-            EVALUATE_EXPANSION(&f, z[0], z[2], sstart, &v);
+            EVALUATE_EXPANSION(&f, z[0], z[2], s_start, &v);
             z[1] += v.Ax - ax;
             z[3] += v.Ay - ay;
         }
 
-        double s = sstart;
+        double s = s_start;
         double ztmp[6];
         for (int step = 0; step < nstep; ++step) {
             double k1[6], k2[6], k3[6], k4[6];

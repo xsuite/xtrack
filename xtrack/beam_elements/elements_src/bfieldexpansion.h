@@ -1,5 +1,5 @@
-#ifndef XTRACK_TRACK_BFIELDEXPANSION_H
-#define XTRACK_TRACK_BFIELDEXPANSION_H
+#ifndef XTRACK_BFIELDEXPANSION_H
+#define XTRACK_BFIELDEXPANSION_H
 
 #include "track_bfieldexpansion_straight.h"
 #include "track_bfieldexpansion_bent.h"
@@ -8,7 +8,7 @@
 
 GPUFUN
 void BFieldExpansionData_init_expansion(BFieldExpansionData el, Expansion *f) {
-    f->ny       = BFieldExpansionData_get_ny(el);
+    f->num_phi  = BFieldExpansionData_get_num_phi(el);
     f->ncoef    = BFieldExpansionData_get__ncoef(el);
     f->na       = BFieldExpansionData_get_na(el);
     f->nb       = BFieldExpansionData_get_nb(el);
@@ -107,12 +107,12 @@ void BFieldExpansion_get_field(
 GPUFUN
 void BFieldExpansion_track_interval(BFieldExpansionData el,
                                     LocalParticle* part0,
-                                    double length, double sstart, int64_t nstep) {
+                                    double length, double s_start, int64_t nstep) {
     if (BFieldExpansionData_get_straight(el)) {
-        BFieldExpansion_track_straight(el, part0, length, sstart, nstep);
+        BFieldExpansion_track_straight(el, part0, length, s_start, nstep);
     }
     else {
-        BFieldExpansion_track_bent(el, part0, length, sstart, nstep);
+        BFieldExpansion_track_bent(el, part0, length, s_start, nstep);
     }
 }
 
@@ -121,7 +121,7 @@ void BFieldExpansion_track_local_particle(BFieldExpansionData el,
                                           LocalParticle* part0) {
     BFieldExpansion_track_interval(el, part0,
         BFieldExpansionData_get_length(el),
-        BFieldExpansionData_get_sstart(el),
+        BFieldExpansionData_get_s_start(el),
         BFieldExpansionData_get_nstep(el));
 }
 

@@ -38,7 +38,7 @@ def make_case():
         for name, expected in [('Bx', x*radial), ('By', y*radial), ('Bs', longitudinal)]:
             np.testing.assert_allclose(field[name], expected, rtol=0, atol=2e-13)
 
-    return FieldCase('Straight round solenoid', length=1., h=0., ny=9,
+    return FieldCase('Straight round solenoid', length=1., h=0., num_phi=9,
                      ksc=ksc, knc=knc, ksol=ksol, profile=profile, profile_label='On-axis Bs/(B rho) [1/m]',
                      field_check=check_field)
 

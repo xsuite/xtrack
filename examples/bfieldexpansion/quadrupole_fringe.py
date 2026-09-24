@@ -13,15 +13,15 @@ bentrance=np.array([[0,0,0,0], [0,0,120,-1600]])
 fringelength = 0.05
 bmax = 0.1
 
-entranceFringe = xt.BFieldExpansion(length=fringelength, ksc=np.array([[0,0,0,0]]), knc=bentrance, ksol=np.array([0,0,0,0]), ny=10)
-invDrift = xt.BFieldExpansion(length=-fringelength/2, ksc=np.array([[0]]), knc=np.array([[0]]), ksol=np.array([0]), ny=5)
-invQuad = xt.BFieldExpansion(length=-fringelength/2, ksc=np.array([[0]]), knc=np.array([[0], [bmax]]), ksol=np.array([0]), ny=5)
+entranceFringe = xt.BFieldExpansion(length=fringelength, ksc=np.array([[0,0,0,0]]), knc=bentrance, ksol=np.array([0,0,0,0]), num_phi=10)
+invDrift = xt.BFieldExpansion(length=-fringelength/2, ksc=np.array([[0]]), knc=np.array([[0]]), ksol=np.array([0]), num_phi=5)
+invQuad = xt.BFieldExpansion(length=-fringelength/2, ksc=np.array([[0]]), knc=np.array([[0], [bmax]]), ksol=np.array([0]), num_phi=5)
 thinFringe = xt.Line(elements=[invDrift, entranceFringe, invQuad])
 
 
 # Full quadrupole including fringes
 bexit = np.array([[0,0,0,0], [0.1,0,-120,1600]])
-exitFringe = xt.BFieldExpansion(length=fringelength, ksc=np.array([[0,0,0,0]]), knc=bexit, ksol=np.array([0,0,0,0]), ny=10)
+exitFringe = xt.BFieldExpansion(length=fringelength, ksc=np.array([[0,0,0,0]]), knc=bexit, ksol=np.array([0,0,0,0]), num_phi=10)
 
 magnlength = 1
 bodylength = magnlength - fringelength  # Magnetic length up to center of fringe fields (symmetry)

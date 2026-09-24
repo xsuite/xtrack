@@ -3,6 +3,7 @@
 Run with ``python -m examples.bfieldexpansion.environment``.
 Coefficient indices are [transverse derivative order, longitudinal power].
 The geometry mode and coefficient shapes remain fixed after construction.
+num_phi='auto' covers later changes within those shapes, including expressions.
 """
 
 import xtrack as xt
@@ -11,7 +12,7 @@ env = xt.Environment()
 env['field'] = 0.1
 env['curvature'] = 0.3
 for name, h in [('straight', 0.), ('curved', 'curvature')]:
-    env.new(name, 'BFieldExpansion', length=0.4, h=h, ny=5,
+    env.new(name, 'BFieldExpansion', length=0.4, h=h, num_phi='auto',
             knc=[['field', 0., 0.], [0.02, 0., 0.]],
             ksc=[[0., 0., 0.]], ksol=[0.1, 0.02, 0.])
 

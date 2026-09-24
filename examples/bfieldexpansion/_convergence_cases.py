@@ -8,7 +8,7 @@ Use DOP853 on the Lorentz equations in the same Frenet frame as tracking,
 including q=1+h*x and the h*p_s curvature term. The reference uses the
 smooth element's get_field, so it checks integration and segmentation, not
 the field-construction implementation independently. Check refinement of
-both the reference integration and the transverse expansion order ny.
+both the reference integration and the transverse expansion order num_phi.
 The straight-solenoid entry point additionally checks its analytical field.
 
 False preserves canonical momentum at internal interfaces; True preserves
@@ -50,7 +50,7 @@ class FieldCase:
     name: str
     length: float
     h: float
-    ny: int
+    num_phi: int
     ksc: list
     knc: list
     ksol: Polynomial
@@ -78,15 +78,15 @@ def round_solenoid_seeds(profile):
     return ksc, [Polynomial([0.])], profile
 
 
-def make_element(case, profiles, length, context, ny=None):
+def make_element(case, profiles, length, context, num_phi=None):
     # Include one EXTRA storage power; never discard the highest ksol term.
     size = max(len(p.coef) for p in profiles) + 1
     coefficients = np.array([np.pad(p.coef, (0, size-len(p.coef))) for p in profiles])
     na, nb = len(case.ksc), len(case.knc)
     return xt.BFieldExpansion(
-        _context=context, length=length, h=case.h, sstart=0, nstep=1,
+        _context=context, length=length, h=case.h, s_start=0, nstep=1,
         ksc=coefficients[:na], knc=coefficients[na:na+nb], ksol=coefficients[-1],
-        ny=case.ny if ny is None else ny,
+        num_phi=case.num_phi if num_phi is None else num_phi,
     )
 
 
@@ -150,8 +150,8 @@ def run_case(case, description):
         y=initial_y, py=0.1*initial_y, zeta=0, delta=0.02,
     )
     smooth = make_element(case, case.profiles, case.length, context)
-    higher_ny = make_element(case, case.profiles, case.length, context, ny=case.ny+2)
-    print(f'{case.name}: L={case.length:g} m, h={case.h:g} 1/m, ny={case.ny}', flush=True)
+    higher_num_phi = make_element(case, case.profiles, case.length, context, num_phi=case.num_phi+2)
+    print(f'{case.name}: L={case.length:g} m, h={case.h:g} 1/m, num_phi={case.num_phi}', flush=True)
     if case.field_check:
         case.field_check(smooth)
         print('Analytical field check passed.')
@@ -159,9 +159,9 @@ def run_case(case, description):
     refinement = np.max(error_per_particle(
         reference, reference_solution(smooth, initial, refined=False), case.length))
     transverse_check = np.max(error_per_particle(
-        reference, reference_solution(higher_ny, initial), case.length))
+        reference, reference_solution(higher_num_phi, initial), case.length))
     print(f'DOP853 refinement difference: {refinement:.3e}')
-    print(f'Reference change for ny={case.ny+2}: {transverse_check:.3e}')
+    print(f'Reference change for num_phi={case.num_phi+2}: {transverse_check:.3e}')
     print('Reference is numerical and uses the declared finite transverse expansion.')
     reference_scale = max(refinement, transverse_check, 1e-14)
 
@@ -283,7 +283,7 @@ def plot_case(case, data, args):
         axes[0, 1].loglog(data['integration_counts'], data['integration_errors'][mode],
                           style, label=f'pkin_const={mode}')
     axes[0, 1].axhline(data['reference_scale'], color='0.5', linestyle=':',
-                       label='Reference / ny refinement scale')
+                       label='Reference / num_phi refinement scale')
     axes[0, 1].set(xlabel='RK4 steps', ylabel='Maximum normalized exit error',
                    title='Smooth degree-six field')
     axes[0, 1].legend(fontsize=8)

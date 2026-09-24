@@ -15,7 +15,6 @@ from .rbend import RBend
 from .sextupole import Sextupole
 from .solenoid import Solenoid
 from .uniform_solenoid import UniformSolenoid
-from .slice_base import ID_RADIATION_FROM_PARENT
 
 class _ThickSliceElementBase(_SliceBase):
 
@@ -30,7 +29,7 @@ class ThickSliceBFieldExpansion(_ThickSliceElementBase, BeamElement):
 
     ``slice_offset`` is measured from the parent's entrance. Its stored fraction
     follows changes of the parent's length, as does the slice's weight.
-    ``sstart`` includes the parent's polynomial-coordinate origin.
+    ``s_start`` includes the parent's polynomial-coordinate origin.
     """
 
     allow_rot_and_shift = False
@@ -62,8 +61,8 @@ class ThickSliceBFieldExpansion(_ThickSliceElementBase, BeamElement):
         return self._slice_offset_fraction * self._parent.length
 
     @property
-    def sstart(self):
-        return self._parent.sstart + self.slice_offset
+    def s_start(self):
+        return self._parent.s_start + self.slice_offset
 
     @property
     def nstep(self):
@@ -79,7 +78,7 @@ class ThickSliceBFieldExpansion(_ThickSliceElementBase, BeamElement):
 
     def _integrated_strength(self, name):
         result = self._parent._integrate_coefficients(
-            name, self.sstart, self._parent.length * self.weight)
+            name, self.s_start, self._parent.length * self.weight)
         result.flags.writeable = False
         return result
 
@@ -95,14 +94,12 @@ class ThickSliceBFieldExpansion(_ThickSliceElementBase, BeamElement):
     def ksoll(self):
         return self._integrated_strength('ksol')
 
-    def get_field(self, x, y, s):
-        """Evaluate the field at slice-local longitudinal positions s."""
-        return self._parent.get_field(x, y, np.asarray(s) + self.sstart)
+    def get_field(self, x, y, s_local):
+        """Evaluate the field at distances s_local from this slice's entrance."""
+        return self._parent.get_field(x, y, np.asarray(s_local) + self.slice_offset)
 
     def track(self, particles=None, increment_at_element=False):
-        if self.radiation_flag not in (0, ID_RADIATION_FROM_PARENT):
-            raise NotImplementedError('BFieldExpansion does not support radiation tracking.')
-        self._parent._check_tracking_modes(particles)
+        self._parent._check_spin_tracking(particles)
         return super().track(particles, increment_at_element=increment_at_element)
 
 

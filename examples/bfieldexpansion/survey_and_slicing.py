@@ -41,7 +41,7 @@ def make_expansion(length, h, coefficients, nstep):
     return xt.BFieldExpansion(
         length=length, h=h, knc=coefficients[None, :],
         ksc=np.zeros((1, len(coefficients))), ksol=np.zeros_like(coefficients),
-        ny=5, nstep=nstep, pkin_const=False)
+        num_phi=5, nstep=nstep, pkin_const=False)
 
 
 def make_line(nstep):
@@ -55,7 +55,7 @@ def make_line(nstep):
     elements = {}
     for bend in ('b1', 'b2'):
         # scipy uses descending powers of s-knots[i]; BFieldExpansion uses
-        # ascending powers. Each parent segment starts at local sstart=0.
+        # ascending powers. Each parent segment starts at local s_start=0.
         for i, geometry_h in enumerate((0., H)):
             elements[f'{bend}_entry_{i}'] = make_expansion(
                 FRINGE_LENGTH / 2, geometry_h, entrance.c[::-1, i], nstep)
@@ -105,7 +105,7 @@ def plot_comparison(line, survey, trajectory, sliced_survey, sliced_trajectory,
         element = line[name]
         local_s = np.linspace(0., element.length, 101)
         h = getattr(element, 'h', 0.)
-        by = (element.get_field(x=0., y=0., s=local_s)['By']
+        by = (element.get_field(x=0., y=0., s_local=local_s)['By']
               if isinstance(element, xt.BFieldExpansion) else np.zeros_like(local_s))
         profile_s.extend(survey.s[i] + local_s)
         profile_by.extend(by)

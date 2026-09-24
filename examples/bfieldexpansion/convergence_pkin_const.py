@@ -6,7 +6,7 @@ Run from the repository root::
     python -m examples.bfieldexpansion.convergence_pkin_const --no-plot
 
 One smooth normal dipole has knc(s) of degree six, ksc=ksol=0, and length 1 m.
-Its exact off-axis field is a finite Maxwell expansion (ny=7 is sufficient).
+Its exact off-axis field is a finite Maxwell expansion (num_phi=7 is sufficient).
 Compare an unsplit BFieldExpansion and lists of C1 cubic Hermite segments
 against an independently integrated DOP853 Lorentz-force reference. Cubics
 match knc and knc' at each boundary and use LOCAL longitudinal coordinates.
@@ -125,16 +125,16 @@ def solve_reference(derivatives, initial, length, by_terms=4, bs_terms=3,
 def make_element(coefficients, length, context):
     coefficients = np.asarray(coefficients)
     return xt.BFieldExpansion(
-        _context=context, length=length, sstart=0, nstep=1,
+        _context=context, length=length, s_start=0, nstep=1,
         ksc=np.zeros((1, len(coefficients))), knc=coefficients[None, :],
-        ksol=np.zeros(len(coefficients)), ny=7,
+        ksol=np.zeros(len(coefficients)), num_phi=7,
     )
 
 
 def track_segments(elements, initial, pkin_const, steps):
     particles = initial.copy()
     if not pkin_const:
-        entrance = elements[0].get_field(particles.x, particles.y, s=0)
+        entrance = elements[0].get_field(particles.x, particles.y, s_local=0)
         particles.px += entrance['Ax']
         particles.py += entrance['Ay']
         particles.ax = entrance['Ax']
@@ -187,7 +187,7 @@ def main():
     # Check that the independent analytical field is the field actually used.
     y_grid, s_grid = np.meshgrid(np.linspace(-0.08, 0.08, 7),
                                   np.linspace(0, length, 31), indexing='ij')
-    field = smooth.get_field(x=0.003, y=y_grid, s=s_grid)
+    field = smooth.get_field(x=0.003, y=y_grid, s_local=s_grid)
     by, ksol = dipole_field(derivatives, y_grid, s_grid)
     np.testing.assert_allclose(field['Bx'], 0, rtol=0, atol=1e-14)
     np.testing.assert_allclose(field['By'], by, rtol=0, atol=2e-13)
@@ -261,7 +261,7 @@ def main():
         boundaries = np.linspace(0, length, count + 1)
         spline = CubicHermiteSpline(boundaries, knc(boundaries), derivatives[1](boundaries))
         # scipy stores descending powers of s-boundaries[i]. BFieldExpansion
-        # takes ascending powers, evaluated from sstart=0 in EACH element.
+        # takes ascending powers, evaluated from s_start=0 in EACH element.
         cubic_segments = [make_element(c, right-left, context)
                           for c, left, right in zip(
                               spline.c[::-1].T, boundaries[:-1], boundaries[1:])]
@@ -279,7 +279,7 @@ def main():
         # used for Jacobians are then independent CANONICAL perturbations.
         canonical_initial = symplectic_initial.copy()
         canonical_initial[:, 1] += cubic_segments[0].get_field(
-            canonical_initial[:, 0], canonical_initial[:, 2], s=0)['Ax']
+            canonical_initial[:, 0], canonical_initial[:, 2], s_local=0)['Ax']
         for mode in (False, True):
             coarse = track_segments(cubic_segments, initial, mode, args.steps_per_segment)
             fine = track_segments(cubic_segments, initial, mode, 2*args.steps_per_segment)

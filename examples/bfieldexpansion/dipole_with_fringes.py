@@ -51,11 +51,11 @@ assert body_length >= 0, "Different shape needed to describe such short magnets"
 
 env=xt.Environment()
 nstep=5
-env.elements['e0']=xt.BFieldExpansion(pkin_const=0, length=fringe_length/2, knc=np.array([knc_in]),   ksc=0*np.array([knc_in]),   ksol=0*knc_in,   ny=5, nstep=nstep)
-env.elements['e1']=xt.BFieldExpansion(pkin_const=0, length=fringe_length/2, knc=np.array([knc_in]),   ksc=0*np.array([knc_in]),   ksol=0*knc_in,   ny=5, nstep=nstep, h=h, sstart=fringe_length/2)
-env.elements['e2']=xt.BFieldExpansion(pkin_const=0, length=body_length,     knc=np.array([knc_body]), ksc=0*np.array([knc_body]), ksol=0*knc_body, ny=5, nstep=nstep, h=h)
-env.elements['e3']=xt.BFieldExpansion(pkin_const=0, length=fringe_length/2, knc=np.array([knc_out]),  ksc=0*np.array([knc_out]),  ksol=0*knc_out,  ny=5, nstep=nstep, h=h)
-env.elements['e4']=xt.BFieldExpansion(pkin_const=0, length=fringe_length/2, knc=np.array([knc_out]),  ksc=0*np.array([knc_out]),  ksol=0*knc_out,  ny=5, nstep=nstep, sstart=fringe_length/2)
+env.elements['e0']=xt.BFieldExpansion(pkin_const=0, length=fringe_length/2, knc=np.array([knc_in]),   ksc=0*np.array([knc_in]),   ksol=0*knc_in,   num_phi=5, nstep=nstep)
+env.elements['e1']=xt.BFieldExpansion(pkin_const=0, length=fringe_length/2, knc=np.array([knc_in]),   ksc=0*np.array([knc_in]),   ksol=0*knc_in,   num_phi=5, nstep=nstep, h=h, s_start=fringe_length/2)
+env.elements['e2']=xt.BFieldExpansion(pkin_const=0, length=body_length,     knc=np.array([knc_body]), ksc=0*np.array([knc_body]), ksol=0*knc_body, num_phi=5, nstep=nstep, h=h)
+env.elements['e3']=xt.BFieldExpansion(pkin_const=0, length=fringe_length/2, knc=np.array([knc_out]),  ksc=0*np.array([knc_out]),  ksol=0*knc_out,  num_phi=5, nstep=nstep, h=h)
+env.elements['e4']=xt.BFieldExpansion(pkin_const=0, length=fringe_length/2, knc=np.array([knc_out]),  ksc=0*np.array([knc_out]),  ksol=0*knc_out,  num_phi=5, nstep=nstep, s_start=fringe_length/2)
 dipole = env.new_line(name="dipole",components=['e0', 'e1', 'e2', 'e3', 'e4'])
 
 p0 = xt.Particles()
@@ -95,7 +95,7 @@ def plot_s_By(line,x=0.0,y=0.0,nstep=101):
       slocal=np.linspace(0,el.length,nstep)
       s=s0+slocal
       plt.plot(s0+slocal,
-               el.get_field(x=x+0*slocal,y=y+0*slocal,s=slocal+el.sstart)['By'],
+               el.get_field(x=x+0*slocal,y=y+0*slocal,s_local=slocal)['By'],
                label=f"By(x={x},y={y},s)")
       s0+=el.length
     plt.xlabel('s')
