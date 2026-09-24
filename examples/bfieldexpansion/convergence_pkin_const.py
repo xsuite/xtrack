@@ -1,15 +1,15 @@
-"""Investigate FieldExpansion convergence with and without pkin_const.
+"""Investigate BFieldExpansion convergence with and without pkin_const.
 
 Run from the repository root::
 
-    python -m examples.fieldexpansion.convergence_pkin_const
-    python -m examples.fieldexpansion.convergence_pkin_const --no-plot
+    python -m examples.bfieldexpansion.convergence_pkin_const
+    python -m examples.bfieldexpansion.convergence_pkin_const --no-plot
 
-One smooth normal dipole has b(s) of degree six, a=bs=0, and length 1 m.
+One smooth normal dipole has knc(s) of degree six, ksc=ksol=0, and length 1 m.
 Its exact off-axis field is a finite Maxwell expansion (ny=7 is sufficient).
-Compare an unsplit FieldExpansion and lists of C1 cubic Hermite segments
+Compare an unsplit BFieldExpansion and lists of C1 cubic Hermite segments
 against an independently integrated DOP853 Lorentz-force reference. Cubics
-match b and b' at each boundary and use LOCAL longitudinal coordinates.
+match knc and knc' at each boundary and use LOCAL longitudinal coordinates.
 Double the RK4 steps per segment to distinguish integration error from
 the error caused by replacing the smooth magnet with cubic segments.
 
@@ -19,22 +19,22 @@ compare kin_px/kin_py at the exit. Keep the requested boundary handling
 inside the list: no manual momentum corrections between elements.
 
 The result need not be convergence to the full field at fixed nonzero y!
-Writing b^(j) for the j-th s derivative, the smooth dipole has
+Writing knc^(j) for the j-th s derivative, the smooth dipole has
 
-    By = b - b'' y^2/2 + b^(4) y^4/24 - b^(6) y^6/720,
-    Bs = b' y - b''' y^3/6 + b^(5) y^5/120,
-    Ax = -b' y^2/2 + b''' y^4/24 - b^(5) y^6/720, Ay=0, As=-b*x.
+    By = knc - knc'' y^2/2 + knc^(4) y^4/24 - knc^(6) y^6/720,
+    Bs = knc' y - knc''' y^3/6 + knc^(5) y^5/120,
+    Ax = -knc' y^2/2 + knc''' y^4/24 - knc^(5) y^6/720, Ay=0, As=-knc*x.
 
 Cubic segments omit derivatives >=4 inside each interval. With True,
 their limiting regular field has By through y^2 and Bs through y^3.
 With False, the jumps of Ax also act on kinetic momentum. Their limiting
-potential is Ax=-b' y^2/2+b''' y^4/24, As=-b*x, whose field additionally
-contains b^(4) y^4/24 in By. Both still omit part of the full sixth-order
+potential is Ax=-knc' y^2/2+knc''' y^4/24, As=-knc*x, whose field additionally
+contains knc^(4) y^4/24 in By. Both still omit part of the full sixth-order
 field. DOP853 solutions of these two limits expose the resulting floors.
-Agreement of b(s) alone therefore does not establish off-axis convergence.
+Agreement of knc(s) alone therefore does not establish off-axis convergence.
 
 False preserves canonical momentum at interfaces (the symplectic boundary
-choice). Both modes currently use classical RK4 inside FieldExpansion;
+choice). Both modes currently use classical RK4 inside BFieldExpansion;
 neither finite-step numerical map is exactly symplectic.
 
 Also measure ||M.T S M - S||_2 on a grid of initial y and segment counts.
@@ -77,9 +77,9 @@ def dipole_field(derivatives, y, s, by_terms=4, bs_terms=3):
     """Normalized fields B/(B rho); exact for the degree-six dipole."""
     by = sum((-1)**k * y**(2*k) / factorial(2*k) * derivatives[2*k](s)
              for k in range(by_terms))
-    bs = sum((-1)**k * y**(2*k+1) / factorial(2*k+1) * derivatives[2*k+1](s)
+    ksol = sum((-1)**k * y**(2*k+1) / factorial(2*k+1) * derivatives[2*k+1](s)
              for k in range(bs_terms))
-    return by, bs
+    return by, ksol
 
 
 def coordinates(particles):
@@ -104,10 +104,10 @@ def solve_reference(derivatives, initial, length, by_terms=4, bs_terms=3,
     def rhs(s, flattened):
         x, px, y, py, zeta, delta = flattened.reshape(start.shape)
         ps = np.sqrt((1 + delta)**2 - px**2 - py**2)
-        by, bs = dipole_field(derivatives, y, s, by_terms, bs_terms)
+        by, ksol = dipole_field(derivatives, y, s, by_terms, bs_terms)
         return np.array([
-            px / ps, py / ps * bs - by,
-            py / ps, -px / ps * bs,
+            px / ps, py / ps * ksol - by,
+            py / ps, -px / ps * ksol,
             1 - (1 + beta0 * ptau) / ps, np.zeros_like(delta),
         ]).ravel()
 
@@ -124,10 +124,10 @@ def solve_reference(derivatives, initial, length, by_terms=4, bs_terms=3,
 
 def make_element(coefficients, length, context):
     coefficients = np.asarray(coefficients)
-    return xt.FieldExpansion(
+    return xt.BFieldExpansion(
         _context=context, length=length, sstart=0, nstep=1,
-        a=np.zeros((1, len(coefficients))), b=coefficients[None, :],
-        bs=np.zeros(len(coefficients)), ny=7,
+        ksc=np.zeros((1, len(coefficients))), knc=coefficients[None, :],
+        ksol=np.zeros(len(coefficients)), ny=7,
     )
 
 
@@ -142,7 +142,6 @@ def track_segments(elements, initial, pkin_const, steps):
     for element in elements:
         element.pkin_const = pkin_const
         element.nstep = steps
-        element.ds = element.length / steps  # Stored separately from nstep.
         element.track(particles)
     np.testing.assert_allclose(
         particles.s, sum(el.length for el in elements), rtol=0, atol=1e-11)
@@ -174,25 +173,25 @@ def main():
     context = xo.ContextCpu(omp_num_threads=0)
     context.allow_kernel_compilation = True
     length = 1.0
-    # b(s) = 0.05 + 0.10 * 64*u^3*(1-u)^3 [1/m], u=s/length.
-    # Only b[0] is nonzero; it is the normal dipole component B_y(x,0,s)/(B rho).
-    b = Polynomial([0.05, 0, 0, 6.4, -19.2, 19.2, -6.4])(Polynomial([0, 1/length]))
-    derivatives = [b.deriv(k) for k in range(7)]
+    # knc(s) = 0.05 + 0.10 * 64*u^3*(1-u)^3 [1/m], u=s/length.
+    # Only knc[0] is nonzero; it is the normal dipole component B_y(x,0,s)/(B rho).
+    knc = Polynomial([0.05, 0, 0, 6.4, -19.2, 19.2, -6.4])(Polynomial([0, 1/length]))
+    derivatives = [knc.deriv(k) for k in range(7)]
     y_initial = np.array([0.002, 0.01, 0.05])
     initial = xt.Particles(
         _context=context, p0c=1e9, q0=1, x=0.003, px=0.004,
         y=y_initial, py=0.1*y_initial, zeta=0, delta=0.02,
     )
-    smooth = make_element(b.coef, length, context)
+    smooth = make_element(knc.coef, length, context)
 
     # Check that the independent analytical field is the field actually used.
     y_grid, s_grid = np.meshgrid(np.linspace(-0.08, 0.08, 7),
                                   np.linspace(0, length, 31), indexing='ij')
     field = smooth.get_field(x=0.003, y=y_grid, s=s_grid)
-    by, bs = dipole_field(derivatives, y_grid, s_grid)
+    by, ksol = dipole_field(derivatives, y_grid, s_grid)
     np.testing.assert_allclose(field['Bx'], 0, rtol=0, atol=1e-14)
     np.testing.assert_allclose(field['By'], by, rtol=0, atol=2e-13)
-    np.testing.assert_allclose(field['Bs'], bs, rtol=0, atol=2e-13)
+    np.testing.assert_allclose(field['Bs'], ksol, rtol=0, atol=2e-13)
 
     reference = solve_reference(derivatives, initial, length)
     reference_check = solve_reference(derivatives, initial, length, refined=False)
@@ -223,7 +222,7 @@ def main():
 
     # Control: splitting the EXACT polynomial introduces no model change.
     exact_segments = [
-        make_element(b(Polynomial([left, 1])).coef, length/8, context)
+        make_element(knc(Polynomial([left, 1])).coef, length/8, context)
         for left in np.linspace(0, length, 9)[:-1]
     ]
     for mode in (False, True):
@@ -260,15 +259,15 @@ def main():
 
     for count in counts:
         boundaries = np.linspace(0, length, count + 1)
-        spline = CubicHermiteSpline(boundaries, b(boundaries), derivatives[1](boundaries))
-        # scipy stores descending powers of s-boundaries[i]. FieldExpansion
+        spline = CubicHermiteSpline(boundaries, knc(boundaries), derivatives[1](boundaries))
+        # scipy stores descending powers of s-boundaries[i]. BFieldExpansion
         # takes ascending powers, evaluated from sstart=0 in EACH element.
         cubic_segments = [make_element(c, right-left, context)
                           for c, left, right in zip(
                               spline.c[::-1].T, boundaries[:-1], boundaries[1:])]
         samples = (boundaries[:-1, None]
                    + np.linspace(0, 1, 9)[None, :] * length/count).ravel()
-        fit_errors.append(np.max(np.abs(spline(samples) - b(samples))))
+        fit_errors.append(np.max(np.abs(spline(samples) - knc(samples))))
         cubic_by = spline(samples) - spline(samples, 2)*y_initial[-1]**2/2
         cubic_bs = spline(samples, 1)*y_initial[-1] - spline(samples, 3)*y_initial[-1]**3/6
         exact_by, exact_bs = dipole_field(derivatives, y_initial[-1], samples)
@@ -315,7 +314,7 @@ def main():
               f'True={np.max(symplectic[True]["fine"][-1]):.3e}', flush=True)
 
     print('\nCubic segments: errors below use the refined RK4 step count')
-    print(' N    max|b_fit-b|    max|B_fit-B|    err False   order'
+    print(' N      fit error      max|B_fit-B|    err False   order'
           '    err True    order   RK4 check')
     for mode in (False, True):
         errors[mode] = np.array(errors[mode])
@@ -331,7 +330,7 @@ def main():
               + '   '.join(entries) + f'   {check:.2e}')
     print('Field errors are sampled in B/(B rho) [1/m] at y=50 mm,')
     print('using the regular field inside cubics (excluding boundary impulses).')
-    print(f'Last observed order of the on-axis b(s) fit: '
+    print(f'Last observed order of the on-axis knc(s) fit: '
           f'{orders(np.array(fit_errors), counts)[-1]:.2f}')
     print('Exit errors: max |difference| in (x/L, kin_px, y/L, kin_py, zeta/L, delta).')
     print('RK4 check: maximum change after doubling steps per cubic segment.')
@@ -377,10 +376,10 @@ def main():
 
         fig, axes = plt.subplots(2, 2, figsize=(12, 9))
         s_plot = np.linspace(0, length, 501)
-        axes[0, 0].plot(s_plot, b(s_plot), 'k', label='Smooth degree six')
+        axes[0, 0].plot(s_plot, knc(s_plot), 'k', label='Smooth degree six')
         for count, spline in interpolation_examples.items():
             axes[0, 0].plot(s_plot, spline(s_plot), '--', label=f'{count} cubics')
-        axes[0, 0].set(xlabel='s [m]', ylabel='b(s) [1/m]', title='On-axis dipole profile')
+        axes[0, 0].set(xlabel='s [m]', ylabel='knc(s) [1/m]', title='On-axis dipole profile')
         axes[0, 0].legend()
         for mode, marker in ((False, 'o-'), (True, 'x--')):
             axes[0, 1].loglog(integration_counts, integration_errors[mode], marker,

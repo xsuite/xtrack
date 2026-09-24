@@ -1,8 +1,8 @@
 """Shared convergence study for the solenoid and curved-dipole examples.
 
-Fit every nonzero a_i(s), b_i(s), bs(s) independently with C1 cubic Hermite
-pieces. Pad the input arrays with one zero coefficient: FieldExpansion
-must store the integral of bs, including when bs itself is cubic.
+Fit every nonzero ksc[i](s), knc[i](s), ksol(s) independently with C1 cubic Hermite
+pieces. Pad the input arrays with one zero coefficient: BFieldExpansion
+must store the integral of ksol, including when ksol itself is cubic.
 
 Use DOP853 on the Lorentz equations in the same Frenet frame as tracking,
 including q=1+h*x and the h*p_s curvature term. The reference uses the
@@ -51,41 +51,41 @@ class FieldCase:
     length: float
     h: float
     ny: int
-    a: list
-    b: list
-    bs: Polynomial
+    ksc: list
+    knc: list
+    ksol: Polynomial
     profile: Polynomial
     profile_label: str
     field_check: object = None
 
     @property
     def profiles(self):
-        return self.a + self.b + [self.bs]
+        return self.ksc + self.knc + [self.ksol]
 
 
 def round_solenoid_seeds(profile):
     """Mid-plane data of the finite, axisymmetric degree-six solenoid.
 
-    B_r = sum_k (-1)^(k+1) r^(2k+1) bs^(2k+1)/(2^(2k+1) k! (k+1)!).
-    a_i is the i-th x derivative of Bx at x=y=0, hence the factorial.
+    B_r = sum_k (-1)^(k+1) r^(2k+1) ksol^(2k+1)/(2^(2k+1) k! (k+1)!).
+    ksc[i] is the i-th x derivative of Bx at x=y=0, hence the factorial.
     In a curved frame these seeds instead define a curved Maxwell expansion;
     they do not assert exact axisymmetry or specify a particular coil design.
     """
-    a = [Polynomial([0.]) for _ in range(6)]
+    ksc = [Polynomial([0.]) for _ in range(6)]
     for k in range(3):
-        a[2*k+1] = ((-1)**(k+1)*factorial(2*k+1)
+        ksc[2*k+1] = ((-1)**(k+1)*factorial(2*k+1)
                     / (2**(2*k+1)*factorial(k)*factorial(k+1)) * profile.deriv(2*k+1))
-    return a, [Polynomial([0.])], profile
+    return ksc, [Polynomial([0.])], profile
 
 
 def make_element(case, profiles, length, context, ny=None):
-    # Include one EXTRA storage power; never discard the highest bs term.
+    # Include one EXTRA storage power; never discard the highest ksol term.
     size = max(len(p.coef) for p in profiles) + 1
     coefficients = np.array([np.pad(p.coef, (0, size-len(p.coef))) for p in profiles])
-    na, nb = len(case.a), len(case.b)
-    return xt.FieldExpansion(
+    na, nb = len(case.ksc), len(case.knc)
+    return xt.BFieldExpansion(
         _context=context, length=length, h=case.h, sstart=0, nstep=1,
-        a=coefficients[:na], b=coefficients[na:na+nb], bs=coefficients[-1],
+        ksc=coefficients[:na], knc=coefficients[na:na+nb], ksol=coefficients[-1],
         ny=case.ny if ny is None else ny,
     )
 
@@ -100,10 +100,10 @@ def reference_solution(element, initial, refined=True):
         q = 1 + element.h*x
         ps = np.sqrt((1 + delta)**2 - px**2 - py**2)
         field = element.get_field(x, y, s)
-        bx, by, bs = (field[name] for name in ('Bx', 'By', 'Bs'))
+        bx, by, ksol = (field[name] for name in ('Bx', 'By', 'Bs'))
         return np.array([
-            q*px/ps, element.h*ps + q*(py/ps*bs - by),
-            q*py/ps, q*(bx - px/ps*bs),
+            q*px/ps, element.h*ps + q*(py/ps*ksol - by),
+            q*py/ps, q*(bx - px/ps*ksol),
             1 - q*(1 + beta0*ptau)/ps, np.zeros_like(delta),
         ]).ravel()
 

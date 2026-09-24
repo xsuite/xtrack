@@ -1,11 +1,11 @@
 """Degree-six round solenoid: pkin_const convergence and symplecticity.
 
 Run from the repository root:
-    python -m examples.fieldexpansion.convergence_pkin_const_straight_solenoid
+    python -m examples.bfieldexpansion.convergence_pkin_const_straight_solenoid
 
 The on-axis Bs/(B rho) is 0.30+0.10*64*u^3*(1-u)^3, u=s/L, L=1 m.
 Include all radial fringe terms of its exact, finite axisymmetric expansion.
-The cubic approximations fit bs and each transverse derivative a_i separately;
+The cubic approximations fit ksol and each transverse derivative ksc[i] separately;
 the cubic pieces need not individually retain exact axisymmetry.
 
 The study includes smooth-field RK4 convergence, cubic-segment refinement,
@@ -23,7 +23,7 @@ from ._convergence_cases import FieldCase, round_solenoid_seeds, run_case
 
 def make_case():
     profile = Polynomial([0.30, 0, 0, 6.4, -19.2, 19.2, -6.4])
-    a, b, bs = round_solenoid_seeds(profile)
+    ksc, knc, ksol = round_solenoid_seeds(profile)
 
     def check_field(element):
         x, y, s = np.meshgrid(np.linspace(-0.06, 0.06, 5),
@@ -39,7 +39,7 @@ def make_case():
             np.testing.assert_allclose(field[name], expected, rtol=0, atol=2e-13)
 
     return FieldCase('Straight round solenoid', length=1., h=0., ny=9,
-                     a=a, b=b, bs=bs, profile=profile, profile_label='On-axis Bs/(B rho) [1/m]',
+                     ksc=ksc, knc=knc, ksol=ksol, profile=profile, profile_label='On-axis Bs/(B rho) [1/m]',
                      field_check=check_field)
 
 

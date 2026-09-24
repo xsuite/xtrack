@@ -10,7 +10,7 @@ NORMAL_STRENGTHS_FROM_ATTR = ['k0l', 'k1l', 'k2l', 'k3l', 'k4l', 'k5l']
 SKEW_STRENGTHS_FROM_ATTR = [
     'k0sl', 'k1sl', 'k2sl', 'k3sl', 'k4sl', 'k5sl']
 OTHER_FIELDS_FROM_ATTR = [
-    'angle', 'angle_rad', 'rot_s_rad', 'hkick', 'vkick', 'ks', 'bs',
+    'angle', 'angle_rad', 'rot_s_rad', 'hkick', 'vkick', 'ks', 'ksoll', 'bs',
     'length', '_angle_force_body']
 OTHER_FIELDS_FROM_TABLE = [
     'element_type', 'isthick', 'parent_name', 'parent_type', 'prototype']

@@ -1,7 +1,7 @@
-#ifndef XTRACK_TRACK_FIELDEXPANSION_BENT_H
-#define XTRACK_TRACK_FIELDEXPANSION_BENT_H
+#ifndef XTRACK_TRACK_BFIELDEXPANSION_BENT_H
+#define XTRACK_TRACK_BFIELDEXPANSION_BENT_H
 
-#include "track_fieldexpansion_helpers.h"
+#include "track_bfieldexpansion_helpers.h"
 
 
 GPUFUN
@@ -10,7 +10,7 @@ int evaluate_expansion_bent(Expansion *f, double x, double y, double s,
     const double q = 1.0 + f->h * x;
         if (q == 0.0) return -1; /* singular chart */
 
-    fieldexpansion_reset_field_value(out);
+    bfieldexpansion_reset_field_value(out);
 
     GPUGLMEM double *V = f->V;
     GPUGLMEM double *D1 = f->D1;
@@ -24,8 +24,8 @@ int evaluate_expansion_bent(Expansion *f, double x, double y, double s,
     for (int t = 1; t < f->nq; ++t) Q[t] = Q[t - 1] * q;
     #define QPOW(E) Q[(E) - f->qemin]
 
-    /* As(x,0,s) 
-    = 1/(1+hx) int_0^x dx' *(1+hx) By(x',0,s) 
+    /* As(x,0,s)
+    = 1/(1+hx) int_0^x dx' *(1+hx) By(x',0,s)
     = 1/qh int_1^q dq' q' phi_1(q',s)
     = 1/qh sum_m c[1,m] q^(m+2)/(m+2) - 1/q sum_m c[1,m] 1/(m+2) */
     if (f->ncoef > 1) {
@@ -39,7 +39,7 @@ int evaluate_expansion_bent(Expansion *f, double x, double y, double s,
                 out->As     += c1m * g / den;
                 out->dAs_dx += c1m * (((double)(m + 1)) * QPOW(m) + QPOW(-2)) / (double)(m + 2);
             }
-            if (dc1m != 0.0) out->dAs_ds += dc1m * g / den;         
+            if (dc1m != 0.0) out->dAs_ds += dc1m * g / den;
         }
     }
 
@@ -97,19 +97,5 @@ int evaluate_expansion_bent(Expansion *f, double x, double y, double s,
     #undef QPOW
 }
 
-
-#define TRACK_EXPANSION BentFieldExpansion_track_local_particle
-#define HAMILTONIAN_FLOW hamiltonian_flow_bent
-#define EVALUATE_EXPANSION evaluate_expansion_bent
-#define GET_FIELD BentFieldExpansion_get_field
-#define FIELDEXPANSIONDATA BentFieldExpansionData
-#define DATA BentFieldExpansionData
-#include "track_fieldexpansion.h"
-#undef TRACK_EXPANSION
-#undef HAMILTONIAN_FLOW
-#undef EVALUATE_EXPANSION
-#undef GET_FIELD
-#undef FIELDEXPANSIONDATA
-#undef DATA
 
 #endif

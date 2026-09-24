@@ -1,13 +1,13 @@
-#ifndef XTRACK_TRACK_FIELDEXPANSION_STRAIGHT_H
-#define XTRACK_TRACK_FIELDEXPANSION_STRAIGHT_H
+#ifndef XTRACK_TRACK_BFIELDEXPANSION_STRAIGHT_H
+#define XTRACK_TRACK_BFIELDEXPANSION_STRAIGHT_H
 
-#include "track_fieldexpansion_helpers.h"
+#include "track_bfieldexpansion_helpers.h"
 
 GPUFUN
 int evaluate_expansion_straight(Expansion *f, double x, double y, double s,
                                 FieldValue *out) {
 
-    fieldexpansion_reset_field_value(out);
+    bfieldexpansion_reset_field_value(out);
 
     GPUGLMEM double *V = f->V;
     GPUGLMEM double *D1 = f->D1;
@@ -50,7 +50,7 @@ int evaluate_expansion_straight(Expansion *f, double x, double y, double s,
             const double xm  = XPOW(m);                  /* x^m */
             const double xm1 = XPOW(m - 1);              /* x^(m-1) */
             const double xm2 = XPOW(m - 2);              /* x^(m-2) */
-            
+
             sphi += cim  * xm;
             gx   += (double)m * cim  * xm1;
             gy   += ci1m * xm;
@@ -85,22 +85,8 @@ int evaluate_expansion_straight(Expansion *f, double x, double y, double s,
     out->dAs_dy =  out->Bx;
 
     return 0;
-    #undef QPOW
+    #undef XPOW
 }
 
-
-#define TRACK_EXPANSION StraightFieldExpansion_track_local_particle
-#define HAMILTONIAN_FLOW hamiltonian_flow_straight
-#define EVALUATE_EXPANSION evaluate_expansion_straight
-#define GET_FIELD StraightFieldExpansion_get_field
-#define FIELDEXPANSIONDATA StraightFieldExpansionData
-#define DATA StraightFieldExpansionData
-#include "track_fieldexpansion.h"
-#undef TRACK_EXPANSION
-#undef HAMILTONIAN_FLOW
-#undef EVALUATE_EXPANSION
-#undef GET_FIELD
-#undef FIELDEXPANSIONDATA
-#undef DATA
 
 #endif

@@ -12,9 +12,9 @@ bfringe=np.array([[0,0,120,-1600]])
 length = 0.05
 bmax = 0.1
 
-exactFringe = xt.FieldExpansion(length=length, a=np.array([[0,0,0,0]]), b=bfringe, bs=np.array([0,0,0,0]), ny=10)
-invDrift = xt.FieldExpansion(length=-length/2, a=np.array([[0]]), b=np.array([[0]]), bs=np.array([0]), ny=5)
-invBend = xt.FieldExpansion(length=-length/2, a=np.array([[0]]), b=np.array([[bmax]]), bs=np.array([0]), ny=5)
+exactFringe = xt.BFieldExpansion(length=length, ksc=np.array([[0,0,0,0]]), knc=bfringe, ksol=np.array([0,0,0,0]), ny=10)
+invDrift = xt.BFieldExpansion(length=-length/2, ksc=np.array([[0]]), knc=np.array([[0]]), ksol=np.array([0]), ny=5)
+invBend = xt.BFieldExpansion(length=-length/2, ksc=np.array([[0]]), knc=np.array([[bmax]]), ksol=np.array([0]), ny=5)
 thinFringe = xt.Line(elements=[invDrift, exactFringe, invBend])
 
 # Xsuite fringe with same parameters

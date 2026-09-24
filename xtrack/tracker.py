@@ -300,6 +300,14 @@ class Tracker:
             self, particles, *args, with_progress: Union[bool, int] = False,
             time=False, multi_element_monitor_at=None, monitor_monomials=None, **kwargs):
 
+        if not self.config.get('XTRACK_MULTIPOLE_NO_SYNRAD', False):
+            # Spin transport is enabled by the same flag as radiation.
+            for element_class in self.line_element_classes:
+                if issubclass(element_class._DressingClass,
+                              (xt.BFieldExpansion, xt.ThickSliceBFieldExpansion)):
+                    raise NotImplementedError(
+                        'BFieldExpansion does not support radiation or spin tracking.')
+
         out = None
 
         if time:

@@ -7,9 +7,9 @@ the cancellation noise of finite differences. See Sanz-Serna, Theorem 9
 in the preprint, on RK variational equations:
 https://arxiv.org/html/1503.04021#S3.SS3
 
-This implementation is deliberately specific to a=bs=0, one normal dipole
+This implementation is deliberately specific to ksc=ksol=0, one normal dipole
 coefficient of degree <=6, and ny=7. The calling example checks its outputs
-and Jacobians against native FieldExpansion tracking. It is not a generic
+and Jacobians against native BFieldExpansion tracking. It is not a generic
 replacement for Xtrack's tracking kernels.
 """
 
@@ -23,7 +23,7 @@ S = np.kron(np.eye(3), np.array([[0., 1.], [-1., 0.]]))
 
 
 def potentials(y, derivatives):
-    """Ax, dAx/dy, d2Ax/dy2 for this dipole; derivatives=(b,b',b''',b^(5))."""
+    """Ax, dAx/dy, d2Ax/dy2 for this dipole; derivatives=(knc,knc',knc''',knc^(5))."""
     _, d1, d3, d5 = derivatives
     ax = -d1*y**2/2 + d3*y**4/24 - d5*y**6/720
     dax_dy = -d1*y + d3*y**3/6 - d5*y**5/120
@@ -73,7 +73,7 @@ def tangent_map(coefficients, lengths, initial, beta0, steps, pkin_const):
             # Internal pkin-preserving interface: px += Ax_new - Ax_old.
             # Its exact Jacobian K=I+(d_y Delta Ax) e_px e_y^T is generally
             # non-symplectic, although det(K)=1. No such kick for False.
-            # For C1 cubics, d_y Delta Ax = Delta b''' * y^3/6; the single
+            # For C1 cubics, d_y Delta Ax = Delta knc''' * y^3/6; the single
             # interface's scaled defect is L*|d_y Delta Ax|. Transported
             # contributions can cancel, so measure the full product below.
             z[:, 1] += a_new - a_old
@@ -107,7 +107,7 @@ def native_map(elements, initial, particle_ref, steps, pkin_const):
         particles.py -= entrance['Ay']
     for element in elements:
         element.pkin_const = pkin_const
-        element.nstep, element.ds = steps, element.length/steps
+        element.nstep = steps
         element.track(particles)
     output = np.array([particles.x, particles.px, particles.y, particles.py,
                        particles.zeta/particles.beta0, particles.ptau]).T

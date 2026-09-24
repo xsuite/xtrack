@@ -28,7 +28,7 @@ from ._common import (
 )
 
 from .splineboris import Spline4, SplineBoris
-from .field_expansion import FieldExpansion, StraightFieldExpansion, BentFieldExpansion
+from .bfield_expansion import BFieldExpansion
 from .reference_energy_increase import ReferenceEnergyIncrease
 from .reference_energy_change import ReferenceEnergyChange
 from .marker import Marker
@@ -96,7 +96,7 @@ from .slice_elements_edge import (
                              ThinSliceOctupoleEntry, ThinSliceOctupoleExit,
                              ThinSliceUniformSolenoidEntry,
                              ThinSliceUniformSolenoidExit)
-from .slice_elements_thick import (ThickSliceDevice,
+from .slice_elements_thick import (ThickSliceDevice, ThickSliceBFieldExpansion,
                                    ThickSliceBend, ThickSliceRBend,
                                    ThickSliceQuadrupole, ThickSliceSextupole,
                                    ThickSliceOctupole, ThickSliceUniformSolenoid,

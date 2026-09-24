@@ -1,62 +1,58 @@
-#ifndef create_fieldexpansion_straight_H
-#define create_fieldexpansion_straight_H
+#ifndef create_bfieldexpansion_straight_H
+#define create_bfieldexpansion_straight_H
 
-#include "track_fieldexpansion_helpers.h"
+#include "track_bfieldexpansion_helpers.h"
 
-/* Index of c[i,m,k] in the c array, ordered as 
+/* Index of c[i,m,k] in the c array, ordered as
 c[0,mmin,0] ... c[0,mmin,deg], c[0,mmin+1,0] ... c[0,mmin+1,deg], ..., c[0,mmin+nm-1,0] ... c[0,mmin+nm-1,deg],
 c[1,mmin,0] ... c[1,mmin,deg], c[1,mmin+1,0] ... c[1,mmin+1,deg], ..., c[1,mmin+nm-1,0] ... c[1,mmin+nm-1,deg],
 ... c[ncoef-1, mmin+nm-1, deg]
-moff=-mmin is the offset to be added to m to get the correct index, 
+moff=-mmin is the offset to be added to m to get the correct index,
 since m does not necessarily start at 0
 */
 
-void build_expansion_straight(StraightFieldExpansionData el){
-    const double h  = StraightFieldExpansionData_get_h(el);
-    const int ncoef = StraightFieldExpansionData_get__ncoef(el);
-    const int na    = StraightFieldExpansionData_get_na(el);
-    const int nb    = StraightFieldExpansionData_get_nb(el);
-    const int deg   = StraightFieldExpansionData_get_deg(el);
-    double a[na * (deg + 1)];
+void build_expansion_straight(BFieldExpansionData el){
+    const int ncoef = BFieldExpansionData_get__ncoef(el);
+    const int na    = BFieldExpansionData_get_na(el);
+    const int nb    = BFieldExpansionData_get_nb(el);
+    const int deg   = BFieldExpansionData_get_deg(el);
+    double ksc[na * (deg + 1)];
     for (int i = 0; i < na*(deg+1); ++i){
-        a[i] = StraightFieldExpansionData_get_a(el,i);
+        ksc[i] = BFieldExpansionData_get_ksc(el, i / (deg + 1), i % (deg + 1));
     }
-    double b[nb * (deg + 1)];
+    double knc[nb * (deg + 1)];
     for (int i = 0; i < nb*(deg+1); ++i){
-        b[i] = StraightFieldExpansionData_get_b(el,i);
+        knc[i] = BFieldExpansionData_get_knc(el, i / (deg + 1), i % (deg + 1));
     }
-    double bs[deg + 1];
+    double ksol[deg + 1];
     for (int i = 0; i < deg + 1; ++i){
-        bs[i] = StraightFieldExpansionData_get_bs(el,i);
+        ksol[i] = BFieldExpansionData_get_ksol(el,i);
     }
 
-    const int mmax = StraightFieldExpansionData_get__mmax(el);
-    const int moff = StraightFieldExpansionData_get__moff(el);
-    const int nm   = StraightFieldExpansionData_get__nm(el);
+    const int mmax = BFieldExpansionData_get__mmax(el);
+    const int moff = BFieldExpansionData_get__moff(el);
+    const int nm   = BFieldExpansionData_get__nm(el);
 
-    double *c = (double *) StraightFieldExpansionData_getp__c(el);
+    double *c = BFieldExpansionData_getp1__c(el, 0);
 
     int nmax = (na > nb) ? na : nb;
     double invfact[nmax + 1];
-    double invhpow[nmax + 1];
     invfact[0] = 1.0;
-    invhpow[0] = 1.0;
     for (int n = 1; n <= nmax; ++n) {
         invfact[n] = invfact[n - 1] / (double)n;
-        invhpow[n] = invhpow[n - 1] / h;
     }
 
-    for (int k = 0; k < deg; ++k) c[cidx(0,0,k+1,nm,moff,deg)] = -bs[k] / (double)(k + 1);
+    for (int k = 0; k < deg; ++k) c[cidx(0,0,k+1,nm,moff,deg)] = -ksol[k] / (double)(k + 1);
 
     for (int n = 1; n <= na; ++n) {
         const double fac = -invfact[n];
-        const double *an = a + (size_t)(n - 1) * (size_t)(deg + 1);
+        const double *an = ksc + (size_t)(n - 1) * (size_t)(deg + 1);
         for (int k = 0; k <= deg; ++k) c[cidx(0,n,k,nm,moff,deg)] += fac * an[k];
     }
     if (ncoef > 1) {
         for (int n = 1; n <= nb; ++n) {
             const double fac = -invfact[n - 1];
-            const double *bn = b + (size_t)(n - 1) * (size_t)(deg + 1);
+            const double *bn = knc + (size_t)(n - 1) * (size_t)(deg + 1);
             for (int k = 0; k <= deg; ++k) c[cidx(1,n-1,k,nm,moff,deg)] += fac * bn[k];
         }
     }

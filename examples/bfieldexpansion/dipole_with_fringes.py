@@ -35,27 +35,27 @@ h = bmax  # 1 / bending radius
 fringe_length = 3*gap
 body_length = length - fringe_length
 
-b1_in = get_bshape4(fringe_length, 0, 0, bmax, 0, fringe_length * bmax / 2)
-b1_body = np.array([bmax])
-b1_out = get_bshape4(fringe_length, bmax, 0, 0, 0, fringe_length * bmax / 2)
+knc_in = get_bshape4(fringe_length, 0, 0, bmax, 0, fringe_length * bmax / 2)
+knc_body = np.array([bmax])
+knc_out = get_bshape4(fringe_length, bmax, 0, 0, 0, fringe_length * bmax / 2)
 
 fig, ax = plt.subplots()
 s1 = np.linspace(0, fringe_length, 100)
-ax.plot(s1, calc_value(b1_in, s1))
+ax.plot(s1, calc_value(knc_in, s1))
 s2 = np.linspace(0, body_length, 100)
-ax.plot(s2+fringe_length, calc_value(b1_body, s2))
+ax.plot(s2+fringe_length, calc_value(knc_body, s2))
 s3 = np.linspace(0, fringe_length, 100)
-ax.plot(s3+fringe_length+body_length, calc_value(b1_out, s3))
+ax.plot(s3+fringe_length+body_length, calc_value(knc_out, s3))
 
 assert body_length >= 0, "Different shape needed to describe such short magnets"
 
 env=xt.Environment()
 nstep=5
-env.elements['e0']=xt.FieldExpansion(pkin_const=0, length=fringe_length/2, b=np.array([b1_in]),   a=0*np.array([b1_in]),   bs=0*b1_in,   ny=5, nstep=nstep)
-env.elements['e1']=xt.FieldExpansion(pkin_const=0, length=fringe_length/2, b=np.array([b1_in]),   a=0*np.array([b1_in]),   bs=0*b1_in,   ny=5, nstep=nstep, h=h, sstart=fringe_length/2)
-env.elements['e2']=xt.FieldExpansion(pkin_const=0, length=body_length,     b=np.array([b1_body]), a=0*np.array([b1_body]), bs=0*b1_body, ny=5, nstep=nstep, h=h)
-env.elements['e3']=xt.FieldExpansion(pkin_const=0, length=fringe_length/2, b=np.array([b1_out]),  a=0*np.array([b1_out]),  bs=0*b1_out,  ny=5, nstep=nstep, h=h)
-env.elements['e4']=xt.FieldExpansion(pkin_const=0, length=fringe_length/2, b=np.array([b1_out]),  a=0*np.array([b1_out]),  bs=0*b1_out,  ny=5, nstep=nstep, sstart=fringe_length/2)
+env.elements['e0']=xt.BFieldExpansion(pkin_const=0, length=fringe_length/2, knc=np.array([knc_in]),   ksc=0*np.array([knc_in]),   ksol=0*knc_in,   ny=5, nstep=nstep)
+env.elements['e1']=xt.BFieldExpansion(pkin_const=0, length=fringe_length/2, knc=np.array([knc_in]),   ksc=0*np.array([knc_in]),   ksol=0*knc_in,   ny=5, nstep=nstep, h=h, sstart=fringe_length/2)
+env.elements['e2']=xt.BFieldExpansion(pkin_const=0, length=body_length,     knc=np.array([knc_body]), ksc=0*np.array([knc_body]), ksol=0*knc_body, ny=5, nstep=nstep, h=h)
+env.elements['e3']=xt.BFieldExpansion(pkin_const=0, length=fringe_length/2, knc=np.array([knc_out]),  ksc=0*np.array([knc_out]),  ksol=0*knc_out,  ny=5, nstep=nstep, h=h)
+env.elements['e4']=xt.BFieldExpansion(pkin_const=0, length=fringe_length/2, knc=np.array([knc_out]),  ksc=0*np.array([knc_out]),  ksol=0*knc_out,  ny=5, nstep=nstep, sstart=fringe_length/2)
 dipole = env.new_line(name="dipole",components=['e0', 'e1', 'e2', 'e3', 'e4'])
 
 p0 = xt.Particles()

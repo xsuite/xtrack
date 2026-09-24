@@ -1,5 +1,5 @@
-#ifndef TRACK_FIELDEXPANSION_HELPERS_H
-#define TRACK_FIELDEXPANSION_HELPERS_H
+#ifndef TRACK_BFIELDEXPANSION_HELPERS_H
+#define TRACK_BFIELDEXPANSION_HELPERS_H
 
 const int cidx(int i, int m, int k, int nm, int moff, int deg) {
     return (i * nm + (m+moff)) * (deg + 1) + k;
@@ -41,7 +41,7 @@ typedef struct {
 } HamiltonianFlow;
 
 GPUFUN
-void fieldexpansion_reset_field_value(FieldValue *out) {
+void bfieldexpansion_reset_field_value(FieldValue *out) {
     out->phi = 0.0;
     out->Bx = 0.0;
     out->By = 0.0;

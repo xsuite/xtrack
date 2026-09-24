@@ -1,8 +1,10 @@
+import numpy as np
 import xobjects as xo
 
 from ..base_element import BeamElement
 from .slice_base import _SliceBase, COMMON_SLICE_XO_FIELDS
 from .bend import Bend
+from .bfield_expansion import BFieldExpansion
 from .cavity import Cavity
 from .crab_cavity import CrabCavity
 from .device import Device
@@ -13,6 +15,7 @@ from .rbend import RBend
 from .sextupole import Sextupole
 from .solenoid import Solenoid
 from .uniform_solenoid import UniformSolenoid
+from .slice_base import ID_RADIATION_FROM_PARENT
 
 class _ThickSliceElementBase(_SliceBase):
 
@@ -20,6 +23,88 @@ class _ThickSliceElementBase(_SliceBase):
     allow_loss_refinement = True
     isthick = True
     _inherit_strengths = True
+
+
+class ThickSliceBFieldExpansion(_ThickSliceElementBase, BeamElement):
+    """A longitudinal interval sharing a BFieldExpansion's coefficients/cache.
+
+    ``slice_offset`` is measured from the parent's entrance. Its stored fraction
+    follows changes of the parent's length, as does the slice's weight.
+    ``sstart`` includes the parent's polynomial-coordinate origin.
+    """
+
+    allow_rot_and_shift = False
+    rot_and_shift_from_parent = False
+    allow_loss_refinement = False
+    # The profile is nonuniform: compute strengths on this interval on demand.
+    _inherit_strengths = False
+    _line_attr_properties = ('hxl', 'knl', 'ksl', 'ksoll')
+
+    _xofields = {
+        '_parent': xo.Ref(BFieldExpansion),
+        **COMMON_SLICE_XO_FIELDS,
+        '_slice_offset_fraction': xo.Float64,
+    }
+    del _xofields['slice_offset']
+
+    _extra_c_sources = [
+        '#include "xtrack/beam_elements/elements_src/thick_slice_bfieldexpansion.h"'
+    ]
+
+    def __init__(self, slice_offset=None, **kwargs):
+        if slice_offset is not None:
+            parent = kwargs['_parent']
+            kwargs['_slice_offset_fraction'] = slice_offset / parent.length
+        super().__init__(**kwargs)
+
+    @property
+    def slice_offset(self):
+        return self._slice_offset_fraction * self._parent.length
+
+    @property
+    def sstart(self):
+        return self._parent.sstart + self.slice_offset
+
+    @property
+    def nstep(self):
+        return max(1, int(np.ceil(self._parent.nstep * self.weight)))
+
+    @property
+    def angle(self):
+        return self._parent.angle * self.weight
+
+    @property
+    def hxl(self):
+        return self.angle
+
+    def _integrated_strength(self, name):
+        result = self._parent._integrate_coefficients(
+            name, self.sstart, self._parent.length * self.weight)
+        result.flags.writeable = False
+        return result
+
+    @property
+    def knl(self):
+        return self._integrated_strength('knc')
+
+    @property
+    def ksl(self):
+        return self._integrated_strength('ksc')
+
+    @property
+    def ksoll(self):
+        return self._integrated_strength('ksol')
+
+    def get_field(self, x, y, s):
+        """Evaluate the field at slice-local longitudinal positions s."""
+        return self._parent.get_field(x, y, np.asarray(s) + self.sstart)
+
+    def track(self, particles=None, increment_at_element=False):
+        if self.radiation_flag not in (0, ID_RADIATION_FROM_PARENT):
+            raise NotImplementedError('BFieldExpansion does not support radiation tracking.')
+        self._parent._check_tracking_modes(particles)
+        return super().track(particles, increment_at_element=increment_at_element)
+
 
 class ThickSliceBend(_ThickSliceElementBase, BeamElement):
 

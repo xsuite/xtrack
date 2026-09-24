@@ -1,13 +1,13 @@
-"""Compare FieldExpansion and SplineBoris speed at the same exit accuracy.
+"""Compare BFieldExpansion and SplineBoris speed at the same exit accuracy.
 
 Run from the repository root, for example::
 
-    python -m examples.fieldexpansion.compare_splineboris_speed
-    python -m examples.fieldexpansion.compare_splineboris_speed --no-plot
+    python -m examples.bfieldexpansion.compare_splineboris_speed
+    python -m examples.bfieldexpansion.compare_splineboris_speed --no-plot
 
 The straight magnet has normal/skew dipole, quadrupole and sextupole
 components varying polynomially in local s, plus a longitudinal field.
-FieldExpansion uses RK4; SplineBoris uses a second-order Boris scheme.
+BFieldExpansion uses RK4; SplineBoris uses a second-order Boris scheme.
 Each step count is selected against the same DOP853 Lorentz-force reference,
 using the maximum error over a reproducible ensemble in
 (x/length, kin_px, y/length, kin_py, zeta/length, delta).
@@ -46,25 +46,25 @@ def as_spline(coefficients, length, rigidity):
 
 
 def make_elements(context, length, rigidity):
-    # At y=0: Bx/(B rho) = sum_i a_i(s) x**i/i!, and similarly
-    # By/(B rho) = sum_i b_i(s) x**i/i!. Both APIs use transverse
-    # derivatives: a -> bx, b -> by, with no sign or factorial conversion.
+    # At y=0: Bx/(B rho) = sum_i ksc[i](s) x**i/i!, and similarly
+    # By/(B rho) = sum_i knc[i](s) x**i/i!. Both APIs use transverse
+    # derivatives: ksc -> bx, knc -> by, with no sign or factorial conversion.
     # Column k multiplies s**k (s in meters, not s/length).
-    a = np.array([
+    ksc = np.array([
         [0.04, 0.10, 0.08, -0.06, 0.02],
         [0.12, -0.08, 0.05, 0.02, -0.01],
         [0.30, 0.10, -0.20, 0.05, 0.02],
     ])
-    b = np.array([
+    knc = np.array([
         [0.05, 0.04, 0.07, -0.03, 0.01],
         [0.40, -0.10, 0.08, 0.03, -0.02],
         [0.80, 0.20, -0.10, 0.04, 0.03],
     ])
-    # Keep one trailing zero: FieldExpansion stores the integral of bs in
+    # Keep one trailing zero: BFieldExpansion stores the integral of ksol in
     # the scalar potential, which needs one more longitudinal power.
-    bs = np.array([0.10, 0.02, -0.03, 0.01, 0.0])
-    expansion = xt.FieldExpansion(
-        _context=context, length=length, a=a, b=b, bs=bs,
+    ksol = np.array([0.10, 0.02, -0.03, 0.01, 0.0])
+    expansion = xt.BFieldExpansion(
+        _context=context, length=length, ksc=ksc, knc=knc, ksol=ksol,
         # ny=7 includes the full potential for this sextupole/quartic case.
         ny=7, nstep=1, sstart=0,
         # Preserve kinetic momentum across the entrance/exit gauge changes.
@@ -73,11 +73,11 @@ def make_elements(context, length, rigidity):
     )
     boris = xt.SplineBoris(
         _context=context, length=length, n_steps=1,
-        bx=tuple(as_spline(row, length, rigidity) for row in a),
-        by=tuple(as_spline(row, length, rigidity) for row in b),
-        bs=as_spline(bs, length, rigidity), radiation_flag=0,
+        bx=tuple(as_spline(row, length, rigidity) for row in ksc),
+        by=tuple(as_spline(row, length, rigidity) for row in knc),
+        bs=as_spline(ksol, length, rigidity), radiation_flag=0,
     )
-    return {'FieldExpansion': expansion, 'SplineBoris': boris}
+    return {'BFieldExpansion': expansion, 'SplineBoris': boris}
 
 
 def coordinates(particles):
@@ -103,10 +103,10 @@ def reference_solution(boris, particles, rigidity, tolerance):
     def rhs(s, flattened):
         x, px, y, py, zeta, delta = flattened.reshape(initial.shape)
         ps = np.sqrt((1 + delta)**2 - px**2 - py**2)
-        bx, by, bs = np.asarray(boris.get_field(x, y, s)) / rigidity
+        bx, by, ksol = np.asarray(boris.get_field(x, y, s)) / rigidity
         return np.array([
-            px / ps, py / ps * bs - by,
-            py / ps, bx - px / ps * bs,
+            px / ps, py / ps * ksol - by,
+            py / ps, bx - px / ps * ksol,
             1 - (1 + beta0 * ptau) / ps, np.zeros_like(delta),
         ]).ravel()
 
@@ -133,9 +133,7 @@ def set_steps(element, steps):
     if isinstance(element, xt.SplineBoris):
         element.n_steps = steps
     else:
-        # ds is stored independently; changing nstep alone changes the length!
         element.nstep = steps
-        element.ds = element.length / steps
 
 
 def calibrate(element, particles, reference, tolerance, max_steps):
@@ -187,7 +185,7 @@ def main():
             or min(args.particles, args.repeats, args.max_steps) < 1):
         parser.error('Use tolerance >= 1e-12 and positive particle/repeat/step counts.')
 
-    # Serial execution also avoids shared FieldExpansion tracking work arrays
+    # Serial execution also avoids shared BFieldExpansion tracking work arrays
     # being accessed concurrently by different particles.
     context = xo.ContextCpu(omp_num_threads=0)
     context.allow_kernel_compilation = True
@@ -207,7 +205,7 @@ def main():
         np.linspace(-0.15, 0.15, 5), np.linspace(-0.15, 0.15, 5),
         np.linspace(0, length, 9), indexing='ij',
     )
-    field = elements['FieldExpansion'].get_field(xx, yy, ss)
+    field = elements['BFieldExpansion'].get_field(xx, yy, ss)
     normalized = np.array([field[name] for name in ('Bx', 'By', 'Bs')])
     physical = np.array(elements['SplineBoris'].get_field(xx, yy, ss))
     np.testing.assert_allclose(normalized * rigidity, physical, rtol=2e-12, atol=2e-13)
@@ -273,8 +271,8 @@ def main():
         print(f'{name:18s} {result["steps"]:5d}   {result["error"]:.3e}'
               f'   {result["seconds"] * 1e3:10.3f}'
               f'   {result["seconds"] / args.particles * 1e9:12.1f}')
-    ratio = results['FieldExpansion']['seconds'] / results['SplineBoris']['seconds']
-    print(f'Time ratio FieldExpansion / SplineBoris: {ratio:.3f}')
+    ratio = results['BFieldExpansion']['seconds'] / results['SplineBoris']['seconds']
+    print(f'Time ratio BFieldExpansion / SplineBoris: {ratio:.3f}')
 
     if not args.no_plot:
         import matplotlib.pyplot as plt

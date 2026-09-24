@@ -1,7 +1,7 @@
 """Curved solenoid: pkin_const convergence and canonical symplecticity.
 
 Run from the repository root:
-    python -m examples.fieldexpansion.convergence_pkin_const_curved_solenoid
+    python -m examples.bfieldexpansion.convergence_pkin_const_curved_solenoid
 
 Use the round-solenoid mid-plane seed coefficients with Bs/(B rho) of
 degree six, in a constant-curvature frame h=0.3 1/m over L=1 m. The curved
@@ -27,9 +27,9 @@ from ._convergence_cases import FieldCase, round_solenoid_seeds, run_case
 
 def make_case():
     profile = Polynomial([0.30, 0, 0, 6.4, -19.2, 19.2, -6.4])
-    a, b, bs = round_solenoid_seeds(profile)
+    ksc, knc, ksol = round_solenoid_seeds(profile)
     return FieldCase('Curved solenoid', length=1., h=0.3, ny=9,
-                     a=a, b=b, bs=bs, profile=profile, profile_label='On-axis Bs/(B rho) [1/m]')
+                     ksc=ksc, knc=knc, ksol=ksol, profile=profile, profile_label='On-axis Bs/(B rho) [1/m]')
 
 
 if __name__ == '__main__':
