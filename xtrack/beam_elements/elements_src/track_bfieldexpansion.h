@@ -81,7 +81,7 @@ void BFieldExpansion_get_field(
         }
         else {
             for (int jj = 0; jj < BFIELDEXPANSION_FIELD_VALUE_SIZE; ++jj) {
-                field_values[offset + jj] = NAN;
+                field_values[offset + jj] = 0.0 / 0.0;
             }
         }
     END_VECTORIZE;

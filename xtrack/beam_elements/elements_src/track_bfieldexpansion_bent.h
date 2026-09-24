@@ -12,34 +12,25 @@ int evaluate_expansion_bent(Expansion *f, double x, double y, double s,
 
     bfieldexpansion_reset_field_value(out);
 
-    GPUGLMEM double *V = f->V;
-    GPUGLMEM double *D1 = f->D1;
-    GPUGLMEM double *D2 = f->D2;
-    GPUGLMEM double *Q = f->Q;
-
-    fs_prepare_s(f, s);
-
-    /* q powers from e = mmin-1 .. mmax+2 */
-    Q[0] = pow(q, (double)f->qemin);
-    for (int t = 1; t < f->nq; ++t) Q[t] = Q[t - 1] * q;
-    #define QPOW(E) Q[(E) - f->qemin]
-
     /* As(x,0,s)
     = 1/(1+hx) int_0^x dx' *(1+hx) By(x',0,s)
     = 1/qh int_1^q dq' q' phi_1(q',s)
     = 1/qh sum_m c[1,m] q^(m+2)/(m+2) - 1/q sum_m c[1,m] 1/(m+2) */
     if (f->ncoef > 1) {
+        const double qinv = 1.0 / q;
+        double qm = 1.0;
         for (int m = 0; m <= f->mmax; ++m) {
             int j = m + f->moff;
-            const double c1m = V[1 * f->nm + j];  /* c[1,m] */
-            const double dc1m = f->D1[1 * f->nm + j];  /* c[1,m]'*/
-            const double g = QPOW(m + 1) - QPOW(-1);
+            double c1m, dc1m, ddc1m;
+            poly_eval_d2(ccptr(f, 1, j), f->deg, s, &c1m, &dc1m, &ddc1m);
+            const double g = qm * q - qinv;
             const double den = f->h * (double)(m + 2);
             if (c1m != 0.0) {
                 out->As     += c1m * g / den;
-                out->dAs_dx += c1m * (((double)(m + 1)) * QPOW(m) + QPOW(-2)) / (double)(m + 2);
+                out->dAs_dx += c1m * (((double)(m + 1)) * qm + qinv * qinv) / (double)(m + 2);
             }
             if (dc1m != 0.0) out->dAs_ds += dc1m * g / den;
+            qm *= q;
         }
     }
 
@@ -49,16 +40,14 @@ int evaluate_expansion_bent(Expansion *f, double x, double y, double s,
         double dgx_dx = 0.0, dgx_ds = 0.0;
         double dgs_dx = 0.0, dgs_ds = 0.0;
 
+        double qm1 = pow(q, (double)(f->mmin - 1));
+        double qm2 = qm1 / q;
+        double qm = qm1 * q;
         for (int m = f->mmin; m <= f->mmax; ++m) {
             const int j = m + f->moff;
-            const double cim   = V[i * f->nm + j];        /* c[i,m] */
-            const double ci1m  = V[(i + 1) * f->nm + j];  /* c[i+1,m] */
-            const double dcim  = D1[i * f->nm + j];       /* c[i,m]' */
-            const double ddcim = D2[i * f->nm + j];       /* c[i,m]'' */
-
-            const double qm  = QPOW(m);                  /* q^m */
-            const double qm1 = QPOW(m - 1);              /* q^(m-1) */
-            const double qm2 = QPOW(m - 2);              /* q^(m-2) */
+            double cim, dcim, ddcim, ci1m, dci1m, ddci1m;
+            poly_eval_d2(ccptr(f, i, j), f->deg, s, &cim, &dcim, &ddcim);
+            poly_eval_d2(ccptr(f, i + 1, j), f->deg, s, &ci1m, &dci1m, &ddci1m);
 
             sphi += cim * qm;                            /* c[i,m] q^m */
             gx   += f->h * (double)m * cim * qm1;        /* h m c[i,m] q^(m-1) */
@@ -69,6 +58,9 @@ int evaluate_expansion_bent(Expansion *f, double x, double y, double s,
             dgx_ds += f->h * (double)m * dcim * qm1;
             dgs_dx += f->h * (double)(m-1) * dcim * qm2;
             dgs_ds += ddcim * qm1;
+            qm2 = qm1;
+            qm1 = qm;
+            qm *= q;
         }
 
         out->phi += sphi * yi;  /* c[i,m] q^m y^i/i!*/
@@ -94,7 +86,6 @@ int evaluate_expansion_bent(Expansion *f, double x, double y, double s,
     out->dAs_dy =  out->Bx;
 
     return 0;
-    #undef QPOW
 }
 
 

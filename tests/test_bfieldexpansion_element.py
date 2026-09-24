@@ -2,6 +2,65 @@ import xtrack as xt
 import numpy as np
 import xobjects as xo
 import pytest
+from xobjects.test_helpers import for_all_test_contexts
+
+
+@for_all_test_contexts(excluding='ContextCpu')
+@pytest.mark.parametrize('h', [0., 0.3])
+@pytest.mark.parametrize('pkin_const', [False, True])
+def test_bfieldexpansion_gpu_matches_cpu(test_context, h, pkin_const):
+    kwargs = dict(length=0.3, h=h, ny=5, nstep=12, sstart=0.1,
+                  pkin_const=pkin_const,
+                  ksc=[[0.04, 0.2, 0.], [0.03, 0., 0.]],
+                  knc=[[0.05, 0.1, 0.], [0.02, 0., 0.]],
+                  ksol=[0.1, 0.02, 0.])
+    reference = xt.BFieldExpansion(**kwargs)
+    element = xt.BFieldExpansion(_context=test_context, **kwargs)
+    initial = xt.Particles(
+        p0c=1e9, x=[0., -0.007, 0.003], px=[0.001, -0.002, 0.0005],
+        y=[0.007, -0.004, 0.002], py=[-0.0003, 0.001, -0.002],
+        zeta=[0.001, -0.002, 0.003], delta=[0., 0.01, -0.02])
+
+    def compare_particles(actual, expected):
+        for name in ('x', 'px', 'y', 'py', 'zeta', 'delta', 'ptau', 's',
+                     'ax', 'ay'):
+            xo.assert_allclose(getattr(actual, name), getattr(expected, name),
+                               rtol=0, atol=1e-12)
+        xo.assert_allclose(actual.state, expected.state, rtol=0, atol=0)
+        xo.assert_allclose(actual.state, 1, rtol=0, atol=0)
+
+    # Exercise both GPU construction and rebuilding after coefficient updates.
+    for updated in (False, True):
+        if updated:
+            for ee in (reference, element):
+                ee.knc[0, 1] += 0.02
+                ee.ksc[0, 0] -= 0.01
+                ee.ksol[0] += 0.03
+        xo.assert_allclose(element._c, reference._c, rtol=0, atol=1e-13)
+        field = element.get_field(initial.x, initial.y, [0.1, 0.2, 0.4])
+        expected_field = reference.get_field(initial.x, initial.y, [0.1, 0.2, 0.4])
+        for name in field.dtype.names:
+            xo.assert_allclose(field[name], expected_field[name], rtol=0, atol=1e-12)
+        expected = initial.copy()
+        actual = initial.copy(_context=test_context)
+        reference.track(expected)
+        element.track(actual)
+        compare_particles(actual, expected)
+
+    # Building a sliced GPU tracker also exercises moving the parent from CPU.
+    lines = []
+    for context in (reference._context, test_context):
+        line = xt.Line(elements={'e': reference.copy()})
+        line.slice_thick_elements([xt.Strategy(xt.Uniform(2, mode='thick'))])
+        line.build_tracker(_context=context)
+        lines.append(line)
+    expected = initial.copy()
+    actual = initial.copy(_context=test_context)
+    for backtrack in (False, True):
+        for line, particles in zip(lines, (expected, actual)):
+            line.track(particles, backtrack=backtrack,
+                       _force_no_end_turn_actions=True)
+        compare_particles(actual, expected)
 
 
 @pytest.mark.parametrize('h', [0., 0.3])

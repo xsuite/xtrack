@@ -1,7 +1,8 @@
 #ifndef TRACK_BFIELDEXPANSION_HELPERS_H
 #define TRACK_BFIELDEXPANSION_HELPERS_H
 
-const int cidx(int i, int m, int k, int nm, int moff, int deg) {
+GPUFUN
+int cidx(int i, int m, int k, int nm, int moff, int deg) {
     return (i * nm + (m+moff)) * (deg + 1) + k;
 }
 
@@ -64,8 +65,7 @@ GPUGLMEM const double *ccptr(const Expansion *f, int i, int m) {
 
 GPUFUN
 void poly_eval_d2(GPUGLMEM const double *p, int deg, double s,
-                  GPUGLMEM double *v, GPUGLMEM double *d1,
-                  GPUGLMEM double *d2) {
+                  double *v, double *d1, double *d2) {
     double a = p[deg], b = 0.0, c=0.0;
     for (int k = deg - 1; k >= 0; --k) {
         c = c * s + 2.0 * b;
@@ -75,18 +75,6 @@ void poly_eval_d2(GPUGLMEM const double *p, int deg, double s,
     *v = a;
     *d1 = b;
     *d2 = c;
-}
-
-GPUFUN
-void fs_prepare_s(Expansion *f, double s) {
-    for (int i = 0; i < f->ncoef; ++i) {
-        for (int m = 0; m < f->nm; ++m) {
-            poly_eval_d2(ccptr(f, i, m), f->deg, s,
-                         &f->V[i * f->nm + m],
-                         &f->D1[i * f->nm + m],
-                         &f->D2[i * f->nm + m]);
-        }
-    }
 }
 
 GPUFUN

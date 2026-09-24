@@ -471,7 +471,8 @@ class BFieldExpansion(_BFieldExpansionGeometry, BeamElement):
 
     _kernels = {'build_bfield_expansion': xo.Kernel(
             c_name='build_bfield_expansion',
-            args=[xo.Arg(xo.ThisClass, name='el')]
+            args=[xo.Arg(xo.ThisClass, name='el')],
+            n_threads=1,
         ),
         'BFieldExpansion_get_field': xo.Kernel(
             c_name='BFieldExpansion_get_field',

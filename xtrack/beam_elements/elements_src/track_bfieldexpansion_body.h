@@ -7,7 +7,8 @@ void HAMILTONIAN_FLOW(Expansion *f, const double beta0,
     double delta1, delta, ddelta1;
     double q, pix, piy, rad, root;
 
-    memset(flow, 0, sizeof(*flow));
+    const HamiltonianFlow zero = {0};
+    *flow = zero;
 
     EVALUATE_EXPANSION(f, z[0], z[2], s, &flow->pot);
     delta_from_ptau(beta0, z[5], &delta, &delta1, &ddelta1);
@@ -88,19 +89,19 @@ void TRACK_EXPANSION(
             double k1[6], k2[6], k3[6], k4[6];
 
             HAMILTONIAN_FLOW(&f, beta0, s, z, &flow);
-            memcpy(k1, flow.rhs, sizeof(k1));
+            for (int i = 0; i < 6; ++i) k1[i] = flow.rhs[i];
             for (int i = 0; i < 6; ++i) ztmp[i] = z[i] + 0.5 * ds * k1[i];
 
             HAMILTONIAN_FLOW(&f, beta0, s + 0.5 * ds, ztmp, &flow);
-            memcpy(k2, flow.rhs, sizeof(k2));
+            for (int i = 0; i < 6; ++i) k2[i] = flow.rhs[i];
             for (int i = 0; i < 6; ++i) ztmp[i] = z[i] + 0.5 * ds * k2[i];
 
             HAMILTONIAN_FLOW(&f, beta0, s + 0.5 * ds, ztmp, &flow);
-            memcpy(k3, flow.rhs, sizeof(k3));
+            for (int i = 0; i < 6; ++i) k3[i] = flow.rhs[i];
             for (int i = 0; i < 6; ++i) ztmp[i] = z[i] + ds * k3[i];
 
             HAMILTONIAN_FLOW(&f, beta0, s + ds, ztmp, &flow);
-            memcpy(k4, flow.rhs, sizeof(k4));
+            for (int i = 0; i < 6; ++i) k4[i] = flow.rhs[i];
             for (int i = 0; i < 6; ++i) z[i] += ds * (k1[i] + 2.0*k2[i] + 2.0*k3[i] + k4[i]) / 6.0;
 
             s += ds;

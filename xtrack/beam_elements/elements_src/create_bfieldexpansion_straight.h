@@ -11,32 +11,25 @@ moff=-mmin is the offset to be added to m to get the correct index,
 since m does not necessarily start at 0
 */
 
+GPUFUN
 void build_expansion_straight(BFieldExpansionData el){
     const int ncoef = BFieldExpansionData_get__ncoef(el);
     const int na    = BFieldExpansionData_get_na(el);
     const int nb    = BFieldExpansionData_get_nb(el);
     const int deg   = BFieldExpansionData_get_deg(el);
-    double ksc[na * (deg + 1)];
-    for (int i = 0; i < na*(deg+1); ++i){
-        ksc[i] = BFieldExpansionData_get_ksc(el, i / (deg + 1), i % (deg + 1));
-    }
-    double knc[nb * (deg + 1)];
-    for (int i = 0; i < nb*(deg+1); ++i){
-        knc[i] = BFieldExpansionData_get_knc(el, i / (deg + 1), i % (deg + 1));
-    }
-    double ksol[deg + 1];
-    for (int i = 0; i < deg + 1; ++i){
-        ksol[i] = BFieldExpansionData_get_ksol(el,i);
-    }
+    GPUGLMEM const double *ksc = BFieldExpansionData_getp2_ksc(el, 0, 0);
+    GPUGLMEM const double *knc = BFieldExpansionData_getp2_knc(el, 0, 0);
+    GPUGLMEM const double *ksol = BFieldExpansionData_getp1_ksol(el, 0);
 
     const int mmax = BFieldExpansionData_get__mmax(el);
     const int moff = BFieldExpansionData_get__moff(el);
     const int nm   = BFieldExpansionData_get__nm(el);
 
-    double *c = BFieldExpansionData_getp1__c(el, 0);
+    GPUGLMEM double *c = BFieldExpansionData_getp1__c(el, 0);
 
     int nmax = (na > nb) ? na : nb;
-    double invfact[nmax + 1];
+    /* Construction is serial; reuse the element workspace for the seeds. */
+    GPUGLMEM double *invfact = BFieldExpansionData_getp1__V(el, 0);
     invfact[0] = 1.0;
     for (int n = 1; n <= nmax; ++n) {
         invfact[n] = invfact[n - 1] / (double)n;
@@ -46,13 +39,13 @@ void build_expansion_straight(BFieldExpansionData el){
 
     for (int n = 1; n <= na; ++n) {
         const double fac = -invfact[n];
-        const double *an = ksc + (size_t)(n - 1) * (size_t)(deg + 1);
+        GPUGLMEM const double *an = ksc + (size_t)(n - 1) * (size_t)(deg + 1);
         for (int k = 0; k <= deg; ++k) c[cidx(0,n,k,nm,moff,deg)] += fac * an[k];
     }
     if (ncoef > 1) {
         for (int n = 1; n <= nb; ++n) {
             const double fac = -invfact[n - 1];
-            const double *bn = knc + (size_t)(n - 1) * (size_t)(deg + 1);
+            GPUGLMEM const double *bn = knc + (size_t)(n - 1) * (size_t)(deg + 1);
             for (int k = 0; k <= deg; ++k) c[cidx(1,n-1,k,nm,moff,deg)] += fac * bn[k];
         }
     }

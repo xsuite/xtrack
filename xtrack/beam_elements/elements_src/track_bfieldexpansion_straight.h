@@ -9,28 +9,18 @@ int evaluate_expansion_straight(Expansion *f, double x, double y, double s,
 
     bfieldexpansion_reset_field_value(out);
 
-    GPUGLMEM double *V = f->V;
-    GPUGLMEM double *D1 = f->D1;
-    GPUGLMEM double *D2 = f->D2;
-    GPUGLMEM double *X = f->Q;
-
-    fs_prepare_s(f, s);
-
-    /* x powers */
-    X[0] = pow(x, (double)f->qemin);
-    for (int t = 1; t < f->nq; ++t) X[t] = X[t - 1] * x;
-    #define XPOW(E) X[(E) - f->qemin]
-
     /* As(x,0,s) */
     if (f->ncoef > 1) {
+        double xm = 1.0;
         for (int m = 0; m <= f->mmax; ++m) {
             int j = m + f->moff;
-            const double c1m = V[1 * f->nm + j];  /* c[1,m] */
-            const double dc1m = f->D1[1 * f->nm + j];  /* c[1,m]'*/
-            const double xp = XPOW(m + 1) / (double)(m + 1);
+            double c1m, dc1m, ddc1m;
+            poly_eval_d2(ccptr(f, 1, j), f->deg, s, &c1m, &dc1m, &ddc1m);
+            const double xp = xm * x / (double)(m + 1);
             out->As     += c1m * xp;
             out->dAs_ds += dc1m * xp;
-            out->dAs_dx += c1m * XPOW(m);
+            out->dAs_dx += c1m * xm;
+            xm *= x;
         }
     }
 
@@ -40,16 +30,13 @@ int evaluate_expansion_straight(Expansion *f, double x, double y, double s,
         double dgx_dx = 0.0, dgx_ds = 0.0;
         double dgs_dx = 0.0, dgs_ds = 0.0;
 
+        /* Local powers also handle x=0 without evaluating negative powers. */
+        double xm = 1.0, xm1 = 0.0, xm2 = 0.0;
         for (int m = f->mmin; m <= f->mmax; ++m) {
             const int j = m + f->moff;
-            const double cim   = V[i * f->nm + j];        /* c[i,m] */
-            const double ci1m  = V[(i + 1) * f->nm + j];  /* c[i+1,m] */
-            const double dcim  = D1[i * f->nm + j];       /* c[i,m]' */
-            const double ddcim = D2[i * f->nm + j];       /* c[i,m]'' */
-
-            const double xm  = XPOW(m);                  /* x^m */
-            const double xm1 = XPOW(m - 1);              /* x^(m-1) */
-            const double xm2 = XPOW(m - 2);              /* x^(m-2) */
+            double cim, dcim, ddcim, ci1m, dci1m, ddci1m;
+            poly_eval_d2(ccptr(f, i, j), f->deg, s, &cim, &dcim, &ddcim);
+            poly_eval_d2(ccptr(f, i + 1, j), f->deg, s, &ci1m, &dci1m, &ddci1m);
 
             sphi += cim  * xm;
             gx   += (double)m * cim  * xm1;
@@ -60,6 +47,9 @@ int evaluate_expansion_straight(Expansion *f, double x, double y, double s,
             dgx_ds += (double)m * dcim * xm1;
             dgs_dx += (double)m * dcim * xm1;
             dgs_ds += ddcim * xm;
+            xm2 = xm1;
+            xm1 = xm;
+            xm *= x;
         }
 
         out->phi += sphi * yi;  /* c[i,m] x^m y^i/i!*/
@@ -85,7 +75,6 @@ int evaluate_expansion_straight(Expansion *f, double x, double y, double s,
     out->dAs_dy =  out->Bx;
 
     return 0;
-    #undef XPOW
 }
 
 
