@@ -2335,7 +2335,7 @@ class Line:
         _context=None, _buffer=None, _offset=None,
         _capacity=None,
         mode=None,
-        *, chi=None, charge_ratio=None, mass_ratio=None,
+        *, chi=None, charge_ratio=None, mass_ratio=None, pdg_id=None,
         **kwargs, # They are passed to the twiss
     ):
 
@@ -2365,6 +2365,12 @@ class Line:
             charge ratio is preserved. Species overrides do not modify the
             supplied reference particle and cannot be combined with
             `particle_on_co` or `co_guess`; set ratios on those particles directly.
+        pdg_id : int or str, optional
+            PDG ID or name of the species to generate. Its mass and charge define
+            `mass_ratio` and `charge_ratio` relative to `mass0` and `q0` of the
+            reference particle. Any explicitly supplied species ratios (including
+            `chi`) must be consistent with this species. The same restrictions
+            as for species ratio overrides apply.
         x : float or array
             x coordinate of the particles in meters (default is 0).
         px : float or array
@@ -2474,6 +2480,7 @@ class Line:
             mode=mode,
             include_collective=include_collective,
             chi=chi, charge_ratio=charge_ratio, mass_ratio=mass_ratio,
+            pdg_id=pdg_id,
             **kwargs)
 
     @doc_group("Tracking and Analysis")
