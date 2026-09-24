@@ -164,6 +164,18 @@ def _add_chromatic_functions_to_twiss_result(twiss_config, twiss_res):
     twiss_res._col_names += list(cols_chrom.keys())
 
 
+def _add_knob_derivatives_to_twiss_result(twiss_config, twiss_res):
+
+    if not twiss_config['knobs'] or twiss_config['only_orbit']:
+        return
+
+    cols_knobs, scalars_knobs = twiss_config['_twiss_backend'].knob_derivatives(
+        twiss_config, twiss_res)
+    twiss_res._data.update(cols_knobs)
+    twiss_res._data.update(scalars_knobs)
+    twiss_res._col_names += list(cols_knobs.keys())
+
+
 def _add_radiation_analysis_to_twiss_result(twiss_config, twiss_res):
 
     if not twiss_config['radiation_analysis'] or twiss_config['only_orbit']:

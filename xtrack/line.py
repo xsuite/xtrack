@@ -1984,8 +1984,12 @@ class Line:
                 raise TypeError(f"Cannot track particles of type {type(particles)}")
             if not self._has_valid_tracker():
                 self.build_tracker()
-            if any(isinstance(element, xt.ParticlesMonitor)
-                   for element in self.tracker._tracker_data_base.elements):
+            tracker_cache = self.tracker._tracker_data_base.cache
+            if "has_particles_monitor" not in tracker_cache:
+                tracker_cache["has_particles_monitor"] = any(
+                    isinstance(element, xt.ParticlesMonitor)
+                    for element in self.tracker._tracker_data_base.elements)
+            if tracker_cache["has_particles_monitor"]:
                 raise NotImplementedError(
                     "ParticlesMonitor elements are not supported with TPSA tracking"
                 )
@@ -2497,6 +2501,7 @@ class Line:
         compute_lattice_functions=None,
         chrom=None,
         tpsa=None,
+        knobs=None,
         coupling_edw_teng=False,
         init_at=None,
         x=None, px=None, y=None, py=None, zeta=None, delta=None,

@@ -1,7 +1,7 @@
 """ActionTpsaTrack: a native-GTPSA match action (sibling of ActionTwissMadngTPSA).
 
 One parametric ``line.track`` per merit evaluation yields both the target values and the
-analytic Jacobian d(target)/d(knob), read off the tracked map's optics.
+analytic Jacobian d(target)/d(knob), read off the coefficients recorded at the targets.
 """
 
 from __future__ import annotations
@@ -13,15 +13,18 @@ import numpy as np
 import madng_tpsa
 import xtrack as xt
 
-from ..match import Action, TargetRelPhaseAdvance
+from ..match import Action, ActionTwiss, TargetRelPhaseAdvance
+from ..twiss.lattice_functions_from_W import _get_lattice_functions
 from ..twiss.twiss_init import _6d_w_matrix
 from ._knobs import KnobParameters, _scalar_value
-from .particles import ParticlesTpsa
+from .particles import COORDS, ParticlesTpsa
+from .twiss import _derivative_columns, _linear_and_knob_blocks, _recorded_monomials
 
-# Optics quantities served by TpsaOptics, orbit quantities by the map's param_jacobian.
-_OPTICS_QTYS = ("betx", "bety", "alfx", "alfy", "mux", "muy", "dx", "dpx", "dy", "dpy")
+_OPTICS_QTYS = ("betx", "bety", "alfx", "alfy", "dx", "dpx", "dy", "dpy")
 _ORBIT_QTYS = ("x", "px", "y", "py", "zeta", "delta")
 _PHASE_QTYS = ("mux", "muy")
+_PHASE_ERROR = ("phase-advance targets need the continuous phase, "
+                "use tpsa_backend='twiss'")
 
 
 class ActionTpsaTrack(Action):
@@ -29,15 +32,10 @@ class ActionTpsaTrack(Action):
 
     ``vary_names`` are held as parametric maps (``KnobParameters``). The dependencies are
     resolved by propagating through xdeps into the element strengths. The map is tracked once through
-    the range, recording the full map at every target location.
-    Values come from ``TpsaOptics``, from which the Jacobian is read.
+    the range, recording A and dA/dknob at the target locations. Values and gradients come from the
+    same functions as the TPSA twiss.
 
-    Optics targets and phase-advance targets are both supported.
-    Caveat for the phase-advances: the map Jacobian yields only the fractional betatron phase (``atan2``).
-    The continuous phase advance is recovered by unwrapping against the reference twiss ``init``, which is
-    exact whenever the phase stays within half a unit of the reference.
-    Whenever this is not the case, the offset is an integer.
-    The knob gradient is exact regardless (the integer offset is knob-independent).
+    Phase targets are rejected: the map only gives the fractional phase (``atan2``).
 
     The element fields hold TPSA handles for the whole match. Call ``teardown()`` to put
     plain doubles back.
@@ -56,12 +54,11 @@ class ActionTpsaTrack(Action):
         self.tw_kwargs.update(kwargs)
         self.optics_target_locations = None   # all observed locations (ordered, unique)
         self._col_names = None                # result-table columns to fill
-        self._target_meta = None              # per-target ('located'|'phase', ...)
+        self._target_meta = None              # per-target (qty, loc)
         self._already_prepared = False
         self._init = None
         self._seed_name = None
         self._knobs = None
-        self._monitor = None
         self._last_res = None
         # A merit evaluation only needs the values,
         # knob columns are needed at Jacobian points. The solver says which through the _build_parametric flag.
@@ -86,7 +83,6 @@ class ActionTpsaTrack(Action):
 
         # Classify targets, collect observed locations + result columns.
         locs, cols, meta = [], set(), []
-        has_phase = False
 
         def add_loc(loc):
             if loc not in locs:
@@ -94,31 +90,19 @@ class ActionTpsaTrack(Action):
 
         for target in self.targets:
             if isinstance(target, TargetRelPhaseAdvance):
-                has_phase = True
-                var = target.var
-                if var not in _PHASE_QTYS:
-                    raise ValueError(f"phase-advance quantity {var!r} not supported")
-                start = self._seed_name if target.start == "__ele_start__" else target.start
-                end = (self.tw_kwargs.get("end") or init.name[-1]) \
-                    if target.end == "__ele_stop__" else target.end
-                add_loc(start)
-                add_loc(end)
-                cols.add(var)
-                meta.append(("phase", var, start, end))
+                raise ValueError(_PHASE_ERROR)
             elif isinstance(target.tar, tuple):
                 qty, loc = target.tar
+                if qty in _PHASE_QTYS:
+                    raise ValueError(_PHASE_ERROR)
                 if qty not in _OPTICS_QTYS and qty not in _ORBIT_QTYS:
                     raise ValueError(f"target quantity {qty!r} not supported")
                 add_loc(loc)
                 cols.add(qty)
-                meta.append(("located", qty, loc))
+                meta.append((qty, loc))
             else:
                 raise NotImplementedError(f"unsupported target {target!r}")
 
-        if has_phase or (cols & set(_PHASE_QTYS)):
-            # Any mux/muy column is unwrapped against the seed phase (phi0), also when
-            # it comes from a plain located target rather than a phase-advance one.
-            add_loc(self._seed_name)
         self.optics_target_locations = locs
         self._col_names = cols
         self._target_meta = meta
@@ -134,7 +118,8 @@ class ActionTpsaTrack(Action):
         self._start_idx = names.index(self._seed_name)
         end_idx = names.index(end) if end is not None else len(names)
         self._wrap = end_idx <= self._start_idx
-        self._track_stop = None if self._wrap else end
+        # ele_stop is exclusive, and a monitor records at the entry of an element the track reaches
+        self._track_stop = None if self._wrap or end_idx + 1 >= len(names) else end_idx + 1
         full_ring = self.tw_kwargs.get("start", None) is None and end is None
 
         def observed_at(loc):
@@ -150,13 +135,14 @@ class ActionTpsaTrack(Action):
 
         # One descriptor for the whole match: the line variables, the element fields the
         # expressions reach, the tracked map and the recorded maps all live in it.
-        # Parameter k+1 is vary_names[k], which is what makes TpsaOptics.gradient() come
-        # out in vary order.
+        # Parameter k+1 is vary_names[k], so the gradients come out in vary order.
         self._descriptor = madng_tpsa.Descriptor(
             6, self.order, params=list(self.vary_names), param_order=1)
         # The value-only map carries no parameters and only plain_order, which is what
         # makes it cheap.
         self._plain_descriptor = madng_tpsa.Descriptor(6, self.plain_order)
+        self._blocks = _recorded_monomials(self._descriptor, hessians=False)
+        self._plain_blocks = _recorded_monomials(self._plain_descriptor, hessians=False)
         self._knobs = KnobParameters(self.line, self.vary_names, self._descriptor)
         self._knobs.apply()
         self._already_prepared = True
@@ -205,60 +191,45 @@ class ActionTpsaTrack(Action):
         else:
             self._knobs.apply_doubles(values)
 
+        blocks = self._blocks if parametric else self._plain_blocks
         try:
-            m = self._seed_map(parametric)
             # Unique physical positions (distinct logical locations may resolve to the same
             # element, e.g. 'ip1' and 'ip1.l1' after the ring-cut remap).
             obs = list(dict.fromkeys(self._obs_name[loc]
                                      for loc in self.optics_target_locations))
             self.line.track(
-                m,
+                self._seed_map(parametric),
                 ele_start=self.tw_kwargs.get("start", 0),
                 ele_stop=self._track_stop,
                 multi_element_monitor_at=obs,
+                monitor_monomials=np.vstack(list(blocks.values())),
             )
-            self._monitor = self.line.tracker.record_multi_element_last_track
-            self._last_parametric = parametric
-
-            # One map view + one TpsaOptics per location, reused for all quantities and the
-            # Jacobian.
-            self._views = {loc: self._monitor.map_at(self._obs_name[loc])
-                           for loc in self.optics_target_locations}
-            self._optics = {loc: v.optics() for loc, v in self._views.items()}
-            self._phase_cont = self._continuous_phases()
-
-            # Result table: fill every requested column at every observed location.
-            cols: dict[str, Any] = {"name": np.array(self.optics_target_locations, dtype=object)}
-            for c in self._col_names:
-                cols[c] = np.array([self._value(loc, c) for loc in self.optics_target_locations])
-            res = xt.TwissTable(data=cols)
-            self._last_res = res
-            return res
         finally:
             # xdeps reads the line variables after every action evaluation.
             self._knobs.teardown()
+        monitor = self.line.tracker.record_multi_element_last_track
+        self._last_parametric = parametric
 
-    def _continuous_phases(self):
-        """mux/muy per observed location, unwrapped vs the reference twiss (phase from
-        the seed). ``cont[var][loc]`` compares as ``cont[end] - cont[start]``."""
-        cont = {}
-        for var in (self._col_names & set(_PHASE_QTYS)):
-            phi0 = getattr(self._optics[self._seed_name], var)     # seed map phase
-            mu_ref0 = float(self._init[var, self._seed_name])
-            d = {}
-            for loc in self.optics_target_locations:
-                frac_adv = getattr(self._optics[loc], var) - phi0   # from seed, fractional
-                ref_adv = float(self._init[var, self._obs_name[loc]]) - mu_ref0
-                d[loc] = frac_adv + round(ref_adv - frac_adv)        # snap integer to ref
-            cont[var] = d
-        return cont
+        # monitor rows follow the line, the tables follow optics_target_locations
+        rows = [monitor._obs_index(self._obs_name[loc]) for loc in self.optics_target_locations]
+        W_matrices, dW_matrices, dorbit = _linear_and_knob_blocks(
+            monitor.coefficients_by_coord(turn=0)[rows], blocks,
+            len(self.vary_names) if parametric else 0)
+        # strictly increasing s, so no thin-group merging
+        lattice_functions, _ = _get_lattice_functions(
+            W_matrices.copy(), False, np.arange(len(rows), dtype=float))
+        for coord in COORDS:
+            lattice_functions[coord] = monitor.get(coord, turn=0)[0][rows]
+        if parametric:
+            self._gradients = _derivative_columns(W_matrices[..., None], dW_matrices)
+            for i, coord in enumerate(COORDS):
+                self._gradients[coord] = dorbit[:, i, :]
 
-    def _value(self, loc, qty):
-        if qty in _PHASE_QTYS:
-            return self._phase_cont[qty][loc]
-        if qty in _ORBIT_QTYS:
-            return self._views[loc].const_part[_ORBIT_QTYS.index(qty)]
-        return getattr(self._optics[loc], qty)
+        cols = {"name": np.array(self.optics_target_locations, dtype=object)}
+        for c in self._col_names:
+            cols[c] = lattice_functions[c]
+        self._last_res = xt.TwissTable(data=cols)
+        return self._last_res
 
     def acquire_jacobian(self):
         """(n_targets, n_vary) analytic d(target)/d(knob) from the last tracked map.
@@ -266,16 +237,64 @@ class ActionTpsaTrack(Action):
         if not self._last_parametric:
             self._build_parametric = True    # last map was value-only: re-track
             self.run()
-        jac = np.zeros((len(self.targets), len(self.vary_names)))
-        for i, meta in enumerate(self._target_meta):
-            if meta[0] == "phase":
-                _, var, start, end = meta
-                # integer offset is knob-independent -> difference of fractional grads
-                jac[i, :] = self._optics[end].gradient(var) - self._optics[start].gradient(var)
-            else:
-                _, qty, loc = meta
-                if qty in _ORBIT_QTYS:
-                    jac[i, :] = self._views[loc].param_jacobian()[_ORBIT_QTYS.index(qty)]
-                else:
-                    jac[i, :] = self._optics[loc].gradient(qty)
-        return jac
+        row = {loc: i for i, loc in enumerate(self.optics_target_locations)}
+        return np.array([self._gradients[qty][row[loc]] for qty, loc in self._target_meta])
+
+
+class ActionTwissTpsa(ActionTwiss):
+    """``ActionTwiss`` over ``line.twiss(tpsa=True, knobs=vary_names)``.
+
+    The Jacobian is read off the ``<column>_dknob`` columns. Line-search evaluations run
+    without knobs, at order 1.
+    """
+
+    def __init__(self, line, vary_names, targets, **kwargs):
+        super().__init__(line, **kwargs)
+        self.kwargs["tpsa"] = True
+        self.vary_names = list(vary_names)
+        self.targets = targets
+        # evaluations before the solver's first hint only need values, acquire_jacobian re-runs
+        self._build_parametric = False
+        self._last_parametric = False
+        self._last_res = None
+
+    def set_build_parametric(self, flag):
+        """Solver hint: Jacobian point (knob columns) or value-only evaluation."""
+        self._build_parametric = bool(flag)
+
+    def run(self, allow_failure=True):
+        self.kwargs["knobs"] = self.vary_names if self._build_parametric else None
+        out = super().run(allow_failure=allow_failure)
+        self._last_res = out
+        self._last_parametric = self._build_parametric and not isinstance(out, str)
+        return out
+
+    def acquire_jacobian(self):
+        """``(n_targets, n_vary)`` d(target)/d(knob) of the last evaluation."""
+        if not self._last_parametric:
+            self._build_parametric = True
+            self.run(allow_failure=False)
+        return np.array([self._target_gradient(target) for target in self.targets])
+
+    def _target_gradient(self, target):
+        if target.action is not self:
+            raise NotImplementedError("targets of other actions are not supported")
+        if hasattr(target.value, "auxtarget") or target.optimize_log:
+            raise NotImplementedError(
+                "inequality and optimize_log targets are not supported by the TPSA twiss")
+        res = self._last_res
+        if isinstance(target, TargetRelPhaseAdvance):
+            end = -1 if target.end == "__ele_stop__" else target.end
+            start = 0 if target.start == "__ele_start__" else target.start
+            column = f"{target.var}_dknob"
+            return res[column, end] - res[column, start]
+        name, at = target.tar if isinstance(target.tar, tuple) else (target.tar, None)
+        if not isinstance(name, str):
+            raise NotImplementedError("callable targets are not supported by the TPSA twiss")
+        column = f"{name}_dknob"
+        if column not in res._data:
+            available = sorted(k[:-len("_dknob")] for k in res._data if k.endswith("_dknob"))
+            raise KeyError(f"no knob derivative for {name!r}, available: {available}")
+        if at is None:
+            return np.asarray(res._data[column])
+        return res[column, at]

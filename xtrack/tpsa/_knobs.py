@@ -60,7 +60,12 @@ class KnobParameters:
         self._applied = True
         if self._reached is None:
             # The expression topology is fixed, so the reached elements are too.
-            self._reached = sorted({name for name, _ in self.driven_elements()})
+            # find_deps is much faster than scanning every element's flag.
+            element_refs = self.line.element_refs
+            dependents = self.line.ref_manager.find_deps(
+                [self.line.vars[name] for name in self.names])
+            self._reached = sorted({ref._key for ref in dependents
+                                    if getattr(ref, "_owner", None) is element_refs})
 
     def teardown(self) -> None:
         """Plain doubles back in the variables and in every element they reached."""

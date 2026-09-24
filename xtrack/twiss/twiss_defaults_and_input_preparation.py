@@ -71,6 +71,7 @@ def _apply_twiss_defaults(twiss_kwargs):
             twiss_kwargs['compute_lattice_functions']
             if twiss_kwargs['compute_lattice_functions'] is not None else True),
         'tpsa': twiss_kwargs['tpsa'] or False,
+        'knobs': list(twiss_kwargs['knobs']) if twiss_kwargs['knobs'] else None,
         'num_turns': twiss_kwargs['num_turns'] or 1,
         'disable_apertures': (
             twiss_kwargs['disable_apertures']

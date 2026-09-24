@@ -20,8 +20,10 @@ with ``orbit_shift_per_delta`` the delta-derivative of the off-momentum closed o
 
 from __future__ import annotations
 
+import math
 from typing import TYPE_CHECKING, Any
 
+import madng_tpsa
 import numpy as np
 
 import xtrack as xt
@@ -31,12 +33,11 @@ from ..twiss.chromatic_functions import _chromatic_functions_requested
 from ..twiss.optics_propagation import AT_TURN_FOR_TWISS
 from ..twiss.periodic_solution import _set_4d_dispersion_columns
 from ..twiss.twiss_backend import FiniteDifferenceTwiss
+from ._knobs import KnobParameters
 from .particles import COORDS, ParticlesTpsa
 from .particles import _SPIN_COORDS as SPIN_COORDS
 
 if TYPE_CHECKING:
-    import madng_tpsa
-
     from ..twiss.twiss_init import TwissInit
     from ..twiss.twiss_table import TwissTable
 
@@ -80,29 +81,68 @@ def _range_indices(
     return int(start), int(end)
 
 
-def _monomials(descriptor: madng_tpsa.Descriptor, order: int) -> np.ndarray:
-    """The monomials the monitor records: linear, plus quadratic at order 2."""
+def _monomial(length: int, *variables: int) -> np.ndarray:
+    """Build the exponent vector of the product of ``variables``, a repeat raises the power."""
+    return np.bincount(variables, minlength=length)
+
+
+def _derivative_weights(monomials: np.ndarray) -> np.ndarray:
+    """Factor from a Taylor coefficient to the derivative, the product of the exponents' factorials."""
+    return np.array([math.prod(math.factorial(n) for n in row) for row in monomials])
+
+
+def _recorded_monomials(
+    descriptor: madng_tpsa.Descriptor, hessians: bool
+) -> dict[str, np.ndarray]:
+    """The monitor's monomials, by the quantity they give.
+
+    ``linear``: R. ``quadratic``: the Hessians. ``var_knob``: dR/dknob, variable-major.
+    ``knob``: dorbit/dknob.
+    """
     length = descriptor.monomial_length
-    linear = np.zeros((6, length), dtype=int)
-    linear[np.arange(6), np.arange(6)] = 1
-    if order < 2:
-        return linear
-    quadratic = np.zeros((len(_QUADRATIC_PAIRS), length), dtype=int)
-    for row, (j, k) in enumerate(_QUADRATIC_PAIRS):
-        quadratic[row, j] += 1
-        quadratic[row, k] += 1
-    return np.vstack([linear, quadratic])
+    knobs = range(6, 6 + descriptor.num_params)
+    blocks = {"linear": np.array([_monomial(length, j) for j in range(6)])}
+    if hessians:
+        blocks["quadratic"] = np.array([_monomial(length, j, k) for j, k in _QUADRATIC_PAIRS])
+    if descriptor.num_params > 0:
+        blocks["var_knob"] = np.array([_monomial(length, j, knob)
+                                       for j in range(6) for knob in knobs])
+        blocks["knob"] = np.array([_monomial(length, knob) for knob in knobs])
+    return blocks
+
+
+def _block_slices(blocks: dict[str, np.ndarray]) -> dict[str, slice]:
+    """Where each block sits in ``np.vstack(list(blocks.values()))``."""
+    slices, start = {}, 0
+    for name, monomials in blocks.items():
+        slices[name] = slice(start, start + len(monomials))
+        start += len(monomials)
+    return slices
+
+
+def _linear_and_knob_blocks(
+    coefficients: np.ndarray, blocks: dict[str, np.ndarray], num_knobs: int
+) -> tuple[np.ndarray, np.ndarray | None, np.ndarray | None]:
+    """Split ``(rows, 6, monomials)`` coefficients into R, dR/dknob and dorbit/dknob."""
+    block = _block_slices(blocks)
+    R_matrices = coefficients[:, :, block["linear"]]
+    if not num_knobs:
+        return R_matrices, None, None
+    dR_dknob = coefficients[:, :, block["var_knob"]].reshape(
+        len(coefficients), 6, 6, num_knobs)
+    return R_matrices, dR_dknob, coefficients[:, :, block["knob"]]
 
 
 def _new_map(
     reference_particle: xt.Particles, coordinates: np.ndarray, order: int,
-    spin: bool = False,
+    spin: bool = False, descriptor: madng_tpsa.Descriptor | None = None,
 ) -> ParticlesTpsa:
     # Zero spin skips the spin code, so seed it only when asked
     spin_seed = ({name: _scalar(reference_particle, name) for name in SPIN_COORDS}
                  if spin else {})
     return ParticlesTpsa(
         order=order,
+        descriptor=descriptor,
         mass0=_scalar(reference_particle, "mass0"),
         q0=_scalar(reference_particle, "q0"),
         p0c=_scalar(reference_particle, "p0c"),
@@ -189,8 +229,10 @@ class TpsaEbeTrack:
 
     Rows are the entries of the tracked elements plus a final row after ``end``.
     ``R_matrices_ebe`` is ``(rows, 6, 6)``, ``hessians_ebe`` is ``(rows, 6, 6, 6)`` or
-    ``None`` below order 2.
+    ``None`` when not asked for.
     ``spin`` is the ``(rows, 3)`` spin of the reference particle along the orbit.
+    With ``knobs``, ``dR_dknob_ebe`` is ``(rows, 6, 6, knobs)`` and ``dorbit_dknob_ebe``
+    ``(rows, 6, knobs)``, both at fixed start orbit.
     """
 
     def __init__(
@@ -202,39 +244,50 @@ class TpsaEbeTrack:
         start: int,
         end: int,
         spin: bool = False,
+        knobs: list[str] | None = None,
+        descriptor: madng_tpsa.Descriptor | None = None,
+        hessians: bool = False,
     ) -> None:
+        if hessians and order < 2:
+            raise ValueError("the Hessians need an order-2 map")
         self.start, self.end, self.order = start, end, order
+        self.knobs = list(knobs) if knobs else []
         self.coordinates = np.array(coordinates, dtype=float)
 
-        self.map = _new_map(reference_particle, self.coordinates, order, spin=spin)
-        monomials = _monomials(self.map.descriptor, order)
-        line.track(self.map,
-                   ele_start=start, ele_stop=end + 1,
-                   multi_element_monitor_at=np.arange(start, end + 1),
-                   monitor_monomials=monomials)
+        self.map = _new_map(reference_particle, self.coordinates, order, spin=spin,
+                            descriptor=descriptor)
+        blocks = _recorded_monomials(self.map.descriptor, hessians)
+        # Only around this track: scalar tracks cannot run on TPSA strengths
+        knob_parameters = (KnobParameters(line, self.knobs, self.map.descriptor)
+                           if self.knobs else None)
+        try:
+            if knob_parameters is not None:
+                knob_parameters.apply()
+            line.track(self.map,
+                       ele_start=start, ele_stop=end + 1,
+                       multi_element_monitor_at=np.arange(start, end + 1),
+                       monitor_monomials=np.vstack(list(blocks.values())))
+        finally:
+            if knob_parameters is not None:
+                knob_parameters.teardown()
         monitor = line.tracker.record_multi_element_last_track
 
         num_rows = end - start + 2
-        self.R_matrices_ebe = np.zeros((num_rows, 6, 6))
-        for i in range(6):
-            for j in range(6):
-                self.R_matrices_ebe[:-1, i, j] = monitor.coefficient(i, monomials[j], turn=0)
-        self.R_matrices_ebe[-1] = self.map.jacobian()
+        # (rows, coord, monomial), the row after the last element off the map
+        coefficients = np.concatenate([
+            monitor.coefficients_by_coord(turn=0),
+            self.map.coefficient_table_at_indices(monitor.coefficient_indices_by_monomial())[None]])
+        self.R_matrices_ebe, self.dR_dknob_ebe, self.dorbit_dknob_ebe = (
+            _linear_and_knob_blocks(coefficients, blocks, len(self.knobs)))
 
         self.hessians_ebe = None
-        if order >= 2:
+        if hessians:
+            block = _block_slices(blocks)
+            quadratic = (coefficients[:, :, block["quadratic"]]
+                         * _derivative_weights(blocks["quadratic"]))
             self.hessians_ebe = np.zeros((num_rows, 6, 6, 6))
-            for i in range(6):
-                for row, (j, k) in enumerate(_QUADRATIC_PAIRS):
-                    coefficients = np.empty(num_rows)
-                    coefficients[:-1] = monitor.coefficient(
-                        i, monomials[6 + row], turn=0)
-                    coefficients[-1] = self.map.coefficient(i, monomials[6 + row])
-                    # the coefficient of z_j**2 is half the second derivative
-                    if j == k:
-                        coefficients *= 2.0
-                    self.hessians_ebe[:, i, j, k] = coefficients
-                    self.hessians_ebe[:, i, k, j] = coefficients
+            for row, (j, k) in enumerate(_QUADRATIC_PAIRS):
+                self.hessians_ebe[:, :, j, k] = self.hessians_ebe[:, :, k, j] = quadratic[:, :, row]
 
         self.orbit = np.zeros((num_rows, 6))
         for i, coord in enumerate(COORDS):
@@ -264,11 +317,15 @@ class TpsaEbeTrack:
         return self.R_matrices_ebe[-1]
 
     def covers(
-        self, coordinates: np.ndarray, spin: np.ndarray, order: int, start: int, end: int
+        self, coordinates: np.ndarray, spin: np.ndarray, order: int, start: int, end: int,
+        hessians: bool,
     ) -> bool:
-        return (self.order >= order and self.start == start and self.end == end
-                and np.allclose(self.coordinates, coordinates, rtol=0, atol=1e-14)
-                and np.allclose(self.spin[0], spin, rtol=0, atol=1e-14))
+        """Whether this recording answers the request, so it need not be tracked again."""
+        same_range = self.start == start and self.end == end
+        same_start_point = (np.allclose(self.coordinates, coordinates, rtol=0, atol=1e-14)
+                            and np.allclose(self.spin[0], spin, rtol=0, atol=1e-14))
+        has_hessians = self.hessians_ebe is not None or not hessians
+        return self.order >= order and same_range and same_start_point and has_hessians
 
 
 def _chromatic_functions_from_map(twiss_config: dict[str, Any]) -> bool:
@@ -289,9 +346,17 @@ class TpsaTwiss:
     backend methods are checked there, the rest in ``from_twiss_config``.
     """
 
-    def __init__(self, order: int, spin: bool = False) -> None:
-        self.order = order
+    def __init__(self, chromatic: bool, spin: bool = False, knobs: list[str] | None = None,
+                 periodic: bool = True) -> None:
+        self.knobs = list(knobs) if knobs else []
+        # var * knob for dR/dknob
+        self.map_order = 2 if chromatic or self.knobs else 1
+        # a periodic knob twiss moves the closed orbit, which enters dR/dknob through the Hessians
+        self.record_hessians = chromatic or (periodic and bool(self.knobs))
         self.spin = spin
+        self.descriptor = (madng_tpsa.Descriptor(variables=COORDS, order=self.map_order,
+                                                 params=self.knobs, param_order=1)
+                           if self.knobs else None)
         self._recording = None
 
     @classmethod
@@ -303,8 +368,9 @@ class TpsaTwiss:
             raise NotImplementedError("the TPSA twiss does not support radiation")
         if twiss_config["tpsa"] is not True:
             raise ValueError("``tpsa`` must be True or False")
-        return cls(order=2 if _chromatic_functions_from_map(twiss_config) else 1,
-                   spin=twiss_config["spin"])
+        return cls(chromatic=_chromatic_functions_from_map(twiss_config),
+                   spin=twiss_config["spin"], knobs=twiss_config["knobs"],
+                   periodic=twiss_config["periodic"])
 
     def _track(
         self,
@@ -323,12 +389,15 @@ class TpsaTwiss:
         spin = (np.array([_scalar(reference_particle, name) for name in SPIN_COORDS])
                 if self.spin else np.zeros(len(SPIN_COORDS)))
         if (self._recording is None
-                or not self._recording.covers(coordinates, spin, self.order, start, end)):
+                or not self._recording.covers(coordinates, spin, self.map_order, start, end,
+                                              self.record_hessians)):
             with xt.line._preserve_config(line):
                 if self.spin:
                     line.config.XTRACK_MULTIPOLE_NO_SYNRAD = False
                 self._recording = TpsaEbeTrack(line, reference_particle, coordinates,
-                                               self.order, start, end, spin=self.spin)
+                                               self.map_order, start, end, spin=self.spin,
+                                               knobs=self.knobs, descriptor=self.descriptor,
+                                               hessians=self.record_hessians)
         return self._recording
 
     def find_closed_orbit(
@@ -466,10 +535,9 @@ class TpsaTwiss:
 
         Returns the orbit columns, the W matrix per row, the first and one-past-last element index
         the table names its rows from, and the ``extra_data`` the regular twiss puts its tracking data in
-        (always empty here, that option is unsupported).
+        (always empty here). ``keep_initial_particles`` is ignored, there is nothing to keep.
         """
         _unsupported(keep_tracking_data=keep_tracking_data,
-                     keep_initial_particles=keep_initial_particles,
                      initial_particles=initial_particles, ebe_monitor=ebe_monitor)
         particle_on_co = init.particle_on_co
         if twiss_orientation == "forward":
@@ -537,7 +605,7 @@ class TpsaTwiss:
         _, orbit_delta2_coefficient, orbit_shift_per_delta, dR_matrix_ddelta = (
             _off_momentum_expansion(track.hessians_ebe[-1], R_matrix))
         W_matrix, dW_matrix_ddelta, chromaticity = _4d_w_matrix_and_derivatives(
-            R_matrix, dR_matrix_ddelta, orbit_delta2_coefficient)
+            R_matrix, dR_matrix_ddelta, 2.0 * orbit_delta2_coefficient)
 
         # (rows, 6, 6, 6) @ (6,) -> (rows, 6, 6), then @ (6, 6) -> (rows, 6, 6)
         dW_matrices_ebe_ddelta = (
@@ -546,6 +614,34 @@ class TpsaTwiss:
         W_matrices_ebe = track.R_matrices_ebe @ W_matrix   # (rows, 6, 6) @ (6, 6)
         columns = _chromatic_columns(W_matrices_ebe, dW_matrices_ebe_ddelta)
         return columns, {"dqx": chromaticity[0], "dqy": chromaticity[1]}
+
+    def knob_derivatives(
+        self, twiss_config: dict[str, Any], twiss_res: TwissTable
+    ) -> tuple[dict[str, np.ndarray], dict[str, Any]]:
+        """``<column>_dknob`` columns ``(rows, knobs)``, and ``q<plane>_dknob`` when periodic."""
+        periodic = twiss_config["periodic"]
+        _unsupported(reverse=twiss_config["reverse"], zero_at=twiss_config["zero_at"])
+        if twiss_res._data["_orientation"] != "forward":
+            raise NotImplementedError("``knobs`` with a backward twiss is not supported")
+        if periodic and twiss_config["method"] != "4d":
+            raise NotImplementedError("``knobs`` with a periodic twiss needs ``method='4d'``")
+
+        init = twiss_config["init"]
+        track = self._track(twiss_config["line"], init.particle_on_co,
+                            _coordinates(init.particle_on_co),
+                            twiss_config["start"], twiss_config["end"])
+        W_matrices_ebe, dW_matrices_ebe, dorbit_ebe, tune_derivatives = _knob_directions(
+            track, init.W_matrix, periodic)
+
+        # the trailing axis broadcasts W against the knob axis of dW
+        columns = {f"{name}_dknob": column for name, column in
+                   _derivative_columns(W_matrices_ebe[..., None], dW_matrices_ebe).items()}
+        for i, coord in enumerate(COORDS):
+            columns[f"{coord}_dknob"] = dorbit_ebe[:, i, :]
+        scalars = {"knob_names": list(self.knobs)}
+        if periodic:
+            scalars["qx_dknob"], scalars["qy_dknob"] = tune_derivatives
+        return columns, scalars
 
 
 def _off_momentum_expansion(
@@ -572,26 +668,47 @@ def _off_momentum_expansion(
             orbit_shift_per_delta, dR_matrix_ddelta)
 
 
-def _4d_w_matrix_and_derivatives(
-    R_matrix: np.ndarray, dR_matrix_ddelta: np.ndarray, orbit_delta2_coefficient: np.ndarray
-) -> tuple[np.ndarray, np.ndarray, list[float]]:
-    """Build the 4d W matrix of ``lnf``, its delta-derivative and ``dqx, dqy``.
+def _eigen_with_dummy_block(R_matrix: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Diagonalize R with ``lnf``'s dummy longitudinal rotation.
 
-    First-order eigenvector perturbation, so it needs distinct eigenvalues: two planes
-    on the same tune make the derivative blow up.
+    Returns the eigenvalues, the eigenvectors and the mask of the two dummy modes.
     """
-    R_with_dummy_block = lnf._with_dummy_longitudinal_block(R_matrix)
-    dR_with_dummy_block = dR_matrix_ddelta.copy()
-    dR_with_dummy_block[4:, :] = dR_with_dummy_block[:, 4:] = 0
-
-    eigenvalues, eigenvectors = np.linalg.eig(R_with_dummy_block)
-    # the dummy modes live in the longitudinal block and its derivative does not touch them.
-    # A transverse tune on the dummy tune mixes the eigenvectors instead.
+    eigenvalues, eigenvectors = np.linalg.eig(lnf._with_dummy_longitudinal_block(R_matrix))
+    # A transverse tune on the dummy tune mixes the eigenvectors of both blocks
     dummy = np.all(np.abs(eigenvectors[:4, :]) < 1e-12, axis=0)
     if dummy.sum() != 2:
         raise ValueError("a transverse tune coincides with the dummy longitudinal tune")
-    projected = np.linalg.solve(eigenvectors, dR_with_dummy_block @ eigenvectors)
+    return eigenvalues, eigenvectors, dummy
+
+
+def _project_transverse(
+    dR_matrix: np.ndarray, eigenvectors: np.ndarray, dummy: np.ndarray
+) -> np.ndarray:
+    """Express the transverse block of ``dR_matrix`` in the eigenbasis, ``V^-1 dR V``.
+
+    The dummy block does not move, so its rows and columns are zero.
+    """
+    transverse_block = np.zeros((6, 6))
+    transverse_block[:4, :4] = dR_matrix[:4, :4]
+    projected = np.linalg.solve(eigenvectors, transverse_block @ eigenvectors)
     projected[dummy, :] = projected[:, dummy] = 0.0
+    return projected
+
+
+def _4d_w_matrix_and_derivatives(
+    R_matrix: np.ndarray, dR_matrix: np.ndarray,
+    dispersion_derivative: np.ndarray | None = None,
+) -> tuple[np.ndarray, np.ndarray, list[float]]:
+    """Build the 4d W matrix of ``lnf`` and the derivatives of W and of the tunes along ``dR_matrix``.
+
+    ``dispersion_derivative`` defaults to the derivative of ``-(R4 - I)^-1 R[:4, delta]``
+    along ``dR_matrix``, right for a knob. Along delta the orbit's delta**2 term adds to it,
+    so the chromatic caller passes its own.
+    First-order eigenvector perturbation, so it needs distinct eigenvalues: two planes
+    on the same tune make the derivative blow up.
+    """
+    eigenvalues, eigenvectors, dummy = _eigen_with_dummy_block(R_matrix)
+    projected = _project_transverse(dR_matrix, eigenvectors, dummy)
     gaps = eigenvalues[None, :] - eigenvalues[:, None]   # gaps[l, k] = lam_k - lam_l
     np.fill_diagonal(gaps, np.inf)             # own-mode component is a free scale
     transverse_gaps = np.abs(gaps[~dummy][:, ~dummy])
@@ -601,20 +718,24 @@ def _4d_w_matrix_and_derivatives(
         projected, gaps, out=np.zeros_like(projected), where=projected != 0)
 
     modes = lnf.sort_modes(eigenvectors, eigenvalues)
-    W_matrix, dW_matrix_ddelta = lnf._build_w_matrix_and_derivative_from_eigenvectors(
+    W_matrix, dW_matrix = lnf._build_w_matrix_and_derivative_from_eigenvectors(
         eigenvectors, deigenvectors, modes, only_4d_block=True)
-    chromaticity = [(projected[mode, mode] / eigenvalues[mode]).imag / (2 * np.pi)
-                    for mode in modes[:2]]
+    tune_derivatives = [(projected[mode, mode] / eigenvalues[mode]).imag / (2 * np.pi)
+                        for mode in modes[:2]]
 
     # the longitudinal columns hold the dispersion instead
     _set_4d_dispersion_columns(W_matrix, R_matrix)
     transverse_R_minus_identity = R_matrix[:4, :4] - np.eye(4)
-    dW_matrix_ddelta[4:, :] = dW_matrix_ddelta[:, 4:] = 0
-    dW_matrix_ddelta[:4, _DELTA] = 2.0 * orbit_delta2_coefficient   # d(dispersion)/ddelta
-    dW_matrix_ddelta[:4, 4] = -np.linalg.solve(
+    if dispersion_derivative is None:
+        dispersion_derivative = -np.linalg.solve(
+            transverse_R_minus_identity,
+            dR_matrix[:4, _DELTA] + dR_matrix[:4, :4] @ W_matrix[:4, _DELTA])
+    dW_matrix[4:, :] = dW_matrix[:, 4:] = 0
+    dW_matrix[:4, _DELTA] = dispersion_derivative
+    dW_matrix[:4, 4] = -np.linalg.solve(
         transverse_R_minus_identity,
-        dR_matrix_ddelta[:4, 4] + dR_matrix_ddelta[:4, :4] @ W_matrix[:4, 4])
-    return W_matrix, dW_matrix_ddelta, chromaticity
+        dR_matrix[:4, 4] + dR_matrix[:4, :4] @ W_matrix[:4, 4])
+    return W_matrix, dW_matrix, tune_derivatives
 
 
 def _chromatic_columns(
@@ -646,4 +767,70 @@ def _chromatic_columns(
     columns["dzeta"] = dzeta - dzeta[0]
     for i, name in enumerate(("ddx", "ddpx", "ddy", "ddpy")):
         columns[name] = dW_matrices_ebe_ddelta[:, i, _DELTA]   # d(dispersion)/ddelta
+    return columns
+
+
+def _closed_orbit_knob_shifts(track: TpsaEbeTrack) -> np.ndarray:
+    """``(6, knobs)`` 4d closed-orbit derivative ``(I - R4)^-1 df/dknob``."""
+    orbit_shifts = np.zeros((6, len(track.knobs)))
+    orbit_shifts[:4] = np.linalg.solve(np.eye(4) - track.R_matrix[:4, :4],
+                                       track.dorbit_dknob_ebe[-1, :4])
+    return orbit_shifts
+
+
+def _knob_directions(
+    track: TpsaEbeTrack, W_matrix: np.ndarray, periodic: bool
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray | None]:
+    """W, ``dW/dknob`` and ``dorbit/dknob`` at every row, and ``dq/dknob`` when periodic.
+
+    Open, the start orbit and W are fixed. Periodic (4d), the start orbit moves with the
+    closed orbit and W is rebuilt from the one-turn matrix, so ``W_matrix`` is unused.
+    """
+    R_matrices_ebe = track.R_matrices_ebe
+    dR_matrices_ebe = track.dR_dknob_ebe      # (rows, 6, 6, knobs)
+    dorbit_ebe = track.dorbit_dknob_ebe
+    if not periodic:
+        return (R_matrices_ebe @ W_matrix,
+                np.einsum("rijk,jl->rilk", dR_matrices_ebe, W_matrix), dorbit_ebe, None)
+    num_knobs = len(track.knobs)
+    orbit_shifts = _closed_orbit_knob_shifts(track)
+    dR_matrices_ebe = dR_matrices_ebe + np.einsum(
+        "rijl,lk->rijk", track.hessians_ebe, orbit_shifts)
+    dW_matrix = np.zeros((6, 6, num_knobs))
+    tune_derivatives = np.zeros((2, num_knobs))
+    for k in range(num_knobs):
+        W_matrix, dW_matrix[..., k], tune_derivatives[:, k] = (
+            _4d_w_matrix_and_derivatives(track.R_matrix, dR_matrices_ebe[-1, ..., k]))
+    dW_matrices_ebe = (np.einsum("rijk,jl->rilk", dR_matrices_ebe, W_matrix)
+                       + np.einsum("rij,jlk->rilk", R_matrices_ebe, dW_matrix))
+    dorbit_ebe = dorbit_ebe + np.einsum("rij,jk->rik", R_matrices_ebe, orbit_shifts)
+    return R_matrices_ebe @ W_matrix, dW_matrices_ebe, dorbit_ebe, tune_derivatives
+
+
+def _derivative_columns(
+    W_matrices_ebe: np.ndarray, dW_matrices_ebe: np.ndarray
+) -> dict[str, np.ndarray]:
+    """Differentiate the lattice functions of ``_get_lattice_functions`` along ``dW``."""
+    W, dW = W_matrices_ebe, dW_matrices_ebe
+    columns = {}
+    for plane, i in (("x", 0), ("y", 2)):
+        j = i + 1
+        w00, w01, w10, w11 = W[:, i, i], W[:, i, j], W[:, j, i], W[:, j, j]
+        d00, d01, d10, d11 = dW[:, i, i], dW[:, i, j], dW[:, j, i], dW[:, j, j]
+        bet = w00**2 + w01**2
+        columns[f"bet{plane}"] = 2 * (w00 * d00 + w01 * d01)
+        columns[f"alf{plane}"] = -(d00 * w10 + w00 * d10 + d01 * w11 + w01 * d11)
+        # the table subtracts the phase at the first row
+        dphase = (w00 * d01 - w01 * d00) / bet / (2 * np.pi)
+        columns[f"mu{plane}"] = dphase - dphase[0]
+
+    # dispersion: the vector of span(W[:, 4], W[:, 5]) with zeta 0 and pzeta 1
+    ratio = W[:, 4, 5] / W[:, 4, 4]
+    dratio = (dW[:, 4, 5] * W[:, 4, 4] - W[:, 4, 5] * dW[:, 4, 4]) / W[:, 4, 4]**2
+    denominator = W[:, 5, 5] - W[:, 5, 4] * ratio
+    ddenominator = dW[:, 5, 5] - dW[:, 5, 4] * ratio - W[:, 5, 4] * dratio
+    for i, name in enumerate(("dx", "dpx", "dy", "dpy")):
+        numerator = W[:, i, 5] - W[:, i, 4] * ratio
+        dnumerator = dW[:, i, 5] - dW[:, i, 4] * ratio - W[:, i, 4] * dratio
+        columns[name] = (dnumerator * denominator - numerator * ddenominator) / denominator**2
     return columns

@@ -62,6 +62,7 @@ def twiss_line(line, particle_ref=None, method=None,
         compute_lattice_functions=None,
         chrom=None,
         tpsa=None,
+        knobs=None,
         coupling_edw_teng=False,
         init_at=None,
         x=None, px=None, y=None, py=None, zeta=None, delta=None,
@@ -176,6 +177,8 @@ def twiss_line(line, particle_ref=None, method=None,
     tpsa : bool, optional
         If True, the twiss derivatives are computed using TPSA. Default is False,
         which means that finite differences are used.
+    knobs : list of str, optional
+        Line variables to differentiate the table against. Requires ``tpsa=True``.
     radiation_analysis : bool, optional
         If True, the energy loss, radiation damping constants, and equilibrium
         emittances are computed. Default is False.
@@ -451,6 +454,9 @@ def twiss_line(line, particle_ref=None, method=None,
 
         elif route == 'periodic_one_turn_custom_start':
             # Compute a full periodic table, then rotate it to the requested start.
+            if twiss_config['knobs']:
+                raise NotImplementedError(
+                    '``knobs`` with a periodic twiss needs the line start as start')
             requested_start = twiss_config['start']
             one_turn_kwargs = twiss_config.copy()
             one_turn_kwargs['start'] = None
@@ -611,6 +617,7 @@ def _compute_base_twiss(twiss_config):
             twiss_config, twiss_res)
 
     twpc._add_chromatic_functions_to_twiss_result(twiss_config, twiss_res)
+    twpc._add_knob_derivatives_to_twiss_result(twiss_config, twiss_res)
     twpc._add_radiation_analysis_to_twiss_result(twiss_config, twiss_res)
     twpc._apply_4d_longitudinal_result_convention(twiss_config, twiss_res)
     twiss_res = twpc._set_twiss_result_values_at(twiss_config, twiss_res)

@@ -620,7 +620,8 @@ def test_particles_tpsa_rejects_descriptor_shape_mismatch():
         _map(descriptor=descriptor)
 
 
-def test_tpsa_match_optics():
+@pytest.mark.parametrize("tpsa_backend", ["madng_tpsa", "twiss"])
+def test_tpsa_match_optics(tpsa_backend):
     collider = xt.Environment.from_json(test_data_folder /
                     'hllhc15_thick/hllhc15_collider_thick.json')
     collider.vars.load(test_data_folder /
@@ -631,11 +632,20 @@ def test_tpsa_match_optics():
 
     lm.set_var_limits_and_steps(collider)
 
+    # the map-tracking backend has no continuous phase
+    has_phase = tpsa_backend == "twiss"
+    phase_targets = [
+        xt.TargetRelPhaseAdvance('mux', value = tw0['mux', 'ip1.l1'] - tw0['mux', 's.ds.l8.b1'], start='s.ds.l8.b1', end='ip1.l1', weight=1),
+        xt.TargetRelPhaseAdvance('muy', value = tw0['muy', 'ip1.l1'] - tw0['muy', 's.ds.l8.b1'], start='s.ds.l8.b1', end='ip1.l1', weight=1),
+    ] if has_phase else []
+    # the twiss backend does not wrap, ip1.l1 is the same point
+    ip1 = "ip1.l1" if has_phase else "ip1"
+
     # Match with Xsuite Targets
     opt = line.match(
     solve=False,
     default_tol={None: 1e-8, 'betx': 1e-6, 'bety': 1e-6, 'alfx': 1e-6, 'alfy': 1e-6},
-    start='s.ds.l8.b1', end='ip1',
+    start='s.ds.l8.b1', end=ip1,
     init=tw0, init_at=xt.START,
     vary=[
         # Only IR8 quadrupoles including DS
@@ -646,11 +656,10 @@ def test_tpsa_match_optics():
             'kq10.r8b1', 'kqtl11.r8b1', 'kqt12.r8b1', 'kqt13.r8b1'])],
     targets=[
         xt.TargetSet(at='ip8', tars=('betx', 'bety', 'alfx', 'alfy', 'dx', 'dpx'), value=tw0, weight=1),
-        xt.TargetSet(at='ip1', betx=0.15, bety=0.1, alfx=0, alfy=0, dx=0, dpx=0, weight=1),
-        xt.TargetRelPhaseAdvance('mux', value = tw0['mux', 'ip1.l1'] - tw0['mux', 's.ds.l8.b1'], start='s.ds.l8.b1', end='ip1.l1', weight=1),
-        xt.TargetRelPhaseAdvance('muy', value = tw0['muy', 'ip1.l1'] - tw0['muy', 's.ds.l8.b1'], start='s.ds.l8.b1', end='ip1.l1', weight=1),
+        xt.TargetSet(at=ip1, betx=0.15, bety=0.1, alfx=0, alfy=0, dx=0, dpx=0, weight=1),
+        *phase_targets,
     ],
-    use_tpsa=True, tpsa_backend="madng_tpsa")
+    use_tpsa=True, tpsa_backend=tpsa_backend)
 
     # The action keeps the parametric maps internally; line variables stay scalar so
     # that the optimizer can log and update them.
@@ -662,14 +671,14 @@ def test_tpsa_match_optics():
     assert opt._err.call_counter < 20
     assert len(opt.log()) < 10
 
-    tw = line.twiss(init=tw0, start='s.ds.l8.b1', end='ip1')
+    tw = line.twiss(init=tw0, start='s.ds.l8.b1', end=ip1)
 
-    xo.assert_allclose(tw['betx', 'ip1'], 0.15, atol=1e-6, rtol=0)
-    xo.assert_allclose(tw['bety', 'ip1'], 0.1, atol=1e-6, rtol=0)
-    xo.assert_allclose(tw['alfx', 'ip1'], 0., atol=1e-6, rtol=0)
-    xo.assert_allclose(tw['alfy', 'ip1'], 0., atol=1e-6, rtol=0)
-    xo.assert_allclose(tw['dx', 'ip1'], 0., atol=1e-6, rtol=0)
-    xo.assert_allclose(tw['dy', 'ip1'], 0., atol=1e-6, rtol=0)
+    xo.assert_allclose(tw['betx', ip1], 0.15, atol=1e-6, rtol=0)
+    xo.assert_allclose(tw['bety', ip1], 0.1, atol=1e-6, rtol=0)
+    xo.assert_allclose(tw['alfx', ip1], 0., atol=1e-6, rtol=0)
+    xo.assert_allclose(tw['alfy', ip1], 0., atol=1e-6, rtol=0)
+    xo.assert_allclose(tw['dx', ip1], 0., atol=1e-6, rtol=0)
+    xo.assert_allclose(tw['dy', ip1], 0., atol=1e-6, rtol=0)
 
     xo.assert_allclose(tw['betx', 'ip8'], tw0['betx', 'ip8'], atol=1e-6, rtol=0)
     xo.assert_allclose(tw['bety', 'ip8'], tw0['bety', 'ip8'], atol=1e-6, rtol=0)
@@ -678,17 +687,18 @@ def test_tpsa_match_optics():
     xo.assert_allclose(tw['dx', 'ip8'], tw0['dx', 'ip8'], atol=1e-6, rtol=0)
     xo.assert_allclose(tw['dy', 'ip8'], tw0['dy', 'ip8'], atol=1e-6, rtol=0)
 
-    xo.assert_allclose(tw['mux', 'ip1.l1'] - tw['mux', 's.ds.l8.b1'], tw0['mux', 'ip1.l1'] - tw0['mux', 's.ds.l8.b1'], atol=1e-6, rtol=0)
-    xo.assert_allclose(tw['muy', 'ip1.l1'] - tw['muy', 's.ds.l8.b1'], tw0['muy', 'ip1.l1'] - tw0['muy', 's.ds.l8.b1'], atol=1e-6, rtol=0)
+    if has_phase:
+        xo.assert_allclose(tw['mux', 'ip1.l1'] - tw['mux', 's.ds.l8.b1'], tw0['mux', 'ip1.l1'] - tw0['mux', 's.ds.l8.b1'], atol=1e-6, rtol=0)
+        xo.assert_allclose(tw['muy', 'ip1.l1'] - tw['muy', 's.ds.l8.b1'], tw0['muy', 'ip1.l1'] - tw0['muy', 's.ds.l8.b1'], atol=1e-6, rtol=0)
 
     opt.reload(0)
 
-
-    opt.actions[0].teardown()
-    # Check for doubles in the variables after teardown
-    assert opt.actions[0]._already_prepared is False
-    for name in opt.actions[0].vary_names:
-        assert isinstance(line.vars.val[name], float)
+    if tpsa_backend == "madng_tpsa":
+        opt.actions[0].teardown()
+        # Check for doubles in the variables after teardown
+        assert opt.actions[0]._already_prepared is False
+        for name in opt.actions[0].vary_names:
+            assert isinstance(line.vars.val[name], float)
 
     # Match on full line without initial conditions
     opt = line.match(
@@ -703,18 +713,18 @@ def test_tpsa_match_optics():
             'kq10.r8b1', 'kqtl11.r8b1', 'kqt12.r8b1', 'kqt13.r8b1'])],
     targets=[
             xt.TargetSet(at='ip8', tars=('betx', 'bety', 'alfx', 'alfy', 'dx', 'dpx'), value=tw0, weight=1),
-            xt.TargetSet(at='ip1', betx=0.15, bety=0.1, alfx=0, alfy=0, dx=0, dpx=0, weight=1),
-            xt.TargetRelPhaseAdvance('mux', value = tw0['mux', 'ip1.l1'] - tw0['mux', 's.ds.l8.b1'], start='s.ds.l8.b1', end='ip1.l1', weight=1),
-            xt.TargetRelPhaseAdvance('muy', value = tw0['muy', 'ip1.l1'] - tw0['muy', 's.ds.l8.b1'], start='s.ds.l8.b1', end='ip1.l1', weight=1),
+            xt.TargetSet(at=ip1, betx=0.15, bety=0.1, alfx=0, alfy=0, dx=0, dpx=0, weight=1),
+            *phase_targets,
     ],
-    use_tpsa=True, tpsa_backend="madng_tpsa")
+    use_tpsa=True, tpsa_backend=tpsa_backend)
 
     opt.step(30)
 
     assert opt._err.call_counter < 20
     assert len(opt.log()) < 10
 
-    tw = line.twiss(init=tw0)
+    # without init, madng_tpsa seeds from the start twiss, the twiss backend matches the periodic one
+    tw = line.twiss(init=tw0) if tpsa_backend == "madng_tpsa" else line.twiss()
 
     xo.assert_allclose(tw['betx', 'ip1.l1'], 0.15, atol=1e-6, rtol=0)
     xo.assert_allclose(tw['bety', 'ip1.l1'], 0.1, atol=1e-6, rtol=0)
@@ -730,8 +740,9 @@ def test_tpsa_match_optics():
     xo.assert_allclose(tw['dx', 'ip8'], tw0['dx', 'ip8'], atol=1e-6, rtol=0)
     xo.assert_allclose(tw['dy', 'ip8'], tw0['dy', 'ip8'], atol=1e-6, rtol=0)
 
-    xo.assert_allclose(tw['mux', 'ip1.l1'] - tw['mux', 's.ds.l8.b1'], tw0['mux', 'ip1.l1'] - tw0['mux', 's.ds.l8.b1'], atol=1e-6, rtol=0)
-    xo.assert_allclose(tw['muy', 'ip1.l1'] - tw['muy', 's.ds.l8.b1'], tw0['muy', 'ip1.l1'] - tw0['muy', 's.ds.l8.b1'], atol=1e-6, rtol=0)
+    if has_phase:
+        xo.assert_allclose(tw['mux', 'ip1.l1'] - tw['mux', 's.ds.l8.b1'], tw0['mux', 'ip1.l1'] - tw0['mux', 's.ds.l8.b1'], atol=1e-6, rtol=0)
+        xo.assert_allclose(tw['muy', 'ip1.l1'] - tw['muy', 's.ds.l8.b1'], tw0['muy', 'ip1.l1'] - tw0['muy', 's.ds.l8.b1'], atol=1e-6, rtol=0)
 
 # Helpers for the map surface, optics and knob tests below
 
@@ -1347,115 +1358,6 @@ def test_monitor_full_maps_reject_coefficient():
         mon.coefficient("x", (1, 0, 0, 0, 0, 0))
 
 
-# TpsaOptics
-
-def test_optics_round_trip_from_w_matrix():
-    W = _6d_w_matrix(3.0, 4.0, 0.7, -0.4, 1.0, 0.1, 0.02, -0.03, 0.05)
-    m = _offaxis_map(order=2)
-    m.set_jacobian(W)
-    o = m.optics()
-    xo.assert_allclose([o.betx, o.bety, o.alfx, o.alfy], [3.0, 4.0, 0.7, -0.4],
-                       rtol=0, atol=1e-13)
-    xo.assert_allclose([o.dx, o.dpx, o.dy, o.dpy], [0.1, 0.02, -0.03, 0.05],
-                       rtol=0, atol=1e-13)
-    assert set(o.to_dict()) == {"betx", "bety", "alfx", "alfy", "mux", "muy",
-                                "dx", "dpx", "dy", "dpy"}
-
-
-def test_optics_drift_propagation():
-    """On-axis, beta after a drift follows beta(L) = b0 - 2 a0 L + g0 L^2."""
-    L = 2.5
-    line = xt.Line(elements=[xt.Drift(length=L)], element_names=["d"])
-    line.particle_ref = xt.Particles(p0c=P0C, mass0=MASS0)
-    line.build_tracker()
-
-    betx0, alfx0 = 3.0, 0.7
-    gamx0 = (1 + alfx0 ** 2) / betx0
-    m = xtpsa.ParticlesTpsa(order=2, p0c=P0C, mass0=MASS0)
-    m.set_jacobian(_6d_w_matrix(betx0, 4.0, alfx0, -0.4, 1.0, 0.0, 0.0, 0.0, 0.0))
-    line.track(m)
-
-    o = m.optics()
-    xo.assert_allclose(o.betx, betx0 - 2 * alfx0 * L + gamx0 * L ** 2,
-                       rtol=0, atol=1e-12)
-    xo.assert_allclose(o.alfx, alfx0 - gamx0 * L, rtol=0, atol=1e-12)
-
-
-def test_optics_values_vs_twiss():
-    """Optics off a recorded map match line.twiss at the same element."""
-    line = _demo_line()
-    init = dict(betx=3.0, bety=4.0, alfx=0.7, alfy=-0.4,
-                dx=0.1, dpx=0.02, dy=0.0, dpy=0.0)
-    tw = line.twiss(**init)
-
-    m = _offaxis_map(order=2, x=0, px=0, y=0, py=0, zeta=0, delta=0)
-    m.set_jacobian(_6d_w_matrix(init["betx"], init["bety"], init["alfx"],
-                                init["alfy"], 1.0, init["dx"], init["dpx"],
-                                init["dy"], init["dpy"]))
-    line.track(m, multi_element_monitor_at=["b"])
-    o = line.tracker.record_multi_element_last_track.map_at("b").optics()
-
-    i = list(line.element_names).index("b")
-    for name in ("betx", "bety", "alfx", "alfy", "dx", "dpx", "mux", "muy"):
-        xo.assert_allclose(getattr(o, name), tw[name][i], rtol=0, atol=1e-12)
-
-
-def test_optics_parameter_gradient_vs_finite_differences():
-    """d(optics)/d(knob) is the chain rule on the map's mixed coefficients."""
-    A0 = _6d_w_matrix(3.0, 4.0, 0.7, -0.4, 1.0, 0.1, 0.02, 0.0, 0.0)
-    dA = {(0, 0): [1.3, -0.5], (0, 1): [0.4, 0.9], (1, 0): [0.2, 0.1],
-          (1, 1): [-0.7, 0.3], (0, 5): [0.05, -0.02]}
-
-    descriptor = madng_tpsa.Descriptor(6, 2, params=["kqa", "kqb"], param_order=1)
-    m = _offaxis_map(order=2, descriptor=descriptor)
-    m.set_jacobian(A0)
-    for (i, j), gradient in dA.items():
-        for k, value in enumerate(gradient):
-            mono = [0] * (6 + len(gradient))
-            mono[j] = 1
-            mono[6 + k] = 1
-            m.set_coefficient(COORDS[i], tuple(mono), value)
-    o = m.optics()
-
-    # analytic: d betx = 2 A00 dA00 + 2 A01 dA01, d dx = dA05
-    xo.assert_allclose(o.gradient("betx"),
-                       2 * A0[0, 0] * np.array(dA[(0, 0)])
-                       + 2 * A0[0, 1] * np.array(dA[(0, 1)]), rtol=0, atol=1e-13)
-    xo.assert_allclose(o.gradient("dx"), dA[(0, 5)], rtol=0, atol=1e-13)
-    assert set(o.gradients()) == set(o.to_dict())
-
-    # betx built from A0 + h*dA, differentiated along the first parameter
-    def betx_at(h):
-        Ah = A0.copy()
-        for (i, j), gradient in dA.items():
-            Ah[i, j] += h * gradient[0]
-        mm = _offaxis_map(order=1)
-        mm.set_jacobian(Ah)
-        return mm.optics().betx
-
-    h = 1e-6
-    xo.assert_allclose(o.gradient("betx")[0], (betx_at(h) - betx_at(-h)) / (2 * h),
-                       rtol=1e-6, atol=1e-8)
-
-
-def test_optics_gradient_guards():
-    """Values need no parameters, gradients need parameters and order >= 2."""
-    plain = _offaxis_map(order=2)
-    plain.set_jacobian(_6d_w_matrix(3.0, 4.0, 0.7, -0.4, 1.0, 0.1, 0.02, 0.0, 0.0))
-    assert plain.optics().betx > 0
-    with pytest.raises(ValueError, match="no parameters"):
-        plain.optics().gradient("betx")
-
-    params = dict(params=["kqa", "kqb"], param_order=1)
-    order_one = _offaxis_map(order=1, descriptor=madng_tpsa.Descriptor(6, 1, **params))
-    with pytest.raises(ValueError, match="order >= 2"):
-        order_one.optics().gradient("betx")
-
-    parametric = _offaxis_map(order=2, descriptor=madng_tpsa.Descriptor(6, 2, **params))
-    with pytest.raises(KeyError, match="unknown optical function"):
-        parametric.optics().gradient("nope")
-
-
 # KnobParameters: line variables held as GTPSA parameters
 
 def test_knob_parameters_rejects_bad_names_and_shapes():
@@ -1617,7 +1519,7 @@ def test_action_tpsa_track_values_and_jacobian_vs_twiss():
     line = _fodo_ring()
     tw0 = line.twiss(method="4d")
     start, end, at = "qf0", "d3b", "qd2"
-    quantities = ["betx", "bety", "alfx", "dx", "mux"]
+    quantities = ["betx", "bety", "alfx", "dx"]
 
     action = ActionTpsaTrack(
         line, ["kqf", "kqd"],
@@ -1666,6 +1568,13 @@ def test_action_tpsa_track_rejects_unsupported_targets():
             line, ["kqf"],
             targets=[xt.TargetRelPhaseAdvance("dqx", value=0.0,
                                             start="qf0", end="qd2")], **kwargs)
+
+    phase_targets = [xt.TargetRelPhaseAdvance("mux", value=0.0, start="qf0", end="qd2"),
+                     xt.Target("muy", at="qd2", value=0.0)]
+    for target in phase_targets:
+        action = ActionTpsaTrack(line, ["kqf"], targets=[target], **kwargs)
+        with pytest.raises(ValueError, match="tpsa_backend='twiss'"):
+            action.prepare()
 
 
 def _chromatic_fodo_ring(num_cells=4, with_cavity=False):
@@ -1785,7 +1694,7 @@ def _kicked_chromatic_fodo_ring():
 
 
 def test_twiss_tpsa_kicked_orbit_one_recording(monkeypatch):
-    """The closed-orbit Newton runs on order-1 maps, only the result is recorded."""
+    """The closed-orbit Newton runs on scalar tracks, only the result is recorded."""
     import xtrack.tpsa.twiss as tpsa_twiss
 
     recordings = []
@@ -1841,3 +1750,163 @@ def test_twiss_tpsa_kin_columns_inside_solenoid():
     _assert_columns_close(tw_tpsa, tw_ref,
                           _TWISS_OPTICS_COLUMNS + ("kin_px", "kin_py", "kin_xp"),
                           rtol=1e-6)
+
+
+_FODO_KNOBS = ["kqf", "kqd", "ksx"]
+_FODO_KNOB_STEPS = {"kqf": 1e-5, "kqd": 1e-5, "ksx": 1e-2}
+
+
+def _fodo_knob_init():
+    return xt.TwissInit(betx=2.0, bety=3.0, x=1e-3, y=-5e-4)
+
+
+def test_twiss_knobs_require_tpsa():
+    line = _fodo_knob_line()
+    with pytest.raises(ValueError, match="requires ``tpsa=True``"):
+        line.twiss(method="4d", init=_fodo_knob_init(), knobs=_FODO_KNOBS)
+
+
+def test_twiss_tpsa_knobs_leave_table_and_line_unchanged():
+    """Knobs raise the order to 2 and are torn down after the recording."""
+    line = _fodo_knob_line()
+    strengths = [line["qf"].k1, line["qd"].k1, line["sx"].k2]
+    tw_plain = line.twiss(method="4d", init=_fodo_knob_init(), tpsa=True)
+    tw_knobs = line.twiss(method="4d", init=_fodo_knob_init(), tpsa=True,
+                          knobs=_FODO_KNOBS)
+    for name in _TWISS_OPTICS_COLUMNS:
+        xo.assert_allclose(tw_knobs[name], tw_plain[name], rtol=0, atol=0)
+    assert [line["qf"].k1, line["qd"].k1, line["sx"].k2] == strengths
+    assert not any(line.attr["_tpsa_enabled"])
+
+
+def test_twiss_tpsa_knob_recording_vs_finite_differences():
+    """Mixed var*knob coefficients are dR/dknob, pure-knob ones dorbit/dknob."""
+    from xtrack.tpsa.twiss import TpsaTwiss
+
+    line = _fodo_knob_line()
+    line.build_tracker()
+    coordinates = np.array([X0[c] for c in COORDS])
+
+    def recording(knobs=None):
+        return TpsaTwiss(chromatic=False, knobs=knobs)._track(
+            line, line.particle_ref, coordinates, None, None)
+
+    rec = recording(_FODO_KNOBS)
+    assert rec.order == 2
+    for k, knob in enumerate(_FODO_KNOBS):
+        step = _FODO_KNOB_STEPS[knob]
+        value = line.vars[knob]._value
+        line.vars[knob] = value + step
+        plus = recording()
+        line.vars[knob] = value - step
+        minus = recording()
+        line.vars[knob] = value
+        dR_fd = (plus.R_matrices_ebe - minus.R_matrices_ebe) / (2 * step)
+        dorbit_fd = (plus.orbit - minus.orbit) / (2 * step)
+        assert np.max(np.abs(dorbit_fd[:, :4])) > 1e-9
+        xo.assert_allclose(rec.dR_dknob_ebe[..., k], dR_fd,
+                           rtol=0, atol=1e-9 * np.max(np.abs(dR_fd)))
+        xo.assert_allclose(rec.dorbit_dknob_ebe[:, :4, k], dorbit_fd[:, :4],
+                           rtol=0, atol=1e-9 * np.max(np.abs(dorbit_fd[:, :4])))
+
+
+def _richardson_extrapolation_fd(line, knob, twiss_kwargs, names, step=2e-5):
+    """Central FD over ``knob`` with the step**2 term cancelled."""
+    def central(h):
+        value = line.vars[knob]._value
+        line.vars[knob] = value + h
+        plus = line.twiss(tpsa=True, **twiss_kwargs)
+        line.vars[knob] = value - h
+        minus = line.twiss(tpsa=True, **twiss_kwargs)
+        line.vars[knob] = value
+        return {name: (np.asarray(plus[name]) - np.asarray(minus[name])) / (2 * h)
+                for name in names}
+    single, double = central(step), central(2 * step)
+    return {name: (4 * single[name] - double[name]) / 3 for name in names}
+
+
+_KNOB_COLUMNS = ("betx", "bety", "alfx", "alfy", "mux", "muy", "dx", "dpx", "x", "px")
+
+
+@pytest.mark.parametrize("case", ["open", "periodic"])
+def test_twiss_tpsa_knob_columns_vs_finite_differences(case):
+    """Open from a fixed init, and periodic 4d where the closed orbit and W move too."""
+    periodic = case == "periodic"
+    if periodic:
+        line = _kicked_chromatic_fodo_ring()
+        twiss_kwargs = dict(method="4d", chrom=False)
+    else:
+        line = _chromatic_fodo_ring()
+        start, end = "qf1", "_end_point"
+        init = line.twiss(method="4d").get_twiss_init(start)
+        init.x, init.px, init.y = 1e-4, 2e-5, -1e-4
+        twiss_kwargs = dict(method="4d", chrom=False, init=init, start=start, end=end)
+    knobs = ["kqf", "kqd"]
+    scalars = ("qx", "qy") if periodic else ()
+    tw = line.twiss(tpsa=True, knobs=knobs, **twiss_kwargs)
+    assert tw.knob_names == knobs
+    for k, knob in enumerate(knobs):
+        reference = _richardson_extrapolation_fd(line, knob, twiss_kwargs,
+                                                _KNOB_COLUMNS + scalars)
+        for name in _KNOB_COLUMNS:
+            scale = np.max(np.abs(reference[name]))
+            assert scale > 1e-6, name
+            xo.assert_allclose(tw[f"{name}_dknob"][:, k], reference[name],
+                               rtol=0, atol=1e-7 * scale)
+        for name in scalars:
+            xo.assert_allclose(tw[f"{name}_dknob"][k], reference[name],
+                               rtol=1e-7, atol=0)
+
+
+@pytest.mark.parametrize("case", ["wrapped", "init_inside", "periodic_start"])
+def test_twiss_tpsa_knobs_reject_split_ranges(case):
+    """The second piece's init would miss its knob derivatives."""
+    line = _chromatic_fodo_ring()
+    tw0 = line.twiss(method="4d")
+    kwargs = {"wrapped": dict(start="qd2", end="qf1", init=tw0, init_at=xt.START),
+              "init_inside": dict(start="qf1", end="qd3", init=tw0, init_at="qf2"),
+              "periodic_start": dict(start="qf1")}[case]
+    with pytest.raises(NotImplementedError, match="``knobs``"):
+        line.twiss(method="4d", tpsa=True, knobs=["kqf"], **kwargs)
+
+
+def test_twiss_tpsa_knobs_reject_periodic_6d():
+    line = _chromatic_fodo_ring(with_cavity=True)
+    with pytest.raises(NotImplementedError, match="method='4d'"):
+        line.twiss(method="6d", tpsa=True, knobs=["kqf"])
+
+
+@pytest.mark.parametrize("case", ["tune", "phase"])
+def test_match_twiss_backend_jacobian_and_solve(case):
+    """``tpsa_backend='twiss'`` Jacobian vs central FD of the same merit function."""
+    if case == "tune":
+        line = _chromatic_fodo_ring()
+        tw0 = line.twiss(method="4d")
+        kwargs = dict(method="4d")
+        targets = [xt.TargetSet(qx=tw0.qx + 0.01, qy=tw0.qy - 0.01, tol=1e-9)]
+    else:
+        line = _chromatic_fodo_ring()
+        tw0 = line.twiss(method="4d")
+        kwargs = dict(method="4d", start="qf1", end="qd3", init=tw0, init_at=xt.START)
+        targets = [xt.TargetRelPhaseAdvance("mux", start="qf1", end="qd3",
+                                            value=tw0["mux", "qd3"] - tw0["mux", "qf1"]
+                                            + 0.005, tol=1e-9),
+                   xt.Target("betx", at="qd3", value=tw0["betx", "qd3"] * 1.01, tol=1e-6)]
+    opt = line.match(solve=False, vary=xt.VaryList(["kqf", "kqd"], step=1e-7),
+                     targets=targets, use_tpsa=True, tpsa_backend="twiss", **kwargs)
+    merit = opt._err
+    x = merit._get_x()
+    merit(x)
+    jacobian = merit.get_jacobian(x)
+    merit.use_tpsa = False
+    reference = np.zeros_like(jacobian)
+    for i in range(len(x)):
+        step = np.zeros_like(x)
+        step[i] = 1e-7
+        reference[:, i] = (merit(x + step) - merit(x - step)) / 2e-7
+    merit(x)
+    merit.use_tpsa = True
+    xo.assert_allclose(jacobian, reference, rtol=0, atol=1e-6 * np.max(np.abs(reference)))
+
+    opt.solve()
+    assert all(opt._err.last_targets_within_tol)

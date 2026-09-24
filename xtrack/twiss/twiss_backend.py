@@ -9,6 +9,8 @@ def _select_twiss_backend(twiss_config):
     if twiss_config['tpsa']:
         from ..tpsa.twiss import TpsaTwiss
         return TpsaTwiss.from_twiss_config(twiss_config)
+    if twiss_config['knobs']:
+        raise ValueError('``knobs`` requires ``tpsa=True``')
     return FiniteDifferenceTwiss()
 
 

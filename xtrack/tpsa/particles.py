@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Iterable, Sequence
+from typing import Any, Iterable, Sequence
 
 import numpy as np
 import xtrack as xt
@@ -77,10 +77,6 @@ class TpsaParticleData(xo.Struct):
     _rng_s3 = xo.UInt32
     _rng_s4 = xo.UInt32
     track_flags = xo.UInt64
-
-if TYPE_CHECKING:
-    from .optics import TpsaOptics
-
 
 class ParticlesTpsa:
     """6 coordinates as TPSA around a reference orbit.  Identity map in -> element map out.
@@ -243,12 +239,6 @@ class ParticlesTpsa:
         """The 6x6 order-1 transfer matrix R."""
         return np.array([c.grad() for c in self.coords])
 
-    def optics(self) -> TpsaOptics:
-        """Uncoupled optics (betx, alfx, mux, dx, ...) + parameter gradients."""
-        from .optics import TpsaOptics
-
-        return TpsaOptics(self)
-
     def set_const_part(self, values: Sequence[float] | np.ndarray) -> None:
         """Set the order-0 part (orbit) of each coordinate from a length-6 array."""
         v = np.asarray(values, dtype=float).reshape(-1)
@@ -298,18 +288,39 @@ class ParticlesTpsa:
         A malformed or beyond-order monomial raises ``ValueError`` here rather than
         letting the C library ``exit(1)`` the interpreter (see ``is_valid_monomial``).
         """
-        desc = self.descriptor
         arr = np.asarray(monomials)
-        rows = arr.reshape(1, -1) if arr.ndim == 1 else arr
-        for row in rows:
-            mono = tuple(int(v) for v in row)
-            if len(mono) != desc.monomial_length or not desc.is_valid_monomial(mono):
-                raise ValueError(
-                    f"Invalid monomial {mono}: expected length {desc.monomial_length} "
-                    f"(6 vars + {desc.num_params} params) and total order within the "
-                    f"descriptor's order/param-order"
-                )
+        for row in arr.reshape(1, -1) if arr.ndim == 1 else arr:
+            self._checked_monomial(row)
         return self._series(coord).coefficient(monomials)
+
+    def coefficient_table(self, monomials: Sequence[Sequence[int]] | np.ndarray) -> np.ndarray:
+        """Read ``monomials`` off all six coordinate series, ``(6, len(monomials))``.
+
+        Validates each monomial once for the six series.
+        """
+        return self.coefficient_table_at_indices(
+            [self.descriptor.monomial_index(self._checked_monomial(row)) for row in monomials])
+
+    def coefficient_table_at_indices(self, indices: Sequence[int] | np.ndarray) -> np.ndarray:
+        """Read the coefficients at descriptor ``indices`` off all six series, ``(6, len(indices))``.
+
+        Unchecked, the indices must come from ``Descriptor.monomial_index``.
+        """
+        indices = [int(index) for index in indices]
+        return np.array([[madng_tpsa.lib.mad_tpsa_geti(series.ptr, index) for index in indices]
+                         for series in self.coords])
+
+    def _checked_monomial(self, monomial: Sequence[int] | np.ndarray) -> tuple[int, ...]:
+        """Raise ``ValueError`` where the C library would ``exit(1)``."""
+        desc = self.descriptor
+        mono = tuple(int(v) for v in np.asarray(monomial).reshape(-1))
+        if len(mono) != desc.monomial_length or not desc.is_valid_monomial(mono):
+            raise ValueError(
+                f"Invalid monomial {mono}: expected length {desc.monomial_length} "
+                f"(6 vars + {desc.num_params} params) and total order within the "
+                f"descriptor's order/param-order"
+            )
+        return mono
 
     def set_coefficient(
         self, coord: str | int, monomial: Sequence[int] | np.ndarray, value: float
@@ -322,15 +333,7 @@ class ParticlesTpsa:
         A malformed or beyond-order monomial raises ``ValueError`` rather than letting
         the C library ``exit(1)`` the interpreter (see ``is_valid_monomial``).
         """
-        desc = self.descriptor
-        mono = tuple(int(v) for v in np.asarray(monomial).reshape(-1))
-        if len(mono) != desc.monomial_length or not desc.is_valid_monomial(mono):
-            raise ValueError(
-                f"Invalid monomial {mono}: expected length {desc.monomial_length} "
-                f"(6 vars + {desc.num_params} params) and total order within the "
-                f"descriptor's order/param-order"
-            )
-        self._series(coord).set(mono, value)
+        self._series(coord).set(self._checked_monomial(monomial), value)
 
     def monomial_coeffs(
         self, coord: str | int | None = None, tol: float = 1e-14
