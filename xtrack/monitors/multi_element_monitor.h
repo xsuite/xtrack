@@ -44,6 +44,11 @@ void MultiElementMonitor_track_local_particle(MultiElementMonitorData el,
                 double const zeta = xt_float_or_tpsa_const_part(LocalParticle_get_zeta(part));
                 double const delta = xt_float_or_tpsa_const_part(LocalParticle_get_delta(part));
                 double const s = xt_float_or_tpsa_const_part(LocalParticle_get_s(part));
+                double const ax = xt_float_or_tpsa_const_part(LocalParticle_get_ax(part));
+                double const ay = xt_float_or_tpsa_const_part(LocalParticle_get_ay(part));
+                double const spin_x = xt_float_or_tpsa_const_part(LocalParticle_get_spin_x(part));
+                double const spin_y = xt_float_or_tpsa_const_part(LocalParticle_get_spin_y(part));
+                double const spin_z = xt_float_or_tpsa_const_part(LocalParticle_get_spin_z(part));
 
                 MultiElementMonitorData_set_data(
                     el, turn_index, particle_index, 0, store_at, x);
@@ -59,6 +64,16 @@ void MultiElementMonitor_track_local_particle(MultiElementMonitorData el,
                     el, turn_index, particle_index, 5, store_at, delta);
                 MultiElementMonitorData_set_data(
                     el, turn_index, particle_index, 6, store_at, s);
+                MultiElementMonitorData_set_data(
+                    el, turn_index, particle_index, 7, store_at, ax);
+                MultiElementMonitorData_set_data(
+                    el, turn_index, particle_index, 8, store_at, ay);
+                MultiElementMonitorData_set_data(
+                    el, turn_index, particle_index, 9, store_at, spin_x);
+                MultiElementMonitorData_set_data(
+                    el, turn_index, particle_index, 10, store_at, spin_y);
+                MultiElementMonitorData_set_data(
+                    el, turn_index, particle_index, 11, store_at, spin_z);
 
 #ifdef XTRACK_TPSA_TRACK
                 // `data` only holds the constant part, so the map is recorded on

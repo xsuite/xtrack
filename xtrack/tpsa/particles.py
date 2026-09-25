@@ -187,11 +187,16 @@ class ParticlesTpsa:
         p = self._ref_particle.copy()
         for c, v in zip(COORDS, self.const_part):
             setattr(p, c, [v])
+        if self._local_series is not None:
+            for c in _SPIN_COORDS:
+                setattr(p, c, [self._local_series[c].const_part])
         return p
 
     def __getattr__(self, name: str) -> madng_tpsa.Tpsa | float:
         if name in COORDS:
             return self.coords[COORDS.index(name)]
+        if name in _SPIN_COORDS and self._local_series is not None:
+            return self._local_series[name]
         if name in _REF_VARS:
             if self._xobject is not None:
                 return float(getattr(self._xobject, name))

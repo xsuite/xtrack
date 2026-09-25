@@ -40,22 +40,22 @@ void track_magnet_body_single_particle(
     const int8_t kick_rot_frame,
     const int8_t drift_model,
     const int8_t integrator,
-    const double k0_drift,
-    const double k1_drift,
-    const double ks_drift,
+    xt_float_or_tpsa_arg k0_drift,
+    xt_float_or_tpsa_arg k1_drift,
+    xt_float_or_tpsa_arg ks_drift,
     const double h_drift,
-    const double k0_kick,
-    const double k1_kick,
+    xt_float_or_tpsa_arg k0_kick,
+    xt_float_or_tpsa_arg k1_kick,
     const double h_kick,
     const double hxl,
-    const double k0_h_correction,
-    const double k1_h_correction,
-    const double k2,
-    const double k3,
-    const double k0s,
-    const double k1s,
-    const double k2s,
-    const double k3s,
+    xt_float_or_tpsa_arg k0_h_correction,
+    xt_float_or_tpsa_arg k1_h_correction,
+    xt_float_or_tpsa_arg k2,
+    xt_float_or_tpsa_arg k3,
+    xt_float_or_tpsa_arg k0s,
+    xt_float_or_tpsa_arg k1s,
+    xt_float_or_tpsa_arg k2s,
+    xt_float_or_tpsa_arg k3s,
     const double dks_ds,
     const double x0_solenoid,
     const double y0_solenoid,
@@ -83,34 +83,17 @@ void track_magnet_body_single_particle(
             x0_solenoid, y0_solenoid, drift_model\
         )
 
-    #if defined(XTRACK_TPSA_TRACK) || defined(XTRACK_MULTIPOLE_NO_SYNRAD)
-        #define WITH_RADIATION(ll, code)\
-        {\
-            code;\
-        }
-    #else
-        #define WITH_RADIATION(ll, code) \
-        { \
-            double const old_x = LocalParticle_get_x(part); \
-            double const old_y = LocalParticle_get_y(part); \
-            double const old_zeta = LocalParticle_get_zeta(part); \
-            double const old_kin_px = LocalParticle_get_px(part) - LocalParticle_get_ax(part);\
-            double const old_kin_py = LocalParticle_get_py(part) - LocalParticle_get_ay(part);\
-            code; \
-            if ((radiation_flag || spin_flag) && length > 0){ \
+    // Mean field over `code` and path length, for spin and radiation.
+    #define MAGNET_MEAN_FIELD(ll) \
                 double h_for_rad = h_kick + hxl / length; \
                 if (fabs(h_drift) > 0){ h_for_rad = h_drift; } \
-                double Bx_T, By_T, Bz_T; \
+                xt_float_or_tpsa Bx_T = 0., By_T = 0., Bz_T = 0.; \
                 double const p0c = LocalParticle_get_p0c(part); \
                 double const q0 = LocalParticle_get_q0(part); \
-                double const new_x = LocalParticle_get_x(part); \
-                double const new_y = LocalParticle_get_y(part); \
-                double const new_kin_px = LocalParticle_get_px(part) - LocalParticle_get_ax(part);\
-                double const new_kin_py = LocalParticle_get_py(part) - LocalParticle_get_ay(part);\
-                double const mean_x = 0.5 * (old_x + new_x); \
-                double const mean_y = 0.5 * (old_y + new_y); \
-                double const mean_kin_px = 0.5 * (old_kin_px + new_kin_px); \
-                double const mean_kin_py = 0.5 * (old_kin_py + new_kin_py); \
+                xt_float_or_tpsa const new_x = LocalParticle_get_x(part); \
+                xt_float_or_tpsa const new_y = LocalParticle_get_y(part); \
+                xt_float_or_tpsa const mean_x = 0.5 * (old_x + new_x); \
+                xt_float_or_tpsa const mean_y = 0.5 * (old_y + new_y); \
                 evaluate_field_from_strengths( \
                     p0c, \
                     q0, \
@@ -143,9 +126,9 @@ void track_magnet_body_single_particle(
                     &By_T, \
                     &Bz_T \
                 ); \
-                double const dzeta = LocalParticle_get_zeta(part) - old_zeta; \
-                double const rvv = LocalParticle_get_rvv(part); \
-                double l_path = rvv * (ll - dzeta); \
+                xt_float_or_tpsa const dzeta = LocalParticle_get_zeta(part) - old_zeta; \
+                xt_float_or_tpsa const rvv = LocalParticle_get_rvv(part); \
+                xt_float_or_tpsa const l_path = rvv * (ll - dzeta); \
                 if (spin_flag){ \
                     magnet_spin( \
                         part, \
@@ -155,7 +138,43 @@ void track_magnet_body_single_particle(
                         h_for_rad, \
                         ll, \
                         l_path); \
-                } \
+                }
+
+    #if defined(XTRACK_MULTIPOLE_NO_SYNRAD)
+        #define WITH_RADIATION(ll, code)\
+        {\
+            code;\
+        }
+    #elif defined(XTRACK_TPSA_TRACK)
+        // Spin only. Snapshots are TPSA copies, so skip them for a spinless map.
+        #define WITH_RADIATION(ll, code) \
+        { \
+            if (spin_flag && length > 0 && !spin_is_zero(part)){ \
+                xt_float_or_tpsa const old_x = LocalParticle_get_x(part); \
+                xt_float_or_tpsa const old_y = LocalParticle_get_y(part); \
+                xt_float_or_tpsa const old_zeta = LocalParticle_get_zeta(part); \
+                code; \
+                MAGNET_MEAN_FIELD(ll) \
+            } \
+            else { \
+                code; \
+            } \
+        }
+    #else
+        #define WITH_RADIATION(ll, code) \
+        { \
+            double const old_x = LocalParticle_get_x(part); \
+            double const old_y = LocalParticle_get_y(part); \
+            double const old_zeta = LocalParticle_get_zeta(part); \
+            double const old_kin_px = LocalParticle_get_px(part) - LocalParticle_get_ax(part);\
+            double const old_kin_py = LocalParticle_get_py(part) - LocalParticle_get_ay(part);\
+            code; \
+            if ((radiation_flag || spin_flag) && length > 0){ \
+                MAGNET_MEAN_FIELD(ll) \
+                double const new_kin_px = LocalParticle_get_px(part) - LocalParticle_get_ax(part);\
+                double const new_kin_py = LocalParticle_get_py(part) - LocalParticle_get_ay(part);\
+                double const mean_kin_px = 0.5 * (old_kin_px + new_kin_px); \
+                double const mean_kin_py = 0.5 * (old_kin_py + new_kin_py); \
                 if (radiation_flag){ \
                     double const B_perp_T = compute_b_perp_mod( \
                         mean_kin_px, \
@@ -178,13 +197,13 @@ void track_magnet_body_single_particle(
         }
     #endif
 
-    if (num_multipole_kicks == 0 && k0_kick == 0 && k1_kick == 0 && h_kick == 0) { //only drift
+    if (num_multipole_kicks == 0 && xt_float_or_tpsa_const_part(k0_kick) == 0
+            && xt_float_or_tpsa_const_part(k1_kick) == 0 && h_kick == 0) { //only drift
         WITH_RADIATION(length,
             MAGNET_DRIFT(part, length);
         )
     }
     else{
-
         INTEGRATION_CODE[[
           INTEGRATOR=integrator,
           DRIFT_FUNCTION=MAGNET_DRIFT,
@@ -194,12 +213,12 @@ void track_magnet_body_single_particle(
           LENGTH=length,
           NUM_KICKS=num_multipole_kicks
         ]]
-
     }
 
     #undef MAGNET_KICK
     #undef MAGNET_DRIFT
     #undef WITH_RADIATION
+    #undef MAGNET_MEAN_FIELD
 
 }
 
@@ -229,15 +248,15 @@ void track_magnet_particles(
     double delta_taper,
     double h,
     double hxl,
-    double k0,
-    double k1,
-    double k2,
-    double k3,
-    double k0s,
-    double k1s,
-    double k2s,
-    double k3s,
-    double ks,
+    xt_float_or_tpsa k0,
+    xt_float_or_tpsa k1,
+    xt_float_or_tpsa k2,
+    xt_float_or_tpsa k3,
+    xt_float_or_tpsa k0s,
+    xt_float_or_tpsa k1s,
+    xt_float_or_tpsa k2s,
+    xt_float_or_tpsa k3s,
+    xt_float_or_tpsa ks,
     double dks_ds,
     double x0_solenoid,
     double y0_solenoid,
@@ -367,12 +386,16 @@ void track_magnet_particles(
     #endif
 
     // Tapering
+#ifndef XTRACK_TPSA_TRACK
+    // delta_taper is a double param, get_delta is xt_float_or_tpsa. Tapering is a radiation-
+    // adjacent double feature, so it is disabled for the TPSA flavor.
     if (LocalParticle_check_track_flag(part0, XS_FLAG_SR_TAPER)){
         part0->ipart = 0;
         delta_taper = LocalParticle_get_delta(part0); // I can use part0 because
                                                       // there is only one particle
                                                       // when doing the tapering
     }
+#endif
 
     #ifndef XTRACK_MULTIPOLE_NO_SYNRAD
         if (radiation_flag){
@@ -402,8 +425,10 @@ void track_magnet_particles(
             END_PER_PARTICLE_BLOCK;
         }
 
-        double knorm[] = {k0, k1, k2, k3};
-        double kskew[] = {k0s, k1s, k2s, k3s};
+        double knorm[] = {xt_float_or_tpsa_const_part(k0), xt_float_or_tpsa_const_part(k1),
+                          xt_float_or_tpsa_const_part(k2), xt_float_or_tpsa_const_part(k3)};
+        double kskew[] = {xt_float_or_tpsa_const_part(k0s), xt_float_or_tpsa_const_part(k1s),
+                          xt_float_or_tpsa_const_part(k2s), xt_float_or_tpsa_const_part(k3s)};
 
         track_magnet_edge_particles(
             part0,
@@ -421,7 +446,7 @@ void track_magnet_particles(
             ksl_rel,
             factor_knl_ksl_edge * xt_float_or_tpsa_const_part(rel_ref_strength),
             order_rel,
-            ks,
+            xt_float_or_tpsa_const_part(ks),
             x0_solenoid,
             y0_solenoid,
             length,
@@ -468,9 +493,11 @@ void track_magnet_particles(
             }
         }
 
-        double k0_drift=0, k1_drift=0, h_drift=0, ks_drift=0;
-        double k0_kick=0, k1_kick=0, h_kick=0;
-        double k0_h_correction=0, k1_h_correction=0;
+        xt_float_or_tpsa k0_drift=0., k1_drift=0., ks_drift=0.;
+        double h_drift=0;
+        xt_float_or_tpsa k0_kick=0., k1_kick=0.;
+        double h_kick=0;
+        xt_float_or_tpsa k0_h_correction=0., k1_h_correction=0.;
         int8_t kick_rot_frame=0;
         int8_t drift_model=0;
         configure_tracking_model(
@@ -525,8 +552,10 @@ void track_magnet_particles(
     }
 
     if (edge_exit_active){
-        double knorm[] = {k0, k1, k2, k3};
-        double kskew[] = {k0s, k1s, k2s, k3s};
+        double knorm[] = {xt_float_or_tpsa_const_part(k0), xt_float_or_tpsa_const_part(k1),
+                          xt_float_or_tpsa_const_part(k2), xt_float_or_tpsa_const_part(k3)};
+        double kskew[] = {xt_float_or_tpsa_const_part(k0s), xt_float_or_tpsa_const_part(k1s),
+                          xt_float_or_tpsa_const_part(k2s), xt_float_or_tpsa_const_part(k3s)};
 
         track_magnet_edge_particles(
             part0,
@@ -544,7 +573,7 @@ void track_magnet_particles(
             ksl_rel,
             factor_knl_ksl_edge * xt_float_or_tpsa_const_part(rel_ref_strength),
             order_rel,
-            ks,
+            xt_float_or_tpsa_const_part(ks),
             x0_solenoid,
             y0_solenoid,
             length,
