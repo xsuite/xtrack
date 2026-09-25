@@ -2,10 +2,9 @@ import pathlib
 
 import numpy as np
 import pytest
-
 import xobjects as xo
-import xtrack as xt
 
+import xtrack as xt
 
 test_data_folder = pathlib.Path(
         __file__).parent.joinpath('../test_data').absolute()
@@ -18,13 +17,20 @@ def test_bend_kick_bend_noise_10000_vs_1_slice():
     x_test = 1e-4
 
     env = xt.Environment()
-    line = env.new_line(components=[
-        env.new(
-            'b', 'Bend', length=length, angle=angle, knl=knl,
-            model='bend-kick-bend', integrator='yoshida4',
-            num_multipole_kicks=1,
-        )
-    ])
+    line = env.new_line(
+        components=[
+            env.new(
+                'b',
+                'Bend',
+                length=length,
+                angle=angle,
+                knl=knl,
+                model='bend-kick-bend',
+                integrator='yoshida-6',
+                num_multipole_kicks=1,
+            )
+        ]
+    )
     line.set_particle_ref('positron', energy0=1e9)
 
     line.configure_bend_model(
@@ -55,13 +61,20 @@ def test_one_bend_rot_kick_rot_models_converged_at_expected_num_slices(
     x_test = 1e-4
 
     env = xt.Environment()
-    line = env.new_line(components=[
-        env.new(
-            'b', 'Bend', length=length, angle=angle, knl=knl,
-            model=model, integrator='yoshida4',
-            num_multipole_kicks=1,
-        )
-    ])
+    line = env.new_line(
+        components=[
+            env.new(
+                'b',
+                'Bend',
+                length=length,
+                angle=angle,
+                knl=knl,
+                model=model,
+                integrator='yoshida-6',
+                num_multipole_kicks=1,
+            )
+        ]
+    )
     line.set_particle_ref('positron', energy0=1e9)
 
     line.configure_bend_model(
@@ -108,13 +121,20 @@ def test_one_bend_on_zero_orbit_is_zero(model):
     knl = [0, 0, 2.]
 
     env = xt.Environment()
-    line = env.new_line(components=[
-        env.new(
-            'b', 'Bend', length=length, angle=angle, knl=knl,
-            model=model, integrator='yoshida4',
-            num_multipole_kicks=1,
-        )
-    ])
+    line = env.new_line(
+        components=[
+            env.new(
+                'b',
+                'Bend',
+                length=length,
+                angle=angle,
+                knl=knl,
+                model=model,
+                integrator='yoshida-6',
+                num_multipole_kicks=1,
+            )
+        ]
+    )
     line.set_particle_ref('positron', energy0=1e9)
 
     line.configure_bend_model(

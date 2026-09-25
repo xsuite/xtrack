@@ -10,6 +10,7 @@
 #include "xtrack/beam_elements/elements_src/track_magnet_drift.h"
 #include "xtrack/beam_elements/elements_src/track_magnet_edge.h"
 #include "xtrack/beam_elements/elements_src/track_magnet_configure.h"
+#include "xtrack/beam_elements/elements_src/integrator.h"
 
 #ifndef XTRACK_MULTIPOLE_NO_SYNRAD
 #include "xtrack/beam_elements/elements_src/track_magnet_radiation.h"
@@ -186,96 +187,10 @@ void track_magnet_body_single_particle(
     }
     else{
 
-
-    // START GENERATED INTEGRATION CODE
-
-    if (integrator == 1){ // TEAPOT
-
-        WITH_RADIATION(length,
-            const double kick_weight = 1. / num_multipole_kicks;
-            double edge_drift_weight = 0.5;
-            double inside_drift_weight = 0;
-            if (num_multipole_kicks > 1) {
-                edge_drift_weight = 1. / (2 * (1 + num_multipole_kicks));
-                inside_drift_weight = (
-                    ((double) num_multipole_kicks)
-                        / ((double)(num_multipole_kicks*num_multipole_kicks) - 1));
-            }
-
-            MAGNET_DRIFT(part, edge_drift_weight*length);
-            for (int i_kick=0; i_kick<num_multipole_kicks - 1; i_kick++) {
-                MAGNET_KICK(part, kick_weight);
-                MAGNET_DRIFT(part, inside_drift_weight*length);
-            }
-            MAGNET_KICK(part, kick_weight);
-            MAGNET_DRIFT(part, edge_drift_weight*length);
-        )
-
-    }
-    else if (integrator==3){ // uniform
-
-        const double kick_weight = 1. / num_multipole_kicks;
-        const double drift_weight = kick_weight;
-
-        for (int i_kick=0; i_kick<num_multipole_kicks; i_kick++) {
-            WITH_RADIATION(drift_weight*length,
-                MAGNET_DRIFT(part, 0.5*drift_weight*length);
-                MAGNET_KICK(part, kick_weight);
-                MAGNET_DRIFT(part, 0.5*drift_weight*length);
-            )
-        }
-
-    }
-    else if (integrator==2){ // YOSHIDA 4
-
-        const int64_t n_kicks_yoshida = 7;
-        const int64_t num_slices = (num_multipole_kicks / n_kicks_yoshida
-                                + (num_multipole_kicks % n_kicks_yoshida != 0));
-
-        const double slice_length = length / (num_slices);
-        const double kick_weight = 1. / num_slices;
-        const double d_yoshida[] =
-                     // From MAD-NG
-                     {3.922568052387799819591407413100e-01,
-                      5.100434119184584780271052295575e-01,
-                      -4.710533854097565531482416645304e-01,
-                      6.875316825251809316199569366290e-02};
-                    //  {0x1.91abc4988937bp-2, 0x1.052468fb75c74p-1, // same in hex
-                    //  -0x1.e25bd194051b9p-2, 0x1.199cec1241558p-4 };
-                    //  {1/8.0, 1/8.0, 1/8.0, 1/8.0}; // Uniform, for debugging
-        const double k_yoshida[] =
-                     // From MAD-NG
-                     {7.845136104775599639182814826199e-01,
-                      2.355732133593569921359289764951e-01,
-                      -1.177679984178870098432412305556e+00,
-                      1.315186320683906284756403692882e+00};
-                    //  {0x1.91abc4988937bp-1, 0x1.e2743579895b4p-3, // same in hex
-                    //  -0x1.2d7c6f7933b93p+0, 0x1.50b00cfb7be3ep+0 };
-                    //  {1/7.0, 1/7.0, 1/7.0, 1/7.0}; // Uniform, for debugging
-
-            for (int ii = 0; ii < num_slices; ii++) {
-                WITH_RADIATION(slice_length,
-                    MAGNET_DRIFT(part, slice_length * d_yoshida[0]);
-                    MAGNET_KICK(part, kick_weight * k_yoshida[0]);
-                    MAGNET_DRIFT(part, slice_length * d_yoshida[1]);
-                    MAGNET_KICK(part, kick_weight * k_yoshida[1]);
-                    MAGNET_DRIFT(part, slice_length * d_yoshida[2]);
-                    MAGNET_KICK(part, kick_weight * k_yoshida[2]);
-                    MAGNET_DRIFT(part, slice_length * d_yoshida[3]);
-                    MAGNET_KICK(part, kick_weight * k_yoshida[3]);
-                    MAGNET_DRIFT(part, slice_length * d_yoshida[3]);
-                    MAGNET_KICK(part, kick_weight * k_yoshida[2]);
-                    MAGNET_DRIFT(part, slice_length * d_yoshida[2]);
-                    MAGNET_KICK(part, kick_weight * k_yoshida[1]);
-                    MAGNET_DRIFT(part, slice_length * d_yoshida[1]);
-                    MAGNET_KICK(part, kick_weight * k_yoshida[0]);
-                    MAGNET_DRIFT(part, slice_length * d_yoshida[0]);
-                ) // WITH_RADIATION
-            }
-    } // integrator if
-
-    // END GENERATED INTEGRATION CODE
-
+        RUN_INTEGRATOR(
+            integrator, length, num_multipole_kicks, part,
+            MAGNET_DRIFT, MAGNET_KICK, WITH_RADIATION
+        );
 
     }
 

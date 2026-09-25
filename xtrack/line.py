@@ -9,7 +9,7 @@ from collections import defaultdict
 from collections.abc import Iterable
 from contextlib import contextmanager
 from pprint import pformat
-from typing import Dict, List, Literal, Optional, Container
+from typing import Container, Dict, List, Literal, Optional
 from warnings import warn
 
 import numpy as np
@@ -20,17 +20,20 @@ from xdeps.refs import is_ref
 
 import xtrack as xt
 from xtrack.aperture_meas import measure_aperture
-from xtrack.twiss import (DEFAULT_MATRIX_RESPONSIVENESS_TOL,
-                          DEFAULT_MATRIX_STABILITY_TOL,
-                          get_R_matrix,
-                          get_T_matrix_line, find_closed_orbit_line,
-                          get_non_linear_chromaticity, twiss_line)
+from xtrack.twiss import (
+    DEFAULT_MATRIX_RESPONSIVENESS_TOL,
+    DEFAULT_MATRIX_STABILITY_TOL,
+    find_closed_orbit_line,
+    get_non_linear_chromaticity,
+    get_R_matrix,
+    get_T_matrix_line,
+    twiss_line,
+)
 
-from .api_categorization import GroupedAPICollector, doc_group, property_with_doc_group
 from . import beam_elements
 from . import json as json_utils
-from .beam_elements import (BeamElement, Drift, Marker, Multipole,
-                            element_classes)
+from .api_categorization import GroupedAPICollector, doc_group, property_with_doc_group
+from .beam_elements import BeamElement, Drift, Marker, Multipole, element_classes
 from .beam_elements._common import (
     _EDGE_MODEL_TO_INDEX,
     _MODEL_TO_INDEX_CURVED,
@@ -45,15 +48,22 @@ from .composer.composer import (
 from .composer.ordering import _sort_places
 from .composer.resolve_positions import _resolve_s_positions
 from .footprint import Footprint, _footprint_with_linear_rescale
-from .general import _print, DEPRECATION_INFO_PREP_1_0
-from .internal_record import (start_internal_logging_for_elements_of_type,
-                              stop_internal_logging,
-                              stop_internal_logging_for_elements_of_type)
+from .general import DEPRECATION_INFO_PREP_1_0, _print
+from .internal_record import (
+    start_internal_logging_for_elements_of_type,
+    stop_internal_logging,
+    stop_internal_logging_for_elements_of_type,
+)
 from .mad_loader import MadLoader
 from .mad_writer import to_madx_sequence
-from .madng_interface import (_survey_ng, _tw_ng, build_madng_model,
-                              discard_madng_model, line_to_madng,
-                              regen_madng_model)
+from .madng_interface import (
+    _survey_ng,
+    _tw_ng,
+    build_madng_model,
+    discard_madng_model,
+    line_to_madng,
+    regen_madng_model,
+)
 from .match import Action, closed_orbit_correction, match_knob_line, match_line
 from .progress_indicator import progress
 from .slicing import Custom, Slicer, Strategy
@@ -4614,7 +4624,7 @@ class Line:
             Number of multipole kicks to consider.
         integrator: str
             Integration scheme to be used. Can be 'adaptive', 'teapot',
-            'yoshida4', or 'uniform'.
+            'yoshida-4', 'yoshida-6', 'yoshida-8', or 'uniform'.
         """
 
         self._method_incompatible_with_compose()
@@ -4660,7 +4670,7 @@ class Line:
             Number of multipole kicks to consider.
         integrator: str
             Integration scheme to be used. Can be 'adaptive', 'teapot',
-            'yoshida4', or 'uniform'.
+            'yoshida-4', 'yoshida-6', 'yoshida-8', or 'uniform'.
         """
 
         self._method_incompatible_with_compose()

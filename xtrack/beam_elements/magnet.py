@@ -3,19 +3,21 @@
 # Copyright (c) CERN, 2025.                 #
 # ######################################### #
 
-from ..base_element import BeamElement
 import xobjects as xo
+
+from ..base_element import BeamElement
 from ..random import (
     RandomExponential,
     RandomUniformAccurate,
 )
 from ._common import (
+    _EDGE_MODEL_TO_INDEX,
+    _INDEX_TO_EDGE_MODEL,
     SynchrotronRadiationRecord,
     _BendCommon,
-    _EDGE_MODEL_TO_INDEX,
     _HasKnlKsl,
-    _INDEX_TO_EDGE_MODEL,
 )
+
 
 class Magnet(_BendCommon, BeamElement):
     """General transverse field magnet with curvature and fringe fields.
@@ -25,7 +27,7 @@ class Magnet(_BendCommon, BeamElement):
     parameters can be used to specify the integration scheme and drift model to
     be used in the kick-splitting scheme. Default value is ``adaptive`` for
     both, which aims to provide best results in the general case (``rot-kick-rot``
-    using the polar/exact, drift depending on h, for the model, and ``yoshida4``
+    using the polar/exact drift depending on h for the model, and ``yoshida-6``
     for the integration scheme).
 
     Parameters
@@ -87,11 +89,14 @@ class Magnet(_BendCommon, BeamElement):
     integrator : str, optional
         Integration scheme to be used. The options are:
 
-            - ``adaptive``: default option, same as ``yoshida4``.
+            - ``adaptive``: default option, same as ``yoshida-6``.
             - ``teapot``: use the Teapot integration scheme.
-            - ``yoshida4``: use the Yoshida 4 integration scheme. The number of
-                kicks will be implicitly rounded up to the nearest multiple of 7,
-                as required by the scheme.
+            - ``yoshida-4``, ``yoshida-6``, ``yoshida-8``: use the
+                corresponding even-order Yoshida scheme. The number of kicks is
+                rounded up to a complete 3, 7, or 15-kick slice. Selecting
+                ``yoshida4`` warns because older xtrack versions mislabeled the
+                sixth-order scheme with this name; use ``yoshida-6`` to retain
+                that historical accuracy.
             - ``uniform``: slice uniformly.
 
         The integration scheme setting will be ignored if the length is zero, or
