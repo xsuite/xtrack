@@ -95,12 +95,7 @@ def get_linear_normal_form(M, symplectify=False, only_4d_block=False,
     '''
 
     if only_4d_block:
-        M = M.copy()
-        M[4:, :] = 0
-        M[:, 4:] = 0
-        muz_dummy = np.pi/10
-        M[4:, 4:] = np.array([[np.cos(muz_dummy), np.sin(muz_dummy)],
-                              [-np.sin(muz_dummy), np.cos(muz_dummy)]])
+        M = _with_dummy_longitudinal_block(M)
 
     if responsiveness_tol is not None:
         _assert_matrix_responsiveness(M, responsiveness_tol)
@@ -157,39 +152,73 @@ def compute_linear_normal_form(*args, **kwargs):
     return get_linear_normal_form(*args, **kwargs)
 
 
+def _with_dummy_longitudinal_block(M):
+    """Copy of M with the longitudinal plane replaced by a decoupled rotation."""
+    M = M.copy()
+    M[4:, :] = 0
+    M[:, 4:] = 0
+    muz_dummy = np.pi/10
+    M[4:, 4:] = np.array([[np.cos(muz_dummy), np.sin(muz_dummy)],
+                          [-np.sin(muz_dummy), np.cos(muz_dummy)]])
+    return M
+
+
 def _build_w_matrix_from_eigenvectors(v0, modes, only_4d_block=False):
     """
     Build a real normalized W matrix from sorted complex eigenvectors.
     """
+    W, _ = _build_w_matrix_and_derivative_from_eigenvectors(
+        v0, np.zeros_like(v0), modes, only_4d_block=only_4d_block)
+    return W
+
+
+def _build_w_matrix_and_derivative_from_eigenvectors(
+        v0, dv0, modes, only_4d_block=False):
+    """
+    Build W and its derivative along a perturbation, given the eigenvector derivative dv0.
+
+    W does not depend on the complex scale of an eigenvector, so neither does dW.
+    """
     v0 = v0.copy()
+    dv0 = dv0.copy()
 
     ##################################################
     #### Rotate eigenvectors to the Courant-Snyder parameterization ####
     for mode, row in zip(modes, (0, 2, 4)):
         phase = np.log(v0[row, mode]).imag
+        dphase = (dv0[row, mode] / v0[row, mode]).imag
+        dv0[:, mode] = (dv0[:, mode] - 1.j * dphase * v0[:, mode]) * np.exp(-1.j * phase)
         v0[:, mode] *= np.exp(-1.j * phase)
 
     ##################################################
     #### Construct W #################################
 
     columns = []
+    dcolumns = []
     for ii, mode in enumerate(modes):
         avec = v0[:, mode].real
         bvec = v0[:, mode].imag
+        davec = dv0[:, mode].real
+        dbvec = dv0[:, mode].imag
         n_inv_sq = np.matmul(np.matmul(avec, S), bvec)
+        dn_inv_sq = (np.matmul(np.matmul(davec, S), bvec)
+                     + np.matmul(np.matmul(avec, S), dbvec))
 
         if only_4d_block and ii == 2:
             n_inv_sq = 1.0 # Just to avoid errors
+            dn_inv_sq = 0.0
 
         if not n_inv_sq > 0:
             raise ValueError(f'Invalid n{ii + 1}')
 
         norm = 1. / np.sqrt(n_inv_sq)
+        dnorm = -0.5 * dn_inv_sq / n_inv_sq**1.5
         columns.extend([avec * norm, bvec * norm])
+        dcolumns.extend([davec * norm + avec * dnorm, dbvec * norm + bvec * dnorm])
 
     W = np.array(columns).T
     W[abs(W) < 1.e-14] = 0. # Set very small numbers to zero.
-    return W
+    return W, np.array(dcolumns).T
 
 
 def _assert_matrix_responsiveness(M,

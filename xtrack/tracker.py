@@ -289,8 +289,17 @@ class Tracker:
                 "Please rebuild the tracker, for example using `line.build_tracker(...)`.")
 
     def _track(self, particles, *args, **kwargs):
+        tpsa_track = isinstance(particles, ParticlesTpsa)
         original_tpsa_track = self.config.XTRACK_TPSA_TRACK
-        self.config.XTRACK_TPSA_TRACK = isinstance(particles, ParticlesTpsa)
+        no_synrad = self.config.get("XTRACK_MULTIPOLE_NO_SYNRAD", False)
+        if (tpsa_track and not no_synrad
+                and np.any(self.line.attr["radiation_flag"])):
+            raise NotImplementedError(
+                "TPSA tracking does not support synchrotron radiation. "
+                "Use line.configure_radiation(model=None)."
+            )
+        # Radiation is never compiled for TPSA, so the synrad flag only gates spin there.
+        self.config.XTRACK_TPSA_TRACK = tpsa_track
         try:
             return self._track_with_current_config(particles, *args, **kwargs)
         finally:
@@ -456,11 +465,6 @@ class Tracker:
             raise NotImplementedError("progress tracking is not implemented for TPSA tracking")
         if turn_by_turn_monitor not in (None, False):
             raise NotImplementedError("TPSA turn-by-turn monitors are not implemented yet")
-        if self.line.config.data.get("XTRACK_MULTIPOLE_NO_SYNRAD", False) is not True:
-            raise NotImplementedError(
-                "TPSA tracking does not support synchrotron radiation. "
-                "Set line.config.XTRACK_MULTIPOLE_NO_SYNRAD = True."
-            )
 
         if isinstance(ele_start, str):
             ele_start = self.line.element_names.index(ele_start)
@@ -1799,17 +1803,25 @@ class Tracker:
         tt = self._tracker_data_base._line_table # reuse cached table
         if (isinstance(multi_element_monitor_at, str)
             and multi_element_monitor_at == '_all_'):
-            multi_element_monitor_at = tt.name[:-1] # exclude _end_point
+            multi_element_monitor_at = np.arange(len(tt) - 1) # exclude _end_point
         if not isinstance(self._context, xo.ContextCpu):
             raise NotImplementedError(
                 'Multi-element monitor is only supported on CPU trackers for now.')
         assert isinstance(multi_element_monitor_at, (list, tuple, np.ndarray)), \
-            '`multi_element_monitor_at` must be a list, tuple or array of element names'
-        indeces_obs = tt.rows.indices[multi_element_monitor_at]
-        if len(indeces_obs) != len(multi_element_monitor_at):
-            missing = set(multi_element_monitor_at) - set(
-                tt.rows.names[indeces_obs])
-            raise ValueError(f'Elements not found in line: {missing}')
+            '`multi_element_monitor_at` must be a list, tuple or array of element ' \
+            'names or indices'
+        indeces_obs = np.asarray(multi_element_monitor_at)
+        if indeces_obs.dtype.kind in 'iu':
+            # Element indices, the cheap path: the name lookup below is one Python
+            # call per name, which on a whole ring costs as much as a TPSA track.
+            if indeces_obs.min() < 0 or indeces_obs.max() >= len(tt) - 1:
+                raise ValueError('Element indices out of range')
+        else:
+            indeces_obs = tt.rows.indices[multi_element_monitor_at]
+            if len(indeces_obs) != len(multi_element_monitor_at):
+                missing = set(multi_element_monitor_at) - set(
+                    tt.rows.names[indeces_obs])
+                raise ValueError(f'Elements not found in line: {missing}')
 
         at_element_mapping = np.zeros(len(tt), dtype=np.int64)
         at_element_mapping[:] = -1
@@ -1843,9 +1855,7 @@ class Tracker:
         else:
             part_id_start, part_id_end = 0, 1  # a map is a single particle
         num_particles = part_id_end - part_id_start
-        num_cooordinates = 7 # hardcoded for now (C code of the monitor
-                             # needs to be extended if different number
-                             # of coordinates is needed)
+        num_cooordinates = len(xt.MultiElementMonitor._coord_name_to_index)
         num_elements = len(obs_names)
         num_turns = num_turns if num_turns is not None else 1
 

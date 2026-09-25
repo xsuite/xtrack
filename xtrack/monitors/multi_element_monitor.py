@@ -34,6 +34,8 @@ def _parse_monomials(monomials: MonomialRequest,
     # list of (coord, monomial, coefficient_index) tuples
     recordings = []
     seen = set()
+    monomial_length = descriptor.monomial_length
+    coefficient_indices = {}   # the same monomial is usually requested for all six coords
     for coord, coord_monomials in requested:
         if coord not in COORDS:
             raise ValueError(
@@ -41,23 +43,23 @@ def _parse_monomials(monomials: MonomialRequest,
                 f'of {list(COORDS)}')
         rows = np.asarray(coord_monomials)
         rows = rows.reshape(1, -1) if rows.ndim == 1 else rows
-        for row in rows:
-            monomial = tuple(int(order) for order in row)
-            if len(monomial) != descriptor.monomial_length:
-                raise ValueError(
-                    f'Invalid monomial {monomial}: expected length '
-                    f'{descriptor.monomial_length} (6 vars + '
-                    f'{descriptor.num_params} params)')
-            if not descriptor.is_valid_monomial(monomial):
-                raise ValueError(
-                    f'Invalid monomial {monomial}: beyond the order or the '
-                    f'parameter order of the descriptor')
+        for monomial in map(tuple, rows.tolist()):
+            if monomial not in coefficient_indices:
+                if len(monomial) != monomial_length:
+                    raise ValueError(
+                        f'Invalid monomial {monomial}: expected length '
+                        f'{monomial_length} (6 vars + '
+                        f'{descriptor.num_params} params)')
+                if not descriptor.is_valid_monomial(monomial):
+                    raise ValueError(
+                        f'Invalid monomial {monomial}: beyond the order or the '
+                        f'parameter order of the descriptor')
+                coefficient_indices[monomial] = descriptor.monomial_index(monomial)
             if (coord, monomial) in seen:
                 raise ValueError(
                     f'Monomial {monomial} requested twice for {coord!r}')
             seen.add((coord, monomial))
-            recordings.append(
-                (coord, monomial, descriptor.monomial_index(monomial)))
+            recordings.append((coord, monomial, coefficient_indices[monomial]))
     if not recordings:
         raise ValueError('No monomials to record')
     return recordings
@@ -90,7 +92,8 @@ class MultiElementMonitor(xt.BeamElement):
     ]
 
     _coord_name_to_index = {'x': 0, 'px': 1, 'y': 2, 'py': 3,
-                            'zeta': 4, 'delta': 5, 's': 6}
+                            'zeta': 4, 'delta': 5, 's': 6, 'ax': 7, 'ay': 8,
+                            'spin_x': 9, 'spin_y': 10, 'spin_z': 11}
 
     def __init__(self, start_at_turn, stop_at_turn,
                  part_id_start, part_id_end,
@@ -113,6 +116,9 @@ class MultiElementMonitor(xt.BeamElement):
         recordings = ([] if monomials is None
                       else _parse_monomials(monomials, descriptor))
         num_turns = stop_at_turn - start_at_turn
+        monomial_indices = np.array([index for _, _, index in recordings], dtype=np.int64)
+        coord_indices = np.array([self._coord_name_to_index[coord]
+                                  for coord, _, _ in recordings], dtype=np.int64)
         super().__init__(start_at_turn=start_at_turn,
                          stop_at_turn=stop_at_turn,
                          part_id_start=part_id_start,
@@ -120,8 +126,8 @@ class MultiElementMonitor(xt.BeamElement):
                          at_element_mapping=at_element_mapping,
                          data=data,
                          tpsa_addresses=tpsa_addresses,
-                         monomial_indices=len(recordings),
-                         coord_indices=len(recordings),
+                         monomial_indices=monomial_indices,
+                         coord_indices=coord_indices,
                          coefficients=(num_turns, len(obs_names), len(recordings)),
                          **kwargs)
         self.obs_names = obs_names
@@ -134,11 +140,12 @@ class MultiElementMonitor(xt.BeamElement):
         # `(coord, monomial)` per slot, and the reverse lookup
         self.recorded_monomials = None if monomials is None else [
             (coord, monomial) for coord, monomial, _ in recordings]
-        self._slot_index = {}
-        for slot, (coord, monomial, coefficient_index) in enumerate(recordings):
-            self.monomial_indices[slot] = coefficient_index
-            self.coord_indices[slot] = self._coord_name_to_index[coord]
-            self._slot_index[coord, monomial] = slot
+        self._slot_index = {(coord, monomial): slot
+                            for slot, (coord, monomial, _) in enumerate(recordings)}
+        # a list request is recorded for all six coords, see `coefficients_by_coord`
+        self._num_monomials_per_coord = (
+            None if monomials is None or isinstance(monomials, dict)
+            else len(recordings) // len(COORDS))
 
     def __len__(self):
         return len(self.obs_names)
@@ -181,6 +188,24 @@ class MultiElementMonitor(xt.BeamElement):
         turn_index = slice(None) if turn is None else self._turn_index(turn)
         obs_index = slice(None) if obs_name is None else self._obs_index(obs_name)
         return np.asarray(self.coefficients)[turn_index, obs_index, slot]
+
+    def coefficients_by_coord(self, turn: int):
+        """Recorded coefficients as `(locations, 6, monomials)`, the monomials in request order.
+
+        A view, no lookups. Needs the monomials requested as a list, which records them for
+        all six coordinates.
+        """
+        return np.asarray(self.coefficients)[self._turn_index(turn)].reshape(
+            len(self.obs_names), len(COORDS), self._list_request_length())
+
+    def coefficient_indices_by_monomial(self):
+        """Descriptor index of each requested monomial, in request order, for `mad_tpsa_geti`."""
+        return np.asarray(self.monomial_indices)[:self._list_request_length()]
+
+    def _list_request_length(self):
+        if self._num_monomials_per_coord is None:
+            raise ValueError('needs the monomials requested as a list, for all six coordinates')
+        return self._num_monomials_per_coord
 
     def _recorded_maps(self, turn=None):
         if self._map_series is None:

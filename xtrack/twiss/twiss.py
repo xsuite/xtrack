@@ -61,6 +61,8 @@ def twiss_line(line, particle_ref=None, method=None,
         compute_R_element_by_element=None,
         compute_lattice_functions=None,
         chrom=None,
+        tpsa=None,
+        knobs=None,
         coupling_edw_teng=False,
         init_at=None,
         x=None, px=None, y=None, py=None, zeta=None, delta=None,
@@ -172,6 +174,11 @@ def twiss_line(line, particle_ref=None, method=None,
         If True, compute chromatic properties. Default is None, which means
         chromatic properties are computed only for the periodic solution, but
         not for open twiss.
+    tpsa : bool, optional
+        If True, the twiss derivatives are computed using TPSA. Default is False,
+        which means that finite differences are used.
+    knobs : list of str, optional
+        Line variables to differentiate the table against. Requires ``tpsa=True``.
     radiation_analysis : bool, optional
         If True, the energy loss, radiation damping constants, and equilibrium
         emittances are computed. Default is False.
@@ -447,6 +454,9 @@ def twiss_line(line, particle_ref=None, method=None,
 
         elif route == 'periodic_one_turn_custom_start':
             # Compute a full periodic table, then rotate it to the requested start.
+            if twiss_config['knobs']:
+                raise NotImplementedError(
+                    '``knobs`` with a periodic twiss needs the line start as start')
             requested_start = twiss_config['start']
             one_turn_kwargs = twiss_config.copy()
             one_turn_kwargs['start'] = None
@@ -597,7 +607,8 @@ def _compute_base_twiss(twiss_config):
         keep_tracking_data=twiss_config['_keep_tracking_data'],
         keep_initial_particles=twiss_config['_keep_initial_particles'],
         initial_particles=twiss_config['_initial_particles'],
-        ebe_monitor=twiss_config['_ebe_monitor'])
+        ebe_monitor=twiss_config['_ebe_monitor'],
+        backend=twiss_config['_twiss_backend'])
 
     if (twiss_config['periodic']
             and not twiss_config['skip_global_quantities']
@@ -606,6 +617,7 @@ def _compute_base_twiss(twiss_config):
             twiss_config, twiss_res)
 
     twpc._add_chromatic_functions_to_twiss_result(twiss_config, twiss_res)
+    twpc._add_knob_derivatives_to_twiss_result(twiss_config, twiss_res)
     twpc._add_radiation_analysis_to_twiss_result(twiss_config, twiss_res)
     twpc._apply_4d_longitudinal_result_convention(twiss_config, twiss_res)
     twiss_res = twpc._set_twiss_result_values_at(twiss_config, twiss_res)

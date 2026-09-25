@@ -223,7 +223,6 @@ void track_rf_body_single_particle(
             code;\
         }
 
-
     // START GENERATED INTEGRATION CODE
 
     if (integrator == 1){ // TEAPOT
@@ -312,8 +311,6 @@ void track_rf_body_single_particle(
     } // integrator if
 
     // END GENERATED INTEGRATION CODE
-
-
 
     #undef RF_KICK
     #undef RF_DRIFT

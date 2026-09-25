@@ -668,6 +668,7 @@ def _compute_periodic_twiss_init(twiss_config):
     periodic_init_kwargs.update(
         start=periodic_start,
         end=periodic_end,
+        backend=twiss_config['_twiss_backend'],
     )
     assert not twiss_config['_initial_particles']
     periodic_init_kwargs['steps_R_matrix'] = (

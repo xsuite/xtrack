@@ -6,20 +6,22 @@
 #define XTRACK_TRACK_MAGNET_RADIATION_H
 
 #include "xtrack/headers/track.h"
+#ifndef XTRACK_TPSA_TRACK
 #include "xtrack/headers/synrad_spectrum.h"
+#endif
 
 GPUFUN
 void direction_of_motion(
-    double const px,
-    double const py,
-    double const delta,
-    double* iv_x,
-    double* iv_y,
-    double* iv_s){
+    xt_float_or_tpsa_arg px,
+    xt_float_or_tpsa_arg py,
+    xt_float_or_tpsa_arg delta,
+    xt_float_or_tpsa* iv_x,
+    xt_float_or_tpsa* iv_y,
+    xt_float_or_tpsa* iv_s){
 
-    double iix = px / (1. + delta);
-    double iiy = py / (1. + delta);
-    double iis = sqrt(1 - iix * iix + iiy * iiy);
+    xt_float_or_tpsa const iix = px / (1. + delta);
+    xt_float_or_tpsa const iiy = py / (1. + delta);
+    xt_float_or_tpsa const iis = sqrt(1 - iix * iix + iiy * iiy);
 
     *iv_x = iix;
     *iv_y = iiy;
@@ -28,28 +30,28 @@ void direction_of_motion(
 
 GPUFUN
 void separate_par_perp_components(
-    double const Bx,
-    double const By,
-    double const Bz,
-    double const ix,
-    double const iy,
-    double const iz,
-    double* B_par_x,
-    double* B_par_y,
-    double* B_par_z,
-    double* B_perp_x,
-    double* B_perp_y,
-    double* B_perp_z
+    xt_float_or_tpsa_arg Bx,
+    xt_float_or_tpsa_arg By,
+    xt_float_or_tpsa_arg Bz,
+    xt_float_or_tpsa_arg ix,
+    xt_float_or_tpsa_arg iy,
+    xt_float_or_tpsa_arg iz,
+    xt_float_or_tpsa* B_par_x,
+    xt_float_or_tpsa* B_par_y,
+    xt_float_or_tpsa* B_par_z,
+    xt_float_or_tpsa* B_perp_x,
+    xt_float_or_tpsa* B_perp_y,
+    xt_float_or_tpsa* B_perp_z
 ){
 
-    double B_par = Bx * ix + By * iy + Bz * iz;
-    double const BB_par_x = B_par * ix;
-    double const BB_par_y = B_par * iy;
-    double const BB_par_z = B_par * iz;
+    xt_float_or_tpsa const B_par = Bx * ix + By * iy + Bz * iz;
+    xt_float_or_tpsa const BB_par_x = B_par * ix;
+    xt_float_or_tpsa const BB_par_y = B_par * iy;
+    xt_float_or_tpsa const BB_par_z = B_par * iz;
 
-    double const BB_perp_x = Bx - BB_par_x;
-    double const BB_perp_y = By - BB_par_y;
-    double const BB_perp_z = Bz - BB_par_z;
+    xt_float_or_tpsa const BB_perp_x = Bx - BB_par_x;
+    xt_float_or_tpsa const BB_perp_y = By - BB_par_y;
+    xt_float_or_tpsa const BB_perp_z = Bz - BB_par_z;
 
     *B_par_x = BB_par_x;
     *B_par_y = BB_par_y;
@@ -60,6 +62,7 @@ void separate_par_perp_components(
 
 }
 
+#ifndef XTRACK_TPSA_TRACK
 GPUFUN
 double compute_b_perp_mod(
     double const kin_px,
@@ -92,23 +95,59 @@ double compute_b_perp_mod(
     return sqrt(B_perp_x*B_perp_x + B_perp_y*B_perp_y + B_perp_z*B_perp_z);
 
 }
+#endif
+
+GPUFUN
+int8_t spin_is_zero(LocalParticle* part){
+    return xt_float_or_tpsa_is_zero(LocalParticle_get_spin_x(part))
+        && xt_float_or_tpsa_is_zero(LocalParticle_get_spin_y(part))
+        && xt_float_or_tpsa_is_zero(LocalParticle_get_spin_z(part));
+}
+
+GPUFUN
+void rotate_spin_quaternion(
+    xt_float_or_tpsa_arg t0,
+    xt_float_or_tpsa_arg tx,
+    xt_float_or_tpsa_arg ty,
+    xt_float_or_tpsa_arg tz,
+    xt_float_or_tpsa_arg spin_x_1,
+    xt_float_or_tpsa_arg spin_y_1,
+    xt_float_or_tpsa_arg spin_z_1,
+    xt_float_or_tpsa* spin_x_2,
+    xt_float_or_tpsa* spin_y_2,
+    xt_float_or_tpsa* spin_z_2
+){
+    // Rotation matrix
+    xt_float_or_tpsa const M11 = t0 * t0 + tx * tx - ty * ty - tz * tz;
+    xt_float_or_tpsa const M12 = 2 * (tx * ty - t0 * tz);
+    xt_float_or_tpsa const M13 = 2 * (tx * tz + t0 * ty);
+    xt_float_or_tpsa const M21 = 2 * (tx * ty + t0 * tz);
+    xt_float_or_tpsa const M22 = t0 * t0 - tx * tx + ty * ty - tz * tz;
+    xt_float_or_tpsa const M23 = 2 * (ty * tz - t0 * tx);
+    xt_float_or_tpsa const M31 = 2 * (tx * tz - t0 * ty);
+    xt_float_or_tpsa const M32 = 2 * (ty * tz + t0 * tx);
+    xt_float_or_tpsa const M33 = t0 * t0 - tx * tx - ty * ty + tz * tz;
+
+    *spin_x_2 = M11 * spin_x_1 + M12 * spin_y_1 + M13 * spin_z_1;
+    *spin_y_2 = M21 * spin_x_1 + M22 * spin_y_1 + M23 * spin_z_1;
+    *spin_z_2 = M31 * spin_x_1 + M32 * spin_y_1 + M33 * spin_z_1;
+}
 
 GPUFUN
 void magnet_spin(
     LocalParticle* part,
-    double const Bx_T,
-    double const By_T,
-    double const Bz_T,
+    xt_float_or_tpsa_arg Bx_T,
+    xt_float_or_tpsa_arg By_T,
+    xt_float_or_tpsa_arg Bz_T,
     double const hx,
     double const length,
-    double const l_path
+    xt_float_or_tpsa_arg l_path
 ) {
     // track spin
-    double const spin_x_0 = LocalParticle_get_spin_x(part);
-    double const spin_y_0 = LocalParticle_get_spin_y(part);
-    double const spin_z_0 = LocalParticle_get_spin_z(part);
-
-    if (spin_x_0 != 0. || spin_y_0 != 0. || spin_z_0 != 0.){
+    if (!spin_is_zero(part)){
+        xt_float_or_tpsa const spin_x_0 = LocalParticle_get_spin_x(part);
+        xt_float_or_tpsa const spin_y_0 = LocalParticle_get_spin_y(part);
+        xt_float_or_tpsa const spin_z_0 = LocalParticle_get_spin_z(part);
 
         if (LocalParticle_check_track_flag(part, XS_FLAG_BACKTRACK)) {
             LocalParticle_set_state(part, -33);
@@ -121,35 +160,35 @@ void magnet_spin(
                 cos_hxl2 = cos(hx * length / 2);
             }
             // Entry rotation (bend frame)
-            double const spin_x_1 = spin_x_0 * cos_hxl2 + spin_z_0 * sin_hxl2;
-            double const spin_y_1 = spin_y_0;
-            double const spin_z_1 = -spin_x_0 * sin_hxl2 + spin_z_0 * cos_hxl2;
+            xt_float_or_tpsa const spin_x_1 = spin_x_0 * cos_hxl2 + spin_z_0 * sin_hxl2;
+            xt_float_or_tpsa const spin_y_1 = spin_y_0;
+            xt_float_or_tpsa const spin_z_1 = -spin_x_0 * sin_hxl2 + spin_z_0 * cos_hxl2;
 
-            double const ptau = LocalParticle_get_ptau(part);
-            double const delta = LocalParticle_get_delta(part);
-            double const rvv = LocalParticle_get_rvv(part);
+            xt_float_or_tpsa const ptau = LocalParticle_get_ptau(part);
+            xt_float_or_tpsa const delta = LocalParticle_get_delta(part);
+            xt_float_or_tpsa const rvv = LocalParticle_get_rvv(part);
             double const mass0 = LocalParticle_get_mass0(part);
             double const q0 = LocalParticle_get_q0(part);
             double const gamma0 = LocalParticle_get_gamma0(part);
             double const beta0 = LocalParticle_get_beta0(part);
-            double const gamma = gamma0 * (1 + beta0 * ptau);
-            double const beta = beta0 * rvv;
+            xt_float_or_tpsa const gamma = gamma0 * (1 + beta0 * ptau);
+            xt_float_or_tpsa const beta = beta0 * rvv;
             double const mass0_kg = mass0 * QELEM / C_LIGHT / C_LIGHT;
-            double const P_J = mass0_kg * beta * gamma * C_LIGHT;
-            double const brho_part = P_J / (q0 * QELEM);
+            xt_float_or_tpsa const P_J = mass0_kg * beta * gamma * C_LIGHT;
+            xt_float_or_tpsa const brho_part = P_J / (q0 * QELEM);
 
-            double const new_ax = LocalParticle_get_ax(part);
-            double const new_ay = LocalParticle_get_ay(part);
+            xt_float_or_tpsa const new_ax = LocalParticle_get_ax(part);
+            xt_float_or_tpsa const new_ay = LocalParticle_get_ay(part);
 
-            double const kin_px_mean = LocalParticle_get_px(part) + new_ax;
-            double const kin_py_mean = LocalParticle_get_py(part) + new_ay;
+            xt_float_or_tpsa const kin_px_mean = LocalParticle_get_px(part) + new_ax;
+            xt_float_or_tpsa const kin_py_mean = LocalParticle_get_py(part) + new_ay;
 
-            double iv_x, iv_y, iv_z;
+            xt_float_or_tpsa iv_x = 0., iv_y = 0., iv_z = 0.;
             direction_of_motion(kin_px_mean, kin_py_mean, delta,
                                 &iv_x, &iv_y, &iv_z);
 
-            double B_par_spin_x, B_par_spin_y, B_par_spin_z;
-            double B_perp_spin_x, B_perp_spin_y, B_perp_spin_z;
+            xt_float_or_tpsa B_par_spin_x = 0., B_par_spin_y = 0., B_par_spin_z = 0.;
+            xt_float_or_tpsa B_perp_spin_x = 0., B_perp_spin_y = 0., B_perp_spin_z = 0.;
 
             separate_par_perp_components(
                 Bx_T,
@@ -168,13 +207,37 @@ void magnet_spin(
 
             double const G_spin = LocalParticle_get_anomalous_magnetic_moment(part);
 
-            double const Omega_BMT_x = -1/brho_part * (
+            xt_float_or_tpsa const Omega_BMT_x = -1/brho_part * (
                 (1 + G_spin*gamma) * B_perp_spin_x + (1 + G_spin) * B_par_spin_x);
-            double const Omega_BMT_y = -1/brho_part * (
+            xt_float_or_tpsa const Omega_BMT_y = -1/brho_part * (
                 (1 + G_spin*gamma) * B_perp_spin_y + (1 + G_spin) * B_par_spin_y);
-            double const Omega_BMT_z = -1/brho_part * (
+            xt_float_or_tpsa const Omega_BMT_z = -1/brho_part * (
                 (1 + G_spin*gamma) * B_perp_spin_z + (1 + G_spin) * B_par_spin_z);
 
+        #ifdef XTRACK_TPSA_TRACK
+            // PHYSICS CHANGE (TPSA only). The native branch below rotates about the unit
+            // axis Omega/|Omega| by phi = |Omega| l_path. On a zero-field orbit (a quad on
+            // axis) |Omega| has zero const part, the axis is 0/0 and its derivatives are
+            // lost, although the rotation itself is smooth. This branch uses the
+            // quaternion (cos(phi/2), Omega l_path/2 sinc(phi/2)) via sincosq(phi^2/4),
+            // which is analytic in phi^2. Same rotation, no division by |Omega|. Const
+            // part matches native to rounding, derivatives match FD (test_tpsa_spin_*).
+            xt_float_or_tpsa const phi_sq_quarter = 0.25 * l_path * l_path * (
+                Omega_BMT_x * Omega_BMT_x + Omega_BMT_y * Omega_BMT_y
+                + Omega_BMT_z * Omega_BMT_z);
+            auto const sinc_cos_half_phi = mad::sincosq(phi_sq_quarter);
+            xt_float_or_tpsa const t0 = sinc_cos_half_phi.second;
+            xt_float_or_tpsa const half_l_sinc = 0.5 * l_path * sinc_cos_half_phi.first;
+
+            xt_float_or_tpsa spin_x_2 = 0., spin_y_2 = 0., spin_z_2 = 0.;
+            rotate_spin_quaternion(
+                t0,
+                Omega_BMT_x * half_l_sinc,
+                Omega_BMT_y * half_l_sinc,
+                Omega_BMT_z * half_l_sinc,
+                spin_x_1, spin_y_1, spin_z_1,
+                &spin_x_2, &spin_y_2, &spin_z_2);
+        #else
             double Omega_BMT_mod = sqrt(Omega_BMT_x * Omega_BMT_x +
                 Omega_BMT_y * Omega_BMT_y + Omega_BMT_z * Omega_BMT_z);
 
@@ -199,28 +262,18 @@ void magnet_spin(
                 double const ty = omega_y * sin_phi_2;
                 double const tz = omega_z * sin_phi_2;
 
-                // Rotation matrix
-                double const M11 = t0 * t0 + tx * tx - ty * ty - tz * tz;
-                double const M12 = 2 * (tx * ty - t0 * tz);
-                double const M13 = 2 * (tx * tz + t0 * ty);
-                double const M21 = 2 * (tx * ty + t0 * tz);
-                double const M22 = t0 * t0 - tx * tx + ty * ty - tz * tz;
-                double const M23 = 2 * (ty * tz - t0 * tx);
-                double const M31 = 2 * (tx * tz - t0 * ty);
-                double const M32 = 2 * (ty * tz + t0 * tx);
-                double const M33 = t0 * t0 - tx * tx - ty * ty + tz * tz;
-
                 // BMT rotation
-                spin_x_2 = M11 * spin_x_1 + M12 * spin_y_1 + M13 * spin_z_1;
-                spin_y_2 = M21 * spin_x_1 + M22 * spin_y_1 + M23 * spin_z_1;
-                spin_z_2 = M31 * spin_x_1 + M32 * spin_y_1 + M33 * spin_z_1;
-
+                rotate_spin_quaternion(
+                    t0, tx, ty, tz,
+                    spin_x_1, spin_y_1, spin_z_1,
+                    &spin_x_2, &spin_y_2, &spin_z_2);
             }
+        #endif
 
             // Exit rotation (bend frame)
-            double const spin_x_3 = spin_x_2 * cos_hxl2 + spin_z_2 * sin_hxl2;
-            double const spin_y_3 = spin_y_2;
-            double const spin_z_3 = -spin_x_2 * sin_hxl2 + spin_z_2 * cos_hxl2;
+            xt_float_or_tpsa const spin_x_3 = spin_x_2 * cos_hxl2 + spin_z_2 * sin_hxl2;
+            xt_float_or_tpsa const spin_y_3 = spin_y_2;
+            xt_float_or_tpsa const spin_z_3 = -spin_x_2 * sin_hxl2 + spin_z_2 * cos_hxl2;
 
             LocalParticle_set_spin_x(part, spin_x_3);
             LocalParticle_set_spin_y(part, spin_y_3);
@@ -229,6 +282,7 @@ void magnet_spin(
     }
 }
 
+#ifndef XTRACK_TPSA_TRACK
 GPUFUN
 void magnet_radiation(
     LocalParticle* part,
@@ -339,6 +393,7 @@ void magnet_estimate_field(
     *By_T = kappa_x * P_J / Q0_coulomb;
     *Bz_T = ks * brho0;
 }
+#endif
 
 
 #endif

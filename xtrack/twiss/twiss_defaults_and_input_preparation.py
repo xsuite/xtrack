@@ -9,6 +9,7 @@ import numpy as np
 import xobjects as xo
 
 from ..general import DEPRECATION_INFO_PREP_1_0, _print
+from .twiss_backend import _select_twiss_backend
 
 
 DEFAULT_STEPS_R_MATRIX = {
@@ -69,6 +70,8 @@ def _apply_twiss_defaults(twiss_kwargs):
         'compute_lattice_functions': (
             twiss_kwargs['compute_lattice_functions']
             if twiss_kwargs['compute_lattice_functions'] is not None else True),
+        'tpsa': twiss_kwargs['tpsa'] or False,
+        'knobs': list(twiss_kwargs['knobs']) if twiss_kwargs['knobs'] else None,
         'num_turns': twiss_kwargs['num_turns'] or 1,
         'disable_apertures': (
             twiss_kwargs['disable_apertures']
@@ -131,6 +134,8 @@ def _normalize_twiss_inputs(twiss_kwargs):
 
     if twiss_config['line'].enable_time_dependent_vars:
         raise RuntimeError('Time dependent variables not supported in Twiss')
+
+    twiss_config['_twiss_backend'] = _select_twiss_backend(twiss_config)
 
     track_flag_updates, line_config_updates = (
         _get_twiss_line_context_updates(twiss_config))

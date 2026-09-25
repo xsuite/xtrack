@@ -270,17 +270,12 @@ void kick_simple_single_particle(
     LocalParticle_add_to_py(part, dpy);
 }
 
-#ifndef XTRACK_TPSA_TRACK
-// Radiation/field helper: emits physical fields to double* outputs, so it cannot be a
-// Taylor map. This is unreachable in TPSA tracking (only called from WITH_RADIATION, which is
-// excluded through a macro by XTRACK_MULTIPOLE_NO_SYNRAD); excluded from TPSA tracking so the
-// coordinate args don't need to be xt_float_or_tpsa.
 GPUFUN
 void evaluate_field_from_strengths(
     double const p0c,
     double const q0,
-    double const x,
-    double const y,
+    xt_float_or_tpsa_arg x,
+    xt_float_or_tpsa_arg y,
     double length,
     int64_t order,
     double inv_factorial_order,
@@ -292,21 +287,21 @@ void evaluate_field_from_strengths(
     GPUGLMEM const double* ksl_rel,
     xt_float_or_tpsa_arg rel_ref_strength,
     double const factor_knl_ksl,
-    double k0,
-    double k1,
-    double k2,
-    double k3,
-    double k0s,
-    double k1s,
-    double k2s,
-    double k3s,
-    double ks,
+    xt_float_or_tpsa_arg k0,
+    xt_float_or_tpsa_arg k1,
+    xt_float_or_tpsa_arg k2,
+    xt_float_or_tpsa_arg k3,
+    xt_float_or_tpsa_arg k0s,
+    xt_float_or_tpsa_arg k1s,
+    xt_float_or_tpsa_arg k2s,
+    xt_float_or_tpsa_arg k3s,
+    xt_float_or_tpsa_arg ks,
     double dks_ds,
     double x0_solenoid,
     double y0_solenoid,
-    double *Bx_T,
-    double *By_T,
-    double *Bz_T
+    xt_float_or_tpsa *Bx_T,
+    xt_float_or_tpsa *By_T,
+    xt_float_or_tpsa *Bz_T
 ){
     if (length == 0.0) {
         *Bx_T = 0.0;
@@ -315,41 +310,51 @@ void evaluate_field_from_strengths(
         return;
     }
 
-    double knl_main[4] = {k0, k1, k2, k3};
-    double ksl_main[4] = {k0s, k1s, k2s, k3s};
+    xt_float_or_tpsa knl_main[4] = {k0 * length, k1 * length, k2 * length, k3 * length};
+    xt_float_or_tpsa ksl_main[4] = {k0s * length, k1s * length, k2s * length, k3s * length};
 
-    for (int index = 0; index < 4; index++) {
-        knl_main[index] = knl_main[index] * length;
-        ksl_main[index] = ksl_main[index] * length;
-    }
+#ifdef XTRACK_TPSA_TRACK
+    xt_tpsa_lifted_array knl_lifted(knl, order + 1), ksl_lifted(ksl, order + 1);
+    xt_tpsa_lifted_array knl_rel_lifted(knl_rel, order_rel + 1);
+    xt_tpsa_lifted_array ksl_rel_lifted(ksl_rel, order_rel + 1);
+    const xt_float_or_tpsa* knl_num = knl_lifted.ptr();
+    const xt_float_or_tpsa* ksl_num = ksl_lifted.ptr();
+    const xt_float_or_tpsa* knl_rel_num = knl_rel_lifted.ptr();
+    const xt_float_or_tpsa* ksl_rel_num = ksl_rel_lifted.ptr();
+#else
+    GPUGLMEM const double* knl_num = knl;
+    GPUGLMEM const double* ksl_num = ksl;
+    GPUGLMEM const double* knl_rel_num = knl_rel;
+    GPUGLMEM const double* ksl_rel_num = ksl_rel;
+#endif
 
     // multipolar kick
-    double dpx_mul = 0.;
-    double dpy_mul = 0.;
+    xt_float_or_tpsa dpx_mul = 0.;
+    xt_float_or_tpsa dpy_mul = 0.;
     kick_simple_single_coordinates(
         x,
         y,
         1., // chi
         order,
         inv_factorial_order,
-        knl,
-        ksl,
+        knl_num,
+        ksl_num,
         factor_knl_ksl,
         1., // kick_weight
         &dpx_mul,
         &dpy_mul);
 
     // multipolar kick relevant for the field evaluation
-    double dpx_mul_rel = 0.;
-    double dpy_mul_rel = 0.;
+    xt_float_or_tpsa dpx_mul_rel = 0.;
+    xt_float_or_tpsa dpy_mul_rel = 0.;
     kick_simple_single_coordinates(
         x,
         y,
         1., // chi
         order_rel,
         inv_factorial_order_rel,
-        knl_rel,
-        ksl_rel,
+        knl_rel_num,
+        ksl_rel_num,
         factor_knl_ksl * rel_ref_strength,
         1., // kick_weight
         &dpx_mul_rel,
@@ -357,8 +362,8 @@ void evaluate_field_from_strengths(
 
 
     // main kick
-    double dpx_main=0.;
-    double dpy_main=0.;
+    xt_float_or_tpsa dpx_main=0.;
+    xt_float_or_tpsa dpy_main=0.;
     kick_simple_single_coordinates(
         x,
         y,
@@ -372,8 +377,8 @@ void evaluate_field_from_strengths(
         &dpx_main,
         &dpy_main);
 
-    double const dpx = dpx_mul + dpx_main + dpx_mul_rel;
-    double const dpy = dpy_mul + dpy_main + dpy_mul_rel;
+    xt_float_or_tpsa const dpx = dpx_mul + dpx_main + dpx_mul_rel;
+    xt_float_or_tpsa const dpy = dpy_mul + dpy_main + dpy_mul_rel;
 
     double const brho_0 = p0c / C_LIGHT / q0; // [T m]
 
@@ -382,6 +387,5 @@ void evaluate_field_from_strengths(
     *Bz_T = ks * brho_0; // [T]
 
 }
-#endif // XTRACK_TPSA_TRACK (evaluate_field_from_strengths)
 
 #endif

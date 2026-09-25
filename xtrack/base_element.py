@@ -666,8 +666,11 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
             except ImportError:
                 kernel_info = None
             else:
+                # False flags are absent from prebuilt configs, as in TrackerConfig
+                config = {**BASE_CONFIG, "XTRACK_TPSA_TRACK": True}
+                config.pop("XTRACK_MULTIPOLE_NO_SYNRAD", None)
                 kernel_info = get_suitable_kernel(
-                    config={**BASE_CONFIG, "XTRACK_TPSA_TRACK": True},
+                    config=config,
                     tracker_element_classes=[self._XoStruct],
                     classes=(),
                     context=context,
@@ -690,7 +693,6 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
             extra_classes=[self.__class__._XoStruct, TpsaParticleData],
             extra_headers=[
                 "#define XTRACK_TPSA_TRACK",
-                "#define XTRACK_MULTIPOLE_NO_SYNRAD",
                 "#define restrict __restrict",
             ],
             apply_to_source=[_handle_per_particle_blocks],

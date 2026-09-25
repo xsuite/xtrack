@@ -15,6 +15,11 @@ else:
     trapz = np.trapz
 
 
+def _chromatic_functions_requested(twiss_config):
+    return (twiss_config['chrom'] is True
+            or (twiss_config['chrom'] is None and twiss_config['periodic']))
+
+
 def _get_chromatic_functions(
         twiss_config, on_momentum_twiss_res, tw_chrom_res=None):
 

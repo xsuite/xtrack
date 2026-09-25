@@ -969,6 +969,16 @@ class OptimizeLine(xd.Optimize):
                                 targets_flatten,
                                 **kwargs,
                             )
+                        elif tpsa_backend == 'twiss':
+                            from .tpsa.match_action import ActionTwissTpsa
+
+                            action_twiss_tpsa = ActionTwissTpsa(
+                                line,
+                                [v.name for v in vary_flatten],
+                                targets_flatten,
+                                allow_twiss_failure=allow_twiss_failure,
+                                **kwargs,
+                            )
                         elif tpsa_backend == 'madng':
                             from .madng_interface import ActionTwissMadngTPSA
 
@@ -983,7 +993,7 @@ class OptimizeLine(xd.Optimize):
                         else:
                             raise ValueError(
                                 f"unknown tpsa_backend {tpsa_backend!r}; "
-                                f"use 'madng' or 'madng_tpsa'")
+                                f"use 'madng', 'madng_tpsa' or 'twiss'")
                         action_twiss_tpsa.prepare()
                     tt.action = action_twiss_tpsa
                 else:

@@ -15,6 +15,6 @@ kernel assembly. CPU only.
 """
 
 from .particles import COORDS, ParticlesTpsa
-from .optics import TpsaOptics
+from .twiss import TpsaEbeTrack, TpsaTwiss
 
-__all__ = ["COORDS", "ParticlesTpsa", "TpsaOptics"]
+__all__ = ["COORDS", "ParticlesTpsa", "TpsaEbeTrack", "TpsaTwiss"]

@@ -13,6 +13,11 @@ def _compute_twiss_handling_init_inside_range_and_line_wrap(
         kwargs, crosses_line_boundary, one_turn_from_start=False, *,
         compute_base_twiss):
 
+    if kwargs['knobs']:
+        raise NotImplementedError(
+            '``knobs`` needs a range that neither wraps around the line nor has '
+            'its init inside')
+
     if not crosses_line_boundary:
         kwargs = kwargs.copy()
         line = kwargs['line']
