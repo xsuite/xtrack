@@ -599,7 +599,7 @@ def test_instrument(example_sequence):
     env, positions, _ = example_sequence
     in1 = env['in1/line']
     xo.assert_allclose(positions['in1/line'], 9, atol=1e-14)
-    assert isinstance(in1, xt.Drift)
+    assert isinstance(in1, xt.Device)
     assert in1.length == 2
 
 
@@ -607,7 +607,7 @@ def test_monitor(example_sequence):
     env, positions, _ = example_sequence
     mo1 = env['mo1/line']
     xo.assert_allclose(positions['mo1/line'], 11, atol=1e-14)
-    assert isinstance(mo1, xt.Drift)
+    assert isinstance(mo1, xt.Device)
     assert mo1.length == 1
 
 
@@ -615,7 +615,7 @@ def test_placeholder(example_sequence):
     env, positions, _ = example_sequence
     pl1 = env['pl1/line']
     xo.assert_allclose(positions['pl1/line'], 13, atol=1e-14)
-    assert isinstance(pl1, xt.Drift)
+    assert isinstance(pl1, xt.Device)
     assert pl1.length == 1
 
 
@@ -845,7 +845,7 @@ def test_reversed_instrument(example_sequence):
     env, _, positions_reversed = example_sequence
     in1 = env['in1/line_reversed']
     xo.assert_allclose(positions_reversed['in1/line_reversed'], 36 - 9, atol=1e-14)
-    assert isinstance(in1, xt.Drift)
+    assert isinstance(in1, xt.Device)
     assert in1.length == 2
 
 
@@ -853,7 +853,7 @@ def test_reversed_monitor(example_sequence):
     env, _, positions_reversed = example_sequence
     mo1 = env['mo1/line_reversed']
     xo.assert_allclose(positions_reversed['mo1/line_reversed'], 36 - 11, atol=1e-14)
-    assert isinstance(mo1, xt.Drift)
+    assert isinstance(mo1, xt.Device)
     assert mo1.length == 1
 
 
@@ -861,7 +861,7 @@ def test_reversed_placeholder(example_sequence):
     env, _, positions_reversed = example_sequence
     pl1 = env['pl1/line_reversed']
     xo.assert_allclose(positions_reversed['pl1/line_reversed'], 36 - 13, atol=1e-14)
-    assert isinstance(pl1, xt.Drift)
+    assert isinstance(pl1, xt.Device)
     assert pl1.length == 1
 
 
@@ -1651,3 +1651,23 @@ def test_native_loader_yrotation():
     assert isinstance(line[0], xt.Rotation)
     line.vars['angle'] = 2.0
     assert line[0].rot_y_rad == line.vars['angle']._value
+
+
+def test_native_loader_translation_shift_s():
+    mad_src = """
+    longitudinal_shift = 0.2;
+    tr: translation, dx=0.01, dy=-0.02, ds:=longitudinal_shift;
+
+    ss: sequence, l=1; tr: tr, at=0; endsequence;
+    """
+
+    env = xt.load(string=mad_src, format='madx')
+    line = env.ss
+
+    assert isinstance(line['tr'], xt.Translation)
+    assert line['tr'].shift_x == 0.01
+    assert line['tr'].shift_y == -0.02
+    assert line['tr'].shift_s == line.vars['longitudinal_shift']._value
+
+    line.vars['longitudinal_shift'] = -0.4
+    assert line['tr'].shift_s == -0.4

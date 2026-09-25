@@ -19,7 +19,7 @@ def matrix_from_survey_row(sv_row):
     out = np.identity(4)
     out[:3, 0] = sv_row.ex
     out[:3, 1] = sv_row.ey
-    out[:3, 2] = sv_row.ez
+    out[:3, 2] = sv_row.es
     out[:3, 3] = np.array([sv_row.X[0], sv_row.Y[0], sv_row.Z[0]])
     return out
 

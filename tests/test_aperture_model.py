@@ -2481,7 +2481,7 @@ def test_cross_sections_at_s_interpolate_circles_to_cone(test_context):
     sv_ref_mat = np.identity(4)
     sv_ref_mat[:3, 0] = sv_ref.ex
     sv_ref_mat[:3, 1] = sv_ref.ey
-    sv_ref_mat[:3, 2] = sv_ref.ez
+    sv_ref_mat[:3, 2] = sv_ref.es
     sv_ref_mat[:3, 3] = np.array([sv_ref.X[0], sv_ref.Y[0], sv_ref.Z[0]])
     world_from_type = sv_ref_mat @ model.pipe_positions[0].transformation.to_nparray()
     pipe_from_world = np.linalg.inv(world_from_type)

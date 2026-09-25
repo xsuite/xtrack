@@ -64,6 +64,29 @@ def test_constructor(test_context):
                     nee._xobject._offset:nee._xobject._size]).sum() == 0
 
 
+@pytest.mark.parametrize(
+    "element_cls, field, kwargs",
+    [
+        (xt.Bend, "k0", {"length": 1.0}),
+        (xt.Quadrupole, "k1", {"length": 1.0}),
+        (xt.Sextupole, "k2", {"length": 1.0}),
+        (xt.Octupole, "k3", {"length": 1.0}),
+        (xt.UniformSolenoid, "ks", {"length": 1.0}),
+        (xt.Drift, "length", {}),
+    ],
+)
+def test_scalar_element_fields_accept_length_one_array_like(
+        element_cls, field, kwargs):
+    p = xt.Particles(mass0=xt.ELECTRON_MASS_EV, gamma0=10.0, q0=-1)
+    # Dummy strength-like value; the important part is that it is a length-one
+    # array-like scalar, as obtained from single-particle reference data.
+    value = 4.0 / abs(p.p0c / (cst.c * p.q0))
+
+    element = element_cls(**kwargs, **{field: value})
+
+    assert getattr(element, field) == pytest.approx(float(value[0]))
+
+
 def test_rfmultipole_phase_n_s_and_deprecated_pn_ps_warnings():
     with warnings.catch_warnings(record=True) as record:
         warnings.simplefilter('always')
@@ -320,12 +343,14 @@ def test_rotation_against_legacy_rotations():
 
 @pytest.mark.filterwarnings('ignore::FutureWarning')
 def test_translation_against_legacy_xyshift():
-    shift = xt.Translation(shift_x=0.1, shift_y=0.2)
+    shift = xt.Translation(shift_x=0.1, shift_y=0.2, shift_s=0.3)
     dct = shift.to_dict()
-    assert set(dct.keys()) == {'__class__', 'shift_x', 'shift_y'}
+    assert set(dct.keys()) == {
+        '__class__', 'shift_x', 'shift_y', 'shift_s'}
     shift2 = xt.Translation.from_dict(dct)
     assert shift2.shift_x == shift.shift_x
     assert shift2.shift_y == shift.shift_y
+    assert shift2.shift_s == shift.shift_s
 
     for shift_x, shift_y in [
         (0.1, 0.2),
@@ -389,6 +414,48 @@ def test_translation_against_legacy_xyshift():
             xo.assert_allclose(
                 getattr(particles, vv), getattr(particles_legacy, vv),
                 atol=1e-12)
+
+
+@for_all_test_contexts
+def test_translation_shift_s_is_exact_drift_without_s_advance(test_context):
+    shift_x = 0.1
+    shift_y = -0.2
+    shift_s = 1.3
+    p0 = xp.Particles(
+        p0c=25.92e9,
+        x=1e-3,
+        px=2e-2,
+        y=-2e-3,
+        py=-3e-2,
+        delta=1e-2,
+        zeta=0.4,
+        s=2.5,
+    )
+
+    expected = p0.copy(_context=test_context)
+    xt.DriftExact(length=shift_s, _context=test_context).track(expected)
+    expected.x -= shift_x
+    expected.y -= shift_y
+    expected.zeta -= shift_s
+    expected.s -= shift_s
+
+    line = xt.Line(elements=[xt.Translation(
+        shift_x=shift_x, shift_y=shift_y, shift_s=shift_s)])
+    line.reset_s_at_end_turn = False
+    line.build_tracker(_context=test_context)
+    actual = p0.copy(_context=test_context)
+    line.track(actual)
+
+    for coordinate in ('x', 'px', 'y', 'py', 'zeta', 'delta', 's'):
+        xo.assert_allclose(
+            getattr(actual, coordinate), getattr(expected, coordinate),
+            atol=1e-14, rtol=1e-14)
+
+    line.track(actual, backtrack=True)
+    for coordinate in ('x', 'px', 'y', 'py', 'zeta', 'delta', 's'):
+        xo.assert_allclose(
+            getattr(actual, coordinate), getattr(p0, coordinate),
+            atol=1e-14, rtol=1e-14)
 
 
 @pytest.mark.parametrize(

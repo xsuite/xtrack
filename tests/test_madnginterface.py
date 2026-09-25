@@ -329,11 +329,11 @@ def test_madng_slices():
     twng_sliced = line.madng_twiss(compute_chromatic_properties=True)
     tt_sliced = line.get_table()
 
-    assert np.all(np.array(sorted(list(set(tt_sliced.element_type)))) ==
-        ['',
+    assert sorted(set(tt_sliced.element_type)) == [
+        '',
         'Cavity',
+        'Device',
         'Drift',
-        'DriftSlice',
         'LimitRectEllipse',
         'Marker',
         'Multipole',
@@ -343,6 +343,7 @@ def test_madng_slices():
         'Sextupole',
         'ThickSliceBend',
         'ThickSliceCavity',
+        'ThickSliceDevice',
         'ThickSliceMultipole',
         'ThickSliceOctupole',
         'ThickSliceQuadrupole',
@@ -361,7 +362,7 @@ def test_madng_slices():
         'ThinSliceSextupoleExit',
         'ThinSliceUniformSolenoidEntry',
         'ThinSliceUniformSolenoidExit',
-        'UniformSolenoid'])
+        'UniformSolenoid']
 
     twng_ip = twng.rows['ip.*']
     twng_ip_sliced = twng_sliced.rows['ip.*']

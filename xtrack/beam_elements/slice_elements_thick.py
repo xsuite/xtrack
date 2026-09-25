@@ -5,6 +5,7 @@ from .slice_base import _SliceBase, COMMON_SLICE_XO_FIELDS
 from .bend import Bend
 from .cavity import Cavity
 from .crab_cavity import CrabCavity
+from .device import Device
 from .multipole import Multipole
 from .octupole import Octupole
 from .quadrupole import Quadrupole
@@ -12,7 +13,6 @@ from .rbend import RBend
 from .sextupole import Sextupole
 from .solenoid import Solenoid
 from .uniform_solenoid import UniformSolenoid
-from ..survey import advance_element as survey_advance_element
 
 class _ThickSliceElementBase(_SliceBase):
 
@@ -37,7 +37,7 @@ class ThickSliceRBend(_ThickSliceElementBase, BeamElement):
         '#include "xtrack/beam_elements/elements_src/thick_slice_rbend.h"'
     ]
 
-    def _propagate_survey(self, v, w, backtrack):
+    def track_frame(self, frame, backtrack=False):
 
         if self._parent.rbend_model == "straight-body":
             ll = self._parent.length_straight * self.weight
@@ -50,20 +50,7 @@ class ThickSliceRBend(_ThickSliceElementBase, BeamElement):
             ll *= -1
             aa *= -1
 
-        v, w = survey_advance_element(
-            v               = v,
-            w               = w,
-            length          = ll,
-            angle           = aa,
-            tilt            = self._parent.rot_s_rad,
-            ref_shift_x     = 0,
-            ref_shift_y     = 0,
-            ref_rot_x_rad   = 0,
-            ref_rot_y_rad   = 0,
-            ref_rot_s_rad   = 0,
-        )
-
-        return v, w
+        frame.arc(length=ll, angle=aa, tilt=self._parent.rot_s_rad)
 
 
 class ThickSliceQuadrupole(_ThickSliceElementBase, BeamElement):
@@ -130,3 +117,22 @@ class ThickSliceSolenoid(_ThickSliceElementBase, BeamElement):
     _extra_c_sources = [
         '#include "xtrack/beam_elements/elements_src/thick_slice_solenoid.h"'
     ]
+
+class ThickSliceDevice(_ThickSliceElementBase, BeamElement):
+
+    # A device has no strengths to inherit, but it does inherit the parent's
+    # misalignment through `rot_and_shift_from_parent`, which is why this is
+    # not a `_DriftSliceElementBase`: that one switches the transformations off
+    # and would silently drop the misalignment of a sliced device.
+    _inherit_strengths = False
+
+    _xofields = {'_parent': xo.Ref(Device), **COMMON_SLICE_XO_FIELDS}
+
+    _extra_c_sources = [
+        '#include "xtrack/beam_elements/elements_src/thick_slice_device.h"'
+    ]
+
+    def get_equivalent_element(self):
+        return Device(length=self._parent.length * self.weight,
+                      model=self._parent.model,
+                      _buffer=self._buffer)

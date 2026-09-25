@@ -1,0 +1,170 @@
+import numpy as np
+import pandas as pd
+
+import xtrack as xt
+from xtrack._temp import survey_utils as su
+
+# Apply the misalignments computed by 001a_bump_to_misalignments_h4_line.py to
+# the H4 line, then export the misaligned line and its survey.
+#
+# The MAD loader imports passive elements as Device, which can hold the
+# misalignments needed for the survey.
+#
+# The script is in three parts: the computation, then the exports, then the
+# checks that verify the whole thing. The checks come last here, unlike in
+# 001a, because some of them read the exported files back.
+
+MISALIGNMENT_COLUMNS = ['dtheta', 'dphi', 'dpsi', 'dx', 'dy', 'ds']
+
+compensate_psi_vbend = True
+psi_tol_deg = 20
+
+# #############################################################################
+# Part 1 - computation
+# #############################################################################
+
+table = pd.read_csv('bump_misalignments.csv', index_col=0)
+bump_element_names = [nn.lower() for nn in table.index]
+
+env = xt.load('survey-h4-post-ls3-cern-coords-v4.seq')
+line = env['h4']
+
+# Starting point
+f0_ccs = xt.CCSFrame(
+    x=669.234140,
+    y=4590.727900,
+    z=2441.574200,
+    theta_gon=7.4198240,  # Match the legacy GEODE starting bearing.
+    phi=-0.000370000,
+    psi=0,
+)
+f0 = xt.Frame.from_ccs(f0_ccs)
+
+
+# Reference (nominal) survey, taken before anything is misaligned.
+survey_nominal = line.survey(include_element_frames=True,
+                             X0=f0.X,
+                             Y0=f0.Y,
+                             Z0=f0.Z,
+                             theta0=f0.theta,
+                             phi0=f0.phi,
+                             psi0=f0.psi)
+
+for name, row in zip(bump_element_names, table.to_dict('records')):
+    su.Misalignment(
+        dtheta=row['dtheta'],
+        dphi=row['dphi'],
+        dpsi=row['dpsi'],
+        shift_x=row['dx'],
+        shift_y=row['dy'],
+        shift_s=row['ds'],
+    ).apply_to_element(line[name])
+
+survey_aligned = line.survey(include_element_frames=True,
+                             X0=f0.X,
+                             Y0=f0.Y,
+                             Z0=f0.Z,
+                             theta0=f0.theta,
+                             phi0=f0.phi,
+                             psi0=f0.psi)
+
+# List of elements requiring alignment data.
+names_align = survey_aligned.rows.match_not(
+    name='.*drift.*|.*_aper|_end_point').rows.match_not(
+        element_type='Limit.*|Translation|Rotation').name
+
+# #############################################################################
+# Part 2 - export
+# #############################################################################
+
+line.to_json('h4_misaligned.json')
+print('written to h4_misaligned.json')
+
+su.write_legacy_survey_tfs(
+    'h4_survey_comp_vbend_output.tfs',
+    survey=survey_aligned,
+    element_names=names_align,
+    element_container=env,
+    compensate_psi_vbend=compensate_psi_vbend,
+    psi_tol_deg=psi_tol_deg
+)
+
+# #############################################################################
+# Part 3 - checks
+# #############################################################################
+
+print('checks:')
+
+print(f'  {len(bump_element_names)} requested elements')
+
+# Every requested element must now be able to hold a misalignment.
+for name in bump_element_names:
+    assert hasattr(line[name], 'rot_s_rad'), name
+print('  all requested elements can hold a misalignment')
+
+# The legacy survey export needs the slot_id imported from MAD.
+for name in bump_element_names:
+    assert 'slot_id' in line[name].extra, name
+print(f'  slot_id preserved on all {len(bump_element_names)} elements')
+
+# The survey reference path is not perturbed by misalignments.
+for ii in range(len(survey_aligned)):
+    np.testing.assert_allclose(
+        survey_aligned.XYZ_ref_start[ii], survey_nominal.XYZ_ref_start[ii],
+        atol=1e-12, rtol=0)
+print(f'  reference path unchanged over all {len(survey_aligned)} survey rows')
+
+# Nothing outside the requested elements moved.
+requested = set(bump_element_names)
+untouched = [nn for nn in survey_nominal.name if nn not in requested]
+for name in untouched:
+    np.testing.assert_allclose(
+        survey_aligned['XYZ_elem_start', name],
+        survey_nominal['XYZ_elem_start', name], atol=1e-12, rtol=0)
+print(f'  {len(untouched)} other survey rows stayed where they were')
+
+# Read the misalignment back out of the surveyed geometry. This goes through
+# the line and its survey rather than through the formulas 001a already used,
+# so it checks that the applied parameters really produce the requested shape.
+recovered = {}
+for name in bump_element_names:
+    element = line[name]
+    entrance_frame = xt.Frame.from_survey(
+        survey_aligned['XYZ_elem_start', name],
+        survey_aligned['E_elem_start', name])
+    if isinstance(element, xt.RBend):
+        # RBend survey frames follow the chord. Rotate locally by half the
+        # bend angle to obtain the entrance tangent used by the alignment
+        # parameters, keeping the surveyed entrance position unchanged.
+        entrance_frame.rotate_y(element.angle / 2)
+    misalignment = su.misalignment_from_absolute_position(
+        XYZ_elem_start=entrance_frame.XYZ,
+        E_elem_start=entrance_frame.E_matrix,
+        XYZ_ref_start=survey_nominal['XYZ_ref_start', name],
+        E_ref_start=survey_nominal['E_ref_start', name],
+    )
+    recovered[name.upper()] = [
+        misalignment.dtheta, misalignment.dphi, misalignment.dpsi,
+        misalignment.shift_x, misalignment.shift_y, misalignment.shift_s,
+    ]
+
+recovered = pd.DataFrame.from_dict(
+    recovered, orient='index', columns=MISALIGNMENT_COLUMNS)
+error = (recovered - table[MISALIGNMENT_COLUMNS]).abs().to_numpy().max()
+assert error < 1e-10
+print(f'  misalignment recovered from the survey of all {len(table)} '
+      f'elements: max error = {error:.2e}')
+
+# The misaligned line has to come back from the json as it went in: the
+# devices must still be devices and still carry their misalignment.
+reloaded = xt.Line.from_json('h4_misaligned.json')
+for name in bump_element_names:
+    before, after = line[name], reloaded[name]
+    assert type(after._xobject) is type(before._xobject), name
+    np.testing.assert_allclose(
+        [after.shift_x, after.shift_y, after.shift_s,
+         after.rot_x_rad, after.rot_y_rad, after.rot_s_rad_no_frame],
+        [before.shift_x, before.shift_y, before.shift_s,
+         before.rot_x_rad, before.rot_y_rad, before.rot_s_rad_no_frame],
+        atol=0, rtol=0)
+print('  the json reloads with its devices and their misalignments')

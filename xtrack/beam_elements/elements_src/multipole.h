@@ -15,7 +15,6 @@
 GPUFUN
 void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
 
-
     track_magnet_particles(
         /*weight*/                1.,
         /*part0*/                 part0,
@@ -36,7 +35,11 @@ void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
         /*default_integrator*/    MULTIPOLE_DEFAULT_INTEGRATOR,
         /*radiation_flag*/        MultipoleData_get_radiation_flag(el),
         /*radiation_flag_parent*/ 0, // not used here
+        #ifdef XTRACK_TPSA_TRACK
+        /*radiation_record*/      NULL,
+        #else
         /*radiation_record*/      (SynchrotronRadiationRecordData) MultipoleData_getp_internal_record(el, part0),
+        #endif
         /*delta_taper*/           MultipoleData_get_delta_taper(el),
         /*h*/                     0.,
         /*hxl*/                   MultipoleData_get_hxl(el),

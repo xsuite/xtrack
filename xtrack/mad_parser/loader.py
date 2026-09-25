@@ -145,16 +145,16 @@ class MadxLoader:
         self._new_builtin("tkicker", "Multipole")
         self._new_builtin("kicker", "Multipole")
         self._new_builtin("drift", "Drift")
-        self._new_builtin("collimator", "Drift")
-        self._new_builtin("rcollimator", "Drift")
-        self._new_builtin("ecollimator", "Drift")
-        self._new_builtin("instrument", "Drift")
-        self._new_builtin("monitor", "Drift")
-        self._new_builtin("hmonitor", "Drift")
-        self._new_builtin("vmonitor", "Drift")
-        self._new_builtin("imonitor", "Drift")
-        self._new_builtin("placeholder", "Drift")
-        self._new_builtin("wire", "Drift")
+        self._new_builtin("collimator", "Device")
+        self._new_builtin("rcollimator", "Device")
+        self._new_builtin("ecollimator", "Device")
+        self._new_builtin("instrument", "Device")
+        self._new_builtin("monitor", "Device")
+        self._new_builtin("hmonitor", "Device")
+        self._new_builtin("vmonitor", "Device")
+        self._new_builtin("imonitor", "Device")
+        self._new_builtin("placeholder", "Device")
+        self._new_builtin("wire", "Device")
         self._new_builtin("sbend", "Bend")
         self._new_builtin("rbend", "RBend")
         self._new_builtin("quadrupole", "Quadrupole")
@@ -566,9 +566,8 @@ class MadxLoader:
             if (angle := params.pop('angle', None)):
                 params['rot_y_rad'] = angle
         elif parent_name == 'translation':
-            if (ds := params.pop('ds', None)):
-                raise NotImplementedError('`ds` parameter not supported yet for '
-                                          '`translation` elements.')
+            if 'ds' in params:
+                params['shift_s'] = params.pop('ds')
             if (dx := params.pop('dx', None)):
                 params['shift_x'] = dx
             if (dy := params.pop('dy', None)):

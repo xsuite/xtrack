@@ -10,6 +10,7 @@ import numpy as np
 import xobjects as xo
 from scipy.special import factorial
 
+from ..base_element import FloatOrTpsa
 from ..general import DEPRECATION_INFO_PREP_1_0
 from ..internal_record import RecordIndex
 
@@ -578,9 +579,9 @@ class _BendCommon(_HasKnlKsl, _HasIntegrator, _HasModelCurved):
     _skip_in_to_dict = ['inv_factorial_order', 'h', 'k0_from_h']
 
     _common_xofields = {
-        'k0': xo.Float64,
-        'k1': xo.Float64,
-        'k2': xo.Float64,
+        'k0': FloatOrTpsa,
+        'k1': FloatOrTpsa,
+        'k2': FloatOrTpsa,
         'h': xo.Float64,
         'angle': xo.Float64,
         'length': xo.Float64,

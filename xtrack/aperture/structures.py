@@ -512,7 +512,7 @@ class SurveyData(xo.Struct):
             s[idx] = row.s[0]
             poses[idx, :3, 0] = row.ex[0]
             poses[idx, :3, 1] = row.ey[0]
-            poses[idx, :3, 2] = row.ez[0]
+            poses[idx, :3, 2] = row.es[0]
             poses[idx, :, 3] = np.hstack([row.X[0], row.Y[0], row.Z[0], 1])
             lengths[idx] = row.length[0]
 
