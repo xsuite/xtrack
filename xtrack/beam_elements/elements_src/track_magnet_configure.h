@@ -31,7 +31,7 @@ void configure_tracking_model(
     // model = 6: drift-kick-drift-expanded
     // model = 7: rot-kick-rot-low-order
     // model = 8: rot-kick-rot-high-order
-    // model = 10: mat-kick-mat-exact (mat-kick-mat plus an exact
+    // model = 9: mat-kick-mat-exact (mat-kick-mat plus an exact
     //             momentum-only path correction, applied only when h==0;
     //             falls back to plain mat-kick-mat when h!=0, since the
     //             correction is not exact for curved reference frames)
@@ -64,9 +64,9 @@ void configure_tracking_model(
     else if(model == 4){ // mat-kick-mat
         drift_model = 3; // expanded
     }
-    else if(model == 10){ // mat-kick-mat-exact
+    else if(model == 9){ // mat-kick-mat-exact
         if (h_is_zero){
-            drift_model = 10; // expanded dipole-quad + exact path correction
+            drift_model = 9; // expanded dipole-quad + exact path correction
         }
         else{
             drift_model = 3; // curvature present: identical to plain mat-kick-mat
@@ -129,8 +129,8 @@ void configure_tracking_model(
         *k1_h_correction = k1;
         *kick_rot_frame = 0;
     }
-    else if (drift_model == 3 || drift_model == 10){ // expanded dipole-quadrupole
-                                                      // (10 also gets an exact
+    else if (drift_model == 3 || drift_model == 9){ // expanded dipole-quadrupole
+                                                      // (9 also gets an exact
                                                       // path correction in the kick)
         *k0_drift = k0;
         *k1_drift = k1;

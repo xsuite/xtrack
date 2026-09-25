@@ -94,7 +94,7 @@ void track_magnet_kick_single_particle(
         // For mat-kick-mat-exact that leaves nothing between the two path
         // corrections, and the correction is a momentum-only map, so
         // B(l/2) B(l/2) = B(l) and a single call does the job.
-        if (drift_model == 10) {
+        if (drift_model == 9) {
             track_magnet_kick_path_correction_single_particle_h0(
                 part, length_of_this_kick);
         }
@@ -105,7 +105,7 @@ void track_magnet_kick_single_particle(
     xt_float_or_tpsa const x = LocalParticle_get_x(part);
     xt_float_or_tpsa const y = LocalParticle_get_y(part);
 
-    if (drift_model == 10) {
+    if (drift_model == 9) {
         track_magnet_kick_path_correction_single_particle_h0(
             part, 0.5 * length_of_this_kick);
     }
@@ -195,7 +195,7 @@ void track_magnet_kick_single_particle(
     LocalParticle_add_to_py(part, dpy);
     LocalParticle_add_to_zeta(part, dzeta);
 
-    if (drift_model == 10) {
+    if (drift_model == 9) {
         track_magnet_kick_path_correction_single_particle_h0(
             part, 0.5 * length_of_this_kick);
     }

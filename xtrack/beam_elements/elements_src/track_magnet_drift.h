@@ -579,7 +579,7 @@ void track_magnet_drift_single_particle(
         case 3:
             track_expanded_combined_dipole_quad_single_particle(part, length, k0, k1, h);
             break;
-        case 10:
+        case 9:
             track_expanded_combined_dipole_quad_single_particle(part, length, k0, k1, h);
             break;
         case 4:
