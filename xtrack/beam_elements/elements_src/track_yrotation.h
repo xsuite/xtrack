@@ -29,11 +29,11 @@ void YRotation_single_particle(LocalParticle* part, double sin_angle, double cos
     /* Spin tracking is disabled by the synrad compile flag */
     #ifndef XTRACK_MULTIPOLE_NO_SYNRAD
         /* Rotate spin */
-        double const spin_x_0 = LocalParticle_get_spin_x(part);
-        double const spin_z_0 = LocalParticle_get_spin_z(part);
-        if ((spin_x_0 != 0) || (spin_z_0 != 0)){
-            double const spin_x_1 = cos_angle*spin_x_0 - sin_angle*spin_z_0;
-            double const spin_z_1 = sin_angle*spin_x_0 + cos_angle*spin_z_0;
+        xt_float_or_tpsa const spin_x_0 = LocalParticle_get_spin_x(part);
+        xt_float_or_tpsa const spin_z_0 = LocalParticle_get_spin_z(part);
+        if (!xt_float_or_tpsa_is_zero(spin_x_0) || !xt_float_or_tpsa_is_zero(spin_z_0)){
+            xt_float_or_tpsa const spin_x_1 = cos_angle*spin_x_0 - sin_angle*spin_z_0;
+            xt_float_or_tpsa const spin_z_1 = sin_angle*spin_x_0 + cos_angle*spin_z_0;
             LocalParticle_set_spin_x(part, spin_x_1);
             LocalParticle_set_spin_z(part, spin_z_1);
         }

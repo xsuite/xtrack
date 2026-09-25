@@ -119,7 +119,7 @@ for ff in fnames:
     start = content.find('INTEGRATION_CODE[[')
     end = content.find(']]', start)
 
-    part_before = content[:start]
+    part_before = content[:start].rstrip(' ')  # the placeholder's indentation
     part_integration_code = content[start:end + 2]  # include the closing brackets
     part_after = content[end + 2:]
 

@@ -289,8 +289,17 @@ class Tracker:
                 "Please rebuild the tracker, for example using `line.build_tracker(...)`.")
 
     def _track(self, particles, *args, **kwargs):
+        tpsa_track = isinstance(particles, ParticlesTpsa)
         original_tpsa_track = self.config.XTRACK_TPSA_TRACK
-        self.config.XTRACK_TPSA_TRACK = isinstance(particles, ParticlesTpsa)
+        no_synrad = self.config.get("XTRACK_MULTIPOLE_NO_SYNRAD", False)
+        if (tpsa_track and not no_synrad
+                and np.any(self.line.attr["radiation_flag"])):
+            raise NotImplementedError(
+                "TPSA tracking does not support synchrotron radiation. "
+                "Use line.configure_radiation(model=None)."
+            )
+        # Radiation is never compiled for TPSA, so the synrad flag only gates spin there.
+        self.config.XTRACK_TPSA_TRACK = tpsa_track
         try:
             return self._track_with_current_config(particles, *args, **kwargs)
         finally:
@@ -456,11 +465,6 @@ class Tracker:
             raise NotImplementedError("progress tracking is not implemented for TPSA tracking")
         if turn_by_turn_monitor not in (None, False):
             raise NotImplementedError("TPSA turn-by-turn monitors are not implemented yet")
-        if self.line.config.data.get("XTRACK_MULTIPOLE_NO_SYNRAD", False) is not True:
-            raise NotImplementedError(
-                "TPSA tracking does not support synchrotron radiation. "
-                "Set line.config.XTRACK_MULTIPOLE_NO_SYNRAD = True."
-            )
 
         if isinstance(ele_start, str):
             ele_start = self.line.element_names.index(ele_start)
@@ -1843,9 +1847,7 @@ class Tracker:
         else:
             part_id_start, part_id_end = 0, 1  # a map is a single particle
         num_particles = part_id_end - part_id_start
-        num_cooordinates = 7 # hardcoded for now (C code of the monitor
-                             # needs to be extended if different number
-                             # of coordinates is needed)
+        num_cooordinates = len(xt.MultiElementMonitor._coord_name_to_index)
         num_elements = len(obs_names)
         num_turns = num_turns if num_turns is not None else 1
 
