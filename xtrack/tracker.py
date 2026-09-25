@@ -300,19 +300,19 @@ class Tracker:
             self, particles, *args, with_progress: Union[bool, int] = False,
             time=False, multi_element_monitor_at=None, monitor_monomials=None, **kwargs):
 
-        if not self.config.get('XTRACK_MULTIPOLE_NO_SYNRAD', False):
-            # Radiation and spin share a compile flag. BFieldExpansion may
-            # track without radiating, but spin transport is not implemented.
-            for element_class in self.line_element_classes:
-                if issubclass(element_class._DressingClass,
-                              (xt.BFieldExpansion, xt.ThickSliceBFieldExpansion)):
-                    if self.line._spin_model:
-                        raise NotImplementedError(
-                            'BFieldExpansion does not support spin tracking.')
-                    # Twiss can request spin directly through this flag,
-                    # without setting line._spin_model.
-                    xt.BFieldExpansion._check_spin_tracking(particles)
-                    break
+        # if not self.config.get('XTRACK_MULTIPOLE_NO_SYNRAD', False):
+        #     # Radiation and spin share a compile flag. BFieldExpansion may
+        #     # track without radiating, but spin transport is not implemented.
+        #     for element_class in self.line_element_classes:
+        #         if issubclass(element_class._DressingClass,
+        #                       (xt.BFieldExpansion, xt.ThickSliceBFieldExpansion)):
+        #             if self.line._spin_model:
+        #                 raise NotImplementedError(
+        #                     'BFieldExpansion does not support spin tracking.')
+        #             # Twiss can request spin directly through this flag,
+        #             # without setting line._spin_model.
+        #             xt.BFieldExpansion._check_spin_tracking(particles)
+        #             break
 
         out = None
 
