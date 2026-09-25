@@ -8101,13 +8101,15 @@ class LineAttrItem:
                 if isinstance(ee, xt.Replica):
                     nn = ee.resolve(line, get_name=True)
                     ee = line._element_dict[nn]
-                if hasattr(ee, nn0):
+                if (hasattr(ee, nn0)
+                        or nn0 in getattr(ee, '_line_attr_methods', {})):
                     has_nn0.append((ii, nn, ee))
             cache_has_name[nn0] = has_nn0
 
         mask = np.zeros(len(all_names), dtype=bool)
         setter_names = []
         self._python_properties = []
+        self._python_methods = []
         for ii, nn, ee in has_nn0:
             has_name = True
             if isinstance(name, str):
@@ -8124,6 +8126,12 @@ class LineAttrItem:
                     inner_obj = getattr(inner_obj, nn_inner)
 
             if (has_name and inner_name in
+                    getattr(inner_obj, '_line_attr_methods', {})):
+                # Computed totals can differ from the user-facing knl/ksl
+                # inputs, and profile slices need their own interval integral.
+                method, result_index = inner_obj._line_attr_methods[inner_name]
+                self._python_methods.append((ii, inner_obj, method, result_index))
+            elif (has_name and inner_name in
                     getattr(inner_obj, '_line_attr_properties', ())):
                 # Nonuniform-profile slices compute interval strengths from
                 # their parent without maintaining a second cache per slice.
@@ -8160,13 +8168,28 @@ class LineAttrItem:
             self._prepare_multisetter()
         return self._mask
 
-    def get_full_array(self):
+    def get_full_array(self, method_cache=None):
         full_array = np.zeros(len(self.mask), dtype=np.float64)
         ctx2np = self.multisetter._context.nparray_from_context_array
         full_array[self.mask] = ctx2np(self.multisetter.get_values())
         for ii, obj, name in self._python_properties:
             value = getattr(obj, name)
             full_array[ii] = value if self.index is None else value[self.index]
+        for ii, obj, method, result_index in self._python_methods:
+            # Reuse a total across normal/skew orders while building a table.
+            # The cache belongs to one extraction, so later updates stay live.
+            key = (id(obj), method)
+            if method_cache is not None and key in method_cache:
+                result = method_cache[key]
+            else:
+                result = getattr(obj, method)()
+                if method_cache is not None:
+                    method_cache[key] = result
+            value = result[result_index]
+            if self.index is None:
+                full_array[ii] = value
+            elif self.index < len(value):
+                full_array[ii] = value[self.index]
         return full_array
 
 class LineAttr:
@@ -8232,7 +8255,7 @@ class LineAttr:
         if key in self.derived_fields:
             out=  self.derived_fields[key](self)
         else:
-            out = self._cache[key].get_full_array()
+            out = self._cache[key].get_full_array(method_cache=self._value_cache)
 
         if self._value_cache is not None:
             self._value_cache[key] = out

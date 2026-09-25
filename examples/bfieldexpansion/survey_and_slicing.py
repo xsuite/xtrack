@@ -204,7 +204,7 @@ def main():
                                    rtol=0, atol=1e-14)
         np.testing.assert_allclose(sum(el.angle for el in elements), BEND_ANGLE,
                                    rtol=0, atol=1e-14)
-        np.testing.assert_allclose(sum(el.knl[0] for el in elements), BEND_ANGLE,
+        np.testing.assert_allclose(sum(el.get_total_knl_ksl()[0][0] for el in elements), BEND_ANGLE,
                                    rtol=0, atol=1e-14)
     np.testing.assert_allclose(survey.s[-1], 2 * BEND_LENGTH + GAP, rtol=0, atol=1e-14)
 

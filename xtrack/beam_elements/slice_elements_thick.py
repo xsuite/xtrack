@@ -37,7 +37,8 @@ class ThickSliceBFieldExpansion(_ThickSliceElementBase, BeamElement):
     allow_loss_refinement = False
     # The profile is nonuniform: compute strengths on this interval on demand.
     _inherit_strengths = False
-    _line_attr_properties = ('hxl', 'knl', 'ksl', 'ksoll')
+    _line_attr_properties = ('hxl', 'ksoll')
+    _line_attr_methods = BFieldExpansion._line_attr_methods
 
     _xofields = {
         '_parent': xo.Ref(BFieldExpansion),
@@ -82,13 +83,10 @@ class ThickSliceBFieldExpansion(_ThickSliceElementBase, BeamElement):
         result.flags.writeable = False
         return result
 
-    @property
-    def knl(self):
-        return self._integrated_strength('knc')
-
-    @property
-    def ksl(self):
-        return self._integrated_strength('ksc')
+    def get_total_knl_ksl(self):
+        """Integrate the profiles on this slice and add its hard-edge share."""
+        return self._parent._get_total_knl_ksl(
+            self.s_start, self._parent.length * self.weight, self.weight)
 
     @property
     def ksoll(self):

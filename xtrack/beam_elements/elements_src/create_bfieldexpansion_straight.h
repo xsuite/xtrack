@@ -14,8 +14,14 @@ since m does not necessarily start at 0
 GPUFUN
 void build_expansion_straight(BFieldExpansionData el){
     const int ncoef = BFieldExpansionData_get__ncoef(el);
-    const int na    = BFieldExpansionData_get_na(el);
-    const int nb    = BFieldExpansionData_get_nb(el);
+    const int nac   = BFieldExpansionData_get_na(el);
+    const int nbc   = BFieldExpansionData_get_nb(el);
+    const int nal   = BFieldExpansionData_len_ksl(el);
+    const int nbl   = BFieldExpansionData_len_knl(el);
+    const int na    = nac > nal ? nac : nal;
+    const int nb    = nbc > nbl ? nbc : nbl;
+    const double length = BFieldExpansionData_get_length(el);
+    const double inv_length = length != 0.0 ? 1.0 / length : 0.0;
     const int deg   = BFieldExpansionData_get_deg(el);
     GPUGLMEM const double *ksc = BFieldExpansionData_getp2_ksc(el, 0, 0);
     GPUGLMEM const double *knc = BFieldExpansionData_getp2_knc(el, 0, 0);
@@ -39,14 +45,22 @@ void build_expansion_straight(BFieldExpansionData el){
 
     for (int n = 1; n <= na; ++n) {
         const double fac = -invfact[n];
-        GPUGLMEM const double *an = ksc + (size_t)(n - 1) * (size_t)(deg + 1);
-        for (int k = 0; k <= deg; ++k) c[cidx(0,n,k,nm,moff,deg)] += fac * an[k];
+        if (n <= nac) {
+            GPUGLMEM const double *an = ksc + (size_t)(n - 1) * (size_t)(deg + 1);
+            for (int k = 0; k <= deg; ++k) c[cidx(0,n,k,nm,moff,deg)] += fac * an[k];
+        }
+        if (n <= nal)
+            c[cidx(0,n,0,nm,moff,deg)] += fac * BFieldExpansionData_get_ksl(el, n - 1) * inv_length;
     }
     if (ncoef > 1) {
         for (int n = 1; n <= nb; ++n) {
             const double fac = -invfact[n - 1];
-            GPUGLMEM const double *bn = knc + (size_t)(n - 1) * (size_t)(deg + 1);
-            for (int k = 0; k <= deg; ++k) c[cidx(1,n-1,k,nm,moff,deg)] += fac * bn[k];
+            if (n <= nbc) {
+                GPUGLMEM const double *bn = knc + (size_t)(n - 1) * (size_t)(deg + 1);
+                for (int k = 0; k <= deg; ++k) c[cidx(1,n-1,k,nm,moff,deg)] += fac * bn[k];
+            }
+            if (n <= nbl)
+                c[cidx(1,n-1,0,nm,moff,deg)] += fac * BFieldExpansionData_get_knl(el, n - 1) * inv_length;
         }
     }
 

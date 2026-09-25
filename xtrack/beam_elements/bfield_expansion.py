@@ -232,7 +232,9 @@ class _BFieldExpansionGeometry:
 
     @num_phi.setter
     def num_phi(self, value):
-        value = self._resolve_num_phi(value, self.na, self.nb, self.deg, self.straight)
+        value = self._resolve_num_phi(
+            value, max(self.na, len(self.ksl)), max(self.nb, len(self.knl)),
+            self.deg, self.straight)
         # Environment.new writes constructor arguments back to the element.
         # Accept the same order (including 'auto'), but do not invalidate
         # the allocated cache or references from existing slices.
@@ -288,11 +290,33 @@ class _BFieldExpansionGeometry:
 
     @property
     def knl(self):
-        return _BFieldExpansionArray(self, 'knl', readonly=True)
+        # These views contain user inputs, not the integrated profile totals.
+        # Controlled writes keep the combined field cache up to date.
+        return _BFieldExpansionArray(self, 'knl')
+
+    @knl.setter
+    def knl(self, value):
+        self._set_hard_edge_strengths('knl', value)
 
     @property
     def ksl(self):
-        return _BFieldExpansionArray(self, 'ksl', readonly=True)
+        return _BFieldExpansionArray(self, 'ksl')
+
+    @ksl.setter
+    def ksl(self, value):
+        self._set_hard_edge_strengths('ksl', value)
+
+    def _set_hard_edge_strengths(self, name, value):
+        if (isinstance(value, _BFieldExpansionArray)
+                and value._element is self and value._name == name
+                and value._inplace_result):
+            self._check_inplace_result(name, value)
+            return
+        values = np.asarray(value, dtype=float)
+        shape = getattr(self, '_' + name).shape
+        if values.shape != shape:
+            raise ValueError(f'{name} must retain its allocated shape {shape}')
+        getattr(self, name)[:] = values
 
     @property
     def ksoll(self):
@@ -302,6 +326,8 @@ class _BFieldExpansionGeometry:
         raw = getattr(self, '_' + name)
         coefficients = self._context.nparray_from_context_array(raw).copy()
         coefficients.ravel()[index] = value
+        if name in ('knl', 'ksl') and self.length == 0 and np.any(coefficients):
+            raise ValueError('Nonzero knl/ksl require a nonzero length')
         raw[:] = self._context.nparray_to_context_array(coefficients)
         self._update_expansion()
 
@@ -312,9 +338,28 @@ class _BFieldExpansionGeometry:
         self._update_integrated_strengths()
 
     def _update_integrated_strengths(self):
-        for source, target in [('knc', 'knl'), ('ksc', 'ksl'), ('ksol', 'ksoll')]:
-            integrated = self._integrate_coefficients(source, self.s_start, self.length)
-            getattr(self, '_' + target)[:] = self._context.nparray_to_context_array(integrated)
+        integrated = self._integrate_coefficients('ksol', self.s_start, self.length)
+        self._ksoll[:] = self._context.nparray_to_context_array(integrated)
+
+    def get_total_knl_ksl(self):
+        """Return normal/skew profile integrals plus the hard-edge inputs.
+
+        The returned NumPy arrays are detached from the element, padded to
+        the same length (at least four entries), and use the usual Xtrack
+        integrated-multipole convention.
+        """
+        return self._get_total_knl_ksl(self.s_start, self.length, weight=1.)
+
+    def _get_total_knl_ksl(self, s_start, length, weight):
+        size = max(4, self.nb, self.na, len(self.knl), len(self.ksl))
+        totals = []
+        for source, hard_edge in [('knc', self.knl), ('ksc', self.ksl)]:
+            integrated = self._integrate_coefficients(source, s_start, length)
+            total = np.zeros(size)
+            total[:len(integrated)] = integrated
+            total[:len(hard_edge)] += weight * np.asarray(hard_edge)
+            totals.append(total)
+        return tuple(totals)
 
     def _integrate_coefficients(self, name, s_start, length):
         # Each row uses ascending powers of the polynomial coordinate.
@@ -356,10 +401,13 @@ class _BFieldExpansionGeometry:
 
     @length.setter
     def length(self, value):
+        if value == 0 and (np.any(self.knl) or np.any(self.ksl)):
+            raise ValueError('Nonzero knl/ksl require a nonzero length')
         self._length = value
         self._angle = self.length * self.h
         self.ds = self.length / self.nstep
-        self._update_integrated_strengths()
+        # The hard-edge field densities are knl/length and ksl/length.
+        self._update_expansion()
 
     @staticmethod
     def _validate_nstep(value):
@@ -413,7 +461,19 @@ class BFieldExpansion(_BFieldExpansionGeometry, BeamElement):
         By(x, 0, s)/(B rho) = sum_i sum_j knc[i, j]*s**j*x**i/i!.
         Thus knc[0, 0], knc[1, 0], and knc[2, 0] are respectively the
         constant dipole, quadrupole, and sextupole strengths. They are not
-        integrated strengths; knl contains the longitudinal integrals.
+        integrated strengths; get_total_knl_ksl() returns the longitudinal
+        integrals including any additional hard-edge strengths.
+    knl, ksl : one-dimensional arrays, optional
+        Additional integrated normal and skew hard-edge strengths, in the
+        usual Xtrack convention. Within the element, knl[i]/length and
+        ksl[i]/length are added to the constant terms of knc[i] and ksc[i],
+        respectively, without modifying those input arrays. No extra fringe
+        is added at the boundaries. Defaults to zero arrays with one entry
+        per corresponding coefficient row. Input arrays may include higher
+        multipole orders than knc/ksc; these are included in the allocation
+        and automatic expansion order. Nonzero strengths require a nonzero
+        length. Changing length preserves these integrated inputs and
+        recomputes their field densities.
     ksol : array, shape (deg+1,)
         On-axis Bs/(B rho) in ascending powers of s. Include a trailing zero
         coefficient so its integral fits in the scalar-potential polynomial.
@@ -439,9 +499,10 @@ class BFieldExpansion(_BFieldExpansionGeometry, BeamElement):
         Polynomial coordinate at the element entrance, in metres. Tracking
         evaluates the profiles from s_start to s_start + length. Default is 0.
 
-    Coefficient arrays retain their fixed input shapes. Update values with
-    ``element.knc[...] = values`` (likewise for ksc and ksol); reassignment is
-    prohibited. In-place updates rebuild the cached field expansion. NumPy
+    All coefficient arrays retain their fixed input shapes. Update values with
+    ``element.knc[...] = values`` (likewise for ksc, ksol, knl and ksl).
+    knl/ksl also accept assignment of an array of the same shape; knc/ksc/ksol
+    cannot be reassigned. Updates rebuild the cached field expansion. NumPy
     conversions return detached copies. This element does not radiate yet,
     even when radiation is enabled for the line. Spin tracking is not
     supported and raises NotImplementedError.
@@ -456,9 +517,6 @@ class BFieldExpansion(_BFieldExpansionGeometry, BeamElement):
 
     Attributes
     ----------
-    knl, ksl : arrays
-        Read-only normal and skew strengths integrated from s_start to
-        s_start + length, with one entry per transverse derivative order.
     ksoll : array, shape (1,)
         Read-only integral of ksol over the same interval.
     straight : int
@@ -473,6 +531,10 @@ class BFieldExpansion(_BFieldExpansionGeometry, BeamElement):
     allow_loss_refinement = False
     allow_rot_and_shift = False
     _noexpr_fields = {'num_phi'}
+    _line_attr_methods = {
+        'knl': ('get_total_knl_ksl', 0),
+        'ksl': ('get_total_knl_ksl', 1),
+    }
 
     _xofields = {
         "length" : xo.Float64,
@@ -555,8 +617,14 @@ class BFieldExpansion(_BFieldExpansionGeometry, BeamElement):
     }
 
     def __init__(self, length, ksc, knc, ksol, num_phi='auto', h=0, nstep=10,
-                 s_start=0, **kwargs):
+                 s_start=0, knl=None, ksl=None, **kwargs):
         ksc, knc, ksol = self._coefficient_arrays(ksc, knc, ksol)
+        knl = np.zeros(knc.shape[0]) if knl is None else np.asarray(knl, dtype=float)
+        ksl = np.zeros(ksc.shape[0]) if ksl is None else np.asarray(ksl, dtype=float)
+        if knl.ndim != 1 or ksl.ndim != 1:
+            raise ValueError('knl and ksl must be one-dimensional arrays')
+        if length == 0 and (np.any(knl) or np.any(ksl)):
+            raise ValueError('Nonzero knl/ksl require a nonzero length')
         self._validate_nstep(nstep)
         kwargs['length'] = length
         straight = int(h == 0)
@@ -575,10 +643,12 @@ class BFieldExpansion(_BFieldExpansionGeometry, BeamElement):
 
         kwargs['na'] = ksc.shape[0]
         kwargs['nb'] = knc.shape[0]
+        na = max(kwargs['na'], len(ksl))
+        nb = max(kwargs['nb'], len(knl))
         kwargs['num_phi'] = self._resolve_num_phi(
-            num_phi, kwargs['na'], kwargs['nb'], ksc.shape[1] - 1, straight)
-        kwargs['knl'] = np.zeros(kwargs['nb'])
-        kwargs['ksl'] = np.zeros(kwargs['na'])
+            num_phi, na, nb, ksc.shape[1] - 1, straight)
+        kwargs['knl'] = knl
+        kwargs['ksl'] = ksl
         kwargs['ksoll'] = np.zeros(1)
 
         kwargs['deg'] = ksc.shape[1] - 1
@@ -591,7 +661,7 @@ class BFieldExpansion(_BFieldExpansionGeometry, BeamElement):
         # Store one extra scalar-potential order for the y derivative in By.
         kwargs['_ncoef'] = kwargs['num_phi'] + 2
 
-        kwargs['_mmax'] = kwargs['na'] if kwargs['na'] > (kwargs['nb'] - 1) else (kwargs['nb'] - 1)
+        kwargs['_mmax'] = max(na, nb - 1)
         if kwargs['straight']:
             kwargs['_mmin'] = 0
             kwargs['_moff'] = 0

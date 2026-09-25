@@ -11,7 +11,8 @@ def make_element(h=0.3, pkin_const=False):
         length=0.8, h=h, s_start=0.17, nstep=160, num_phi=5,
         pkin_const=pkin_const,
         knc=[[0.1, 0.08, -0.03], [0.04, -0.02, 0.01]],
-        ksc=[[0.02, -0.01, 0.02]], ksol=[0.15, 0.03, 0.])
+        ksc=[[0.02, -0.01, 0.02]], ksol=[0.15, 0.03, 0.],
+        knl=[0.01, 0.002, 0.003], ksl=[0.003, 0.004])
 
 
 def slice_names(line):
@@ -27,21 +28,27 @@ def check_strengths(line):
         length = parent.length * element.weight
         assert table['length', name] == pytest.approx(length)
         assert table['angle', name] == pytest.approx(length * parent.h)
+        normal, skew = element.get_total_knl_ksl()
         for source, integrated_name in [('knc', 'knl'), ('ksc', 'ksl'), ('ksol', 'ksoll')]:
             coefficients = np.asarray(getattr(parent, source)).reshape(-1, parent.deg + 1)
-            expected = []
+            total = {'knc': normal, 'ksc': skew, 'ksol': element.ksoll}[source]
+            expected = np.zeros(len(total))
             for order, row in enumerate(coefficients):
                 integral = Polynomial(row).integ()
-                strength = integral(element.s_start + length) - integral(element.s_start)
-                expected.append(strength)
+                expected[order] = integral(element.s_start + length) - integral(element.s_start)
+            if source != 'ksol':
+                hard_edge = np.asarray(getattr(parent, integrated_name))
+                expected[:len(hard_edge)] += hard_edge * element.weight
+            for order, strength in enumerate(expected):
                 column = ('ksoll' if source == 'ksol' else
                           f'k{order}{"s" if source == "ksc" else ""}l')
                 assert table[column, name] == pytest.approx(strength, abs=1e-14)
-            xo.assert_allclose(getattr(element, integrated_name), expected, atol=1e-14, rtol=0)
-            with pytest.raises(ValueError):
-                getattr(element, integrated_name)[0] = 0.
-    for column, expected in [('k0l', parent.knl[0]), ('k1l', parent.knl[1]),
-                             ('k0sl', parent.ksl[0]), ('ksoll', parent.ksoll[0])]:
+            xo.assert_allclose(total, expected, atol=1e-14, rtol=0)
+        with pytest.raises(ValueError):
+            element.ksoll[0] = 0.
+    normal, skew = parent.get_total_knl_ksl()
+    for column, expected in [('k0l', normal[0]), ('k1l', normal[1]),
+                             ('k0sl', skew[0]), ('ksoll', parent.ksoll[0])]:
         assert np.sum(table[column]) == pytest.approx(expected, abs=1e-14)
 
 
@@ -103,7 +110,8 @@ def test_bfieldexpansion_slice_parent_updates_and_serialization(h):
     env['e'].knc[0, 1] = 'strength'
     env['strength'] = 0.2
     env.set('e', length=1.2, s_start=-0.1, nstep=200,
-            ksc=[[0.01, 0.05, -0.02]], ksol=[0.2, 0.04, 0.])
+            ksc=[[0.01, 0.05, -0.02]], ksol=[0.2, 0.04, 0.],
+            knl=[0.002, '0.1*strength', 0.001], ksl=[0.001, -0.001])
     if h:
         env.set('e', h=0.4)
     for i, name in enumerate(slice_names(line)):

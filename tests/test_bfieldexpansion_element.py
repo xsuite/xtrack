@@ -13,7 +13,8 @@ def test_bfieldexpansion_gpu_matches_cpu(test_context, h, pkin_const):
                   pkin_const=pkin_const,
                   ksc=[[0.04, 0.2, 0.], [0.03, 0., 0.]],
                   knc=[[0.05, 0.1, 0.], [0.02, 0., 0.]],
-                  ksol=[0.1, 0.02, 0.])
+                  ksol=[0.1, 0.02, 0.], knl=[0.01, 0.003, 0.001],
+                  ksl=[0.002, 0.001])
     reference = xt.BFieldExpansion(**kwargs)
     element = xt.BFieldExpansion(_context=test_context, **kwargs)
     initial = xt.Particles(
@@ -36,6 +37,8 @@ def test_bfieldexpansion_gpu_matches_cpu(test_context, h, pkin_const):
                 ee.knc[0, 1] += 0.02
                 ee.ksc[0, 0] -= 0.01
                 ee.ksol[0] += 0.03
+                ee.knl[1] += 0.002
+                ee.ksl[0] -= 0.001
         xo.assert_allclose(element._c, reference._c, rtol=0, atol=1e-13)
         field = element.get_field(initial.x, initial.y, [0.1, 0.2, 0.4])
         expected_field = reference.get_field(initial.x, initial.y, [0.1, 0.2, 0.4])
@@ -458,14 +461,19 @@ def test_bfieldexpansion_does_not_radiate(h, model, sliced):
 def _check_integrated_bfieldexpansion_strengths(element):
     from numpy.polynomial import Polynomial
 
-    for name, integral_name in [('knc', 'knl'), ('ksc', 'ksl'), ('ksol', 'ksoll')]:
+    knl, ksl = element.get_total_knl_ksl()
+    for name, integral_name, total in [('knc', 'knl', knl), ('ksc', 'ksl', ksl),
+                                      ('ksol', 'ksoll', element.ksoll)]:
         coefficients = np.asarray(getattr(element, name)).reshape(-1, element.deg + 1)
-        expected = []
-        for row in coefficients:
+        expected = np.zeros(len(total))
+        for order, row in enumerate(coefficients):
             integral = Polynomial(row).integ()
-            expected.append(integral(element.s_start + element.length)
-                            - integral(element.s_start))
-        xo.assert_allclose(getattr(element, integral_name), expected, rtol=0, atol=1e-14)
+            expected[order] = (integral(element.s_start + element.length)
+                               - integral(element.s_start))
+        if name != 'ksol':
+            hard_edge = getattr(element, integral_name)
+            expected[:len(hard_edge)] += np.asarray(hard_edge)
+        xo.assert_allclose(total, expected, rtol=0, atol=1e-14)
 
 
 @pytest.mark.parametrize('h', [0., 0.3])
@@ -579,8 +587,7 @@ def test_bfieldexpansion_env_rejects_invalid_updates(h):
             env.set('e', **{name: value})
         assert element.length == 0.3
         xo.assert_allclose(element._c, original, rtol=0, atol=0)
-    for name, value in [('angle', 0.2), ('knl', [1., 2., 3.]),
-                        ('ksl', [1.]), ('ksoll', [1.])]:
+    for name, value in [('angle', 0.2), ('ksoll', [1.])]:
         with pytest.raises((ValueError, AttributeError)):
             env.set('e', **{name: value})
         assert env.get('e') is element
@@ -671,14 +678,15 @@ def test_bfieldexpansion_coefficient_updates(h):
 
 
 @pytest.mark.parametrize('h', [0., 0.3])
-def test_bfieldexpansion_readonly_integrals_and_twiss_strengths(h):
+def test_bfieldexpansion_total_integrals_and_twiss_strengths(h):
     knc = np.arange(1, 19).reshape(6, 3) * 1e-4
     ksc = np.arange(1, 10).reshape(3, 3) * 1e-4
     element = xt.BFieldExpansion(
         length=0.2, h=h, s_start=0.1, num_phi=5, knc=knc, ksc=ksc,
         ksol=np.array([0.02, 0.01, 0.]),
+        knl=[0.001, 0.002], ksl=[0.003, 0., 0., 0.0001],
     )
-    for name in ['knl', 'ksl', 'ksoll']:
+    for name in ['ksoll']:
         values = getattr(element, name)
         original = values.copy()
         with pytest.raises(AttributeError):
@@ -695,6 +703,7 @@ def test_bfieldexpansion_readonly_integrals_and_twiss_strengths(h):
 
     line = xt.Line(elements={
         'expansion': element,
+        'replica': xt.Replica(parent_name='expansion'),
         'solenoid': xt.UniformSolenoid(length=0.1, ks=0.02),
         'variable_solenoid': xt.VariableSolenoid(length=0.15, ks_profile=[0.02, 0.04]),
     })
@@ -710,15 +719,20 @@ def test_bfieldexpansion_readonly_integrals_and_twiss_strengths(h):
             line.vars['normal'] = 0.03
             line['expansion'].ksc[0, 1] = 0.04
             line['expansion'].ksol[0] = 0.05
+            line.vars['hard_edge'] = 0.002
+            line.ref['expansion'].knl[1] = line.vars['hard_edge']
+            line.vars['hard_edge'] = 0.004
+            line['expansion'].ksl[3] = 0.0002
             element.length = 0.3
             element.s_start = 0.2
         _check_integrated_bfieldexpansion_strengths(element)
+        normal, skew = element.get_total_knl_ksl()
         for table in [line.get_table(attr=True), line.get_strengths(),
                       line.twiss(betx=1., bety=1., strengths=True)]:
             for order in range(6):
-                assert table[f'k{order}l', 'expansion'] == pytest.approx(element.knl[order])
-                skew = element.ksl[order] if order < element.na else 0.
-                assert table[f'k{order}sl', 'expansion'] == pytest.approx(skew)
+                for name in ('expansion', 'replica'):
+                    assert table[f'k{order}l', name] == pytest.approx(normal[order])
+                    assert table[f'k{order}sl', name] == pytest.approx(skew[order])
             assert table['ksoll', 'expansion'] == pytest.approx(element.ksoll[0])
             assert table['ks', 'expansion'] == 0.  # Skew coefficients are not a scalar solenoid strength.
             assert table['ksoll', '_end_point'] == 0.
@@ -730,6 +744,113 @@ def test_bfieldexpansion_readonly_integrals_and_twiss_strengths(h):
     serialized = element.to_dict()
     for name in ['knc', 'ksc', 'ksol', 'knl', 'ksl', 'ksoll']:
         xo.assert_allclose(serialized[name], getattr(element, name), rtol=0, atol=0)
+
+
+@pytest.mark.parametrize('h', [0., 0.3])
+@pytest.mark.parametrize('pkin_const', [False, True])
+def test_bfieldexpansion_hard_edge_inputs(h, pkin_const):
+    element = xt.BFieldExpansion(
+        length=0.4, h=h, s_start=-0.1, nstep=20, pkin_const=pkin_const,
+        knc=[[0.1, 0.02, 0.003]], ksc=[[0.01, -0.005, 0.]],
+        ksol=[0.02, 0.001, 0.],
+        knl=[0.02, 0.01, 0.004], ksl=[0.001, 0.002])
+    original_knc = element.knc.copy()
+    original_ksc = element.ksc.copy()
+    for changed in (False, True):
+        if changed:
+            element.knl[1:] *= 1.2
+            np.add.at(element.ksl, 0, 0.0001)
+            element.knl *= 0.9
+            element.knl = [0.01, 0.003, 0.004]
+            element.ksl = [0.002, 0.001]
+            element.length = 0.7
+            element.s_start = 0.15
+            if h:
+                element.h = 0.4
+
+        combined = {}
+        for profile, hard_edge in [('knc', 'knl'), ('ksc', 'ksl')]:
+            coefficients = np.asarray(getattr(element, profile))
+            integrated = np.asarray(getattr(element, hard_edge))
+            values = np.zeros((max(len(coefficients), len(integrated)), element.deg + 1))
+            values[:len(coefficients)] = coefficients
+            values[:len(integrated), 0] += integrated / element.length
+            combined[profile] = values
+        reference = xt.BFieldExpansion(
+            length=element.length, h=element.h, s_start=element.s_start,
+            ksol=element.ksol, nstep=element.nstep, pkin_const=pkin_const,
+            **combined)
+        assert element.num_phi == reference.num_phi
+        field = element.get_field(x=[-0.01, 0.02], y=[0.015, -0.007], s_local=[0., 0.3])
+        expected_field = reference.get_field(x=[-0.01, 0.02], y=[0.015, -0.007], s_local=[0., 0.3])
+        for name in field.dtype.names:
+            xo.assert_allclose(field[name], expected_field[name], rtol=0, atol=1e-13)
+        particles = xt.Particles(p0c=1e9, x=0.01, px=0.002, y=0.007, delta=0.01)
+        expected = particles.copy()
+        element.track(particles)
+        reference.track(expected)
+        for coord in ('x', 'px', 'y', 'py', 'zeta', 'delta', 's', 'ax', 'ay'):
+            xo.assert_allclose(getattr(particles, coord), getattr(expected, coord),
+                               rtol=0, atol=1e-13)
+        _check_integrated_bfieldexpansion_strengths(element)
+        for total in element.get_total_knl_ksl():
+            total[:] = 99.
+        _check_integrated_bfieldexpansion_strengths(element)
+        xo.assert_allclose(element.knc, original_knc, rtol=0, atol=0)
+        xo.assert_allclose(element.ksc, original_ksc, rtol=0, atol=0)
+        restored = xt.BFieldExpansion.from_dict(element.to_dict())
+        for name in ('knl', 'ksl', 'knc', 'ksc', '_c'):
+            xo.assert_allclose(getattr(restored, name), getattr(element, name),
+                               rtol=0, atol=0)
+
+
+@pytest.mark.parametrize('h', [0., 0.3])
+def test_bfieldexpansion_hard_edge_environment(h):
+    env = xt.Environment()
+    env['normal'] = 0.01
+    env['skew'] = 0.002
+    env.new('e', 'BFieldExpansion', length=0.4, h=h, knc=[[0.1]],
+            ksc=[[0.]], ksol=[0.], num_phi='auto',
+            knl=[0., 'normal'], ksl=['skew', 0., 0.])
+    env.new('clone', 'e')
+    env.new('linked', 'e', knl=env.ref['e'].knl, ksl=env.ref['e'].ksl)
+    env['normal'] = 0.02
+    env['skew'] = 0.003
+    for name in ('e', 'clone', 'linked'):
+        assert env[name].knl[1] == 0.02
+        assert env[name].ksl[0] == 0.003
+        _check_integrated_bfieldexpansion_strengths(env.get(name))
+    env.set('e', knl=[0.001, '2*normal'], ksl=['3*skew', 0., 0.001], length=0.5)
+    env['normal'] = 0.03
+    env['skew'] = 0.004
+    reference = xt.BFieldExpansion(
+        length=0.5, h=h, knc=[[0.102], [0.12]],
+        ksc=[[0.024], [0.], [0.002]], ksol=[0.])
+    for name in ('e', 'linked'):
+        xo.assert_allclose(env.get(name).knl, [0.001, 0.06], rtol=0, atol=0)
+        xo.assert_allclose(env.get(name).ksl, [0.012, 0., 0.001], rtol=0, atol=0)
+    xo.assert_allclose(env.get('e')._c, reference._c, rtol=0, atol=1e-13)
+
+
+def test_bfieldexpansion_hard_edge_validation():
+    kwargs = dict(knc=[[0.]], ksc=[[0.]], ksol=[0.])
+    for name in ('knl', 'ksl'):
+        with pytest.raises(ValueError, match='one-dimensional'):
+            xt.BFieldExpansion(length=0.3, **kwargs, **{name: [[0.]]})
+        with pytest.raises(ValueError, match='nonzero length'):
+            xt.BFieldExpansion(length=0., **kwargs, **{name: [0.1]})
+        element = xt.BFieldExpansion(length=0., **kwargs)
+        with pytest.raises(ValueError, match='nonzero length'):
+            getattr(element, name)[0] = 0.1
+        assert getattr(element, name)[0] == 0.
+        element.length = 0.3
+        getattr(element, name)[0] = 0.1
+        with pytest.raises(ValueError, match='nonzero length'):
+            element.length = 0.
+        assert element.length == 0.3
+        with pytest.raises(ValueError, match='allocated shape'):
+            setattr(element, name, [0.1, 0.2])
+        assert len(getattr(element, name)) == 1
 
 
 def test_get_field_straight():
