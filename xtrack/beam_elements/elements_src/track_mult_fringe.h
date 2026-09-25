@@ -6,67 +6,55 @@
 #define XTRACK_TRACK_MULT_FRINGE_H
 
 #include "xtrack/headers/track.h"
+#include "xtrack/beam_elements/elements_src/fringe_convergence.h"
 
 // This functionality is ported from MAD-NG
 
+#define XT_MULT_FRINGE_MAX_ITER XT_FRINGE_MAX_ITER
+
 GPUFUN
-void MultFringe_track_single_particle(
-    LocalParticle* part,  // Particle to be tracked
-    const double* kn,  // Normal components; array of length `order`
-    const double* ks,  // Skew components; array of length `order`
-    int64_t k_order,  // Order components
-    const double* knl,  // Second set of normal components; array of length kl_order
-    const double* ksl,  // Second set of skey components; array of length kl_order
-    int64_t kl_order,  // Order of the fringe
-    const double length, // Effective length of the magnet corresponding to knl, ksl
-    const uint8_t is_exit,  // If truthy it's the exit fringe, otherwise the entry
-    uint64_t min_order  // Minimum order of the fringe, ignore the lower components
+void MultFringe_evaluate(
+    xt_float_or_tpsa_arg x,
+    xt_float_or_tpsa_arg y,
+    const double* kn,
+    const double* ks,
+    int64_t k_order,
+    const double* knl,
+    const double* ksl,
+    int64_t kl_order,
+    const double length,
+    const double chi,
+    const double direction,
+    uint64_t min_order,
+    xt_float_or_tpsa* fx,
+    xt_float_or_tpsa* fxx,
+    xt_float_or_tpsa* fxy,
+    xt_float_or_tpsa* fy,
+    xt_float_or_tpsa* fyx,
+    xt_float_or_tpsa* fyy
 ) {
-    if (k_order == -1 && kl_order == -1) return;
-
-    if (LocalParticle_check_track_flag(part, XS_FLAG_BACKTRACK)) {
-        LocalParticle_kill_particle(part, -32);
-        return;
-    }
-
-    const double beta0 = LocalParticle_get_beta0(part);
-    const double direction = is_exit ? -1 : 1;
-
-    // Particle coordinates
-    xt_float_or_tpsa const x = LocalParticle_get_x(part);
-    xt_float_or_tpsa const px = LocalParticle_get_px(part);
-    xt_float_or_tpsa const y = LocalParticle_get_y(part);
-    xt_float_or_tpsa const py = LocalParticle_get_py(part);
-    xt_float_or_tpsa const t = LocalParticle_get_zeta(part) / beta0;
-    xt_float_or_tpsa const pt = LocalParticle_get_ptau(part);
-
-    xt_float_or_tpsa const rpp = LocalParticle_get_rpp(part);
-    const double chi = LocalParticle_get_chi(part);
-
-    xt_float_or_tpsa rx = 1.0;
-    xt_float_or_tpsa ix = 0.0;
-    xt_float_or_tpsa fx = 0.0;
-    xt_float_or_tpsa fxx = 0.0;
-    xt_float_or_tpsa fxy = 0.0;
-    xt_float_or_tpsa fy = 0.0;
-    xt_float_or_tpsa fyx = 0.0;
-    xt_float_or_tpsa fyy = 0.0;
+    xt_float_or_tpsa rx = 1.;
+    xt_float_or_tpsa ix = 0.;
+    *fx = 0.;
+    *fxx = 0.;
+    *fxy = 0.;
+    *fy = 0.;
+    *fyx = 0.;
+    *fyy = 0.;
 
     uint32_t order = (k_order > kl_order) ? k_order : kl_order;
-    double inv_factorial = 1;
+    double inv_factorial = 1.;
 
-    for (uint32_t ii = 0; ii <= order; ii++)
-    {
+    for (uint32_t ii = 0; ii <= order; ii++) {
         if (ii > 1) inv_factorial /= ii;
-        double component = ii + 1;
-        xt_float_or_tpsa const drx = rx;
-        xt_float_or_tpsa const dix = ix;
+        const double component = ii + 1;
+        const xt_float_or_tpsa drx = rx;
+        const xt_float_or_tpsa dix = ix;
         rx = drx * x - dix * y;
         ix = drx * y + dix * x;
 
-        double kn_total = 0;
-        double ks_total = 0;
-
+        double kn_total = 0.;
+        double ks_total = 0.;
         if (ii >= min_order) {
             if (ii <= k_order) {
                 kn_total += kn[ii] * inv_factorial;
@@ -78,10 +66,10 @@ void MultFringe_track_single_particle(
             }
         }
 
-        double nj = -direction / (4 * (component + 1));
-        double nf = (component + 2) / component;
-        double kj = kn_total * chi;
-        double ksj = ks_total * chi;
+        const double nj = -direction / (4 * (component + 1));
+        const double nf = (component + 2) / component;
+        const double kj = kn_total * chi;
+        const double ksj = ks_total * chi;
         xt_float_or_tpsa u = 0.0, v = 0.0, du = 0.0, dv = 0.0;
 
         if (ii == 0) {
@@ -96,35 +84,139 @@ void MultFringe_track_single_particle(
             dv = nj * (kj * dix + ksj * drx);
         }
 
-        xt_float_or_tpsa const dux = component * du;
-        xt_float_or_tpsa const dvx = component * dv;
-        xt_float_or_tpsa const duy = -component * dv;
-        xt_float_or_tpsa const dvy = component * du;
+        const xt_float_or_tpsa dux = component * du;
+        const xt_float_or_tpsa dvx = component * dv;
+        const xt_float_or_tpsa duy = -component * dv;
+        const xt_float_or_tpsa dvy = component * du;
 
-        fx = fx + u * x + nf * v * y;
-        fy = fy + u * y - nf * v * x;
-        fxx = fxx + dux * x + nf * dvx * y + u;
-        fyy = fyy + duy * y - nf * dvy * x + u;
-        fxy = fxy + duy * x + nf * (dvy * y + v);
-        fyx = fyx + dux * y - nf * (dvx * x + v);
+        *fx += u * x + nf * v * y;
+        *fy += u * y - nf * v * x;
+        *fxx += dux * x + nf * dvx * y + u;
+        *fyy += duy * y - nf * dvy * x + u;
+        *fxy += duy * x + nf * (dvy * y + v);
+        *fyx += dux * y - nf * (dvx * x + v);
+    }
+}
 
+GPUFUN
+void MultFringe_track_single_particle(
+    LocalParticle* part,
+    const double* kn,
+    const double* ks,
+    int64_t k_order,
+    const double* knl,
+    const double* ksl,
+    int64_t kl_order,
+    const double length,
+    // Which face of the element is being crossed: the fringe kick changes sign
+    // between the entry and the exit face. This labels the face, not the
+    // direction of travel, so backtracking inverts the map selected here
+    // rather than selecting the other one.
+    const uint8_t is_element_exit,
+    uint64_t min_order
+) {
+    if (k_order == -1 && kl_order == -1) return;
+
+    const uint8_t backtrack = LocalParticle_check_track_flag(
+        part, XS_FLAG_BACKTRACK);
+    const double beta0 = LocalParticle_get_beta0(part);
+    const double direction = is_element_exit ? -1. : 1.;
+    const xt_float_or_tpsa output_x = LocalParticle_get_x(part);
+    const xt_float_or_tpsa output_y = LocalParticle_get_y(part);
+    const xt_float_or_tpsa px = LocalParticle_get_px(part);
+    const xt_float_or_tpsa py = LocalParticle_get_py(part);
+    const xt_float_or_tpsa t = LocalParticle_get_zeta(part) / beta0;
+    const xt_float_or_tpsa pt = LocalParticle_get_ptau(part);
+    const xt_float_or_tpsa rpp = LocalParticle_get_rpp(part);
+    const double chi = LocalParticle_get_chi(part);
+
+    xt_float_or_tpsa x = output_x;
+    xt_float_or_tpsa y = output_y;
+    xt_float_or_tpsa fx, fxx, fxy, fy, fyx, fyy;
+
+    // The kick and its derivatives at (X, Y).
+    #define MULT_FRINGE_EVALUATE(X, Y) \
+        MultFringe_evaluate((X), (Y), kn, ks, k_order, knl, ksl, kl_order, \
+            length, chi, direction, min_order, \
+            &fx, &fxx, &fxy, &fy, &fyx, &fyy)
+
+    // Jacobian of the forward coordinate map, from the derivatives above.
+    #define MULT_FRINGE_JACOBIAN \
+        const xt_float_or_tpsa a = 1 - fxx * rpp; \
+        const xt_float_or_tpsa b = -fyx * rpp; \
+        const xt_float_or_tpsa c = -fxy * rpp; \
+        const xt_float_or_tpsa d = 1 - fyy * rpp
+
+    MULT_FRINGE_EVALUATE(x, y);
+
+    // Forward coordinates are q_out = q_in - f(q_in) rpp. Recover q_in with
+    // Newton iteration before applying the inverse momentum map.
+    if (backtrack) {
+        uint8_t converged = 0;
+        for (int64_t ii = 0; ii < XT_MULT_FRINGE_MAX_ITER; ii++) {
+            MULT_FRINGE_JACOBIAN;
+            const xt_float_or_tpsa det = a * d - b * c;
+            const xt_float_or_tpsa residual_x = x - fx * rpp - output_x;
+            const xt_float_or_tpsa residual_y = y - fy * rpp - output_y;
+            const xt_float_or_tpsa next_x = x -
+                (d * residual_x - c * residual_y) / det;
+            const xt_float_or_tpsa next_y = y -
+                (a * residual_y - b * residual_x) / det;
+            const double step_x = fabs(xt_float_or_tpsa_const_part(next_x - x));
+            const double step_y = fabs(xt_float_or_tpsa_const_part(next_y - y));
+            const double tol_x = 1e-13 * fabs(xt_float_or_tpsa_const_part(next_x)) + XT_FRINGE_TOL_FLOOR;
+            const double tol_y = 1e-13 * fabs(xt_float_or_tpsa_const_part(next_y)) + XT_FRINGE_TOL_FLOOR;
+            x = next_x;
+            y = next_y;
+            MULT_FRINGE_EVALUATE(x, y);
+
+            if ((step_x <= tol_x && step_y <= tol_y)) {
+                converged = 1;
+                break;
+            }
+        }
+        if (!converged) {
+            LocalParticle_kill_particle(part, XT_BACKTRACK_NOT_CONVERGED);
+            return;
+        }
     }
 
-    xt_float_or_tpsa const a = 1 - fxx * rpp;
-    xt_float_or_tpsa const b = -fyx * rpp;
-    xt_float_or_tpsa const c = -fxy * rpp;
-    xt_float_or_tpsa const d = 1 - fyy * rpp;
-    xt_float_or_tpsa const det = (a * d - b * c);
+    MULT_FRINGE_JACOBIAN;
 
-    xt_float_or_tpsa const new_px = (d * px - b * py) / det;
-    xt_float_or_tpsa const new_py = (a * py - c * px) / det;
-    xt_float_or_tpsa const delta_t = (1 / beta0 + pt) * (new_px * fx + new_py * fy) * POW3(rpp);
+    // The momentum map is linear, so backtracking applies the Jacobian where
+    // forward tracking solves against it.
+    xt_float_or_tpsa new_px, new_py;
+    if (backtrack) {
+        new_px = a * px + b * py;
+        new_py = c * px + d * py;
+    } else {
+        const xt_float_or_tpsa det = a * d - b * c;
+        new_px = (d * px - b * py) / det;
+        new_py = (a * py - c * px) / det;
+    }
 
-    LocalParticle_add_to_x(part, -fx * rpp);
-    LocalParticle_add_to_y(part, -fy * rpp);
+    // Both directions use the momentum on the downstream side of the forward
+    // map, which is the incoming momentum when backtracking.
+    const xt_float_or_tpsa out_px = backtrack ? px : new_px;
+    const xt_float_or_tpsa out_py = backtrack ? py : new_py;
+    const xt_float_or_tpsa dt = (backtrack ? -1. : 1.) * (1 / beta0 + pt)
+        * (out_px * fx + out_py * fy) * POW3(rpp);
+
+    // Likewise x and y hold the upstream coordinates in both directions: the
+    // incoming ones forward, the ones recovered by the iteration above when
+    // backtracking.
+    if (!backtrack) {
+        x = x - fx * rpp;
+        y = y - fy * rpp;
+    }
+    LocalParticle_set_x(part, x);
+    LocalParticle_set_y(part, y);
     LocalParticle_set_px(part, new_px);
     LocalParticle_set_py(part, new_py);
-    LocalParticle_set_zeta(part, (t + delta_t) * beta0);
+    LocalParticle_set_zeta(part, (t + dt) * beta0);
+
+    #undef MULT_FRINGE_EVALUATE
+    #undef MULT_FRINGE_JACOBIAN
 }
 
 #endif // XTRACK_TRACK_MULT_FRINGE_H

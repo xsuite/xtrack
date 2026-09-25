@@ -437,16 +437,24 @@ void track_straight_exact_bend_single_particle(
     const double s = length;
 
     const xt_float_or_tpsa one_plus_delta = LocalParticle_get_delta(part) + 1.0;
-    const xt_float_or_tpsa A = 1.0 / sqrt(POW2(one_plus_delta) - POW2(py));
     const xt_float_or_tpsa pz = sqrt(POW2(one_plus_delta) - POW2(px) - POW2(py));
+
+    xt_float_or_tpsa new_x, new_px, new_y;
 
     // STRAIGHT EXACT BEND
     // The case for zero curvature -- straight bend, s is Cartesian length
-    const xt_float_or_tpsa new_px = px - k0_chi * s;
-    const xt_float_or_tpsa new_x = x + (sqrt(POW2(one_plus_delta) - POW2(new_px) - POW2(py)) - pz) / k0_chi;
+    new_px = px - k0_chi * s;
+    xt_float_or_tpsa const new_pz = sqrt(POW2(one_plus_delta) - POW2(new_px) - POW2(py));
 
-    const xt_float_or_tpsa D = asin(A * px) - asin(A * new_px);
-    const xt_float_or_tpsa new_y = y + (py / k0_chi) * D;
+    double const d_px = -k0_chi * s;
+    xt_float_or_tpsa const d_pz = -d_px * (new_px + px) / (new_pz + pz);
+
+    // (new_pz - pz)/k0_chi, with k0_chi cancelled exactly
+    new_x = x + s * (new_px + px) / (new_pz + pz);
+
+    // asin(A*px) - asin(A*new_px), from its sine and cosine
+    const xt_float_or_tpsa D = atan2(px * d_pz - pz * d_px, pz * new_pz + px * new_px);
+    new_y = y + (py / k0_chi) * D;
 
     const xt_float_or_tpsa delta_ell = (one_plus_delta / k0_chi) * D;
 
