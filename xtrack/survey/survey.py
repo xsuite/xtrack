@@ -593,7 +593,7 @@ def _get_survey_quantities_from_v_w(V, E_matrix):
 
     ex = E_matrix[:, :, 0]
     ey = E_matrix[:, :, 1]
-    ez = E_matrix[:, :, 2]
+    es = E_matrix[:, :, 2]
     X = V[:, 0]
     Y = V[:, 1]
     Z = V[:, 2]
@@ -607,7 +607,7 @@ def _get_survey_quantities_from_v_w(V, E_matrix):
         'psi': np.unwrap(psi),
         'ex': ex,
         'ey': ey,
-        'ez': ez,
+        'es': es,
         'XYZ': V.copy(),
         'E_matrix': E_matrix.copy(),
         'p0': V.copy(), # deprecated

@@ -263,6 +263,16 @@ def drift_to_mad_str(eref, mad_type=MadType.MADX, substituted_vars=None):
 
     return tokens
 
+def device_to_mad_str(eref, mad_type=MadType.MADX, substituted_vars=None):
+    """Export a passive device as a MAD-X/MAD-NG instrument."""
+    if hasattr(eref._value, '_parent'):
+        length = _ge(eref._parent.length) * _ge(eref.weight)
+    else:
+        length = _ge(eref.length)
+    return ['instrument', mad_assignment(
+        'l', length, mad_type, substituted_vars=substituted_vars)]
+
+
 def drift_slice_to_mad_str(eref, mad_type=MadType.MADX, substituted_vars=None):
     """
     Convert a drift element to a MADX/MAD-NG string representation.
@@ -601,6 +611,7 @@ xsuite_to_mad_converters = {
     xt.Cavity: cavity_to_mad_str,
     xt.Marker: marker_to_mad_str,
     xt.Drift: drift_to_mad_str,
+    xt.Device: device_to_mad_str,
     xt.Multipole: multipole_to_mad_str,
     xt.DipoleEdge: dipoleedge_to_mad_str,
     xt.Bend: bend_to_mad_str,
@@ -661,7 +672,9 @@ def element_to_mad_str(
         tokens = xsuite_to_mad_converters[el.__class__](eref, mad_type=mad_type, substituted_vars=substituted_vars)
 
     if el.__class__ not in [xt.Drift, xt.DriftSlice]:
-        _handle_transforms(tokens, eref, mad_type=mad_type, substituted_vars=substituted_vars)
+        transform_ref = (_get_eref(line, el.parent_name)
+                         if isinstance(el, xt.ThickSliceDevice) else eref)
+        _handle_transforms(tokens, transform_ref, mad_type=mad_type, substituted_vars=substituted_vars)
 
     if mad_type == MadType.MADNG:
         tokens = [tokens[0]] + [f"'{name}'"] + tokens[1:]

@@ -34,7 +34,7 @@ void track_magnet_body_single_particle(
     double inv_factorial_order_rel,
     GPUGLMEM const double* knl_rel,
     GPUGLMEM const double* ksl_rel,
-    double rel_ref_strength,
+    xt_float_or_tpsa_arg rel_ref_strength,
     const double factor_knl_ksl,
     const int64_t num_multipole_kicks,
     const int8_t kick_rot_frame,
@@ -83,7 +83,7 @@ void track_magnet_body_single_particle(
             x0_solenoid, y0_solenoid, drift_model\
         )
 
-    #ifdef XTRACK_MULTIPOLE_NO_SYNRAD
+    #if defined(XTRACK_TPSA_TRACK) || defined(XTRACK_MULTIPOLE_NO_SYNRAD)
         #define WITH_RADIATION(ll, code)\
         {\
             code;\
@@ -217,7 +217,7 @@ void track_magnet_particles(
     double inv_factorial_order_rel,
     GPUGLMEM const double* knl_rel,
     GPUGLMEM const double* ksl_rel,
-    double rel_ref_strength,
+    xt_float_or_tpsa_arg rel_ref_strength,
     int64_t num_multipole_kicks,
     int8_t model,
     int8_t default_model,
@@ -430,7 +430,7 @@ void track_magnet_particles(
             order,
             knl_rel,
             ksl_rel,
-            factor_knl_ksl_edge * rel_ref_strength,
+            factor_knl_ksl_edge * xt_float_or_tpsa_const_part(rel_ref_strength),
             order_rel,
             ks,
             x0_solenoid,
@@ -554,7 +554,7 @@ void track_magnet_particles(
             order,
             knl_rel,
             ksl_rel,
-            factor_knl_ksl_edge * rel_ref_strength,
+            factor_knl_ksl_edge * xt_float_or_tpsa_const_part(rel_ref_strength),
             order_rel,
             ks,
             x0_solenoid,

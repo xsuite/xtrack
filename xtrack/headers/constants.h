@@ -58,6 +58,10 @@
     #define MASS_ELECTRON (9.1093837e-31)
 #endif /* !defined( MASS_ELECTRON ) */
 
+#if !defined( ELECTRON_MASS_EV )
+    #define ELECTRON_MASS_EV (510998.95)
+#endif /* !defined( ELECTRON_MASS_EV ) */
+
 #if !defined( SQRT3 )
     #define SQRT3 1.732050807568877
 #endif /* !defined( SQRT3 ) */

@@ -130,7 +130,7 @@ def test_native_loader_lhc(line_mode, data_mode, tmpdir, lines_ref):
 
     assert env['tanb'].prototype == 'collimator'
     assert env['collimator'].prototype is None
-    assert isinstance(env['collimator'], xt.Drift)
+    assert isinstance(env['collimator'], xt.Device)
     assert str(env.ref['tanb'].length._expr) == "vars['l.tanb']"
 
     assert env['mcbch'].prototype == 'hcorrector'
@@ -148,26 +148,26 @@ def test_native_loader_lhc(line_mode, data_mode, tmpdir, lines_ref):
 
     assert env['bctfr'].prototype == 'instrument'
     assert env['instrument'].prototype is None
-    assert isinstance(env['bctfr'], xt.Drift)
-    assert isinstance(env['instrument'], xt.Drift)
+    assert isinstance(env['bctfr'], xt.Device)
+    assert isinstance(env['instrument'], xt.Device)
     assert str(env.ref['bctfr'].length._expr) == "vars['l.bctfr']"
 
     assert env['bpmwt'].prototype == 'monitor'
     assert env['monitor'].prototype is None
-    assert isinstance(env['bpmwt'], xt.Drift)
-    assert isinstance(env['monitor'], xt.Drift)
+    assert isinstance(env['bpmwt'], xt.Device)
+    assert isinstance(env['monitor'], xt.Device)
     assert str(env.ref['bpmwt'].length._expr) == "vars['l.bpmwt']"
 
     assert env['dfbaj'].prototype == 'placeholder'
     assert env['placeholder'].prototype is None
-    assert isinstance(env['dfbaj'], xt.Drift)
-    assert isinstance(env['placeholder'], xt.Drift)
+    assert isinstance(env['dfbaj'], xt.Device)
+    assert isinstance(env['placeholder'], xt.Device)
     assert str(env.ref['dfbaj'].length._expr) == "vars['l.dfbaj']"
 
     assert env['mcd_unplugged'].prototype == 'placeholder'
     assert env['placeholder'].prototype is None
-    assert isinstance(env['mcd_unplugged'], xt.Drift)
-    assert isinstance(env['placeholder'], xt.Drift)
+    assert isinstance(env['mcd_unplugged'], xt.Device)
+    assert isinstance(env['placeholder'], xt.Device)
     assert env.ref['mcd_unplugged'].length._expr is None # The MAD-X file sets lrad not l
 
     assert env['mqm'].prototype == 'quadrupole'

@@ -65,7 +65,7 @@ from .trajectory_correction import TrajectoryCorrection
 log = logging.getLogger(__name__)
 
 _ALLOWED_ELEMENT_TYPES_IN_NEW = [
-    xt.Drift, xt.DriftExact,
+    xt.Drift, xt.DriftExact, xt.Device,
     xt.Magnet, xt.Replica, xt.Marker,
     xt.Bend, xt.RBend, xt.Quadrupole, xt.Sextupole, xt.Octupole, xt.Multipole,
     xt.UniformSolenoid, xt.Solenoid, xt.VariableSolenoid,
@@ -1704,6 +1704,8 @@ class Line:
 
     @config.setter
     def config(self, value):
+        if not isinstance(value, xt.tracker.TrackerConfig):
+            value = xt.tracker.TrackerConfig(value)
         self._config = value
 
     @property_with_doc_group("Inspection, Variables and Configuration")
@@ -1758,6 +1760,14 @@ class Line:
             self.tracker._tracker_data_base.cache['attr'] = self._get_attr_cache()
 
         return self.tracker._tracker_data_base.cache['attr']
+
+    @doc_group("Cleanup and Simplification")
+    def disable_tpsa_elements(self):
+        """Convert all TPSA-enabled elements in the line back to scalar storage."""
+        tpsa_enabled = self.attr['_tpsa_enabled']
+        for element_name, enabled in zip(self.element_names, tpsa_enabled):
+            if enabled:
+                self[element_name].disable_tpsa()
 
     @doc_group("Reference Particle and Particle Generation")
     def set_particle_ref(self, *args, **kwargs):
@@ -1908,6 +1918,7 @@ class Line:
         num_turns=None,    # defaults to 1
         turn_by_turn_monitor=None,
         multi_element_monitor_at=None,
+        monitor_monomials=None,
         freeze_longitudinal=False,
         time=False,
         with_progress=False,
@@ -1918,8 +1929,9 @@ class Line:
 
         Parameters
         ----------
-        particles: xpart.Particles
-            The particles to track
+        particles: xpart.Particles or xtrack.tpsa.ParticlesTpsa
+            The particles to track. Using ParticlesTpsa to track truncated
+            polynomial expansions through the line is currently *experimental*.
         ele_start: int or str, optional
             The element to start tracking from (inclusive). If an integer is
             provided, it is interpreted as the index of the element in the line.
@@ -1945,8 +1957,15 @@ class Line:
             The recorded data can be retrieved in `line.record_last_track`.
         multi_element_monitor_at: list of str, optional
             If provided, a multi-element monitor is created and coordinates of the
-            trcked particles are recorded at the elements whose names are in the list.
+            tracked particles are recorded at the elements whose names are in the list.
             The recorded data can be retrieved in `line.record_multi_element_last_track`.
+        monitor_monomials: list, array or dict, optional
+            TPSA tracking only. Record the given map coefficients at the multi-element
+            monitor locations instead of the full maps. A monomial is the per-variable
+            orders, of length 6 plus the number of descriptor parameters. Give a list
+            of monomials or a 2D array with one per row, recorded for all six output
+            coordinates, or a mapping `{coord: monomial}` / `{coord: monomials}`.
+            Retrieved with `line.record_multi_element_last_track.coefficient(...)`.
         freeze_longitudinal: bool, optional
             If True, the longitudinal coordinates are frozen during tracking.
         time: bool, optional
@@ -1959,9 +1978,33 @@ class Line:
             equals to False and no progress bar is displayed.
         """
 
+        if not isinstance(particles, xt.Particles):
+            from xtrack.tpsa import ParticlesTpsa
+            if not isinstance(particles, ParticlesTpsa):
+                raise TypeError(f"Cannot track particles of type {type(particles)}")
+            if not self._has_valid_tracker():
+                self.build_tracker()
+            if any(isinstance(element, xt.ParticlesMonitor)
+                   for element in self.tracker._tracker_data_base.elements):
+                raise NotImplementedError(
+                    "ParticlesMonitor elements are not supported with TPSA tracking"
+                )
+            return self.tracker._track(
+                particles,
+                ele_start=ele_start,
+                ele_stop=ele_stop,
+                num_elements=num_elements,
+                num_turns=num_turns,
+                turn_by_turn_monitor=turn_by_turn_monitor,
+                freeze_longitudinal=freeze_longitudinal,
+                time=time,
+                with_progress=with_progress,
+                multi_element_monitor_at=multi_element_monitor_at,
+                monitor_monomials=monitor_monomials,
+                **kwargs)
+
         if not self._has_valid_tracker():
             self.build_tracker()
-
         if hasattr(particles, '_needs_pipeline') and particles._needs_pipeline:
             if '_called_by_pipeline' not in kwargs or not kwargs['_called_by_pipeline']:
                 all_kwargs = locals()
@@ -1990,6 +2033,7 @@ class Line:
             time=time,
             with_progress=with_progress,
             multi_element_monitor_at=multi_element_monitor_at,
+            monitor_monomials=monitor_monomials,
             **kwargs)
 
     @doc_group("Tracking and Analysis")
@@ -4521,7 +4565,7 @@ class Line:
     def configure_drift_model(self, model=None):
 
         """
-        Configure the method used to track drifts.
+        Configure the method used to track drifts and devices.
 
         See documentation of ``xt.Drift`` for more details on the values of the
         models used below.
@@ -4529,7 +4573,7 @@ class Line:
         Parameters
         ----------
         model: str
-            Model to be used for the drifts. Can be 'adaptive', 'exact' or
+            Model to be used for drifts and devices. Can be 'adaptive', 'exact' or
             'expanded'.
         """
 
@@ -4539,7 +4583,7 @@ class Line:
             raise ValueError(f'Unknown drift model {model}')
 
         for ee in self._element_dict.values():
-            if model is not None and isinstance(ee, xt.Drift):
+            if model is not None and isinstance(ee, (xt.Drift, xt.Device)):
                 ee.model = model
 
     @doc_group("Magnet Model Configuration")
@@ -4964,7 +5008,8 @@ class Line:
         """
         Optimize the line for tracking by removing inactive elements and
         merging consecutive elements where possible. Deferred expressions are
-        disabled.
+        disabled. Devices are replaced with drifts, discarding their survey
+        misalignments.
 
         Parameters
         ----------
@@ -4995,8 +5040,18 @@ class Line:
         # Unfreeze the line
         self.discard_tracker()
 
+        if verbose: _print("Replace replicas with independent elements")
+        self.replace_all_replicas()
+
         if verbose: _print("Replace slices with equivalent elements")
         self._replace_with_equivalent_elements()
+
+        if verbose: _print("Replace devices with drifts")
+        with xt.environment._disable_name_clash_checks(self.env):
+            for nn, ee in zip(self.element_names, self._elements):
+                if isinstance(ee, xt.Device):
+                    self.env.elements[nn] = xt.Drift(
+                        length=ee.length, model=ee.model, _buffer=ee._buffer)
 
         if keep_markers is True:
             if verbose: _print('Markers are kept')
@@ -7221,6 +7276,7 @@ class Line:
                 '_own_harmonic': AttrDefinition(name='harmonic'),
 
                 '_own_radiation_flag': AttrDefinition(name='radiation_flag', dtype=np.int64),
+                '_tpsa_enabled': AttrDefinition(name='_tpsa_enabled', dtype=np.int8),
 
                 '_own_ks': AttrDefinition(name='ks'),
                 '_own_ks_profile_0': AttrDefinition(name='ks_profile', index=0),

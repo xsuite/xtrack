@@ -13,6 +13,35 @@ def _optimize_after_thin_slicing(element):
     return line
 
 
+@pytest.mark.parametrize('sliced', [False, True])
+def test_optimize_replaces_all_replicas(sliced):
+    source = xt.Line(elements={
+        'marker': xt.Marker(),
+        'drift': xt.Drift(length=1),
+        'inactive': xt.Multipole(knl=[0]),
+        'quad': xt.Quadrupole(length=0.5, k1=0.2),
+    })
+    if sliced:
+        source.slice_thick_elements(slicing_strategies=[
+            xt.Strategy(xt.Teapot(2))])
+    line = source.replicate(suffix='replica')
+    line.build_tracker()
+    particles = xt.Particles(p0c=1e10, x=1e-3, px=2e-4, y=-1e-3)
+    expected = particles.copy()
+    line.track(expected)
+
+    line.optimize_for_tracking(compile=False, verbose=False)
+
+    assert not any(isinstance(ee, xt.Replica) for ee in line.elements)
+    assert 'marker.replica' not in line.element_names
+    assert 'inactive.replica' not in line.element_names
+    line.track(particles)
+    for field in ('x', 'px', 'y', 'py', 'zeta', 'delta'):
+        np.testing.assert_allclose(
+            getattr(particles, field), getattr(expected, field),
+            atol=5e-14, rtol=0)
+
+
 def _bend_with_relative_strengths():
     return xt.Bend(
         length=2, angle=0.2, k1=0.03,

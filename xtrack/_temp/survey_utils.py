@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from datetime import datetime
 
 import numpy as np
 
@@ -10,8 +11,8 @@ _LEGACY_SURVEY_TFS_HEADER = """
 @ TYPE             %06s "SURVEY"
 @ TITLE            %08s "no-title"
 @ ORIGIN           %17s "5.09.03 Darwin 64"
-@ DATE             %08s "02/09/26"
-@ TIME             %08s "12.10.29"
+@ DATE             %08s "{date}"
+@ TIME             %08s "{time}"
 * NAME               KEYWORD                                    S                         L                     ANGLE                         X                         Y                         Z                     THETA                       PHI                       PSI                GLOBALTILT                      TILT    SLOT_ID ASSEMBLY_ID                  MECH_SEP                     V_POS
 $ %s                 %s                                       %le                       %le                       %le                       %le                       %le                       %le                       %le                       %le                       %le                       %le                       %le         %d         %d                       %le                       %le
 """.lstrip()
@@ -52,17 +53,14 @@ def clear_element_misalignments(element):
 
 
 def misalignment_from_absolute_position(
-        XYZ_elem_start, E_elem_start, XYZ_ref_start, E_ref_start,
-        rbend_angle=None):
+        XYZ_elem_start, E_elem_start, XYZ_ref_start, E_ref_start):
     """Infer MAD-X misalignments from absolute entrance position and frame.
 
-    For an RBend, ``rbend_angle`` applies the half-angle transformation from
-    its entrance frame to the frame used by the MAD-X misalignment convention.
+    The supplied element frame must use the entrance tangent orientation
+    used by the alignment parameters. Callers starting from a bend's chord
+    frame must convert its orientation before calling this function.
     """
     frame_elem_start = Frame.from_survey(XYZ_elem_start, E_elem_start)
-
-    if rbend_angle is not None:
-        frame_elem_start.rotate_y(rbend_angle / 2)
 
     frame_ref_start = Frame.from_survey(XYZ_ref_start, E_ref_start)
 
@@ -93,7 +91,7 @@ def rst_from_reference_start(
     frame_rst_start.rotate_y(-angle / 2)
 
     # S is along the chord, T is normal to the curvature plane, and R = S x T.
-    es = frame_rst_start.ez
+    es = frame_rst_start.es
     et = frame_rst_start.ey
     er = np.cross(es, et)
 
@@ -168,7 +166,7 @@ def misalignment_from_rst_offsets(
     rot_s_rad_no_frame = -bgamma
     longitudinal_rotation = Frame().rotate_s(rot_s_rad_no_frame)
     chord_before_theta_phi = (
-        longitudinal_rotation @ tilted_chord_frame).ez * length
+        longitudinal_rotation @ tilted_chord_frame).es * length
 
     uy = chord_before_theta_phi[1]
     uz = chord_before_theta_phi[2]
@@ -200,6 +198,147 @@ def misalignment_from_rst_offsets(
     )
 
 
+def rst_rigid_chord(displ_start_rst, displ_end_rst, length):
+    """Chord of a rigidly displaced element, in its own RST frame.
+
+    ``displ_start_rst`` and ``displ_end_rst`` are the displacements of the
+    element entrance and exit from their nominal positions, as given in an
+    alignment request. Their transverse (R, T) components fix the direction of
+    the chord, whose S component then follows from the nominal chord
+    ``length`` being preserved. The requested exit S displacement plays no
+    part: for a rigid element it is determined by the other two, not free.
+    """
+    displ_start_rst = np.asarray(displ_start_rst, dtype=float)
+    displ_end_rst = np.asarray(displ_end_rst, dtype=float)
+
+    chord_r = displ_end_rst[0] - displ_start_rst[0]
+    chord_t = displ_end_rst[2] - displ_start_rst[2]
+    transverse_sq = chord_r**2 + chord_t**2
+    if transverse_sq >= length**2:
+        raise ValueError(
+            'transverse displacement larger than the element chord')
+
+    return np.array([chord_r, np.sqrt(length**2 - transverse_sq), chord_t])
+
+
+def misalignment_from_rst_displacements(
+        displ_start_rst, displ_end_rst, length, bgamma, tilt=0.0, angle=0.0):
+    """Infer MAD-X misalignments from requested RST end-point displacements.
+
+    This is the entry point for an alignment (bump) request, which gives the
+    displacement of each element end point from its nominal position, rather
+    than the absolute offsets taken by
+    :func:`misalignment_from_rst_offsets`.
+
+    The two displacements and ``bgamma`` are seven numbers, while a rigid body
+    has only six degrees of freedom, so the request is over-determined: in
+    general no rigid motion puts both end points exactly where asked. The
+    element is kept rigid here, at its nominal chord ``length``; see
+    :func:`rst_rigid_chord` for which part of the request that discards.
+    """
+    displ_start_rst = np.asarray(displ_start_rst, dtype=float)
+    chord_rst = rst_rigid_chord(displ_start_rst, displ_end_rst, length)
+
+    # A nominal element runs from (0, 0, 0) to (0, length, 0) in its own RST
+    # frame, independently of its tilt and bending angle.
+    return misalignment_from_rst_offsets(
+        offset_start_rst=displ_start_rst,
+        offset_end_rst=displ_start_rst + chord_rst,
+        bgamma=bgamma,
+        tilt=tilt,
+        angle=angle,
+    )
+
+
+def misalignment_from_geode_displacements(
+        displ_start_rst, displ_end_rst, length, bgamma, tilt=0.0, angle=0.0):
+    """Convert GEODE displacements and roll to MAD-X alignment parameters.
+
+    The displacements are geometric RST vectors in the nominal tilted chord
+    frame. A report's radial *deviation* must therefore already be negated.
+    ``length`` is the chord length; ``angle`` is the RBend angle (zero for a
+    straight element), and ``tilt`` is its nominal longitudinal rotation.
+
+    Infer the crab in the chord frame, independently of ``bgamma``. As in
+    :func:`rst_rigid_chord`, exit S is determined by rigidity. Compose this
+    crab with the additional rotation ``-bgamma`` about the entrance reference
+    tangent. With B the nominal chord frame and C_local the crab in that
+    frame, ``C = B C_local B^-1`` expresses the crab in the entrance reference
+    frame. With R the tangent roll, the final chord orientation is ``C R B``.
+
+    Unlike :func:`misalignment_from_rst_displacements`, a rolled bend need
+    not retain the transverse exit position specified before adding roll.
+    Entrance translation and chord length are preserved. The returned dpsi
+    includes design tilt and the crab/half-bend-angle coupling; in general it
+    is not simply ``tilt - bgamma``.
+    """
+    # A rigid magnet needs a positive chord length.
+    if length <= 0:
+        raise ValueError('length must be positive')
+
+    # The input is already geometric RST: the caller has corrected the
+    # bump-report radial sign.
+    displ_start_rst = np.asarray(displ_start_rst, dtype=float)
+
+    # Infer the entrance-to-exit vector before the additional roll.
+    # For entrance/exit displacements (r0, s0, t0) and (r1, s1, t1):
+    #   chord_r = r1 - r0, chord_t = t1 - t0,
+    #   chord_s = sqrt(length**2 - chord_r**2 - chord_t**2).
+    # Rigidity determines chord_s, so the requested exit S is ignored.
+    chord_r, chord_s, chord_t = rst_rigid_chord(
+        displ_start_rst, displ_end_rst, length)
+
+    # Rotations of the element chord from its nominal direction to the
+    # misaligned direction implied by the endpoint displacements,
+    # before applying the additional roll.
+
+    # theta and phi are defined with respect to x = -R, y = T, s = S.
+    theta = np.arctan2(-chord_r, chord_s)
+    phi = np.arctan2(chord_t, np.hypot(chord_r, chord_s))
+
+    # C_local transforms coordinates from the misaligned chord frame (before
+    # additional roll) to the nominal chord frame.
+    C_local = Frame().rotate_y(theta).rotate_x(-phi)
+
+    # B transforms coordinates from the nominal chord frame to the
+    # reference frame tangent to the trajectory at the element entrance.
+    B, xys_from_rst = _rst_transform_frames(tilt, angle)
+
+    # Additional roll R about the nominal entrance tangent, with the
+    # GEODE-to-Xsuite sign convention.
+    R = Frame().rotate_s(-bgamma)
+
+    # The same crab rotation expressed in the entrance reference frame.
+    C = B @ C_local @ B.inverse()
+
+    # Apply the roll to the nominal chord frame, then apply the crab.
+    misaligned_chord_frame = C @ R @ B
+
+    # For a bend, rolling about the entrance tangent can move the exit.
+    # The crab is not adjusted to cancel this motion.
+
+    # Place the entrance at its requested displacement. xys_from_rst maps
+    # RST to reference coordinates, including x = -R, y = T, s = S in the
+    # chord frame and the nominal orientation B. The rotations above leave
+    # the entrance at the origin; the exit and sockets follow the rigid body.
+    misaligned_chord_frame.XYZ = xys_from_rst.E_matrix @ displ_start_rst
+
+    # The alignment parameters describe the entrance tangent orientation,
+    # whereas we have constructed the chord orientation. Undo the nominal
+    # -angle/2 rotation included in B by rotating +angle/2 about the frame's
+    # local y axis. This keeps the displaced entrance position unchanged.
+    misaligned_entrance_frame = misaligned_chord_frame.copy()
+    misaligned_entrance_frame.rotate_y(angle / 2)
+
+    # Extract shifts and rotations relative to the entrance reference frame.
+    return misalignment_from_absolute_position(
+        XYZ_elem_start=misaligned_entrance_frame.XYZ,
+        E_elem_start=misaligned_entrance_frame.E_matrix,
+        XYZ_ref_start=np.zeros(3),
+        E_ref_start=np.eye(3),
+    )
+
+
 def rst_start_end_offsets_from_parameters(element, length):
     angle = getattr(element, 'angle', 0.0)
 
@@ -222,16 +361,31 @@ def rst_start_end_offsets_from_parameters(element, length):
     ])
     b_E = rst_from_xys_frame.E_matrix @ displacement_E_xys
     b_S = rst_from_xys_frame.E_matrix @ (
-        displacement_E_xys + displaced_chord_frame.ez * length)
+        displacement_E_xys + displaced_chord_frame.es * length)
     return b_E, b_S
+
+def comp_psi_vbend(frame_start, frame_end, psi_tol_deg=20):
+    psi = frame_start.psi
+    if np.isclose(np.abs(psi), np.pi/2, atol=np.deg2rad(psi_tol_deg)):
+        assert np.isclose(np.abs(frame_end.psi), np.pi/2, atol=np.deg2rad(psi_tol_deg))
+        # Done inplace
+        frame_start.rotate_s(-np.sign(psi) * np.pi/2)
+        frame_end.rotate_s(-np.sign(psi) * np.pi/2)
 
 
 def write_legacy_survey_tfs(
-        file_name, *, survey, element_names, element_container):
+        file_name, *, survey, element_names, element_container,
+        compensate_psi_vbend=False, psi_tol_deg=20):
     """Write element entrance and exit frames in the legacy survey format."""
     lines = []
     for ii, nn in enumerate(element_names):
         frames = survey.get_all_frames(nn)
+
+        if compensate_psi_vbend:
+            ff_elem_start = frames['elem_start']
+            ff_elem_end = frames['elem_end']
+            comp_psi_vbend(ff_elem_start, ff_elem_end, psi_tol_deg=psi_tol_deg)
+
         for place in ('start', 'end'):
 
             if place == 'start':
@@ -293,13 +447,19 @@ def write_legacy_survey_tfs(
 
             lines.append(line)
 
-    output = _LEGACY_SURVEY_TFS_HEADER + '\n'.join(lines)
+    # The %08s field descriptors above fix the widths: MAD-X writes the date
+    # as dd/mm/yy and the time as HH.MM.SS, eight characters each.
+    now = datetime.now()
+    header = _LEGACY_SURVEY_TFS_HEADER.format(
+        date=now.strftime('%d/%m/%y'), time=now.strftime('%H.%M.%S'))
+
+    output = header + '\n'.join(lines)
     with open(file_name, 'w') as fid:
         fid.write(output)
 
 
-def plot_exz(rotation_matrix, point, length=0.5, color='k'):
-    """Plot the local x and z directions in the global Z-X plane."""
+def plot_exs(rotation_matrix, point, length=0.5, color='k'):
+    """Plot the local x and s directions in the global Z-X plane."""
     import matplotlib.pyplot as plt
 
     if length <= 0:
