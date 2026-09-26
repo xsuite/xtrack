@@ -11,7 +11,7 @@ lengthquad = 0.2
 lengthdrift = 0.5
 
 bcoeffs = np.array([[k0], [k1]])
-combinedfunction = xt.BFieldExpansion(length=length, ksc=np.array([[0]]), knc=bcoeffs, ksol=np.array([0]), num_phi=5, nstep=10)
+combinedfunction = xt.BFieldExpansion(length=length, ksc=np.array([[0]]), knc=bcoeffs, ksol=np.array([0]), num_phi=5, num_integration_steps=10)
 quad1 = xt.Quadrupole(k1=k1quad, length=lengthquad)
 quad2 = xt.Quadrupole(k1=-k1quad, length=lengthquad)
 drift = xt.Drift(length=lengthdrift)

@@ -8,8 +8,8 @@ from xtrack.prebuilt_kernel_definitions import ONLY_XTRACK_ELEMENTS
 
 def make_element(h=0.3, pkin_const=False):
     return xt.BFieldExpansion(
-        length=0.8, h=h, s_start=0.17, nstep=160, num_phi=5,
-        pkin_const=pkin_const,
+        length=0.8, h=h, s_start=0.17, num_integration_steps=160, num_phi=5,
+        pkin_const=pkin_const, kscale=0.7,
         knc=[[0.1, 0.08, -0.03], [0.04, -0.02, 0.01]],
         ksc=[[0.02, -0.01, 0.02]], ksol=[0.15, 0.03, 0.],
         knl=[0.01, 0.002, 0.003], ksl=[0.003, 0.004])
@@ -39,6 +39,7 @@ def check_strengths(line):
             if source != 'ksol':
                 hard_edge = np.asarray(getattr(parent, integrated_name))
                 expected[:len(hard_edge)] += hard_edge * element.weight
+            expected *= parent.kscale
             for order, strength in enumerate(expected):
                 column = ('ksoll' if source == 'ksol' else
                           f'k{order}{"s" if source == "ksc" else ""}l')
@@ -106,17 +107,22 @@ def test_bfieldexpansion_slice_parent_updates_and_serialization(h):
     line.slice_thick_elements([xt.Strategy(xt.Uniform(4, mode='thick'))])
     # Populate the attribute readers before changing the shared parent.
     check_strengths(line)
+    env['scale'] = 0.7
+    env.set('e', kscale='scale')
+    for scale in (0., -0.6, 1.4):
+        env['scale'] = scale
+        check_strengths(line)
     env['strength'] = 0.1
     env['e'].knc[0, 1] = 'strength'
     env['strength'] = 0.2
-    env.set('e', length=1.2, s_start=-0.1, nstep=200,
+    env.set('e', length=1.2, s_start=-0.1, num_integration_steps=200,
             ksc=[[0.01, 0.05, -0.02]], ksol=[0.2, 0.04, 0.],
             knl=[0.002, '0.1*strength', 0.001], ksl=[0.001, -0.001])
     if h:
         env.set('e', h=0.4)
     for i, name in enumerate(slice_names(line)):
         assert line[name].s_start == pytest.approx(-0.1 + i * 0.3)
-        assert line[name].nstep == 50
+        assert line[name].num_integration_steps == 50
     check_strengths(line)
 
     restored = xt.Line.from_dict(line.to_dict())
@@ -161,38 +167,33 @@ def test_bfieldexpansion_slice_again_and_insert():
     check_strengths(line)
 
 
-def test_bfieldexpansion_slices_reject_unsupported_modes():
+def test_bfieldexpansion_rejects_thin_slicing():
     line = xt.Line(elements={'e': make_element()})
     with pytest.raises(NotImplementedError, match="mode='thick'"):
         line.slice_thick_elements([xt.Strategy(xt.Teapot(4))])
     assert line.element_names == ['e']
+
+
+def test_bfieldexpansion_standalone_slice_does_not_radiate():
+    line = xt.Line(elements={'e': make_element()})
     line.slice_thick_elements([xt.Strategy(xt.Uniform(4, mode='thick'))])
     particles = xt.Particles(p0c=1e9, x=0.01)
     line.build_tracker(compile=False)
-    line.configure_spin('auto')
-    with pytest.raises(NotImplementedError, match='spin tracking'):
-        line.track(particles)
-    assert particles.s[0] == 0.
-    line.configure_spin(None)
     element = line.get(slice_names(line)[0])
     element.radiation_flag = 1
     element.track(particles)
     xo.assert_allclose(particles.s, element.weight * element._parent.length,
                        rtol=0, atol=1e-14)
     xo.assert_allclose(particles.delta, 0., rtol=0, atol=0)
-    element.radiation_flag = 0
-    particles.spin_z = 1.
-    with pytest.raises(NotImplementedError, match='spin tracking'):
-        element.track(particles)
 
 
 def test_bfieldexpansion_slice_has_at_least_one_step():
     parent = make_element()
-    parent.nstep = 1
+    parent.num_integration_steps = 1
     line = xt.Line(elements={'e': parent})
     line.slice_thick_elements([xt.Strategy(xt.Uniform(4, mode='thick'))])
     for name in slice_names(line):
-        assert line[name].nstep == 1
+        assert line[name].num_integration_steps == 1
     particles = xt.Particles(p0c=1e9, x=0.01, y=0.007)
     line.track(particles, _force_no_end_turn_actions=True)
     assert particles.s[0] == pytest.approx(parent.length)

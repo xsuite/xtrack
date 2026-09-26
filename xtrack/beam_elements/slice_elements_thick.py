@@ -33,7 +33,7 @@ class ThickSliceBFieldExpansion(_ThickSliceElementBase, BeamElement):
     """
 
     allow_rot_and_shift = False
-    rot_and_shift_from_parent = False
+    rot_and_shift_from_parent = True
     allow_loss_refinement = False
     # The profile is nonuniform: compute strengths on this interval on demand.
     _inherit_strengths = False
@@ -66,8 +66,12 @@ class ThickSliceBFieldExpansion(_ThickSliceElementBase, BeamElement):
         return self._parent.s_start + self.slice_offset
 
     @property
-    def nstep(self):
-        return max(1, int(np.ceil(self._parent.nstep * self.weight)))
+    def num_integration_steps(self):
+        return max(1, int(np.ceil(self._parent.num_integration_steps * self.weight)))
+
+    @property
+    def integrator(self):
+        return self._parent.integrator
 
     @property
     def angle(self):

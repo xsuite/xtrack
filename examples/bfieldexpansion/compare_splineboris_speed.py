@@ -66,7 +66,7 @@ def make_elements(context, length, rigidity):
     expansion = xt.BFieldExpansion(
         _context=context, length=length, ksc=ksc, knc=knc, ksol=ksol,
         # num_phi=7 includes the full potential for this sextupole/quartic case.
-        num_phi=7, nstep=1, s_start=0,
+        num_phi=7, num_integration_steps=1, s_start=0,
         # Preserve kinetic momentum across the entrance/exit gauge changes.
         # With this option, both elements accept and return kinetic px, py.
         pkin_const=True,
@@ -133,7 +133,7 @@ def set_steps(element, steps):
     if isinstance(element, xt.SplineBoris):
         element.n_steps = steps
     else:
-        element.nstep = steps
+        element.num_integration_steps = steps
 
 
 def calibrate(element, particles, reference, tolerance, max_steps):

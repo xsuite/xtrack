@@ -122,7 +122,7 @@ void BFieldExpansion_track_local_particle(BFieldExpansionData el,
     BFieldExpansion_track_interval(el, part0,
         BFieldExpansionData_get_length(el),
         BFieldExpansionData_get_s_start(el),
-        BFieldExpansionData_get_nstep(el));
+        BFieldExpansionData_get_num_integration_steps(el));
 }
 
 #endif

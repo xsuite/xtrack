@@ -36,15 +36,15 @@ CURVED_LENGTH = BEND_LENGTH - FRINGE_LENGTH
 H = BEND_ANGLE / CURVED_LENGTH
 
 
-def make_expansion(length, h, coefficients, nstep):
+def make_expansion(length, h, coefficients, num_integration_steps):
     coefficients = np.asarray(coefficients)
     return xt.BFieldExpansion(
         length=length, h=h, knc=coefficients[None, :],
         ksc=np.zeros((1, len(coefficients))), ksol=np.zeros_like(coefficients),
-        num_phi=5, nstep=nstep, pkin_const=False)
+        num_phi=5, num_integration_steps=num_integration_steps, pkin_const=False)
 
 
-def make_line(nstep):
+def make_line(num_integration_steps):
     # These two Hermite cubics reproduce H * (3*t**2 - 2*t**3), t=s/F.
     # The on-axis field and its first derivative are continuous at every join.
     knots = np.array([0., FRINGE_LENGTH / 2, FRINGE_LENGTH])
@@ -58,12 +58,12 @@ def make_line(nstep):
         # ascending powers. Each parent segment starts at local s_start=0.
         for i, geometry_h in enumerate((0., H)):
             elements[f'{bend}_entry_{i}'] = make_expansion(
-                FRINGE_LENGTH / 2, geometry_h, entrance.c[::-1, i], nstep)
+                FRINGE_LENGTH / 2, geometry_h, entrance.c[::-1, i], num_integration_steps)
         elements[f'{bend}_body'] = make_expansion(
-            BODY_LENGTH, H, [H], nstep)
+            BODY_LENGTH, H, [H], num_integration_steps)
         for i, geometry_h in enumerate((H, 0.)):
             elements[f'{bend}_exit_{i}'] = make_expansion(
-                FRINGE_LENGTH / 2, geometry_h, exit_.c[::-1, i], nstep)
+                FRINGE_LENGTH / 2, geometry_h, exit_.c[::-1, i], num_integration_steps)
         if bend == 'b1':
             elements['gap'] = xt.Drift(length=GAP)
     line = xt.Line(elements=elements)
@@ -166,7 +166,7 @@ def main():
         parser.error('--slices must be positive')
 
     # 20 RK4 steps per slice, with the same total steps in the unsliced parent.
-    line = make_line(nstep=20 * args.slices)
+    line = make_line(num_integration_steps=20 * args.slices)
     sliced = line.copy()
     sliced.slice_thick_elements([
         xt.Strategy(xt.Uniform(args.slices, mode='thick'),

@@ -8125,6 +8125,11 @@ class LineAttrItem:
                         break
                     inner_obj = getattr(inner_obj, nn_inner)
 
+            if has_name and inner_name in getattr(inner_obj, '_line_attr_skip_fields', ()):
+                # Some elements provide complete integrated strengths through
+                # a method, including their scalar k_i * length contributions.
+                # Do not add those scalar terms a second time.
+                continue
             if (has_name and inner_name in
                     getattr(inner_obj, '_line_attr_methods', {})):
                 # Computed totals can differ from the user-facing knl/ksl

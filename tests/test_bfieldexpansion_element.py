@@ -9,8 +9,8 @@ from xobjects.test_helpers import for_all_test_contexts
 @pytest.mark.parametrize('h', [0., 0.3])
 @pytest.mark.parametrize('pkin_const', [False, True])
 def test_bfieldexpansion_gpu_matches_cpu(test_context, h, pkin_const):
-    kwargs = dict(length=0.3, h=h, num_phi=5, nstep=12, s_start=0.1,
-                  pkin_const=pkin_const,
+    kwargs = dict(length=0.3, h=h, num_phi=5, num_integration_steps=12, s_start=0.1,
+                  pkin_const=pkin_const, kscale=0.7,
                   ksc=[[0.04, 0.2, 0.], [0.03, 0., 0.]],
                   knc=[[0.05, 0.1, 0.], [0.02, 0., 0.]],
                   ksol=[0.1, 0.02, 0.], knl=[0.01, 0.003, 0.001],
@@ -39,6 +39,7 @@ def test_bfieldexpansion_gpu_matches_cpu(test_context, h, pkin_const):
                 ee.ksol[0] += 0.03
                 ee.knl[1] += 0.002
                 ee.ksl[0] -= 0.001
+                ee.kscale = -1.2
         xo.assert_allclose(element._c, reference._c, rtol=0, atol=1e-13)
         field = element.get_field(initial.x, initial.y, [0.1, 0.2, 0.4])
         expected_field = reference.get_field(initial.x, initial.y, [0.1, 0.2, 0.4])
@@ -101,11 +102,104 @@ def test_bfieldexpansion_names_and_coefficients(h):
 
 
 @pytest.mark.parametrize('h', [0., 0.3])
+@pytest.mark.parametrize('empty', ['omitted', 'none', 'list', 'array'])
+@pytest.mark.parametrize('provided, sizes', [
+    pytest.param({}, (1, 1, 1, 1, 1), id='all-empty'),
+    pytest.param({'knc': [[0.1, 0.02, 0.], [0.03, 0., 0.]]},
+                 (2, 2, 3, 2, 2), id='normal-profile'),
+    pytest.param({'ksc': [[0.01, 0.02], [0.03, 0.], [0.004, 0.]]},
+                 (3, 3, 2, 3, 3), id='skew-profile'),
+    pytest.param({'ksol': [0.1, 0.02, 0.]},
+                 (1, 1, 3, 1, 1), id='solenoid-profile'),
+    pytest.param({'knl': [0., 0.01, 0.002]},
+                 (3, 3, 1, 3, 3), id='normal-hard-edge'),
+    pytest.param({'ksl': [0.001, 0.002]},
+                 (2, 2, 1, 2, 2), id='skew-hard-edge'),
+    pytest.param({'knc': [[0.1, 0.02]], 'ksc': [[0.01, 0.], [0.005, 0.]],
+                  'knl': [0.01, 0.003, 0.004]},
+                 (1, 2, 2, 3, 2), id='unequal-nonempty-shapes'),
+])
+def test_bfieldexpansion_empty_coefficients(h, empty, provided, sizes):
+    nb, na, width, nnl, nsl = sizes
+    expected = dict(knc=np.zeros((nb, width)), ksc=np.zeros((na, width)),
+                    ksol=np.zeros(width), knl=np.zeros(nnl), ksl=np.zeros(nsl))
+    kwargs = {}
+    if empty != 'omitted':
+        for name in expected:
+            kwargs[name] = (None if empty == 'none' else [] if empty == 'list'
+                            else np.zeros((0, 0) if name in ('knc', 'ksc') else 0))
+    kwargs.update(provided)
+    expected.update(provided)
+    element = xt.BFieldExpansion(length=0.4, h=h, s_start=0.1, **kwargs)
+    reference = xt.BFieldExpansion(length=0.4, h=h, s_start=0.1, **expected)
+    for name, values in expected.items():
+        assert getattr(element, name).shape == np.shape(values)
+        xo.assert_allclose(getattr(element, name), values, rtol=0, atol=0)
+    assert element.num_phi == reference.num_phi
+    field = element.get_field(x=[0.01, -0.02], y=0.003, s_local=[0., 0.4])
+    reference_field = reference.get_field(x=[0.01, -0.02], y=0.003, s_local=[0., 0.4])
+    np.testing.assert_array_equal(field, reference_field)
+    particles = xt.Particles(p0c=1e9, x=0.01, y=0.003, px=0.001)
+    reference_particles = particles.copy()
+    element.track(particles)
+    reference.track(reference_particles)
+    for name in ('x', 'px', 'y', 'py', 'zeta', 'delta', 's'):
+        xo.assert_allclose(getattr(particles, name), getattr(reference_particles, name),
+                           rtol=0, atol=1e-14)
+    _check_integrated_bfieldexpansion_strengths(element)
+    restored = xt.BFieldExpansion.from_dict(element.to_dict())
+    for name in expected:
+        xo.assert_allclose(getattr(restored, name), getattr(element, name), rtol=0, atol=0)
+
+
+@pytest.mark.parametrize('h', [0., 0.3])
+@pytest.mark.parametrize('empty', [False, True])
+def test_bfieldexpansion_empty_coefficients_environment(h, empty):
+    env = xt.Environment()
+    env['normal'] = 0.02
+    kwargs = dict(ksc=[], ksol=[], knl=[], ksl=[]) if empty else {}
+    env.new('profile', 'BFieldExpansion', length=0.4, h=h,
+            knc=[[0.1, 0., 0.], ['normal', 0.01, 0.]], **kwargs)
+    env.new('hard_edge', 'BFieldExpansion', length=0.4, h=h, knl=[0., 'normal'])
+    env.new('zero', 'BFieldExpansion', length=0.4, h=h)
+    env['normal'] = 0.03
+    # The inferred zero arrays remain writable, with correctly allocated caches.
+    env.set('profile', ksc=[[0.01, 0., 0.], [0., 0.02, 0.]],
+            ksol=[0.1, 0.02, 0.], knl=[0., '2*normal'], ksl=[0.001, 0.])
+    env.set('hard_edge', knc=[[0.], [0.01]], ksc=[[0.], [0.02]])
+    env['normal'] = 0.04
+    for name in ('profile', 'hard_edge', 'zero'):
+        element = env.get(name)
+        assert element.knc.size and element.ksc.size and element.ksol.size
+        reference = xt.BFieldExpansion(length=0.4, h=h, **{
+            field: np.asarray(getattr(element, field))
+            for field in ('knc', 'ksc', 'ksol', 'knl', 'ksl')})
+        xo.assert_allclose(element._c, reference._c, rtol=0, atol=0)
+        _check_integrated_bfieldexpansion_strengths(element)
+    table = env.new_line(components=['profile', 'hard_edge', 'zero']).get_table(attr=True)
+    assert table['k1l', 'profile'] == pytest.approx(0.04 * 0.4 + 0.01 * 0.4**2 / 2 + 0.08)
+    assert table['k1l', 'hard_edge'] == pytest.approx(0.01 * 0.4 + 0.04)
+    assert table['k1l', 'zero'] == 0.
+
+
+@pytest.mark.parametrize('kwargs, message', [
+    ({'knc': [0.1]}, 'two-dimensional'),
+    ({'ksc': [0.1]}, 'two-dimensional'),
+    ({'ksol': [[0.1, 0.]]}, 'one-dimensional'),
+    ({'knc': [[0.1, 0.]], 'ksc': [[0.]]}, 'longitudinal coefficients'),
+    ({'knc': [[0.1, 0.]], 'ksol': [0.]}, 'longitudinal coefficients'),
+])
+def test_bfieldexpansion_nonempty_coefficient_shapes(kwargs, message):
+    with pytest.raises(ValueError, match=message):
+        xt.BFieldExpansion(length=0.4, **kwargs)
+
+
+@pytest.mark.parametrize('h', [0., 0.3])
 def test_bfieldexpansion_serialization(h):
     element = xt.BFieldExpansion(
         length=0.3, h=h, ksc=[[0.04, 0.2, 0.]],
         knc=[[0.05, 0.1, 0.], [0.02, 0., 0.]], ksol=[0.1, 0.02, 0.],
-        num_phi=5, s_start=0.1, nstep=12)
+        num_phi=5, s_start=0.1, num_integration_steps=12)
     restored = xt.BFieldExpansion.from_dict(element.to_dict())
     assert type(restored) is xt.BFieldExpansion
     assert restored.num_phi == element.num_phi == 5
@@ -121,6 +215,91 @@ def test_bfieldexpansion_serialization(h):
     restored.knc[0, 1] += 0.01
     assert restored.knc[0, 1] != element.knc[0, 1]
     _check_integrated_bfieldexpansion_strengths(restored)
+
+
+@pytest.mark.parametrize('h', [0., 0.3])
+@pytest.mark.parametrize('pkin_const', [False, True])
+def test_bfieldexpansion_kscale(h, pkin_const):
+    coefficients = dict(
+        knc=np.array([[0.1, 0.02, 0.003], [0.04, 0.001, 0.]]),
+        ksc=np.array([[0.01, -0.002, 0.], [0.003, 0., 0.]]),
+        ksol=np.array([0.05, 0.002, 0.]),
+        knl=np.array([0.01, 0.003, 0.001]), ksl=np.array([0.002, 0.001]))
+    kwargs = dict(length=0.4, h=h, s_start=0.1, num_integration_steps=20, pkin_const=pkin_const)
+    unscaled = xt.BFieldExpansion(**kwargs, **coefficients)
+    assert unscaled.kscale == unscaled._xobject.kscale == 1.
+    element = xt.BFieldExpansion(**kwargs, **coefficients, kscale=0.5)
+    assert element.kscale == element._xobject.kscale == 0.5
+    coordinates = dict(x=[0.01, -0.015], y=[0.007, -0.003], s_local=[0., 0.3])
+    unscaled_field = unscaled.get_field(**coordinates)
+    for scale in (0.5, 0., -0.7, 1.):
+        # The first iteration checks scaling at construction, then updates.
+        if scale != 0.5:
+            element.kscale = scale
+        reference = xt.BFieldExpansion(**kwargs, **{
+            name: values * scale for name, values in coefficients.items()})
+        field = element.get_field(**coordinates)
+        reference_field = reference.get_field(**coordinates)
+        for name in field.dtype.names:
+            xo.assert_allclose(field[name], scale * unscaled_field[name], rtol=0, atol=1e-13)
+            xo.assert_allclose(field[name], reference_field[name], rtol=0, atol=1e-13)
+        particles = xt.Particles(p0c=1e9, x=0.01, y=0.007, px=0.002, delta=0.01)
+        expected = particles.copy()
+        element.track(particles)
+        reference.track(expected)
+        for name in ('x', 'px', 'y', 'py', 'zeta', 'delta', 's', 'ax', 'ay'):
+            xo.assert_allclose(getattr(particles, name), getattr(expected, name),
+                               rtol=0, atol=1e-13)
+        _check_integrated_bfieldexpansion_strengths(element)
+        for name, values in coefficients.items():
+            xo.assert_allclose(getattr(element, name), values, rtol=0, atol=0)
+        assert element.h == h
+        assert element.angle == h * kwargs['length']
+
+    # Every cache rebuild must apply the scale once, after any other update.
+    element.kscale = -0.8
+    for name in coefficients:
+        getattr(element, name)[...] *= 1.1
+    element.length = 0.5
+    element.s_start = -0.1
+    if h:
+        element.h = 0.4
+    reference = xt.BFieldExpansion(
+        length=element.length, h=element.h, s_start=element.s_start,
+        num_integration_steps=20, pkin_const=pkin_const, **{
+            name: np.asarray(getattr(element, name)) * element.kscale
+            for name in coefficients})
+    reference_field = reference.get_field(**coordinates)
+    for candidate in (element, element.copy(), xt.BFieldExpansion.from_dict(element.to_dict())):
+        assert candidate.kscale == candidate._xobject.kscale == -0.8
+        _check_integrated_bfieldexpansion_strengths(candidate)
+        field = candidate.get_field(**coordinates)
+        for name in field.dtype.names:
+            xo.assert_allclose(field[name], reference_field[name], rtol=0, atol=1e-13)
+
+
+@pytest.mark.parametrize('h', [0., 0.3])
+def test_bfieldexpansion_kscale_environment(h):
+    env = xt.Environment()
+    env['scale'] = 0.
+    env.new('source', 'BFieldExpansion', length=0.4, h=h, kscale='scale',
+            knc=[[0.1, 0.02]], ksc=[[0.01, 0.]], ksol=[0.05, 0.],
+            knl=[0.002], ksl=[0.001])
+    env.new('clone', 'source')
+    env.new('linked', 'source', kscale=env.ref['source'].kscale)
+    env.set('source', kscale='2*scale')
+    for scale in (0.7, 0., -1.2):
+        env['scale'] = scale
+        for name, factor in [('source', 2 * scale), ('clone', scale), ('linked', 2 * scale)]:
+            element = env.get(name)
+            assert element.kscale == factor
+            field = element.get_field(0., 0., 0.2)
+            xo.assert_allclose(field['By'], factor * (0.1 + 0.02 * 0.2 + 0.002 / 0.4),
+                               rtol=0, atol=1e-14)
+            xo.assert_allclose(field['Bx'], factor * (0.01 + 0.001 / 0.4),
+                               rtol=0, atol=1e-14)
+            xo.assert_allclose(field['Bs'], factor * 0.05, rtol=0, atol=1e-14)
+            _check_integrated_bfieldexpansion_strengths(element)
 
 
 @pytest.mark.parametrize('na, nb, degree', [(1, 1, 0), (2, 3, 3),
@@ -153,15 +332,21 @@ def test_bfieldexpansion_auto_complete_straight_field(na, nb, degree):
 def test_bfieldexpansion_auto_linear_curvature():
     # A quadrupole with k1(s)=s has phi_1=-x*s. To first order in h,
     # phi_3=h*s, hence Ax(x=0)=h*y**4/24. The extra two orders must retain
-    # this term; the straight-case order misses it entirely.
+    # this term; truncating at num_phi=2 misses it entirely.
     coefficients = dict(ksc=[[0., 0.]], knc=[[0., 0.], [0., 1.]], ksol=[0., 0.])
     straight = xt.BFieldExpansion(length=1., **coefficients)
     h, y, s_local = 0.1, 0.4, 0.3
     curved = xt.BFieldExpansion(length=1., h=h, **coefficients)
     assert curved.num_phi == straight.num_phi + 2
-    field = curved.get_field(0., y, s_local)
+    # Auto also reserves scalar-octupole capacity, retaining higher powers
+    # of h. Isolate the leading term with an explicit fourth-order expansion.
+    linear_curvature = xt.BFieldExpansion(length=1., h=h, num_phi=4,
+                                         **coefficients)
+    field = linear_curvature.get_field(0., y, s_local)
     xo.assert_allclose(field['Ax'], h * y**4 / 24, rtol=0, atol=1e-14)
-    truncated = xt.BFieldExpansion(length=1., h=h, num_phi=straight.num_phi,
+    # The automatic order also reserves capacity for independent scalar
+    # octupoles. Explicitly truncate below the y**4 vector-potential term.
+    truncated = xt.BFieldExpansion(length=1., h=h, num_phi=2,
                                    **coefficients)
     assert abs(truncated.get_field(0., y, s_local)['Ax'] - field['Ax']) > 1e-5
 
@@ -251,7 +436,7 @@ def test_bfieldexpansion_geometry_updates(h):
     coefficients = dict(
         ksc=np.array([[0.04, 0.2, 0.], [0.03, 0., 0.]]),
         knc=np.array([[0.05, 0.1, 0.], [0.02, 0., 0.]]),
-        ksol=np.array([0.1, 0.02, 0.]), num_phi=5, nstep=12,
+        ksol=np.array([0.1, 0.02, 0.]), num_phi=5, num_integration_steps=12,
     )
     element = xt.BFieldExpansion(length=0.3, h=h, **coefficients)
     assert element.angle == pytest.approx(0.3 * h)
@@ -263,7 +448,7 @@ def test_bfieldexpansion_geometry_updates(h):
         element.length = length
         assert element.angle == pytest.approx(length * h)
         assert element._xobject.angle == element.angle
-        assert element.ds == pytest.approx(length / element.nstep)
+        assert element.ds == pytest.approx(length / element.num_integration_steps)
 
     if h:
         for new_h in [0.4, 0.6, h]:
@@ -376,57 +561,11 @@ def test_bfieldexpansion_geometry_is_fixed():
 
 
 @pytest.mark.parametrize('h', [0., 0.3])
-def test_bfieldexpansion_rejects_spin_tracking(h):
+def test_bfieldexpansion_standalone_does_not_radiate(h):
     element = xt.BFieldExpansion(
         length=0.2, h=h, ksc=np.array([[0.]]), knc=np.array([[0.1]]),
         ksol=np.array([0.]), num_phi=5,
     )
-    line = xt.Line(elements={'expansion': element})
-    line.build_tracker(compile=False)
-    particles = xt.Particles(p0c=1e9, x=0.01, px=0.002, spin_z=1.)
-    initial = particles.copy()
-
-    for mode in ['spin', 'compile_flag']:
-        line.configure_radiation(model=None)
-        line.configure_spin(None)
-        if mode == 'spin':
-            line.configure_spin('auto')
-        elif mode == 'compile_flag':
-            # Twiss spin calculations also enable this flag directly.
-            line.config.XTRACK_MULTIPOLE_NO_SYNRAD = False
-        with pytest.raises(NotImplementedError, match='spin tracking'):
-            line.track(particles)
-        for name in ['x', 'px', 'y', 'py', 'zeta', 'delta', 's', 'state',
-                     'spin_x', 'spin_y', 'spin_z', 'at_element', 'at_turn']:
-            xo.assert_allclose(getattr(particles, name), getattr(initial, name),
-                               rtol=0, atol=0)
-
-    # Ordinary orbital tracking still works when both features are disabled.
-    line.configure_radiation(model=None)
-    line.configure_spin(None)
-    line.track(particles, _force_no_end_turn_actions=True)
-    xo.assert_allclose(particles.s, element.length, rtol=0, atol=1e-14)
-    assert np.all(particles.state > 0)
-
-    line.particle_ref = xt.Particles(p0c=1e9)
-    with pytest.raises(NotImplementedError, match='spin tracking'):
-        line.twiss4d(betx=1., bety=1., spin=True, spin_x=1.)
-
-
-@pytest.mark.parametrize('h', [0., 0.3])
-def test_bfieldexpansion_rejects_standalone_spin(h):
-    element = xt.BFieldExpansion(
-        length=0.2, h=h, ksc=np.array([[0.]]), knc=np.array([[0.1]]),
-        ksol=np.array([0.]), num_phi=5,
-    )
-    for component in ['spin_x', 'spin_y', 'spin_z']:
-        particles = xt.Particles(p0c=1e9, x=0.01, **{component: 1.})
-        with pytest.raises(NotImplementedError, match='spin tracking'):
-            element.track(particles)
-        xo.assert_allclose(particles.x, 0.01, rtol=0, atol=0)
-        xo.assert_allclose(particles.s, 0., rtol=0, atol=0)
-        xo.assert_allclose(getattr(particles, component), 1., rtol=0, atol=0)
-
     particles = xt.Particles(p0c=1e9, x=0.01)
     reference = particles.copy()
     element.radiation_flag = 1
@@ -473,6 +612,7 @@ def _check_integrated_bfieldexpansion_strengths(element):
         if name != 'ksol':
             hard_edge = getattr(element, integral_name)
             expected[:len(hard_edge)] += np.asarray(hard_edge)
+        expected *= element.kscale
         xo.assert_allclose(total, expected, rtol=0, atol=1e-14)
 
 
@@ -486,7 +626,7 @@ def test_bfieldexpansion_env_new_and_set(h, use_strings):
     env.set('steps', 10)
     name = 'expansion'
     env.new(name, 'BFieldExpansion' if use_strings else xt.BFieldExpansion,
-            length='ll', h='curvature', nstep='steps', num_phi=5, s_start=0.02,
+            length='ll', h='curvature', num_integration_steps='steps', num_phi=5, s_start=0.02,
             ksc=[[env.ref['a'], 0.2, 0.], [0.03, 0., 0.]],
             knc=np.array([['2*a', 0.1, 0.], [0.02, 0., 0.]], dtype=object),
             ksol=['3*a', 0.02, 0.])
@@ -498,7 +638,7 @@ def test_bfieldexpansion_env_new_and_set(h, use_strings):
 
     element = env.get(name)
     # The normal environment array handling preserves matrix indices.
-    env.set(name, length='2*ll', nstep='2*steps', s_start='-a',
+    env.set(name, length='2*ll', num_integration_steps='2*steps', s_start='-a',
             knc=[[0.04, 0.1, 0.], ['4*a', 0., 0.]],
             ksc=[[0.01, '2*a', 0.], [0.03, 0., 0.]],
             ksol=np.array([env.ref['a'], 0.03, 0.], dtype=object))
@@ -514,14 +654,14 @@ def test_bfieldexpansion_env_new_and_set(h, use_strings):
     assert element.ksc[0, 1] == pytest.approx(0.4)
     assert element.ksol[0] == pytest.approx(0.2)
     assert element.length == 0.8
-    assert element.nstep == 12
+    assert element.num_integration_steps == 12
     assert element.ds == pytest.approx(0.8 / 12)
     assert element.angle == pytest.approx(element.length * element.h)
     _check_integrated_bfieldexpansion_strengths(element)
 
     fresh = xt.BFieldExpansion(
         length=element.length, h=element.h, s_start=element.s_start,
-        nstep=element.nstep, num_phi=element.num_phi,
+        num_integration_steps=element.num_integration_steps, num_phi=element.num_phi,
         knc=np.asarray(element.knc).reshape(element.nb, -1),
         ksc=np.asarray(element.ksc).reshape(element.na, -1),
         ksol=np.asarray(element.ksol))
@@ -592,10 +732,10 @@ def test_bfieldexpansion_env_rejects_invalid_updates(h):
             env.set('e', **{name: value})
         assert env.get('e') is element
         xo.assert_allclose(element._c, original, rtol=0, atol=0)
-    for nstep in (0, -1, 1.5):
+    for num_integration_steps in (0, -1, 1.5):
         with pytest.raises(ValueError, match='positive integer'):
-            env.set('e', nstep=nstep)
-        assert element.nstep == 10
+            env.set('e', num_integration_steps=num_integration_steps)
+        assert element.num_integration_steps == 10
     if h:
         with pytest.raises(ValueError, match='h > 1e-4'):
             env.set('e', h=0.)
@@ -682,7 +822,7 @@ def test_bfieldexpansion_total_integrals_and_twiss_strengths(h):
     knc = np.arange(1, 19).reshape(6, 3) * 1e-4
     ksc = np.arange(1, 10).reshape(3, 3) * 1e-4
     element = xt.BFieldExpansion(
-        length=0.2, h=h, s_start=0.1, num_phi=5, knc=knc, ksc=ksc,
+        length=0.2, h=h, s_start=0.1, num_phi=5, knc=knc, ksc=ksc, kscale=0.8,
         ksol=np.array([0.02, 0.01, 0.]),
         knl=[0.001, 0.002], ksl=[0.003, 0., 0., 0.0001],
     )
@@ -723,6 +863,9 @@ def test_bfieldexpansion_total_integrals_and_twiss_strengths(h):
             line.ref['expansion'].knl[1] = line.vars['hard_edge']
             line.vars['hard_edge'] = 0.004
             line['expansion'].ksl[3] = 0.0002
+            line.vars['scale'] = 0.8
+            line.ref['expansion'].kscale = line.vars['scale']
+            line.vars['scale'] = -0.5
             element.length = 0.3
             element.s_start = 0.2
         _check_integrated_bfieldexpansion_strengths(element)
@@ -742,7 +885,8 @@ def test_bfieldexpansion_total_integrals_and_twiss_strengths(h):
     assert element.knc[0, 0] == 0.03
     _check_integrated_bfieldexpansion_strengths(copied)
     serialized = element.to_dict()
-    for name in ['knc', 'ksc', 'ksol', 'knl', 'ksl', 'ksoll']:
+    assert 'ksoll' not in serialized  # Reconstructed from ksol on loading.
+    for name in ['knc', 'ksc', 'ksol', 'knl', 'ksl']:
         xo.assert_allclose(serialized[name], getattr(element, name), rtol=0, atol=0)
 
 
@@ -750,7 +894,7 @@ def test_bfieldexpansion_total_integrals_and_twiss_strengths(h):
 @pytest.mark.parametrize('pkin_const', [False, True])
 def test_bfieldexpansion_hard_edge_inputs(h, pkin_const):
     element = xt.BFieldExpansion(
-        length=0.4, h=h, s_start=-0.1, nstep=20, pkin_const=pkin_const,
+        length=0.4, h=h, s_start=-0.1, num_integration_steps=20, pkin_const=pkin_const,
         knc=[[0.1, 0.02, 0.003]], ksc=[[0.01, -0.005, 0.]],
         ksol=[0.02, 0.001, 0.],
         knl=[0.02, 0.01, 0.004], ksl=[0.001, 0.002])
@@ -778,7 +922,7 @@ def test_bfieldexpansion_hard_edge_inputs(h, pkin_const):
             combined[profile] = values
         reference = xt.BFieldExpansion(
             length=element.length, h=element.h, s_start=element.s_start,
-            ksol=element.ksol, nstep=element.nstep, pkin_const=pkin_const,
+            ksol=element.ksol, num_integration_steps=element.num_integration_steps, pkin_const=pkin_const,
             **combined)
         assert element.num_phi == reference.num_phi
         field = element.get_field(x=[-0.01, 0.02], y=[0.015, -0.007], s_local=[0., 0.3])
@@ -959,7 +1103,7 @@ def test_h_sdep():
     ksol = np.array([0.1, 0.0])
     num_phi = 5
     length=0.2
-    fexp = xt.BFieldExpansion(length=length, h=h, ksc=ksc, knc=knc, ksol=ksol, num_phi=num_phi, nstep=100, pkin_const=True)
+    fexp = xt.BFieldExpansion(length=length, h=h, ksc=ksc, knc=knc, ksol=ksol, num_phi=num_phi, num_integration_steps=100, pkin_const=True)
 
     p0 = xt.Particles(x=0.01, y=0.007, tau=0.002, beta0=0.7)
     line = xt.Line(elements=[fexp])
@@ -979,7 +1123,7 @@ def test_sdep():
     ksol = np.array([0.1, 0.0])
     num_phi = 5
     length=0.2
-    fexp = xt.BFieldExpansion(length=length, ksc=ksc, knc=knc, ksol=ksol, num_phi=num_phi, nstep=100, pkin_const=True)
+    fexp = xt.BFieldExpansion(length=length, ksc=ksc, knc=knc, ksol=ksol, num_phi=num_phi, num_integration_steps=100, pkin_const=True)
 
     p0 = xt.Particles(x=0.01, y=0.007, tau=0.002, beta0=0.7)
     line = xt.Line(elements=[fexp])
@@ -1029,7 +1173,7 @@ def test_backtrack():
     ksol = np.array([0.1, 0.0])
     num_phi = 5
     length=0.2
-    fexp = xt.BFieldExpansion(length=length, h=h, ksc=ksc, knc=knc, ksol=ksol, num_phi=num_phi, nstep=100)
+    fexp = xt.BFieldExpansion(length=length, h=h, ksc=ksc, knc=knc, ksol=ksol, num_phi=num_phi, num_integration_steps=100)
 
     p0 = xt.Particles(x=0.01, y=0.007, tau=0.002, beta0=0.7)
     line = xt.Line(elements=[fexp])
@@ -1060,7 +1204,7 @@ def test_against_boris():
                 (0.1*z*x**2 - 0.1*z*y**2 + 0.02*z + x*(0.16*z + 0.2) + y*(0.14*z + 0.04) + 0.1) * p0.rigidity0[0])
 
     boris = xt.BorisSpatialIntegrator(fieldmap_callable=fieldvalue, s_start=0, s_end=length, n_steps=500)
-    fexp = xt.BFieldExpansion(length=length, ksc=ksc, knc=knc, ksol=ksol, num_phi=5, nstep=50, pkin_const=True)
+    fexp = xt.BFieldExpansion(length=length, ksc=ksc, knc=knc, ksol=ksol, num_phi=5, num_integration_steps=50, pkin_const=True)
 
     boris.track(p0)
     fexp.track(p1)
@@ -1101,9 +1245,9 @@ def test_straighttocurved():
     p0 = xt.Particles(x=0.01, y=0.005, tau=0.001, px=0.003, py=0.004, ptau=0.002, beta0=0.7)
     p1 = p0.copy()
 
-    line_straight = xt.Line(elements=[xt.BFieldExpansion(length=length, h=0, ksc=np.array([[ksc_st]]), knc=np.array([[knc_st]]), ksol=np.array([ksol_st]), num_phi=5, nstep=100)])
+    line_straight = xt.Line(elements=[xt.BFieldExpansion(length=length, h=0, ksc=np.array([[ksc_st]]), knc=np.array([[knc_st]]), ksol=np.array([ksol_st]), num_phi=5, num_integration_steps=100)])
     line_straight.track(p0, _force_no_end_turn_actions=True)
-    line_curved = xt.Line(elements=[xt.BFieldExpansion(length=straight_to_curved(p0, h)["s"], h=h, ksc=ksc_cu, knc=knc_cu, ksol=ksol_cu, num_phi=5, nstep=100)])
+    line_curved = xt.Line(elements=[xt.BFieldExpansion(length=straight_to_curved(p0, h)["s"], h=h, ksc=ksc_cu, knc=knc_cu, ksol=ksol_cu, num_phi=5, num_integration_steps=100)])
     line_curved.track(p1, _force_no_end_turn_actions=True)
 
     assert np.isclose(curved_to_straight(p1, h)["x"], p0.x)

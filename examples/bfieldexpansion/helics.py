@@ -408,15 +408,15 @@ DIPOLE_SEGMENTS = (
 )
 
 
-def make_line(nstep=10, num_phi='auto'):
-    """Build the ring; nstep is the RK4 step count per dipole spline segment.
+def make_line(num_integration_steps=10, num_phi='auto'):
+    """Build the ring; num_integration_steps is the RK4 step count per dipole spline segment.
 
     num_phi='auto' retains the complete straight-field polynomial and terms
     linear in curvature. Use an integer to study higher curvature orders.
     """
     prototypes = [xt.BFieldExpansion(
         length=length, h=h, knc=knc, ksc=np.zeros((1, 4)), ksol=np.zeros(4),
-        num_phi=num_phi, nstep=nstep, pkin_const=False)
+        num_phi=num_phi, num_integration_steps=num_integration_steps, pkin_const=False)
         for length, h, knc in DIPOLE_SEGMENTS]
     np.testing.assert_allclose(sum(el.length for el in prototypes), DIPOLE_LENGTH,
                                rtol=0, atol=1e-14)

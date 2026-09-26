@@ -107,7 +107,7 @@ def native_map(elements, initial, particle_ref, steps, pkin_const):
         particles.py -= entrance['Ay']
     for element in elements:
         element.pkin_const = pkin_const
-        element.nstep = steps
+        element.num_integration_steps = steps
         element.track(particles)
     output = np.array([particles.x, particles.px, particles.y, particles.py,
                        particles.zeta/particles.beta0, particles.ptau]).T

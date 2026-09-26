@@ -10,7 +10,7 @@ import xtrack as xt
 env = xt.Environment()
 env.new('field', 'BFieldExpansion', length=0.8, h=0.3, s_start=0.15,
         knc=[[0.1, 0.08, -0.03], [0.04, -0.02, 0.01]],
-        ksc=[[0.02, -0.01, 0.02]], ksol=[0.15, 0.03, 0.], nstep=160)
+        ksc=[[0.02, -0.01, 0.02]], ksol=[0.15, 0.03, 0.], num_integration_steps=160)
 line = env.new_line(components=['field'])
 initial = xt.Particles(p0c=1e9, x=0.01, y=0.007)
 reference = initial.copy()
@@ -26,7 +26,7 @@ for coordinate in ('x', 'px', 'y', 'py', 'zeta', 'delta', 's'):
 
 for name in line.element_names:
     if isinstance(line[name], xt.ThickSliceBFieldExpansion):
-        print(f'{name}: s_start={line[name].s_start:g}, nstep={line[name].nstep}')
+        print(f'{name}: s_start={line[name].s_start:g}, num_integration_steps={line[name].num_integration_steps}')
 
 env.set('field', length=1.2, knc=[[0.12, 0.1, -0.03], [0.04, -0.02, 0.01]])
 line.get_table(attr=True).cols['s length angle k0l k1l ksoll'].show()

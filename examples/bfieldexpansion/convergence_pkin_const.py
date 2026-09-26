@@ -125,7 +125,7 @@ def solve_reference(derivatives, initial, length, by_terms=4, bs_terms=3,
 def make_element(coefficients, length, context):
     coefficients = np.asarray(coefficients)
     return xt.BFieldExpansion(
-        _context=context, length=length, s_start=0, nstep=1,
+        _context=context, length=length, s_start=0, num_integration_steps=1,
         ksc=np.zeros((1, len(coefficients))), knc=coefficients[None, :],
         ksol=np.zeros(len(coefficients)), num_phi=7,
     )
@@ -141,7 +141,7 @@ def track_segments(elements, initial, pkin_const, steps):
         particles.ay = entrance['Ay']
     for element in elements:
         element.pkin_const = pkin_const
-        element.nstep = steps
+        element.num_integration_steps = steps
         element.track(particles)
     np.testing.assert_allclose(
         particles.s, sum(el.length for el in elements), rtol=0, atol=1e-11)

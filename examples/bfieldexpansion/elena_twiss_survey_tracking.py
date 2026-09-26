@@ -105,15 +105,15 @@ def make_plots(line, twiss, survey, monitor, survived):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--nstep', type=int, default=10,
+    parser.add_argument('--num-integration-steps', type=int, default=10,
                         help='RK4 steps per dipole spline segment (default: 10)')
     parser.add_argument('--no-plot', action='store_true')
     parser.add_argument('--save-prefix', type=Path)
     args = parser.parse_args()
-    if args.nstep < 1:
-        parser.error('--nstep must be positive')
+    if args.num_integration_steps < 1:
+        parser.error('--num-integration-steps must be positive')
 
-    line = make_line(nstep=args.nstep)
+    line = make_line(num_integration_steps=args.num_integration_steps)
     # More observation points in the long straights make the drift parabolas
     # visible in the Twiss plot. The dipole spline segments are left intact.
     line.slice_thick_elements([
@@ -131,7 +131,7 @@ def main():
     np.testing.assert_allclose(twiss.x[-1], twiss.x[0], rtol=0, atol=1e-9)
     print(f'Circumference: {line.get_length():.9f} m', flush=True)
     print(f'Dipoles: 6 × {len(DIPOLE_SEGMENTS)} BFieldExpansion segments; '
-          f'{args.nstep} RK4 steps per segment', flush=True)
+          f'{args.num_integration_steps} RK4 steps per segment', flush=True)
     print(f'Tunes: Qx={twiss.qx:.8f}, Qy={twiss.qy:.8f}', flush=True)
     print(f'Maximum |closed orbit x|: {1e3*np.max(np.abs(twiss.x)):.6f} mm', flush=True)
     print(f'Survey closure: {np.linalg.norm(survey.XYZ[-1]-survey.XYZ[0]):.3e} m', flush=True)
