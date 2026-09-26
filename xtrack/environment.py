@@ -519,7 +519,7 @@ class Environment:
 
         self._set_kwargs(name=name, ref_kwargs=ref_kwargs, value_kwargs=value_kwargs,
                     container=self._element_dict, container_refs=self._xdeps_eref,
-                    isinit=True)
+                    isinit=needs_instantiation)
 
         if extra is not None:
             assert isinstance(extra, dict)

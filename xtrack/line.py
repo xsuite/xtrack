@@ -69,6 +69,7 @@ _ALLOWED_ELEMENT_TYPES_IN_NEW = [
     xt.Magnet, xt.Replica, xt.Marker,
     xt.Bend, xt.RBend, xt.Quadrupole, xt.Sextupole, xt.Octupole, xt.Multipole,
     xt.UniformSolenoid, xt.Solenoid, xt.VariableSolenoid,
+    xt.BFieldExpansion,
     xt.Cavity, xt.RFMultipole, xt.CrabCavity, xt.ReferenceEnergyIncrease,
     xt.ReferenceEnergyChange,
     xt.Translation, xt.Rotation, xt.TimeDelay,
@@ -7279,6 +7280,7 @@ class Line:
                 '_tpsa_enabled': AttrDefinition(name='_tpsa_enabled', dtype=np.int8),
 
                 '_own_ks': AttrDefinition(name='ks'),
+                '_own_ksoll': AttrDefinition(name='ksoll', index=0),
                 '_own_ks_profile_0': AttrDefinition(name='ks_profile', index=0),
                 '_own_ks_profile_1': AttrDefinition(name='ks_profile', index=1),
                 '_own_bs_mean': AttrDefinition(name='bs', index=4),
@@ -7354,6 +7356,7 @@ class Line:
                 '_parent_radiation_flag': AttrDefinition(name=('_parent', 'radiation_flag'), dtype=np.int64),
 
                 '_parent_ks': AttrDefinition(name=('_parent', 'ks')),
+                '_parent_ksoll': AttrDefinition(name=('_parent', 'ksoll'), index=0),
 
                 '_parent_k0': AttrDefinition(name=('_parent', 'k0')),
                 '_parent_k1': AttrDefinition(name=('_parent', 'k1')),
@@ -7532,6 +7535,9 @@ class Line:
                 'k5sl': lambda attr: attr['_k5sl_no_rel'] + attr['_k5sl_rel'] * attr['_main_strength'],
                 'ks': lambda attr: (attr['_own_ks'] + attr['_parent_ks'] * attr._inherit_strengths
                                     + 0.5 * (attr['_own_ks_profile_0'] + attr['_own_ks_profile_1'])),
+                'ksoll': lambda attr: (
+                    attr['_own_ksoll']
+                    + attr['_parent_ksoll'] * attr['weight'] * attr._inherit_strengths),
                 'bs': lambda attr: attr['_own_bs_mean'] * attr['_own_scale_b'],
                 'hkick': lambda attr: attr["angle"] - attr["k0l"],
                 'vkick': lambda attr: attr["k0sl"],
@@ -8095,12 +8101,15 @@ class LineAttrItem:
                 if isinstance(ee, xt.Replica):
                     nn = ee.resolve(line, get_name=True)
                     ee = line._element_dict[nn]
-                if hasattr(ee, nn0):
+                if (hasattr(ee, nn0)
+                        or nn0 in getattr(ee, '_line_attr_methods', {})):
                     has_nn0.append((ii, nn, ee))
             cache_has_name[nn0] = has_nn0
 
         mask = np.zeros(len(all_names), dtype=bool)
         setter_names = []
+        self._python_properties = []
+        self._python_methods = []
         for ii, nn, ee in has_nn0:
             has_name = True
             if isinstance(name, str):
@@ -8116,7 +8125,25 @@ class LineAttrItem:
                         break
                     inner_obj = getattr(inner_obj, nn_inner)
 
-            if has_name and hasattr(inner_obj, '_xofields') and inner_name in inner_obj._xofields:
+            if has_name and inner_name in getattr(inner_obj, '_line_attr_skip_fields', ()):
+                # Some elements provide complete integrated strengths through
+                # a method, including their scalar k_i * length contributions.
+                # Do not add those scalar terms a second time.
+                continue
+            if (has_name and inner_name in
+                    getattr(inner_obj, '_line_attr_methods', {})):
+                # Computed totals can differ from the user-facing knl/ksl
+                # inputs, and profile slices need their own interval integral.
+                method, result_index = inner_obj._line_attr_methods[inner_name]
+                self._python_methods.append((ii, inner_obj, method, result_index))
+            elif (has_name and inner_name in
+                    getattr(inner_obj, '_line_attr_properties', ())):
+                # Nonuniform-profile slices compute interval strengths from
+                # their parent without maintaining a second cache per slice.
+                if index is not None and index >= len(getattr(inner_obj, inner_name)):
+                    continue
+                self._python_properties.append((ii, inner_obj, inner_name))
+            elif has_name and hasattr(inner_obj, '_xofields') and inner_name in inner_obj._xofields:
                 if index is not None:
                     this_len = cache_len.get(tuple(name)+(nn,), None)
                     if this_len is None:
@@ -8146,10 +8173,28 @@ class LineAttrItem:
             self._prepare_multisetter()
         return self._mask
 
-    def get_full_array(self):
+    def get_full_array(self, method_cache=None):
         full_array = np.zeros(len(self.mask), dtype=np.float64)
         ctx2np = self.multisetter._context.nparray_from_context_array
         full_array[self.mask] = ctx2np(self.multisetter.get_values())
+        for ii, obj, name in self._python_properties:
+            value = getattr(obj, name)
+            full_array[ii] = value if self.index is None else value[self.index]
+        for ii, obj, method, result_index in self._python_methods:
+            # Reuse a total across normal/skew orders while building a table.
+            # The cache belongs to one extraction, so later updates stay live.
+            key = (id(obj), method)
+            if method_cache is not None and key in method_cache:
+                result = method_cache[key]
+            else:
+                result = getattr(obj, method)()
+                if method_cache is not None:
+                    method_cache[key] = result
+            value = result[result_index]
+            if self.index is None:
+                full_array[ii] = value
+            elif self.index < len(value):
+                full_array[ii] = value[self.index]
         return full_array
 
 class LineAttr:
@@ -8215,7 +8260,7 @@ class LineAttr:
         if key in self.derived_fields:
             out=  self.derived_fields[key](self)
         else:
-            out = self._cache[key].get_full_array()
+            out = self._cache[key].get_full_array(method_cache=self._value_cache)
 
         if self._value_cache is not None:
             self._value_cache[key] = out

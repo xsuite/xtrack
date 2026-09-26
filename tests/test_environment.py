@@ -1702,6 +1702,9 @@ def test_env_new_allowed_elements(cls_name):
         env.new('e', 'base', mode='replica')
     elif cls_name == 'LimitPolygon':
         env.new('e', cls, x_vertices=[-1, 1, 1, -1], y_vertices=[-1, -1, 1, 1])
+    elif cls_name == 'BFieldExpansion':
+        env.new('e', cls, length=0.2, ksc=[[0., 0.]], knc=[[0., 0.]],
+                ksol=[0., 0.])
     else:
         env.new('e', cls)
 
@@ -1791,6 +1794,20 @@ def test_env_new_whole_array_reference():
     assert env['dst'].knl[0] == 1.
     env.set('src', knl=[9, 9, 9])
     assert env['dst'].knl[0] == 9.
+
+
+def test_env_clone_numeric_overrides_clear_expressions():
+    env = xt.Environment()
+    env['a'] = 2.
+    env.new('source', 'Quadrupole', length='a', k1='3*a', knl=['a', '2*a'])
+    env.new('clone', 'source', length=0.5, knl=[4.])
+    env['a'] = 5.
+    assert env['clone'].length == 0.5
+    assert env['clone'].knl[0] == 4.
+    assert env['clone'].knl[1] == 10.
+    assert env['clone'].k1 == 15.
+    assert env['source'].length == 5.
+    assert env['source'].knl[0] == 5.
 
 
 def test_env_new_prototype_keyword_and_deprecated_parent():
