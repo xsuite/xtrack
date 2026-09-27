@@ -472,8 +472,6 @@ class Environment:
         else:
             assert mode is None, f'Unknown mode {mode}'
 
-        eval_ = self._xdeps_eval.eval
-
         if not (isinstance(parent, str) or parent in _ALLOWED_ELEMENT_TYPES_IN_NEW):
             raise ValueError(
             'Only '
@@ -484,22 +482,12 @@ class Environment:
             + '`env.elements["myname"] = MyClass(...)`\n'
             )
 
-        needs_instantiation = True
-        parent_element = None
         element_prototype = None
         if isinstance(parent, str):
             if parent in self.elements:
-                # Clone an existing element
                 element_prototype = parent
-                self.elements[name] = xt.Replica(parent_name=parent)
-                self.replace_replica(name)
-
-                parent_element = self._element_dict[name]
-                parent = type(parent_element)
-                needs_instantiation = False
             elif parent in _ALLOWED_ELEMENT_TYPES_DICT:
                 parent = _ALLOWED_ELEMENT_TYPES_DICT[parent]
-                needs_instantiation = True
             else:
                 raise ValueError(f'Element type {parent} not found')
 
@@ -512,14 +500,22 @@ class Environment:
                              '`length_straight` parameter set accordingly, '
                              'instead of specifying the `rbarc` flag.')
 
-        ref_kwargs, value_kwargs = _parse_kwargs(parent, kwargs, eval_)
-
-        if needs_instantiation: # Prototype is a class and not another element
+        if element_prototype is None:
+            # Construct a new element, then attach its deferred expressions.
+            ref_kwargs, value_kwargs = _parse_kwargs(
+                parent, kwargs, self._xdeps_eval.eval)
             self.elements[name] = parent(**value_kwargs)
-
-        self._set_kwargs(name=name, ref_kwargs=ref_kwargs, value_kwargs=value_kwargs,
-                    container=self._element_dict, container_refs=self._xdeps_eref,
-                    isinit=needs_instantiation)
+            self._set_kwargs(
+                name=name, ref_kwargs=ref_kwargs, value_kwargs=value_kwargs,
+                container=self._element_dict, container_refs=self._xdeps_eref,
+                isinit=True)
+        else:
+            # Copy the prototype and its expressions, resolving replicas too.
+            self.elements[name] = xt.Replica(parent_name=element_prototype)
+            self.replace_replica(name)
+            # Overrides are edits: numeric values must clear inherited
+            # expressions, while unspecified fields keep their expressions.
+            self.set(name, **kwargs)
 
         if extra is not None:
             assert isinstance(extra, dict)

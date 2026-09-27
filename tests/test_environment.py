@@ -1796,11 +1796,18 @@ def test_env_new_whole_array_reference():
     assert env['dst'].knl[0] == 9.
 
 
-def test_env_clone_numeric_overrides_clear_expressions():
+@pytest.mark.parametrize('mode', [None, 'clone'])
+@pytest.mark.parametrize('prototype', ['source', 'replica'])
+def test_env_clone_numeric_overrides_clear_expressions(mode, prototype):
     env = xt.Environment()
     env['a'] = 2.
     env.new('source', 'Quadrupole', length='a', k1='3*a', knl=['a', '2*a'])
-    env.new('clone', 'source', length=0.5, knl=[4.])
+    env.new('replica', 'source', mode='replica')
+    env.new('clone', prototype, mode=mode, length=0.5, knl=[4.])
+    assert env['clone'].length == 0.5
+    assert env['clone'].knl[0] == 4.
+    assert env.ref['clone'].length.xdeps.expr is None
+    assert env.ref['clone'].knl[0].xdeps.expr is None
     env['a'] = 5.
     assert env['clone'].length == 0.5
     assert env['clone'].knl[0] == 4.
@@ -1808,6 +1815,28 @@ def test_env_clone_numeric_overrides_clear_expressions():
     assert env['clone'].k1 == 15.
     assert env['source'].length == 5.
     assert env['source'].knl[0] == 5.
+
+
+def test_env_clone_mixed_array_overrides():
+    env = xt.Environment()
+    env['a'] = 2.
+    env['b'] = 3.
+    matrix = np.eye(6).tolist()
+    matrix[0][:2] = ['a', '2*a']
+    matrix[1][0] = '3*a'
+    env.new('source', xt.SecondOrderTaylorMap, R=matrix)
+
+    # A partial matrix override changes only the supplied row. It replaces
+    # one expression with a number and another with a new expression.
+    env.new('clone', 'source', R=[[4., '2*b', 0., 0., 0., 0.]])
+    assert env.ref['clone'].R[0, 0].xdeps.expr is None
+    env['a'] = 5.
+    env['b'] = 7.
+    xo.assert_allclose(env['clone'].R[0], [4., 14., 0., 0., 0., 0.],
+                       rtol=0, atol=0)
+    assert env['clone'].R[1, 0] == 15.
+    assert env['source'].R[0, 0] == 5.
+    assert env['source'].R[0, 1] == 10.
 
 
 def test_env_new_prototype_keyword_and_deprecated_parent():
