@@ -45,6 +45,7 @@ ONLY_XTRACK_ELEMENTS = [
     DriftExact,
     Misalignment,
     SplineBoris,
+    BFieldExpansion,
     # Drift Slices
     DriftSlice,
     ThickSliceDevice,
@@ -67,6 +68,7 @@ ONLY_XTRACK_ELEMENTS = [
     ThickSliceCavity,
     ThickSliceCrabCavity,
     ThickSliceMultipole,
+    ThickSliceBFieldExpansion,
     # Thin slices
     ThinSliceBend,
     ThinSliceRBend,

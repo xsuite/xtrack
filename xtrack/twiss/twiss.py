@@ -333,6 +333,7 @@ def twiss_line(line, particle_ref=None, method=None,
         - `dzeta`: longitudinal dispersion vs delta
     Output fields present when `strengths=True` (or `radiation_integrals=True`):
         - `k0l`–`k5l`, `k0sl`–`k5sl`: normal/skew multipole integrated strengths
+        - `ksoll`: integrated normalized longitudinal solenoid strength
         - `angle`, `rot_s_rad`, `hkick`, `vkick`, `ks`, `bs`, `length`,
           `element_type`, `isthick`, `parent_name`, `prototype`: element properties
     Output fields present when `radiation_analysis=True`:
