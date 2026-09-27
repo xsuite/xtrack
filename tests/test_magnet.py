@@ -1,10 +1,9 @@
 import numpy as np
 import pytest
-
-import xtrack as xt
 import xobjects as xo
 from xobjects.test_helpers import for_all_test_contexts
 
+import xtrack as xt
 from xtrack import Magnet, MagnetEdge
 
 
@@ -73,7 +72,9 @@ def test_magnet_exact_drift(test_context):
     assert magnet.model == 'drift-kick-drift-exact'
     assert magnet.integrator == 'teapot'
 
-    exact_drift = xt.UniformSolenoid(length=2.0, _context=test_context)  # Solenoid is exact drift when off
+    exact_drift = xt.UniformSolenoid(
+        length=2.0, _context=test_context
+    )  # Solenoid is exact drift when off
 
     p0 = make_particles(test_context)
     p_test = p0.copy()
@@ -119,7 +120,7 @@ def test_magnet_sextupole(test_context):
         _context=test_context,
     )
 
-    sextupole = xt.Sextupole(length=2.0, k2=3., k2s=5., _context=test_context)
+    sextupole = xt.Sextupole(length=2.0, k2=3.0, k2s=5.0, _context=test_context)
     assert magnet.integrator == 'teapot'
     assert magnet.model == 'drift-kick-drift-expanded'
 
@@ -170,8 +171,8 @@ def test_magnet_sextupole_with_kicks_that_do_nothing(test_context):
 
     sextupole = xt.Sextupole(
         length=2.0,
-        k2=3.,
-        k2s=5.,
+        k2=3.0,
+        k2s=5.0,
         num_multipole_kicks=5,
         _context=test_context,
     )
@@ -214,7 +215,7 @@ def test_magnet_sextupole_with_kicks(test_context):
     magnet = Magnet(
         length=2.0,
         k2s=5,
-        knl=[0., 0., 3. * 2., 0., 0., 0.],
+        knl=[0.0, 0.0, 3.0 * 2.0, 0.0, 0.0, 0.0],
         num_multipole_kicks=5,
         integrator='teapot',
         model='drift-kick-drift-expanded',
@@ -223,8 +224,8 @@ def test_magnet_sextupole_with_kicks(test_context):
 
     sextupole = xt.Sextupole(
         length=2.0,
-        k2=3.,
-        k2s=5.,
+        k2=3.0,
+        k2s=5.0,
         num_multipole_kicks=5,
         integrator='teapot',
         _context=test_context,
@@ -285,7 +286,7 @@ def test_magnet_sextupole_with_skew_kick(test_context):
         num_multipole_kicks=5,
         _context=test_context,
     )
-    sextupole.ksl[2] = -2.
+    sextupole.ksl[2] = -2.0
 
     p0 = make_particles(test_context)
     p_test = p0.copy()
@@ -381,7 +382,7 @@ def test_magnet_curved_quad(test_context):
         angle=0.05 * 2.0,
         k1=-0.3,
         num_multipole_kicks=15,
-        integrator='yoshida4',
+        integrator='yoshida-6',
         model='rot-kick-rot',
         _context=test_context,
     )
@@ -389,7 +390,7 @@ def test_magnet_curved_quad(test_context):
     bend = xt.Bend(
         length=2.0,
         k1=-0.3,
-        angle=0.05*2.0,
+        angle=0.05 * 2.0,
         model='rot-kick-rot',
         num_multipole_kicks=15,
         _context=test_context,
@@ -436,7 +437,7 @@ def test_magnet_bend_auto_no_kicks(test_context):
         k0=0,
         k1=0,
         model='bend-kick-bend',
-        integrator='yoshida4',
+        integrator='yoshida-6',
         num_multipole_kicks=0,
         _context=test_context,
     )
@@ -487,7 +488,7 @@ def test_magnet_bend_auto_quad_kick(test_context):
     magnet = Magnet(
         length=2.0,
         model='bend-kick-bend',
-        integrator='yoshida4',
+        integrator='yoshida-6',
         num_multipole_kicks=1,
         angle=0.05 * 2.0,
         k0=0,
@@ -548,7 +549,7 @@ def test_magnet_bend_dip_quad_kick(model, test_context):
         k0=0.2,
         k1=0.3,
         angle=0.1 * 2.0,
-        integrator='yoshida4',
+        integrator='yoshida-6',
         num_multipole_kicks=10,
         _context=test_context,
     )
@@ -617,7 +618,7 @@ def test_magnet_bend_dip_quad_kick_with_multipoles(model, test_context):
         knl=[0.1, 0.2, 0.3, 0.4, 0.5, 0.6],
         ksl=[0.6, 0.5, 0.4, 0.15, 0.2, 0.1],
         num_multipole_kicks=10,
-        integrator='yoshida4',
+        integrator='yoshida-6',
         _context=test_context,
     )
 
@@ -635,7 +636,9 @@ def test_magnet_bend_dip_quad_kick_with_multipoles(model, test_context):
         np.array([0.1, 0.2, 0.3 + 0.1 * 2, 0.4 + 0.15 * 2, 0.5, 0.6])
     )
     bend.ksl = test_context.nparray_to_context_array(
-        np.array([0.6 + 0.02 * 2, 0.5 + 0.03 * 2, 0.4 + 0.01 * 2, 0.15 + 0.02 * 2, 0.2, 0.1])
+        np.array(
+            [0.6 + 0.02 * 2, 0.5 + 0.03 * 2, 0.4 + 0.01 * 2, 0.15 + 0.02 * 2, 0.2, 0.1]
+        )
     )
 
     magnet.model = model
@@ -674,89 +677,6 @@ def test_magnet_bend_dip_quad_kick_with_multipoles(model, test_context):
     xo.assert_allclose(p_test.delta, p0.delta, atol=1e-15, rtol=0)
 
 
-@for_all_test_contexts
-def test_check_uniform_integrator(test_context):
-    mm1 = Magnet(angle=0.1 * 2.0, k1=0.3, k0=0.2, length=2.0, _context=test_context)
-    mm2 = mm1.copy()
-
-    mm1.edge_entry_active = False
-    mm1.edge_exit_active = False
-    mm2.edge_entry_active = False
-    mm2.edge_exit_active = False
-
-    mm1.integrator = 'uniform'
-    mm2.integrator = 'teapot'
-    mm1.num_multipole_kicks = 1
-    mm2.num_multipole_kicks = 1
-
-    p0 = make_particles(test_context)
-    p_test = p0.copy()
-    p_ref = p0.copy()
-
-    mm1.track(p_test)
-    mm2.track(p_ref)
-
-    p_test_cpu = p_test.copy(_context=xo.ContextCpu())
-    p_ref_cpu = p_ref.copy(_context=xo.ContextCpu())
-
-    xo.assert_allclose(p_test_cpu.s, 2.0, atol=0, rtol=1e-7)
-    xo.assert_allclose(p_ref_cpu.s, 2.0, atol=0, rtol=1e-7)
-    xo.assert_allclose(p_test_cpu.x, p_ref_cpu.x, atol=1e-15, rtol=0)
-    xo.assert_allclose(p_test_cpu.y, p_ref_cpu.y, atol=1e-15, rtol=0)
-    xo.assert_allclose(p_test_cpu.zeta, p_ref_cpu.zeta, atol=1e-15, rtol=0)
-    xo.assert_allclose(p_test_cpu.px, p_ref_cpu.px, atol=1e-15, rtol=0)
-    xo.assert_allclose(p_test_cpu.py, p_ref_cpu.py, atol=1e-15, rtol=0)
-    xo.assert_allclose(p_test_cpu.delta, p_ref_cpu.delta, atol=1e-15, rtol=0)
-
-    # Test backtracking
-    line = xt.Line(elements=[mm1])
-    line.build_tracker(compile=False, _context=test_context)
-    line.track(p_test, backtrack=True)
-    p_test.move(_context=xo.ContextCpu())
-    xo.assert_allclose(p_test.s, 0.0, atol=1e-7, rtol=0)
-    xo.assert_allclose(p_test.x, p0.x, atol=5e-14, rtol=0)
-    xo.assert_allclose(p_test.y, p0.y, atol=1e-15, rtol=0)
-    xo.assert_allclose(p_test.zeta, p0.zeta, atol=1e-14, rtol=0)
-    xo.assert_allclose(p_test.px, p0.px, atol=1e-15, rtol=0)
-    xo.assert_allclose(p_test.py, p0.py, atol=1e-15, rtol=0)
-    xo.assert_allclose(p_test.delta, p0.delta, atol=1e-15, rtol=0)
-
-    # more kicks (needs loser thresholds)
-    mm1.num_multipole_kicks = 10
-    mm2.num_multipole_kicks = 10
-
-    p_test = p0.copy()
-    p_ref = p0.copy()
-
-    mm1.track(p_test)
-    mm2.track(p_ref)
-
-    p_test_cpu = p_test.copy(_context=xo.ContextCpu())
-    p_ref_cpu = p_ref.copy(_context=xo.ContextCpu())
-
-    xo.assert_allclose(p_test_cpu.s, 2.0, atol=0, rtol=1e-7)
-    xo.assert_allclose(p_ref_cpu.s, 2.0, atol=0, rtol=1e-7)
-    xo.assert_allclose(p_test_cpu.x, p_ref_cpu.x, atol=0, rtol=5e-3)
-    xo.assert_allclose(p_test_cpu.y, p_ref_cpu.y, atol=0, rtol=5e-3)
-    xo.assert_allclose(p_test_cpu.zeta, p_ref_cpu.zeta, atol=0, rtol=1e-2)
-    xo.assert_allclose(p_test_cpu.px, p_ref_cpu.px, atol=0, rtol=5e-3)
-    xo.assert_allclose(p_test_cpu.py, p_ref_cpu.py, atol=0, rtol=5e-3)
-    xo.assert_allclose(p_test_cpu.delta, p_ref_cpu.delta, atol=0, rtol=5e-3)
-
-    # Test backtracking
-    line = xt.Line(elements=[mm1])
-    line.build_tracker(compile=False, _context=test_context)
-    line.track(p_test, backtrack=True)
-    p_test.move(_context=xo.ContextCpu())
-    xo.assert_allclose(p_test.s, 0.0, atol=1e-7, rtol=0)
-    xo.assert_allclose(p_test.x, p0.x, atol=5e-14, rtol=0)
-    xo.assert_allclose(p_test.y, p0.y, atol=1e-15, rtol=0)
-    xo.assert_allclose(p_test.zeta, p0.zeta, atol=1e-14, rtol=0)
-    xo.assert_allclose(p_test.px, p0.px, atol=1e-15, rtol=0)
-    xo.assert_allclose(p_test.py, p0.py, atol=1e-15, rtol=0)
-    xo.assert_allclose(p_test.delta, p0.delta, atol=1e-15, rtol=0)
-
-
 @for_all_test_contexts(excluding='ContextPyopencl')
 def test_edge_suppressed_edge(test_context):
     e_test = MagnetEdge(model='suppressed', kn=[0], ks=[0], _context=test_context)
@@ -764,7 +684,12 @@ def test_edge_suppressed_edge(test_context):
 
     p0 = xt.Particles(
         kinetic_energy0=50e6,
-        x=1e-2, y=2e-2, zeta=1e-2, px=10e-2, py=20e-2, delta=1e-2,
+        x=1e-2,
+        y=2e-2,
+        zeta=1e-2,
+        px=10e-2,
+        py=20e-2,
+        delta=1e-2,
         _context=test_context,
     )
 
@@ -793,7 +718,12 @@ def test_edge_linear_edge_does_nothing(test_context):
 
     p0 = xt.Particles(
         kinetic_energy0=50e6,
-        x=1e-2, y=2e-2, zeta=1e-2, px=10e-2, py=20e-2, delta=1e-2,
+        x=1e-2,
+        y=2e-2,
+        zeta=1e-2,
+        px=10e-2,
+        py=20e-2,
+        delta=1e-2,
         _context=test_context,
     )
 
@@ -822,7 +752,12 @@ def test_edge_full_edge_does_nothing(test_context):
 
     p0 = xt.Particles(
         kinetic_energy0=50e6,
-        x=1e-2, y=2e-2, zeta=1e-2, px=10e-2, py=20e-2, delta=1e-2,
+        x=1e-2,
+        y=2e-2,
+        zeta=1e-2,
+        px=10e-2,
+        py=20e-2,
+        delta=1e-2,
         _context=test_context,
     )
 
@@ -847,18 +782,32 @@ def test_edge_full_edge_does_nothing(test_context):
 @for_all_test_contexts(excluding='ContextPyopencl')
 def test_edge_only_linear_edge(test_context):
     e_test = MagnetEdge(
-        model='linear', kn=[3], face_angle=0.1, face_angle_feed_down=0.2,
+        model='linear',
+        kn=[3],
+        face_angle=0.1,
+        face_angle_feed_down=0.2,
         fringe_integral=0.3,
-        half_gap=0.4, _context=test_context
+        half_gap=0.4,
+        _context=test_context,
     )
     e_ref = xt.DipoleEdge(
-        model='linear', k=3, e1=0.1, e1_fd=0.2, fint=0.3, hgap=0.4,
-        _context=test_context
+        model='linear',
+        k=3,
+        e1=0.1,
+        e1_fd=0.2,
+        fint=0.3,
+        hgap=0.4,
+        _context=test_context,
     )
 
     p0 = xt.Particles(
         kinetic_energy0=50e6,
-        x=1e-2, y=2e-2, zeta=1e-2, px=10e-2, py=20e-2, delta=1e-2,
+        x=1e-2,
+        y=2e-2,
+        zeta=1e-2,
+        px=10e-2,
+        py=20e-2,
+        delta=1e-2,
         _context=test_context,
     )
 
@@ -871,7 +820,7 @@ def test_edge_only_linear_edge(test_context):
 
     p_test_cpu = p_test.copy(_context=xo.ContextCpu())
     p_ref_cpu = p_ref.copy(_context=xo.ContextCpu())
-    
+
     xo.assert_allclose(p_test_cpu.x, p_ref_cpu.x, atol=1e-15, rtol=0)
     xo.assert_allclose(p_test_cpu.y, p_ref_cpu.y, atol=1e-15, rtol=0)
     xo.assert_allclose(p_test_cpu.zeta, p_ref_cpu.zeta, atol=1e-15, rtol=0)
@@ -883,18 +832,26 @@ def test_edge_only_linear_edge(test_context):
 @for_all_test_contexts(excluding='ContextPyopencl')
 def test_edge_full_edge_with_dipole_component(test_context):
     e_test = MagnetEdge(
-        model='full', kn=[3], face_angle=0.1, face_angle_feed_down=0.2,
+        model='full',
+        kn=[3],
+        face_angle=0.1,
+        face_angle_feed_down=0.2,
         fringe_integral=0.3,
-        half_gap=0.4, _context=test_context
+        half_gap=0.4,
+        _context=test_context,
     )
     e_ref = xt.DipoleEdge(
-        model='full', k=3, e1=0.1, e1_fd=0.2, fint=0.3, hgap=0.4,
-        _context=test_context
+        model='full', k=3, e1=0.1, e1_fd=0.2, fint=0.3, hgap=0.4, _context=test_context
     )
 
     p0 = xt.Particles(
         kinetic_energy0=50e6,
-        x=1e-2, y=2e-2, zeta=1e-2, px=10e-2, py=20e-2, delta=1e-2,
+        x=1e-2,
+        y=2e-2,
+        zeta=1e-2,
+        px=10e-2,
+        py=20e-2,
+        delta=1e-2,
         _context=test_context,
     )
 
@@ -918,14 +875,17 @@ def test_edge_full_edge_with_dipole_component(test_context):
 
 @for_all_test_contexts(excluding='ContextPyopencl')
 def test_edge_multipole_fringe_without_dipole_component(test_context):
-    e_test = MagnetEdge(
-        model='full', kn=[0, 2, 3], k_order=2, _context=test_context
-    )
+    e_test = MagnetEdge(model='full', kn=[0, 2, 3], k_order=2, _context=test_context)
     e_ref = xt.MultipoleEdge(kn=[0, 2, 3], order=2, _context=test_context)
 
     p0 = xt.Particles(
         kinetic_energy0=50e6,
-        x=1e-2, y=2e-2, zeta=1e-2, px=10e-2, py=20e-2, delta=1e-2,
+        x=1e-2,
+        y=2e-2,
+        zeta=1e-2,
+        px=10e-2,
+        py=20e-2,
+        delta=1e-2,
         _context=test_context,
     )
 
@@ -938,7 +898,7 @@ def test_edge_multipole_fringe_without_dipole_component(test_context):
 
     p_test_cpu = p_test.copy(_context=xo.ContextCpu())
     p_ref_cpu = p_ref.copy(_context=xo.ContextCpu())
-    
+
     xo.assert_allclose(p_test_cpu.x, p_ref_cpu.x, atol=1e-15, rtol=0)
     xo.assert_allclose(p_test_cpu.y, p_ref_cpu.y, atol=1e-15, rtol=0)
     xo.assert_allclose(p_test_cpu.zeta, p_ref_cpu.zeta, atol=1e-15, rtol=0)
@@ -1594,7 +1554,7 @@ def test_magnet_and_edge_octupole_nonlinear_fringes(test_context):
 def test_bend_convergence_on_axis():
 
     bb = xt.Bend(k0=0.001, angle=0.001*2.0, length=2.0)
-    bb.integrator = 'yoshida4'
+    bb.integrator = 'yoshida-6'
     bb.num_multipole_kicks = 20
 
     p0 = xt.Particles(x=0.0, y=0.0, delta=[0, 1e-3])
@@ -1682,7 +1642,7 @@ def test_convergence_mat_kick_mat():
 
     m_yoshida = magnet.copy()
     m_yoshida.model = 'drift-kick-drift-expanded'
-    m_yoshida.integrator='yoshida4'
+    m_yoshida.integrator='yoshida-6'
     m_yoshida.num_multipole_kicks = 500
 
     p_ref = p0.copy()
@@ -1724,7 +1684,7 @@ def test_convergence_rot_kick_rot(model_to_test):
                     k1s=0.01, k2s=0.005, k3s=0.05,
                     knl=[0.003, 0.001, 0.01, 0.02, 4., 6e2, 7e6],
                     ksl=[-0.005, 0.002, -0.02, 0.03, -2, 700., 4e6])
-    magnet.integrator = 'yoshida4'
+    magnet.integrator = 'yoshida-6'
     magnet.num_multipole_kicks = 50
 
     p0 = xt.Particles(x=1e-2, y=2e-2, py=1e-3, delta=3e-2)
@@ -1746,7 +1706,7 @@ def test_convergence_rot_kick_rot(model_to_test):
 
     m_yoshida = magnet.copy()
     m_yoshida.model = model_to_test
-    m_yoshida.integrator='yoshida4'
+    m_yoshida.integrator='yoshida-6'
     m_yoshida.num_multipole_kicks = 100
 
     p_ref = p0.copy()
@@ -1787,7 +1747,7 @@ def test_convergence_drift_kick_drift_exact():
                     k1s=0.01, k2s=0.005, k3s=0.05,
                     knl=[0.003, 0.001, 0.01, 0.02, 4., 6e2, 7e6],
                     ksl=[-0.005, 0.002, -0.02, 0.03, -2, 700., 4e6])
-    magnet.integrator = 'yoshida4'
+    magnet.integrator = 'yoshida-6'
     magnet.num_multipole_kicks = 100
 
     p0 = xt.Particles(x=1e-2, y=2e-2, py=1e-3, delta=3e-2)
@@ -1809,7 +1769,7 @@ def test_convergence_drift_kick_drift_exact():
 
     m_yoshida = magnet.copy()
     m_yoshida.model = model_to_test
-    m_yoshida.integrator='yoshida4'
+    m_yoshida.integrator='yoshida-6'
     m_yoshida.num_multipole_kicks = 100
 
 
@@ -1850,12 +1810,12 @@ def test_bend_expanded_exact_small_px():
 
     m_exact = magnet.copy()
     m_exact.model = 'bend-kick-bend'
-    m_exact.integrator='yoshida4'
+    m_exact.integrator='yoshida-6'
     m_exact.num_multipole_kicks = 1000
 
     m_expanded = magnet.copy()
     m_expanded.model = 'mat-kick-mat'
-    m_expanded.integrator='yoshida4'
+    m_expanded.integrator='yoshida-6'
     m_expanded.num_multipole_kicks = 1000
 
     p0 = xt.Particles(x=1e-3, y=2e-3, px=5e-6)
