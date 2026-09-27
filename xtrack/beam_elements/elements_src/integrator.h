@@ -18,6 +18,9 @@
     Function pointers are avoided on purpose: OpenCL C does not support
     them, so the integrator is expressed as a macro that is expanded
     in-place at each call site instead of being a genuine callable function.
+
+    The do { ... } while (0) wrapper runs the body once and makes the macro
+    a single statement, so RUN_INTEGRATOR(...); works safely inside if/else.
 */
 #define RUN_INTEGRATOR(INTEGRATOR, LENGTH, NUM_KICKS, PART, \
                         DRIFT_FUNCTION, KICK_FUNCTION, RADIATION_MACRO) \
