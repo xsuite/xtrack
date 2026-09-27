@@ -20,7 +20,8 @@ def test_bfieldexpansion_gpu_matches_cpu(test_context, h, pkin_const):
     initial = xt.Particles(
         p0c=1e9, x=[0., -0.007, 0.003], px=[0.001, -0.002, 0.0005],
         y=[0.007, -0.004, 0.002], py=[-0.0003, 0.001, -0.002],
-        zeta=[0.001, -0.002, 0.003], delta=[0., 0.01, -0.02])
+        zeta=[0.001, -0.002, 0.003], delta=[0., 0.01, -0.02],
+        chi=[1., 0.7, -1.], mass_ratio=[1., 2., 1.])
 
     def compare_particles(actual, expected):
         for name in ('x', 'px', 'y', 'py', 'zeta', 'delta', 'ptau', 's',
@@ -65,6 +66,63 @@ def test_bfieldexpansion_gpu_matches_cpu(test_context, h, pkin_const):
             line.track(particles, backtrack=backtrack,
                        _force_no_end_turn_actions=True)
         compare_particles(actual, expected)
+
+
+@pytest.mark.parametrize('pkin_const', [False, True])
+def test_bfieldexpansion_dipole_chi(pkin_const):
+    element = xt.BFieldExpansion(length=0.2, k0=0.1,
+                                pkin_const=pkin_const)
+    particles = xt.Particles(p0c=1e9, delta=0., chi=[1., 0.7, -1., 1.3],
+                             mass_ratio=[1., 2., 1., 1.])
+    element.track(particles)
+    xo.assert_allclose(particles.px, -0.02 * particles.chi, rtol=0, atol=1e-14)
+    assert np.all(particles.state == 1)
+
+
+@pytest.mark.parametrize('h', [0., 0.3])
+@pytest.mark.parametrize('pkin_const', [False, True])
+@pytest.mark.parametrize('sliced', [False, True])
+def test_bfieldexpansion_chi(h, pkin_const, sliced):
+    kwargs = dict(length=0.3, h=h, s_start=0.1, num_integration_steps=60,
+                  pkin_const=pkin_const,
+                  knc=[[0.05, 0.1, 0.], [0.02, 0., 0.]],
+                  ksc=[[0.04, 0.2, 0.]], ksol=[0.1, 0.02, 0.],
+                  knl=[0.01, 0.003], ksl=[0.002], k2=0.02, k3s=0.01)
+
+    def make_line(scale):
+        line = xt.Line(elements=[xt.BFieldExpansion(**kwargs, kscale=scale)])
+        if sliced:
+            line.slice_thick_elements([xt.Strategy(xt.Uniform(3, mode='thick'))])
+        return line
+
+    scale = -0.8
+    line = make_line(scale)
+    initial = xt.Particles(
+        p0c=1e9, x=[0.003, -0.007, 0.002, 0.001], px=0.001,
+        y=[0.007, -0.004, 0.002, 0.003], py=-0.002,
+        delta=[0., 0.01, -0.02, 0.03], zeta=0.002,
+        chi=[1., 0.7, -1., 1.3], mass_ratio=[1., 2., 1., 1.],
+        ax=0.0003, ay=-0.0002)
+    actual = initial.copy()
+    fields = ('x', 'px', 'y', 'py', 'zeta', 'delta', 'ptau', 's', 'ax', 'ay')
+    references = []
+    for i, chi in enumerate(initial.chi):
+        # Scaling the field for a reference-species particle must be equivalent
+        # to scaling its charge-to-mass ratio. Incoming ax/ay already have the
+        # particle's momentum normalization and must not be scaled again.
+        particle = xt.Particles(p0c=1e9, **{
+            name: getattr(initial, name)[i] for name in fields if name != 'ptau'})
+        references.append((make_line(scale * chi), particle))
+
+    for backtrack in (False, True):
+        line.track(actual, backtrack=backtrack, _force_no_end_turn_actions=True)
+        for i, (reference_line, expected) in enumerate(references):
+            reference_line.track(expected, backtrack=backtrack,
+                                 _force_no_end_turn_actions=True)
+            for name in fields:
+                xo.assert_allclose(getattr(actual, name)[i], getattr(expected, name),
+                                   rtol=0, atol=2e-13)
+        assert np.all(actual.state == 1)
 
 
 @pytest.mark.parametrize('h', [0., 0.3])

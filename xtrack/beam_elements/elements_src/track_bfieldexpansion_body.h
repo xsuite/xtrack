@@ -2,7 +2,7 @@
  * geometry, with no geometry dispatch inside the Runge-Kutta stages. */
 
 GPUFUN
-void HAMILTONIAN_FLOW(Expansion *f, const double beta0,
+void HAMILTONIAN_FLOW(Expansion *f, const double beta0, const double chi,
                       double s, const double z[6], HamiltonianFlow *flow) {
     double delta1, delta, ddelta1;
     double q, pix, piy, rad, root;
@@ -13,8 +13,9 @@ void HAMILTONIAN_FLOW(Expansion *f, const double beta0,
     EVALUATE_EXPANSION(f, z[0], z[2], s, &flow->pot);
     delta_from_ptau(beta0, z[5], &delta, &delta1, &ddelta1);
     q = 1.0 + f->h * z[0];
-    pix = z[1] - flow->pot.Ax;
-    piy = z[3] - flow->pot.Ay;  /* A_y is zero in this gauge. */
+    // Expansion potentials are normalized to the reference rigidity.
+    pix = z[1] - chi * flow->pot.Ax;
+    piy = z[3] - chi * flow->pot.Ay;  /* A_y is zero in this gauge. */
     rad = delta1 * delta1 - pix * pix - piy * piy;
     root = sqrt(rad);
 
@@ -22,15 +23,15 @@ void HAMILTONIAN_FLOW(Expansion *f, const double beta0,
     flow->one_plus_delta = delta1;
     flow->radicand = rad;
     flow->root = root;
-    flow->H = z[5] / beta0 - q * (root + flow->pot.As);
+    flow->H = z[5] / beta0 - q * (root + chi * flow->pot.As);
 
     flow->rhs[0] = q * pix / root;  // dx/ds = dH/dpx
     flow->rhs[2] = q * piy / root;  // dy/ds = dH/dpy
     flow->rhs[4] = 1.0 / beta0 - q * delta1 * ddelta1 / root;  // dtau/ds = dH/dptau
 
-    flow->rhs[1] = f->h * (root + flow->pot.As)
-        + q * (pix * flow->pot.dAx_dx / root + flow->pot.dAs_dx);  // dpx/ds = -dH/dx
-    flow->rhs[3] = q * (pix * flow->pot.dAx_dy / root + flow->pot.dAs_dy);  // dpy/ds = -dH/dy
+    flow->rhs[1] = f->h * (root + chi * flow->pot.As)
+        + q * chi * (pix * flow->pot.dAx_dx / root + flow->pot.dAs_dx);  // dpx/ds = -dH/dx
+    flow->rhs[3] = q * chi * (pix * flow->pot.dAx_dy / root + flow->pot.dAs_dy);  // dpy/ds = -dH/dy
     flow->rhs[5] = 0.0;  // tptau/ds = -dH/dtau, H has no tau-dependence for these static fields.
 
     flow->grad[0] = -flow->rhs[1];  // dH/dx
@@ -39,7 +40,7 @@ void HAMILTONIAN_FLOW(Expansion *f, const double beta0,
     flow->grad[3] =  flow->rhs[2];  // dH/dpy
     flow->grad[4] = -flow->rhs[5];  // dH/dtau
     flow->grad[5] =  flow->rhs[4];  // dH/dptau
-    flow->dH_ds = -q * (pix * flow->pot.dAx_ds / root + flow->pot.dAs_ds);
+    flow->dH_ds = -q * chi * (pix * flow->pot.dAx_ds / root + flow->pot.dAs_ds);
 }
 
 GPUFUN
@@ -65,6 +66,7 @@ void TRACK_EXPANSION(
 
     START_PER_PARTICLE_BLOCK(part0, part);
         const double beta0  = LocalParticle_get_beta0(part);
+        const double chi    = LocalParticle_get_chi(part);
 
         const double x      = LocalParticle_get_x(part);
         const double px     = LocalParticle_get_px(part);
@@ -79,8 +81,9 @@ void TRACK_EXPANSION(
         // Momentum has to be continuous, vector potential discontinuous, update canonical momentum
         if (pkin_const) {
             EVALUATE_EXPANSION(&f, z[0], z[2], s_start, &v);
-            z[1] += v.Ax - ax;
-            z[3] += v.Ay - ay;
+            // Stored particle ax/ay already include its charge-to-mass ratio.
+            z[1] += chi * v.Ax - ax;
+            z[3] += chi * v.Ay - ay;
         }
 
         double s = s_start;
@@ -88,19 +91,19 @@ void TRACK_EXPANSION(
         for (int step = 0; step < nstep; ++step) {
             double k1[6], k2[6], k3[6], k4[6];
 
-            HAMILTONIAN_FLOW(&f, beta0, s, z, &flow);
+            HAMILTONIAN_FLOW(&f, beta0, chi, s, z, &flow);
             for (int i = 0; i < 6; ++i) k1[i] = flow.rhs[i];
             for (int i = 0; i < 6; ++i) ztmp[i] = z[i] + 0.5 * ds * k1[i];
 
-            HAMILTONIAN_FLOW(&f, beta0, s + 0.5 * ds, ztmp, &flow);
+            HAMILTONIAN_FLOW(&f, beta0, chi, s + 0.5 * ds, ztmp, &flow);
             for (int i = 0; i < 6; ++i) k2[i] = flow.rhs[i];
             for (int i = 0; i < 6; ++i) ztmp[i] = z[i] + 0.5 * ds * k2[i];
 
-            HAMILTONIAN_FLOW(&f, beta0, s + 0.5 * ds, ztmp, &flow);
+            HAMILTONIAN_FLOW(&f, beta0, chi, s + 0.5 * ds, ztmp, &flow);
             for (int i = 0; i < 6; ++i) k3[i] = flow.rhs[i];
             for (int i = 0; i < 6; ++i) ztmp[i] = z[i] + ds * k3[i];
 
-            HAMILTONIAN_FLOW(&f, beta0, s + ds, ztmp, &flow);
+            HAMILTONIAN_FLOW(&f, beta0, chi, s + ds, ztmp, &flow);
             for (int i = 0; i < 6; ++i) k4[i] = flow.rhs[i];
             for (int i = 0; i < 6; ++i) z[i] += ds * (k1[i] + 2.0*k2[i] + 2.0*k3[i] + k4[i]) / 6.0;
 
@@ -110,14 +113,14 @@ void TRACK_EXPANSION(
         // Back to zero vector potential for next element
         EVALUATE_EXPANSION(&f, z[0], z[2], s, &v);
         if (pkin_const) {
-            z[1] -= v.Ax;
-            z[3] -= v.Ay;
+            z[1] -= chi * v.Ax;
+            z[3] -= chi * v.Ay;
             LocalParticle_set_ax(part, 0);
             LocalParticle_set_ay(part, 0);
         }
         else {
-            LocalParticle_set_ax(part, v.Ax);
-            LocalParticle_set_ay(part, v.Ay);
+            LocalParticle_set_ax(part, chi * v.Ax);
+            LocalParticle_set_ay(part, chi * v.Ay);
         }
 
         LocalParticle_set_x(part, z[0]);
