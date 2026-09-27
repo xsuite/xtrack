@@ -16,6 +16,7 @@ class SyncTime(BeamElement):
     }
 
     iscollective = True
+    # Use our Python track() below instead of generating C tracking kernels.
     allow_track = False
     allow_rot_and_shift = False
 
