@@ -57,7 +57,7 @@ void MagnetEdge_track_local_particle(MagnetEdgeData el, LocalParticle* part0)
         face_angle,
         face_angle_feed_down,
         fringe_integral,
-        factor_for_backtrack
+        factor_for_backtrack // -1 for backtracking, 1 for forward tracking
     );
 }
 

@@ -3,8 +3,10 @@
 # Copyright (c) CERN, 2025.                 #
 # ######################################### #
 
-from ..base_element import BeamElement
 import xobjects as xo
+
+from ..base_element import BeamElement
+
 
 class DipoleFringe(BeamElement):
     """Fringe field element of a dipole.
@@ -28,6 +30,7 @@ class DipoleFringe(BeamElement):
     _extra_c_sources = [
         '#include "xtrack/beam_elements/elements_src/dipole_fringe.h"',
     ]
+    has_backtrack = True
 
     def __init__(self, **kwargs):
         raise NotImplementedError

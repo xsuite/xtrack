@@ -19,9 +19,11 @@ void Fringe_track_local_particle(
     const double fint = DipoleFringeData_get_fint(el);
     const double hgap = DipoleFringeData_get_hgap(el);
     const double k = DipoleFringeData_get_k(el);
+    const int64_t backtrack = LocalParticle_check_track_flag(
+        part0, XS_FLAG_BACKTRACK);
 
     START_PER_PARTICLE_BLOCK(part0, part);
-        DipoleFringe_single_particle(part, fint, hgap, k);
+        DipoleFringe_track_single_particle(part, fint, hgap, k, backtrack);
     END_PER_PARTICLE_BLOCK;
 }
 

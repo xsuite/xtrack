@@ -17,7 +17,12 @@ GPUFUN
 void track_magnet_edge_particles(
     LocalParticle* part0,
     const int8_t model,  // 0: linear, 1: full, 2: dipole-only, 3: ax ay cancellation
-    const uint8_t is_exit,
+    // Which of the two faces of the magnet this is, as labelled in the element
+    // frame (entry face = 0, exit face = 1). This is a property of the element,
+    // not of the direction of travel, so it alone fixes the orientation of the
+    // face: the sign of k0 seen by the dipole fringe, and the face passed to the
+    // multipole fringe. Backtracking does not change it; it inverts the maps.
+    const uint8_t is_element_exit,
     const double half_gap,
     const double* knorm,
     const double* kskew,
@@ -48,8 +53,17 @@ void track_magnet_edge_particles(
         k0 += factor_knl_ksl_rel * knl_rel[0] / length;
     }
 
+    const uint8_t backtrack = (factor_for_backtrack < 0);
+
+    // Whether the particle is leaving the magnet, rather than entering it. This
+    // follows the direction of travel, not the element frame, so backtracking
+    // swaps the two faces here: the vector potential is picked up on the face
+    // where the particle enters the field region and dropped on the one where
+    // it leaves.
+    const uint8_t is_leaving_magnet = (is_element_exit != backtrack);
+
     // Assume we are coming from or going to a drift
-    if (is_exit) {
+    if (is_leaving_magnet) {
         START_PER_PARTICLE_BLOCK(part0, part);
             LocalParticle_set_ax(part, 0.);
             LocalParticle_set_ay(part, 0.);
@@ -80,12 +94,6 @@ void track_magnet_edge_particles(
     }
     else if (model == 1 || model == 2) { // Full model
 
-        if (factor_for_backtrack < 0) {
-            START_PER_PARTICLE_BLOCK(part0, part);
-                LocalParticle_kill_particle(part, -32);
-            END_PER_PARTICLE_BLOCK;
-        }
-
         uint8_t should_rotate = 0;
         double sin_ = 0, cos_ = 1, tan_ = 0;
         if (fabs(face_angle) > 10e-10) {
@@ -95,13 +103,28 @@ void track_magnet_edge_particles(
             tan_ = tan(face_angle);
         }
 
-        if (is_exit) k0 = -k0;
+        // The fringe kick changes sign between the two faces of the magnet.
+        // This is a property of the face itself, so it does not depend on the
+        // direction of travel: backtracking a face applies the inverse of the
+        // very map the forward pass applied, at the same k0.
+        if (is_element_exit) k0 = -k0;
+
+        // Rotations and wedges are inverted by flipping the angle sign.
+        const double rot_sign = backtrack ? 1.0 : -1.0;
+        const double wedge_angle = rot_sign * face_angle;
+
+        // Which face the particle meets first, following MAD-NG's strex_fringe:
+        // it branches on sdir*lw, the tracking direction times the element-frame
+        // face, and runs the same sub-maps in the opposite order in each arm.
+        const uint8_t entry_face_ordering = (is_element_exit == backtrack);
 
         #define MAGNET_Y_ROTATE(PART) \
-            if (should_rotate) YRotation_single_particle((PART), -sin_, cos_, -tan_)
+            if (should_rotate) YRotation_single_particle( \
+                (PART), rot_sign * sin_, cos_, rot_sign * tan_)
 
         #define MAGNET_DIPOLE_FRINGE(PART) \
-            DipoleFringe_single_particle((PART), fringe_integral, half_gap, k0)
+            DipoleFringe_track_single_particle( \
+                (PART), fringe_integral, half_gap, k0, backtrack)
 
         #define MAGNET_MULTIPOLE_FRINGE(PART) \
             MultFringe_track_single_particle( \
@@ -113,7 +136,7 @@ void track_magnet_edge_particles(
                 ksl, \
                 kl_order, \
                 length / factor_knl_ksl, \
-                is_exit, \
+                is_element_exit, \
                 /* min_order */ 1 \
             );
         // Above, I use the length to rescale knl and ksl. Here I am relying on
@@ -122,31 +145,27 @@ void track_magnet_edge_particles(
         // model changes!
 
         #define MAGNET_WEDGE(PART) \
-            if (should_rotate & (k_order >= 0)) Wedge_single_particle((PART), -face_angle, knorm[0])
+            if (should_rotate & (k_order >= 0)) Wedge_single_particle((PART), wedge_angle, knorm[0])
 
         #define MAGNET_QUAD_WEDGE(PART) \
-            if (should_rotate & (k_order >= 1)) Quad_wedge_single_particle((PART), -face_angle, knorm[1])
+            if (should_rotate & (k_order >= 1)) Quad_wedge_single_particle((PART), wedge_angle, knorm[1])
 
-        if (is_exit == 0){ // entry
+        if (entry_face_ordering){
             START_PER_PARTICLE_BLOCK(part0, part);
                 MAGNET_Y_ROTATE(part);
                 MAGNET_DIPOLE_FRINGE(part);
                 if (model == 1){
                     MAGNET_MULTIPOLE_FRINGE(part);
-                }
-                if (model == 1){
                     MAGNET_QUAD_WEDGE(part);
                 }
                 MAGNET_WEDGE(part);
             END_PER_PARTICLE_BLOCK;
         }
-        else { // exit
+        else {
             START_PER_PARTICLE_BLOCK(part0, part);
                 MAGNET_WEDGE(part);
                 if (model == 1){
                     MAGNET_QUAD_WEDGE(part);
-                }
-                if (model == 1){
                     MAGNET_MULTIPOLE_FRINGE(part);
                 }
                 MAGNET_DIPOLE_FRINGE(part);
