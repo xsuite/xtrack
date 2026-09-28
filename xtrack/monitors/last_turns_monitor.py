@@ -19,7 +19,7 @@ class LastTurnsData(xo.Struct):
 
     lost_at_offset = xo.UInt32[:]
 
-    # store with 32bit precission to save memory
+    # store with 32bit precision to save memory
     particle_id = xo.UInt32[:]  # TODO: can use xo.Int32[:] after fixing https://github.com/xsuite/xsuite/issues/283
     at_turn = xo.UInt32[:]      # TODO: can use xo.Int32[:] after fixing https://github.com/xsuite/xsuite/issues/283
     x = xo.Float32[:]
@@ -89,7 +89,7 @@ class LastTurnsMonitor(BeamElement):
             else:
                 raise ValueError("Exactly one of `num_particles` or `particle_id_range` parameters must be specified")
 
-            # explicitely init with zeros (instead of size only) to have consistent default values for untouched arrays
+            # explicitly init with zeros (instead of size only) to have consistent default values for untouched arrays
             # see also https://github.com/xsuite/xsuite/issues/294
             size = num_particles*n_last_turns
             data = {prop: np.zeros(size) if size > 0 else [] for prop in self.properties} # particle data

@@ -751,7 +751,7 @@ class Particles(xo.HybridClass):
 
         # Copy to appropriate context
         if _context is None and _buffer is None:
-            # Use constext of first particle
+            # Use context of first particle
             if isinstance(lst[0]._buffer.context, xo.ContextCpu):
                 new_part_cpu._buffer.context = lst[0]._buffer.context
                 return new_part_cpu
@@ -1764,7 +1764,7 @@ class Particles(xo.HybridClass):
 
         if update_pxpy:
             if isinstance(self._context, xo.ContextPyopencl):
-                raise NotImplementedError # Issue wiht masking
+                raise NotImplementedError # Issue with masking
             scale_pxpy = old_p0c[mask] / new_p0c[mask]
             self.px[mask] *= scale_pxpy
             self.py[mask] *= scale_pxpy

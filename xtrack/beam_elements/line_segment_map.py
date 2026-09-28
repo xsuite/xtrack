@@ -245,7 +245,7 @@ class LineSegmentMap(BeamElement):
         gauss_noise_ampl_pzeta : float
             Amplitude of Gaussian noise on the longitudinal momentum. Optional, default is ``0``.
         damping_matrix : float[6,6]
-            Matrix of damping: Each paticles coordinate vector (x,px,y,py,zeta,pzeta) is multiplied
+            Matrix of damping: Each particles coordinate vector (x,px,y,py,zeta,pzeta) is multiplied
             by the identity + the damping matrix. Incompatible with inputs damping_rate_*.
             Optional, default is ``None``
         gauss_noise_matrix : float[6,6]

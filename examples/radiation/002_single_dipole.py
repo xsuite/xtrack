@@ -118,7 +118,7 @@ dn_dE_at_E_crit = np.interp(E_crit_eV, E_center, dn_dE)
 
 dn_dE_norm = dn_dE / dn_dE_at_E_crit
 
-# Check against analytical expresson from:
+# Check against analytical expression from:
 # Implements from A. Hofmann, The physics of synchrotron radiation, Eq. 5.48b
 import n_photons
 dn_dE_ref = n_photons.photon_spectrum(E_center, gamma, 1/h_bend)

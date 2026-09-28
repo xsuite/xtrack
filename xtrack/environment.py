@@ -2285,9 +2285,9 @@ class Environment:
             Dictionary with the xdeps references to the elements.
         isinit: bool
             Whether the element is being initialized. If True, to gain speed,
-            we assume that no references are alredy present to the element
+            we assume that no references are already present to the element
             in the ref_manager, and we set numerical values directly on the
-            element without unregistering the refereces.
+            element without unregistering the references.
         """
 
         for field_name, value in value_kwargs.items():

@@ -102,7 +102,7 @@ def test_match_coupling_knob(test_context):
     line_legacy.vars['cmiskew'] = 5e-3
     tt_im_leg = line_legacy.get_table(attr=True)
 
-    # Withing 12% of the maximum value
+    # Within 12% of the maximum value
     xo.assert_allclose(tt_re.k1sl, tt_re_leg.k1sl, rtol=0,
                     atol=0.12 * np.max(tt_re_leg.k1sl))
     xo.assert_allclose(tt_im.k1sl, tt_im_leg.k1sl, rtol=0,

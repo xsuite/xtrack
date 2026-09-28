@@ -54,7 +54,7 @@ class RandomUniform(BeamElement):
 
         n_samples_per_seed = int(np.floor(n_samples/n_seeds))
         if n_samples_per_seed < 1:
-            raise ValueError("Not enough samples to accomodate all seeds!")
+            raise ValueError("Not enough samples to accommodate all seeds!")
 
         samples = context.zeros(shape=(n_seeds*n_samples_per_seed,),
                                 dtype=np.float64)

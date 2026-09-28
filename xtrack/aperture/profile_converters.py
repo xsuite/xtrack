@@ -32,7 +32,7 @@ def profile_from_limit_element(element: LimitElement) -> Tuple[ShapeTypes, float
     element: LimitElement
         Element to convert to a profile.
     Returns:
-        A tuple consting of the profile type, x offset, and y offset.
+        A tuple consisting of the profile type, x offset, and y offset.
     """
     raise NotImplementedError(f"Unsupported element type: {type(element)}")
 

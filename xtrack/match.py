@@ -746,7 +746,7 @@ class ActionTwiss(xd.Action):
 
         ismultiline = isinstance(line, (xt.Multiline, xt.Environment, xt.MultilineLegacy))
 
-        # Forbit specifying init through kwargs for Multiline
+        # Forbid specifying init through kwargs for Multiline
         if ismultiline:
             for kk in VARS_FOR_TWISS_INIT_GENERATION:
                 if kk in kwargs:

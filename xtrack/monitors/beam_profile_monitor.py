@@ -89,7 +89,7 @@ class BeamProfileMonitor(BeamElement):
             particle_id_range (tuple, optional): Range of particle ids to monitor (start, stop). Stop is exclusive.
                                                  Defaults to (particle_id_start, particle_id_start+num_particles).
             start_at_turn (int): First turn of reference particle (inclusive) at which to monitor.
-            stop_at_turn (int): Last turn of reference particle (exclusiv) at which to monitor.
+            stop_at_turn (int): Last turn of reference particle (exclusive) at which to monitor.
             frev (float): Revolution frequency in Hz of circulating beam (used to relate turn number to sample index).
             sampling_frequency (float): Sampling frequency in Hz.
             nx (int, optional): Number of raster points of the horizontal profile. Defaults to 128.
@@ -156,7 +156,7 @@ class BeamProfileMonitor(BeamElement):
             sample_size = int(round(( stop_at_turn - start_at_turn ) * sampling_frequency / frev))
 
             if "data" not in kwargs:
-                # explicitely init with zeros (instead of size only) to have consistent initial values
+                # explicitly init with zeros (instead of size only) to have consistent initial values
                 kwargs["data"] = dict(
                     counts_x = np.zeros(sample_size*nx),
                     counts_y = np.zeros(sample_size*ny),

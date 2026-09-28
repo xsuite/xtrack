@@ -30,7 +30,7 @@ def test_multiline_metadata(test_context):
     )
     collider['lhcb1_co_ref'].particle_ref = collider['lhcb1'].particle_ref.copy()
 
-    # Test the dump and load into/from dictionnary without metadata
+    # Test the dump and load into/from dictionary without metadata
     collider = xt.Environment.from_dict(collider.to_dict())
 
     # Add metadata
@@ -44,7 +44,7 @@ def test_multiline_metadata(test_context):
         'delta_cmr': 0.0,
     }
 
-    # Test the dump and load into/from dictionnary with metadata
+    # Test the dump and load into/from dictionary with metadata
     collider_copy = xt.Environment.from_dict(collider.to_dict())
     
     # Assert that both metadata are still identical

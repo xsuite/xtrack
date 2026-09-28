@@ -83,5 +83,5 @@ class PipelineManager:
     def receive_message(self,receive_buffer,element_name,sender_name,receiver_name,internal_tag=0):
         tag = self.get_message_tag(element_name=element_name,sender_name=sender_name,receiver_name=receiver_name,internal_tag=internal_tag)
         if self.verbose:
-            _print(f'Pipeline manager {element_name}: {receiver_name} at rank {self.get_particles_rank(receiver_name)} recieving from {sender_name} at rank {self.get_particles_rank(sender_name)} with tag {tag}')
+            _print(f'Pipeline manager {element_name}: {receiver_name} at rank {self.get_particles_rank(receiver_name)} receiving from {sender_name} at rank {self.get_particles_rank(sender_name)} with tag {tag}')
         self._communicator.Recv(receive_buffer,source=self.get_particles_rank(sender_name),tag=tag)

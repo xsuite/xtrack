@@ -9,7 +9,7 @@ MadLooder.iter_elements() iterates over the elements of the sequence,
 
 Developers:
 
-- MadElem encapsulate a mad element, it behaves like an elemenent from the expanded sequence
+- MadElem encapsulate a mad element, it behaves like an element from the expanded sequence
 but returns as attributes a value, or an expression if present.
 
 - Use `if MadElem(mad).l: to check for no zero value and NOT `if MadElem(mad).l!=0:` because if l is an expression it will create the expression l!=0 and return True
@@ -1176,7 +1176,7 @@ class MadLoader:
     def convert_rfmultipole(self, ee):
         raise NotImplementedError('Conversion of mad-x rfmultipole not supported')
 
-        # The following is untested, espeically for bv=-1
+        # The following is untested, especially for bv=-1
 
         # if self.bv == -1:
         #     raise NotImplementedError("RF multipole for bv=-1 are not yet supported.")

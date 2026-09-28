@@ -8,7 +8,7 @@ import numpy as np
 import xobjects as xo
 
 class DipoleEdge(BeamElement):
-    """Beam element modeling a dipole edge (see MAD-X manual for detaild description).
+    """Beam element modeling a dipole edge (see MAD-X manual for detailed description).
 
     Parameters
     ----------

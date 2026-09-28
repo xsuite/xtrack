@@ -391,7 +391,7 @@ class OrbitCorrectionSinglePlane:
                         self.line.ref.elements[nn_kick].knl[0] -= ( # knl[0] is -kick
                             self.line.vars[f'orbit_corr_{nn_kick}_x'])
                     else:
-                        # Workarond for https://github.com/xsuite/xsuite/issues/501
+                        # Workaround for https://github.com/xsuite/xsuite/issues/501
                         val = self.line.ref.elements[nn_kick].knl[0]._value
                         if hasattr(val, 'get'):
                             val = val.get()
@@ -405,7 +405,7 @@ class OrbitCorrectionSinglePlane:
                         self.line.ref.elements[nn_kick].ksl[0] += ( # ksl[0] is +kick
                             self.line.vars[f'orbit_corr_{nn_kick}_y'])
                     else:
-                        # Workarond for https://github.com/xsuite/xsuite/issues/501
+                        # Workaround for https://github.com/xsuite/xsuite/issues/501
                         val = self.line.ref.elements[nn_kick].ksl[0]._value
                         if hasattr(val, 'get'):
                             val = val.get()

@@ -554,10 +554,10 @@ class Line:
         length : float
             Total length (in m) of line. Determines drift behind last element.
         elements : dict
-            Dictionary with named elements, which can be refered to in the
+            Dictionary with named elements, which can be referred to in the
             sequence definion by name.
         sequences : dict
-            Dictionary with named sub-sequences, which can be refered to in the
+            Dictionary with named sub-sequences, which can be referred to in the
             sequence definion by name.
         copy_elements : bool, optional
             Whether to make copies of elements or not. By default, named elements
@@ -1137,7 +1137,7 @@ class Line:
         Return a table with the horizontal and vertical aperture estimated at all
         elements of the line.
         The aperture is estimated by tracking a particle through the line and
-        measuring the maximum and minumum horizontal and vertical position
+        measuring the maximum and minimum horizontal and vertical position
         at which particles survive. For elements at which no lost particles are
         detected, the aperture is estimated by interpolating the values
         of the neighbouring elements.
@@ -1559,7 +1559,7 @@ class Line:
             is used.
         _buffer: xobjects.Buffer
             xobjects buffer to which the line data is moved. If not provided,
-            the _buffer is creted from the _context.
+            the _buffer is created from the _context.
         compile: bool, optional
             If True (default) the tracker is compiled. If False, the tracker
             is not compiled until the first usage.
@@ -2078,7 +2078,7 @@ class Line:
             a 6D solution is computed with `self.twiss(method='6d')`. You can
             override the method with `method=...` in `**kwargs`.
         scattering : str, optional
-            Wheter scattering has been enabled or not (`'on'` or `'off'`).
+            Whether scattering has been enabled or not (`'on'` or `'off'`).
         x_offset : float, default 0.0
             Horizontal physical offset in meters. Mutually exclusive with
             `x_norm_offset`.
@@ -5447,7 +5447,7 @@ class Line:
             raise NotImplementedError('`remove_redundant_apertures` only'
                                       ' available for inplace operation')
 
-        # For every occurence of three or more apertures that are the same,
+        # For every occurrence of three or more apertures that are the same,
         # only separated by Drifts or Markers, this script removes the
         # middle apertures
         # TODO: this probably actually works, but better be safe than sorry
@@ -7249,7 +7249,7 @@ class Line:
     def __setitem__(self, key, value):
 
         if isinstance(value, Line):
-            raise ValueError('Cannot set a Line, please use Envirnoment.new_line')
+            raise ValueError('Cannot set a Line, please use Environment.new_line')
             # Would need to make sure they refer to the same environment
 
         if np.isscalar(value) or xd.refs.is_ref(value):

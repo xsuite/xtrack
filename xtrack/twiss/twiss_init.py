@@ -478,7 +478,7 @@ def _W_phys2norm(x, px, y, py, zeta, pzeta, W_matrix, co_dict, nemitt_x=None, ne
     gemitt_zeta = np.ones(shape=np.shape(co_dict['beta0'])) if nemitt_zeta is None else (
         nemitt_zeta / co_dict['beta0'] / co_dict['gamma0'])
 
-    # Prepaing co arrray and gemitt array:
+    # Prepaing co array and gemitt array:
     co = np.array([co_dict['x'], co_dict['px'], co_dict['y'], co_dict['py'],
                   co_dict['zeta'], co_dict['ptau'] / co_dict['beta0']])
     gemitt_values = np.array(
@@ -490,7 +490,7 @@ def _W_phys2norm(x, px, y, py, zeta, pzeta, W_matrix, co_dict, nemitt_x=None, ne
     for add_axis in range(-1, len(np.shape(x))-len(np.shape(gemitt_values))):
         gemitt_values = gemitt_values[:, np.newaxis]
 
-    # substracting closed orbit
+    # subtracting closed orbit
     XX = np.array([x, px, y, py, zeta, pzeta])
     XX -= co
 

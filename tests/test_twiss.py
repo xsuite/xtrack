@@ -1490,7 +1490,7 @@ def test_twiss_init_file(test_context):
     check_vars = ['betx', 'bety', 'alfx', 'alfy', 'dx', 'dpx', 'dy', 'dpy',
                     'mux', 'muy', 'x', 'y', 'px', 'py']
 
-    # check at a location downsteam
+    # check at a location downstream
     loc_check = 'bpm.30r6.b1'
     for var in check_vars:
         # Check at starting point

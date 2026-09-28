@@ -7,7 +7,7 @@ import xtrack as xt
 
 def test_lumi_calculation():
 
-    # Some columns are neede just not to upset the reverse
+    # Some columns are needed just not to upset the reverse
     twiss_b1 = xt.twiss.TwissTable(
         data=dict(
             name=np.array([   'ip3',   'ip5',    'ip5_exit', 'ip1',    'ip1_exit',    '_end_point']),
