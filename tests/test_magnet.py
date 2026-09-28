@@ -891,7 +891,7 @@ def test_rbend_full_edge_backtracks_many_coordinates(test_context):
     )
     line = xt.Line(elements=[bend], element_names=["rb"])
     line.particle_ref = xt.Particles(p0c=10e9)
-    line.build_tracker(_context=test_context, use_prebuilt_kernels=False)
+    line.build_tracker(_context=test_context)
 
     values = np.linspace(-1.0, 1.0, 5)
     x = 2.0e-3 * values
@@ -964,7 +964,7 @@ def test_edge_multipole_fringe_without_dipole_component(test_context):
     for edge in (e_test, e_ref):
         p_test = p0.copy()
         line = xt.Line(elements=[edge])
-        line.build_tracker(_context=test_context, use_prebuilt_kernels=False)
+        line.build_tracker(_context=test_context)
         line.track(p_test)
         line.track(p_test, backtrack=True)
         p_test_cpu = p_test.copy(_context=xo.ContextCpu())
@@ -996,7 +996,7 @@ def test_fringe_backtrack_with_exactly_zero_coordinate(test_context):
     for edge, coords in cases:
         p_back = xt.Particles(p0c=1e9, _context=test_context, **coords)
         line = xt.Line(elements=[edge])
-        line.build_tracker(_context=test_context, use_prebuilt_kernels=False)
+        line.build_tracker(_context=test_context)
         line.track(p_back, backtrack=True)
 
         p_fwd = p_back.copy()
@@ -1038,7 +1038,7 @@ def test_multipole_edge_backtracks_many_coordinates(test_context):
         element_names=['entry', 'exit'],
     )
     line.particle_ref = xt.Particles(p0c=10e9)
-    line.build_tracker(_context=test_context, use_prebuilt_kernels=False)
+    line.build_tracker(_context=test_context)
 
     for chi in (1.0, 0.7):
         p0 = xt.Particles(
@@ -1084,7 +1084,7 @@ def test_magnet_edge_multipole_backtracks_with_integrated_strengths(test_context
         element_names=['entry', 'exit'],
     )
     line.particle_ref = xt.Particles(p0c=10e9)
-    line.build_tracker(_context=test_context, use_prebuilt_kernels=False)
+    line.build_tracker(_context=test_context)
 
     p0 = xt.Particles(
         p0c=10e9, _context=test_context, **_fringe_backtrack_coordinates(scale=0.5)
@@ -1113,7 +1113,7 @@ def test_multipole_fringe_backtrack_not_converged(test_context):
         kn=[0, 0, 5e4], order=2, _context=test_context
     )  # Extreme strength
     line = xt.Line(elements=[edge])
-    line.build_tracker(_context=test_context, use_prebuilt_kernels=False)
+    line.build_tracker(_context=test_context)
 
     p = xt.Particles(p0c=1e9, x=5e-2, y=4e-2, px=1e-3, py=2e-3, _context=test_context)
     line.track(p, backtrack=True)
@@ -1762,7 +1762,7 @@ def test_magnet_and_edge_octupole_nonlinear_fringes(test_context):
     xo.assert_allclose(p_test_cpu.delta, p_ref_cpu.delta, atol=1e-15, rtol=0)
 
     line = xt.Line(elements=[mm])
-    line.build_tracker(_context=test_context, use_prebuilt_kernels=False)
+    line.build_tracker(_context=test_context)
     line.track(p_test, backtrack=True)
     p_test.move(_context=xo.ContextCpu())
     p0.move(_context=xo.ContextCpu())
