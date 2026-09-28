@@ -224,8 +224,9 @@ def is_antiparticle(pdg_id):
 
 def is_neutral(pdg_id):
     """Check if a PDG ID corresponds to a neutral particle."""
+    pid = np.asarray(pdg_id, dtype=np.int64)
     q, _, _, _ = get_properties_from_pdg_id(pdg_id)
-    return q == 0
+    return (pid != 0) & (q == 0)
 
 
 # ==========================

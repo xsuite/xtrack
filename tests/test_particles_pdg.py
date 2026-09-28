@@ -225,7 +225,7 @@ def test_masses():
                     Z = pdg.get_Z_from_element_name(el)
                     pdg_id = pdg.get_pdg_id_ion(A, Z)
                     assert pdg.get_pdg_id_from_mass_charge(mass, Z) == pdg_id
-                    assert assertnp.isclose(pdg.get_mass_from_pdg_id(pdg_id), mass, rtol=1e-7)
+                    assert np.isclose(pdg.get_mass_from_pdg_id(pdg_id), mass, rtol=1e-7)
     for Z in pdg.elements.keys():
         if Z < 3 or Z == 6 or Z==26:
             rtol = 1e-2
@@ -368,6 +368,8 @@ def test_particle_type_helpers():
         11,            # electron
         -11,           # positron
         12,            # neutrino
+        13,            # muon
+        -13,           # antimuon
         111,           # pi0
         211,           # pi+
         -211,          # pi-
@@ -382,72 +384,102 @@ def test_particle_type_helpers():
 
     np.testing.assert_array_equal(
         pdg.is_proton(pdg_ids),
-        [False, False, False, False, False, False, False,
-         False, False, False, True, False, False, False],
+        [False, False, False, False, False, False, False, False,
+         False, False, False, False, True, False, False, False],
+    )
+
+    np.testing.assert_array_equal(
+        pdg.is_antiproton(pdg_ids),
+        [False, False, False, False, False, False, False, False,
+         False, False, False, False, False, True, False, False],
+    )
+
+    np.testing.assert_array_equal(
+        pdg.is_electron(pdg_ids),
+        [False, True, False, False, False, False, False, False,
+         False, False, False, False, False, False, False, False],
+    )
+
+    np.testing.assert_array_equal(
+        pdg.is_positron(pdg_ids),
+        [False, False, True, False, False, False, False, False,
+         False, False, False, False, False, False, False, False],
+    )
+
+    np.testing.assert_array_equal(
+        pdg.is_muon(pdg_ids),
+        [False, False, False, False, True, False, False, False,
+         False, False, False, False, False, False, False, False],
+    )
+
+    np.testing.assert_array_equal(
+        pdg.is_antimuon(pdg_ids),
+        [False, False, False, False, False, True, False, False,
+         False, False, False, False, False, False, False, False],
     )
 
     np.testing.assert_array_equal(
         pdg.is_lepton(pdg_ids),
-        [False, True, True, True, False, False, False,
-         False, False, False, False, False, False, False],
+        [False, True, True, True, True, True, False, False,
+         False, False, False, False, False, False, False, False],
     )
 
     np.testing.assert_array_equal(
         pdg.is_neutrino(pdg_ids),
-        [False, False, False, True, False, False, False,
-         False, False, False, False, False, False, False],
+        [False, False, False, True, False, False, False, False,
+         False, False, False, False, False, False, False, False],
     )
 
     np.testing.assert_array_equal(
         pdg.is_pion(pdg_ids),
-        [False, False, False, False, True, True, True,
-         False, False, False, False, False, False, False],
+        [False, False, False, False, False, False, True, True,
+         True, False, False, False, False, False, False, False],
     )
 
     np.testing.assert_array_equal(
         pdg.is_kaon(pdg_ids),
-        [False, False, False, False, False, False, False,
-         True, True, True, False, False, False, False],
+        [False, False, False, False, False, False, False, False,
+         False, True, True, True, False, False, False, False],
     )
 
     np.testing.assert_array_equal(
         pdg.is_meson(pdg_ids),
-        [False, False, False, False, True, True, True,
-         True, True, True, False, False, False, False],
+        [False, False, False, False, False, False, True, True,
+         True, True, True, True, False, False, False, False],
     )
 
     np.testing.assert_array_equal(
         pdg.is_baryon(pdg_ids),
-        [False, False, False, False, False, False, False,
-         False, False, False, True, True, True, False],
+        [False, False, False, False, False, False, False, False,
+         False, False, False, False, True, True, True, False],
     )
 
     np.testing.assert_array_equal(
         pdg.is_hadron(pdg_ids),
-        [False, False, False, False, True, True, True,
-         True, True, True, True, True, True, False],
+        [False, False, False, False, False, False, True, True,
+         True, True, True, True, True, True, True, False],
     )
 
     np.testing.assert_array_equal(
         pdg.is_photon(pdg_ids),
-        [True, False, False, False, False, False, False,
-         False, False, False, False, False, False, False],
+        [True, False, False, False,False, False, False, False,
+         False, False, False, False, False, False, False, False],
     )
 
     np.testing.assert_array_equal(
         pdg.is_antiparticle(pdg_ids),
-        [False, False, True, False, False, False, True,
-         False, False, True, False, True, False, False],
+        [False, False, True, False, False, True, False, False,
+         True, False, False, True, False, True, False, False],
     )
 
     np.testing.assert_array_equal(
         pdg.is_ion(pdg_ids),
-        [False, False, False, False, False, False, False,
-         False, False, False, False, False, False, True],
+        [False, False, False, False, False, False, False, False,
+         False, False, False, False, False, False, False, True],
     )
 
     np.testing.assert_array_equal(
         pdg.is_neutral(pdg_ids),
-        [True, False, False, True, True, False, False,
-         True, False, False, False, False, True, False],
+        [True, False, False, True, False, False, True, False,
+         False, True, False, False, False, False, True, False],
     )
