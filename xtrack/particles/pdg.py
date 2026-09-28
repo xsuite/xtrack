@@ -117,35 +117,38 @@ elements_long = {
 _elements_long_inv = {vv: kk for kk, vv in elements_long.items()}
 
 
+# ===============
+# === Helpers ===
+# ===============
+
 def is_proton(pdg_id):
     """Check if a PDG ID corresponds to a proton."""
-    pid = np.int64(np.abs(np.asarray(pdg_id)))
+    pid = np.asarray(pdg_id, dtype=np.int64)
     return pid == 2212
 
-def is_ion(pdg_id):
-    """Check if a PDG ID corresponds to a heavy ion (A+Z > 1)."""
-    pid = np.int64(np.abs(np.asarray(pdg_id)))
-    tmpid = pid - 1000000000
-    L = np.int64(tmpid/1e7)
-    tmpid -= L*1e7
-    Z = np.int64(tmpid /1e4)
-    tmpid -= Z*1e4
-    A = np.int64(tmpid /10)
-    return (pid >= 1000000000) and (Z > 0) and (A > Z)
+def is_antiproton(pdg_id):
+    """Check if a PDG ID corresponds to an antiproton."""
+    pid = np.asarray(pdg_id, dtype=np.int64)
+    return pid == -2212
 
-def is_lepton(pdg_id):
-    """Check if a PDG ID corresponds to a lepton (neutrinos included)."""
-    pid = np.int64(np.abs(np.asarray(pdg_id)))
-    return 11 <= pid <= 16
+def is_pion(pdg_id):
+    """Check if a PDG ID corresponds to a pion."""
+    pid = np.asarray(pdg_id, dtype=np.int64)
+    return np.isin(pid, [-211, 111, 211])
+
+def is_kaon(pdg_id):
+    """Check if a PDG ID corresponds to a kaon."""
+    pid = np.asarray(pdg_id, dtype=np.int64)
+    return np.isin(pid, [-321, -311, 130, 310, 311, 321])
 
 def is_meson(pdg_id):
     """Check if a PDG ID corresponds to a general meson."""
-    pid = np.int64(np.abs(np.asarray(pdg_id)))
-    q1 = (pid // 100) % 10
-    q2 = (pid // 10) % 10
-    q3 = (pid // 1000) % 10
+    pid = np.asarray(pdg_id, dtype=np.int64)
+    q1 = (np.abs(pid) // 100) % 10
+    q2 = (np.abs(pid) // 10) % 10
+    q3 = (np.abs(pid) // 1000) % 10
     return (
-        (pid < 1_000_000_000)
+        (np.abs(pid) < 1_000_000_000)
         & (q3 == 0)
         & (q1 >= 1) & (q1 <= 6)
         & (q2 >= 1) & (q2 <= 6)
@@ -153,12 +156,12 @@ def is_meson(pdg_id):
 
 def is_baryon(pdg_id):
     """Check if a PDG ID corresponds to a general baryon."""
-    pid = np.int64(np.abs(np.asarray(pdg_id)))
-    q1 = (pid // 1000) % 10
-    q2 = (pid // 100) % 10
-    q3 = (pid // 10) % 10
+    pid = np.asarray(pdg_id, dtype=np.int64)
+    q1 = (np.abs(pid) // 1000) % 10
+    q2 = (np.abs(pid) // 100) % 10
+    q3 = (np.abs(pid) // 10) % 10
     return (
-        (pid < 1_000_000_000)
+        (np.abs(pid) < 1_000_000_000)
         & (q1 >= 1) & (q1 <= 6)
         & (q2 >= 1) & (q2 <= 6)
         & (q3 >= 1) & (q3 <= 6)
@@ -168,21 +171,66 @@ def is_hadron(pdg_id):
     """Check if a PDG ID corresponds to a hadron."""
     return is_meson(pdg_id) | is_baryon(pdg_id)
 
-def is_photon(pdg_id):
-    """Check if a PDG ID corresponds to a photon."""
-    pid = np.int64(np.asarray(pdg_id))
-    return pid == 22
+def is_ion(pdg_id):
+    """Check if a PDG ID corresponds to a heavy ion (A+Z > 1)."""
+    pid = np.asarray(pdg_id, dtype=np.int64)
+    tmpid = np.abs(pid) - 1000000000
+    L = (tmpid // 10_000_000).astype(np.int64)
+    tmpid = tmpid - L * 10_000_000
+    Z = (tmpid // 10_000).astype(np.int64)
+    tmpid = tmpid - Z * 10_000
+    A = (tmpid // 10).astype(np.int64)
+    return (np.abs(pid) >= 1000000000) & (Z > 0) & (A > Z)
+
+def is_electron(pdg_id):
+    """Check if a PDG ID corresponds to an electron."""
+    pid = np.asarray(pdg_id, dtype=np.int64)
+    return pid == 11
+
+def is_positron(pdg_id):
+    """Check if a PDG ID corresponds to a positron."""
+    pid = np.asarray(pdg_id, dtype=np.int64)
+    return pid == -11
+
+def is_muon(pdg_id):
+    """Check if a PDG ID corresponds to a muon."""
+    pid = np.asarray(pdg_id, dtype=np.int64)
+    return pid == 13
+
+def is_antimuon(pdg_id):
+    """Check if a PDG ID corresponds to an antimuon."""
+    pid = np.asarray(pdg_id, dtype=np.int64)
+    return pid == -13
+
+def is_lepton(pdg_id):
+    """Check if a PDG ID corresponds to a lepton (neutrinos included)."""
+    pid = np.asarray(pdg_id, dtype=np.int64)
+    return (np.abs(pid) >= 11) & (np.abs(pid) <= 16)
 
 def is_neutrino(pdg_id):
     """Check if a PDG ID corresponds to a neutrino."""
-    pid = np.int64(np.abs(np.asarray(pdg_id)))
-    return np.isin(pid, [12, 14, 16])
+    pid = np.asarray(pdg_id, dtype=np.int64)
+    return np.isin(np.abs(pid), [12, 14, 16])
+
+def is_photon(pdg_id):
+    """Check if a PDG ID corresponds to a photon."""
+    pid = np.asarray(pdg_id, dtype=np.int64)
+    return pid == 22
 
 def is_antiparticle(pdg_id):
-    """Check if a PDG ID corresponds to a neutrino."""
-    pid = np.asarray(pdg_id)
+    """Check if a PDG ID corresponds to an antiparticle."""
+    pid = np.asarray(pdg_id, dtype=np.int64)
     return pid < 0
 
+def is_neutral(pdg_id):
+    """Check if a PDG ID corresponds to a neutral particle."""
+    q, _, _, _ = get_properties_from_pdg_id(pdg_id)
+    return q == 0
+
+
+# ==========================
+# === Property functions ===
+# ==========================
 
 def get_name_from_pdg_id(pdg_id, long_name=True, subscripts=True):
     """
