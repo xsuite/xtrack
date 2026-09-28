@@ -135,6 +135,32 @@ def is_lepton(pdg_id):
     """Check if a PDG ID corresponds to a lepton (neutrinos included)."""
     return 11 <= abs(int(pdg_id)) <= 16
 
+def is_meson(pdg_id):
+    """Check if a PDG ID corresponds to a general meson."""
+    pid = np.abs(np.asarray(pdg_id))
+    q1 = (pid // 100) % 10
+    q2 = (pid // 10) % 10
+    q3 = (pid // 1000) % 10
+    return (
+        (pid < 1_000_000_000)
+        & (q3 == 0)
+        & (q1 >= 1) & (q1 <= 6)
+        & (q2 >= 1) & (q2 <= 6)
+    )
+
+def is_baryon(pdg_id):
+    """Check if a PDG ID corresponds to a general baryon."""
+    pid = np.abs(np.asarray(pdg_id))
+    q1 = (pid // 1000) % 10
+    q2 = (pid // 100) % 10
+    q3 = (pid // 10) % 10
+    return (
+        (pid < 1_000_000_000)
+        & (q1 >= 1) & (q1 <= 6)
+        & (q2 >= 1) & (q2 <= 6)
+        & (q3 >= 1) & (q3 <= 6)
+    )
+
 
 def get_name_from_pdg_id(pdg_id, long_name=True, subscripts=True):
     """
