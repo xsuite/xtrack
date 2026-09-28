@@ -201,6 +201,7 @@ def test_integrator_convergence_order_large_angle_bend(test_context, integrator,
         'angle': np.pi / 10,
         'edge_entry_active': False,
         'edge_exit_active': False,
+        '_context': test_context,
     }
     exact = Magnet(model='bend-kick-bend', **bend_kwargs)
     p = xt.Particles(
@@ -209,6 +210,7 @@ def test_integrator_convergence_order_large_angle_bend(test_context, integrator,
     )
     p_exact = p.copy()
     exact.track(p_exact)
+    p_exact.move(_context=xo.ContextCpu())
     bend_exact_coords = {coord: getattr(p_exact, coord)[0] for coord in _COORDS}
     num_slices = _CONVERGENCE_SLICES[integrator]
     errors = []
@@ -221,6 +223,8 @@ def test_integrator_convergence_order_large_angle_bend(test_context, integrator,
         )
         p_slice = p.copy()
         mm.track(p_slice)
+        # Evaluate errors with NumPy on the CPU, also when tracking on a GPU.
+        p_slice.move(_context=xo.ContextCpu())
         errors.append(_max_rel_error(p_slice, bend_exact_coords))
 
     slope, _ = np.polyfit(np.log(num_slices), np.log(errors), 1)
