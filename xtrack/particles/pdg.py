@@ -161,6 +161,10 @@ def is_baryon(pdg_id):
         & (q3 >= 1) & (q3 <= 6)
     )
 
+def is_photon(self):
+    """Check if a PDG ID corresponds to a photon."""
+    return abs(self.ref_id) == 22
+
 
 def get_name_from_pdg_id(pdg_id, long_name=True, subscripts=True):
     """
