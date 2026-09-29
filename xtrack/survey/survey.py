@@ -55,6 +55,7 @@ class SurveyTable(Table):
             Additional positional arguments passed to :class:`xtrack.Table`.
         **kwargs
             Additional keyword arguments passed to :class:`xtrack.Table`.
+            ``sep_count`` defaults to ``'::::'`` for repeated element names.
 
         Examples
         --------
@@ -96,6 +97,7 @@ class SurveyTable(Table):
         d1.1  Drift                  0.3             0             0           0.3
         mb1.1 Bend                   1.3             0             0           1.3
         """
+        kwargs.setdefault('sep_count', '::::')
         super().__init__(data, *args, **kwargs)
 
     _DEPRECATED_FIELDS = {
@@ -106,10 +108,6 @@ class SurveyTable(Table):
     }
 
     _error_on_row_not_found = True
-
-    def __init__(self, *args, **kwargs):
-        kwargs.setdefault('sep_count', '::::')
-        super().__init__(*args, **kwargs)
 
     def reverse(self):
         """
@@ -353,14 +351,38 @@ def survey_from_line(
         X0=0, Y0=0, Z0=0, theta0=0, phi0=0, psi0=0,
         element0=0, values_at_element_exit=False, reverse=False,
         include_element_frames=False):
-    """Execute SURVEY command. Based on MAD-X equivalent.
-    Attributes, must be given in this order in the dictionary:
-    X0        (float)    Initial X position in meters.
-    Y0        (float)    Initial Y position in meters.
-    Z0        (float)    Initial Z position in meters.
-    theta0    (float)    Initial azimuthal angle in radians.
-    phi0      (float)    Initial elevation angle in radians.
-    psi0      (float)    Initial roll angle in radians."""
+    """Compute the positions and orientations along a line.
+
+    Parameters
+    ----------
+    line : xtrack.Line
+        Line to survey.
+    X0, Y0, Z0 : float, optional
+        Global coordinates at the entrance of ``element0``, in meters.
+        Each defaults to zero.
+    theta0, phi0, psi0 : float, optional
+        Azimuth, elevation, and roll angles at the entrance of ``element0``,
+        in radians. Each defaults to zero.
+    element0 : int or str, optional
+        Index or name of the element at which the initial position and
+        orientation are specified. Defaults to the first element. The survey
+        is propagated both forward and backward from this element.
+    values_at_element_exit : bool, optional
+        Must be False (the default). Values at element exits are not supported.
+    reverse : bool, optional
+        Must be False (the default). Use ``survey_from_line(...).reverse()``
+        to obtain the survey in the reverse local reference frame.
+    include_element_frames : bool, optional
+        Include aligned reference and physical element frames at both ends
+        of every element. Defaults to False.
+
+    Returns
+    -------
+    SurveyTable
+        Positions and orientations at element entrances, with an additional
+        ``_end_point`` row at the end of the line. The longitudinal coordinate
+        ``s`` is measured from the start of the line, regardless of ``element0``.
+    """
 
     if reverse:
         raise ValueError('`survey(..., reverse=True)` not supported anymore. '
