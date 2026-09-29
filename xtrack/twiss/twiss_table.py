@@ -30,7 +30,7 @@ import xtrack as xt  # To avoid circular imports
 CYCLICAL_QUANTITIES = ['mux', 'muy', 'dzeta', 's']
 
 DEFAULT_COL_ORDER = [
-    'name', 'element_type', 's', 'betx', 'bety', 'alfx', 'alfy', 'dx', 'dy'
+    'name', 'element_type', 's', 'betx', 'bety', 'alfx', 'alfy', 'dx', 'dy',
     'dpx', 'dpy', 'x', 'y', 'px', 'py', 'delta', 'zeta']
 
 
