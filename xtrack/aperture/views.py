@@ -393,7 +393,7 @@ class ProfilePositionView:
 
     def get_transform(self, frame: Frame = 'curved'):
         if frame not in ('curved', 'straight'):
-            return ValueError('Frame must be "curved" or "straight"')
+            raise ValueError('Frame must be "curved" or "straight"')
 
         t_x, t_y, t_s = self.shift_x, self.shift_y, self.shift_s
         rot_y, rot_x, rot_s = self.rot_y_rad, self.rot_x_rad, self.rot_s_rad

@@ -559,6 +559,9 @@ def test_aperture_model_views(test_context):
     pipe0 = pipes[0]
     positions = pipe0
 
+    with pytest.raises(ValueError, match='Frame must be "curved" or "straight"'):
+        positions[0].get_transform(frame='invalid')
+
     assert repr(profiles) == '<ProfilesView: 2 profiles>'
     assert repr(pipes) == '<PipesView: 1 pipe>'
     assert repr(pipe_positions) == '<PipePositionsView: 1 pipe position>'
