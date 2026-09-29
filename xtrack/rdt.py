@@ -165,7 +165,7 @@ def rdt_first_order_perturbation(rdt,
 
     return out
 
-def rdt_metadata(rdts: list[str], Qx: float, Qy: float) -> float:
+def rdt_metadata(rdts: list[str], Qx: float, Qy: float) -> dict[str, float | str]:
     """
     Compute the frequencies and amplitude expressions associated with the
     given RDTs.
