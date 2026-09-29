@@ -954,7 +954,7 @@ def test_pickle():
     # Load the line
     line = xt.load(test_data_folder /
             'hllhc15_noerrors_nobb/line_w_knobs_and_particle.json')
-    line.particle_ref = xp.Particles(p0c=7e12, mass=xp.PROTON_MASS_EV)
+    line.particle_ref = xp.Particles(p0c=7e12, mass0=xp.PROTON_MASS_EV)
     line.build_tracker()
 
     lnss = pickle.dumps(line)
