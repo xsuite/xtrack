@@ -160,6 +160,17 @@ class Particles(xo.HybridClass):
             Vertical position [m]
         py : array_like of float, optional
             Py / (m/m0 * p0c)
+        ax, ay : array_like of float, optional
+            Normalized transverse vector-potential components (dimensionless),
+            in the same normalization as ``px`` and ``py``. The kinetic momenta
+            are ``kin_px = px - ax`` and ``kin_py = py - ay``. Both default to 0.
+        spin_x, spin_y, spin_z : array_like of float, optional
+            Dimensionless spin-vector components along the local horizontal,
+            vertical, and longitudinal directions. Each defaults to 0. The
+            constructor does not normalize the spin vector.
+        anomalous_magnetic_moment : array_like of float, optional
+            Dimensionless magnetic-moment anomaly ``(g - 2) / 2`` used for
+            spin tracking. Defaults to 0; it is not inferred from ``pdg_id``.
         delta : array_like of float, optional
             (Pc m0/m - p0c) /p0c
         ptau : array_like of float, optional
@@ -194,7 +205,9 @@ class Particles(xo.HybridClass):
             mass/mass0 (this is used to track particles of
             different species. Note that mass is the rest mass
             of the considered particle species and not the
-            relativistic mass)
+            relativistic mass). If supplied, also provide ``charge_ratio``
+            or ``chi``. Non-default mass ratios also require an explicit
+            ``delta``, ``ptau``, or ``pzeta``.
         chi : array_like of float, optional
             q / q0 * m0 / m = qratio / mratio
         charge_ratio : array_like of float, optional
@@ -217,11 +230,24 @@ class Particles(xo.HybridClass):
             wakefields, etc.)
         at_element : array_like of int, optional
             Identifier of the last element through which the particle has been
+        start_tracking_at_element : int, optional
+            Element index at which the next tracking call starts. A nonnegative
+            value overrides the default starting element and is reset to -1
+            when consumed. Cannot be combined with a nonzero ``ele_start``
+            argument to tracking. Defaults to -1 (no override).
         parent_particle_id : array_like of int, optional
             Identifier of the parent particle (secondary production processes)
         t_sim : float, optional
             Simulation frame time (typically one revolution period)
+        name : str, optional
+            Optional label attached to this Particles object as ``name``.
+            It does not affect particle identifiers or tracking.
         """
+        if 'mass' in kwargs:
+            raise NameError(
+                'The `mass` argument is not supported. Use `mass0` for the '
+                'reference mass and `mass_ratio` for relative particle masses.')
+
         if '_xobject' in kwargs.keys():
             # Initialize xobject
             self.xoinitialize(**kwargs)
@@ -236,7 +262,7 @@ class Particles(xo.HybridClass):
                             'Please use `pzeta` instead.')
 
         accepted_args = set(self._xofields.keys()) | {
-            'energy0', 'tau', 'pzeta', 'mass_ratio', 'mass', 'kinetic_energy0',
+            'energy0', 'tau', 'pzeta', 'mass_ratio', 'kinetic_energy0',
             '_context', '_buffer', '_offset', 'name', 'rigidity0',
         }
         if set(kwargs.keys()) - accepted_args:

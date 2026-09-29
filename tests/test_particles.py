@@ -145,6 +145,15 @@ def test_check_is_active_sorting_cpu_default(test_context):
     assert set(particles.particle_id[:8]) == {0, 2, 4, 11, 13, 14, 15, 16}
     assert set(particles.particle_id[8:]) == {1, 3, 5, 6, 7, 8, 9, 10, 12, 17}
 
+@pytest.mark.parametrize('mass', [None, 1e9, [1e9, 2e9]])
+def test_particles_rejects_mass_argument(mass):
+    with pytest.raises(NameError) as exc_info:
+        xt.Particles(mass=mass)
+    assert 'The `mass` argument is not supported.' in str(exc_info.value)
+    assert '`mass0`' in str(exc_info.value)
+    assert '`mass_ratio`' in str(exc_info.value)
+
+
 def test_particles_energy_coordinates():
     p = xt.Particles(mass0=xt.PROTON_MASS_EV, q0=2,
                     kinetic_energy0=50e6, delta=0.1)
