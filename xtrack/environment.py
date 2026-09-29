@@ -313,7 +313,7 @@ class Environment:
     def new(self, name, prototype=None, mode=None, at=None, from_=None,
             anchor=None, from_anchor=None,
             extra=None,
-            mirror=False, force=False, import_from=None, parent=None,
+            mirror=False, force=False, parent=None,
             **kwargs):
 
         '''
@@ -327,13 +327,13 @@ class Environment:
             Prototype class or name of the prototype element
         parent : str or class, optional
             Deprecated alias for ``prototype``.
-        mode : str, optional
+        mode : {None, 'clone', 'replica'}, optional
+             - None (default): create an element or line from a class, or clone
+               an existing prototype element or line.
              - clone: clone the prototype element or line.
                The prototype element or line is copied, together with the associated
                expressions.
              - replica: a replica of the prototype element or line is made.
-             - import: clone from a different environment. `import_from` must be
-               provided.
         at : float or str, optional
             Position of the created object.
         from_ : str, optional
@@ -353,8 +353,6 @@ class Environment:
         force : bool, optional
             If True, replace an existing element with the same name. Default is
             False.
-        import_from : Environment, optional
-            Only to be used when mode is 'import'.
         **kwargs
             Attributes used to initialize or customize the element.
 
@@ -476,7 +474,7 @@ class Environment:
 
         if parent is xt.Line or (parent=='Line' and (
             'Line' not in self.lines and 'Line' not in self.elements)):
-            assert mode is None, 'Mode not allowed when cls is Line'
+            assert mode is None, 'Mode not allowed when prototype is Line'
             return self.new_line(name=name, **kwargs)
 
         if mode == 'replica':
@@ -1575,7 +1573,7 @@ class Environment:
                     ] + object.__dir__(self)
 
     @doc_group("Deprecated")
-    def set_multipolar_errors(env, errors, with_progress=True):
+    def set_multipolar_errors(self, errors, with_progress=True):
         """Deprecated: set multipolar errors for specified elements of the environment.
 
         .. warning:: This function is deprecated and will be removed in a future
@@ -1638,7 +1636,7 @@ class Environment:
             rel_knl = err.get('rel_knl', [])
             rel_ksl = err.get('rel_ksl', [])
             refer = err.get('refer', None)
-            ele_class = env[ele_name].__class__.__name__
+            ele_class = self[ele_name].__class__.__name__
 
             if 'Replica' in ele_class or 'Slice' in ele_class:
                 raise ValueError(f'Cannot set multipolar errors for element `{ele_name}`'
@@ -1652,22 +1650,22 @@ class Environment:
             if reference_strength_name is None:
                 raise ValueError(f'Cannot find reference strength for element `{ele_name}`')
 
-            ref_str_ref = getattr(env.ref[ele_name], reference_strength_name)
-            length_ref = env.ref[ele_name].length
+            ref_str_ref = getattr(self.ref[ele_name], reference_strength_name)
+            length_ref = self.ref[ele_name].length
 
             for ii, kk in enumerate(rel_knl):
                 err_vname = f'err_{ele_name}_knl{ii}'
-                env[err_vname] = kk
-                if (env.ref[ele_name].knl[ii]._expr is None or env.ref[err_vname] in
-                        env.ref[ele_name].knl[ii]._expr._get_dependencies()):
-                    env[ele_name].knl[ii] += env.ref[err_vname] * ref_str_ref * length_ref
+                self[err_vname] = kk
+                if (self.ref[ele_name].knl[ii]._expr is None or self.ref[err_vname] in
+                        self.ref[ele_name].knl[ii]._expr._get_dependencies()):
+                    self[ele_name].knl[ii] += self.ref[err_vname] * ref_str_ref * length_ref
 
             for ii, kk in enumerate(rel_ksl):
                 err_vname = f'err_{ele_name}_ksl{ii}'
-                env[err_vname] = kk
-                if (env.ref[ele_name].ksl[ii]._expr is None or env.ref[err_vname] in
-                        env.ref[ele_name].ksl[ii]._expr._get_dependencies()):
-                    env[ele_name].ksl[ii] += env.ref[err_vname] * ref_str_ref * length_ref
+                self[err_vname] = kk
+                if (self.ref[ele_name].ksl[ii]._expr is None or self.ref[err_vname] in
+                        self.ref[ele_name].ksl[ii]._expr._get_dependencies()):
+                    self[ele_name].ksl[ii] += self.ref[err_vname] * ref_str_ref * length_ref
 
     @property_with_doc_group("Editing, Inspection, Variables and Configuration")
     def element_dict(self):
@@ -2218,9 +2216,9 @@ class Environment:
         ----------
         order : int
             New order of the knl and ksl attributes.
-        element_names : list of str
-            Names of the elements to extend. If None, all elements having `knl`
-            and `ksl` attributes are extended.
+        element_names : str or list of str
+            Names of the elements to extend. Must be provided explicitly;
+            None raises NotImplementedError.
 
         """
         self._extend_knl_ksl_abs_rel(order, element_names=element_names,
@@ -2235,9 +2233,9 @@ class Environment:
         ----------
         order : int
             New order of the knl_rel and ksl_rel attributes.
-        element_names : list of str
-            Names of the elements to extend. If None, all elements having `knl`
-            and `ksl` attributes are extended.
+        element_names : str or list of str
+            Names of the elements to extend. Must be provided explicitly;
+            None raises NotImplementedError.
 
         """
         self._extend_knl_ksl_abs_rel(order, element_names=element_names,
