@@ -466,7 +466,7 @@ def _compute_radiation_integrals(twiss_res):
         'rad_int_curly_hy': Hy_rad,
         'rad_int_i1x_integrand': i1x_integrand,
         'rad_int_i1y_integrand': i1y_integrand,
-        'rad_int_l2_integrand': i2_integrand,
+        'rad_int_i2_integrand': i2_integrand,
         'rad_int_i3_integrand': i3_integrand,
         'rad_int_i4_integrand': i4_integrand,
         'rad_int_i4x_integrand': i4x_integrand,

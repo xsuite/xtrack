@@ -8,6 +8,32 @@ import pytest
 test_data_folder = pathlib.Path(
         __file__).parent.joinpath('../test_data').absolute()
 
+
+def test_radiation_integrand_columns():
+    # Tilted bends and dispersion in both planes exercise all integrals.
+    # Unequal lengths check the integration weights; the marker has zero length.
+    line = xt.Line(elements=[
+        xt.Bend(length=1., angle=0.1, k0=0.1, k1=0.02, rot_s_rad=0.3),
+        xt.Drift(length=0.4),
+        xt.Bend(length=2., angle=-0.08, k0=-0.04, k1=-0.01,
+                rot_s_rad=-0.2),
+        xt.Marker(),
+    ])
+    line.particle_ref = xt.Particles(p0c=2e9, mass0=xt.ELECTRON_MASS_EV)
+    tw = line.twiss(method='4d', betx=2., bety=3.,
+                    dx=0.2, dy=0.1, dpx=0.01, dpy=0.02,
+                    radiation_integrals=True)
+
+    for integral in ['i1x', 'i1y', 'i2', 'i3', 'i4', 'i4x', 'i4y', 'i5x', 'i5y']:
+        scalar_name = f'rad_int_{integral}'
+        column_name = f'{scalar_name}_integrand'
+        assert column_name in tw._col_names
+        assert abs(tw[scalar_name]) > 1e-12  # Avoid trivial zero-equals-zero checks.
+        np.testing.assert_allclose(
+            np.sum(tw[column_name] * tw.length), tw[scalar_name],
+            rtol=1e-12, atol=0, err_msg=scalar_name)
+
+
 def test_radiation_wiggler():
     env = xt.load([test_data_folder / 'sps_thick/sps.seq',
                    test_data_folder / 'sps_thick/lhc_q20.str'])

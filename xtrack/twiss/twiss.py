@@ -359,7 +359,7 @@ def twiss_line(line, particle_ref=None, method=None,
         - `rad_int_i1x`, `rad_int_i1y`, `rad_int_i2`, `rad_int_i3`, `rad_int_i4`,
           `rad_int_i4x`, `rad_int_i4y`, `rad_int_i5x`, `rad_int_i5y`: radiation
           integrals (see physics guide for definitions)
-        - `rad_int_i1x_integrand`, `rad_int_i1y_integrand`, `rad_int_l2_integrand`,
+        - `rad_int_i1x_integrand`, `rad_int_i1y_integrand`, `rad_int_i2_integrand`,
           `rad_int_i3_integrand`, `rad_int_i4_integrand`, `rad_int_i4x_integrand`,
           `rad_int_i4y_integrand`, `rad_int_i5x_integrand`, `rad_int_i5y_integrand`:
           integrands of the radiation integrals (ebe)
