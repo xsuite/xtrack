@@ -499,6 +499,12 @@ class Composer:
         Lines, composers, and nested component sequences are expanded into a flat
         list of ``xtrack.Place`` objects. The original composer is not modified.
 
+        Parameters
+        ----------
+        inplace : bool, optional
+            Must be false (the default). In-place flattening is not implemented;
+            passing true raises ``NotImplementedError``.
+
         Returns
         -------
         xtrack.Composer
