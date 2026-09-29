@@ -31,7 +31,7 @@ class RBend(_BendCommon, BeamElement):
 
     Parameters
     ----------
-    length_strait : float
+    length_straight : float
         Length of the element in meters along the axis of the magnet (straight line
         between entry and exit points). This is different from the length of the
         reference trajectory, i.e. the increase of the `s` coordinate through the
@@ -40,22 +40,22 @@ class RBend(_BendCommon, BeamElement):
     angle : float
         Angle of the bend in radians. This is the angle by which the reference
         trajectory is bent in the horizontal plane.
-    k0 : float
+    k0 : float, optional
         Strength of the horizontal dipolar component in units of m^-1.
         It can be set to the string value 'from_h', in which case `k0` is
         computed from the curvature defined by `angle` and `length`
         (i.e. `k0 = h = angle/length`) and `k0_from_h` is set to True.
-    k1 : float
+    k1 : float, optional
         Strength of the quadrupolar component in units of m^-2.
-    k2 : float
+    k2 : float, optional
         Strength of the sextupolar component in units of m^-3.
-    k0_from_h : bool
+    k0_from_h : bool, optional
         If True, `k0` is computed from the curvature defined by `angle` and
         `length` (i.e. `k0 = h = angle/length`). Default is True. The flag
         becomes false when `k0` is set directly to a numeric value.
     rbend_model : str
         Model used for the rectangular bend. Possible values are:
-        "adaptive', "curved-body", "straight-body". Default is "adaptive',
+        "adaptive", "curved-body", "straight-body". Default is "adaptive",
         which falls back to "curved-body".
     rbend_angle_diff : float
         Difference in radians between the angle of the reference trajectory
@@ -74,10 +74,10 @@ class RBend(_BendCommon, BeamElement):
     """.strip()
 
     _docstring_knl_rel_ksl_rel = \
-    """knl_rel : array
+    """knl_rel : array, optional
         Relative integrated strength of the normal components with respect to the
         main component k0. The effect of knl_rel is added to the one of knl.
-    ksl_rel : array
+    ksl_rel : array, optional
         Relative integrated strength of the skew components with respect to the
         main component k0. The effect of ksl_rel is added to the one of ksl.
     """.strip()

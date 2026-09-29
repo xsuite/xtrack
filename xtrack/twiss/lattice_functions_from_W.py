@@ -10,7 +10,7 @@ from .. import linear_normal_form as lnf
 
 def _get_lattice_functions(Ws, use_full_inverse, s_co):
 
-    # For removal ot thin groups of elements
+    # For removal of thin groups of elements
     i_take = [0]
     for ii in range(1, len(s_co)):
         if s_co[ii] > s_co[ii-1]:

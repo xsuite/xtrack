@@ -41,11 +41,11 @@ class Quadrupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
     """
     knl_rel : array, optional
         Relative integrated strength of the normal components with respect to the
-        main component k1 or k1s, depending whether `main_is_skew` is False or True, respectively.
+        main component k1 or k1s, depending on whether `main_is_skew` is False or True, respectively.
         The effect of knl_rel is added to the one of knl.
     ksl_rel : array, optional
         Relative integrated strength of the skew components with respect to the
-        main component k1 or k1s, depending whether `main_is_skew` is False or True, respectively.
+        main component k1 or k1s, depending on whether `main_is_skew` is False or True, respectively.
         The effect of ksl_rel is added to the one of ksl.
     main_is_skew : bool, optional
         If True, the main component is the skew one (k1s), otherwise it is the normal one (k1).

@@ -277,13 +277,13 @@ class Footprint():
             vanishing imaginary part of the tune shift
         epsilon_factor: scalar(float)
             if larger than 0, an adaptive algorithm will be used to adjust
-            epsilon between epsilon0 and epsilon_min using relative varitions
+            epsilon between epsilon0 and epsilon_min using relative variations
             in the order of the epsilon_factor
         epsilon_rel_tol: scalar(float)
             Stop the iterative algorithm if the relative change of
-            epilson is smaller than epsilon_rel_tol
+            epsilon is smaller than epsilon_rel_tol
         max_iter: scalar(int)
-            Stop the iterative algorithm if the the number of iterations
+            Stop the iterative algorithm if the number of iterations
             reached max_iter
         min_epsilon: scalar(float)
             Stop the iterative algorithm if the epsilon is smaller than

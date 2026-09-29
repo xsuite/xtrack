@@ -54,8 +54,9 @@ class ElementSlicingScheme(abc.ABC):
             element_length: float = None,
     ) -> Iterator[Tuple[float, bool]]:
         """
-        Give an iterator for weights of slices and, assuming the first slice is
-        a drift, followed by an element slice, and so on.
+        Give an iterator over the weights of the slices, assuming the first
+        slice is a drift, followed by an element slice, and so on.
+
         Returns
         -------
         Iterator[Tuple[float, bool]]
@@ -117,12 +118,12 @@ class Teapot(ElementSlicingScheme):
 class Custom(ElementSlicingScheme):
     """The custom slicing scheme slices the element at the fixed s coordinates.
 
-    Arguments
-    ---------
+    Parameters
+    ----------
     at_s
         The s values at which the elements should be sliced. The beginning of
         the element is assumed to be at zero.
-    mode:
+    mode
         Thick or thin slicing.
     """
     def __init__(
@@ -132,7 +133,7 @@ class Custom(ElementSlicingScheme):
     ):
         slicing_order = len(at_s)
         if mode == 'thick':
-            # In thick number of slices is one more than cuts
+            # In thick mode the number of slices is one more than the number of cuts
             slicing_order = len(at_s) + 1
 
         super().__init__(slicing_order, mode)
@@ -381,7 +382,7 @@ class Slicer:
             slices_to_append.append(nn)
 
         if not hasattr(element, 'length'):
-            # Slicing a thick slice of a another element
+            # Slicing a thick slice of another element
             assert hasattr(element, '_parent')
             assert element.isthick
             elem_length = element._parent.length * element.weight
@@ -401,7 +402,7 @@ class Slicer:
         if chosen_slicing.mode == 'thin' or is_drift_slice:
             if getattr(slice_parent, '_drift_slice_class', None) is None:
                 raise NotImplementedError(
-                    f"{type(slice_parent).__name__} supports thick slicing; "
+                    f"{type(slice_parent).__name__} only supports thick slicing; "
                     "use mode='thick'")
             slice_offset = slice_offset_start
             for weight, is_drift in chosen_slicing.iter_weights(elem_length):
@@ -469,7 +470,7 @@ class Slicer:
             ee = element._exit_slice_class(
                     _parent=element, _buffer=element._buffer)
             ee.parent_name = parent_name
-            ee.slice_offset = elem_length  # Entry slice at the end
+            ee.slice_offset = elem_length  # Exit slice at the end
             self._line._element_dict[nn] = ee
             slices_to_append.append(nn)
 

@@ -130,22 +130,22 @@ class LineSegmentMap(BeamElement):
             If a float is given, the same value is used for both entrance and exit.
         x_ref : tuple of length 2 or float
             Horizontal position of the reference position at the entrance and
-            exit of the segment (it is the closed orbit no other effects are
+            exit of the segment (it is the closed orbit if no other effects are
             present that perturb the closed orbit).
             If a float is given, the same value is used for both entrance and exit.
         px_ref : tuple of length 2 or float
             Px coordinate of the reference position at the entrance and
-            exit of the segment (it is the closed orbit no other effects are
+            exit of the segment (it is the closed orbit if no other effects are
             present that perturb the closed orbit).
             If a float is given, the same value is used for both entrance and exit.
         y_ref : tuple of length 2 or float
             Vertical position of the reference position at the entrance and
-            exit of the segment (it is the closed orbit no other effects are
+            exit of the segment (it is the closed orbit if no other effects are
             present that perturb the closed orbit).
             If a float is given, the same value is used for both entrance and exit.
         py_ref : tuple of length 2 or float
             Py coordinate of the reference position at the entrance and
-            exit of the segment (it is the closed orbit no other effects are
+            exit of the segment (it is the closed orbit if no other effects are
             present that perturb the closed orbit).
             If a float is given, the same value is used for both entrance and exit.
         longitudinal_mode : str
@@ -178,26 +178,29 @@ class LineSegmentMap(BeamElement):
         lag_rf : list of float
             List of lags in degrees of the RF kicks in the segment. Only used if
             ``longitudinal_mode`` is ``'nonlinear'`` or ``'linear_fixed_rf'``.
+        phase_rf : list of float
+            List of phases in radians of the RF kicks in the segment. Only used if
+            ``longitudinal_mode`` is ``'nonlinear'`` or ``'linear_fixed_rf'``.
         dqx : float or list of float
             Horizontal linear chromaticity of the segment.
         dqy : float or list of float
             Vertical linear chromaticity of the segment.
-        ddqx: float
-            Horizontal second order chromaticity of the segment
-        ddqy: float
-            Vertical second order chromaticity of the segment
+        ddqx : float
+            Horizontal second order chromaticity of the segment.
+        ddqy : float
+            Vertical second order chromaticity of the segment.
         dnqx: list of float
             List of horizontal chromaticities up to any order. The first element
             of the list is the horizontal tune, the second element is the
             horizontal linear chromaticity, the third element the horizontal
             second order chromaticity and so on. It can be specified only if the
-            horizontal tune, and chromaticities are not specified.
+            horizontal tune and chromaticities are not specified.
         dnqy: list of float
             List of vertical chromaticities up to any order. The first element
             of the list is the vertical tune, the second element is the
             vertical linear chromaticity, the third element the vertical
             second order chromaticity and so on. It can be specified only if the
-            vertical tune, and chromaticities are not specified.
+            vertical tune and chromaticities are not specified.
         det_xx : float
             Anharmonicity xx coefficient (i.e. dqx / dJx, where Jx is the horizontal
             action). Optional, default is ``0``.
@@ -225,12 +228,12 @@ class LineSegmentMap(BeamElement):
             y_n+1 = (1-damping_rate_y)*y_n. Optional, default is ``0``.
         damping_rate_py : float
             Damping rate of the vertical momentum
-            px_n+1 = (1-damping_rate_x)*py_n. Optional, default is ``0``.
-        damping_rate_z : float
+            py_n+1 = (1-damping_rate_py)*py_n. Optional, default is ``0``.
+        damping_rate_zeta : float
             Damping rate of the longitudinal position
-            z_n+1 = (1-damping_rate_z)*z_n. Optional, default is ``0``.
+            zeta_n+1 = (1-damping_rate_zeta)*zeta_n. Optional, default is ``0``.
         damping_rate_pzeta : float
-            Damping rate on the momentum
+            Damping rate of the longitudinal momentum
             pzeta_n+1 = (1-damping_rate_pzeta)*pzeta_n. Optional, default is ``0``.
         gauss_noise_ampl_x : float
             Amplitude of Gaussian noise on the horizontal position. Optional, default is ``0``.
@@ -245,7 +248,7 @@ class LineSegmentMap(BeamElement):
         gauss_noise_ampl_pzeta : float
             Amplitude of Gaussian noise on the longitudinal momentum. Optional, default is ``0``.
         damping_matrix : float[6,6]
-            Matrix of damping: Each particles coordinate vector (x,px,y,py,zeta,pzeta) is multiplied
+            Matrix of damping: Each particle's coordinate vector (x,px,y,py,zeta,pzeta) is multiplied
             by the identity + the damping matrix. Incompatible with inputs damping_rate_*.
             Optional, default is ``None``
         gauss_noise_matrix : float[6,6]
@@ -532,7 +535,7 @@ class LineSegmentMap(BeamElement):
                     break
 
         if need_warn:
-            warn('`lag_rf` (in degrees) is deprecated and will be removed in a future version.'
+            warn('`lag_rf` (in degrees) is deprecated and will be removed in a future version. '
             'Please use `phase_rf` (in radians) instead. '
             'Note that if both `lag_rf` and `phase_rf` are set, the effect is the sum of the two '
             'with `lag_rf` converted to radians.',

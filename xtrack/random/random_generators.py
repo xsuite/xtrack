@@ -15,7 +15,7 @@ import numpy as np
 # Random generators need to be a BeamElement to get the LocalParticle API
 class RandomUniform(BeamElement):
     _xofields = {
-        '_dummy': xo.UInt8,  # TODO: a hack for allocating empty struct on OCL
+        '_dummy': xo.UInt8,  # TODO: a hack for allocating an empty struct on OCL
     }
 
     allow_track = False

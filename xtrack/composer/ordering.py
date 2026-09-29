@@ -158,10 +158,10 @@ def _order_elements_at_same_s(
     if len(group) == 1 or all(placement.from_ is None for placement in group):
         return group
 
-    from_upstream = []  # placement._from refers to an element before the group
-    from_downstream = []  # placement._from refers to an element after the group
-    from_same_s = []  # placement._from refers to an element inside group
-    unconstrained = []  # no constraint from placement._from
+    from_upstream = []  # placement.from_ refers to an element before the group
+    from_downstream = []  # placement.from_ refers to an element after the group
+    from_same_s = []  # placement.from_ refers to an element inside the group
+    unconstrained = []  # no constraint from placement.from_
 
     for placement in group:
         from_name = placement.from_

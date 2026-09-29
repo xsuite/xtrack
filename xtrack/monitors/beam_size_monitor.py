@@ -52,7 +52,7 @@ class BeamSizeMonitor(BeamElement):
         Monitor to save the transverse beam size (standard deviation of the tracked particle positions)
 
 
-        The monitor allows for arbitrary sampling rate and can thus not only be used to monitor
+        The monitor allows for an arbitrary sampling rate and can thus not only be used to monitor
         bunch emittance, but also to record coasting beams. Internally, the particle arrival time
         is used when determining the record index:
 
@@ -77,7 +77,7 @@ class BeamSizeMonitor(BeamElement):
         - `x_sum`, `y_sum` Sum of particle x, y in m (= mean * count)
         - `x2_sum`, `y2_sum` Sum of particle x, y squared in m² (= (std**2 + mean**2) * count)
         each as an array of size:
-            size = int(( stop_at_turn - start_at_turn ) * sampling_frequency / frev)
+            size = round(( stop_at_turn - start_at_turn ) * sampling_frequency / frev)
 
         Args:
             num_particles (int, optional): Number of particles to monitor. Defaults to -1 which means ALL.

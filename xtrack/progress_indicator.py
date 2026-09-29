@@ -22,11 +22,11 @@ class DefaultProgressIndicator:
     total: int, optional
         Total number of iterations, if unspecified `len(iterable)` is used.
     miniters: int, optional
-        Minimum number of iterations between updates, by default 1.
+        Minimum number of iterations between updates, by default
+        `ceil(total / 100)`.
     unit_scale: int, optional
-        Unused, kept for compatibility with tqdm. To be interpreted as the
-        scale by which the iteration number and `total` are multiplied: i.e.,
-        one iteration corresponds to `unit_scale` events.
+        Scale by which the iteration number and `total` are multiplied when
+        displayed: i.e., one iteration corresponds to `unit_scale` events.
     """
     def __init__(
             self,

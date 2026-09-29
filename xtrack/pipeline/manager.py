@@ -36,7 +36,7 @@ class PipelineManager:
         self._elements[element_name] = len(self._elements)
 
     #
-    # The tag is a int that identifies messages given the rank of the sender and of the receiver
+    # The tag is an int that identifies messages given the rank of the sender and of the receiver
     #
     def get_message_tag(self,element_name,sender_name,receiver_name,internal_tag=0):
         tag = self._elements[element_name] + len(self._elements)*self._IDs[sender_name].number + len(self._elements)*len(self._IDs)*self._IDs[receiver_name].number + len(self._elements)*len(self._IDs)*len(self._IDs)*internal_tag
@@ -45,7 +45,7 @@ class PipelineManager:
         return tag
 
     #
-    # The key is string that uniquely identifies a message
+    # The key is a string that uniquely identifies a message
     #
     def get_message_key(self,element_name,sender_name,receiver_name,tag=0):
         return f'{element_name}_{sender_name}_{receiver_name}_{tag}'
@@ -61,7 +61,7 @@ class PipelineManager:
             return False
         if not self._pending_requests[key].Test():
             if self.verbose:
-                _print(f'Pipeline manager {element_name}: {sender_name} at rank {self.get_particles_rank(sender_name)} previous message to {receiver_name} at rank {self.get_particles_rank(receiver_name)} with tag {tag} was not receviced yet')
+                _print(f'Pipeline manager {element_name}: {sender_name} at rank {self.get_particles_rank(sender_name)} previous message to {receiver_name} at rank {self.get_particles_rank(receiver_name)} with tag {tag} was not received yet')
             return False
         return True
 

@@ -63,7 +63,7 @@ def _add_spin_polarization(tw, line, method):
         line.config.XTRACK_MULTIPOLE_NO_SYNRAD = False # For spin
 
         # Based on:
-        # A. Chao, valuation of Radiative Spin Polarization in an Electron Storage Ring
+        # A. Chao, Evaluation of Radiative Spin Polarization in an Electron Storage Ring
         # https://inspirehep.net/literature/154360
 
         steps_R_matrix = tw.steps_R_matrix
@@ -129,7 +129,7 @@ def _add_spin_polarization(tw, line, method):
         RR[6:, 6:] = A
 
         # For the spin tune I take the eigenvalue with the largest imaginary part
-        # (there are the eigenvalues, one is 1.0 + 0j, the others are complex conjugates)
+        # (there are three eigenvalues, one is 1.0 + 0j, the others are complex conjugates)
         spin_tune_fractional = np.max(np.angle(np.linalg.eigvals(A))) / (2 * np.pi)
 
         # Detect no RF
@@ -164,7 +164,7 @@ def _add_spin_polarization(tw, line, method):
         eee[6:, :] = EE_spin
 
         # Identify eigenvector with eigenvalue 1 and remove n0 component
-        # This happens because also n0 is an eigenvector asslociated to
+        # This happens because also n0 is an eigenvector associated to
         # the eigenvalue 1
         if method == '4d':
             i_eigen_one = np.argmin(np.abs(eival - 1))
@@ -218,7 +218,7 @@ def _add_spin_polarization(tw, line, method):
 
             # Rephase
             for ii in range(n_eigen):
-                i_max = np.argmax(np.abs(ee_ebe[0, :, ii])) # Strongest component at start ring
+                i_max = np.argmax(np.abs(ee_ebe[0, :, ii])) # Strongest component at the start of the ring
                 this_phi = np.angle(ee_ebe[:, i_max, ii])
                 for jj in range(ee_ebe.shape[1]):
                     ee_ebe[:, jj, ii] *= np.exp(-1j * this_phi)

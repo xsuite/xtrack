@@ -59,7 +59,7 @@ class BeamProfileMonitor(BeamElement):
         Monitor to save the transverse profile of the tracked particles
 
 
-        The monitor allows for arbitrary sampling rate and can thus not only be used to monitor
+        The monitor allows for an arbitrary sampling rate and can thus not only be used to monitor
         bunch profiles, but also for coasting beams. Internally, the particle arrival time
         is used when determining the record index:
 
@@ -93,10 +93,10 @@ class BeamProfileMonitor(BeamElement):
             frev (float): Revolution frequency in Hz of circulating beam (used to relate turn number to sample index).
             sampling_frequency (float): Sampling frequency in Hz.
             nx (int, optional): Number of raster points of the horizontal profile. Defaults to 128.
-            x_range (float or tuple): Extend of raster points of the profile in m. Either a tuple of (min_x, max_x)
+            x_range (float or tuple): Extent of raster points of the profile in m. Either a tuple of (min_x, max_x)
                                              or a scalar `width` in which case a range of (-width/2, width/2) is used.
             ny (int, optional): Number of raster points of the vertical profile. Defaults to 128.
-            y_range (float or tuple): Extend of raster points of the profile in m. Either a tuple of (min_y, max_y)
+            y_range (float or tuple): Extent of raster points of the profile in m. Either a tuple of (min_y, max_y)
                                              or a scalar `width` in which case a range of (-width/2, width/2) is used.
             n: Default value for `nx` and `ny` if these are not set.
             range: Default value for `x_range` and `y_range` if these are not set.

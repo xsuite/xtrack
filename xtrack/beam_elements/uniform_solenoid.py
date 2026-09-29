@@ -26,7 +26,7 @@ class UniformSolenoid(_HasKnlKsl, _HasIntegrator, BeamElement):
     """
     Uniform solenoid element with hard-edge fringe field. The axis of the
     solenoid is assumed parallel to the `s` axis. Radiation and spin
-    precession are take place only in the solenoid body (no radiation and
+    precession take place only in the solenoid body (no radiation and
     precession in the fringe field).
 
     Parameters

@@ -87,6 +87,14 @@ class MultiSetter(xo.HybridClass):
             Name of the field to be mutated.
         index: int or None
             If the field is an array, the index of the array to be mutated.
+        dtype: numpy dtype or None
+            Data type of the field (one of np.float64, np.int64, np.int32,
+            np.int8). Default is np.float64. If None, it is inferred from
+            the first element.
+        skip_inconsistent_type_check: bool
+            If True, elements whose field type does not match `dtype` are
+            skipped (their offset is set to -1) instead of raising an error.
+            Default is False.
         """
 
         if isinstance(line, xt.Tracker):

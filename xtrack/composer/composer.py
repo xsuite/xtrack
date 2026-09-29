@@ -335,6 +335,8 @@ class Composer:
         diagnostics : bool, optional
             If true, analyze unresolved placement dependencies and distinguish
             missing references from dependency cycles. The default is false.
+        name : optional
+            No longer supported; passing a value raises ``ValueError``.
 
         Returns
         -------
@@ -763,7 +765,7 @@ def _flatten_components(env, components, refer='center'):
     """Recursively replace nested lines and composers with their elements."""
     if refer not in ['start', 'center', 'centre', 'end']:
         raise ValueError(
-            f'Allowed values for refer are "start", "center" and "end". Got "{refer}".'
+            f'Allowed values for refer are "start", "center", "centre" and "end". Got "{refer}".'
         )
 
     components = _resolve_lines_in_components(components, env)

@@ -137,7 +137,7 @@ class MagnetEdge(_HasKnlKsl, BeamElement):
             out.pop(f'_model')
         out['model'] = getattr(self, 'model')
 
-        # See the comment in Multiple.to_dict about knl/ksl/order dumping
+        # See the comment in Multipole.to_dict about knl/ksl/order dumping
         for field in ['knl', 'ksl', 'kn', 'ks']:
             if field in out and np.allclose(out[field], 0, atol=1e-16):
                 out.pop(field, None)

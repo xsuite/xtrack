@@ -71,7 +71,7 @@ ALLOWED_TARGET_KWARGS= ['x', 'px', 'y', 'py', 'zeta', 'delta', 'pzeta', 'ptau',
 ]
 
 
-# Alternative transitions functions
+# Alternative transition functions
 # def _transition_sigmoid_integral(x):
 #     x_shift = x - 3
 #     if x_shift > 10:
@@ -260,7 +260,8 @@ class Target(xd.Target):
             Action used to compute the quantity to be matched. By default the
             action is the Twiss action.
         tag : str, optional
-            Tag associated to the target. Default is ''.
+            Tag associated to the target. If not specified, the tag is built
+            from ``line``, ``at`` and ``tar``.
         optimize_log : bool, optional
             If True, the logarithm of the quantity is used in the cost function
             instead of the quantity itself. Default is False.
@@ -389,7 +390,8 @@ class TargetSet(xd.TargetList):
             Action used to compute the quantity to be matched. By default the
             action is the Twiss action.
         tag : str, optional
-            Tag associated to the target. Default is ''.
+            Tag associated to the targets. If not specified, the tag of each
+            target is built from ``line``, ``at`` and its quantity name.
         optimize_log : bool, optional
             If True, the logarithm of the quantity is used in the cost function
             instead of the quantity itself. Default is False.
@@ -494,7 +496,7 @@ class TargetInequality(Target):
     def __init__(self, tar, ineq_sign, rhs, at=None, tol=None, scale=None,
                  line=None, weight=None, tag=''):
 
-        raise NotImplementedError('TargetInequality is not anymore supported. '
+        raise NotImplementedError('TargetInequality is no longer supported. '
             'Please use Target with `GreaterThan` `LessThan` instead. '
             'For example, instead of '
             'TargetInequality("x", "<", 0.1, at="ip1") '
@@ -512,16 +514,17 @@ class TargetRelPhaseAdvance(Target):
         Parameters
         ----------
         tar : str
-            Phase advance to be matched. Can be either 'mux' or 'muy'.
+            Phase advance to be matched. Can be 'mux', 'muy', 'mu1_ng' or
+            'mu2_ng'.
         value : float or GreaterThan or LessThan or TwissTable
             Value to be matched. Inequality constraints can also be specified.
-            If a TwissTable is specified, the target obtained from the table
+            If a TwissTable is specified, the target is obtained from the table
             using the specified tar and at.
         end : str, optional
             Final element at which the phase advance is evaluated. Default is the
-            last element of selected twiss range.
+            last element of the selected twiss range.
         start : str, optional
-            Initali wlement at which the phase advance is evaluated. Default is the
+            Initial element at which the phase advance is evaluated. Default is the
             first element of the selected twiss range.
         tol : float, optional
             Tolerance below which the target is considered to be met.
@@ -536,7 +539,8 @@ class TargetRelPhaseAdvance(Target):
 
         Target.__init__(self, tar=self.compute, value=value, tag=tag, **kwargs)
 
-        assert tar in ['mux', 'muy', 'mu1_ng', 'mu2_ng'], 'Only mux and muy are supported'
+        assert tar in ['mux', 'muy', 'mu1_ng', 'mu2_ng'], (
+            'Only mux, muy, mu1_ng and mu2_ng are supported')
         self.var = tar
         if end is None:
             end = '__ele_stop__'
@@ -575,7 +579,7 @@ class TargetRmatrixTerm(Target):
             Term to be matched. Can be "r11", "r12", "r21", "r22", etc
         value : float or GreaterThan or LessThan or TwissTable
             Value to be matched. Inequality constraints can also be specified.
-            If a TwissTable is specified, the target obtained from the table
+            If a TwissTable is specified, the target is obtained from the table
             using the specified tar and at.
         start : str
             First element of the range for which the R-matrix is computed.
@@ -752,7 +756,7 @@ class ActionTwiss(xd.Action):
                 if kk in kwargs:
                     raise ValueError(
                         f'`{kk}` cannot be specified for a Multiline match. '
-                        f'Please specify provide a TwissInit object for each line instead.')
+                        f'Please provide a TwissInit object for each line instead.')
 
         # Handle init from table
         if ismultiline:
@@ -997,7 +1001,7 @@ class OptimizeLine(xd.Optimize):
 
             # Handle at
             if isinstance(tt.tar, tuple):
-                tt_name = tt.tar[0] # `at` is  present
+                tt_name = tt.tar[0] # `at` is present
                 tt_at = tt.tar[1]
             else:
                 tt_name = tt.tar
@@ -1009,7 +1013,7 @@ class OptimizeLine(xd.Optimize):
                 this_line = tt.action.line[tt.line] if tt.line else tt.action.line
                 if isinstance(tt_at, _LOC):
                     tt_at= tw0['name', {'START':0, 'END':-1}[tt_at.name]]
-                    # If _end_point preceded by a marker, use the marker
+                    # If _end_point is preceded by a marker, use the marker
                     if tt_at == '_end_point' and len(tw0.name) > 1:
                         nn_prev = tw0['name', -2]
                         nn_env_prev = tw0['env_name', -2]

@@ -50,10 +50,10 @@ class BeamPositionMonitor(BeamElement):
                  start_at_turn=None, stop_at_turn=None, frev=None,
                  sampling_frequency=None, _xobject=None, **kwargs):
         """
-        Monitor to save the transversal centroid of the tracked particles
+        Monitor to save the transverse centroid of the tracked particles
 
-        The monitor allows for arbitrary sampling rate and can thus not only be used to monitor
-        bunch positions, but also to record schottky spectra. Internally, the particle arrival time
+        The monitor allows for an arbitrary sampling rate and can thus not only be used to monitor
+        bunch positions, but also to record Schottky spectra. Internally, the particle arrival time
         is used when determining the record index:
 
             i = sampling_frequency * ( ( at_turn - start_turn ) / f_rev - zeta / beta0 / c0 )
@@ -73,7 +73,7 @@ class BeamPositionMonitor(BeamElement):
         The monitor provides the following data:
         `count`, `x_sum`, `x_mean`, `y_sum`, `y_mean`,
         each as an array of size:
-            size = int(( stop_at_turn - start_at_turn ) * sampling_frequency / frev)
+            size = round(( stop_at_turn - start_at_turn ) * sampling_frequency / frev)
 
         Args:
             num_particles (int, optional): Number of particles to monitor. Defaults to -1 which means ALL.

@@ -53,8 +53,8 @@ class YRotation(BeamElement):
     ):
         """
         If either angle or a sufficient number of trig values are given,
-        calculate the missing values from the others. If more than necessary
-        parameters are given, their consistency will be checked.
+        calculate the missing values from the others. If more parameters than
+        necessary are given, their consistency will be checked.
         """
 
         warn("YRotation is deprecated and will be removed in a future version. "

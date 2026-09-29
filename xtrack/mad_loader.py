@@ -3,29 +3,29 @@
 Structure of the code:
 
 MadLoader takes a sequence and several options
-MadLooder.make_line(buffer=None) returns a line with elements installed in one buffer
-MadLooder.iter_elements() iterates over the elements of the sequence,
+MadLoader.make_line(buffer=None) returns a line with elements installed in one buffer
+MadLoader.iter_elements() iterates over the elements of the sequence,
                           yielding a MadElement and applies some simplifications
 
 Developers:
 
-- MadElem encapsulate a mad element, it behaves like an element from the expanded sequence
+- MadElem encapsulates a mad element; it behaves like an element from the expanded sequence
 but returns as attributes a value, or an expression if present.
 
-- Use `if MadElem(mad).l: to check for no zero value and NOT `if MadElem(mad).l!=0:` because if l is an expression it will create the expression l!=0 and return True
+- Use `if MadElem(mad).l:` to check for a non-zero value and NOT `if MadElem(mad).l!=0:` because if l is an expression it will create the expression l!=0 and return True
 
 
-- ElementAssembler, is a class that builds an xtrack element from a definition. If a values is expression, the value calculated from the expression, the expression if present is attached to the line.
+- ElementAssembler is a class that builds an xtrack element from a definition. If a value is an expression, the value is calculated from the expression, and the expression, if present, is attached to the line.
 
 
-Developer should write
-Loader.convert_<name>(mad_elem)->List[ElementAssembler] to convert new element in a list
+Developers should write
+Loader.convert_<name>(mad_elem)->List[ElementAssembler] to convert a new element into a list
 
-or in alternative
+or, alternatively,
 
-Loader.add_<name>(mad_elem,line,buffer) to add a new element to line
+Loader.add_<name>(mad_elem,line,buffer) to add a new element to the line
 
-if the want to control how the xobject is created
+if they want to control how the xobject is created
 """
 import math
 from typing import List, Union
@@ -77,7 +77,7 @@ def get_value(x):
 
 def set_expr(target, key, xx):
     """
-    Assumes target is either a struct supporting attr assignment or an array supporint item assignment.
+    Assumes target is either a struct supporting attr assignment or an array supporting item assignment.
 
     """
     if isinstance(xx, list):
@@ -98,7 +98,7 @@ def set_expr(target, key, xx):
             setattr(target, key, xx)  # issue if target is not a structure
 
 
-# needed because cannot used += with numpy arrays of expressions
+# needed because += cannot be used with numpy arrays of expressions
 def add_lists(a, b, length):
     out = []
     for ii in range(length):
@@ -602,7 +602,7 @@ class MadLoader:
             _prog = self.iter_elements(madeval=madeval)
 
         for ii, el in enumerate(_prog):
-            # for each mad element create xtract elements in a buffer and add to a line
+            # for each mad element create xtrack elements in a buffer and add them to a line
             converter = getattr(self, "convert_" + el.type, None)
             adder = getattr(self, "add_" + el.type, None)
             if self.expressions_for_element_types is not None:
@@ -620,7 +620,7 @@ class MadLoader:
             else:
                 raise ValueError(
                     f'Element {el.type} not supported,\nimplement "add_{el.type}"'
-                    f" or convert_{el.type} in function in MadLoader"
+                    f" or convert_{el.type} function in MadLoader"
                 )
 
         # copy layout data
@@ -629,7 +629,7 @@ class MadLoader:
             for nn in line.element_names:
                 if nn in mad.elements:
                     madel = mad.elements[nn]
-                    # offset represent the offset of the assembly with respect to mid-beam
+                    # offset represents the offset of the assembly with respect to mid-beam
                     eldata = {}
                     eldata["offset"] = [madel.mech_sep / 2 * self.bv, madel.v_pos]
                     eldata["assembly_id"] = madel.assembly_id
@@ -700,7 +700,7 @@ class MadLoader:
         xtrack_el: list
             List of xtrack elements to which the aperture and transformations
             should be added.
-        mad_el: MadElement
+        mad_el: MadElem
             The element for which the aperture and transformations should be
             added.
         custom_tilt: float, optional
@@ -751,11 +751,11 @@ class MadLoader:
         if self.allow_thick:
             if not mad_el.l:
                 raise ValueError(
-                    "Thick quadrupole with length zero are not supported.")
+                    "Thick quadrupoles with zero length are not supported.")
             return self._convert_quadrupole_thick(mad_el)
         else:
             raise NotImplementedError(
-                "Quadrupole are not supported in thin mode."
+                "Quadrupoles are not supported in thin mode."
             )
 
     def _convert_quadrupole_thick(self, mad_el): # bv done
@@ -1201,7 +1201,7 @@ class MadLoader:
 
     def convert_wire(self, ee):
         if self.bv == -1:
-            raise NotImplementedError("Wire for bv=-1 are not yet supported.")
+            raise NotImplementedError("Wire for bv=-1 is not yet supported.")
         self._assert_element_is_thin(ee)
         if len(ee.L_phy) == 1:
             # the index [0] is present because in MAD-X multiple wires can
@@ -1242,7 +1242,7 @@ class MadLoader:
 
     def convert_beambeam(self, ee):
         if self.bv == -1:
-            raise NotImplementedError("BeamBeam for bv=-1 are not yet supported.")
+            raise NotImplementedError("BeamBeam for bv=-1 is not yet supported.")
         self._assert_element_is_thin(ee)
         import xfields as xf
 
@@ -1331,7 +1331,7 @@ class MadLoader:
 
     def convert_matrix(self, ee):
         if self.bv == -1:
-            raise NotImplementedError("Matrix for bv=-1 are not yet supported.")
+            raise NotImplementedError("Matrix for bv=-1 is not yet supported.")
         length = ee.l
         m0 = np.zeros(6, dtype=object)
         for m0_i in range(6):
@@ -1351,7 +1351,7 @@ class MadLoader:
 
     def convert_srotation(self, ee):
         if self.bv == -1:
-            raise NotImplementedError("SRotation for bv=-1 are not yet supported.")
+            raise NotImplementedError("SRotation for bv=-1 is not yet supported.")
         angle = ee.angle
         el = self.Assembler(
             ee.name, self.classes.Rotation, rot_s_rad=angle
@@ -1360,7 +1360,7 @@ class MadLoader:
 
     def convert_xrotation(self, ee):
         if self.bv == -1:
-            raise NotImplementedError("XRotation for bv=-1 are not yet supported.")
+            raise NotImplementedError("XRotation for bv=-1 is not yet supported.")
         angle = ee.angle
         el = self.Assembler(
             ee.name, self.classes.Rotation, rot_x_rad=angle
@@ -1369,7 +1369,7 @@ class MadLoader:
 
     def convert_yrotation(self, ee):
         if self.bv == -1:
-            raise NotImplementedError("YRotation for bv=-1 are not yet supported.")
+            raise NotImplementedError("YRotation for bv=-1 is not yet supported.")
         angle = ee.angle
         el = self.Assembler(
             ee.name, self.classes.Rotation, rot_y_rad=angle
@@ -1378,7 +1378,7 @@ class MadLoader:
 
     def convert_translation(self, ee):
         if self.bv == -1:
-            raise NotImplementedError("Translation for bv=-1 are not yet supported.")
+            raise NotImplementedError("Translation for bv=-1 is not yet supported.")
         el_translation = self.Assembler(
             ee.name, self.classes.Translation,
             shift_x=ee.dx, shift_y=ee.dy, shift_s=ee.ds,
@@ -1390,7 +1390,7 @@ class MadLoader:
 
     def convert_nllens(self, mad_elem):
         if self.bv == -1:
-            raise NotImplementedError("Non-linear lens for bv=-1 are not yet supported.")
+            raise NotImplementedError("Non-linear lens for bv=-1 is not yet supported.")
         el = self.Assembler(
             mad_elem.name,
             self.classes.NonLinearLens,
