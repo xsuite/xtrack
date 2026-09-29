@@ -31,9 +31,13 @@ class CrabCavity(_HasModelRF, _HasIntegrator, BeamElement):
         Default is ``0``.
     phase : float
         Phase in radians seen at the arrival time of the reference particle (zeta = 0).
-        Default is ``0``.
+        When `absolute_time` is True, `phase` is the phase at time zero. Default is ``0``.
     lag : float
         Deprecated phase shift in degrees, added to `phase`. Default is ``0``.
+    absolute_time : bool
+        If True, the cavity phase is computed from the absolute time of the
+        simulation, otherwise the cavity is synchronized with the arrival time of
+        the reference particle (zeta=0). Default is False.
     '''.strip()
 
     __doc__ = '\n    '.join([_docstring_start,
