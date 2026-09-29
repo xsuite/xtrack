@@ -50,9 +50,9 @@ class Magnet(_BendCommon, BeamElement):
         Strength of the skew sextupolar component in units of m^-3.
     k3s : float, optional
         Strength of the skew octupolar component in units of m^-4.
-    h : float, optional
-        Curvature of the reference trajectory in units of m^-1 (= 1 / radius).
-        Will imply the value of ``k0`` if ``k0_from_h`` is set.
+    angle : float, optional
+        Bending angle of the reference trajectory in radians. Default is 0.
+        Together with ``length``, determines the curvature ``h``.
     k0_from_h : bool, optional
         If true, the value of ``k0`` will be pinned to the value of ``h``.
     order : int, optional
@@ -147,6 +147,13 @@ class Magnet(_BendCommon, BeamElement):
         is generated.
     delta_taper : float, optional
         A value added to delta for the purposes of tapering. Default is 0.
+
+    Attributes
+    ----------
+    h : float
+        Read-only curvature of the reference trajectory in units of m^-1
+        (= 1 / radius), computed as ``angle / length`` for nonzero length.
+        Set ``length`` and ``angle`` instead of passing or assigning ``h``.
     """
     isthick = True
     has_backtrack = True

@@ -14,12 +14,10 @@ from ._common import (
     SynchrotronRadiationRecord,
     _HasIntegrator,
     _HasKnlKsl,
-    _HasModelCurved,
     _HasModelStraight,
     _NOEXPR_FIELDS,
     _docstring_general_notes,
     _for_docstring_alignment,
-    _for_docstring_edge_straight,
     _handle_knl_ksl_rel_kwargs,
 )
 
@@ -67,9 +65,8 @@ class Multipole(_HasKnlKsl, _HasModelStraight, _HasIntegrator, BeamElement):
     """.strip()
 
     __doc__ = '\n    '.join([_docstring_start, _docstring_knl_rel_ksl_rel,
-                             _HasModelCurved._for_docstring,
+                             _HasModelStraight._for_docstring,
                              _HasIntegrator._for_docstring,
-                             _for_docstring_edge_straight,
                              _for_docstring_alignment, '\n',
                              _docstring_general_notes, '\n\n'])
 

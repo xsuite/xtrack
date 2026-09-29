@@ -337,6 +337,14 @@ class _HasModelRF:
     with RF model fields.
     """
 
+    _for_docstring = ('''
+    model : str
+        Model used for the element. Available models are: "adaptive",
+        "drift-kick-drift-exact", "drift-kick-drift-expanded",
+        "rot-kick-rot-low-order", "rot-kick-rot-high-order".
+        Default is "adaptive".
+    ''').strip()
+
     @property
     def model(self):
         return _INDEX_TO_MODEL_RF[self._model]
