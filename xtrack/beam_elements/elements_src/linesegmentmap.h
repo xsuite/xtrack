@@ -110,11 +110,11 @@ void transverse_motion(LocalParticle *part0, LineSegmentMapData el){
     int64_t any_chroma = 0;
 
     for (int i_dqx=0; i_dqx<ndqx; i_dqx++){
-        any_chroma += LineSegmentMapData_get_coeffs_dqx(el, 0) != 0;
+        any_chroma += LineSegmentMapData_get_coeffs_dqx(el, i_dqx) != 0;
     }
 
     for (int i_dqy=0; i_dqy<ndqy; i_dqy++){
-        any_chroma += LineSegmentMapData_get_coeffs_dqy(el, 0) != 0;
+        any_chroma += LineSegmentMapData_get_coeffs_dqy(el, i_dqy) != 0;
     }
 
     if (any_chroma ||
@@ -207,7 +207,6 @@ void longitudinal_motion(LocalParticle *part0,
         uint8_t kill_energy_kick = LocalParticle_check_track_flag(
                     part0, XS_FLAG_KILL_CAVITY_KICK);
         START_PER_PARTICLE_BLOCK(part0, part);
-            // We set cos_s = 999 if long map is to be skipped
             double shift = 0.0;
             if (bucket_length > 0.0) {
                 shift = bucket_length*floor(LocalParticle_get_zeta(part)/bucket_length+0.5);

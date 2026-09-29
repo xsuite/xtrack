@@ -1202,6 +1202,42 @@ def test_simplified_accelerator_segment_bucket_fixed_rf(test_context):
 
 
 @for_all_test_contexts
+@allow_kernel_compilation
+def test_line_segment_map_chromaticity_with_zero_base_tunes(test_context):
+    # Compile the local header rather than use a prebuilt tracking kernel.
+    xt.LineSegmentMap(_context=test_context).compile_kernels(only_if_needed=False)
+    delta = np.array([-0.1, 0.0, 0.1])
+    initial = {'x': 1e-3, 'px': 2e-4, 'y': -3e-3, 'py': 4e-4}
+
+    for plane in ('x', 'y'):
+        # Taylor coefficients 2, 3, 4 correspond to derivatives 2, 6, 24.
+        for order, derivative, coefficient in [(1, 2, 2), (2, 6, 3), (3, 24, 4)]:
+            derivatives = [0] * order + [derivative]
+            segment = xt.LineSegmentMap(
+                _context=test_context, longitudinal_mode='frozen',
+                **{f'dnq{plane}': derivatives})
+            particles = xt.Particles(
+                _context=test_context, p0c=1e9, delta=delta, **initial)
+            segment.track(particles)
+
+            for observed_plane in ('x', 'y'):
+                phase = (2 * np.pi * coefficient * delta**order
+                         if observed_plane == plane else np.zeros_like(delta))
+                position = initial[observed_plane]
+                momentum = initial[f'p{observed_plane}']
+                xo.assert_allclose(
+                    test_context.nparray_from_context_array(
+                        getattr(particles, observed_plane)),
+                    position * np.cos(phase) + momentum * np.sin(phase),
+                    rtol=1e-13, atol=1e-15)
+                xo.assert_allclose(
+                    test_context.nparray_from_context_array(
+                        getattr(particles, f'p{observed_plane}')),
+                    -position * np.sin(phase) + momentum * np.cos(phase),
+                    rtol=1e-13, atol=1e-15)
+
+
+@for_all_test_contexts
 def test_simplified_accelerator_segment_chroma_detuning(test_context):
     dtk_particle = dtk.TestParticles(
             p0c=25.92e9,
