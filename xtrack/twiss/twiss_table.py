@@ -168,7 +168,7 @@ class TwissTable(Table):
                 self.W_matrix[ii] for ii in range(len(self.W_matrix))]
 
         import pandas as pd
-        df = pd.DataFrame(data, columns=self._col_names)
+        df = pd.DataFrame(data, columns=columns)
         if index is not None:
             df.set_index(index, inplace=True)
         return df

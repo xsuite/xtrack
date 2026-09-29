@@ -16,6 +16,28 @@ test_data_folder = pathlib.Path(
     __file__).parent.joinpath('../test_data').absolute()
 
 
+def test_twiss_table_to_pandas_columns():
+    tw = xt.TwissTable({
+        'name': np.array(['a', 'b'], dtype=object),
+        's': np.array([0., 1.]),
+        'betx': np.array([2., 3.]),
+        'W_matrix': np.array([np.eye(6), 2 * np.eye(6)]),
+    })
+
+    df = tw.to_pandas(columns=['betx', 's'])
+    assert list(df.columns) == ['betx', 's']
+    np.testing.assert_array_equal(df['betx'], tw.betx)
+    np.testing.assert_array_equal(df['s'], tw.s)
+
+    df = tw.to_pandas(columns=['W_matrix', 'name'], index='name')
+    assert list(df.columns) == ['W_matrix']
+    assert df.index.name == 'name'
+    np.testing.assert_array_equal(df.index, tw.name)
+    np.testing.assert_array_equal(np.stack(df['W_matrix']), tw.W_matrix)
+
+    assert list(tw.to_pandas().columns) == tw._col_names
+
+
 def test_twiss_table_row_slice_drops_periodic():
     tw = xt.TwissTable(
         {
