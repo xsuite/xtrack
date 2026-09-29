@@ -674,7 +674,7 @@ def plot_floor_projection(
     if max_curve_angle_rad <= 0:
         raise ValueError('`max_curve_angle_rad` must be positive.')
     if s_range is not None and s_range[0] > s_range[1]:
-        raise ValueError('The `origin` pipe position is outside of the `s_range` specified.')
+        raise ValueError('`s_range[0]` must be less than or equal to `s_range[1]`.')
 
     from matplotlib import pyplot as plt
     from matplotlib.patches import Polygon as PolygonPatch
