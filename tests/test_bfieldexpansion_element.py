@@ -949,6 +949,9 @@ def test_bfieldexpansion_total_integrals_and_twiss_strengths(h):
                     assert table[f'k{order}l', name] == pytest.approx(normal[order])
                     assert table[f'k{order}sl', name] == pytest.approx(skew[order])
             assert table['ksoll', 'expansion'] == pytest.approx(element.ksoll[0])
+            assert table['ksoll', 'replica'] == pytest.approx(element.ksoll[0])
+            assert table['ksoll', 'solenoid'] == pytest.approx(0.02 * 0.1)
+            assert table['ksoll', 'variable_solenoid'] == pytest.approx(0.03 * 0.15)
             assert table['ks', 'expansion'] == 0.  # Skew coefficients are not a scalar solenoid strength.
             assert table['ksoll', '_end_point'] == 0.
 
