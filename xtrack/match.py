@@ -1,7 +1,8 @@
 import numpy as np
+from warnings import warn
 
 from .twiss import VARS_FOR_TWISS_INIT_GENERATION
-from .general import _print, _LOC
+from .general import _print, _LOC, DEPRECATION_INFO_PREP_1_0
 import xtrack as xt
 import xdeps as xd
 
@@ -268,6 +269,10 @@ class Target(xd.Target):
         """
 
 
+        if scale is not None:
+            warn('`scale` is deprecated. Use `weight` instead.'
+                 + DEPRECATION_INFO_PREP_1_0, FutureWarning, stacklevel=2)
+
         for kk in kwargs:
             assert kk in ALLOWED_TARGET_KWARGS, (
                 f'Unknown keyword argument {kk}. '
@@ -396,6 +401,14 @@ class TargetSet(xd.TargetList):
             If True, the logarithm of the quantity is used in the cost function
             instead of the quantity itself. Default is False.
         """
+
+        if scale is not None:
+            warn('`scale` is deprecated. Use `weight` instead.'
+                 + DEPRECATION_INFO_PREP_1_0, FutureWarning, stacklevel=2)
+            if weight is not None:
+                raise ValueError("Cannot specify both `weight` and `scale` for a target.")
+            weight = scale
+            scale = None
 
         if tars is not None and not isinstance(tars, (list, tuple)):
             tars = [tars]
