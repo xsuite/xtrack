@@ -33,8 +33,8 @@ from xtrack.aperture.transform import transform_matrix
 DTypeFloat = np.dtype[FloatType._dtype]
 NDArrayNx2 = np.ndarray[tuple[int, Literal[2]], DTypeFloat]
 NDArrayNxMx2 = np.ndarray[tuple[int, int, Literal[2]], DTypeFloat]
-HomogenousMatrix = np.ndarray[tuple[Literal[4], Literal[4]], DTypeFloat]
-HomogenousMatrices = np.ndarray[tuple[int, Literal[4], Literal[4]], DTypeFloat]
+HomogeneousMatrix = np.ndarray[tuple[Literal[4], Literal[4]], DTypeFloat]
+HomogeneousMatrices = np.ndarray[tuple[int, Literal[4], Literal[4]], DTypeFloat]
 
 SigmasCalculationEnum = Literal['bisection', 'rays', 'exact']
 
@@ -1157,7 +1157,7 @@ class Aperture:
         return Table(table_data, index='index')
 
     @doc_group("Aperture Computations")
-    def poses_at_s(self, s_positions: Collection[float]) -> HomogenousMatrices:
+    def poses_at_s(self, s_positions: Collection[float]) -> HomogeneousMatrices:
         """Return a local coordinate system (each represented by a homogeneous matrix) at all ``s_positions``."""
         sv_resampled = self._survey_data.resample(s_positions)
         return sv_resampled.pose.to_nparray()

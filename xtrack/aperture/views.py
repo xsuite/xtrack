@@ -16,8 +16,8 @@ from xtrack.aperture.transform import (
 DTypeFloat = np.dtype[FloatType._dtype]
 NDArrayNx2 = np.ndarray[tuple[int, Literal[2]], DTypeFloat]
 NDArrayNxMx2 = np.ndarray[tuple[int, int, Literal[2]], DTypeFloat]
-HomogenousMatrix = np.ndarray[tuple[Literal[4], Literal[4]], DTypeFloat]
-HomogenousMatrices = np.ndarray[tuple[int, Literal[4], Literal[4]], DTypeFloat]
+HomogeneousMatrix = np.ndarray[tuple[Literal[4], Literal[4]], DTypeFloat]
+HomogeneousMatrices = np.ndarray[tuple[int, Literal[4], Literal[4]], DTypeFloat]
 
 
 def _hashed_color(name: str, palette: list[str]) -> str:
