@@ -103,15 +103,15 @@ def profile_from_madx_aperture(shape: str, params: List[float]) -> Optional[Shap
         'octagon': (_profile_from_madx_octagon, 4),
     }[shape]
 
-    # Clean up params due to MAD-X quirks
-    params = params[:allowed_len_params]
-
-    if np.any(np.array(params[allowed_len_params:]) != 0):
+    if np.any(np.asarray(params[allowed_len_params:]) != 0):
         raise ValueError(
             f"Extra non-zero parameters provided for MAD-X aperture shape "
             f"{shape}. Accepted number of params is {allowed_len_params}; "
             f"provided {params}."
         )
+
+    # MAD-X may pad the parameter list with zeros.
+    params = np.asarray(params[:allowed_len_params])
 
     # If all params are zero, we ignore the aperture
     if np.all(params == 0):
