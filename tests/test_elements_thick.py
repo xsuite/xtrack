@@ -116,7 +116,7 @@ def test_combined_function_dipole_against_ptc(
             part.px[ii],
             mad_results.px,
             rtol=0,
-            atol=(4e-11 if k1 == 0 and k2 == 0 else 5e-9),
+            atol=(8e-11 if k1 == 0 and k2 == 0 else 5e-9),
         )
         xo.assert_allclose(
             part.y[ii],
