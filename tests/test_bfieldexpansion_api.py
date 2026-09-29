@@ -79,7 +79,7 @@ def test_bfieldexpansion_readonly_metadata_and_integrator():
 @pytest.mark.parametrize('pkin_const', [False, True])
 def test_bfieldexpansion_scalar_strengths(h, pkin_const):
     kwargs = dict(length=0.4, h=h, s_start=0.1, num_integration_steps=24,
-                  pkin_const=pkin_const, ksol=[0.04, 0.01, 0.],
+                  pkin_const=pkin_const, ksolc=[0.04, 0.01, 0.],
                   knl=[0.002, 0.001], ksl=[0.003])
     knc = np.array([[0.1, 0.02, 0.], [0.03, -0.01, 0.]])
     ksc = np.array([[0.01, 0.001, 0.]])
@@ -181,7 +181,7 @@ def test_bfieldexpansion_standard_misalignments(h, pkin_const, sliced):
     env['offset'] = 0.001
     env.new('e', 'BFieldExpansion', length=0.4, h=h, num_integration_steps=80,
             knc=[[0.1, 0.02, 0.], [0.03, 0., 0.]],
-            ksc=[[0.01, -0.001, 0.]], ksol=[0.04, 0.01, 0.],
+            ksc=[[0.01, -0.001, 0.]], ksolc=[0.04, 0.01, 0.],
             k1=0.02, k2s=0.003, pkin_const=pkin_const,
             shift_x='offset', shift_y=-0.002, shift_s=0.003,
             rot_x_rad=0.002, rot_y_rad=-0.003, rot_s_rad=0.1,

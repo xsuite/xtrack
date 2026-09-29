@@ -40,7 +40,7 @@ def make_expansion(length, h, coefficients, num_integration_steps):
     coefficients = np.asarray(coefficients)
     return xt.BFieldExpansion(
         length=length, h=h, knc=coefficients[None, :],
-        ksc=np.zeros((1, len(coefficients))), ksol=np.zeros_like(coefficients),
+        ksc=np.zeros((1, len(coefficients))), ksolc=np.zeros_like(coefficients),
         num_phi=5, num_integration_steps=num_integration_steps, pkin_const=False)
 
 

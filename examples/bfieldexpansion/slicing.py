@@ -10,7 +10,7 @@ import xtrack as xt
 env = xt.Environment()
 env.new('field', 'BFieldExpansion', length=0.8, h=0.3, s_start=0.15,
         knc=[[0.1, 0.08, -0.03], [0.04, -0.02, 0.01]],
-        ksc=[[0.02, -0.01, 0.02]], ksol=[0.15, 0.03, 0.], num_integration_steps=160)
+        ksc=[[0.02, -0.01, 0.02]], ksolc=[0.15, 0.03, 0.], num_integration_steps=160)
 line = env.new_line(components=['field'])
 initial = xt.Particles(p0c=1e9, x=0.01, y=0.007)
 reference = initial.copy()

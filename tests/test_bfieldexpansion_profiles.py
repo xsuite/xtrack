@@ -9,18 +9,18 @@ import xtrack as xt
 @pytest.mark.parametrize('profiles, normalized', [
     (
         dict(knc=[[0.1, 0.2], [0.03]], ksc=[[0.04]],
-             ksol=[0.5, 0.01, -0.02, 0.003]),
+             ksolc=[0.5, 0.01, -0.02, 0.003]),
         dict(knc=[[0.1, 0.2], [0.03, 0.]], ksc=[[0.04]],
-             ksol=[0.5, 0.01, -0.02, 0.003]),
+             ksolc=[0.5, 0.01, -0.02, 0.003]),
     ),
     (
         dict(knc=[[0.1]], ksc=[[0.04, 0.01, 0., 0.003], [0.02]]),
         dict(knc=[[0.1]], ksc=[[0.04, 0.01, 0., 0.003], [0.02, 0., 0., 0.]],
-             ksol=[]),
+             ksolc=[]),
     ),
     (
-        dict(knc=[[], [0.03]], ksc=[[0.02, 0.001]], ksol=[]),
-        dict(knc=[[0.], [0.03]], ksc=[[0.02, 0.001]], ksol=[]),
+        dict(knc=[[], [0.03]], ksc=[[0.02, 0.001]], ksolc=[]),
+        dict(knc=[[0.], [0.03]], ksc=[[0.02, 0.001]], ksolc=[]),
     ),
 ])
 def test_independent_profile_shapes(h, profiles, normalized):
@@ -29,11 +29,11 @@ def test_independent_profile_shapes(h, profiles, normalized):
     for name, values in normalized.items():
         np.testing.assert_array_equal(getattr(element, name), values)
     width = max(np.shape(normalized['knc'])[1], np.shape(normalized['ksc'])[1],
-                len(normalized['ksol']))
+                len(normalized['ksolc']))
     padded = {
         name: np.pad(values, ((0, 0), (0, width - np.shape(values)[1])))
-        for name, values in normalized.items() if name != 'ksol'}
-    padded['ksol'] = np.pad(normalized['ksol'], (0, width - len(normalized['ksol'])))
+        for name, values in normalized.items() if name != 'ksolc'}
+    padded['ksolc'] = np.pad(normalized['ksolc'], (0, width - len(normalized['ksolc'])))
     reference = xt.BFieldExpansion(length=0.4, h=h, s_start=0.1,
                                   num_phi=element.num_phi, pkin_const=True, **padded)
     coords = dict(x=[0.01, -0.02], y=[0.03, -0.01], s_local=[0., 0.4])
@@ -50,8 +50,8 @@ def test_independent_profile_shapes(h, profiles, normalized):
         xo.assert_allclose(candidate.ksoll, reference.ksoll, rtol=0, atol=2e-14)
     # Independent on-axis checks avoid relying only on padded equivalence.
     field = element.get_field(0., 0., np.array([0., 0.4]))
-    for component, name in [('Bx', 'ksc'), ('By', 'knc'), ('Bs', 'ksol')]:
-        row = normalized[name] if name == 'ksol' else normalized[name][0]
+    for component, name in [('Bx', 'ksc'), ('By', 'knc'), ('Bs', 'ksolc')]:
+        row = normalized[name] if name == 'ksolc' else normalized[name][0]
         value = Polynomial(row)(np.array([0.1, 0.5])) if len(row) else 0.
         xo.assert_allclose(field[component], value, rtol=0, atol=2e-13)
     particles = xt.Particles(p0c=1e9, delta=0., x=coords['x'], y=coords['y'],
@@ -70,7 +70,7 @@ def test_profile_expressions_and_shared_slice(h):
     env['strength'] = 0.
     env.new('e', xt.BFieldExpansion, length=0.4, h=h,
             knc=[[0.1, 'strength'], ['2*strength']], ksc=[['strength']],
-            ksol=[0., 0., 'strength'], knl=None)
+            ksolc=[0., 0., 'strength'], knl=None)
     element = env.get('e')
     parent_xobject = element._xobject
     cache_offset = element._xobject._c._offset
@@ -92,14 +92,14 @@ def test_profile_expressions_and_shared_slice(h):
     assert element.knl.size == 0
     assert element.knc.shape == (2, 2)
     assert element.ksc.shape == (1, 1)
-    assert element.ksol.shape == (3,)
+    assert element.ksolc.shape == (3,)
 
 
 @pytest.mark.parametrize('h', [0., 0.3])
 def test_unused_field_capacity_does_not_expand_evaluation(h):
     element = xt.BFieldExpansion(length=0.4, h=h, knc=[[0.1] + [0.] * 8])
     assert element._potential_degree == 8  # No unused solenoid integral slot.
-    assert element.ksc.size == element.ksol.size == 0
+    assert element.ksc.size == element.ksolc.size == 0
     assert element.knl.size == element.ksl.size == 0
     assert element._eval_degree == 0
     assert element._eval_mmax == 0

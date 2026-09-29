@@ -83,7 +83,7 @@ def make_element(case, profiles, length, context, num_phi=None):
     na, nb = len(case.ksc), len(case.knc)
     return xt.BFieldExpansion(
         _context=context, length=length, h=case.h, s_start=0, num_integration_steps=1,
-        ksc=coefficients[:na], knc=coefficients[na:na+nb], ksol=coefficients[-1],
+        ksc=coefficients[:na], knc=coefficients[na:na+nb], ksolc=coefficients[-1],
         num_phi=case.num_phi if num_phi is None else num_phi,
     )
 

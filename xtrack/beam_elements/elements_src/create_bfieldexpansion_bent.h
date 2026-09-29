@@ -32,11 +32,11 @@ void build_expansion_bent(BFieldExpansionData el){
     const double inv_length = length != 0.0 ? 1.0 / length : 0.0;
     const int width_a = nac ? BFieldExpansionData_len_ksc(el) / nac : 0;
     const int width_b = nbc ? BFieldExpansionData_len_knc(el) / nbc : 0;
-    const int nsol = BFieldExpansionData_len_ksol(el);
+    const int nsol = BFieldExpansionData_len_ksolc(el);
     const int deg = BFieldExpansionData_get__potential_degree(el);
     GPUGLMEM const double *ksc = BFieldExpansionData_getp2_ksc(el, 0, 0);
     GPUGLMEM const double *knc = BFieldExpansionData_getp2_knc(el, 0, 0);
-    GPUGLMEM const double *ksol = BFieldExpansionData_getp1_ksol(el, 0);
+    GPUGLMEM const double *ksolc = BFieldExpansionData_getp1_ksolc(el, 0);
 
     const int mmax = BFieldExpansionData_get__mmax(el);
     const int mmin = BFieldExpansionData_get__mmin(el);
@@ -56,8 +56,8 @@ void build_expansion_bent(BFieldExpansionData el){
         invhpow[n] = invhpow[n - 1] / h;
     }
 
-    /* The extra potential degree retains every coefficient of -int_0^s ksol(u)du. */
-    for (int k = 0; k < nsol; ++k) c[cidx(0,0,k+1,nm,moff,deg)] = -ksol[k] / (double)(k + 1);
+    /* Retain every coefficient of the integrated longitudinal field profile. */
+    for (int k = 0; k < nsol; ++k) c[cidx(0,0,k+1,nm,moff,deg)] = -ksolc[k] / (double)(k + 1);
     /* phi_0(s) = sum_m c[0,m](s) q^m
     c[0,m] = - sum_(n>=max(m,1)) (-1)^(n-m) / (h^n m! (n-m)!) ksc[n-1](s) */
     for (int m = 0; m <= na; ++m) {

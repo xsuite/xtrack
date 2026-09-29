@@ -192,7 +192,7 @@ class _BFieldExpansionGeometry:
         'deg': '_deg',
         'knc': '_knc',
         'ksc': '_ksc',
-        'ksol': '_ksol',
+        'ksolc': '_ksolc',
         'kscale': '_kscale',
         'knl': '_knl',
         'ksl': '_ksl',
@@ -234,7 +234,7 @@ class _BFieldExpansionGeometry:
     def _normalize_array_input(name, values):
         # Keep expression objects intact when called by Environment before
         # parsing. Each matrix has its own width; only ragged rows need padding.
-        if name not in ('ksc', 'knc', 'ksol', 'knl', 'ksl'):
+        if name not in ('ksc', 'knc', 'ksolc', 'knl', 'ksl'):
             return values
         if values is None:
             values = []
@@ -259,13 +259,13 @@ class _BFieldExpansionGeometry:
         raise ValueError(f'{name} must be a two-dimensional array or a list of rows')
 
     @classmethod
-    def _coefficient_arrays(cls, ksc, knc, ksol, knl, ksl):
+    def _coefficient_arrays(cls, ksc, knc, ksolc, knl, ksl):
         transverse = [np.asarray(cls._normalize_array_input(name, values),
                                  dtype=np.float64)
                       for name, values in [('ksc', ksc), ('knc', knc)]]
 
         vectors = []
-        for name, values in [('ksol', ksol), ('knl', knl), ('ksl', ksl)]:
+        for name, values in [('ksolc', ksolc), ('knl', knl), ('ksl', ksl)]:
             values = [] if values is None else values
             values = np.asarray(values, dtype=np.float64)
             if values.ndim != 1:
@@ -309,7 +309,7 @@ class _BFieldExpansionGeometry:
     @num_phi.setter
     def num_phi(self, value):
         value = self._resolve_num_phi(
-            value, self.ksc.shape, self.knc.shape, len(self.ksol),
+            value, self.ksc.shape, self.knc.shape, len(self.ksolc),
             len(self.knl), len(self.ksl), self.straight)
         # Environment.new writes constructor arguments back to the element.
         # Accept the same order (including 'auto'), but do not invalidate
@@ -347,12 +347,12 @@ class _BFieldExpansionGeometry:
         self._check_inplace_result('ksc', value)
 
     @property
-    def ksol(self):
-        return _BFieldExpansionArray(self, 'ksol')
+    def ksolc(self):
+        return _BFieldExpansionArray(self, 'ksolc')
 
-    @ksol.setter
-    def ksol(self, value):
-        self._check_inplace_result('ksol', value)
+    @ksolc.setter
+    def ksolc(self, value):
+        self._check_inplace_result('ksolc', value)
 
     @property
     def kscale(self):
@@ -434,7 +434,7 @@ class _BFieldExpansionGeometry:
         self._update_integrated_strengths()
 
     def _update_integrated_strengths(self):
-        integrated = self._integrate_coefficients('ksol', self.s_start, self.length)
+        integrated = self._integrate_coefficients('ksolc', self.s_start, self.length)
         self._ksoll[:] = self._context.nparray_to_context_array(integrated)
 
     def get_total_knl_ksl(self):
@@ -467,8 +467,8 @@ class _BFieldExpansionGeometry:
         coefficients = self._context.nparray_from_context_array(
             getattr(self, '_' + name))
         if not coefficients.size:
-            return np.zeros(1 if name == 'ksol' else 0)
-        if name == 'ksol':
+            return np.zeros(1 if name == 'ksolc' else 0)
+        if name == 'ksolc':
             coefficients = coefficients.reshape(1, -1)
         powers = np.arange(1, coefficients.shape[1] + 1)
         weights = ((s_start + length)**powers - s_start**powers) / powers
@@ -609,13 +609,13 @@ class BFieldExpansion(_BFieldExpansionGeometry, BeamElement):
         and automatic expansion order. Nonzero strengths require a nonzero
         length. Changing length preserves these integrated inputs and
         recomputes their field densities.
-    ksol : one-dimensional array, optional
+    ksolc : one-dimensional array, optional
         On-axis Bs/(B rho) in ascending powers of s. All coefficients are
         retained: the scalar-potential cache reserves the degree needed for
         the integral. Its length is independent of the knc/ksc widths.
     kscale : float, optional
         Common multiplier for all magnetic-field components, default 1.
-        Applies to the scalar strengths, knc, ksc, ksol and knl/ksl, including
+        Applies to the scalar strengths, knc, ksc, ksolc and knl/ksl, including
         the reconstructed potentials and derivatives. The input arrays remain
         unscaled. Updating kscale rebuilds the shared field cache and updates
         the integrated strengths returned by get_total_knl_ksl() and ksoll.
@@ -658,14 +658,14 @@ class BFieldExpansion(_BFieldExpansionGeometry, BeamElement):
 
     The three profiles can have independent sizes and polynomial degrees.
     No manual padding is needed, either between profiles or for the integral
-    of ksol. Ragged knc/ksc rows are zero-padded to their own matrix's width;
+    of ksolc. Ragged knc/ksc rows are zero-padded to their own matrix's width;
     rectangular inputs retain their shapes. Omitted, None or empty inputs
     remain empty and contribute no field. Explicit zero coefficients retain
     their storage so they can be changed later, including through expressions.
 
     After construction all coefficient arrays have fixed shapes. Update values
-    with ``element.knc[...] = values`` (likewise for ksc, ksol, knl and ksl).
-    knl/ksl also accept assignment of an array of the same shape; knc/ksc/ksol
+    with ``element.knc[...] = values`` (likewise for ksc, ksolc, knl and ksl).
+    knl/ksl also accept assignment of an array of the same shape; knc/ksc/ksolc
     cannot be reassigned. Supply the desired profile shape at construction
     if its coefficients will be set later. Scalar strengths k0 through k3
     and their skew counterparts remain writable even when initially omitted.
@@ -690,7 +690,7 @@ class BFieldExpansion(_BFieldExpansionGeometry, BeamElement):
     Attributes
     ----------
     ksoll : array, shape (1,)
-        Read-only integral of ksol over the same interval, including kscale.
+        Read-only integral of ksolc over the same interval, including kscale.
     straight : int
         Read-only geometry mode: 1 for straight, 0 for curved.
     angle : float
@@ -735,7 +735,7 @@ class BFieldExpansion(_BFieldExpansionGeometry, BeamElement):
 
         'ksc': xo.Float64[:, :],
         'knc': xo.Float64[:, :],
-        'ksol': xo.Float64[:],
+        'ksolc': xo.Float64[:],
         'kscale': xo.Field(xo.Float64, default=1.),
         'knl': xo.Float64[:],
         'ksl': xo.Float64[:],
@@ -809,11 +809,13 @@ class BFieldExpansion(_BFieldExpansionGeometry, BeamElement):
         ),
     }
 
-    def __init__(self, length=None, ksc=None, knc=None, ksol=None, num_phi='auto',
+    def __init__(self, length=None, ksc=None, knc=None, ksolc=None, num_phi='auto',
                  h=0, s_start=0, knl=None, ksl=None, kscale=1.,
                  k0=0., k1=0., k2=0., k3=0., k0s=0., k1s=0., k2s=0., k3s=0.,
                  integrator='rk4', num_integration_steps=10, pkin_const=False,
                  **kwargs):
+        if 'ksol' in kwargs:
+            raise TypeError('ksol is not supported; use ksolc')
         if 'nstep' in kwargs:
             raise TypeError('nstep is not supported; use num_integration_steps')
         if kwargs.get('_xobject') is not None:
@@ -825,7 +827,7 @@ class BFieldExpansion(_BFieldExpansionGeometry, BeamElement):
             raise ValueError('order is read-only and determined by knc/ksc shapes')
         if integrator != 'rk4':
             raise ValueError("BFieldExpansion only supports integrator='rk4'")
-        ksc, knc, ksol, knl, ksl = self._coefficient_arrays(ksc, knc, ksol, knl, ksl)
+        ksc, knc, ksolc, knl, ksl = self._coefficient_arrays(ksc, knc, ksolc, knl, ksl)
         if length == 0 and (np.any(knl) or np.any(ksl)):
             raise ValueError('Nonzero knl/ksl require a nonzero length')
         self._validate_num_integration_steps(num_integration_steps)
@@ -845,21 +847,21 @@ class BFieldExpansion(_BFieldExpansionGeometry, BeamElement):
 
         kwargs['ksc'] = ksc
         kwargs['knc'] = knc
-        kwargs['ksol'] = np.asarray(ksol, dtype=np.float64)
+        kwargs['ksolc'] = np.asarray(ksolc, dtype=np.float64)
 
         kwargs['na'] = ksc.shape[0]
         kwargs['nb'] = knc.shape[0]
         na = max(kwargs['na'], len(ksl))
         nb = max(kwargs['nb'], len(knl))
         kwargs['num_phi'] = self._resolve_num_phi(
-            num_phi, ksc.shape, knc.shape, len(ksol), len(knl), len(ksl), straight)
+            num_phi, ksc.shape, knc.shape, len(ksolc), len(knl), len(ksl), straight)
         kwargs['knl'] = knl
         kwargs['ksl'] = ksl
         kwargs['ksoll'] = np.zeros(1)
 
-        kwargs['deg'] = max(0, ksc.shape[1] - 1, knc.shape[1] - 1, len(ksol) - 1)
+        kwargs['deg'] = max(0, ksc.shape[1] - 1, knc.shape[1] - 1, len(ksolc) - 1)
         kwargs['_potential_degree'] = max(0, ksc.shape[1] - 1,
-                                           knc.shape[1] - 1, len(ksol))
+                                           knc.shape[1] - 1, len(ksolc))
 
         kwargs['pkin_const'] = int(pkin_const)
 

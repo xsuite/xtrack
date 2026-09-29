@@ -94,7 +94,7 @@ class ThickSliceBFieldExpansion(_ThickSliceElementBase, BeamElement):
 
     @property
     def ksoll(self):
-        return self._integrated_strength('ksol')
+        return self._integrated_strength('ksolc')
 
     def get_field(self, x, y, s_local):
         """Evaluate the field at distances s_local from this slice's entrance."""

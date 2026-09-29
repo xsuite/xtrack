@@ -127,7 +127,7 @@ def make_element(coefficients, length, context):
     return xt.BFieldExpansion(
         _context=context, length=length, s_start=0, num_integration_steps=1,
         ksc=np.zeros((1, len(coefficients))), knc=coefficients[None, :],
-        ksol=np.zeros(len(coefficients)), num_phi=7,
+        ksolc=np.zeros(len(coefficients)), num_phi=7,
     )
 
 

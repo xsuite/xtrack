@@ -62,7 +62,7 @@ def make_elements(context, length, rigidity):
     ])
     ksol = np.array([0.10, 0.02, -0.03, 0.01])
     expansion = xt.BFieldExpansion(
-        _context=context, length=length, ksc=ksc, knc=knc, ksol=ksol,
+        _context=context, length=length, ksc=ksc, knc=knc, ksolc=ksol,
         # num_phi=7 includes the full potential for this sextupole/quartic case.
         num_phi=7, num_integration_steps=1, s_start=0,
         # Preserve kinetic momentum across the entrance/exit gauge changes.
