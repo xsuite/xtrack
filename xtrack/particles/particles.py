@@ -272,6 +272,10 @@ class Particles(xo.HybridClass):
         if pdg_id_0 is not None:
             _update_kwargs0_from_pdg_id(pdg_id_0, kwargs)
 
+        # Resolve particle names before converting per-particle inputs to integers.
+        if 'pdg_id' in kwargs:
+            kwargs['pdg_id'] = get_pdg_id_from_name(kwargs['pdg_id'])
+
         per_part_input_vars = (
             self.per_particle_vars +
             ((xo.Float64, 'energy0'),

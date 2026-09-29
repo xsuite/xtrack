@@ -4,6 +4,7 @@
 # ######################################### #
 
 import numpy as np
+import pytest
 
 import xtrack as xt
 import xtrack.particles.pdg as pdg
@@ -265,6 +266,23 @@ def test_lead_208():
     xo.assert_allclose(pdg.get_mass_from_pdg_id(pdg_id), masses.Pb208_MASS_EV,
                        rtol=1e-10, atol=0)
     assert pdg.get_properties_from_pdg_id(pdg_id) == (82., 208, 82, '²⁰⁸Pb')
+
+
+@pytest.mark.parametrize('pdg_id, expected', [
+    ('proton', [2212, 2212, 2212]),
+    (['proton'], [2212, 2212, 2212]),
+    (['proton', 'electron', 'Pb208'], [2212, 11, 1000822080]),
+    (np.array(['proton', 'electron', 'Pb208']), [2212, 11, 1000822080]),
+    (['proton', 11, 'Pb208'], [2212, 11, 1000822080]),
+    (2212, [2212, 2212, 2212]),
+    ([2212, 11, 1000822080], [2212, 11, 1000822080]),
+])
+@for_all_test_contexts
+def test_particles_pdg_id_names(test_context, pdg_id, expected):
+    particles = xt.Particles(pdg_id=pdg_id, x=[0., 1., 2.],
+                             _context=test_context)
+    actual = test_context.nparray_from_context_array(particles.pdg_id)
+    np.testing.assert_array_equal(actual, expected)
 
 
 @for_all_test_contexts
