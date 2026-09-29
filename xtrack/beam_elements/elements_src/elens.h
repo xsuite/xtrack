@@ -32,7 +32,6 @@ void Elens_track_local_particle(ElensData el, LocalParticle* part0){
     START_PER_PARTICLE_BLOCK(part0, part);
         // electron mass
         double const EMASS  = 510998.928;
-        // speed of light
 
         double x      = LocalParticle_get_x(part);
         double y      = LocalParticle_get_y(part);
