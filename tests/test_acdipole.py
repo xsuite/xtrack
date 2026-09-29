@@ -10,8 +10,9 @@ receives the expected kick while others remain zero.
 from collections import namedtuple
 from typing import Any
 
+import numpy as np
 import pytest
-from xobjects.test_helpers import for_all_test_contexts
+from xobjects.test_helpers import allow_kernel_compilation, for_all_test_contexts
 
 import xtrack as xt
 import xobjects as xo
@@ -28,6 +29,34 @@ FLATTOP_START = 100  # Turn number when flattop phase begins
 RAMP_SCHEDULE = [0, RAMP_LENGTH, FLATTOP_START, FLATTOP_START + RAMP_LENGTH]
 
 PLANES = ["x", "y"]
+
+
+@for_all_test_contexts
+@allow_kernel_compilation
+def test_acdipole_ramp_32bit_turns(test_context):
+    xt.ACDipole(_context=test_context).compile_kernels(only_if_needed=False)
+    ramp = np.array([1, 11, 21, 31], dtype=np.int64)
+    turns = np.array([0, 1, 6, 11, 16, 21, 26, 31, 32], dtype=np.int64)
+    envelope = np.array([0, 0, 0.5, 1, 1, 1, 0.5, 0, 0])
+    voltage = 1e-3
+    p0c = 2e9
+    expected_kick = envelope * voltage * KICK_FACTOR / (p0c / 1e9)
+
+    for plane in PLANES:
+        # Include a ramp crossing 2**16, one wholly above it, and the UInt32 limit.
+        for offset in (0, 65530, 70000, 2**32 - 33):
+            acdipole = xt.ACDipole(
+                _context=test_context, plane=plane, ramp=ramp + offset,
+                volt=voltage, freq=0, lag=0.25)
+            particles = xt.Particles(
+                _context=test_context, p0c=p0c, at_turn=turns + offset)
+            acdipole.track(particles)
+            for coordinate in ('x', 'px', 'y', 'py'):
+                expected = expected_kick if coordinate == f'p{plane}' else 0
+                xo.assert_allclose(
+                    test_context.nparray_from_context_array(
+                        getattr(particles, coordinate)),
+                    expected, rtol=1e-14, atol=1e-16)
 
 
 def get_acdipole_results(
