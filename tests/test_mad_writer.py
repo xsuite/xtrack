@@ -70,6 +70,26 @@ def test_mad_writer(case):
     xo.assert_allclose(tw2.qs, tw.qs, rtol=1e-4, atol=0)
     xo.assert_allclose(tw2.ddqx, tw.ddqx, rtol=1e-3, atol=0)
 
+@pytest.mark.parametrize('name, expected_name', [
+    ('quad', 'quad'),
+    ('quad:1', 'quad__1'),
+    ('quad/1', 'quad__1'),
+    ('quad:1/a', 'quad__1__a'),
+])
+def test_mad_writer_sequence_element_names(name, expected_name):
+    line = xt.Line(elements={name: xt.Quadrupole(length=1., k1=0.2)})
+    source = line.to_madx_sequence('seq')
+    assert f'{expected_name}: quadrupole,' in source
+
+    with Madx(stdout=False) as mad:
+        mad.input(source)
+        mad.beam(particle='proton', energy=7.)
+        mad.use('seq')
+        element = mad.sequence.seq.elements[expected_name]
+        xo.assert_allclose(element.l, 1., rtol=0, atol=0)
+        xo.assert_allclose(element.k1, 0.2, rtol=0, atol=0)
+
+
 def test_mad_writer_bend():
     env = xt.Environment()
     line = env.new_line(components=[
