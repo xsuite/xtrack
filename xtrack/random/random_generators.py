@@ -77,7 +77,7 @@ class RandomUniformAccurate(RandomUniform):
     _extra_c_sources = ['#include "xtrack/random/random_src/uniform_accurate.h"']
 
     _per_particle_kernels = {
-        'sample_unif_accuurate': xo.Kernel(
+        'sample_unif_accurate': xo.Kernel(
                 c_name='RandomUniformAccurate_sample',
                 args=[
                     xo.Arg(xo.Float64, pointer=True, name='samples'),
@@ -87,7 +87,7 @@ class RandomUniformAccurate(RandomUniform):
         }
 
     def _sample(self, *args, **kwargs):
-        self.sample_unif_accuurate(*args, **kwargs)
+        self.sample_unif_accurate(*args, **kwargs)
 
 
 class RandomExponential(RandomUniform):
