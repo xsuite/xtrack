@@ -193,7 +193,7 @@ def _one_turn_map(p, particle_ref, line, zeta_shift, start, end, num_turns, symm
     part.at_turn = AT_TURN_FOR_TWISS
 
     if line.energy_program is not None:
-        dp0c = line.energy_program.get_p0c_increse_per_turn_at_t_s(
+        dp0c = line.energy_program.get_p0c_increase_per_turn_at_t_s(
                                                         line['t_turn_s'])
         part.update_p0c_and_energy_deviations(p0c = part._xobject.p0c[0] + dp0c)
 

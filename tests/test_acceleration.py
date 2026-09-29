@@ -8,6 +8,7 @@ import pathlib
 
 import numpy as np
 import pandas as pd
+import pytest
 from scipy.constants import c as clight
 
 import xobjects as xo
@@ -74,6 +75,24 @@ def test_reference_energy_change(test_context):
     xo.assert_allclose(particles.py,
                        particles_before.py * particles_before.p0c / new_p0c,
                        atol=1e-14, rtol=0)
+
+
+@pytest.mark.parametrize('t_s', [0., 0.5, np.array([0., 0.5])])
+def test_energy_program_momentum_increase(t_s):
+    line = xt.Line(elements=[xt.Drift(length=100.)])
+    line.particle_ref = xt.Particles(p0c=1e9)
+    line.energy_program = xt.EnergyProgram(t_s=[0., 1.], p0c=[1e9, 2e9])
+    program = line.energy_program
+
+    # For this linear ramp, dp0c per turn is the ramp rate / revolution frequency.
+    expected = 1e9 / program.get_frev_at_t_s(t_s)
+    increase = program.get_p0c_increase_per_turn_at_t_s(t_s)
+    xo.assert_allclose(increase, expected, rtol=1e-9, atol=0)
+    assert np.shape(increase) == np.shape(t_s)
+
+    with pytest.warns(FutureWarning, match='get_p0c_increse_per_turn_at_t_s'):
+        old_spelling = program.get_p0c_increse_per_turn_at_t_s(t_s)
+    xo.assert_allclose(old_spelling, increase, rtol=0, atol=0)
 
 
 @for_all_test_contexts(excluding=('ContextPyopencl',))
@@ -161,11 +180,11 @@ def test_energy_program(test_context):
     frev_ref = np.interp(t_check, t_turn_check[:-1], 1/np.diff(t_turn_ref))
     xo.assert_allclose(frev_check, frev_ref, atol=0, rtol=4e-5)
 
-    p0c_increse_per_turn_check = line.energy_program.get_p0c_increse_per_turn_at_t_s(
+    p0c_increase_per_turn_check = line.energy_program.get_p0c_increase_per_turn_at_t_s(
         t_check)
-    p0c_increse_per_turn_ref = np.interp(
+    p0c_increase_per_turn_ref = np.interp(
         t_check, t_turn_check[:-1], np.diff(monitor.p0c[0, :]))
-    xo.assert_allclose(p0c_increse_per_turn_check - p0c_increse_per_turn_ref, 0,
+    xo.assert_allclose(p0c_increase_per_turn_check - p0c_increase_per_turn_ref, 0,
                        atol=5e-5 * p0c_ref[0], rtol=0)
 
     line.enable_time_dependent_vars = False

@@ -8499,7 +8499,7 @@ class EnergyProgram:
         circumference = self.line.get_length()
         return beta0 * clight / circumference
 
-    def get_p0c_increse_per_turn_at_t_s(self, t_s):
+    def get_p0c_increase_per_turn_at_t_s(self, t_s):
 
         ts_scalar = np.isscalar(t_s)
         if ts_scalar:
@@ -8521,6 +8521,15 @@ class EnergyProgram:
             out = out[0]
 
         return out
+
+    def get_p0c_increse_per_turn_at_t_s(self, t_s):
+        """Deprecated spelling of get_p0c_increase_per_turn_at_t_s."""
+        warn(
+            '`get_p0c_increse_per_turn_at_t_s` is deprecated. Use '
+            '`get_p0c_increase_per_turn_at_t_s` instead.',
+            FutureWarning, stacklevel=2,
+        )
+        return self.get_p0c_increase_per_turn_at_t_s(t_s)
 
     @property
     def t_turn_s_line(self):
