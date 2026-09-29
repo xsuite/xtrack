@@ -161,26 +161,25 @@ def test_bfieldexpansion_names_and_coefficients(h):
 
 @pytest.mark.parametrize('h', [0., 0.3])
 @pytest.mark.parametrize('empty', ['omitted', 'none', 'list', 'array'])
-@pytest.mark.parametrize('provided, sizes', [
-    pytest.param({}, (1, 1, 1, 1, 1), id='all-empty'),
+@pytest.mark.parametrize('provided', [
+    pytest.param({}, id='all-empty'),
     pytest.param({'knc': [[0.1, 0.02, 0.], [0.03, 0., 0.]]},
-                 (2, 2, 3, 2, 2), id='normal-profile'),
+                 id='normal-profile'),
     pytest.param({'ksc': [[0.01, 0.02], [0.03, 0.], [0.004, 0.]]},
-                 (3, 3, 2, 3, 3), id='skew-profile'),
+                 id='skew-profile'),
     pytest.param({'ksol': [0.1, 0.02, 0.]},
-                 (1, 1, 3, 1, 1), id='solenoid-profile'),
+                 id='solenoid-profile'),
     pytest.param({'knl': [0., 0.01, 0.002]},
-                 (3, 3, 1, 3, 3), id='normal-hard-edge'),
+                 id='normal-hard-edge'),
     pytest.param({'ksl': [0.001, 0.002]},
-                 (2, 2, 1, 2, 2), id='skew-hard-edge'),
+                 id='skew-hard-edge'),
     pytest.param({'knc': [[0.1, 0.02]], 'ksc': [[0.01, 0.], [0.005, 0.]],
                   'knl': [0.01, 0.003, 0.004]},
-                 (1, 2, 2, 3, 2), id='unequal-nonempty-shapes'),
+                 id='unequal-nonempty-shapes'),
 ])
-def test_bfieldexpansion_empty_coefficients(h, empty, provided, sizes):
-    nb, na, width, nnl, nsl = sizes
-    expected = dict(knc=np.zeros((nb, width)), ksc=np.zeros((na, width)),
-                    ksol=np.zeros(width), knl=np.zeros(nnl), ksl=np.zeros(nsl))
+def test_bfieldexpansion_empty_coefficients(h, empty, provided):
+    expected = dict(knc=np.zeros((0, 1)), ksc=np.zeros((0, 1)),
+                    ksol=np.zeros(0), knl=np.zeros(0), ksl=np.zeros(0))
     kwargs = {}
     if empty != 'omitted':
         for name in expected:
@@ -221,21 +220,23 @@ def test_bfieldexpansion_empty_coefficients_environment(h, empty):
     env.new('hard_edge', 'BFieldExpansion', length=0.4, h=h, knl=[0., 'normal'])
     env.new('zero', 'BFieldExpansion', length=0.4, h=h)
     env['normal'] = 0.03
-    # The inferred zero arrays remain writable, with correctly allocated caches.
-    env.set('profile', ksc=[[0.01, 0., 0.], [0., 0.02, 0.]],
-            ksol=[0.1, 0.02, 0.], knl=[0., '2*normal'], ksl=[0.001, 0.])
-    env.set('hard_edge', knc=[[0.], [0.01]], ksc=[[0.], [0.02]])
+    # Only supplied profiles have coefficient storage. Scalar strengths remain
+    # writable without manufacturing omitted profile arrays.
+    env.set('profile', knc=[[0.1, 0., 0.], ['normal', 0.02, 0.]],
+            k1='2*normal', k1s=0.02)
+    env.set('hard_edge', k1=0.01, k1s=0.02)
     env['normal'] = 0.04
     for name in ('profile', 'hard_edge', 'zero'):
         element = env.get(name)
-        assert element.knc.size and element.ksc.size and element.ksol.size
+        assert element.ksc.size == element.ksol.size == 0
         reference = xt.BFieldExpansion(length=0.4, h=h, **{
             field: np.asarray(getattr(element, field))
-            for field in ('knc', 'ksc', 'ksol', 'knl', 'ksl')})
+            for field in ('knc', 'ksc', 'ksol', 'knl', 'ksl')},
+            k1=element.k1, k1s=element.k1s)
         xo.assert_allclose(element._c, reference._c, rtol=0, atol=0)
         _check_integrated_bfieldexpansion_strengths(element)
     table = env.new_line(components=['profile', 'hard_edge', 'zero']).get_table(attr=True)
-    assert table['k1l', 'profile'] == pytest.approx(0.04 * 0.4 + 0.01 * 0.4**2 / 2 + 0.08)
+    assert table['k1l', 'profile'] == pytest.approx((0.04 + 0.08) * 0.4 + 0.02 * 0.4**2 / 2)
     assert table['k1l', 'hard_edge'] == pytest.approx(0.01 * 0.4 + 0.04)
     assert table['k1l', 'zero'] == 0.
 
@@ -244,8 +245,8 @@ def test_bfieldexpansion_empty_coefficients_environment(h, empty):
     ({'knc': [0.1]}, 'two-dimensional'),
     ({'ksc': [0.1]}, 'two-dimensional'),
     ({'ksol': [[0.1, 0.]]}, 'one-dimensional'),
-    ({'knc': [[0.1, 0.]], 'ksc': [[0.]]}, 'longitudinal coefficients'),
-    ({'knc': [[0.1, 0.]], 'ksol': [0.]}, 'longitudinal coefficients'),
+    ({'knc': [[[0.1]]]}, 'two-dimensional'),
+    ({'ksc': [0.1, [0.2]]}, 'two-dimensional'),
 ])
 def test_bfieldexpansion_nonempty_coefficient_shapes(kwargs, message):
     with pytest.raises(ValueError, match=message):
@@ -660,15 +661,22 @@ def _check_integrated_bfieldexpansion_strengths(element):
     knl, ksl = element.get_total_knl_ksl()
     for name, integral_name, total in [('knc', 'knl', knl), ('ksc', 'ksl', ksl),
                                       ('ksol', 'ksoll', element.ksoll)]:
-        coefficients = np.asarray(getattr(element, name)).reshape(-1, element.deg + 1)
+        coefficients = np.asarray(getattr(element, name))
+        if name == 'ksol':
+            coefficients = coefficients.reshape(1, -1)
         expected = np.zeros(len(total))
         for order, row in enumerate(coefficients):
+            if not len(row):
+                continue
             integral = Polynomial(row).integ()
             expected[order] = (integral(element.s_start + element.length)
                                - integral(element.s_start))
         if name != 'ksol':
             hard_edge = getattr(element, integral_name)
             expected[:len(hard_edge)] += np.asarray(hard_edge)
+            skew = 's' if name == 'ksc' else ''
+            expected[:4] += element.length * np.array([
+                getattr(element, f'k{i}{skew}') for i in range(4)])
         expected *= element.kscale
         xo.assert_allclose(total, expected, rtol=0, atol=1e-14)
 
@@ -980,8 +988,7 @@ def test_bfieldexpansion_hard_edge_inputs(h, pkin_const):
         reference = xt.BFieldExpansion(
             length=element.length, h=element.h, s_start=element.s_start,
             ksol=element.ksol, num_integration_steps=element.num_integration_steps, pkin_const=pkin_const,
-            **combined)
-        assert element.num_phi == reference.num_phi
+            num_phi=element.num_phi, **combined)
         field = element.get_field(x=[-0.01, 0.02], y=[0.015, -0.007], s_local=[0., 0.3])
         expected_field = reference.get_field(x=[-0.01, 0.02], y=[0.015, -0.007], s_local=[0., 0.3])
         for name in field.dtype.names:
@@ -1040,7 +1047,7 @@ def test_bfieldexpansion_hard_edge_validation():
             xt.BFieldExpansion(length=0.3, **kwargs, **{name: [[0.]]})
         with pytest.raises(ValueError, match='nonzero length'):
             xt.BFieldExpansion(length=0., **kwargs, **{name: [0.1]})
-        element = xt.BFieldExpansion(length=0., **kwargs)
+        element = xt.BFieldExpansion(length=0., **kwargs, **{name: [0.]})
         with pytest.raises(ValueError, match='nonzero length'):
             getattr(element, name)[0] = 0.1
         assert getattr(element, name)[0] == 0.

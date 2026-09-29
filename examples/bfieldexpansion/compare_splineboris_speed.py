@@ -60,8 +60,7 @@ def make_elements(context, length, rigidity):
         [0.40, -0.10, 0.08, 0.03, -0.02],
         [0.80, 0.20, -0.10, 0.04, 0.03],
     ])
-    # Pad the cubic solenoid profile to the width of the quartic multipoles.
-    ksol = np.array([0.10, 0.02, -0.03, 0.01, 0.0])
+    ksol = np.array([0.10, 0.02, -0.03, 0.01])
     expansion = xt.BFieldExpansion(
         _context=context, length=length, ksc=ksc, knc=knc, ksol=ksol,
         # num_phi=7 includes the full potential for this sextupole/quartic case.

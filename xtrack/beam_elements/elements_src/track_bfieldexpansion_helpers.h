@@ -9,16 +9,11 @@ int cidx(int i, int m, int k, int nm, int moff, int deg) {
 typedef struct {
     int num_phi; /* requested output order in y */
     int ncoef;   /* stored phi_i coefficients: 0..num_phi+1 */
-    int na, nb, deg; /* deg is the potential degree, one above the input degree */
+    int deg, eval_deg; /* allocated potential degree and populated degree */
     int mmin, mmax, moff, nm;
-    int qemin, nq;
     double h;
     double straight;
     GPUGLMEM const double *c;  /* c[i,m,k], polynomial coeff of s^k in q^m term */
-    GPUGLMEM double *V;        /* scratch: c[i,m](s)   */
-    GPUGLMEM double *D1;       /* scratch: d_s c[i,m]  */
-    GPUGLMEM double *D2;       /* scratch: d2_s c[i,m]  */
-    GPUGLMEM double *Q;        /* scratch: q^e, e=qemin.. */
 } Expansion;
 
 typedef struct {

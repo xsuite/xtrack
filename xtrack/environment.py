@@ -2560,6 +2560,7 @@ def _parse_kwargs(hybrid_class, kwargs, eval_):
     has_xofields = hasattr(hybrid_class, '_xofields')
     xofields = getattr(hybrid_class, '_xofields', {})
     noexpr_fields = getattr(hybrid_class, '_noexpr_fields', ())
+    normalize_array_input = getattr(hybrid_class, '_normalize_array_input', None)
 
     for field_name, value in kwargs.items():
         # `xo.Field` wraps the type only to attach a default.
@@ -2571,6 +2572,8 @@ def _parse_kwargs(hybrid_class, kwargs, eval_):
 
         # A whole array can also be given as a single reference.
         is_ref = hasattr(value, '_value')
+        if is_array_field and not is_ref and normalize_array_input is not None:
+            value = normalize_array_input(field_name, value)
         assigned = value._value if is_ref else value
 
         if is_array_field and hasattr(assigned, '__iter__'):

@@ -30,8 +30,10 @@ void build_expansion_bent(BFieldExpansionData el){
     };
     const double length = BFieldExpansionData_get_length(el);
     const double inv_length = length != 0.0 ? 1.0 / length : 0.0;
-    const int field_deg = BFieldExpansionData_get_deg(el);
-    const int deg = field_deg + 1; /* potential degree, including int ksol ds */
+    const int width_a = nac ? BFieldExpansionData_len_ksc(el) / nac : 0;
+    const int width_b = nbc ? BFieldExpansionData_len_knc(el) / nbc : 0;
+    const int nsol = BFieldExpansionData_len_ksol(el);
+    const int deg = BFieldExpansionData_get__potential_degree(el);
     GPUGLMEM const double *ksc = BFieldExpansionData_getp2_ksc(el, 0, 0);
     GPUGLMEM const double *knc = BFieldExpansionData_getp2_knc(el, 0, 0);
     GPUGLMEM const double *ksol = BFieldExpansionData_getp1_ksol(el, 0);
@@ -55,7 +57,7 @@ void build_expansion_bent(BFieldExpansionData el){
     }
 
     /* The extra potential degree retains every coefficient of -int_0^s ksol(u)du. */
-    for (int k = 0; k < deg; ++k) c[cidx(0,0,k+1,nm,moff,deg)] = -ksol[k] / (double)(k + 1);
+    for (int k = 0; k < nsol; ++k) c[cidx(0,0,k+1,nm,moff,deg)] = -ksol[k] / (double)(k + 1);
     /* phi_0(s) = sum_m c[0,m](s) q^m
     c[0,m] = - sum_(n>=max(m,1)) (-1)^(n-m) / (h^n m! (n-m)!) ksc[n-1](s) */
     for (int m = 0; m <= na; ++m) {
@@ -63,8 +65,8 @@ void build_expansion_bent(BFieldExpansionData el){
             double sgn = ((n - m) & 1) ? -1.0 : 1.0;
             double fac = -sgn * invhpow[n] * invfact[m] * invfact[n - m];
             if (n <= nac) {
-                GPUGLMEM const double *an = ksc + (size_t)(n - 1) * (size_t)(field_deg + 1);
-                for (int k = 0; k <= field_deg; ++k) c[cidx(0,m,k,nm,moff,deg)] += fac * an[k];
+                GPUGLMEM const double *an = ksc + (size_t)(n - 1) * (size_t)width_a;
+                for (int k = 0; k < width_a; ++k) c[cidx(0,m,k,nm,moff,deg)] += fac * an[k];
             }
             if (n <= 4) c[cidx(0,m,0,nm,moff,deg)] += fac * ks[n - 1];
             if (n <= nal)
@@ -80,8 +82,8 @@ void build_expansion_bent(BFieldExpansionData el){
                 double sgn = ((n - 1 - m) & 1) ? -1.0 : 1.0;
                 double fac = -sgn * invhpow[n - 1] * invfact[m] * invfact[n - 1 - m];
                 if (n <= nbc) {
-                    GPUGLMEM const double *bn = knc + (size_t)(n - 1) * (size_t)(field_deg + 1);
-                    for (int k = 0; k <= field_deg; ++k) c[cidx(1,m,k,nm,moff,deg)] += fac * bn[k];
+                    GPUGLMEM const double *bn = knc + (size_t)(n - 1) * (size_t)width_b;
+                    for (int k = 0; k < width_b; ++k) c[cidx(1,m,k,nm,moff,deg)] += fac * bn[k];
                 }
                 if (n <= 4) c[cidx(1,m,0,nm,moff,deg)] += fac * kn[n - 1];
                 if (n <= nbl)

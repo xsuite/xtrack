@@ -30,10 +30,14 @@ def check_strengths(line):
         assert table['angle', name] == pytest.approx(length * parent.h)
         normal, skew = element.get_total_knl_ksl()
         for source, integrated_name in [('knc', 'knl'), ('ksc', 'ksl'), ('ksol', 'ksoll')]:
-            coefficients = np.asarray(getattr(parent, source)).reshape(-1, parent.deg + 1)
+            coefficients = np.asarray(getattr(parent, source))
+            if source == 'ksol':
+                coefficients = coefficients.reshape(1, -1)
             total = {'knc': normal, 'ksc': skew, 'ksol': element.ksoll}[source]
             expected = np.zeros(len(total))
             for order, row in enumerate(coefficients):
+                if not len(row):
+                    continue
                 integral = Polynomial(row).integ()
                 expected[order] = integral(element.s_start + length) - integral(element.s_start)
             if source != 'ksol':

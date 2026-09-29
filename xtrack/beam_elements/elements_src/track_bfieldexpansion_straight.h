@@ -15,7 +15,7 @@ int evaluate_expansion_straight(Expansion *f, double x, double y, double s,
         for (int m = 0; m <= f->mmax; ++m) {
             int j = m + f->moff;
             double c1m, dc1m, ddc1m;
-            poly_eval_d2(ccptr(f, 1, j), f->deg, s, &c1m, &dc1m, &ddc1m);
+            poly_eval_d2(ccptr(f, 1, j), f->eval_deg, s, &c1m, &dc1m, &ddc1m);
             const double xp = xm * x / (double)(m + 1);
             out->As     += c1m * xp;
             out->dAs_ds += dc1m * xp;
@@ -35,8 +35,8 @@ int evaluate_expansion_straight(Expansion *f, double x, double y, double s,
         for (int m = f->mmin; m <= f->mmax; ++m) {
             const int j = m + f->moff;
             double cim, dcim, ddcim, ci1m, dci1m, ddci1m;
-            poly_eval_d2(ccptr(f, i, j), f->deg, s, &cim, &dcim, &ddcim);
-            poly_eval_d2(ccptr(f, i + 1, j), f->deg, s, &ci1m, &dci1m, &ddci1m);
+            poly_eval_d2(ccptr(f, i, j), f->eval_deg, s, &cim, &dcim, &ddcim);
+            poly_eval_d2(ccptr(f, i + 1, j), f->eval_deg, s, &ci1m, &dci1m, &ddci1m);
 
             sphi += cim  * xm;
             gx   += (double)m * cim  * xm1;

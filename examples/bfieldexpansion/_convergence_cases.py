@@ -79,9 +79,7 @@ def round_solenoid_seeds(profile):
 
 
 def make_element(case, profiles, length, context, num_phi=None):
-    # All input profiles share the same longitudinal coefficient count.
-    size = max(len(p.coef) for p in profiles)
-    coefficients = np.array([np.pad(p.coef, (0, size-len(p.coef))) for p in profiles])
+    coefficients = [p.coef for p in profiles]
     na, nb = len(case.ksc), len(case.knc)
     return xt.BFieldExpansion(
         _context=context, length=length, h=case.h, s_start=0, num_integration_steps=1,

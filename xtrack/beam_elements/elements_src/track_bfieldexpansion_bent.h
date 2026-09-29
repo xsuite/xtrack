@@ -22,7 +22,7 @@ int evaluate_expansion_bent(Expansion *f, double x, double y, double s,
         for (int m = 0; m <= f->mmax; ++m) {
             int j = m + f->moff;
             double c1m, dc1m, ddc1m;
-            poly_eval_d2(ccptr(f, 1, j), f->deg, s, &c1m, &dc1m, &ddc1m);
+            poly_eval_d2(ccptr(f, 1, j), f->eval_deg, s, &c1m, &dc1m, &ddc1m);
             const double g = qm * q - qinv;
             const double den = f->h * (double)(m + 2);
             if (c1m != 0.0) {
@@ -46,8 +46,8 @@ int evaluate_expansion_bent(Expansion *f, double x, double y, double s,
         for (int m = f->mmin; m <= f->mmax; ++m) {
             const int j = m + f->moff;
             double cim, dcim, ddcim, ci1m, dci1m, ddci1m;
-            poly_eval_d2(ccptr(f, i, j), f->deg, s, &cim, &dcim, &ddcim);
-            poly_eval_d2(ccptr(f, i + 1, j), f->deg, s, &ci1m, &dci1m, &ddci1m);
+            poly_eval_d2(ccptr(f, i, j), f->eval_deg, s, &cim, &dcim, &ddcim);
+            poly_eval_d2(ccptr(f, i + 1, j), f->eval_deg, s, &ci1m, &dci1m, &ddci1m);
 
             sphi += cim * qm;                            /* c[i,m] q^m */
             gx   += f->h * (double)m * cim * qm1;        /* h m c[i,m] q^(m-1) */

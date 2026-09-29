@@ -16,7 +16,7 @@ def test_ksol_retains_highest_coefficient(h, degree):
                                 s_start=0.13, kscale=0.7)
     # User-visible shapes and degree describe the fields, not their integral.
     assert element.ksol.shape == (degree + 1,)
-    assert element.knc.shape == element.ksc.shape == (1, degree + 1)
+    assert element.knc.size == element.ksc.size == 0
     assert element.deg == degree
     s_local = np.array([0., 0.2, 0.4])
     s = element.s_start + s_local
