@@ -122,12 +122,13 @@ def twiss_line(line, particle_ref=None, method=None,
         Whether to show progress when temporary slicing is needed for ``at_s``.
         Defaults to ``True``.
     start : str, optional
-        Name of the element at which the computation starts. If not provided,
-        the periodic solution is computed. Initial conditions must be provided if
-        ``start`` is provided.
+        Name of the element at which the computation starts. If ``start`` is
+        provided without ``end``, the computation covers one full turn from
+        that element. Initial conditions are not required for a periodic
+        solution, including when a custom ``start`` is provided.
     end : str, optional
         Name of the element at which the computation stops.
-    init : TwissInit object, optional
+    init : TwissInit or str, optional
         Initial values for the Twiss parameters. If ``init="periodic"`` is
         passed, the periodic solution for the selected range is computed.
         Instead of passing ``init``, initial conditions can be provided directly
@@ -166,7 +167,8 @@ def twiss_line(line, particle_ref=None, method=None,
         while computing twiss.
     reverse : bool, optional
         If True, the output is computed in the reversed reference frame, i.e.
-        s = -s, x = -x, y = y, zeta = -zeta, px=px, py=-py, delta=delta.
+        s -> line_length - s, x -> -x, y -> y, zeta -> -zeta,
+        px -> px, py -> -py, delta -> delta.
         Default is False.
     chrom : bool, optional
         If True, compute chromatic properties. Default is None, which means

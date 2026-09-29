@@ -528,26 +528,25 @@ class TwissTable(Table):
             Which formalism to use for the computation. Can be ``Nagaitsev``
             or ``Bjorken-Mtingwa`` (also accepts ``B&M``), case-insensitively.
         total_beam_intensity : int, optional
-            The beam intensity. Required if ``particles`` is not provided.
+            The beam intensity. Must be provided.
         gemitt_x : float, optional
-            Horizontal geometric emittance in [m]. If ``particles`` is not
-            provided, either this parameter or ``nemitt_x`` is required.
+            Horizontal geometric emittance in [m]. Either this parameter or
+            ``nemitt_x`` is required.
         nemitt_x : float, optional
-            Horizontal normalized emittance in [m]. If ``particles`` is not
-            provided, either this parameter or ``gemitt_x`` is required.
+            Horizontal normalized emittance in [m]. Either this parameter or
+            ``gemitt_x`` is required.
         gemitt_y : float, optional
-            Vertical geometric emittance in [m]. If ``particles`` is not
-            provided, either this parameter or ``nemitt_y`` is required.
+            Vertical geometric emittance in [m]. Either this parameter or
+            ``nemitt_y`` is required.
         nemitt_y : float, optional
-            Vertical normalized emittance in [m]. If ``particles`` is not
-            provided, either this parameter or ``gemitt_y`` is required.
+            Vertical normalized emittance in [m]. Either this parameter or
+            ``gemitt_y`` is required.
         sigma_delta : float, optional
-            The momentum spread. Required if ``particles`` is not provided.
+            The momentum spread. Must be provided.
         bunch_length : float, optional
-            The bunch length in [m]. Required if ``particles`` is not provided.
+            The bunch length in [m]. Must be provided.
         bunched : bool, optional
             Whether the beam is bunched or not (coasting). Defaults to ``True``.
-            Required if ``particles`` is not provided.
         **kwargs : dict
             Keyword arguments are passed to the growth rates computation method of
             the chosen IBS formalism implementation. See the IBS details from the
