@@ -114,11 +114,17 @@ _for_docstring_edge_bend = ('''
         Angle of the reference trajectory at the exit edge. Used only
         when `edge_exit_model` is "linear". Default is ``0``.
     edge_entry_fint : float
-        Fringe field integral at the entrance edge. Used only when
-        `edge_entry_model` is "full". Default is ``0``.
+        Fringe field integral at the entrance edge. Used with the "linear",
+        "full", and "dipole-only" edge models. Default is ``0``.
     edge_exit_fint : float
-        Fringe field integral at the exit edge. Used only when
-        `edge_exit_model` is "full". Default is ``0``.
+        Fringe field integral at the exit edge. Used with the "linear",
+        "full", and "dipole-only" edge models. Default is ``0``.
+    edge_entry_hgap : float
+        Magnet half-gap at the entrance edge in meters. Used together with
+        ``edge_entry_fint`` in the fringe field calculation. Default is ``0``.
+    edge_exit_hgap : float
+        Magnet half-gap at the exit edge in meters. Used together with
+        ``edge_exit_fint`` in the fringe field calculation. Default is ``0``.
     ''').strip()
 
 _for_docstring_alignment = '''
