@@ -19,7 +19,7 @@ void direction_of_motion(
 
     double iix = px / (1. + delta);
     double iiy = py / (1. + delta);
-    double iis = sqrt(1 - iix * iix + iiy * iiy);
+    double iis = sqrt(1 - iix * iix - iiy * iiy);
 
     *iv_x = iix;
     *iv_y = iiy;
