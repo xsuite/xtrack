@@ -202,7 +202,10 @@ def luminosity(f, nb,
         /np.sqrt((sx1(s)**2 + sx2(s)**2)*(sy1(s)**2 + sy2(s)**2))/sigma_z1/sigma_z2
 
         integral=integrate.dblquad((lambda t, s: kernel_double_integral(t, s)),
-                                   -sigma_integration*sigma_z, sigma_integration*sigma_z,-sigma_integration*sigma_z/c, sigma_integration*sigma_z/c)
+                                   -sigma_integration*sigma_z,
+                                   sigma_integration*sigma_z,
+                                   -sigma_integration*sigma_z/clight,
+                                   sigma_integration*sigma_z/clight)
         L0=f*N1*N2*nb * clight/2/np.pi**(2)*integral[0]
 
     elif crab_crossing is not None and 'phi_crab_x_1' in crab_crossing:
