@@ -249,7 +249,7 @@ void track_misalignment_exit_curved(
     double theta, // rotation around y, yaw, positive s to x
     double phi,  // rotation around x, pitch, positive s to y
     double psi_no_frame,  // rotation around s, roll, positive y to x
-    double anchor, // anchor of the misalignment as a fraction of the length
+    double anchor, // anchor of the misalignment as offset in m from entry
     double length,  // length of the misaligned element
     double angle,  // angle by which the element bends the reference frame
     double h,  // curvature, only used when length == 0

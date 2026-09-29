@@ -313,7 +313,7 @@ void track_rf_particles(
         }
 
         // Compute the number of kicks for auto mode
-        if (num_kicks == 0) { // num_multipole_kicks = 0 means auto mode
+        if (num_kicks == 0) { // num_kicks = 0 means auto mode
             num_kicks = 1;
         }
 

@@ -28,7 +28,7 @@ void LongitudinalLimitRect_track_local_particle(LongitudinalLimitRectData el, Lo
                   (pzeta >= min_pzeta) &&
                   (pzeta <= max_pzeta) );
 
-        // I assume that if I am in the function is because
+        // I assume that if I am in the function it is because the particle is alive
             if (!is_alive){
                LocalParticle_set_state(part, XT_LOST_ON_LONG_CUT);
         }

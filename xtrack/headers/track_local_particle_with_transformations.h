@@ -7,7 +7,7 @@
    - CURVED: Whether the element has the `angle` and `h` parameters
    - IS_SLICE: Whether to get parameters from the parent element (if slice)
    - IS_THICK: Whether the element has a length
-   - IS_THICK_DYNAMIC: Whether the element has a isthick parameter
+   - IS_THICK_DYNAMIC: Whether the element has an isthick parameter
    - THIN_SLICE_OF_CURVED_ELEMENT: Special handling for thin slices of curved
      elements where we disallow some transformations.
 */
@@ -80,7 +80,7 @@
 
 /* If transformations are enabled for an element, we define a function that
    handles the misalignments and then calls the local tracking function.
-   This functions already assumes that the transformations are
+   This function already assumes that the transformations are
    (1) possible for the element and (2) non-zero.
 */
 #ifdef ALLOW_ROT_AND_SHIFT

@@ -12,8 +12,8 @@
 
     DRIFT_FUNCTION and KICK_FUNCTION are expected to be macros of the form
     FUNCTION(PART, WEIGHT), and RADIATION_MACRO a macro of the form
-    MACRO(LENGTH, CODE) wrapping CODE (which may be empty of any radiation
-    handling, see WITH_RADIATION/WITH_RF_RADIATION at the call sites).
+    MACRO(LENGTH, CODE) wrapping CODE (the wrapper may contain no radiation
+    handling at all, see WITH_RADIATION/WITH_RF_RADIATION at the call sites).
 
     Function pointers are avoided on purpose: OpenCL C does not support
     them, so the integrator is expressed as a macro that is expanded

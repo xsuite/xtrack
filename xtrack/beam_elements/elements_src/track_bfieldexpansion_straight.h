@@ -61,7 +61,7 @@ int evaluate_expansion_straight(Expansion *f, double x, double y, double s,
         if (i < f->num_phi) {
             double yi1 = yi * y / (double)(i + 1);  /* y^(i+1)/(i+1)! */
             out->Ax += gs * yi1;                    /* -c[i,m]' x^(m-1) y^(i+1)/(i+1)! */
-            out->As -= gx * yi1;                    /* -m c[i,m] x^(m-1) y^i/i! */
+            out->As -= gx * yi1;                    /* -m c[i,m] x^(m-1) y^(i+1)/(i+1)! */
             out->dAx_dx += dgs_dx  * yi1;
             out->dAx_ds += dgs_ds  * yi1;
             out->dAs_dx += -dgx_dx * yi1;
