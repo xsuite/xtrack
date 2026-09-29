@@ -131,7 +131,8 @@ class MagnetEdge(_HasKnlKsl, BeamElement):
             raise ValueError(f'Invalid edge model: {value}')
 
     def to_dict(self, copy_to_cpu=True):
-        out = super().to_dict(copy_to_cpu=copy_to_cpu)
+        # _HasKnlKsl.to_dict assumes a single `order`; this element has two.
+        out = BeamElement.to_dict(self, copy_to_cpu=copy_to_cpu)
 
         if f'_model' in out:
             out.pop(f'_model')
@@ -143,11 +144,11 @@ class MagnetEdge(_HasKnlKsl, BeamElement):
                 out.pop(field, None)
 
         if self.kl_order != -1 and 'knl' not in out and 'ksl' not in out:
-            out['kl_order'] = self.order
+            out['kl_order'] = self.kl_order
 
         if self.k_order != -1 and 'kn' not in out and 'ks' not in out:
-            out['k_order'] = self.order
+            out['k_order'] = self.k_order
 
-        out['is_exit'] = bool(out['is_exit'])
+        out['is_exit'] = bool(self.is_exit)
 
         return out

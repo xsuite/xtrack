@@ -7,6 +7,45 @@ import xtrack as xt
 from xtrack import Magnet, MagnetEdge
 
 
+@pytest.mark.parametrize('k_order', [-1, 0, 3])
+@pytest.mark.parametrize('kl_order', [-1, 0, 2])
+@pytest.mark.parametrize('is_exit', [False, True])
+def test_magnet_edge_zero_strengths_to_dict(k_order, kl_order, is_exit):
+    edge = MagnetEdge(model='full', is_exit=is_exit,
+                      k_order=k_order, kl_order=kl_order)
+    data = edge.to_dict()
+    assert all(field not in data for field in ['kn', 'ks', 'knl', 'ksl'])
+    if k_order != -1:
+        assert data['k_order'] == k_order
+    if kl_order != -1:
+        assert data['kl_order'] == kl_order
+
+    restored = MagnetEdge.from_dict(data)
+    assert restored.k_order == k_order
+    assert restored.kl_order == kl_order
+    assert restored.model == 'full'
+    assert bool(restored.is_exit) == is_exit
+    for field, order in [('kn', k_order), ('ks', k_order),
+                         ('knl', kl_order), ('ksl', kl_order)]:
+        values = getattr(restored, field)
+        assert len(values) == order + 1
+        np.testing.assert_array_equal(values, np.zeros(order + 1))
+
+
+def test_magnet_edge_nonzero_strengths_to_dict():
+    edge = MagnetEdge(model='linear', length=2., k_order=3, kl_order=2,
+                      kn=[0.1, 0.2], ks=[0.3], knl=[0.4], ksl=[0., 0.5])
+    data = edge.to_dict()
+    assert 'order' not in data
+    restored = MagnetEdge.from_dict(data)
+    assert restored.k_order == 3
+    assert restored.kl_order == 2
+    assert restored.model == 'linear'
+    assert restored.length == 2.
+    for field in ['kn', 'ks', 'knl', 'ksl']:
+        np.testing.assert_array_equal(getattr(restored, field), getattr(edge, field))
+
+
 def make_particles(context):
     return xt.Particles(
         kinetic_energy0=50e6,
