@@ -1496,17 +1496,10 @@ class Particles(xo.HybridClass):
         self.spin_z = kwargs.get('spin_z', 0)
 
         pdg_id = kwargs.get('pdg_id')
-        try:
-            pdg_id = get_pdg_id_from_name(pdg_id)
-            if not np.isscalar(pdg_id):
-                pdg_id = self._context.nparray_to_context_array(pdg_id)
-            self.pdg_id = pdg_id
-        except ModuleNotFoundError:
-            if pdg_id is not None:
-                raise ValueError("In order to specify `pdg_id` you must have "
-                                 "xpart installed, however, it's not currently "
-                                 "available.")
-            self.pdg_id = 0
+        pdg_id = get_pdg_id_from_name(pdg_id)
+        if not np.isscalar(pdg_id):
+            pdg_id = self._context.nparray_to_context_array(pdg_id)
+        self.pdg_id = pdg_id
 
     @classmethod
     def reference_from_pdg_id(cls, pdg_id, **kwargs):
@@ -1796,38 +1789,42 @@ def _update_kwargs0_from_pdg_id(pdg_id, kwargs):
             kwargs['mass0'] = get_mass_from_pdg_id(pdg_id)
 
 def ptau2delta(ptau, beta0):
-    """Convert transverse momentum pt/p to relative momentum deviation dp/p.
+    """Convert normalized energy deviation ptau to momentum deviation delta.
 
     Parameters
     ----------
     ptau : float
-        Transverse momentum relative to total momentum (pt/p, dimensionless).
+        Normalized energy deviation (dimensionless). For particles with the
+        reference mass, ptau = (E - E0) / (p0*c).
     beta0 : float
-        Particle relativistic beta (v/c).
+        Reference particle relativistic beta (v0/c).
 
     Returns
     -------
     float
-        Relative momentum deviation (dp/p, dimensionless).
+        Relative momentum deviation delta (dimensionless). For particles with
+        the reference mass, delta = (p - p0) / p0.
     """
 
     _beta0 = 1 / beta0
     return np.sqrt(1 + 2*ptau*_beta0 + ptau**2) - 1
 
 def dptau2ddelta(ptau, beta0):
-    """Calculate derivative of relative momentum deviation dp/p with respect to pt.
+    """Calculate the derivative d(delta)/d(ptau) at fixed beta0.
 
     Parameters
     ----------
     ptau : float
-        Transverse momentum relative to total momentum (pt/p, dimensionless).
+        Normalized energy deviation (dimensionless). For particles with the
+        reference mass, ptau = (E - E0) / (p0*c).
     beta0 : float
-        Particle relativistic beta (v/c).
+        Reference particle relativistic beta (v0/c).
 
     Returns
     -------
     float
-        Derivative of relative momentum deviation (d(dp/p), dimensionless).
+        Derivative d(delta)/d(ptau) (dimensionless), where delta is the
+        relative momentum deviation returned by :func:`ptau2delta`.
     """
 
     _beta0 = 1 / beta0

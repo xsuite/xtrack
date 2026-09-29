@@ -172,7 +172,10 @@ def is_hadron(pdg_id):
     return is_meson(pdg_id) | is_baryon(pdg_id)
 
 def is_ion(pdg_id):
-    """Check if a PDG ID corresponds to a heavy ion (A+Z > 1)."""
+    """Check for an ion or anti-ion ID with Z > 0 and A > Z.
+
+    Z and A are decoded from the absolute PDG ID, which must be at least 10**9.
+    """
     pid = np.asarray(pdg_id, dtype=np.int64)
     tmpid = np.abs(pid) - 1000000000
     L = (tmpid // 10_000_000).astype(np.int64)
