@@ -738,11 +738,11 @@ class ActionTwiss(xd.Action):
         self.kwargs = kwargs
         self.allow_twiss_failure = allow_twiss_failure
         self.compensate_radiation_energy_loss = compensate_radiation_energy_loss
-        self._alredy_prepared = False
+        self._already_prepared = False
 
     def prepare(self, force=False):
 
-        if self._alredy_prepared and not force:
+        if self._already_prepared and not force:
             return
 
         line = self.line

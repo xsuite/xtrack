@@ -516,12 +516,12 @@ class ActionTwissMadng(Action):
         self.line = line
         self.tw_kwargs = tw_kwargs
         self.tw_kwargs.update(kwargs)
-        self._alredy_prepared = False
+        self._already_prepared = False
         self.X0 = None
 
     def prepare(self, force=False):
 
-        if self._alredy_prepared and not force:
+        if self._already_prepared and not force:
             return
 
         init = self.tw_kwargs.get('init', None)
@@ -535,7 +535,7 @@ class ActionTwissMadng(Action):
             assert isinstance(init, xt.TwissTable)
             self.X0 = madng_get_init(self.line, at=xt.START)
 
-        self._alredy_prepared = True
+        self._already_prepared = True
 
     def run(self):
         return self.line.madng_twiss(xsuite_tw = False, X0=self.X0, **self.tw_kwargs)
