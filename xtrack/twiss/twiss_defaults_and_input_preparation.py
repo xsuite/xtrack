@@ -340,7 +340,7 @@ def _build_auxiliary_tracker_with_extra_markers(
 
     import xtrack as xt  # Local import avoids circular imports.
 
-    assert algorithm in ['auto', 'insert', 'regen_all_drift']
+    assert algorithm in ['auto', 'insert', 'regen_all_drifts']
     if algorithm == 'auto':
         if len(at_s) < 10:
             algorithm = 'insert'
