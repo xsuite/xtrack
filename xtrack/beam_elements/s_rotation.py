@@ -41,7 +41,7 @@ class SRotation(BeamElement):
     ]
 
     _store_in_to_dict = ['angle']
-    _skip_in_to_dict = ['sin_z', 'cos_s']
+    _skip_in_to_dict = ['sin_z', 'cos_z']
 
     def __init__(self, angle=None, cos_z=None, sin_z=None, **kwargs):
         """
