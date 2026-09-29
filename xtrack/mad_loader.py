@@ -385,10 +385,10 @@ class Aperture:
                 assembler.rot_s_rad = self.aper_tilt
             return [assembler]
         else:
-            conveter = getattr(self.loader, "convert_" + self.apertype, None)
-            if conveter is None:
+            converter = getattr(self.loader, "convert_" + self.apertype, None)
+            if converter is None:
                 raise ValueError(f"Aperture type `{self.apertype}` not supported")
-            out = conveter(self.mad_el)
+            out = converter(self.mad_el)
             assert len(out) == 1
             if self.dx or self.dy or self.aper_tilt:
                 out[0].shift_x = self.dx
