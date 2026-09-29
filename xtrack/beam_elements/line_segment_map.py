@@ -375,7 +375,9 @@ class LineSegmentMap(BeamElement):
             nargs['lag_rf'] = [0]
             nargs['phase_rf'] = [0]
         else:
-            raise ValueError('longitudinal_mode must be one of "linear_fixed_qs", "nonlinear" or "frozen"')
+            raise ValueError(
+                'longitudinal_mode must be one of "linear_fixed_qs", '
+                '"nonlinear", "linear_fixed_rf" or "frozen"')
 
         if np.isscalar(betx): betx = [betx, betx]
         else: assert len(betx) == 2
