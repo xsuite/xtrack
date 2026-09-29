@@ -1819,17 +1819,17 @@ class Tracker:
                 'Multi-element monitor is only supported on CPU trackers for now.')
         assert isinstance(multi_element_monitor_at, (list, tuple, np.ndarray)), \
             '`multi_element_monitor_at` must be a list, tuple or array of element names'
-        indeces_obs = tt.rows.indices[multi_element_monitor_at]
-        if len(indeces_obs) != len(multi_element_monitor_at):
+        indices_obs = tt.rows.indices[multi_element_monitor_at]
+        if len(indices_obs) != len(multi_element_monitor_at):
             missing = set(multi_element_monitor_at) - set(
-                tt.rows.names[indeces_obs])
+                tt.rows.names[indices_obs])
             raise ValueError(f'Elements not found in line: {missing}')
 
         at_element_mapping = np.zeros(len(tt), dtype=np.int64)
         at_element_mapping[:] = -1
-        at_element_mapping[indeces_obs] = np.arange(len(indeces_obs), dtype=np.int64)
+        at_element_mapping[indices_obs] = np.arange(len(indices_obs), dtype=np.int64)
 
-        return at_element_mapping, tt.name[indeces_obs] # to ensure the right order
+        return at_element_mapping, tt.name[indices_obs] # to ensure the right order
 
     def _get_multi_element_monitor(self, multi_element_monitor_at, particles,
                                    num_turns, tpsa_descriptor=None,
@@ -1857,7 +1857,7 @@ class Tracker:
         else:
             part_id_start, part_id_end = 0, 1  # a map is a single particle
         num_particles = part_id_end - part_id_start
-        num_cooordinates = 7 # hardcoded for now (C code of the monitor
+        num_coordinates = 7 # hardcoded for now (C code of the monitor
                              # needs to be extended if different number
                              # of coordinates is needed)
         num_elements = len(obs_names)
@@ -1875,7 +1875,7 @@ class Tracker:
             part_id_start=part_id_start,
             part_id_end=part_id_end,
             at_element_mapping=at_element_mapping,
-            data=(num_turns, num_particles, num_cooordinates, num_elements),
+            data=(num_turns, num_particles, num_coordinates, num_elements),
             tpsa_addresses=tpsa_addresses,
             monomials=monitor_monomials,
             descriptor=tpsa_descriptor,
