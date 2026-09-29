@@ -824,6 +824,8 @@ class ActionTwiss(xd.Action):
 
         self.kwargs = kwargs
 
+        self._already_prepared = True
+
     def run(self, allow_failure=True):
         if self.compensate_radiation_energy_loss:
             if isinstance(self.line, (xt.Multiline, xt.Environment, xt.MultilineLegacy)):
