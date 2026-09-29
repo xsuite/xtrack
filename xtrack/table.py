@@ -373,7 +373,7 @@ class Table(_XdepsTable):
         return selected
 
     # ------------------------------------------------------------------
-    # Attribute (de-)serialisation helpers
+    # Attribute (de-)serialization helpers
     # ------------------------------------------------------------------
     @staticmethod
     def _serialize_attr_value(value):

@@ -4719,24 +4719,24 @@ def test_parametric_line_update():
     # Definition of elements and two ways to define a FODO cell
     env.new('drift', xt.Drift, length='l_drift')
     env.new('mb',    xt.Bend, length='l_bend', angle='alfB', k0_from_h=True,
-            edge_entry_angle='alfB/2', edge_exit_angle='alfB/2') # shoild be kind of RBend
+            edge_entry_angle='alfB/2', edge_exit_angle='alfB/2') # should be kind of RBend
 
     env.new('mQf', xt.Quadrupole, length='l_quad', k1='kQf')
     env.new('mQd', xt.Quadrupole, length='l_quad', k1='kQd')
 
-    cell_line = env.new_line( components =[  # analogeous to MAD LINE
+    cell_line = env.new_line( components =[  # analogous to MAD LINE
         env.place('mQf'), env.place('drift'), env.place('mb'), env.place('drift'),
         env.place('mQd'), env.place('drift'), env.place('mb'), env.place('drift'),
         ])
 
-    cell_sequ1 = env.new_line( length='l_cell', components =[  # analogeous to MAD Sequence
+    cell_sequ1 = env.new_line( length='l_cell', components =[  # analogous to MAD Sequence
         env.place('mQf', at='0*l_drift + 0.5*l_quad + 0.0*l_bend'),
         env.place('mb',  at='1*l_drift + 1.0*l_quad + 0.5*l_bend'),
         env.place('mQd', at='2*l_drift + 1.5*l_quad + 1.0*l_bend'),
         env.place('mb',  at='3*l_drift + 2.0*l_quad + 1.5*l_bend'),
         ])
 
-    cell_sequ2 = env.new_line( length='l_cell', components =[  # analogeous to MAD Sequence
+    cell_sequ2 = env.new_line( length='l_cell', components =[  # analogous to MAD Sequence
         env.place('mQf', at='0*(l_cell - 2*l_bend - 2*l_quad)/4. + 0.5*l_quad + 0.0*l_bend'),
         env.place('mb',  at='1*(l_cell - 2*l_bend - 2*l_quad)/4. + 1.0*l_quad + 0.5*l_bend'),
         env.place('mQd', at='2*(l_cell - 2*l_bend - 2*l_quad)/4. + 1.5*l_quad + 1.0*l_bend'),

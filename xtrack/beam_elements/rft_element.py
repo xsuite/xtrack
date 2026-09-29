@@ -56,7 +56,7 @@ class RFT_Element:
         self.arr_for_rft[:,8] = p.weight
         self.arr_for_rft[p.state==1,9] = np.nan # nan == not lost
 
-        # Track the refernece particle
+        # Track the reference particle
         import RF_Track as rft
         pref0 = rft.Bunch6d(np.array([0,0,0,0,0,p.p0c[0]/1e6,p.mass0/1e6,p.q0,p.weight.sum()]))
         pref1 = self.lattice.track(pref0)

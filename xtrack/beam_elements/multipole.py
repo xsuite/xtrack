@@ -171,11 +171,11 @@ class Multipole(_HasKnlKsl, _HasModelStraight, _HasIntegrator, BeamElement):
 
     @property
     def hyl(self):
-        raise ValueError("hyl is not anymore supported")
+        raise ValueError("hyl is not supported anymore")
 
     @hyl.setter
     def hyl(self, value):
-        raise ValueError("hyl is not anymore supported")
+        raise ValueError("hyl is not supported anymore")
 
     @property
     def isthick(self):

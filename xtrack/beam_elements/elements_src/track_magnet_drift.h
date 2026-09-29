@@ -419,7 +419,7 @@ void track_straight_exact_bend_single_particle(
     xt_float_or_tpsa_arg k0       // normal dipole strength
 ) {
 
-    // Here we assume that the caller has ensured h != 0
+    // Here we assume that the caller has ensured h == 0
 
     xt_float_or_tpsa const k0_chi = k0 * LocalParticle_get_chi(part);
 
@@ -554,9 +554,9 @@ void track_magnet_drift_single_particle(
     // drift_model = 4 : bend with h (caller has ensured k1=0, h!=0)
     // drift_model = 5 : bend without h (caller has ensured k1=0, h=0)
     // drift_model = 6 : solenoid (caller has ensured k0=0, k1=0, h=0, ks!=0)
-    // drift_model = 7 : bend (h!=0 + k0) modeled with with 4th order Yoshida
+    // drift_model = 7 : bend (h!=0 + k0) modeled with 4th order Yoshida
     //                   integrator (rot-kick_from_k0-rot)
-    // drift_model = 8 : bend (h!=0 + k0) modeled with with 6th order Yoshida
+    // drift_model = 8 : bend (h!=0 + k0) modeled with 6th order Yoshida
     //                   integrator (rot-kick_from_k0-rot)
 
     if (drift_model == -1) {

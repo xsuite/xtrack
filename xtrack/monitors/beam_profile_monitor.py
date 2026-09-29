@@ -59,7 +59,7 @@ class BeamProfileMonitor(BeamElement):
         Monitor to save the transverse profile of the tracked particles
 
 
-        The monitor allows for arbitrary sampling rate and can thus not only be used to monitor
+        The monitor allows for an arbitrary sampling rate and can thus not only be used to monitor
         bunch profiles, but also for coasting beams. Internally, the particle arrival time
         is used when determining the record index:
 
@@ -89,14 +89,14 @@ class BeamProfileMonitor(BeamElement):
             particle_id_range (tuple, optional): Range of particle ids to monitor (start, stop). Stop is exclusive.
                                                  Defaults to (particle_id_start, particle_id_start+num_particles).
             start_at_turn (int): First turn of reference particle (inclusive) at which to monitor.
-            stop_at_turn (int): Last turn of reference particle (exclusiv) at which to monitor.
+            stop_at_turn (int): Last turn of reference particle (exclusive) at which to monitor.
             frev (float): Revolution frequency in Hz of circulating beam (used to relate turn number to sample index).
             sampling_frequency (float): Sampling frequency in Hz.
             nx (int, optional): Number of raster points of the horizontal profile. Defaults to 128.
-            x_range (float or tuple): Extend of raster points of the profile in m. Either a tuple of (min_x, max_x)
+            x_range (float or tuple): Extent of raster points of the profile in m. Either a tuple of (min_x, max_x)
                                              or a scalar `width` in which case a range of (-width/2, width/2) is used.
             ny (int, optional): Number of raster points of the vertical profile. Defaults to 128.
-            y_range (float or tuple): Extend of raster points of the profile in m. Either a tuple of (min_y, max_y)
+            y_range (float or tuple): Extent of raster points of the profile in m. Either a tuple of (min_y, max_y)
                                              or a scalar `width` in which case a range of (-width/2, width/2) is used.
             n: Default value for `nx` and `ny` if these are not set.
             range: Default value for `x_range` and `y_range` if these are not set.
@@ -156,7 +156,7 @@ class BeamProfileMonitor(BeamElement):
             sample_size = int(round(( stop_at_turn - start_at_turn ) * sampling_frequency / frev))
 
             if "data" not in kwargs:
-                # explicitely init with zeros (instead of size only) to have consistent initial values
+                # explicitly init with zeros (instead of size only) to have consistent initial values
                 kwargs["data"] = dict(
                     counts_x = np.zeros(sample_size*nx),
                     counts_y = np.zeros(sample_size*ny),

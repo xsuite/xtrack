@@ -36,7 +36,7 @@ class Rotation(xt.BeamElement):
 
     def __init__(self, rot_s_rad=0, rot_x_rad=0, rot_y_rad=0, seq='yxs', **kwargs):
 
-        """"
+        """
         3D rotation element.
 
         Parameters

@@ -92,7 +92,7 @@ void track_magnet_edge_particles(
         END_PER_PARTICLE_BLOCK;
         return;
     }
-    else if (model == 1 || model == 2) { // Full model
+    else if (model == 1 || model == 2) { // Full model (1) or dipole-only model (2)
 
         uint8_t should_rotate = 0;
         double sin_ = 0, cos_ = 1, tan_ = 0;
@@ -182,7 +182,7 @@ void track_magnet_edge_particles(
     else if (model == 3) { // only ax ay cancellation (already done above)
         // do nothing
     }
-    // If model is not 0 or 1, do nothing
+    // If model is none of the above, do nothing
 }
 
 #endif // XTRACK_TRACK_MAGNET_EDGE_H

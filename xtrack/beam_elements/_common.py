@@ -86,16 +86,16 @@ _INDEX_TO_RBEND_MODEL = {
 _RBEND_MODEL_TO_INDEX = {k: v for v, k in _INDEX_TO_RBEND_MODEL.items()}
 
 _for_docstring_edge_straight = ('''
-    edge_entry_active: bool
+    edge_entry_active : bool
         Fringe field at the entrance edge is active if True. Default is False.
-    edge_exit_active: bool
+    edge_exit_active : bool
         Fringe field at the exit edge is active if True. Default is False.
     ''').strip()
 
 _for_docstring_edge_bend = ('''
-    edge_entry_active: bool
+    edge_entry_active : bool
         Edge effects at the entrance edge are active if True. Default is True.
-    edge_exit_active: bool
+    edge_exit_active : bool
         Edge effects at the exit edge are active if True. Default is True.
     edge_entry_model : str
         Model used for the entrance edge. Available models are: "suppressed",
@@ -259,7 +259,8 @@ class _HasModelStraight:
     _for_docstring = ('''
     model : str
         Model used for the element. Available models are: "adaptive", "mat-kick-mat",
-        "drift-kick-drift-exact", "drift-kick-drift-expanded". Default is "adaptive".
+        "drift-kick-drift-exact", "drift-kick-drift-expanded", "rot-kick-rot-low-order",
+        "rot-kick-rot-high-order". Default is "adaptive".
     ''').strip()
 
     @property
@@ -298,7 +299,8 @@ class _HasModelCurved:
     model : str
         Model used for the element. Available models are: "adaptive",
         "bend-kick-bend", "rot-kick-rot", "mat-kick-mat",
-        "drift-kick-drift-exact", "drift-kick-drift-expanded".
+        "drift-kick-drift-exact", "drift-kick-drift-expanded",
+        "rot-kick-rot-low-order", "rot-kick-rot-high-order".
         Default is "adaptive".
     ''').strip()
 
@@ -512,7 +514,7 @@ class _HasKnlKsl:
         order_name : str, optional
             The name of the field in ``kwargs`` that stores the order.
         skip_factorial : bool, optional
-            Whether to calculate ``inv_factorial_order``. Skipped by default.
+            Whether to skip the calculation of ``inv_factorial_order``. Not skipped by default.
         kwargs : dict
             A dictionary with values that are either array-type fields that contain
             multipolar coefficients, or None.

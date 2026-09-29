@@ -32,7 +32,7 @@ logger = logging.getLogger(__name__)
 class Tracker:
 
     '''
-    Xsuite tracker class. It is the core of the xsuite package, allows tracking
+    Xsuite tracker class. It is the core of the xsuite package and allows tracking
     particles in a given beam line. Methods to match particle distributions
     and to compute twiss parameters are also available.
     '''
@@ -660,7 +660,7 @@ class Tracker:
     def enable_pipeline_hold(self, value):
         if not self.iscollective:
             raise ValueError(
-                'enable_pipeline_hold is not supported non collective trackers')
+                'enable_pipeline_hold is not supported for non-collective trackers')
         else:
             self._enable_pipeline_hold = value
 
@@ -1423,7 +1423,7 @@ class Tracker:
                 _session_to_resume = _session_to_resume.data
 
             assert not(_session_to_resume['resumed']), (
-                "This session hase been already resumed")
+                "This session has already been resumed")
 
             assert _session_to_resume['tracker'] is self, (
                 "This session was not created by this tracker")
@@ -1670,7 +1670,7 @@ class Tracker:
             # and one for the last turn
             monitor_turns = num_middle_turns + 2
         else:
-            # One monitor record for the initial turn, and num_middle_turns record for the middle turns
+            # One monitor record for the initial turn, and num_middle_turns records for the middle turns
             monitor_turns = num_middle_turns + 1
 
         (flag_monitor, monitor, buffer_monitor, offset_monitor

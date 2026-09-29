@@ -42,8 +42,8 @@ def luminosity(f, nb,
     '''
     Returns luminosity in Hz/cm^2.
     f: revolution frequency
-    nb: number of colliding bunch per beam in the specific Interaction Point (IP).
-    N1,2: B1,2 number of particle per bunch
+    nb: number of colliding bunches per beam in the specific Interaction Point (IP).
+    N1,2: B1,2 number of particles per bunch
     x,y,1,2: horizontal/vertical position at the IP of B1,2, as defined in MADX [m]
     px,y,1,2: px,py at the IP of B1,2, as defined in MADX
     energy_tot1,2: total energy of the B1,2 [GeV]
@@ -62,13 +62,13 @@ def luminosity(f, nb,
     RAB_1,2: B1,2 equivalent H/V linear transfer matrix coefficients between the CC
         that the beam sees before reaching the IP and IP itself [SI units]
     verbose: to have verbose output
-    sigma_integration: the number of sigma consider for the integration
+    sigma_integration: the number of sigma considered for the integration
         (taken into account only if CC(s) is/are present)
     rest_mass_b1, rest_mass_b2: rest mass in GeV
     In MAD-X px is p_x/p_0 (p_x is the x-component of the momentum and p_0 is the design momentum).
     In our approximation we use the paraxial approximation: p_0~p_z so px is an angle.
-    Similar arguments holds for py.
-    In MAD-X, dx and dpx are the literature dispersion and is derivative in s divided by the relatistic beta.
+    Similar arguments hold for py.
+    In MAD-X, dx and dpx are the literature dispersion and its derivative in s divided by the relativistic beta.
     In fact, since pt=beta*deltap, where beta is the relativistic Lorentz factor,
     those functions given by MAD-X must be multiplied by beta a number of times equal to the order of
     the derivative to find the functions given in the literature.

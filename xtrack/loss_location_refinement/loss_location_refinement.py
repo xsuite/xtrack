@@ -360,9 +360,9 @@ def refine_loss_location_single_aperture(particles, i_aper_1, i_end_thin_0,
     interp_line.track(part_refine)
     # There is a small fraction of particles that are not lost.
     # We verified that they are really at the edge. Their coordinates
-    # correspond to the end fo the short line, which is correct
+    # correspond to the end of the short line, which is correct
 
-    if np.any(part_refine.state<0): # Some particles are lost but not on instelled limits
+    if np.any(part_refine.state<0): # Some particles are lost but not on installed limits
         raise RuntimeError(f'Particles are lost with error codes: {part_refine.state[part_refine.state<0]}')
 
     if inplace:

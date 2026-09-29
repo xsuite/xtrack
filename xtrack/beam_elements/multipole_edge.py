@@ -8,7 +8,7 @@ import xobjects as xo
 from ._common import _HasKnlKsl
 
 class MultipoleEdge(_HasKnlKsl, BeamElement):
-    """Beam element modelling a mulipole edge.
+    """Beam element modelling a multipole edge.
 
     Parameters
     ----------

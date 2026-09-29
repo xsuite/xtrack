@@ -141,7 +141,7 @@ for ip_name in ip_names:
         if isinstance(ee, xt.VariableSolenoid):
             ksol_l_main_solenoid += ee.ks_profile.mean() * ee.length
 
-    # Meaure integrated field of the compensation solenoids
+    # Measure integrated field of the compensation solenoids
     env[f'on_sol_{ip_name}'] = 0
     env[f'on_comp_sol_right_{ip_name}'] = 1
     env[f'on_comp_sol_left_{ip_name}'] = 0

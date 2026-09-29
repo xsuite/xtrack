@@ -392,12 +392,14 @@ class ApertureBuilder:
 
         Parameters
         ----------
-        name : str
-            Name of the installed pipe position.
+        name : str or sequence of str
+            Name of the installed pipe position, or one name per entry of
+            ``at``. If ``at`` is a sequence and a single name is given, the
+            positions are named ``name.i``.
         pipe_name : str
             Name of the pipe to install.
-        at : str
-            Survey entry used as the installation reference. The syntax
+        at : str or sequence of str
+            Survey entry (or entries) used as the installation reference. The syntax
             ``element@anchor`` can be used with anchors ``start``, ``center``,
             ``centre``, and ``end``. The stored survey reference remains the
             element name; the requested anchor offset is encoded in the stored

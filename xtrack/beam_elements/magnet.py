@@ -74,7 +74,7 @@ class Magnet(_BendCommon, BeamElement):
             - ``rot-kick-rot``: nested integration scheme, alternating: 1. Yoshida-4
                 slices with exact drift maps (polar, if ``h`` non-zero) and k0-only
                 kicks; 2. kicks for the remaining strengths.
-            -   ``rot-kick-rot-high-order``: nested integration scheme, alternating:
+            - ``rot-kick-rot-high-order``: nested integration scheme, alternating:
                 1. Yoshida-6 slices with exact drift maps (polar, if ``h`` non-zero)
                 and k0-only kicks; 2. kicks for the remaining strengths.
             - ``mat-kick-mat``: use an expanded combined-function magnet map
@@ -130,7 +130,7 @@ class Magnet(_BendCommon, BeamElement):
         when entering the fringe field (feed down effect). Default is 0.
     edge_exit_angle_fdown : float, optional
         Same as ``edge_entry_angle_fdown``, but for the exit. Default is 0.
-    edge_entry_fint: float, optional
+    edge_entry_fint : float, optional
         Fringe integral value at entry. Default is 0.
     edge_exit_fint : float, optional
         Same as ``edge_entry_fint``, but for the exit. Default is 0.

@@ -29,7 +29,7 @@ void LimitRect_track_local_particle(LimitRectData el, LocalParticle* part0){
                   (y >= min_y) &&
                   (y <= max_y) );
 
-        // I assume that if I am in the function is because
+        // I assume that if I am in the function it is because the particle is alive
             if (!is_alive){
                LocalParticle_set_state(part, XT_LOST_ON_APERTURE);
         }

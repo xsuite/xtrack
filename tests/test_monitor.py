@@ -206,7 +206,7 @@ def test_last_turns_monitor(test_context):
 
         line.track(particles, num_turns=1)
 
-        # Note that indicees are re-ordered upon particle loss on CPU contexts,
+        # Note that indices are re-ordered upon particle loss on CPU contexts,
         # so sort before manipulation
         if isinstance(test_context, xo.ContextCpu):
             particles.sort(interleave_lost_particles=True)
@@ -268,7 +268,7 @@ def test_beam_profile_monitor(test_context):
     line.build_tracker(_context=test_context)
 
     for turn in range(11): # track a few more than we record to test "stop_at_turn"
-        # Note that indicees are re-ordered upon particle loss on CPU contexts,
+        # Note that indices are re-ordered upon particle loss on CPU contexts,
         # so sort before manipulation
         if isinstance(test_context, xo.ContextCpu):
             particles.sort(interleave_lost_particles=True)
@@ -401,7 +401,7 @@ def test_beam_size_monitor(test_context):
     line.build_tracker(_context=test_context)
 
     for turn in range(11): # track a few more than we record to test "stop_at_turn"
-        # Note that indicees are re-ordered upon particle loss on CPU contexts,
+        # Note that indices are re-ordered upon particle loss on CPU contexts,
         # so sort before manipulation
         if isinstance(test_context, xo.ContextCpu):
             particles.sort(interleave_lost_particles=True)
@@ -485,7 +485,7 @@ def test_beam_position_monitor(test_context):
     line.build_tracker(_context=test_context)
 
     for turn in range(11): # track a few more than we record to test "stop_at_turn"
-        # Note that indicees are re-ordered upon particle loss on CPU contexts,
+        # Note that indices are re-ordered upon particle loss on CPU contexts,
         # so sort before manipulation
         if isinstance(test_context, xo.ContextCpu):
             particles.sort(interleave_lost_particles=True)

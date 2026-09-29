@@ -33,7 +33,7 @@ def rdt_first_order_perturbation(rdt,
         Twiss parameters along the machine to be used for the computation.
     strengths : xt.Table
         Table with the strengths of the multipoles. Must have columns like ``k1l``,
-        ``k2l``, etc. for normalmultipoles and ``k1sl``, ``k2sl``, etc. for skew
+        ``k2l``, etc. for normal multipoles and ``k1sl``, ``k2sl``, etc. for skew
         multipoles. Must also have a ``name`` column with the element names.
     feed_down : bool, optional
         Whether to include feed down from orbit and misalignments in the calculation.
@@ -41,7 +41,7 @@ def rdt_first_order_perturbation(rdt,
     orbit : xt.Table, optional
         Table with the orbit along the machine to be used in the feed down computation.
         Must have columns ``x`` and ``y`` and a ``name`` column with the element names.
-        If not provided, the feed down computation will uses the orbit from the
+        If not provided, the feed down computation will use the orbit from the
         twiss table.
 
     Returns
@@ -54,13 +54,13 @@ def rdt_first_order_perturbation(rdt,
         orbit = twiss
 
     assert len(orbit) == len(twiss), \
-        "table_orbit and twiss must have the same length."
+        "orbit and twiss must have the same length."
     assert len(strengths) == len(twiss), \
         "strengths and twiss must have the same length."
     assert np.all(orbit.name == twiss.name), \
-        "table_orbit and twiss must have the same element names."
+        "orbit and twiss must have the same element names."
     assert np.all(strengths.name == twiss.name), \
-        "strengths table must have the name column."
+        "strengths and twiss must have the same element names."
 
     # Compile strengths with feed down from orbit and misalignments
     if feed_down:
@@ -130,7 +130,7 @@ def rdt_first_order_perturbation(rdt,
 
         exp_obs = np.exp(1j * 2 * PI * ((p - q) * mux + (r - t) * muy))
 
-        # RTD at all s
+        # RDT at all s
         f_pqrt_open = 0 * integrand
         for i in range(len(s)):
             integral = cumsum_integrand_two_turns[i + len(s)] - cumsum_integrand_two_turns[i]
@@ -146,7 +146,7 @@ def rdt_first_order_perturbation(rdt,
 
     out_data['name'] = twiss.name
 
-    # Sort keys (fo visualization purposes)
+    # Sort keys (for visualization purposes)
     out_cols = {}
     out_cols['name'] = out_data['name']
     for rr in rdt:
@@ -167,19 +167,22 @@ def rdt_first_order_perturbation(rdt,
 
 def rdt_metadata(rdts: list[str], Qx: float, Qy: float) -> float:
     """
-    Compute the frequency associated to a given RDT.
+    Compute the frequencies and amplitude expressions associated with the
+    given RDTs.
 
     Parameters
     ----------
     rdts : list of str
-        RDT key like ``"f1020"``.
+        RDT keys like ``"f1020"``.
     Qx, Qy : float
         Tunes in the two planes.
 
     Returns
     -------
-    freq : float
-        Frequency associated to the RDT.
+    out : dict
+        Dictionary with, for each RDT, the frequencies (``<rdt>_freq_x``,
+        ``<rdt>_freq_y``) and the corresponding frequency and amplitude
+        expressions.
     """
     if isinstance(rdts, str):
         rdts = [rdts]

@@ -527,7 +527,7 @@ class Arc(NonLinear):
         relative: bool = False,
     ) -> None:
         """radius is complex, rotation is in degrees,
-        large and sweep are 1 or 0 (True/False also work)"""
+        arc and sweep are 1 or 0 (True/False also work)"""
 
         self.start = start
         self.radius = radius

@@ -619,8 +619,8 @@ class TwissTable(Table):
         -------
             If the user does not provide a starting emittance, the program
             defaults to using the SR equilibrium value from this ``TwissTable``,
-            which is a reasonable defaults for light sources. If a constraint
-            is provided via ``emittance_constraint``  the starting emittances are
+            which is a reasonable default for light sources. If a constraint
+            is provided via ``emittance_constraint``, the starting emittances are
             re-computed to respect that constraint (this is logged to the user).
 
             If the user does provide starting emittances **and** a constraint, it
@@ -735,9 +735,9 @@ class TwissTable(Table):
                 - eq_sr_ibs_gemitt_x: final horizontal equilibrium geometric emittance converged to, in [m].
                 - eq_sr_ibs_nemitt_x: final horizontal equilibrium normalized emittance converged to, in [m].
                 - eq_sr_ibs_gemitt_y: final vertical equilibrium geometric emittance converged to, in [m].
-                - eq_sr_ibs_gemitt_y: final vertical equilibrium normalized emittance converged to, in [m].
+                - eq_sr_ibs_nemitt_y: final vertical equilibrium normalized emittance converged to, in [m].
                 - eq_sr_ibs_gemitt_zeta: final longitudinal equilibrium geometric emittance converged to, in [m].
-                - eq_sr_ibs_gemitt_zeta: final longitudinal equilibrium normalized emittance converged to, in [m].
+                - eq_sr_ibs_nemitt_zeta: final longitudinal equilibrium normalized emittance converged to, in [m].
         """
         try:
             from xfields.ibs import get_ibs_and_synrad_emittance_evolution
@@ -786,7 +786,7 @@ class TwissTable(Table):
             end = np.where(self.name == end)[0][0]
 
         if start > end:
-            raise ValueError('start must be smaller than ele_end')
+            raise ValueError('start must be smaller than end')
 
         W_start = self.W_matrix[start]
         W_end = self.W_matrix[end]
@@ -983,7 +983,7 @@ class TwissTable(Table):
         if self.only_markers:
             itake = slice(None, -1, None)
         else:
-            # To keep association name <-> quantities at elemement entry
+            # To keep association name <-> quantities at element entry
             itake = slice(1, None, None)
 
         for kk in self._col_names:
@@ -1298,8 +1298,8 @@ class TwissTable(Table):
         """
         Plot columns of the TwissTable
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         yl: str
             space separated columns or expressions to plot on the left y-axis
         yr: str
@@ -1318,6 +1318,16 @@ class TwissTable(Table):
             axis to plot on
         figlabel: str
             label to use for the figure
+        figure: matplotlib figure
+            figure to plot on (if not provided, a new figure is created)
+        hover: bool
+            if True, element information is printed when hovering on the plot
+        grid: bool
+            if True, the grid is shown
+        figsize: tuple
+            size of the figure (used when a new figure is created)
+        lattice_only: bool
+            if True, only the lattice is plotted
         """
 
         if yl is None and yr is None:

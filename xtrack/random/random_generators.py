@@ -15,7 +15,7 @@ import numpy as np
 # Random generators need to be a BeamElement to get the LocalParticle API
 class RandomUniform(BeamElement):
     _xofields = {
-        '_dummy': xo.UInt8,  # TODO: a hack for allocating empty struct on OCL
+        '_dummy': xo.UInt8,  # TODO: a hack for allocating an empty struct on OCL
     }
 
     allow_track = False
@@ -54,7 +54,7 @@ class RandomUniform(BeamElement):
 
         n_samples_per_seed = int(np.floor(n_samples/n_seeds))
         if n_samples_per_seed < 1:
-            raise ValueError("Not enough samples to accomodate all seeds!")
+            raise ValueError("Not enough samples to accommodate all seeds!")
 
         samples = context.zeros(shape=(n_seeds*n_samples_per_seed,),
                                 dtype=np.float64)

@@ -260,7 +260,7 @@ def test_thick_multipolar_component(test_context, element_type, h):
     bend_length = 1.0
     k0 = h
     knl = np.array([0.0, 0.0, -0.02, 0.03])  # I need to keep knl[1] = 0 because
-    # the bend with hxl = 0 would not apply the corretion h*k1
+    # the bend with hxl = 0 would not apply the correction h*k1
     ksl = np.array([0.0, -0.03, 0.02, -0.01])
     num_kicks = 2
 

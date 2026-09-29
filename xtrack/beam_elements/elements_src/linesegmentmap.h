@@ -368,7 +368,7 @@ void energy_and_reference_increments(LocalParticle *part0,
         }
 
         // Change energy reference
-        // In the transverse plane de change is smoothed, i.e.
+        // In the transverse plane the change is smoothed, i.e.
         // both the position and the momentum are scaled,
         // rather than only the momentum.
         if (energy_ref_increment != 0){
