@@ -133,7 +133,7 @@ double SynRad(double x)
       y=pow(x,2./3.);
       synrad=(p/y-q*y-1.)*1.81379936423421784215530788143;
 
-    } else {// 6 < x < 174
+    } else {// 6 <= x < 800
 
       double a,b,z;
       z=20./x-2.;
