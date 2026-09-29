@@ -7648,6 +7648,7 @@ class Line:
                                     + 0.5 * (attr['_own_ks_profile_0'] + attr['_own_ks_profile_1'])),
                 'ksoll': lambda attr: (
                     attr['_own_ksoll']
+                    + attr['ks'] * attr['length']
                     + attr['_parent_ksoll'] * attr['weight'] * attr._inherit_strengths),
                 'bs': lambda attr: attr['_own_bs_mean'] * attr['_own_scale_b'],
                 'hkick': lambda attr: attr["angle"] - attr["k0l"],

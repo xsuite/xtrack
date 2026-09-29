@@ -18,7 +18,7 @@ for name, h in [('straight', 0.), ('curved', 'curvature')]:
             kscale='magnet_scale', k1='0.1*field',
             integrator='rk4', num_integration_steps=10,
             knc=[['field', 0., 0.], [0.02, 0., 0.]],
-            ksol=[0.1, 0.02, 0.], knl=[0., '0.01*field'])
+            ksolc=[0.1, 0.02, 0.], knl=[0., '0.01*field'])
 
 env.set('curved', knc=[['2*field', 0.01, 0.], [0.03, 0., 0.]],
         num_integration_steps=20)

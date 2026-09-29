@@ -7,10 +7,10 @@
 GPUFUN
 int evaluate_expansion_bent(Expansion *f, double x, double y, double s,
                             FieldValue *out) {
-    const double q = 1.0 + f->h * x;
-        if (q == 0.0) return -1; /* singular chart */
-
     bfieldexpansion_reset_field_value(out);
+
+    const double q = 1.0 + f->h * x;
+    if (q == 0.0) return -1; /* singular chart */
 
     /* As(x,0,s)
     = 1/(1+hx) int_0^x dx' *(1+hx) By(x',0,s)
@@ -22,7 +22,7 @@ int evaluate_expansion_bent(Expansion *f, double x, double y, double s,
         for (int m = 0; m <= f->mmax; ++m) {
             int j = m + f->moff;
             double c1m, dc1m, ddc1m;
-            poly_eval_d2(ccptr(f, 1, j), f->deg, s, &c1m, &dc1m, &ddc1m);
+            poly_eval_d2(ccptr(f, 1, j), f->eval_deg, s, &c1m, &dc1m, &ddc1m);
             const double g = qm * q - qinv;
             const double den = f->h * (double)(m + 2);
             if (c1m != 0.0) {
@@ -46,8 +46,8 @@ int evaluate_expansion_bent(Expansion *f, double x, double y, double s,
         for (int m = f->mmin; m <= f->mmax; ++m) {
             const int j = m + f->moff;
             double cim, dcim, ddcim, ci1m, dci1m, ddci1m;
-            poly_eval_d2(ccptr(f, i, j), f->deg, s, &cim, &dcim, &ddcim);
-            poly_eval_d2(ccptr(f, i + 1, j), f->deg, s, &ci1m, &dci1m, &ddci1m);
+            poly_eval_d2(ccptr(f, i, j), f->eval_deg, s, &cim, &dcim, &ddcim);
+            poly_eval_d2(ccptr(f, i + 1, j), f->eval_deg, s, &ci1m, &dci1m, &ddci1m);
 
             sphi += cim * qm;                            /* c[i,m] q^m */
             gx   += f->h * (double)m * cim * qm1;        /* h m c[i,m] q^(m-1) */

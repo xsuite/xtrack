@@ -1,6 +1,7 @@
 #ifndef XTRACK_BFIELDEXPANSION_H
 #define XTRACK_BFIELDEXPANSION_H
 
+#include "xtrack/headers/particle_states.h"
 #include "track_bfieldexpansion_straight.h"
 #include "track_bfieldexpansion_bent.h"
 
@@ -8,24 +9,17 @@
 
 GPUFUN
 void BFieldExpansionData_init_expansion(BFieldExpansionData el, Expansion *f) {
-    f->num_phi  = BFieldExpansionData_get_num_phi(el);
+    f->num_phi  = BFieldExpansionData_get__eval_num_phi(el);
     f->ncoef    = BFieldExpansionData_get__ncoef(el);
-    f->na       = BFieldExpansionData_get_na(el);
-    f->nb       = BFieldExpansionData_get_nb(el);
-    f->deg      = BFieldExpansionData_get_deg(el);
-    f->mmin     = BFieldExpansionData_get__mmin(el);
-    f->mmax     = BFieldExpansionData_get__mmax(el);
+    f->deg      = BFieldExpansionData_get__potential_degree(el);
+    f->eval_deg = BFieldExpansionData_get__eval_degree(el);
+    f->mmin     = BFieldExpansionData_get__eval_mmin(el);
+    f->mmax     = BFieldExpansionData_get__eval_mmax(el);
     f->moff     = BFieldExpansionData_get__moff(el);
     f->nm       = BFieldExpansionData_get__nm(el);
-    f->qemin    = BFieldExpansionData_get__qemin(el);
-    f->nq       = BFieldExpansionData_get__nq(el);
     f->h        = BFieldExpansionData_get_h(el);
     f->straight = BFieldExpansionData_get_straight(el);
     f->c        = BFieldExpansionData_getp1__c(el, 0);
-    f->V        = BFieldExpansionData_getp1__V(el, 0);
-    f->D1       = BFieldExpansionData_getp1__D1(el, 0);
-    f->D2       = BFieldExpansionData_getp1__D2(el, 0);
-    f->Q        = BFieldExpansionData_getp1__Q(el, 0);
 }
 
 GPUFUN
@@ -44,21 +38,11 @@ void BFieldExpansion_get_field(
     GPUGLMEM const double *y,
     GPUGLMEM const double *s,
     const int64_t n_points,
-    GPUGLMEM double *field_values,
-    GPUGLMEM double *work_v,
-    GPUGLMEM double *work_d1,
-    GPUGLMEM double *work_d2,
-    GPUGLMEM double *work_q)
+    GPUGLMEM double *field_values)
 {
     VECTORIZE_OVER(ii, n_points);
         Expansion f;
         BFieldExpansionData_init_expansion(el, &f);
-
-        const int64_t n_values = (int64_t)f.ncoef * (int64_t)f.nm;
-        f.V = work_v + ii * n_values;
-        f.D1 = work_d1 + ii * n_values;
-        f.D2 = work_d2 + ii * n_values;
-        f.Q = work_q + ii * (int64_t)f.nq;
 
         FieldValue field;
         const int status = evaluate_bfield_expansion(

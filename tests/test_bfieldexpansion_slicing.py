@@ -11,7 +11,7 @@ def make_element(h=0.3, pkin_const=False):
         length=0.8, h=h, s_start=0.17, num_integration_steps=160, num_phi=5,
         pkin_const=pkin_const, kscale=0.7,
         knc=[[0.1, 0.08, -0.03], [0.04, -0.02, 0.01]],
-        ksc=[[0.02, -0.01, 0.02]], ksol=[0.15, 0.03, 0.],
+        ksc=[[0.02, -0.01, 0.02]], ksolc=[0.15, 0.03, 0.02],
         knl=[0.01, 0.002, 0.003], ksl=[0.003, 0.004])
 
 
@@ -29,19 +29,23 @@ def check_strengths(line):
         assert table['length', name] == pytest.approx(length)
         assert table['angle', name] == pytest.approx(length * parent.h)
         normal, skew = element.get_total_knl_ksl()
-        for source, integrated_name in [('knc', 'knl'), ('ksc', 'ksl'), ('ksol', 'ksoll')]:
-            coefficients = np.asarray(getattr(parent, source)).reshape(-1, parent.deg + 1)
-            total = {'knc': normal, 'ksc': skew, 'ksol': element.ksoll}[source]
+        for source, integrated_name in [('knc', 'knl'), ('ksc', 'ksl'), ('ksolc', 'ksoll')]:
+            coefficients = np.asarray(getattr(parent, source))
+            if source == 'ksolc':
+                coefficients = coefficients.reshape(1, -1)
+            total = {'knc': normal, 'ksc': skew, 'ksolc': element.ksoll}[source]
             expected = np.zeros(len(total))
             for order, row in enumerate(coefficients):
+                if not len(row):
+                    continue
                 integral = Polynomial(row).integ()
                 expected[order] = integral(element.s_start + length) - integral(element.s_start)
-            if source != 'ksol':
+            if source != 'ksolc':
                 hard_edge = np.asarray(getattr(parent, integrated_name))
                 expected[:len(hard_edge)] += hard_edge * element.weight
             expected *= parent.kscale
             for order, strength in enumerate(expected):
-                column = ('ksoll' if source == 'ksol' else
+                column = ('ksoll' if source == 'ksolc' else
                           f'k{order}{"s" if source == "ksc" else ""}l')
                 assert table[column, name] == pytest.approx(strength, abs=1e-14)
             xo.assert_allclose(total, expected, atol=1e-14, rtol=0)
@@ -71,7 +75,7 @@ def test_bfieldexpansion_slicing_tracking_and_backtracking(h, pkin_const, custom
         element = line.get(name)
         assert element.parent_name == 'e'
         assert element._parent._xobject._offset == parent._xobject._offset
-        assert not {'knc', 'ksc', 'ksol', '_c', '_V', '_D1', '_D2', '_Q'} & element._xofields.keys()
+        assert not {'knc', 'ksc', 'ksolc', '_c', '_V', '_D1', '_D2', '_Q'} & element._xofields.keys()
         assert element._xobject._size < parent._xobject._size
         assert element.slice_offset == pytest.approx(offset)
         assert element.s_start == pytest.approx(parent.s_start + offset)
@@ -116,7 +120,7 @@ def test_bfieldexpansion_slice_parent_updates_and_serialization(h):
     env['e'].knc[0, 1] = 'strength'
     env['strength'] = 0.2
     env.set('e', length=1.2, s_start=-0.1, num_integration_steps=200,
-            ksc=[[0.01, 0.05, -0.02]], ksol=[0.2, 0.04, 0.],
+            ksc=[[0.01, 0.05, -0.02]], ksolc=[0.2, 0.04, 0.],
             knl=[0.002, '0.1*strength', 0.001], ksl=[0.001, -0.001])
     if h:
         env.set('e', h=0.4)

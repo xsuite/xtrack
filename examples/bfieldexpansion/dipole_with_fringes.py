@@ -51,11 +51,11 @@ assert body_length >= 0, "Different shape needed to describe such short magnets"
 
 env=xt.Environment()
 num_integration_steps=5
-env.elements['e0']=xt.BFieldExpansion(pkin_const=0, length=fringe_length/2, knc=np.array([knc_in]),   ksc=0*np.array([knc_in]),   ksol=0*knc_in,   num_phi=5, num_integration_steps=num_integration_steps)
-env.elements['e1']=xt.BFieldExpansion(pkin_const=0, length=fringe_length/2, knc=np.array([knc_in]),   ksc=0*np.array([knc_in]),   ksol=0*knc_in,   num_phi=5, num_integration_steps=num_integration_steps, h=h, s_start=fringe_length/2)
-env.elements['e2']=xt.BFieldExpansion(pkin_const=0, length=body_length,     knc=np.array([knc_body]), ksc=0*np.array([knc_body]), ksol=0*knc_body, num_phi=5, num_integration_steps=num_integration_steps, h=h)
-env.elements['e3']=xt.BFieldExpansion(pkin_const=0, length=fringe_length/2, knc=np.array([knc_out]),  ksc=0*np.array([knc_out]),  ksol=0*knc_out,  num_phi=5, num_integration_steps=num_integration_steps, h=h)
-env.elements['e4']=xt.BFieldExpansion(pkin_const=0, length=fringe_length/2, knc=np.array([knc_out]),  ksc=0*np.array([knc_out]),  ksol=0*knc_out,  num_phi=5, num_integration_steps=num_integration_steps, s_start=fringe_length/2)
+env.elements['e0']=xt.BFieldExpansion(pkin_const=0, length=fringe_length/2, knc=np.array([knc_in]),   ksc=0*np.array([knc_in]),   ksolc=0*knc_in,   num_phi=5, num_integration_steps=num_integration_steps)
+env.elements['e1']=xt.BFieldExpansion(pkin_const=0, length=fringe_length/2, knc=np.array([knc_in]),   ksc=0*np.array([knc_in]),   ksolc=0*knc_in,   num_phi=5, num_integration_steps=num_integration_steps, h=h, s_start=fringe_length/2)
+env.elements['e2']=xt.BFieldExpansion(pkin_const=0, length=body_length,     knc=np.array([knc_body]), ksc=0*np.array([knc_body]), ksolc=0*knc_body, num_phi=5, num_integration_steps=num_integration_steps, h=h)
+env.elements['e3']=xt.BFieldExpansion(pkin_const=0, length=fringe_length/2, knc=np.array([knc_out]),  ksc=0*np.array([knc_out]),  ksolc=0*knc_out,  num_phi=5, num_integration_steps=num_integration_steps, h=h)
+env.elements['e4']=xt.BFieldExpansion(pkin_const=0, length=fringe_length/2, knc=np.array([knc_out]),  ksc=0*np.array([knc_out]),  ksolc=0*knc_out,  num_phi=5, num_integration_steps=num_integration_steps, s_start=fringe_length/2)
 dipole = env.new_line(name="dipole",components=['e0', 'e1', 'e2', 'e3', 'e4'])
 
 p0 = xt.Particles()

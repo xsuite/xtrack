@@ -60,11 +60,9 @@ def make_elements(context, length, rigidity):
         [0.40, -0.10, 0.08, 0.03, -0.02],
         [0.80, 0.20, -0.10, 0.04, 0.03],
     ])
-    # Keep one trailing zero: BFieldExpansion stores the integral of ksol in
-    # the scalar potential, which needs one more longitudinal power.
-    ksol = np.array([0.10, 0.02, -0.03, 0.01, 0.0])
+    ksol = np.array([0.10, 0.02, -0.03, 0.01])
     expansion = xt.BFieldExpansion(
-        _context=context, length=length, ksc=ksc, knc=knc, ksol=ksol,
+        _context=context, length=length, ksc=ksc, knc=knc, ksolc=ksol,
         # num_phi=7 includes the full potential for this sextupole/quartic case.
         num_phi=7, num_integration_steps=1, s_start=0,
         # Preserve kinetic momentum across the entrance/exit gauge changes.

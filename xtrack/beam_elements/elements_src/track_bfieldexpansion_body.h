@@ -2,15 +2,15 @@
  * geometry, with no geometry dispatch inside the Runge-Kutta stages. */
 
 GPUFUN
-void HAMILTONIAN_FLOW(Expansion *f, const double beta0, const double chi,
-                      double s, const double z[6], HamiltonianFlow *flow) {
+int HAMILTONIAN_FLOW(Expansion *f, const double beta0, const double chi,
+                     double s, const double z[6], HamiltonianFlow *flow) {
     double delta1, delta, ddelta1;
     double q, pix, piy, rad, root;
 
     const HamiltonianFlow zero = {0};
     *flow = zero;
 
-    EVALUATE_EXPANSION(f, z[0], z[2], s, &flow->pot);
+    if (EVALUATE_EXPANSION(f, z[0], z[2], s, &flow->pot) != 0) return -1;
     delta_from_ptau(beta0, z[5], &delta, &delta1, &ddelta1);
     q = 1.0 + f->h * z[0];
     // Expansion potentials are normalized to the reference rigidity.
@@ -41,6 +41,7 @@ void HAMILTONIAN_FLOW(Expansion *f, const double beta0, const double chi,
     flow->grad[4] = -flow->rhs[5];  // dH/dtau
     flow->grad[5] =  flow->rhs[4];  // dH/dptau
     flow->dH_ds = -q * chi * (pix * flow->pot.dAx_ds / root + flow->pot.dAs_ds);
+    return 0;
 }
 
 GPUFUN
@@ -61,10 +62,10 @@ void TRACK_EXPANSION(
 
     int pkin_const = BFieldExpansionData_get_pkin_const(el);
 
-    HamiltonianFlow flow;
-    FieldValue v;
-
     START_PER_PARTICLE_BLOCK(part0, part);
+        HamiltonianFlow flow;
+        FieldValue v;
+        int valid = 1;
         const double beta0  = LocalParticle_get_beta0(part);
         const double chi    = LocalParticle_get_chi(part);
 
@@ -80,30 +81,44 @@ void TRACK_EXPANSION(
 
         // Momentum has to be continuous, vector potential discontinuous, update canonical momentum
         if (pkin_const) {
-            EVALUATE_EXPANSION(&f, z[0], z[2], s_start, &v);
-            // Stored particle ax/ay already include its charge-to-mass ratio.
-            z[1] += chi * v.Ax - ax;
-            z[3] += chi * v.Ay - ay;
+            valid = EVALUATE_EXPANSION(&f, z[0], z[2], s_start, &v) == 0;
+            if (valid) {
+                // Stored particle ax/ay already include its charge-to-mass ratio.
+                z[1] += chi * v.Ax - ax;
+                z[3] += chi * v.Ay - ay;
+            }
         }
 
         double s = s_start;
         double ztmp[6];
-        for (int step = 0; step < nstep; ++step) {
+        for (int step = 0; valid && step < nstep; ++step) {
             double k1[6], k2[6], k3[6], k4[6];
 
-            HAMILTONIAN_FLOW(&f, beta0, chi, s, z, &flow);
+            if (HAMILTONIAN_FLOW(&f, beta0, chi, s, z, &flow) != 0) {
+                valid = 0;
+                break;
+            }
             for (int i = 0; i < 6; ++i) k1[i] = flow.rhs[i];
             for (int i = 0; i < 6; ++i) ztmp[i] = z[i] + 0.5 * ds * k1[i];
 
-            HAMILTONIAN_FLOW(&f, beta0, chi, s + 0.5 * ds, ztmp, &flow);
+            if (HAMILTONIAN_FLOW(&f, beta0, chi, s + 0.5 * ds, ztmp, &flow) != 0) {
+                valid = 0;
+                break;
+            }
             for (int i = 0; i < 6; ++i) k2[i] = flow.rhs[i];
             for (int i = 0; i < 6; ++i) ztmp[i] = z[i] + 0.5 * ds * k2[i];
 
-            HAMILTONIAN_FLOW(&f, beta0, chi, s + 0.5 * ds, ztmp, &flow);
+            if (HAMILTONIAN_FLOW(&f, beta0, chi, s + 0.5 * ds, ztmp, &flow) != 0) {
+                valid = 0;
+                break;
+            }
             for (int i = 0; i < 6; ++i) k3[i] = flow.rhs[i];
             for (int i = 0; i < 6; ++i) ztmp[i] = z[i] + ds * k3[i];
 
-            HAMILTONIAN_FLOW(&f, beta0, chi, s + ds, ztmp, &flow);
+            if (HAMILTONIAN_FLOW(&f, beta0, chi, s + ds, ztmp, &flow) != 0) {
+                valid = 0;
+                break;
+            }
             for (int i = 0; i < 6; ++i) k4[i] = flow.rhs[i];
             for (int i = 0; i < 6; ++i) z[i] += ds * (k1[i] + 2.0*k2[i] + 2.0*k3[i] + k4[i]) / 6.0;
 
@@ -111,24 +126,31 @@ void TRACK_EXPANSION(
         }
 
         // Back to zero vector potential for next element
-        EVALUATE_EXPANSION(&f, z[0], z[2], s, &v);
-        if (pkin_const) {
-            z[1] -= chi * v.Ax;
-            z[3] -= chi * v.Ay;
-            LocalParticle_set_ax(part, 0);
-            LocalParticle_set_ay(part, 0);
+        if (valid) valid = EVALUATE_EXPANSION(&f, z[0], z[2], s, &v) == 0;
+        if (!valid) {
+            // The curved coordinate chart is singular at 1 + h*x == 0.
+            // Leave the last committed particle coordinates intact.
+            LocalParticle_set_state(part, XT_INVALID_BFIELD_EXPANSION);
         }
         else {
-            LocalParticle_set_ax(part, chi * v.Ax);
-            LocalParticle_set_ay(part, chi * v.Ay);
-        }
+            if (pkin_const) {
+                z[1] -= chi * v.Ax;
+                z[3] -= chi * v.Ay;
+                LocalParticle_set_ax(part, 0);
+                LocalParticle_set_ay(part, 0);
+            }
+            else {
+                LocalParticle_set_ax(part, chi * v.Ax);
+                LocalParticle_set_ay(part, chi * v.Ay);
+            }
 
-        LocalParticle_set_x(part, z[0]);
-        LocalParticle_set_px(part, z[1]);
-        LocalParticle_set_y(part, z[2]);
-        LocalParticle_set_py(part, z[3]);
-        LocalParticle_set_zeta(part, z[4]*beta0);
-        LocalParticle_set_ptau(part, z[5]);
-        LocalParticle_add_to_s(part, ds*nstep);
+            LocalParticle_set_x(part, z[0]);
+            LocalParticle_set_px(part, z[1]);
+            LocalParticle_set_y(part, z[2]);
+            LocalParticle_set_py(part, z[3]);
+            LocalParticle_set_zeta(part, z[4]*beta0);
+            LocalParticle_set_ptau(part, z[5]);
+            LocalParticle_add_to_s(part, ds*nstep);
+        }
     END_PER_PARTICLE_BLOCK
 }

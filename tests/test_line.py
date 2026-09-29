@@ -1016,6 +1016,7 @@ def test_line_attr():
     assert np.all(line.attr['angle'] == [0, 8, 0.5 * 6, 0, 0])
 
 
+@pytest.mark.filterwarnings('ignore:The `Solenoid` element is deprecated:FutureWarning')
 def test_line_attr_ks():
     line = xt.Line(
         elements=[
@@ -1023,35 +1024,65 @@ def test_line_attr_ks():
             xt.UniformSolenoid(length=2, ks=0.3),
             xt.VariableSolenoid(length=3, ks_profile=[0.2, 0.8]),
             xt.VariableSolenoid(length=4, ks_profile=[0, 0]),
+            xt.Solenoid(length=5, ks=-0.2),
+            xt.Replica(parent_name='uniform_sol'),
         ],
-        element_names=['drift', 'uniform_sol', 'var_sol', 'var_sol_expr'],
+        element_names=['drift', 'uniform_sol', 'var_sol', 'var_sol_expr',
+                       'legacy_sol', 'uniform_replica'],
     )
 
     line.vars['ks_entry'] = 0.4
     line.vars['ks_exit'] = 1.0
     line['var_sol_expr'].ks_profile[0] = line.vars['ks_entry']
     line['var_sol_expr'].ks_profile[1] = line.vars['ks_exit']
+    line.vars['var_length'] = 4.
+    line['var_sol_expr'].length = line.vars['var_length']
 
     line.build_tracker()
 
-    xo.assert_allclose(
-        line.attr['ks'],
-        [0, 0.3, 0.5 * (0.2 + 0.8), 0.5 * (0.4 + 1.0)],
-        rtol=0,
-        atol=1e-14,
-    )
+    def check(ks, ksoll):
+        xo.assert_allclose(line.attr['ks'], ks, rtol=0, atol=1e-14)
+        xo.assert_allclose(line.attr['ksoll'], ksoll, rtol=0, atol=1e-14)
+        for table in (line.get_table(attr=True), line.get_strengths()):
+            xo.assert_allclose(table.ks, [*ks, 0.], rtol=0, atol=1e-14)
+            xo.assert_allclose(table.ksoll, [*ksoll, 0.], rtol=0, atol=1e-14)
 
+    check([0., 0.3, 0.5, 0.7, -0.2, 0.3], [0., 0.6, 1.5, 2.8, -1., 0.6])
+
+    line['uniform_sol'].ks = -0.4
+    line['uniform_sol'].length = 2.5
     line['var_sol'].ks_profile[0] = 0.6
     line['var_sol'].ks_profile[1] = 1.4
+    line['var_sol'].length = 1.5
     line.vars['ks_entry'] = 0.8
     line.vars['ks_exit'] = 1.6
+    line.vars['var_length'] = 6.
+    line['legacy_sol'].ks = -0.1
+    line['legacy_sol'].length = 6.
 
-    xo.assert_allclose(
-        line.attr['ks'],
-        [0, 0.3, 0.5 * (0.6 + 1.4), 0.5 * (0.8 + 1.6)],
-        rtol=0,
-        atol=1e-14,
-    )
+    check([0., -0.4, 1., 1.2, -0.1, -0.4], [0., -1., 1.5, 7.2, -0.6, -1.])
+
+
+def test_line_attr_ksoll_solenoid_slices():
+    line = xt.Line(elements={'sol': xt.UniformSolenoid(length=2., ks=0.3),
+                             'drift': xt.Drift(length=1.)})
+    line.vars['strength'] = 0.3
+    line.vars['sol_length'] = 2.
+    line['sol'].ks = line.vars['strength']
+    line['sol'].length = line.vars['sol_length']
+    line.slice_thick_elements([
+        xt.Strategy(xt.Uniform(3, mode='thick'), element_type=xt.UniformSolenoid)])
+    body_names = [name for name in line.element_names
+                  if isinstance(line.get(name), xt.ThickSliceUniformSolenoid)]
+    assert len(body_names) == 3
+    for strength, length in ((0.3, 2.), (-0.4, 3.), (0., 3.)):
+        line.vars['strength'] = strength
+        line.vars['sol_length'] = length
+        for table in (line.get_table(attr=True), line.get_strengths()):
+            for name in table.name:
+                expected = strength * length / 3 if name in body_names else 0.
+                assert table['ksoll', name] == pytest.approx(expected, abs=1e-14)
+            assert np.sum(table.ksoll) == pytest.approx(strength * length, abs=1e-14)
 
 
 def test_line_attr_splineboris_bs():
