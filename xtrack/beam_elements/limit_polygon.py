@@ -86,7 +86,7 @@ class LimitPolygon(BeamElement):
                 curved_steps = svg.get("curved_steps", 10)
                 line_steps = svg.get("line_steps", 2)
                 x_vertices, y_vertices = svg_to_points(
-                    path, scale=scale, curved_steps=curved_steps, line_steps=2
+                    path, scale=scale, curved_steps=curved_steps, line_steps=line_steps
                 )
             assert len(x_vertices) == len(y_vertices)
             context = kwargs.get("_context", None)
@@ -218,16 +218,10 @@ class LimitPolygon(BeamElement):
 
     @property
     def centroid(self):
-        x = self.x_vertices
-        y = self.x_vertices
-        cx = (
-            1
-            / (6 * self.area)
-            * np.sum((x[:-1] + x[1:]) * (x[:-1] * y[1:] - x[1:] * y[:-1]))
-        )
-        cy = (
-            1
-            / (6 * self.area)
-            * np.sum((y[:-1] + y[1:]) * (y[:-1] * x[1:] - y[1:] * x[:-1]))
-        )
+        x = self.x_closed
+        y = self.y_closed
+        cross = x[:-1] * y[1:] - x[1:] * y[:-1]
+        signed_area = self.get_area(signed=True)
+        cx = np.sum((x[:-1] + x[1:]) * cross) / (6 * signed_area)
+        cy = np.sum((y[:-1] + y[1:]) * cross) / (6 * signed_area)
         return (cx, cy)

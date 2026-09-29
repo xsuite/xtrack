@@ -396,6 +396,41 @@ def test_aper_tilt(test_context):
     assert_allclose(slope, np.tan(np.deg2rad(tilt_deg)), rtol=5e-2, atol=0)
 
 
+@pytest.mark.parametrize('reverse', [False, True])
+@pytest.mark.parametrize('vertices, expected', [
+    ([(1., 2.), (5., 2.), (1., 8.)], (7 / 3, 4.)),
+    ([(1., 2.), (5., 2.), (5., 8.), (1., 8.)], (3., 5.)),
+    # Concave L: a 4x2 rectangle plus a 2x2 square, translated by (1, 2).
+    ([(1., 2.), (5., 2.), (5., 4.), (3., 4.), (3., 6.), (1., 6.)],
+     (8 / 3, 11 / 3)),
+])
+def test_aperture_polygon_centroid(vertices, expected, reverse):
+    vertices = np.array(vertices)
+    if reverse:
+        vertices = vertices[::-1]
+    # Every edge must be included, regardless of which vertex is listed first.
+    for offset in range(len(vertices)):
+        shifted = np.roll(vertices, offset, axis=0)
+        aperture = xt.LimitPolygon(x_vertices=shifted[:, 0],
+                                   y_vertices=shifted[:, 1])
+        xo.assert_allclose(aperture.centroid, expected, rtol=0, atol=1e-14)
+
+
+@pytest.mark.parametrize('line_steps', [2, 4, 6])
+def test_aperture_svg_line_steps(line_steps):
+    aperture = xt.LimitPolygon(svg={
+        'path': 'M 1 2 L 5 2 L 5 8 L 1 8 Z',
+        'scale': 1.,
+        'line_steps': line_steps,
+    })
+    assert len(aperture.x_vertices) == 4 * (line_steps - 1)
+    xo.assert_allclose(aperture.area, 24., rtol=0, atol=1e-14)
+    xo.assert_allclose(aperture.centroid, (3., -5.), rtol=0, atol=1e-14)
+    restored = xt.LimitPolygon.from_dict(aperture.to_dict())
+    xo.assert_allclose(restored.x_vertices, aperture.x_vertices, rtol=0, atol=0)
+    xo.assert_allclose(restored.y_vertices, aperture.y_vertices, rtol=0, atol=0)
+
+
 def test_aperture_svg_path():
     svg = {
         'path': """M4 8 10 1 13 0 12 3 5 9C6 10 6 11 7 10 7 11 8 12 7 12A1.42 1.42 0 016 13 5 5 0 004 10Q3.5 9.9 3.5 10.5T2 11.8 1.2 11 2.5 9.5 3 9A5 5 90 000 7 1.42 1.42 0 011 6C1 5 2 6 3 6 2 7 3 7 4 8"""
