@@ -32,7 +32,7 @@ void HAMILTONIAN_FLOW(Expansion *f, const double beta0, const double chi,
     flow->rhs[1] = f->h * (root + chi * flow->pot.As)
         + q * chi * (pix * flow->pot.dAx_dx / root + flow->pot.dAs_dx);  // dpx/ds = -dH/dx
     flow->rhs[3] = q * chi * (pix * flow->pot.dAx_dy / root + flow->pot.dAs_dy);  // dpy/ds = -dH/dy
-    flow->rhs[5] = 0.0;  // tptau/ds = -dH/dtau, H has no tau-dependence for these static fields.
+    flow->rhs[5] = 0.0;  // dptau/ds = -dH/dtau, H has no tau-dependence for these static fields.
 
     flow->grad[0] = -flow->rhs[1];  // dH/dx
     flow->grad[1] =  flow->rhs[0];  // dH/dpx

@@ -40,7 +40,7 @@ void LimitRacetrack_track_local_particle(LimitRacetrackData el, LocalParticle* p
         // We need to correct for the roundness of the corners
         if (is_alive){
 
-            // The internal recangle (without the rounded corners) is given by
+            // The internal rectangle (without the rounded corners) is given by
             double const rect_min_x = min_x + a;
             double const rect_max_x = max_x - a;
             double const rect_min_y = min_y + b;

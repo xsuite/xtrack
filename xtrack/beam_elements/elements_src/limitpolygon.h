@@ -81,7 +81,7 @@ void LimitPolygon_track_local_particle(LimitPolygonData el,
                 ii++;
             }
 
-            // I assume that if I am in the function is because
+            // I assume that if I am in the function it is because
             // the particle is alive
             if (!is_alive) {
                 LocalParticle_set_state(part, XT_LOST_ON_APERTURE);
@@ -132,11 +132,11 @@ void LimitPolygon_impact_point_and_normal(
             double t_ii;
             double const den = ((y_out_curr - y_in_curr) * (Vx[ii_next] - Vx[ii]) + (x_in_curr - x_out_curr) * (Vy[ii_next] - Vy[ii]));
             if (den == 0.) {
-                // it is the case when the normal top the segment is perpendicular
-                // to the edge the case case overlapping the edge is not possible
+                // this is the case when the normal to the segment is perpendicular
+                // to the edge; the case of overlapping the edge is not possible
                 // (this would not allow Pin inside and Pout outside - a point on
-                // the edge is considered outside) the only case left is segment
-                // parallel to tue edge => no intersection
+                // the edge is considered outside), so the only case left is a segment
+                // parallel to the edge => no intersection
                 t_border = -2.;
             } else {
                 t_border = ((y_out_curr - y_in_curr) * (x_in_curr - Vx[ii])

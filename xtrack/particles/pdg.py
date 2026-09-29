@@ -239,14 +239,16 @@ def get_name_from_pdg_id(pdg_id, long_name=True, subscripts=True):
 
     Parameters
     ----------
+    pdg_id : int or str
+        The PDG ID of the particle.
     long_name : bool, default True
         If True, return the long name of the particle (ASCII-compliant). For a
-        particle in the PDF internal table, this is the last name in the list
+        particle in the PDG internal table, this is the last name in the list
         of alternatives. For an ion, it is the full element name, followed by
         the mass number. If 'long_name' is False, a short name is returned
-        (Unicode). For a particle in the PDF internal table, this is the first
+        (Unicode). For a particle in the PDG internal table, this is the first
         name in the list of alternatives. For an ion, it is the element name
-        preceded (when 'subscripts' is True) of followed (when 'subscripts' is
+        preceded (when 'subscripts' is True) or followed (when 'subscripts' is
         False) by the mass number.
     subscripts : bool, default True
         Controls whether or not to allow sub- and superscripts in the short
@@ -269,10 +271,10 @@ def get_pdg_id_from_name(name=None):
     Parameters
     ----------
     name : str
-        The name of the particle. Can be any alternative from the PDF internal
+        The name of the particle. Can be any alternative from the PDG internal
         table, with or without sub- or superscripts. For ions, the name can be
         any combination of the element short or long name and the mass number,
-        for instance 'Pb208', 'Pb 208', Pb-208', 'Pb_208', '208Pb', 'Lead-208',
+        for instance 'Pb208', 'Pb 208', 'Pb-208', 'Pb_208', '208Pb', 'Lead-208',
         'lead 208', etc.
 
     Returns
@@ -336,19 +338,18 @@ def get_properties_from_pdg_id(pdg_id, long_name=False, subscripts=True):
     ----------
     pdg_id : int or str
         The PDG ID of the particle.
-    long_name : bool, default True
+    long_name : bool, default False
         If True, return the long name of the particle (ASCII-compliant). For a
-        particle in the PDF internal table, this is the last name in the list
+        particle in the PDG internal table, this is the last name in the list
         of alternatives. For an ion, it is the full element name, followed by
         the mass number. If 'long_name' is False, a short name is returned
-        (Unicode). For a particle in the PDF internal table, this is the first
+        (Unicode). For a particle in the PDG internal table, this is the first
         name in the list of alternatives. For an ion, it is the element name
-        preceded (when 'subscripts' is True) of followed (when 'subscripts' is
+        preceded (when 'subscripts' is True) or followed (when 'subscripts' is
         False) by the mass number.
     subscripts : bool, default True
         Controls whether or not to allow sub- and superscripts in the short
         name. Has no function if 'long_name' is True.
-    name : str
 
     Returns
     -------
@@ -629,7 +630,7 @@ def _mass_consistent(pdg_id, m, mask=None):
         return True
 
 
-# Make sure no duouble names exist in the pdg_table, after removing subscripts
+# Make sure no double names exist in the pdg_table, after removing subscripts
 # and going to lower case
 def _check_pdg_table():
     names = [vvv for vv in pdg_table.values() for vvv in vv[1:]]

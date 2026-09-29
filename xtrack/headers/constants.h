@@ -24,11 +24,11 @@
 
 #if !defined( DEG2RAD )
     #define DEG2RAD (0.0174532925199432957692369076848861271344287188854)
-#endif /* !defiend( DEG2RAD ) */
+#endif /* !defined( DEG2RAD ) */
 
 #if !defined( RAD2DEG )
     #define RAD2DEG (57.29577951308232087679815481410517033240547246656442)
-#endif /* !defiend( RAD2DEG ) */
+#endif /* !defined( RAD2DEG ) */
 
 #if !defined( SQRT_PI )
     #define SQRT_PI (1.7724538509055160272981674833411451827975494561224)

@@ -91,12 +91,26 @@ class TrackerData:
             List of element s locations.
         line_length : float
             Length of the line.
+        cache : dict, optional
+            Dictionary used to cache data derived from the line; if `None`,
+            a new empty dictionary is created.
         kernel_element_classes : list, optional
             Explicit list of classes of elements of the line; if `None`,
             will be inferred from list.
         extra_element_classes : tuple, optional
             If `kernel_element_classes` is `None`, this list will be used to augment
             the inferred list of element classes.
+        allow_move : bool, optional
+            If `True`, elements that are not in the common buffer are moved
+            there; otherwise an error is raised.
+        _context : xobjects.Context, optional
+            Context in which the data is allocated; if `None`, it is inferred
+            from the elements.
+        _buffer : xobjects.Buffer, optional
+            Buffer in which the data is allocated; if `None`, it is inferred
+            from the elements.
+        _offset : int, optional
+            Not supported yet; must be `None`.
         """
         if _offset is not None:
             raise ValueError('`_offset` is not supported yet')

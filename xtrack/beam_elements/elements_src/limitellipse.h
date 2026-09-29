@@ -29,7 +29,7 @@ void LimitEllipse_track_local_particle(LimitEllipseData el, LocalParticle* part0
 
         int64_t const is_alive = (int64_t)( temp <= a_b_squ );
 
-        // I assume that if I am in the function is because
+        // I assume that if I am in the function it is because the particle is alive
             if (!is_alive){
                LocalParticle_set_state(part, XT_LOST_ON_APERTURE);
         }

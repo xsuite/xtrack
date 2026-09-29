@@ -1,0 +1,20 @@
+{
+  "ame2020_selected.txt": {
+    "url": "https://www-nds.iaea.org/amdc/ame2020/mass_1.mas20.txt",
+    "retrieved": "2026-09-28",
+    "download_sha256": "e8599c6d7f724fac91934e59f1b9de8fb8f63e820f4b39456b790665ed2a3307",
+    "excerpt_sha256": "ca6999331cf6e470ddfa2b837ab773088614c4bb914ce3c944434f47f763522e"
+  },
+  "codata2022_selected.txt": {
+    "url": "https://physics.nist.gov/cuu/Constants/Table/allascii.txt",
+    "retrieved": "2026-09-28",
+    "download_sha256": "77fb90e66c40db3e6eb16630bc9c88e4c7c8beddbe5e71be406f2f26e3f67e67",
+    "excerpt_sha256": "e643c0d24a6c0c6e534455890f58ed345e94343a94f88a3f238f46cefcab265b"
+  },
+  "nist_binding_energies.txt": {
+    "url": "https://physics.nist.gov/cgi-bin/ASD/ie.pl?spectra=C+I%3BO+I%3BNe+I%3BAr+I%3BFe+I%3BXe+I%3BAu+I%3BPb+I&units=1&format=1&order=0&at_num_out=on&sp_name_out=on&ion_charge_out=on&e_out=1&unc_out=on&biblio=on",
+    "retrieved": "2026-09-28",
+    "download_sha256": "91413fe58adf524b61dc50b6687fe73251f9d34f8fb45b1ad3e113d838d9648e",
+    "excerpt_sha256": "c1c3683820ff9bfab7deb8b1f777ff79d1a09e57961c25f09e82783312051b21"
+  }
+}

@@ -15,7 +15,7 @@ df_raw_data = pd.read_csv(
 ).set_index(["X", "Y", "Z"])
 
 # Use fitting procedure to extract field and derivatives on the reference trajectory.
-# This class is taylored for this example data, use your own fitting procedure
+# This class is tailored for this example data, use your own fitting procedure
 # for other datasets.
 from xtrack._temp.splineboris.field_fitter import FieldFitter
 field_fitter = FieldFitter(

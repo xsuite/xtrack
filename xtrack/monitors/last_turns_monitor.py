@@ -19,7 +19,7 @@ class LastTurnsData(xo.Struct):
 
     lost_at_offset = xo.UInt32[:]
 
-    # store with 32bit precission to save memory
+    # store with 32bit precision to save memory
     particle_id = xo.UInt32[:]  # TODO: can use xo.Int32[:] after fixing https://github.com/xsuite/xsuite/issues/283
     at_turn = xo.UInt32[:]      # TODO: can use xo.Int32[:] after fixing https://github.com/xsuite/xsuite/issues/283
     x = xo.Float32[:]
@@ -62,17 +62,17 @@ class LastTurnsMonitor(BeamElement):
         `particle_id`, `at_turn`, `x`, `px`, `y`, `py`, `delta`, `zeta`
 
         Args:
-            n_last_turns (int): Amount of turns to store before particle loss.
+            n_last_turns (int): Number of turns to store before particle loss.
             particle_id_range (tuple): Range of particle ids to monitor (start, stop).
             num_particles (int, optional): Number of particles. Equal to passing particle_id_range=(0, num_particles).
-            every_n_turns (int, optional): Save only every n-th turn, i.e. turn numbers which are a multiples of this.
-                Because `n_last_turns` defines the amount of turns to store (and not the range), the data will cover turn
+            every_n_turns (int, optional): Save only every n-th turn, i.e. turn numbers which are multiples of this.
+                Because `n_last_turns` defines the number of turns to store (and not the range), the data will cover turn
                 numbers up to `n_last_turns*every_n_turns` turns before particle loss.
 
         Example:
             monitor = LastTurnsMonitor(n_last_turns=5, particle_id_range=(1, 5))
             monitor.at_turn[:,-1]  # last turn before loss of each particle, respectively
-            monitor.x[3,-2]  # x coordinate in one but last turn of particle with id 4
+            monitor.x[3,-2]  # x coordinate in the last but one turn of particle with id 4
 
         """
 
@@ -89,7 +89,7 @@ class LastTurnsMonitor(BeamElement):
             else:
                 raise ValueError("Exactly one of `num_particles` or `particle_id_range` parameters must be specified")
 
-            # explicitely init with zeros (instead of size only) to have consistent default values for untouched arrays
+            # explicitly init with zeros (instead of size only) to have consistent default values for untouched arrays
             # see also https://github.com/xsuite/xsuite/issues/294
             size = num_particles*n_last_turns
             data = {prop: np.zeros(size) if size > 0 else [] for prop in self.properties} # particle data

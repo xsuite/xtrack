@@ -155,6 +155,8 @@ class Profile(xo.Struct):
 
     Parameters
     ----------
+    shape: Shape
+        The profile shape.
     tol_r: float
         Radial tolerance for point-in-aperture check.
     tol_x: float
@@ -215,7 +217,7 @@ class Profile(xo.Struct):
 
 
 class ProfilePosition(xo.Struct):
-    """Description of the placement of a profile in pipe (lab) frame.
+    """Description of the placement of a profile in the pipe (lab) frame.
 
     Parameters
     ----------
@@ -226,7 +228,7 @@ class ProfilePosition(xo.Struct):
     shift_x: float
         The horizontal shift of the profile centre from the pipe axis.
     shift_y: float
-        The vertical shift of the profile centre from the pipe axis
+        The vertical shift of the profile centre from the pipe axis.
     rot_x_rad: float
         The rotation of the profile around the horizontal axis in radians.
     rot_y_rad: float
@@ -674,7 +676,7 @@ class ApertureModel(xo.Struct):
         **kwargs,
     ):
         if len(pipe_names) != len(pipes):
-            raise ValueError("Length of pipe_names and pipe_names must match.")
+            raise ValueError("Length of pipe_names and pipes must match.")
 
         if len(profile_names) != len(profiles):
             raise ValueError("Length of profile_names and profiles must match.")

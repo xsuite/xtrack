@@ -25,7 +25,7 @@ def expr_to_mad_str(expr):
     expr_str = expr_str.replace("'", "")
     expr_str = expr_str.replace('"', "")
 
-    # transform vars[...] in (...)
+    # transform vars[...] into (...)
     while "vars[" in expr_str:
         before, after = tuple(*[expr_str.split("vars[", 1)])
         # find the corresponding closing bracket
@@ -196,7 +196,7 @@ def cavity_to_mad_str(eref, mad_type=MadType.MADX, substituted_vars=None):
 
 def crabcavity_to_mad_str(eref, mad_type=MadType.MADX, substituted_vars=None):
     """
-    Convert a cavity element to a MADX/MAD-NG string representation.
+    Convert a crab cavity element to a MADX/MAD-NG string representation.
 
     Parameters:
     - eref: The element reference.
@@ -204,7 +204,7 @@ def crabcavity_to_mad_str(eref, mad_type=MadType.MADX, substituted_vars=None):
     - substituted_vars: List of substituted variables for MADNG.
 
     Returns:
-    - A string representation of the cavity in MADX/MAD-NG format.
+    - A string representation of the crab cavity in MADX/MAD-NG format.
     """
 
     tokens = []
@@ -220,7 +220,8 @@ def marker_to_mad_str(name, line, mad_type=MadType.MADX, substituted_vars=None):
     """Convert a marker element to a MADX/MAD-NG string representation.
 
     Parameters:
-    - eref: The element reference.
+    - name: The name of the marker element.
+    - line: The line containing the element.
     - mad_type: Type of MAD (MADX or MADNG).
     - substituted_vars: List of substituted variables for MADNG.
 
@@ -275,7 +276,7 @@ def device_to_mad_str(eref, mad_type=MadType.MADX, substituted_vars=None):
 
 def drift_slice_to_mad_str(eref, mad_type=MadType.MADX, substituted_vars=None):
     """
-    Convert a drift element to a MADX/MAD-NG string representation.
+    Convert a drift slice element to a MADX/MAD-NG string representation.
 
     Parameters:
     - eref: The element reference.
@@ -283,7 +284,7 @@ def drift_slice_to_mad_str(eref, mad_type=MadType.MADX, substituted_vars=None):
     - substituted_vars: List of substituted variables for MADNG.
 
     Returns:
-    - A string representation of the drift in MADX/MAD-NG format.
+    - A string representation of the drift slice in MADX/MAD-NG format.
     """
 
     tokens = []
@@ -370,7 +371,7 @@ def acdipole_to_mad_str(eref, mad_type=MadType.MADNG, substituted_vars=None):
         tokens.append(mad_assignment('volt', _ge(eref.volt), mad_type, substituted_vars=substituted_vars))
         tokens.append(mad_assignment('freq', _ge(eref.freq), mad_type, substituted_vars=substituted_vars))
 
-        # MAD-NG is turn-1 based, while in xtrack is turn-0 based, so we need to shift the lag and ramp parameters accordingly
+        # MAD-NG is turn-1 based, while xtrack is turn-0 based, so we need to shift the lag and ramp parameters accordingly
         tokens.append(mad_assignment('lag', _ge(eref.lag) - _ge(eref.freq), mad_type, substituted_vars=substituted_vars))
         tokens.append(mad_assignment('ramp', eref.ramp._value + 1, mad_type, substituted_vars=substituted_vars))
         tokens.append("ac_bet = false")
@@ -513,7 +514,7 @@ def sextupole_to_mad_str(eref, mad_type=MadType.MADX, substituted_vars=None):
     return tokens
 
 def octupole_to_mad_str(eref, mad_type=MadType.MADX, substituted_vars=None):
-    """ Convert a octupole element to a MADX/MAD-NG string representation.
+    """ Convert an octupole element to a MADX/MAD-NG string representation.
 
     Parameters:
     - eref: The element reference.
@@ -542,7 +543,7 @@ def octupole_to_mad_str(eref, mad_type=MadType.MADX, substituted_vars=None):
     return tokens
 
 def quadrupole_to_mad_str(eref, mad_type=MadType.MADX, substituted_vars=None):
-    """ Convert a quadrupole element to a MADX string representation.
+    """ Convert a quadrupole element to a MADX/MAD-NG string representation.
 
     Parameters:
     - eref: The element reference.
@@ -571,7 +572,7 @@ def quadrupole_to_mad_str(eref, mad_type=MadType.MADX, substituted_vars=None):
     return tokens
 
 def solenoid_to_mad_str(eref, mad_type=MadType.MADX, substituted_vars=None):
-    """ Convert a solenoid element to a MADX string representation.
+    """ Convert a solenoid element to a MADX/MAD-NG string representation.
 
     Parameters:
     - eref: The element reference.

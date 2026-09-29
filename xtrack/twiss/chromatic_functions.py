@@ -76,7 +76,7 @@ def _get_chromatic_functions(
     wx_chrom = np.sqrt(ax_chrom**2 + bx_chrom**2)
     wy_chrom = np.sqrt(ay_chrom**2 + by_chrom**2)
 
-    # Could be addede if needed (note that mad-x unwraps and devide by 2pi)
+    # Could be added if needed (note that MAD-X unwraps and divides by 2pi)
     # phix_chrom = np.arctan2(ax_chrom, bx_chrom)
     # phiy_chrom = np.arctan2(ay_chrom, by_chrom)
 

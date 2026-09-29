@@ -30,7 +30,7 @@ from .table import Table
 ReferType = Literal['start', 'center', 'centre', 'end']
 
 DEFAULT_REF_STRENGTH_NAME = {
-    'Bend': '_k0', # using underscored to get the value also when k0_from_h is True
+    'Bend': '_k0', # using the underscored attribute to get the value also when k0_from_h is True
     'RBend': '_k0',
     'Quadrupole': 'k1',
     'Sextupole': 'k2',
@@ -67,7 +67,11 @@ class Environment:
             Reference particle.
         lines : dict, optional
             Dictionary with the lines of the environment.
+        particles : dict, optional
+            Dictionary with the named particles of the environment.
 
+        Notes
+        -----
         Short description of main attributes of the Environment class:
          - Environment[...]: accesses values of variables, elements and lines.
          - ref[...]: provides reference objects to variables and elements.
@@ -327,18 +331,32 @@ class Environment:
              - clone: clone the prototype element or line.
                The prototype element or line is copied, together with the associated
                expressions.
-             - replica: replicate the prototype elements or lines are made.
+             - replica: a replica of the prototype element or line is made.
              - import: clone from a different environment. `import_from` must be
                provided.
         at : float or str, optional
             Position of the created object.
-        from_: str, optional
+        from_ : str, optional
             Name of the element from which the position is calculated (its center
             is used as reference).
+        anchor : {'start', 'center', 'centre', 'end'}, optional
+            Anchor of the created element positioned at ``at``. If omitted, the
+            default reference anchor of the line is used.
+        from_anchor : {'start', 'center', 'centre', 'end'}, optional
+            Anchor of the reference element from which ``at`` is measured. If
+            omitted, the default reference anchor of the line is used.
+        extra : dict, optional
+            Additional metadata associated with the new element.
         mirror : bool, optional
             Can only be used when cloning lines. If True, the order of the elements
             is reversed.
-        import_from : Environment, optional. Only to be used when mode is 'import'.
+        force : bool, optional
+            If True, replace an existing element with the same name. Default is
+            False.
+        import_from : Environment, optional
+            Only to be used when mode is 'import'.
+        **kwargs
+            Attributes used to initialize or customize the element.
 
         Notes
         -----
@@ -536,9 +554,9 @@ class Environment:
         Environment.particles, its properties can be controlled with deferred
         expressions and it can be used as reference particle for lines.
 
-        Note that this method is not meant to create particles distributions for
+        Note that this method is not meant to create particle distributions for
         tracking. For that purpose use xt.Particles(...), Line.build_particles(...)
-        or the generation functions for particles distributions available in xpart.
+        or the generation functions for particle distributions available in xpart.
         See https://xsuite.readthedocs.io/en/latest/particlesmanip.html for more
         details.
 
@@ -548,8 +566,11 @@ class Environment:
             Name of the new particle type
         parent : str or class
             Parent class or name of the parent particle type
-        pdg_id_0 : int or str, optional, define reference mass and charge from
-            PDG id or particle name.
+        force : bool, optional
+            If True, replace an existing particle type with the same name.
+            Default is False.
+        pdg_id_0 : int or str, optional
+            Define reference mass and charge from PDG id or particle name.
         mass0 : float, optional
             Reference rest mass [eV]
         q0 : float, optional
@@ -727,13 +748,22 @@ class Environment:
 
         Parameters
         ----------
-        name : str or Line
-            Name of the element or line to be placed.
+        name : str, Line, or sequence of str
+            Name of the element or line to be placed. A sequence of element
+            names is first combined into a line.
+        obj : object, optional
+            Object to register in the environment under ``name`` before placing it.
         at : float or str, optional
             Position of the created object.
-        from_: str, optional
+        from_ : str, optional
             Name of the element from which the position is calculated (its center
             is used as reference).
+        anchor : {'start', 'center', 'centre', 'end'}, optional
+            Anchor of the placed component positioned at ``at``. If omitted, the
+            default reference anchor of the line is used.
+        from_anchor : {'start', 'center', 'centre', 'end'}, optional
+            Anchor of the reference component from which ``at`` is measured. If
+            omitted, the default reference anchor of the line is used.
 
         Returns
         -------
@@ -1091,7 +1121,7 @@ class Environment:
                 out['particle_ref'] = self._particle_ref.to_dict()
         if self._var_management is not None and include_var_management:
             if hasattr(self, '_in_multiline') and self._in_multiline is not None:
-                raise ValueError('The line is part ot a MultiLine object. '
+                raise ValueError('The line is part of a MultiLine object. '
                     'To save without expressions please use '
                     '`line.to_dict(include_var_management=False)`.\n'
                     'To save also the deferred expressions please save the '
@@ -1913,10 +1943,10 @@ class Environment:
         ----------
         name : str or iterable of str
             Name or names of the variable(s) or element(s).
-        value: float or str
+        value : float or str
             Value or expression of the variable to set. Can be provided only
             if the name is associated to a variable.
-        **kwargs, float or str
+        **kwargs : float or str
             Attributes to set. Can be provided only if the name is associated
             to an element.
 
@@ -2083,7 +2113,7 @@ class Environment:
 
         Parameters
         ----------
-        var: str
+        var : str
             Name of the variable
 
         Returns
@@ -2186,9 +2216,9 @@ class Environment:
 
         Parameters
         ----------
-        order: int
+        order : int
             New order of the knl and ksl attributes.
-        element_names: list of str
+        element_names : list of str
             Names of the elements to extend. If None, all elements having `knl`
             and `ksl` attributes are extended.
 
@@ -2199,13 +2229,13 @@ class Environment:
     @doc_group("Editing, Inspection, Variables and Configuration")
     def extend_knl_rel_ksl_rel(self, order, element_names=None):
         """
-        Extend the order of the rel_knl and rel_ksl attributes of the elements.
+        Extend the order of the knl_rel and ksl_rel attributes of the elements.
 
         Parameters
         ----------
-        order: int
-            New order of the rel_knl and rel_ksl attributes.
-        element_names: list of str
+        order : int
+            New order of the knl_rel and ksl_rel attributes.
+        element_names : list of str
             Names of the elements to extend. If None, all elements having `knl`
             and `ksl` attributes are extended.
 
@@ -2285,9 +2315,9 @@ class Environment:
             Dictionary with the xdeps references to the elements.
         isinit: bool
             Whether the element is being initialized. If True, to gain speed,
-            we assume that no references are alredy present to the element
+            we assume that no references are already present to the element
             in the ref_manager, and we set numerical values directly on the
-            element without unregistering the refereces.
+            element without unregistering the references.
         """
 
         for field_name, value in value_kwargs.items():
@@ -3740,13 +3770,13 @@ class EnvVars:
 
     def _load_madx(self, filename=None, string=None):
         """
-        Set variables values of expression from a MAD-X file.
+        Set variable values or expressions from a MAD-X file.
 
         Parameters
         ----------
-        filename: str or list of str
+        filename : str or list of str
             Path to the MAD-X file(s) to load.
-        string: str
+        string : str
             MAD-X source string to load.
         """
         old_default_to_zero = self.default_to_zero
@@ -3773,7 +3803,7 @@ class EnvVars:
             Path to the JSON file to load.
         """
         warn(
-            '`EnvVars.load_json` is deprecated, use `vars.load` ,'
+            '`EnvVars.load_json` is deprecated, use `vars.load`, '
             'optionally with `format="json"` instead.'
             + DEPRECATION_INFO_PREP_1_0,
             FutureWarning

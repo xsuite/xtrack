@@ -7,7 +7,7 @@ from ..base_element import BeamElement
 import xobjects as xo
 
 class Misalignment(BeamElement):
-    """Beam element modeling a misalignment of a strait or curved element.
+    """Beam element modeling a misalignment of a straight or curved element.
 
     Parameters
     ----------

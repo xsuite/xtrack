@@ -215,26 +215,31 @@ def test_masses():
     assert np.isclose(pdg.get_mass_from_pdg_id(1000010020), 1875.6e6, rtol=1e-3)
     assert np.isclose(pdg.get_mass_from_pdg_id(1000010030), 2808.9e6, rtol=1e-3)
     # Test the ion masses defined in the mass table
+    expected_ion_masses = {
+        1000010020: masses.DEUTERON_MASS_EV,
+        1000010030: masses.TRITON_MASS_EV,
+    }
     for massdef, mass in masses.__dict__.items():
         if massdef.endswith('_MASS_EV'):
             massdef = massdef[:-8]
             if any([i.isdigit() for i in massdef]):
                 A = int(''.join([i for i in massdef if i.isdigit()]))
                 el = massdef.replace(f'{A}', '')
-                if el in pdg.elements:
+                if el in pdg.elements.values():
                     Z = pdg.get_Z_from_element_name(el)
                     pdg_id = pdg.get_pdg_id_ion(A, Z)
                     assert pdg.get_pdg_id_from_mass_charge(mass, Z) == pdg_id
                     assert np.isclose(pdg.get_mass_from_pdg_id(pdg_id), mass, rtol=1e-7)
+                    expected_ion_masses[pdg_id] = mass
+
     for Z in pdg.elements.keys():
-        if Z < 3 or Z == 6 or Z==26:
-            rtol = 1e-2
-        else:
-            rtol = 1e-3
         for A in range(Z+1, 4*Z):
             pdg_id = pdg.get_pdg_id_ion(A, Z)
             assert pdg.get_pdg_id_from_mass_charge(A*masses.U_MASS_EV, Z) == pdg_id
-            assert np.isclose(pdg.get_mass_from_pdg_id(pdg_id), A*masses.U_MASS_EV, rtol=rtol)
+            # A*u is the fallback for unlisted isotopes, not an accuracy bound
+            # on tabulated nuclear masses (e.g. Ar36 differs by more than 0.1%).
+            expected = expected_ion_masses.get(pdg_id, A*masses.U_MASS_EV)
+            assert pdg.get_mass_from_pdg_id(pdg_id, verbose=False) == expected
 
 
 def test_lead_208():

@@ -31,9 +31,9 @@ def _monitor_init(
     Parameters
     ----------
     start_at_turn: int
-        Turn at which the monitor starts logging the particles coordinates.
+        Turn at which the monitor starts logging the particle coordinates.
     stop_at_turn: int
-        Turn at which the monitor stops logging the particles coordinates.
+        Turn at which the monitor stops logging the particle coordinates.
     n_repetitions: int
         Number of times the monitor repeats the logging of the particles.
     repetition_period: int

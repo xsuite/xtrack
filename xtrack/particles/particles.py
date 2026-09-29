@@ -144,8 +144,8 @@ class Particles(xo.HybridClass):
 
         Parameters
         ----------
-        pdg_id_0 : int or str, optional, define reference mass and charge from
-            PDG id or particle name.
+        pdg_id_0 : int or str, optional
+            Define reference mass and charge from PDG id or particle name.
         _capacity: int
             The maximum number of particles that can be stored in the object.
             If not provided, it is inferred from the size of the provided
@@ -207,7 +207,7 @@ class Particles(xo.HybridClass):
             It is <= 0 if the particle is lost, > 0 otherwise
             (different values are used to record information on how the particle
             is lost or generated)
-        pdg_id : array_like of float, optional
+        pdg_id : array_like of int or str, optional
             PDG id of the particle under consideration (needed when tracking
             ions to distinguish different particle types). The default is 0
             (undefined)
@@ -232,7 +232,7 @@ class Particles(xo.HybridClass):
                             'Please use `zeta` instead.')
 
         if 'psigma' in kwargs.keys():
-            raise NameError('`psigma` is not supported anymore.'
+            raise NameError('`psigma` is not supported anymore. '
                             'Please use `pzeta` instead.')
 
         accepted_args = set(self._xofields.keys()) | {
@@ -274,12 +274,12 @@ class Particles(xo.HybridClass):
         # Validate _capacity if given explicitly, if not assume it based on input
         if _capacity is not None:
             if _capacity <= 0:
-                raise ValueError('Explicitly provided `_capacity` has to be'
+                raise ValueError('Explicitly provided `_capacity` has to be '
                                  'greater than zero.')
 
             if _capacity < input_length:
                 raise ValueError(
-                    f'Capacity ({_capacity}) has to be greater or equal to the '
+                    f'Capacity ({_capacity}) has to be greater than or equal to the '
                     f'number of particles ({input_length}).'
                 )
         else:
@@ -415,7 +415,7 @@ class Particles(xo.HybridClass):
         dct : dict
             The dictionary to load the Particles object from.
         load_rng_state : bool, optional
-            Whether to load the state of the random number generator  from the
+            Whether to load the state of the random number generator from the
             dictionary. Defaults to True.
         _context : Context, optional
             The context to load the Particles object into. If not provided,
@@ -462,7 +462,7 @@ class Particles(xo.HybridClass):
         copy_to_cpu : bool, optional
             Whether to copy the Particles object to the CPU before converting
             it to a dictionary. Defaults to True.
-        compact:
+        compact : bool, optional
             Whether to minimize the size of the dictionary. Defaults to False.
         remove_underscored : bool, optional
             Whether to remove underscored variables from the dictionary.
@@ -535,7 +535,7 @@ class Particles(xo.HybridClass):
         filename : str
             The name of the file to save the Particles object to.
         **kwargs : dict
-            Additional keyword arguments to pass to the json.to_dict method.
+            Additional keyword arguments to pass to the `to_dict` method.
         """
 
         class NumpyEncoder(json.JSONEncoder):
@@ -569,6 +569,9 @@ class Particles(xo.HybridClass):
         _buffer : Buffer, optional
             The buffer to load the Particles object into. If not provided,
             a new buffer will be allocated from the context.
+        load_rng_state : bool, optional
+            Whether to load the state of the random number generator from the
+            DataFrame. Defaults to True.
 
         Returns
         -------
@@ -596,7 +599,7 @@ class Particles(xo.HybridClass):
 
         Parameters
         ----------
-        compact:
+        compact : bool, optional
             Whether to minimize the size of the dictionary. Defaults to False.
         remove_underscored : bool, optional
             Whether to remove underscored variables from the dictionary.
@@ -696,7 +699,7 @@ class Particles(xo.HybridClass):
 
         """
 
-        # TODO For now the merge is performed on CPU for add contexts.
+        # TODO For now the merge is performed on CPU for all contexts.
         # Slow for objects on GPU (transferred to CPU for the merge).
 
         # Move everything to cpu
@@ -708,7 +711,7 @@ class Particles(xo.HybridClass):
             else:
                 cpu_lst.append(pp.copy(_context=xo.context_default))
 
-        # Check that scalar variable are compatible
+        # Check that scalar variables are compatible
         for tt, nn in cls.scalar_vars:
             vals = [getattr(pp, nn) for pp in cpu_lst]
             assert np.allclose(vals, getattr(cpu_lst[0], nn),
@@ -751,7 +754,7 @@ class Particles(xo.HybridClass):
 
         # Copy to appropriate context
         if _context is None and _buffer is None:
-            # Use constext of first particle
+            # Use context of first particle
             if isinstance(lst[0]._buffer.context, xo.ContextCpu):
                 new_part_cpu._buffer.context = lst[0]._buffer.context
                 return new_part_cpu
@@ -782,7 +785,7 @@ class Particles(xo.HybridClass):
         else:
             self_cpu = self.copy(_context=xo.context_default)
 
-        # copy mask to cpu is needed
+        # copy mask to cpu if needed
         if isinstance(mask, self._buffer.context.nplike_array_type):
             mask = self._buffer.context.nparray_from_context_array(mask)
 
@@ -891,7 +894,7 @@ class Particles(xo.HybridClass):
 
         if isinstance(self._context, xo.ContextPyopencl):
             # Needs special treatment because masking does not work with pyopencl
-            # Going to for the masking for now, could be replaced by a kernel in the future.
+            # Going to CPU for the masking for now, could be replaced by a kernel in the future.
             state_cpu = self.state.get()
             mask_active_cpu = state_cpu > 0
             mask_lost_cpu = (state_cpu < 1) & (state_cpu > LAST_INVALID_STATE)
@@ -1068,7 +1071,7 @@ class Particles(xo.HybridClass):
 
     def _init_random_number_generator(self, seeds=None):
         """
-        Initialize state of the random number generator (possibility to providing
+        Initialize state of the random number generator (possibility to provide
         a seed for each particle).
         """
 
@@ -1465,7 +1468,7 @@ class Particles(xo.HybridClass):
     def add_to_energy(self, delta_energy):
         """
         Add `delta_energy` to the `energy` of the particles object. `delta`,
-        'ptau', `rvv` and `rpp` are updated accordingly.
+        `ptau`, `rvv` and `rpp` are updated accordingly.
         """
         self.ptau += delta_energy / self.p0c / self.mass_ratio
 
@@ -1553,7 +1556,7 @@ class Particles(xo.HybridClass):
                                mask=None):
         """Update field values that may be both given and computed from others.
 
-        In case of small differences between the given value and them computed
+        In case of small differences between the given value and the computed
         value, the given value will prevail to preserve numerical stability.
         This is useful when two or more dependent variables are given as input.
         """
@@ -1764,7 +1767,7 @@ class Particles(xo.HybridClass):
 
         if update_pxpy:
             if isinstance(self._context, xo.ContextPyopencl):
-                raise NotImplementedError # Issue wiht masking
+                raise NotImplementedError # Issue with masking
             scale_pxpy = old_p0c[mask] / new_p0c[mask]
             self.px[mask] *= scale_pxpy
             self.py[mask] *= scale_pxpy

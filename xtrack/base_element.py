@@ -350,7 +350,7 @@ def _generate_beam_element_track_kernel_source(
 
 def _tranformations_active(beam_element):
     """This internal function is provided for backward compatibility but
-    should not be used and will beb removed soon. Use the following instead:"""
+    should not be used and will be removed soon. Use `transformations_active` instead."""
     return beam_element.transformations_active
 
 

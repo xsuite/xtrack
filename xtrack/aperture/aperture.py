@@ -591,7 +591,7 @@ class Aperture:
             context: XContext,
             **kwargs,
     ) -> Aperture:
-        """Build the Aperture class and its comprising xobjects.
+        """Build the Aperture object and its constituent xobjects.
 
         Parameters
         ----------
@@ -606,10 +606,12 @@ class Aperture:
         pipe_position_names
             Names of all aperture pipe positions in ``pipe_position_list`` order.
         profile_indices
-            A mapping between the name of an aperture pipe and its index in ``profile_list``.
+            A mapping between the name of an aperture profile and its index in ``profile_list``.
         profile_list
             List of all profiles featured in the model. The order must be consistent with the indices used inside
             each of the pipe definitions in ``pipe_list``.
+        context
+            Context in which the model xobjects are allocated.
         kwargs
             Further parameters to be passed to the initialiser of `Aperture`.
         """
@@ -652,7 +654,7 @@ class Aperture:
 
         Parameters
         ----------
-        elment_name
+        element_name
             The name of the element at which the sigmas should be computed.
         resolution
             The desired resolution, in meters along s, at which the sigmas should be computed. If not provided only the
@@ -883,15 +885,16 @@ class Aperture:
 
         Parameters
         ----------
-        elment_name
+        element_name
             The name of the element at which the sigmas should be computed.
         resolution
             The desired resolution, in meters along s, at which the sigmas should be computed. If not provided only the
             values at the entry and exit will be output.
         twiss
             Optionally provided twiss table from which to derive the initial beam parameters at the element.
-        **kwargs
-            Other parameters to be forwarded to :meth:`get_hvd_aperture_sigmas_at_s`.
+        with_progress
+            Whether to show progress while slicing the line. Defaults to
+            ``True``.
 
         Returns
         -------
@@ -1418,7 +1421,7 @@ class Aperture:
         middle
             Whether the plot should be centred around the ``aperture`` middle, or ``beam`` reference.
         ax
-            Axes object to plot on, if not given, spawn a new one.
+            Axes object to plot on. If not given, the current axes are used.
         with_progress
             Whether to show progress while slicing the line. Defaults to
             ``True``.

@@ -17,7 +17,7 @@ class TimeDelay(BeamElement):
     ----------
 
     shift_zeta : float
-        Time shift in meters added to the variable ``zeta``. Default is ``0``.
+        Time shift in meters subtracted from the variable ``zeta``. Default is ``0``.
 
     '''
 

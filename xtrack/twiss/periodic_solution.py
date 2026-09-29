@@ -69,7 +69,7 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
         part_on_co = particle_on_co
     else:
         if search_for_t_rev:
-            assert method == '6d', 'search_for_t_rev possible when ``method`` is "6d"'
+            assert method == '6d', 'search_for_t_rev is only possible when ``method`` is "6d"'
         part_on_co = line.find_closed_orbit(
                                 co_guess=co_guess,
                                 particle_ref=particle_ref,

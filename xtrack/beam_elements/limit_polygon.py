@@ -29,8 +29,8 @@ class LimitPolygon(BeamElement):
     -----
     The polygon is closed automatically by connecting the last and first vertex.
 
-    The SVG Path follow the standard https://www.w3.org/TR/SVG/paths.html and
-    can edited using https://acc-models.web.cern.ch/svg-path-editor/
+    The SVG Path follows the standard https://www.w3.org/TR/SVG/paths.html and
+    can be edited using https://acc-models.web.cern.ch/svg-path-editor/
     The y axis is inverted from SVG units to physical space because in svg y points downwards
 
     """

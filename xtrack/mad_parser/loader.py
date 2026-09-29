@@ -270,7 +270,7 @@ class MadxLoader:
                 composer = self.env.new_line(name=name, components=components, compose=True)
             else:
                 raise ValueError(
-                    f'Only a MAD-X sequence or a line type can be used to build'
+                    f'Only a MAD-X sequence or a line type can be used to build '
                     f'a line, but got: {line_type}!'
                 )
 
@@ -341,8 +341,8 @@ class MadxLoader:
 
         for name, body in elements:
 
-            # Parent is None if the element already exists and is referred to,
-            # by name, otherwise we expect a line nested in the current one.
+            # Parent is None if the element already exists and is referred to
+            # by name; otherwise we expect a line nested in the current one.
             parent = body.get('parent', None)
             repeat = body.get('_repeat', 1)
             invert = body.get('_invert', False)
@@ -586,7 +586,7 @@ class MadxLoader:
         return params
 
     def _build_aperture(self, name, aper_name, params, force=False):
-        """Build a Xtrack aperture for element `name` with  `params`.
+        """Build an Xtrack aperture for element `name` with `params`.
 
         Parameters
         ----------
@@ -606,8 +606,8 @@ class MadxLoader:
         -------
         The name of the generated aperture element in the environment, or None.
 
-        Notes:
-        ------
+        Notes
+        -----
         Currently supports all the basic MAD-X aperture types, however when
         ``aper_vx`` or ``aper_vy`` are given, the aperture is assumed to be
         simply a polygon, instead of applying the MAD-X logic (testing first for

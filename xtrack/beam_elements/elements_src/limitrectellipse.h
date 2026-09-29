@@ -39,7 +39,7 @@ void LimitRectEllipse_track_local_particle(LimitRectEllipseData el, LocalParticl
             (y0 >= -max_y) &&
             (temp0 <= a_b_squ));
 
-        // I assume that if I am in the function is because
+        // I assume that if I am in the function it is because the particle is alive
         if (!is_alive) {
             LocalParticle_set_state(part, XT_LOST_ON_APERTURE);
         }
