@@ -44,6 +44,13 @@ class ElectronCooler(BeamElement):
             being 0.
         space_charge_factor : float, optional
             Whether space charge of the electron beam is enabled. 0 is off and 1 is on.
+        record_flag : int, optional
+            If nonzero, record the cooling force components ``Fx``, ``Fy``, and
+            ``Fl`` in eV/m, together with ``particle_id``, for each particle on
+            each passage through the cooler. Requires internal logging to be
+            enabled with ``line.start_internal_logging_for_elements_of_type``
+            for ``ElectronCooler``; records are stored while capacity remains.
+            Default is 0 (disabled).
 
     """
 
