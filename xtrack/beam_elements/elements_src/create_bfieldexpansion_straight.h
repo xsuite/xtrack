@@ -28,7 +28,8 @@ void build_expansion_straight(BFieldExpansionData el){
     };
     const double length = BFieldExpansionData_get_length(el);
     const double inv_length = length != 0.0 ? 1.0 / length : 0.0;
-    const int deg   = BFieldExpansionData_get_deg(el);
+    const int field_deg = BFieldExpansionData_get_deg(el);
+    const int deg = field_deg + 1; /* potential degree, including int ksol ds */
     GPUGLMEM const double *ksc = BFieldExpansionData_getp2_ksc(el, 0, 0);
     GPUGLMEM const double *knc = BFieldExpansionData_getp2_knc(el, 0, 0);
     GPUGLMEM const double *ksol = BFieldExpansionData_getp1_ksol(el, 0);
@@ -52,8 +53,8 @@ void build_expansion_straight(BFieldExpansionData el){
     for (int n = 1; n <= na; ++n) {
         const double fac = -invfact[n];
         if (n <= nac) {
-            GPUGLMEM const double *an = ksc + (size_t)(n - 1) * (size_t)(deg + 1);
-            for (int k = 0; k <= deg; ++k) c[cidx(0,n,k,nm,moff,deg)] += fac * an[k];
+            GPUGLMEM const double *an = ksc + (size_t)(n - 1) * (size_t)(field_deg + 1);
+            for (int k = 0; k <= field_deg; ++k) c[cidx(0,n,k,nm,moff,deg)] += fac * an[k];
         }
         if (n <= 4) c[cidx(0,n,0,nm,moff,deg)] += fac * ks[n - 1];
         if (n <= nal)
@@ -63,8 +64,8 @@ void build_expansion_straight(BFieldExpansionData el){
         for (int n = 1; n <= nb; ++n) {
             const double fac = -invfact[n - 1];
             if (n <= nbc) {
-                GPUGLMEM const double *bn = knc + (size_t)(n - 1) * (size_t)(deg + 1);
-                for (int k = 0; k <= deg; ++k) c[cidx(1,n-1,k,nm,moff,deg)] += fac * bn[k];
+                GPUGLMEM const double *bn = knc + (size_t)(n - 1) * (size_t)(field_deg + 1);
+                for (int k = 0; k <= field_deg; ++k) c[cidx(1,n-1,k,nm,moff,deg)] += fac * bn[k];
             }
             if (n <= 4) c[cidx(1,n-1,0,nm,moff,deg)] += fac * kn[n - 1];
             if (n <= nbl)

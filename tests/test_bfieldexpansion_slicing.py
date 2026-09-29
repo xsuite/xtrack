@@ -11,7 +11,7 @@ def make_element(h=0.3, pkin_const=False):
         length=0.8, h=h, s_start=0.17, num_integration_steps=160, num_phi=5,
         pkin_const=pkin_const, kscale=0.7,
         knc=[[0.1, 0.08, -0.03], [0.04, -0.02, 0.01]],
-        ksc=[[0.02, -0.01, 0.02]], ksol=[0.15, 0.03, 0.],
+        ksc=[[0.02, -0.01, 0.02]], ksol=[0.15, 0.03, 0.02],
         knl=[0.01, 0.002, 0.003], ksl=[0.003, 0.004])
 
 

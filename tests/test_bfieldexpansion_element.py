@@ -86,7 +86,7 @@ def test_bfieldexpansion_chi(h, pkin_const, sliced):
     kwargs = dict(length=0.3, h=h, s_start=0.1, num_integration_steps=60,
                   pkin_const=pkin_const,
                   knc=[[0.05, 0.1, 0.], [0.02, 0., 0.]],
-                  ksc=[[0.04, 0.2, 0.]], ksol=[0.1, 0.02, 0.],
+                  ksc=[[0.04, 0.2, 0.]], ksol=[0.1, 0.02, 0.03],
                   knl=[0.01, 0.003], ksl=[0.002], k2=0.02, k3s=0.01)
 
     def make_line(scale):
@@ -367,7 +367,6 @@ def test_bfieldexpansion_auto_complete_straight_field(na, nb, degree):
     coefficients = dict(ksc=rng.normal(size=(na, degree + 1)),
                         knc=rng.normal(size=(nb, degree + 1)),
                         ksol=rng.normal(size=degree + 1))
-    coefficients['ksol'][-1] = 0.  # Room for the scalar-potential integral.
     element = xt.BFieldExpansion(length=0.4, s_start=0.13, **coefficients)
     reference = xt.BFieldExpansion(
         length=element.length, s_start=element.s_start,
@@ -1055,6 +1054,45 @@ def test_bfieldexpansion_hard_edge_validation():
         assert len(getattr(element, name)) == 1
 
 
+@pytest.mark.parametrize('pkin_const', [False, True])
+@pytest.mark.parametrize('sliced', [False, True])
+@pytest.mark.parametrize('at_entrance', [False, True])
+def test_bfieldexpansion_singular_chart(pkin_const, sliced, at_entrance):
+    h = 0.5
+    if at_entrance:
+        length, x_bad, px_bad, ksol = 0.2, -1/h, 0., [0.1, 0.]
+    else:
+        # The second RK4 evaluation lands exactly on 1+h*x=0. Use a
+        # field-free profile so the first-stage slope is known analytically.
+        x_bad, px_bad, ksol = 0., -0.99, [0., 0.]
+        slope = px_bad / np.sqrt(1. - px_bad**2)
+        length = -2 / (h * slope)
+        assert 1 + h * (0.5 * length * slope) == 0.
+
+    weight = 0.5 if sliced else 1.
+    parent = xt.BFieldExpansion(length=length / weight, h=h, ksol=ksol,
+                               num_integration_steps=1, pkin_const=pkin_const)
+    element = (xt.ThickSliceBFieldExpansion(
+        _parent=parent, weight=weight, slice_offset=0., _buffer=parent._buffer)
+        if sliced else parent)
+    initial = xt.Particles(p0c=1e9, delta=0., x=[0.01, x_bad, -0.02],
+                           px=[0.001, px_bad, -0.002], y=[0.02, 0., -0.03],
+                           chi=[1., 0.7, -1.], mass_ratio=[1., 2., 1.])
+    particles = initial.copy()
+    reference = initial.filter(initial.particle_id != 1)
+    element.track(particles)
+    element.track(reference)
+    order = np.argsort(particles.particle_id)
+    xo.assert_allclose(particles.state[order], [1, -43, 1], rtol=0, atol=0)
+    # A failed evaluation does not commit partial RK4 updates or poison
+    # the following particle with uninitialized/stale field data.
+    for name in ('x', 'px', 'y', 'py', 'zeta', 'delta', 's', 'ax', 'ay'):
+        actual = getattr(particles, name)[order]
+        assert actual[1] == getattr(initial, name)[1]
+        xo.assert_allclose(actual[[0, 2]], getattr(reference, name),
+                           rtol=0, atol=1e-14)
+
+
 def test_get_field_straight():
     ksc = np.array([[0.04, 0.2, 0.08], [0, 0, 0.1]])
     knc = np.array([[0.05, 0.04, 0.07], [0.01, 0, 0]])
@@ -1275,7 +1313,10 @@ def test_against_boris():
     assert np.isclose(p0.ptau, p1.ptau)
     assert np.isclose(p0.s, p1.s)
 
-def test_straighttocurved():
+@pytest.mark.parametrize('ksol_st', [0., 0.5])
+def test_straighttocurved(ksol_st):
+    from math import factorial
+
     def curved_to_straight(p, h):
         return {
             "x" : (1/h + p.x) * np.cos((p.s)*h) - 1/h,
@@ -1292,20 +1333,26 @@ def test_straighttocurved():
 
     knc_st = 1
     ksc_st = 0.1
-    ksol_st = 0.5
     h = 0.4
     length = 0.5
 
     knc_cu = np.array([[knc_st, 0, 0, 0, 0, 0, 0, 0, 0, 0]])
-    ksc_cu = np.array([[ksc_st, 0, - ksc_st/2*h**2, 0, ksc_st/24*h**4, 0, - ksc_st/720*h**6, 0, ksc_st/40320*h**8, 0]])
-    ksol_cu = np.array([0, -ksc_st*h, 0, ksc_st/6*h**3, 0, -ksc_st/120*h**5, 0, ksc_st/5040*h**7, 0, -ksc_st/362880*h**9])
+    # Rotate both components of the same homogeneous lab field into the
+    # curved frame: Bx = Bx_lab*cos(h*s) + Bs_lab*sin(h*s),
+    # Bs = Bs_lab*cos(h*s) - Bx_lab*sin(h*s).
+    cosine = np.array([(-1)**(k//2) * h**k / factorial(k) if k % 2 == 0 else 0.
+                       for k in range(10)])
+    sine = np.array([(-1)**(k//2) * h**k / factorial(k) if k % 2 else 0.
+                     for k in range(10)])
+    ksc_cu = (ksc_st * cosine + ksol_st * sine)[None, :]
+    ksol_cu = ksol_st * cosine - ksc_st * sine
 
     p0 = xt.Particles(x=0.01, y=0.005, tau=0.001, px=0.003, py=0.004, ptau=0.002, beta0=0.7)
     p1 = p0.copy()
 
-    line_straight = xt.Line(elements=[xt.BFieldExpansion(length=length, h=0, ksc=np.array([[ksc_st]]), knc=np.array([[knc_st]]), ksol=np.array([ksol_st]), num_phi=5, num_integration_steps=100)])
+    line_straight = xt.Line(elements=[xt.BFieldExpansion(length=length, h=0, ksc=np.array([[ksc_st]]), knc=np.array([[knc_st]]), ksol=np.array([ksol_st]), num_phi=5, num_integration_steps=100, pkin_const=True)])
     line_straight.track(p0, _force_no_end_turn_actions=True)
-    line_curved = xt.Line(elements=[xt.BFieldExpansion(length=straight_to_curved(p0, h)["s"], h=h, ksc=ksc_cu, knc=knc_cu, ksol=ksol_cu, num_phi=5, num_integration_steps=100)])
+    line_curved = xt.Line(elements=[xt.BFieldExpansion(length=straight_to_curved(p0, h)["s"], h=h, ksc=ksc_cu, knc=knc_cu, ksol=ksol_cu, num_phi=5, num_integration_steps=100, pkin_const=True)])
     line_curved.track(p1, _force_no_end_turn_actions=True)
 
     assert np.isclose(curved_to_straight(p1, h)["x"], p0.x)

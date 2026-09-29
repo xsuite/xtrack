@@ -7,10 +7,10 @@
 GPUFUN
 int evaluate_expansion_bent(Expansion *f, double x, double y, double s,
                             FieldValue *out) {
-    const double q = 1.0 + f->h * x;
-        if (q == 0.0) return -1; /* singular chart */
-
     bfieldexpansion_reset_field_value(out);
+
+    const double q = 1.0 + f->h * x;
+    if (q == 0.0) return -1; /* singular chart */
 
     /* As(x,0,s)
     = 1/(1+hx) int_0^x dx' *(1+hx) By(x',0,s)

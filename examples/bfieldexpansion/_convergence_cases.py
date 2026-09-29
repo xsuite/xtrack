@@ -1,8 +1,8 @@
 """Shared convergence study for the solenoid and curved-dipole examples.
 
 Fit every nonzero ksc[i](s), knc[i](s), ksol(s) independently with C1 cubic Hermite
-pieces. Pad the input arrays with one zero coefficient: BFieldExpansion
-must store the integral of ksol, including when ksol itself is cubic.
+pieces. BFieldExpansion reserves the extra scalar-potential degree internally,
+including when ksol itself is cubic.
 
 Use DOP853 on the Lorentz equations in the same Frenet frame as tracking,
 including q=1+h*x and the h*p_s curvature term. The reference uses the
@@ -79,8 +79,8 @@ def round_solenoid_seeds(profile):
 
 
 def make_element(case, profiles, length, context, num_phi=None):
-    # Include one EXTRA storage power; never discard the highest ksol term.
-    size = max(len(p.coef) for p in profiles) + 1
+    # All input profiles share the same longitudinal coefficient count.
+    size = max(len(p.coef) for p in profiles)
     coefficients = np.array([np.pad(p.coef, (0, size-len(p.coef))) for p in profiles])
     na, nb = len(case.ksc), len(case.knc)
     return xt.BFieldExpansion(

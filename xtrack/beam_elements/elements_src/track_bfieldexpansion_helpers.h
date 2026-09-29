@@ -9,7 +9,7 @@ int cidx(int i, int m, int k, int nm, int moff, int deg) {
 typedef struct {
     int num_phi; /* requested output order in y */
     int ncoef;   /* stored phi_i coefficients: 0..num_phi+1 */
-    int na, nb, deg;
+    int na, nb, deg; /* deg is the potential degree, one above the input degree */
     int mmin, mmax, moff, nm;
     int qemin, nq;
     double h;

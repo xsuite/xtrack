@@ -60,8 +60,7 @@ def make_elements(context, length, rigidity):
         [0.40, -0.10, 0.08, 0.03, -0.02],
         [0.80, 0.20, -0.10, 0.04, 0.03],
     ])
-    # Keep one trailing zero: BFieldExpansion stores the integral of ksol in
-    # the scalar potential, which needs one more longitudinal power.
+    # Pad the cubic solenoid profile to the width of the quartic multipoles.
     ksol = np.array([0.10, 0.02, -0.03, 0.01, 0.0])
     expansion = xt.BFieldExpansion(
         _context=context, length=length, ksc=ksc, knc=knc, ksol=ksol,

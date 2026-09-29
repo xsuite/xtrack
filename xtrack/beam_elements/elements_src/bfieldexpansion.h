@@ -1,6 +1,7 @@
 #ifndef XTRACK_BFIELDEXPANSION_H
 #define XTRACK_BFIELDEXPANSION_H
 
+#include "xtrack/headers/particle_states.h"
 #include "track_bfieldexpansion_straight.h"
 #include "track_bfieldexpansion_bent.h"
 
@@ -12,7 +13,8 @@ void BFieldExpansionData_init_expansion(BFieldExpansionData el, Expansion *f) {
     f->ncoef    = BFieldExpansionData_get__ncoef(el);
     f->na       = BFieldExpansionData_get_na(el);
     f->nb       = BFieldExpansionData_get_nb(el);
-    f->deg      = BFieldExpansionData_get_deg(el);
+    /* The scalar potential stores one more s power than the input fields. */
+    f->deg      = BFieldExpansionData_get_deg(el) + 1;
     f->mmin     = BFieldExpansionData_get__mmin(el);
     f->mmax     = BFieldExpansionData_get__mmax(el);
     f->moff     = BFieldExpansionData_get__moff(el);

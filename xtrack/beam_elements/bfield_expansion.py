@@ -290,8 +290,8 @@ class _BFieldExpansionGeometry:
             # coefficient updates and deferred expressions remain covered.
             phi_even = 2 * (na // 2 + deg // 2)
             phi_odd = 1 + 2 * ((nb - 1) // 2 + deg // 2) if nb else 0
-            # The integrated ksol seed has degree <= deg (trailing zero).
-            num_phi = max(phi_even, phi_odd, 2 * (deg // 2)) + 1
+            # Integrating ksol raises its longitudinal degree by one.
+            num_phi = max(phi_even, phi_odd, 2 * ((deg + 1) // 2)) + 1
             # Independent k0..k3 and k0s..k3s must remain writable even if
             # the supplied profiles have fewer rows. Their degree is zero.
             num_phi = max(num_phi, 5)
@@ -607,8 +607,9 @@ class BFieldExpansion(_BFieldExpansionGeometry, BeamElement):
         length. Changing length preserves these integrated inputs and
         recomputes their field densities.
     ksol : array, shape (deg+1,), optional
-        On-axis Bs/(B rho) in ascending powers of s. Include a trailing zero
-        coefficient so its integral fits in the scalar-potential polynomial.
+        On-axis Bs/(B rho) in ascending powers of s. All coefficients are
+        retained: the scalar-potential cache reserves one extra longitudinal
+        degree for the integral, without changing the input array shapes.
     kscale : float, optional
         Common multiplier for all magnetic-field components, default 1.
         Applies to the scalar strengths, knc, ksc, ksol and knl/ksl, including
@@ -867,7 +868,10 @@ class BFieldExpansion(_BFieldExpansionGeometry, BeamElement):
         kwargs['_nq'] = (kwargs['_mmax'] + 2) - kwargs['_qemin'] + 1
         kwargs['_nm'] = kwargs['_mmax'] - kwargs['_mmin'] + 1
 
-        kwargs.setdefault("_c", np.zeros(kwargs['_ncoef'] * kwargs['_nm'] * (kwargs['deg'] + 1)))
+        # The potential contains the integral of ksol, of degree deg + 1.
+        # Reserve its full capacity even when the last input coefficient is
+        # zero: in-place updates and deferred expressions can change it later.
+        kwargs.setdefault("_c", np.zeros(kwargs['_ncoef'] * kwargs['_nm'] * (kwargs['deg'] + 2)))
 
         kwargs.setdefault("_V", np.zeros(kwargs['_ncoef'] * kwargs['_nm']))
         kwargs.setdefault("_D1", np.zeros(kwargs['_ncoef'] * kwargs['_nm']))
