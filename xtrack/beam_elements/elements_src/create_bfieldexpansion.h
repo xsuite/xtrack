@@ -33,6 +33,21 @@ void bfieldexpansion_update_evaluation_bounds(BFieldExpansionData el) {
     BFieldExpansionData_set__eval_mmin(el,
         last_i < 0 || BFieldExpansionData_get_straight(el) ? 0 : first_m - moff);
     BFieldExpansionData_set__eval_mmax(el, last_i < 0 ? -1 : last_m - moff);
+
+    // Populated bound of the x-basis seed rows (bent geometry only).
+    const int nmx = BFieldExpansionData_get__mmax(el) + 1;
+    GPUGLMEM const double *cx = BFieldExpansionData_getp1__cx(el, 0);
+    int last_mx = -1;
+    if (BFieldExpansionData_len__cx(el) > 0) {
+        for (int i = 0; i < 2; ++i) {
+            for (int m = 0; m < nmx; ++m) {
+                for (int k = 0; k <= deg; ++k) {
+                    if (cx[(i * nmx + m) * (deg + 1) + k] != 0.0 && m > last_mx) last_mx = m;
+                }
+            }
+        }
+    }
+    BFieldExpansionData_set__eval_xmmax(el, last_mx);
 }
 
 GPUKERN

@@ -17,9 +17,12 @@ void BFieldExpansionData_init_expansion(BFieldExpansionData el, Expansion *f) {
     f->mmax     = BFieldExpansionData_get__eval_mmax(el);
     f->moff     = BFieldExpansionData_get__moff(el);
     f->nm       = BFieldExpansionData_get__nm(el);
+    f->nmx      = BFieldExpansionData_get__mmax(el) + 1;
+    f->xmmax    = BFieldExpansionData_get__eval_xmmax(el);
     f->h        = BFieldExpansionData_get_h(el);
-    f->straight = BFieldExpansionData_get_straight(el);
+    f->straight = (int)BFieldExpansionData_get_straight(el);
     f->c        = BFieldExpansionData_getp1__c(el, 0);
+    f->cx       = BFieldExpansionData_getp1__cx(el, 0);
 }
 
 GPUFUN
