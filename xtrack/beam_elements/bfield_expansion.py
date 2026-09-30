@@ -435,7 +435,7 @@ class _BFieldExpansionGeometry:
             if has_cx:
                 self._cx[:] *= self.kscale
         if self.kscale == 0.:
-            self._eval_num_phi = self._eval_mmax = self._eval_xmmax = -1
+            self._eval_num_phi = self._eval_mmax = -1
         self._update_integrated_strengths()
 
     def _update_integrated_strengths(self):
@@ -768,7 +768,9 @@ class BFieldExpansion(_BFieldExpansionGeometry, BeamElement):
         '_eval_num_phi': xo.Int64,
         '_eval_mmin': xo.Int64,
         '_eval_mmax': xo.Int64,
-        '_eval_xmmax': xo.Int64,
+        '_row_mmin': xo.Int64[:],
+        '_row_mmax': xo.Int64[:],
+        '_xrow_mmax': xo.Int64[2],
 
         "_c": xo.Float64[:],
         "_cx": xo.Float64[:],
@@ -786,7 +788,7 @@ class BFieldExpansion(_BFieldExpansionGeometry, BeamElement):
         '_ncoef', '_mmax', '_mmin', '_moff', '_nm',
         '_c', '_cx', '_V', '_D1',
         '_potential_degree', '_eval_degree', '_eval_num_phi',
-        '_eval_mmin', '_eval_mmax', '_eval_xmmax',
+        '_eval_mmin', '_eval_mmax', '_row_mmin', '_row_mmax', '_xrow_mmax',
     ]
 
     _extra_c_sources = [
@@ -899,6 +901,11 @@ class BFieldExpansion(_BFieldExpansionGeometry, BeamElement):
         # polynomials in x, where the q-basis coefficients would cancel.
         kwargs['_cx'] = np.zeros(0 if straight else 2 * (kwargs['_mmax'] + 1)
                                  * (kwargs['_potential_degree'] + 1))
+        # Populated m range of each row, recomputed on every update. The
+        # evaluator skips empty rows and the zero cells outside the band.
+        kwargs['_row_mmin'] = np.zeros(kwargs['_ncoef'], dtype=np.int64)
+        kwargs['_row_mmax'] = np.full(kwargs['_ncoef'], -1, dtype=np.int64)
+        kwargs['_xrow_mmax'] = np.full(2, -1, dtype=np.int64)
         # Serial construction uses only factorials and (for bends) powers of h.
         kwargs['_V'] = np.zeros(max(4, na, nb) + 1)
         kwargs['_D1'] = np.zeros(0 if straight else max(4, na, nb) + 1)

@@ -11,11 +11,18 @@ typedef struct {
     int ncoef;   /* stored phi_i coefficients: 0..num_phi+1 */
     int deg, eval_deg; /* allocated potential degree and populated degree */
     int mmin, mmax, moff, nm;
-    int nmx, xmmax; /* bent only: allocated rows and populated bound of cx */
+    int nmx; /* bent only: allocated m values per cx row */
     double h;
     int straight;
     GPUGLMEM const double *c;  /* c[i,m,k], polynomial coeff of s^k in x^m (straight) or q^m (bent) */
     GPUGLMEM const double *cx; /* bent only: phi_0, phi_1 seeds as polynomials in x, cx[i,m,k] */
+    /* Populated m range of each row of c (empty rows have mmin > mmax) and
+       the last populated m of each cx row (-1 when empty). The nonzero
+       pattern is a diagonal band, so per-row bounds skip most of the
+       rectangular scan. */
+    GPUGLMEM const int64_t *row_mmin;
+    GPUGLMEM const int64_t *row_mmax;
+    GPUGLMEM const int64_t *xrow_mmax;
 } Expansion;
 
 typedef struct {
