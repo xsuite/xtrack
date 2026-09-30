@@ -2,10 +2,20 @@ from pathlib import Path
 import runpy
 import shutil
 
+import pytest
+
 
 def test_generated_slice_edge_models(tmp_path):
     source_dir = (Path(__file__).parent.parent / 'xtrack' / 'beam_elements'
                   / 'elements_src')
+
+    # In the case of the PyPI CI job, it keeps the tests but removes the
+    # checkout's package directory so imports use the installed distribution.
+    # The generator sources are then unavailable at this path, so this
+    # source-generation test cannot run. We skip it in this case.
+    if not source_dir.is_dir():
+        pytest.skip('Slice code generation requires the source checkout')
+
     generator = '_generate_slice_elements_c_code.py'
     shutil.copy2(source_dir / generator, tmp_path / generator)
     for header in source_dir.glob('*.h'):
