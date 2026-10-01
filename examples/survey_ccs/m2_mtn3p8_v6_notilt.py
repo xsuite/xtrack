@@ -5,8 +5,8 @@ Line-by-line port of ``M2_MTN3p8_v6_notilt.seq`` (MAD-X sequence generated the
 08-APR-2025 from https://layout.cern.ch). Conventions (same as ``xt.load``):
 
 - all names are lower case (MAD-X is case insensitive);
-- COLLIMATOR / INSTRUMENT / MONITOR -> xt.Device prototypes named
-  'collimator' / 'instrument' / 'monitor', KICKER -> thick xt.Multipole
+- each MAD-X element class has a prototype element with the same name:
+  COLLIMATOR / INSTRUMENT / MONITOR -> xt.Device, KICKER -> thick xt.Multipole
   (HKICK -> knl=[-hkick]), RBEND -> xt.RBend (L -> length_straight),
   TILT -> rot_s_rad, YROTATION -> xt.Rotation (ANGLE -> rot_y_rad),
   TRANSLATION -> xt.Translation (DX -> shift_x, DS -> shift_s);
@@ -21,11 +21,17 @@ import xtrack as xt
 env = xt.Environment()
 env.vars.default_to_zero = True  # undefined variables evaluate to zero (MAD-X behaviour)
 
-# Prototypes for the MAD-X element classes that have no direct xsuite counterpart
-# (the information is kept in the `prototype` attribute of the elements)
+# Prototypes for the MAD-X element classes (the information is kept in the
+# `prototype` attribute of the elements)
 env.new('collimator', xt.Device)
 env.new('instrument', xt.Device)
 env.new('monitor', xt.Device)
+env.new('kicker', xt.Multipole, isthick=True)
+env.new('marker', xt.Marker)
+env.new('quadrupole', xt.Quadrupole)
+env.new('rbend', xt.RBend)
+env.new('yrotation', xt.Rotation)
+env.new('translation', xt.Translation)
 
 
 #==============================================================================
@@ -115,10 +121,10 @@ env.new('m2_tcmab', 'collimator', length='l.m2_tcmab')  # Collimation mask type 
 env.new('m2_xcbv', 'collimator', length='l.m2_xcbv')  # Big vertical 2 blocks collimator
 env.new('m2_xchv_001', 'collimator', length='l.m2_xchv_001')  # SPS Collimator horizontal et vertical 4 blocks (design 1970)
 env.new('m2_xciop001', 'collimator', length='l.m2_xciop001')  # Converter IN OUT Plate - Lead 4 mm
-env.new('m2_xcmh', xt.Quadrupole, length='l.m2_xcmh')  # Collimator Magnetic Horizontal
+env.new('m2_xcmh', 'quadrupole', length='l.m2_xcmh')  # Collimator Magnetic Horizontal
 env.new('m2_xcmib001', 'collimator', length='l.m2_xcmib001')  # Magnetic Collimator Fixed (Magnetized Iron Block), 1.6 m
 env.new('m2_xcmib002', 'collimator', length='l.m2_xcmib002')  # Magnetic Collimator Fixed (Magnetized Iron Block), 3.2 m
-env.new('m2_xcmv', xt.Quadrupole, length='l.m2_xcmv')  # Collimator Magnetic Vertical
+env.new('m2_xcmv', 'quadrupole', length='l.m2_xcmv')  # Collimator Magnetic Vertical
 env.new('m2_xtax_009', 'collimator', length='l.m2_xtax_009')  # Target Absorber Type 009
 env.new('m2_xtax_010', 'collimator', length='l.m2_xtax_010')  # Target Absorber Type 010
 env.new('m2_xtcx_003', 'collimator', length='l.m2_xtcx_003')  # XTCX - Fixed collimator 2.4m, W inserts Ø40/120, Cooling, no Vacuum
@@ -136,11 +142,11 @@ env.new('m2_xvwmf001', 'instrument', length='l.m2_xvwmf001')  # X Vacuum Window,
 env.new('m2_xvwmg001', 'instrument', length='l.m2_xvwmg001')  # X Vacuum Window Mylar [th=0.125] Tube DE 159, Flat Flange 192, aperture 120, [L=70] (VXW)
 env.new('m2_xvwam001', 'instrument', length='l.m2_xvwam001')  # X Vacuum Window Mylar + pumping port DN40 DN120x100x0.12
 # ---------------------- KICKER         ---------------------------------------------
-env.new('m2_mcxcahwc', xt.Multipole, length='l.m2_mcxcahwc', isthick=True)  # Corrector magnet, H or V, type MDX
-env.new('m2_mcxcdhwc', xt.Multipole, length='l.m2_mcxcdhwc', isthick=True)  # Corrector magnet, H or V, type MNPA30 - Old type name:  MNPA30.
-env.new('m2_mdpx', xt.Multipole, length='l.m2_mdpx', isthick=True)  # Correcting dipole, H or V, type MDP, north area
+env.new('m2_mcxcahwc', 'kicker', length='l.m2_mcxcahwc')  # Corrector magnet, H or V, type MDX
+env.new('m2_mcxcdhwc', 'kicker', length='l.m2_mcxcdhwc')  # Corrector magnet, H or V, type MNPA30 - Old type name:  MNPA30.
+env.new('m2_mdpx', 'kicker', length='l.m2_mdpx')  # Correcting dipole, H or V, type MDP, north area
 # ---------------------- MARKER         ---------------------------------------------
-env.new('m2_omk', xt.Marker)  # M2 markers (L := l.m2_omk dropped: marker has no length)
+env.new('m2_omk', 'marker')  # M2 markers (L := l.m2_omk dropped: marker has no length)
 # ---------------------- MONITOR        ---------------------------------------------
 env.new('m2_bxsci', 'monitor', length='l.m2_bxsci')  # Scintillator Counter Detector (Intensity Monitor)
 env.new('m2_tbid', 'monitor', length='l.m2_tbid')  # target beam instrumentation, downstream
@@ -156,25 +162,25 @@ env.new('m2_xwcm_003', 'monitor', length='l.m2_xwcm_003')  # Ensemble: Multi Wir
 env.new('m2_xffh', 'monitor', length='l.m2_xffh')  # Finger Scintillator Profile Monitor - Horizontal
 env.new('m2_xffv', 'monitor', length='l.m2_xffv')  # Finger Scintillator Profile Monitor - Vertical
 # ---------------------- QUADRUPOLE     ---------------------------------------------
-env.new('m2_mqneetwc', xt.Quadrupole, length='l.m2_mqneetwc')  # Quadrupole magnet, type Q100, 1m - Magnetic length taken from EDMS 1786085
-env.new('m2_mqnfbtwc', xt.Quadrupole, length='l.m2_mqnfbtwc')  # Quadrupole magnet, type Q200, 2m
-env.new('m2_qnlb_8wp', xt.Quadrupole, length='l.m2_qnlb_8wp')  # Quadrupole, secondary beams, mineral isolation coil, north area
-env.new('m2_qnrb_8wp', xt.Quadrupole, length='l.m2_qnrb_8wp')  # Quadrupole, secondary beams, reduced aperture, mineral isolation coil, north area
-env.new('m2_qwl__8wp', xt.Quadrupole, length='l.m2_qwl__8wp')  # Quadrupole, Secondary Beams, West Area Type - dimensions according to drawing EDMS 350768
+env.new('m2_mqneetwc', 'quadrupole', length='l.m2_mqneetwc')  # Quadrupole magnet, type Q100, 1m - Magnetic length taken from EDMS 1786085
+env.new('m2_mqnfbtwc', 'quadrupole', length='l.m2_mqnfbtwc')  # Quadrupole magnet, type Q200, 2m
+env.new('m2_qnlb_8wp', 'quadrupole', length='l.m2_qnlb_8wp')  # Quadrupole, secondary beams, mineral isolation coil, north area
+env.new('m2_qnrb_8wp', 'quadrupole', length='l.m2_qnrb_8wp')  # Quadrupole, secondary beams, reduced aperture, mineral isolation coil, north area
+env.new('m2_qwl__8wp', 'quadrupole', length='l.m2_qwl__8wp')  # Quadrupole, Secondary Beams, West Area Type - dimensions according to drawing EDMS 350768
 # ---------------------- RBEND          ---------------------------------------------
-env.new('m2_mbhhehwc', xt.RBend, length_straight='l.m2_mbhhehwc')  # Bending magnet, type M200, straight poles
-env.new('m2_mbnh_hwp', xt.RBend, length_straight='l.m2_mbnh_hwp')  # Bending magnet, secondary beams, horizontal, north area
-env.new('m2_mbnv_hwp', xt.RBend, length_straight='l.m2_mbnv_hwp')  # Bending magnet, secondary beams, vertical, north area - Mechanical dimensions from NORMA
-env.new('m2_mbsmahwc', xt.RBend, length_straight='l.m2_mbsmahwc')  # Experimental magnet Compass SM1
-env.new('m2_mbsmbhwc', xt.RBend, length_straight='l.m2_mbsmbhwc')  # Experimental magnet Compass SM2
-env.new('m2_mbxgdcwp', xt.RBend, length_straight='l.m2_mbxgdcwp')  # Bending Magnet, H or V, type MCW
-env.new('m2_mbxhacwp', xt.RBend, length_straight='l.m2_mbxhacwp')  # Bending Magnet, H or V, type VB1, 2.5m gap 108mm
-env.new('m2_mtn__hwp', xt.RBend, length_straight='l.m2_mtn__hwp')  # Bending magnet, Target N
-env.new('m2_mbsa_hwp', xt.RBend, length_straight='l.m2_mbsa_hwp')  # Bending magnet, Target N, longer MTN version
+env.new('m2_mbhhehwc', 'rbend', length_straight='l.m2_mbhhehwc')  # Bending magnet, type M200, straight poles
+env.new('m2_mbnh_hwp', 'rbend', length_straight='l.m2_mbnh_hwp')  # Bending magnet, secondary beams, horizontal, north area
+env.new('m2_mbnv_hwp', 'rbend', length_straight='l.m2_mbnv_hwp')  # Bending magnet, secondary beams, vertical, north area - Mechanical dimensions from NORMA
+env.new('m2_mbsmahwc', 'rbend', length_straight='l.m2_mbsmahwc')  # Experimental magnet Compass SM1
+env.new('m2_mbsmbhwc', 'rbend', length_straight='l.m2_mbsmbhwc')  # Experimental magnet Compass SM2
+env.new('m2_mbxgdcwp', 'rbend', length_straight='l.m2_mbxgdcwp')  # Bending Magnet, H or V, type MCW
+env.new('m2_mbxhacwp', 'rbend', length_straight='l.m2_mbxhacwp')  # Bending Magnet, H or V, type VB1, 2.5m gap 108mm
+env.new('m2_mtn__hwp', 'rbend', length_straight='l.m2_mtn__hwp')  # Bending magnet, Target N
+env.new('m2_mbsa_hwp', 'rbend', length_straight='l.m2_mbsa_hwp')  # Bending magnet, Target N, longer MTN version
 # ---------------------- CHAMBERS       ---------------------------------------------
 env.new('m2_vxss', 'instrument', length='l.m2_vxss')  # Vacuum chamber T6VXSS, length 10.656 m
 # ---------------------- MARKERS        ---------------------------------------------
-env.new('m2_transform_marker', xt.Marker)  # Marker for transformation,
+env.new('m2_transform_marker', 'marker')  # Marker for transformation,
 # ---------------------- INSTRUMENTS EXPERT NAMES          ---------------------------------------------
 env.new('m2_abs', 'm2_xciop001')
 env.new('m2_cedar1', 'm2_xcedn')
@@ -268,10 +274,10 @@ env.new('mqd.x0610005_quad1d', 'm2_qnrb_8wp', k1='kmqd.x0610005_quad1d')
 env.new('xtax.x0610052_xtax1', 'm2_xtax_009')
 env.new('xtax.x0610054_xtax2', 'm2_xtax_010')
 env.new('xtcx.x0610002_xtcx1', 'm2_xtcx_003')
-env.new('m2_rotation_in', xt.Rotation, rot_y_rad='m2_rot_ang_in')
-env.new('m2_rotation', xt.Rotation, rot_y_rad='m2_rot_ang')
-env.new('m2_shift_1', xt.Translation, shift_x='m2_shift_hor')
-env.new('m2_shift_2', xt.Translation, shift_s='m2_shift_long')
+env.new('m2_rotation_in', 'yrotation', rot_y_rad='m2_rot_ang_in')
+env.new('m2_rotation', 'yrotation', rot_y_rad='m2_rot_ang')
+env.new('m2_shift_1', 'translation', shift_x='m2_shift_hor')
+env.new('m2_shift_2', 'translation', shift_s='m2_shift_long')
 env.new('mbh.x0611101_bend7h', 'm2_mbhhehwc', angle='kmbh.x0611101_bend7h', rot_s_rad='tilt.mbh.x0611101_bend7h')
 env.new('mbv.x0611111_bend8v', 'm2_mbhhehwc', angle='kmbv.x0611111_bend8v', rot_s_rad='tilt.mbv.x0611111_bend8v')
 env.new('mbh.x0611115_bend9h', 'm2_mbhhehwc', angle='kmbh.x0611115_bend9h', rot_s_rad='tilt.mbh.x0611115_bend9h')
