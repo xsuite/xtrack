@@ -424,11 +424,16 @@ class _BFieldExpansionGeometry:
     def _update_expansion(self):
         # Both construction kernels accumulate seed coefficients.
         self._c[:] = 0
+        has_cx = len(self._cx) > 0
+        if has_cx:
+            self._cx[:] = 0
         self.build_bfield_expansion(el=self)
         # Rebuild from the unscaled inputs, including after kscale was zero.
         # Scaling the shared cache covers all potentials, derivatives and slices.
         if self.kscale != 1.:
             self._c[:] *= self.kscale
+            if has_cx:
+                self._cx[:] *= self.kscale
         if self.kscale == 0.:
             self._eval_num_phi = self._eval_mmax = -1
         self._update_integrated_strengths()
@@ -576,6 +581,11 @@ class BFieldExpansion(_BFieldExpansionGeometry, BeamElement):
         Reference curvature in 1/m. Zero selects straight geometry; curved
         geometry requires h > 1e-4. The geometry mode is fixed at construction.
         Curvature never implies a magnetic strength: k0 defaults to zero.
+        The midplane field is evaluated from polynomials in x and is exact
+        for all orders. The off-midplane recursion rows use powers of
+        1 + h*x, whose float64 roundoff grows like (h*x)**-(n-3) for the
+        normal and (h*x)**-(n-2) for the skew multipole of order n. Check
+        the field with get_field when combining small h with high orders.
     k0, k1, k2, k3 : float, optional
         Additional uniform normal dipole through octupole strengths, with
         the same normalization as Magnet. All default to zero. These are
@@ -672,7 +682,9 @@ class BFieldExpansion(_BFieldExpansionGeometry, BeamElement):
     Updates rebuild the cached field expansion. NumPy
     conversions return detached copies. This element does not radiate yet,
     even when radiation is enabled for the line. Spin tracking is not
-    supported and raises NotImplementedError.
+    supported: when spin is enabled on the line, the spin vector passes
+    through this element unchanged and no error is raised. Only the
+    standalone ``track`` method of the element rejects nonzero spin.
 
     ``Environment.new`` and ``Environment.set`` accept coefficient matrices
     containing numbers or deferred expressions, without special handling.
@@ -756,8 +768,12 @@ class BFieldExpansion(_BFieldExpansionGeometry, BeamElement):
         '_eval_num_phi': xo.Int64,
         '_eval_mmin': xo.Int64,
         '_eval_mmax': xo.Int64,
+        '_row_mmin': xo.Int64[:],
+        '_row_mmax': xo.Int64[:],
+        '_xrow_mmax': xo.Int64[2],
 
         "_c": xo.Float64[:],
+        "_cx": xo.Float64[:],
         "_V": xo.Float64[:],
         "_D1": xo.Float64[:],
 
@@ -769,10 +785,10 @@ class BFieldExpansion(_BFieldExpansionGeometry, BeamElement):
 
     _skip_in_to_dict = [
         'angle', 'straight', 'na', 'nb', 'deg', 'ksoll',
-        '_ncoef', '_mmax', '_mmin', '_moff', '_nm', '_qemin', '_nq',
-        '_c', '_V', '_D1', '_D2', '_Q',
+        '_ncoef', '_mmax', '_mmin', '_moff', '_nm',
+        '_c', '_cx', '_V', '_D1',
         '_potential_degree', '_eval_degree', '_eval_num_phi',
-        '_eval_mmin', '_eval_mmax',
+        '_eval_mmin', '_eval_mmax', '_row_mmin', '_row_mmax', '_xrow_mmax',
     ]
 
     _extra_c_sources = [
@@ -881,6 +897,15 @@ class BFieldExpansion(_BFieldExpansionGeometry, BeamElement):
         # evaluator visits only the populated bounds recomputed on each update.
         kwargs['_c'] = np.zeros(kwargs['_ncoef'] * kwargs['_nm']
                                 * (kwargs['_potential_degree'] + 1))
+        # Curved geometry evaluates the seed rows phi_0 and phi_1 as
+        # polynomials in x, where the q-basis coefficients would cancel.
+        kwargs['_cx'] = np.zeros(0 if straight else 2 * (kwargs['_mmax'] + 1)
+                                 * (kwargs['_potential_degree'] + 1))
+        # Populated m range of each row, recomputed on every update. The
+        # evaluator skips empty rows and the zero cells outside the band.
+        kwargs['_row_mmin'] = np.zeros(kwargs['_ncoef'], dtype=np.int64)
+        kwargs['_row_mmax'] = np.full(kwargs['_ncoef'], -1, dtype=np.int64)
+        kwargs['_xrow_mmax'] = np.full(2, -1, dtype=np.int64)
         # Serial construction uses only factorials and (for bends) powers of h.
         kwargs['_V'] = np.zeros(max(4, na, nb) + 1)
         kwargs['_D1'] = np.zeros(0 if straight else max(4, na, nb) + 1)
