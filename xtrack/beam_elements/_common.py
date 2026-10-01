@@ -435,11 +435,9 @@ class _HasKnlKsl:
     def to_dict(self, copy_to_cpu=True):
         out = super().to_dict(copy_to_cpu=copy_to_cpu)
 
-        if 'knl' in out and np.allclose(out['knl'], 0, atol=1e-16):
-            out.pop('knl', None)
-
-        if 'ksl' in out and np.allclose(out['ksl'], 0, atol=1e-16):
-            out.pop('ksl', None)
+        for name in ('knl', 'ksl', 'knl_rel', 'ksl_rel'):
+            if name in out and np.allclose(out[name], 0, atol=1e-16):
+                out.pop(name)
 
         if self.order != 0 and 'knl' not in out and 'ksl' not in out:
             out['order'] = self.order
