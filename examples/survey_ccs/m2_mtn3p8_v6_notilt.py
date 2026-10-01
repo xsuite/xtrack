@@ -21,7 +21,6 @@ env = xt.Environment()
 env.vars.default_to_zero = True  # undefined variables evaluate to zero (MAD-X behaviour)
 
 
-
 #==============================================================================
 # TYPES DEFINITION
 #==============================================================================
@@ -82,7 +81,6 @@ env['l.m2_xwcm_002'] = 0.1
 env['l.m2_xwcm_003'] = 0.1
 env['l.m2_xcedn'] = 6.267  # Mechanical length
 env['l.m2_vxss'] = 10.74422  # Vacuum chamber T6VXSS, length [m]
-# l.M2_VXSS                      := 10.6;  ! Vacuum chamber T6VXSS, length [m]
 # ===== SCRAPER MULTIPOLE QUADRUPOLE STRENGTHS (knob-driven) =====
 # Fit parameters for quadrupole term (order=2): can be changed for systematic/uncertainty studies
 
@@ -110,11 +108,9 @@ env.new('m2_tcmab', xt.Device, length='l.m2_tcmab')  # Collimation mask type B
 env.new('m2_xcbv', xt.Device, length='l.m2_xcbv')  # Big vertical 2 blocks collimator
 env.new('m2_xchv_001', xt.Device, length='l.m2_xchv_001')  # SPS Collimator horizontal et vertical 4 blocks (design 1970)
 env.new('m2_xciop001', xt.Device, length='l.m2_xciop001')  # Converter IN OUT Plate - Lead 4 mm
-# M2_XCMH        : COLLIMATOR  , L := l.M2_XCMH;           ! Collimator Magnetic Horizontal
 env.new('m2_xcmh', xt.Quadrupole, length='l.m2_xcmh')  # Collimator Magnetic Horizontal
 env.new('m2_xcmib001', xt.Device, length='l.m2_xcmib001')  # Magnetic Collimator Fixed (Magnetized Iron Block), 1.6 m
 env.new('m2_xcmib002', xt.Device, length='l.m2_xcmib002')  # Magnetic Collimator Fixed (Magnetized Iron Block), 3.2 m
-# M2_XCMV        : COLLIMATOR  , L := l.M2_XCMV;           ! Collimator Magnetic Vertical
 env.new('m2_xcmv', xt.Quadrupole, length='l.m2_xcmv')  # Collimator Magnetic Vertical
 env.new('m2_xtax_009', xt.Device, length='l.m2_xtax_009')  # Target Absorber Type 009
 env.new('m2_xtax_010', xt.Device, length='l.m2_xtax_010')  # Target Absorber Type 010
@@ -177,10 +173,6 @@ env.new('m2_abs', 'm2_xciop001')
 env.new('m2_cedar1', 'm2_xcedn')
 env.new('m2_cedar2', 'm2_xcedn')
 # ---------------------- MONITOR EXPERT NAMES          ---------------------------------------------
-# env.new('m2_fisc1v', 'm2_xffv')  (superseded by the redefinition below)
-# env.new('m2_fisc2h', 'm2_xffh')  (superseded by the redefinition below)
-# env.new('m2_fisc3v', 'm2_xffv')  (superseded by the redefinition below)
-# env.new('m2_fisc4h', 'm2_xffh')  (superseded by the redefinition below)
 
 env.new('m2_mwpc1_2', 'm2_xwcm_003')
 env.new('m2_mwpc3_4', 'm2_xwcm_003')
@@ -248,48 +240,13 @@ env['tilt.mcbv.x0610989_trim7v'] = 1.5707963267948966
 #==============================================================================
 env['m2_version'] = 7
 
-# // ------ V4 ------
-# IF (M2_VERSION == 4) {
-# M2_ANGLE1 := kMBH.X0610026_BEND1H;
-# M2_ANGLE2 := 0;
-# M2_ANGLE3 := 0;
-# M2_ROT_ANG := -0.011906;
-# M2_SHIFT_HOR  := -0.20431343;
-# M2_SHIFT_LONG := 0.00131959;
-# };
-# // ------ V5 ------
-# ELSEIF (M2_VERSION == 5) {
-# M2_ANGLE1 := 0;
-# M2_ANGLE2 := 0;
-# M2_ANGLE3 := 0;
-# M2_ROT_ANG_IN := -0.0029765;
-# M2_ROT_ANG := -0.0148825;
-# M2_SHIFT_HOR  := -0.27007327;
-# M2_SHIFT_LONG := 0.00219484;
-# };
-# ELSEIF (M2_VERSION == 6) {
-# M2_ANGLE1 := kMBH.X0610026_BEND1H*0.5;
-# M2_ANGLE2 := kMBH.X0610031_BEND1H*0.5;
-# M2_ANGLE3 := kMBH.X0610035_BEND1H*0.5;
-# M2_ROT_ANG := -0.0089295;
-# M2_SHIFT_HOR  := -0.17357626;
-# M2_SHIFT_LONG := 0.00104243;
-# };
-# // ------ option 4 ------
-# ELSEIF (M2_VERSION == 7) {
+# Settings for M2_VERSION == 7
 env['m2_angle1'] = 'kmbh.x0610026_bend1h*0.5'
 env['m2_angle2'] = 'kmbh.x0610031_bend1h*0.5'
 env['m2_angle3'] = 0
 env['m2_rot_ang'] = -0.011906
 env['m2_shift_hor'] = -0.21787286
 env['m2_shift_long'] = 0.00150189
-# };
-# ELSE {
-# M2_ANGLE1 := kMBH.X0610026_BEND1H;
-# M2_ANGLE2 := kMBH.X0610031_BEND1H;
-# M2_ANGLE3 := kMBH.X0610035_BEND1H;
-# };
-
 
 
 env.new('mbh.x0610026_bend1h', 'm2_mbsa_hwp', angle='m2_angle1', rot_s_rad='tilt.mbh.x0610026_bend1h', k0='2*sin(kmbh.x0610026_bend1h*0.5)/l.m2_mbsa_hwp')
@@ -301,19 +258,9 @@ env.new('mqf.x0610016_quad4f', 'm2_qnlb_8wp', k1='kmqf.x0610016_quad4f')
 env.new('mqd.x0610019_quad5d', 'm2_qnlb_8wp', k1='kmqd.x0610019_quad5d')
 env.new('mqd.x0610023_quad6d', 'm2_qnlb_8wp', k1='kmqd.x0610023_quad6d')
 env.new('mqd.x0610005_quad1d', 'm2_qnrb_8wp', k1='kmqd.x0610005_quad1d')
-env.new('xtax.x0610052_xtax1', 'm2_xtax_009')  # APERTYPE=RECTANGLE, APERTURE={.020001,.020001,.02,.02};
-env.new('xtax.x0610054_xtax2', 'm2_xtax_010')  # APERTYPE=RECTANGLE, APERTURE={.020001,.020001,.02,.02};
+env.new('xtax.x0610052_xtax1', 'm2_xtax_009')
+env.new('xtax.x0610054_xtax2', 'm2_xtax_010')
 env.new('xtcx.x0610002_xtcx1', 'm2_xtcx_003')
-# M2_MWPC9_10                                       : M2_XWCM_001;  (duplicate of a definition above, omitted)
-# M2_MWPC11_12                                      : M2_XWCM_001;  (duplicate of a definition above, omitted)
-# M2_MWPC13_14                                      : M2_XWCM_001;  (duplicate of a definition above, omitted)
-# M2_MWPC15_16                                      : M2_XWCM_001;  (duplicate of a definition above, omitted)
-# M2_MWPC17_18                                      : M2_XWCM_001;  (duplicate of a definition above, omitted)
-# M2_MWPC19_20                                      : M2_XWCM_001;  (duplicate of a definition above, omitted)
-# M2_MWPC1_2                                        : M2_XWCM_003;  (duplicate of a definition above, omitted)
-# M2_MWPC3_4                                        : M2_XWCM_003;  (duplicate of a definition above, omitted)
-# M2_MWPC5_6                                        : M2_XWCM_003;  (duplicate of a definition above, omitted)
-# M2_MWPC7_8                                        : M2_XWCM_003;  (duplicate of a definition above, omitted)
 env.new('m2_rotation_in', xt.Rotation, rot_y_rad='m2_rot_ang_in')
 env.new('m2_rotation', xt.Rotation, rot_y_rad='m2_rot_ang')
 env.new('m2_shift_1', xt.Translation, shift_x='m2_shift_hor')
@@ -373,12 +320,6 @@ env.new('mqd.x0611077_quad33d', 'm2_mqnfbtwc', k1='kmqd.x0611077_quad33d')
 env.new('mqd.x0611095_quad34d', 'm2_mqnfbtwc', k1='kmqd.x0611095_quad34d')
 env.new('mqd.x0611097_quad34d', 'm2_mqnfbtwc', k1='kmqd.x0611097_quad34d')
 env.new('amberta.x0611132', 'm2_omk')
-# MQD.X0610009_QUAD2D                               : M2_QNLB_8WP     , APERTYPE=CIRCLE, APERTURE={.04,.04,.04,.04}, K1 := kMQD.X0610009_QUAD2D;  (duplicate of a definition above, omitted)
-# MQF.X0610012_QUAD3F                               : M2_QNLB_8WP     , APERTYPE=CIRCLE, APERTURE={.04,.04,.04,.04}, K1 := kMQF.X0610012_QUAD3F;  (duplicate of a definition above, omitted)
-# MQF.X0610016_QUAD4F                               : M2_QNLB_8WP     , APERTYPE=CIRCLE, APERTURE={.04,.04,.04,.04}, K1 := kMQF.X0610016_QUAD4F;  (duplicate of a definition above, omitted)
-# MQD.X0610019_QUAD5D                               : M2_QNLB_8WP     , APERTYPE=CIRCLE, APERTURE={.04,.04,.04,.04}, K1 := kMQD.X0610019_QUAD5D;  (duplicate of a definition above, omitted)
-# MQD.X0610023_QUAD6D                               : M2_QNLB_8WP     , APERTYPE=CIRCLE, APERTURE={.04,.04,.04,.04}, K1 := kMQD.X0610023_QUAD6D;  (duplicate of a definition above, omitted)
-# MQD.X0610005_QUAD1D                               : M2_QNRB_8WP     , APERTYPE=CIRCLE, APERTURE={.025,.025,.025,.025}, K1 := kMQD.X0610005_QUAD1D;  (duplicate of a definition above, omitted)
 env.new('mqf.x0610056_quad7f', 'm2_qwl__8wp', k1='kmqf.x0610056_quad7f')
 env.new('mqf.x0610072_quad8f', 'm2_qwl__8wp', k1='kmqf.x0610072_quad8f')
 env.new('mqd.x0610080_quad9d', 'm2_qwl__8wp', k1='kmqd.x0610080_quad9d')
@@ -408,7 +349,6 @@ env.new('xchv.x0610070_coll3_4', 'm2_xchv_001')
 env.new('xchv.x0610288_coll10_11', 'm2_xchv_001')
 env.new('xchv.x0611013_coll6_7', 'm2_xchv_001')
 env.new('xchv.x0611054_coll8_9', 'm2_xchv_001')
-# M2_ABS                                            : M2_XCIOP001;  (duplicate of a definition above, omitted)
 env.new('xcmh.x0610727_scr3h', 'm2_xcmh', k1='kquad.xcmh.x0610727_scr3h')
 env.new('xcmh.x0610752_scr6h', 'm2_xcmh', k1='kquad.xcmh.x0610752_scr6h')
 env.new('xcmh.x0610845_scr7h', 'm2_xcmh', k1='kquad.xcmh.x0610845_scr7h')
@@ -427,20 +367,10 @@ env.new('xcmv.x0610733_scr4v', 'm2_xcmv', k1='kquad.xcmv.x0610733_scr4v')
 env.new('xcmv.x0610741_scr5v', 'm2_xcmv', k1='kquad.xcmv.x0610741_scr5v')
 env.new('xcmv.x0610997_scr8v', 'm2_xcmv', k1='kquad.xcmv.x0610997_scr8v')
 env.new('xcmv.x0611050_scr9v', 'm2_xcmv', k1='kquad.xcmv.x0611050_scr9v')
-env.new('m2_fisc1v', 'm2_xff__001')  # (redefinition, supersedes the definition above)
-env.new('m2_fisc2h', 'm2_xff__001')  # (redefinition, supersedes the definition above)
-env.new('m2_fisc3v', 'm2_xff__001')  # (redefinition, supersedes the definition above)
-env.new('m2_fisc4h', 'm2_xff__001')  # (redefinition, supersedes the definition above)
-# M2_MWPC9_10                                       : M2_XWCM_001;  (duplicate of a definition above, omitted)
-# M2_MWPC11_12                                      : M2_XWCM_001;  (duplicate of a definition above, omitted)
-# M2_MWPC13_14                                      : M2_XWCM_001;  (duplicate of a definition above, omitted)
-# M2_MWPC15_16                                      : M2_XWCM_001;  (duplicate of a definition above, omitted)
-# M2_MWPC17_18                                      : M2_XWCM_001;  (duplicate of a definition above, omitted)
-# M2_MWPC19_20                                      : M2_XWCM_001;  (duplicate of a definition above, omitted)
-# M2_MWPC1_2                                        : M2_XWCM_003;  (duplicate of a definition above, omitted)
-# M2_MWPC3_4                                        : M2_XWCM_003;  (duplicate of a definition above, omitted)
-# M2_MWPC5_6                                        : M2_XWCM_003;  (duplicate of a definition above, omitted)
-# M2_MWPC7_8                                        : M2_XWCM_003;  (duplicate of a definition above, omitted)
+env.new('m2_fisc1v', 'm2_xff__001')
+env.new('m2_fisc2h', 'm2_xff__001')
+env.new('m2_fisc3v', 'm2_xff__001')
+env.new('m2_fisc4h', 'm2_xff__001')
 
 #==============================================================================
 # SEQUENCE
@@ -489,13 +419,11 @@ line.new('mbnh.x0610109', 'mbh.x0610109_bend3h', at=108.67, extra={'slot_id': 56
 line.new('mqnee.x0610112', 'mqd.x0610112_quad12d', at=112.5, extra={'slot_id': 56049122})
 line.new('mqnfb.x0610148', 'mqf.x0610148_quad13f', at=148, extra={'slot_id': 56049131})
 line.new('mqnfb.x0610184', 'mqd.x0610184_quad14d', at=184, extra={'slot_id': 56049158})
-# MDXSS.X0610190                : M2_MDXSSCWC     			, at = 191          , slot_id = 57430408, assembly_id= 57015015;
 line.new('xcmv.x0610190', 'xcmv.x0610190_scr1v', at=191, extra={'slot_id': 57015015})
 line.new('xvw.x0610218', 'm2_xvwaf001', at=218.44995, extra={'slot_id': 57603330})
 line.new('xwcm.x0610219', 'm2_mwpc3_4', at=218.51, extra={'slot_id': 57719098})
 line.new('xvw.x0610219', 'm2_xvwaf001', at=218.749982319, extra={'slot_id': 57603339})
 line.new('mqnfb.x0610220', 'mqf.x0610220_quad13f', at=220, extra={'slot_id': 56049140})
-# MDHSP.X0610226                : M2_MDHSPCWC     			, at = 226          , slot_id = 57424454, assembly_id= 56049034;
 line.new('xcmib.x0610226', 'xcm.x0610226_mib1', at=226, extra={'slot_id': 56049034})
 line.new('mqnfb.x0610256', 'mqd.x0610256_quad14d', at=256, extra={'slot_id': 56049167})
 line.new('xchv.x0610288', 'xchv.x0610288_coll10_11', at=287.5)
@@ -532,33 +460,25 @@ line.new('mbxgd.x0610701', 'mbv.x0610701_bend4v', at=700.76, extra={'slot_id': 5
 line.new('xwcm.x0610703', 'm2_mwpc9_10', at=702.66, extra={'slot_id': 57719169})
 line.new('mbnv.x0610706', 'mbv.x0610706_bend5v', at=705.66, extra={'slot_id': 56500859})
 line.new('qwl.x0610710', 'mqd.x0610710_quad22d', at=710.175, extra={'slot_id': 56500701})
-# MDXSS.X0610715                : M2_MDXSSCWC     			, at = 715.25       , slot_id = 57430475, assembly_id= 57015032;
 line.new('xcmv.x0610715', 'xcmv.x0610715_scr2v', at=715.25, extra={'slot_id': 57015032})
 line.new('xvw.x0610720', 'm2_xvwaa001', at=720, extra={'slot_id': 57603203})
 line.new('qwl.x0610723', 'mqf.x0610723_quad23f', at=722.539, extra={'slot_id': 56500710})
 line.new('xvw.x0610724', 'm2_xvwaa001', at=724.014, extra={'slot_id': 57603212})
-# MDXSS.X0610727                : M2_MDXSSCWC     			, at = 727.25       , slot_id = 57015006, assembly_id= 57014997;
 line.new('xcmh.x0610727', 'xcmh.x0610727_scr3h', at=727.25, extra={'slot_id': 57014997})
 line.new('xvw.x0610730', 'm2_xvwaa001', at=730, extra={'slot_id': 57603221})
 line.new('xvw.x0610732', 'm2_xvwaa001', at=732.20, extra={'slot_id': 57603230})
-# MDXSS.X0610733                : M2_MDXSSCWC     			, at = 734.75       , slot_id = 57430720, assembly_id= 57015045;
 line.new('xcmv.x0610733', 'xcmv.x0610733_scr4v', at=734.75, extra={'slot_id': 57015045})
 line.new('xvw.x0610739', 'm2_xvwaa001', at=738.70, extra={'slot_id': 57603239})
-# MDXSS.X0610741                : M2_MDXSSCWC     			, at = 741.25       , slot_id = 57430540, assembly_id= 57015054;
 line.new('xcmv.x0610741', 'xcmv.x0610741_scr5v', at=741.25, extra={'slot_id': 57015054})
 line.new('xvw.x0610743', 'm2_xvwaf001', at=743.80, extra={'slot_id': 57603370})
 line.new('mqnfb.x0610745', 'mqd.x0610745_quad24d', at=745.5, extra={'slot_id': 56617876})
 line.new('mqnfb.x0610748', 'mqd.x0610748_quad25d', at=748, extra={'slot_id': 56049284})
-# MDXSS.X0610752                : M2_MDXSSCWC     			, at = 752.25       , slot_id = 57430657, assembly_id= 57015063;
 line.new('xcmh.x0610752', 'xcmh.x0610752_scr6h', at=752.25, extra={'slot_id': 57015063})
 line.new('xvw.x0610758', 'm2_xvwaf001', at=758, extra={'slot_id': 57603379})
-# MDHSP.X0610765                : M2_MDHSPCWC     			, at = 764.75       , slot_id = 57424511, assembly_id= 56049043;
 line.new('xcmib.x0610765', 'xcm.x0610765_mib2', at=764.75, extra={'slot_id': 56049043})
-# MDHSP.X0610767                : M2_MDHSPCWC     			, at = 766.65       , slot_id = 57424588, assembly_id= 56049052;
 line.new('xcmib.x0610767', 'xcm.x0610767_mib2', at=766.65, extra={'slot_id': 56049052})
 line.new('mqnfb.x0610784', 'mqf.x0610784_quad25f_inv', at=784, extra={'slot_id': 56049293})
 line.new('mqnfb.x0610820', 'mqd.x0610820_quad25d', at=820, extra={'slot_id': 56617885})
-# MDXSS.X0610845                : M2_MDXSSCWC     			, at = 842.7        , slot_id = 57430786, assembly_id= 57015086;
 line.new('xcmh.x0610845', 'xcmh.x0610845_scr7h', at=842.7, extra={'slot_id': 57015086})
 line.new('xvw.x0610843', 'm2_xvwam001', at=845.25, extra={'slot_id': 57603388})
 line.new('xvw.x0610848', 'm2_xvwam001', at=848, extra={'slot_id': 57603397})
@@ -566,7 +486,6 @@ line.new('mdpx.x0610854', 'mcbh.x0610854_trim5h', at=854.35, extra={'slot_id': 5
 line.new('mqnfb.x0610856', 'mqf.x0610856_quad26f', at=856, extra={'slot_id': 56049311})
 line.new('xvw.x0610858', 'm2_xvwam001', at=858, extra={'slot_id': 57603406})
 line.new('xcbv.x0610858', 'xcbv.x0610858_coll5', at=859.04, extra={'slot_id': 56617897})
-# MDHSP.X0610862                : M2_MDHSPCWC     			, at = 862.2        , slot_id = 57424651, assembly_id= 57424624;
 line.new('xcmib.x0610862', 'xcm.x0610862_mib3', at=862.2, extra={'slot_id': 57424624})
 line.new('mqnfb.x0610900', 'mqd.x0610900_quad27d', at=900.8, extra={'slot_id': 56049320})
 line.new('mqnfb.x0610945', 'mqf.x0610945_quad27f_inv', at=945.6, extra={'slot_id': 56049329})
@@ -575,7 +494,6 @@ line.new('mdpx.x0610989', 'mcbv.x0610989_trim7v', at=988.75, extra={'slot_id': 5
 line.new('mqnfb.x0610990', 'mqd.x0610990_quad27d', at=990.4, extra={'slot_id': 56049338})
 line.new('mqnfb.x0610992', 'mqd.x0610992_quad28d', at=992.9, extra={'slot_id': 56049347})
 line.new('xvw.x0610994', 'm2_xvwam001', at=994.15000016, extra={'slot_id': 57603446})
-# MDXSS.X0610997                : M2_MDXSSCWC     			, at = 997.91       , slot_id = 57430849, assembly_id= 57015123;
 line.new('xcmv.x0610997', 'xcmv.x0610997_scr8v', at=997.91, extra={'slot_id': 57015123})
 line.new('xvw.x0611001', 'm2_xvwam001', at=1000.61000016, extra={'slot_id': 57603455})
 line.new('xwcm.x0611009', 'm2_mwpc11_12', at=1008.583, extra={'slot_id': 57719192})
@@ -589,7 +507,6 @@ line.new('mbnv.x0611033', 'mbv.x0611033_bend6v', at=1033.086, extra={'slot_id': 
 line.new('mbnv.x0611039', 'mbv.x0611039_bend6v', at=1038.746, extra={'slot_id': 56500887})
 line.new('qwl.x0611043', 'mqd.x0611043_quad31d', at=1043.261, extra={'slot_id': 56500737})
 line.new('xvw.x0611045', 'm2_xvwam001', at=1045, extra={'slot_id': 57603482})
-# MDXSS.X0611050                : M2_MDXSSCWC     			, at = 1049.651     , slot_id = 57430912, assembly_id= 57015166;
 line.new('xcmv.x0611050', 'xcmv.x0611050_scr9v', at=1049.651, extra={'slot_id': 57015166})
 line.new('xchv.x0611054', 'xchv.x0611054_coll8_9', at=1053.245, extra={'slot_id': 56051791})
 line.new('xvw.x0611055', 'm2_xvwam001', at=1054.1509, extra={'slot_id': 57603491})
@@ -601,7 +518,6 @@ line.new('xvw.x0611060', 'm2_xvwam001', at=1060, extra={'slot_id': 57603518})
 line.new('xvw.x0611061', 'm2_xvwam001', at=1061, extra={'slot_id': 57603527})
 line.new('xcmib.x0611061', 'xcm.x0611061_mib4', at=1062.159, extra={'slot_id': 57446660})
 line.new('xcmib.x0611063', 'xcm.x0611063_mib4', at=1063.809, extra={'slot_id': 57446592})
-# MDHSP.X0611065                : M2_MDHSPCWC     			, at = 1065.459     , slot_id = 57424756, assembly_id= 57424687;
 line.new('xcmib.x0611065', 'xcm.x0611065_mib3', at=1065.459, extra={'slot_id': 57424687})
 line.new('xcmib.x0611066', 'xcm.x0611066_mib3', at=1067.109, extra={'slot_id': 57446556})
 line.new('xcmib.x0611068', 'xcm.x0611068_mib3', at=1068.759, extra={'slot_id': 57446520})
