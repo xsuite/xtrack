@@ -37,9 +37,9 @@ su.write_legacy_survey_tfs(
 # Same format, but with the points on the reference trajectory and the
 # angle and tilt of the elements (compatible with the MAD-X survey output)
 su.write_legacy_survey_tfs(
-    'survey_output_ref_trajectory.tfs',
+    'survey_output_ref_points.tfs',
     survey=sv,
     element_names=names_align,
     element_container=env,
-    reference_trajectory=True
+    mode='ref_points'
 )

@@ -377,7 +377,7 @@ def comp_psi_vbend(frame_start, frame_end, psi_tol_deg=20):
 def write_legacy_survey_tfs(
         file_name, *, survey, element_names, element_container,
         compensate_psi_vbend=False, psi_tol_deg=20,
-        reference_trajectory=False):
+        mode='element_points'):
     """Write element entrance and exit points in the legacy survey format.
 
     For each element two rows are written: a zero-length ``DRIFT_<i>`` row
@@ -386,16 +386,26 @@ def write_legacy_survey_tfs(
 
     Parameters
     ----------
-    reference_trajectory : bool, optional
-        If False (default), the entrance and exit points are those of the
-        element mechanical axis (``elem_start``/``elem_end`` frames, including
-        misalignments) and ``ANGLE`` and ``TILT`` are written as zero.
-        If True, the points are those of the reference trajectory
+    mode : {'element_points', 'ref_points'}, optional
+        ``'element_points'`` (default): the entrance and exit points are
+        those of the element mechanical axis (``elem_start``/``elem_end``
+        frames, including misalignments) and ``ANGLE`` and ``TILT`` are
+        written as zero.
+        ``'ref_points'``: the points are those of the reference trajectory
         (``ref_start``/``ref_end`` frames), ``ANGLE`` and ``TILT`` are the
         bending angle and tilt of the element and ``GLOBALTILT`` is the
         entrance ``PSI`` plus the tilt, as in the output of the MAD-X survey.
-        In this mode ``compensate_psi_vbend`` is ignored.
+        ``compensate_psi_vbend`` cannot be used in this mode (``PSI`` stays
+        close to zero on the reference trajectory).
     """
+    if mode not in ('element_points', 'ref_points'):
+        raise ValueError(
+            f'Invalid mode {mode!r}; expected "element_points" or "ref_points"')
+    reference_trajectory = (mode == 'ref_points')
+    if reference_trajectory and compensate_psi_vbend:
+        raise ValueError(
+            '`compensate_psi_vbend` cannot be used with mode="ref_points"')
+
     lines = []
     for ii, nn in enumerate(element_names):
         frames = survey.get_all_frames(nn)
