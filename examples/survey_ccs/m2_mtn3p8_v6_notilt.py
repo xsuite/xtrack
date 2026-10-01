@@ -5,7 +5,8 @@ Line-by-line port of ``M2_MTN3p8_v6_notilt.seq`` (MAD-X sequence generated the
 08-APR-2025 from https://layout.cern.ch). Conventions (same as ``xt.load``):
 
 - all names are lower case (MAD-X is case insensitive);
-- COLLIMATOR / INSTRUMENT / MONITOR -> xt.Device, KICKER -> thick xt.Multipole
+- COLLIMATOR / INSTRUMENT / MONITOR -> xt.Device prototypes named
+  'collimator' / 'instrument' / 'monitor', KICKER -> thick xt.Multipole
   (HKICK -> knl=[-hkick]), RBEND -> xt.RBend (L -> length_straight),
   TILT -> rot_s_rad, YROTATION -> xt.Rotation (ANGLE -> rot_y_rad),
   TRANSLATION -> xt.Translation (DX -> shift_x, DS -> shift_s);
@@ -19,6 +20,12 @@ import xtrack as xt
 
 env = xt.Environment()
 env.vars.default_to_zero = True  # undefined variables evaluate to zero (MAD-X behaviour)
+
+# Prototypes for the MAD-X element classes that have no direct xsuite counterpart
+# (the information is kept in the `prototype` attribute of the elements)
+env.new('collimator', xt.Device)
+env.new('instrument', xt.Device)
+env.new('monitor', xt.Device)
 
 
 #==============================================================================
@@ -104,30 +111,30 @@ env['kquad.xcmv.x0610997_scr8v'] = '1*scaling*(scra * exp(-kxcmv.x0610997_scr8v_
 env['kquad.xcmv.x0611050_scr9v'] = '1*scaling*(scra * exp(-kxcmv.x0611050_scr9v_coll9v / scrl) + scrc + scrd * kxcmv.x0611050_scr9v_coll9v)'
 
 # ---------------------- COLLIMATOR     ---------------------------------------------
-env.new('m2_tcmab', xt.Device, length='l.m2_tcmab')  # Collimation mask type B
-env.new('m2_xcbv', xt.Device, length='l.m2_xcbv')  # Big vertical 2 blocks collimator
-env.new('m2_xchv_001', xt.Device, length='l.m2_xchv_001')  # SPS Collimator horizontal et vertical 4 blocks (design 1970)
-env.new('m2_xciop001', xt.Device, length='l.m2_xciop001')  # Converter IN OUT Plate - Lead 4 mm
+env.new('m2_tcmab', 'collimator', length='l.m2_tcmab')  # Collimation mask type B
+env.new('m2_xcbv', 'collimator', length='l.m2_xcbv')  # Big vertical 2 blocks collimator
+env.new('m2_xchv_001', 'collimator', length='l.m2_xchv_001')  # SPS Collimator horizontal et vertical 4 blocks (design 1970)
+env.new('m2_xciop001', 'collimator', length='l.m2_xciop001')  # Converter IN OUT Plate - Lead 4 mm
 env.new('m2_xcmh', xt.Quadrupole, length='l.m2_xcmh')  # Collimator Magnetic Horizontal
-env.new('m2_xcmib001', xt.Device, length='l.m2_xcmib001')  # Magnetic Collimator Fixed (Magnetized Iron Block), 1.6 m
-env.new('m2_xcmib002', xt.Device, length='l.m2_xcmib002')  # Magnetic Collimator Fixed (Magnetized Iron Block), 3.2 m
+env.new('m2_xcmib001', 'collimator', length='l.m2_xcmib001')  # Magnetic Collimator Fixed (Magnetized Iron Block), 1.6 m
+env.new('m2_xcmib002', 'collimator', length='l.m2_xcmib002')  # Magnetic Collimator Fixed (Magnetized Iron Block), 3.2 m
 env.new('m2_xcmv', xt.Quadrupole, length='l.m2_xcmv')  # Collimator Magnetic Vertical
-env.new('m2_xtax_009', xt.Device, length='l.m2_xtax_009')  # Target Absorber Type 009
-env.new('m2_xtax_010', xt.Device, length='l.m2_xtax_010')  # Target Absorber Type 010
-env.new('m2_xtcx_003', xt.Device, length='l.m2_xtcx_003')  # XTCX - Fixed collimator 2.4m, W inserts Ø40/120, Cooling, no Vacuum
+env.new('m2_xtax_009', 'collimator', length='l.m2_xtax_009')  # Target Absorber Type 009
+env.new('m2_xtax_010', 'collimator', length='l.m2_xtax_010')  # Target Absorber Type 010
+env.new('m2_xtcx_003', 'collimator', length='l.m2_xtcx_003')  # XTCX - Fixed collimator 2.4m, W inserts Ø40/120, Cooling, no Vacuum
 # ---------------------- INSTRUMENT     ---------------------------------------------
-env.new('m2_xvwaa001', xt.Device, length='l.m2_xvwaa001')  # X Vacuum Window, Aluminum [th=0.1], Tube DE 159, Flat Flange 192, aperture 120 + pumping port DN40, [L=100]
-env.new('m2_xvwad001', xt.Device, length='l.m2_xvwad001')  # X Vacuum Window Aluminum [th=0.1], Tube DE 159, Flat Flange 192, aperture 120, [L=70] (VXW)
-env.new('m2_xvwae001', xt.Device, length='l.m2_xvwae001')  # X Vacuum Window Aluminium EL900X60X0.2
-env.new('m2_xvwaf001', xt.Device, length='l.m2_xvwaf001')  # X Vacuum Window Aluminium EL900X60X0.2 + pumping port
-env.new('m2_xcedn', xt.Device, length='l.m2_xcedn')  # Cherenkov Differential Counter Nord
-env.new('m2_xvwai001', xt.Device, length='l.m2_xvwai001')  # X Vacuum Window Aluminium [th=0.2], Flat Flanges 390, aperture EL350x60, [L=60] + pumping portDN40 (MTP)
-env.new('m2_xvwaj001', xt.Device, length='l.m2_xvwaj001')  # X Vacuum Window Aluminum [th=0.2], Flat Al Flange DE 265, aperture 185 + pumping port, [L=110] (VDWP)
-env.new('m2_xvwak001', xt.Device, length='l.m2_xvwak001')  # X Vacuum Window, Aluminum [th=0.2], Flat Al Flange DE 265, aperture 185, [L=70] (VDW)
-env.new('m2_xvwmb001', xt.Device, length='l.m2_xvwmb001')  # X Vacuum Window, Mylar [th=0.25], Flat Al Flanges DE 265, aperture 185 + pumping port, [L=110] (VDWP)
-env.new('m2_xvwmf001', xt.Device, length='l.m2_xvwmf001')  # X Vacuum Window, Mylar [th=0.125], Tube DE 159, Flat Flange 192, aperture 120 + pumping port DN40, [L=100]
-env.new('m2_xvwmg001', xt.Device, length='l.m2_xvwmg001')  # X Vacuum Window Mylar [th=0.125] Tube DE 159, Flat Flange 192, aperture 120, [L=70] (VXW)
-env.new('m2_xvwam001', xt.Device, length='l.m2_xvwam001')  # X Vacuum Window Mylar + pumping port DN40 DN120x100x0.12
+env.new('m2_xvwaa001', 'instrument', length='l.m2_xvwaa001')  # X Vacuum Window, Aluminum [th=0.1], Tube DE 159, Flat Flange 192, aperture 120 + pumping port DN40, [L=100]
+env.new('m2_xvwad001', 'instrument', length='l.m2_xvwad001')  # X Vacuum Window Aluminum [th=0.1], Tube DE 159, Flat Flange 192, aperture 120, [L=70] (VXW)
+env.new('m2_xvwae001', 'instrument', length='l.m2_xvwae001')  # X Vacuum Window Aluminium EL900X60X0.2
+env.new('m2_xvwaf001', 'instrument', length='l.m2_xvwaf001')  # X Vacuum Window Aluminium EL900X60X0.2 + pumping port
+env.new('m2_xcedn', 'instrument', length='l.m2_xcedn')  # Cherenkov Differential Counter Nord
+env.new('m2_xvwai001', 'instrument', length='l.m2_xvwai001')  # X Vacuum Window Aluminium [th=0.2], Flat Flanges 390, aperture EL350x60, [L=60] + pumping portDN40 (MTP)
+env.new('m2_xvwaj001', 'instrument', length='l.m2_xvwaj001')  # X Vacuum Window Aluminum [th=0.2], Flat Al Flange DE 265, aperture 185 + pumping port, [L=110] (VDWP)
+env.new('m2_xvwak001', 'instrument', length='l.m2_xvwak001')  # X Vacuum Window, Aluminum [th=0.2], Flat Al Flange DE 265, aperture 185, [L=70] (VDW)
+env.new('m2_xvwmb001', 'instrument', length='l.m2_xvwmb001')  # X Vacuum Window, Mylar [th=0.25], Flat Al Flanges DE 265, aperture 185 + pumping port, [L=110] (VDWP)
+env.new('m2_xvwmf001', 'instrument', length='l.m2_xvwmf001')  # X Vacuum Window, Mylar [th=0.125], Tube DE 159, Flat Flange 192, aperture 120 + pumping port DN40, [L=100]
+env.new('m2_xvwmg001', 'instrument', length='l.m2_xvwmg001')  # X Vacuum Window Mylar [th=0.125] Tube DE 159, Flat Flange 192, aperture 120, [L=70] (VXW)
+env.new('m2_xvwam001', 'instrument', length='l.m2_xvwam001')  # X Vacuum Window Mylar + pumping port DN40 DN120x100x0.12
 # ---------------------- KICKER         ---------------------------------------------
 env.new('m2_mcxcahwc', xt.Multipole, length='l.m2_mcxcahwc', isthick=True)  # Corrector magnet, H or V, type MDX
 env.new('m2_mcxcdhwc', xt.Multipole, length='l.m2_mcxcdhwc', isthick=True)  # Corrector magnet, H or V, type MNPA30 - Old type name:  MNPA30.
@@ -135,19 +142,19 @@ env.new('m2_mdpx', xt.Multipole, length='l.m2_mdpx', isthick=True)  # Correcting
 # ---------------------- MARKER         ---------------------------------------------
 env.new('m2_omk', xt.Marker)  # M2 markers (L := l.m2_omk dropped: marker has no length)
 # ---------------------- MONITOR        ---------------------------------------------
-env.new('m2_bxsci', xt.Device, length='l.m2_bxsci')  # Scintillator Counter Detector (Intensity Monitor)
-env.new('m2_tbid', xt.Device, length='l.m2_tbid')  # target beam instrumentation, downstream
-env.new('m2_xbms_001', xt.Device, length='l.m2_xbms_001')  # eXperimental Beam Momentum Station - Narrow and High (Long)
-env.new('m2_xbms_002', xt.Device, length='l.m2_xbms_002')  # eXperimental Beam Momentum Station - Square (Long)
-env.new('m2_xbms_003', xt.Device, length='l.m2_xbms_003')  # eXperimental Beam Momentum Station - Fibers (Short)
-env.new('m2_xff__001', xt.Device, length='l.m2_xff__001')  # Filament Scintillator Profile Monitor
-env.new('m2_xion_001', xt.Device, length='l.m2_xion_001')  # Assembly Ionization Chamber
-env.new('m2_xsci', xt.Device, length='l.m2_xsci')  # Ensemble: Cadre et Scintillateur BXSCI
-env.new('m2_xwcm_001', xt.Device, length='l.m2_xwcm_001')  # Ensemble: Multi Wire Proportional Chamber et Support cadre rouge not motorized
-env.new('m2_xwcm_002', xt.Device, length='l.m2_xwcm_002')  # Ensemble: Multi Wire Proportional Chamber and Scintillator with Support cadre rouge not motorized
-env.new('m2_xwcm_003', xt.Device, length='l.m2_xwcm_003')  # Ensemble: Multi Wire Proportional Chamber et Support cadre rouge motorized
-env.new('m2_xffh', xt.Device, length='l.m2_xffh')  # Finger Scintillator Profile Monitor - Horizontal
-env.new('m2_xffv', xt.Device, length='l.m2_xffv')  # Finger Scintillator Profile Monitor - Vertical
+env.new('m2_bxsci', 'monitor', length='l.m2_bxsci')  # Scintillator Counter Detector (Intensity Monitor)
+env.new('m2_tbid', 'monitor', length='l.m2_tbid')  # target beam instrumentation, downstream
+env.new('m2_xbms_001', 'monitor', length='l.m2_xbms_001')  # eXperimental Beam Momentum Station - Narrow and High (Long)
+env.new('m2_xbms_002', 'monitor', length='l.m2_xbms_002')  # eXperimental Beam Momentum Station - Square (Long)
+env.new('m2_xbms_003', 'monitor', length='l.m2_xbms_003')  # eXperimental Beam Momentum Station - Fibers (Short)
+env.new('m2_xff__001', 'monitor', length='l.m2_xff__001')  # Filament Scintillator Profile Monitor
+env.new('m2_xion_001', 'monitor', length='l.m2_xion_001')  # Assembly Ionization Chamber
+env.new('m2_xsci', 'monitor', length='l.m2_xsci')  # Ensemble: Cadre et Scintillateur BXSCI
+env.new('m2_xwcm_001', 'monitor', length='l.m2_xwcm_001')  # Ensemble: Multi Wire Proportional Chamber et Support cadre rouge not motorized
+env.new('m2_xwcm_002', 'monitor', length='l.m2_xwcm_002')  # Ensemble: Multi Wire Proportional Chamber and Scintillator with Support cadre rouge not motorized
+env.new('m2_xwcm_003', 'monitor', length='l.m2_xwcm_003')  # Ensemble: Multi Wire Proportional Chamber et Support cadre rouge motorized
+env.new('m2_xffh', 'monitor', length='l.m2_xffh')  # Finger Scintillator Profile Monitor - Horizontal
+env.new('m2_xffv', 'monitor', length='l.m2_xffv')  # Finger Scintillator Profile Monitor - Vertical
 # ---------------------- QUADRUPOLE     ---------------------------------------------
 env.new('m2_mqneetwc', xt.Quadrupole, length='l.m2_mqneetwc')  # Quadrupole magnet, type Q100, 1m - Magnetic length taken from EDMS 1786085
 env.new('m2_mqnfbtwc', xt.Quadrupole, length='l.m2_mqnfbtwc')  # Quadrupole magnet, type Q200, 2m
@@ -165,7 +172,7 @@ env.new('m2_mbxhacwp', xt.RBend, length_straight='l.m2_mbxhacwp')  # Bending Mag
 env.new('m2_mtn__hwp', xt.RBend, length_straight='l.m2_mtn__hwp')  # Bending magnet, Target N
 env.new('m2_mbsa_hwp', xt.RBend, length_straight='l.m2_mbsa_hwp')  # Bending magnet, Target N, longer MTN version
 # ---------------------- CHAMBERS       ---------------------------------------------
-env.new('m2_vxss', xt.Device, length='l.m2_vxss')  # Vacuum chamber T6VXSS, length 10.656 m
+env.new('m2_vxss', 'instrument', length='l.m2_vxss')  # Vacuum chamber T6VXSS, length 10.656 m
 # ---------------------- MARKERS        ---------------------------------------------
 env.new('m2_transform_marker', xt.Marker)  # Marker for transformation,
 # ---------------------- INSTRUMENTS EXPERT NAMES          ---------------------------------------------
