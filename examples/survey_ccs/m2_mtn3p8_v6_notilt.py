@@ -18,7 +18,7 @@ Line-by-line port of ``M2_MTN3p8_v6_notilt.seq`` (MAD-X sequence generated the
 
 import xtrack as xt
 
-env = xt.Environment()
+env = xt.get_environment()  # new environment, or the one passed by xt.load
 env.vars.default_to_zero = True  # undefined variables evaluate to zero (MAD-X behaviour)
 
 # Prototypes for the MAD-X element classes (the information is kept in the
