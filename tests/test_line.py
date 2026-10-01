@@ -520,7 +520,7 @@ def test_to_pandas():
 
     assert tuple(df.columns) == (
         's', 'element_type', 'name', 'isthick', 'isreplica', 'parent_name',
-       'parent_type', 'prototype', 'iscollective', 'element', 's_start',
+       'parent_type', 'prototype', 'base_prototype', 'iscollective', 'element', 's_start',
        's_center', 's_end')
     assert len(df) == 4
 

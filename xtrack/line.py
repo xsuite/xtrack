@@ -970,6 +970,40 @@ class Line:
             parent_name.append(ee_pname)
             parent_type.append(ee_ptype)
             prototype.append(getattr(ee, 'prototype', None))
+
+        # Resolve each shared ancestry only once per table build. Keep the cache
+        # local so changes to prototypes are reflected on the next call.
+        base_prototype = []
+        prototype_cache = {None: None}
+        for pp in prototype:
+            if pp in prototype_cache:
+                base_prototype.append(prototype_cache[pp])
+                continue
+            path = set()
+            current = pp
+            while current not in prototype_cache:
+                if current in path:
+                    warn(f'Circular prototype chain at {current!r}; '
+                         'base_prototype is set to None.', stacklevel=2)
+                    prototype_cache[current] = None
+                    break
+                path.add(current)
+                # A prototype can be absent after importing or removing elements.
+                ancestor = self._element_dict.get(current)
+                if ancestor is None:
+                    warn(f'Prototype {current!r} not found in the environment; '
+                         'its name is used as base_prototype, but the ancestry '
+                         'may be incomplete.', stacklevel=2)
+                next_prototype = getattr(ancestor, 'prototype', None)
+                if next_prototype is None:
+                    prototype_cache[current] = current
+                    break
+                current = next_prototype
+            base = prototype_cache[current]
+            for name in path:
+                prototype_cache[name] = base
+            base_prototype.append(base)
+
         isthick = np.array(isthick + [False])
         iscollective = np.array(iscollective + [False])
         isreplica = np.array(isreplica + [False])
@@ -977,6 +1011,7 @@ class Line:
         parent_name = np.array(parent_name + [None])
         parent_type = np.array(parent_type + [None])
         prototype = np.array(prototype + [None])
+        base_prototype = np.array(base_prototype + [None])
 
         elements += [None]
 
@@ -1000,6 +1035,7 @@ class Line:
             'parent_name': parent_name,
             'parent_type': parent_type,
             'prototype': prototype,
+            'base_prototype': base_prototype,
             'iscollective': iscollective,
             'element': elements,
             's_start': s_start,
@@ -1046,6 +1082,11 @@ class Line:
         -------
         table : LineTable
             Table containing one row per element plus the ``'_end_point'`` row.
+            ``base_prototype`` is the last non-None name in the prototype chain,
+            or None for elements without a prototype and for ``'_end_point'``.
+            If a prototype is absent from the environment, its name is used and
+            a warning is emitted once per missing prototype per table build.
+            Circular chains emit a warning and have ``base_prototype=None``.
 
         Examples
         --------
@@ -2870,6 +2911,7 @@ class Line:
         - ``name``: element name (with occurrence counts for repeated names).
         - ``element_type``: type of the element (e.g. Drift, Marker, Bend).
         - ``prototype``: name of the element prototype, when present.
+        - ``base_prototype``: last non-None name in the prototype chain.
         - ``s``: longitudinal coordinate at the element entrance [m].
         - ``X``, ``Y``, ``Z``: position of the element entrance in the global frame [m].
         - ``theta``, ``phi``, ``psi``: orientation angles of the local frame

@@ -2123,6 +2123,10 @@ def test_twiss_prototype_with_strengths():
     assert 'prototype' not in tw.keys()
     assert np.all(tw_with_strengths.prototype == np.array(
         [None, 'q0', 'q1', None]))
+    assert 'base_prototype' not in tw.keys()
+    assert list(tw_with_strengths.base_prototype) == [None, 'q0', 'q0', None]
+    assert list(tw_with_strengths.reverse().base_prototype) == [
+        'q0', 'q0', None, None]
 
 def test_coupling_calculations():
 
