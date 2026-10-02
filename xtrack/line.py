@@ -990,10 +990,6 @@ class Line:
                 path.add(current)
                 # A prototype can be absent after importing or removing elements.
                 ancestor = self._element_dict.get(current)
-                if ancestor is None:
-                    warn(f'Prototype {current!r} not found in the environment; '
-                         'its name is used as base_prototype, but the ancestry '
-                         'may be incomplete.', stacklevel=2)
                 next_prototype = getattr(ancestor, 'prototype', None)
                 if next_prototype is None:
                     prototype_cache[current] = current
@@ -1084,8 +1080,8 @@ class Line:
             Table containing one row per element plus the ``'_end_point'`` row.
             ``base_prototype`` is the last non-None name in the prototype chain,
             or None for elements without a prototype and for ``'_end_point'``.
-            If a prototype is absent from the environment, its name is used and
-            a warning is emitted once per missing prototype per table build.
+            If a prototype is absent from the environment, its name is used
+            without emitting a warning.
             Circular chains emit a warning and have ``base_prototype=None``.
 
         Examples

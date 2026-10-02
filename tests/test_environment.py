@@ -2009,14 +2009,14 @@ def test_line_table_base_prototype_long_chain():
     assert list(tt.base_prototype) == ['m0'] * 1099 + [None, None]
 
 
+@pytest.mark.filterwarnings('error')
 def test_line_table_base_prototype_missing_and_circular():
 
     line = xt.Line(elements={'m': xt.Marker(), 'p': xt.Marker()},
                    element_names=['m'])
     line.get('m').prototype = 'p'
     line.get('p').prototype = 'missing'
-    with pytest.warns(UserWarning, match="Prototype 'missing' not found"):
-        assert list(line.get_table().base_prototype) == ['missing', None]
+    assert list(line.get_table().base_prototype) == ['missing', None]
 
     line.get('p').prototype = 'm'
     with pytest.warns(UserWarning, match='Circular prototype chain') as warnings:
@@ -2025,6 +2025,7 @@ def test_line_table_base_prototype_missing_and_circular():
     assert list(tt.base_prototype) == [None, None]
 
 
+@pytest.mark.filterwarnings('error')
 def test_line_table_base_prototype_shared_missing():
 
     elements = {nn: xt.Marker() for nn in ['a', 'b', 'c', 'd', 'root']}
@@ -2035,13 +2036,9 @@ def test_line_table_base_prototype_shared_missing():
     line = xt.Line(elements=elements,
                    element_names=['b', 'a', 'c', 'b', 'd', 'root'])
 
-    # Shared chains and repeated rows warn once per missing name on each build.
+    # Missing prototypes remain silent across shared chains and repeated builds.
     for _ in range(2):
-        with pytest.warns(UserWarning, match='not found') as warnings:
-            tt = line.get_table()
-        assert len(warnings) == 2
-        assert "Prototype 'missing'" in str(warnings[0].message)
-        assert "Prototype 'other_missing'" in str(warnings[1].message)
+        tt = line.get_table()
         assert list(tt.base_prototype) == [
             'missing', 'missing', 'missing', 'missing', 'other_missing',
             None, None]
