@@ -279,7 +279,7 @@ def twiss_line(line, particle_ref=None, method=None,
         - `env_name`: environment name of the element, i.e. name without suffix
           for repeated elements. (ebe)
         - `s`: element position [m] (ebe)
-        - `x`, `px`, `y`, `py`, `zeta`, `delta`, `ptau`: coordinates
+        - `x`, `px`, `y`, `py`, `zeta`, `delta`, `ptau`, `pzeta`: coordinates
           of the closed orbit for the periodic twiss and of the beam trajectory
           for the open twiss. (ebe)
         - `betx`, `bety`, `alfx`, `alfy`, `gamx`, `gamy`: Twiss parameters.

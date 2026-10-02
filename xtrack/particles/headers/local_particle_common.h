@@ -200,7 +200,7 @@ void LocalParticle_update_pzeta(LocalParticle* part, xt_float_or_tpsa_arg new_pz
     double const beta0 = LocalParticle_get_beta0(part);
     xt_float_or_tpsa const pzeta = new_pzeta_value;
     xt_float_or_tpsa const ptau = pzeta * beta0;
-    xt_float_or_tpsa const irpp = sqrt(ptau * ptau + 2.0 * ptau / beta0 + 1.0);
+    xt_float_or_tpsa const irpp = sqrt(ptau * ptau + 2.0 * pzeta + 1.0);
     xt_float_or_tpsa const new_rpp = 1.0 / irpp;
     xt_float_or_tpsa const new_rvv = irpp / (1.0 + beta0 * ptau);
 
@@ -367,7 +367,7 @@ void LocalParticle_add_to_energy(LocalParticle* part, xt_float_or_tpsa_arg delta
     double const chi = LocalParticle_get_chi(part);
     double const mass_ratio = charge_ratio / chi;
 
-    pzeta += delta_energy / p0c / mass_ratio / beta0;
+    pzeta += delta_energy / (beta0 * p0c) / mass_ratio;
     xt_float_or_tpsa const old_rpp = LocalParticle_get_rpp(part);
     LocalParticle_update_pzeta(part, pzeta);
 

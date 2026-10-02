@@ -926,11 +926,11 @@ class TwissTable(Table):
                                     y = ctx2np(particles.y)[mask_at_ele],
                                     py = ctx2np(particles.py)[mask_at_ele],
                                     zeta = ctx2np(particles.zeta)[mask_at_ele],
-                                    pzeta = ctx2np(particles.ptau)[mask_at_ele]/ctx2np(particles.beta0)[mask_at_ele],
+                                    pzeta = ctx2np(particles.pzeta)[mask_at_ele],
                                     W_matrix = W,
                                     co_dict = {'x': self.x[at_ele], 'px': self.px[at_ele],
                                                'y': self.y[at_ele], 'py': self.py[at_ele],
-                                               'zeta': self.zeta[at_ele], 'ptau': self.ptau[at_ele],
+                                               'zeta': self.zeta[at_ele], 'pzeta': self.pzeta[at_ele],
                                                'beta0': self.particle_on_co._xobject.beta0[0],
                                                'gamma0': self.particle_on_co._xobject.gamma0[0]},
                                     nemitt_x = nemitt_x,
@@ -1019,6 +1019,8 @@ class TwissTable(Table):
         out.zeta = -out.zeta
         out.delta = out.delta
         out.ptau = out.ptau
+        if 'pzeta' in out:
+            out.pzeta = out.pzeta
 
         if 'kin_px' in out:
             out.kin_px = out.kin_px

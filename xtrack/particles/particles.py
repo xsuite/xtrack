@@ -1445,7 +1445,7 @@ class Particles(xo.HybridClass):
 
     @property
     def energy(self):
-        energy = (self.energy0 + self.ptau * self.p0c) * self.mass_ratio  # eV
+        energy = (self.energy0 + self.pzeta * (self.beta0 * self.p0c)) * self.mass_ratio  # eV
         return self._buffer.context.linked_array_type.from_array(
             energy, mode='readonly',
             container=self)
@@ -1531,7 +1531,7 @@ class Particles(xo.HybridClass):
         Add `delta_energy` to the `energy` of the particles object. `pzeta`,
         `delta`, `rvv` and `rpp` are updated accordingly.
         """
-        self.ptau += delta_energy / self.p0c / self.mass_ratio
+        self.pzeta += delta_energy / (self.beta0 * self.p0c) / self.mass_ratio
 
     def set_particle(self, index, set_scalar_vars=False, **kwargs):
         raise NotImplementedError('This functionality has been removed')
