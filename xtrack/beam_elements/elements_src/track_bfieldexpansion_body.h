@@ -149,7 +149,7 @@ void TRACK_EXPANSION(
             LocalParticle_set_y(part, z[2]);
             LocalParticle_set_py(part, z[3]);
             LocalParticle_set_zeta(part, z[4]*beta0);
-            LocalParticle_set_ptau(part, z[5]);
+            LocalParticle_update_ptau(part, z[5]);
             LocalParticle_add_to_s(part, ds*nstep);
         }
     END_PER_PARTICLE_BLOCK

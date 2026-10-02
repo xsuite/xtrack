@@ -60,7 +60,7 @@ r0 = qe**2/(4*np.pi*epsilon_0*mass0_kg*clight**2)
 Ps = (2 * r0 * clight * mass0_kg * clight**2 * gamma0**2 * gamma**2)/(3*rho_0**2) # W
 
 Delta_E_eV = -Ps*(L_bend/clight) / qe
-Delta_E_trk = (dct_ave['ptau']-dct_ave_before['ptau'])*dct_ave['p0c']
+Delta_E_trk = (dct_ave['pzeta']-dct_ave_before['pzeta'])*dct_ave['beta0']*dct_ave['p0c']
 
 xo.assert_allclose(Delta_E_eV, Delta_E_trk, atol=0, rtol=1e-3)
 

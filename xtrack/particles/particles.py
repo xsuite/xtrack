@@ -39,7 +39,7 @@ scalar_vars = (
 )
 
 part_energy_vars = (
-    (xo.Float64, 'ptau'),
+    (xo.Float64, 'pzeta'),
     (xo.Float64, 'delta'),
     (xo.Float64, 'rpp'),
     (xo.Float64, 'rvv'),
@@ -104,7 +104,7 @@ class Particles(xo.HybridClass):
 
     _rename = {
         'delta': '_delta',
-        'ptau': '_ptau',
+        'pzeta': '_pzeta',
         'rvv': '_rvv',
         'rpp': '_rpp',
         'p0c': '_p0c',
@@ -262,7 +262,7 @@ class Particles(xo.HybridClass):
                             'Please use `pzeta` instead.')
 
         accepted_args = set(self._xofields.keys()) | {
-            'energy0', 'tau', 'pzeta', 'mass_ratio', 'kinetic_energy0',
+            'energy0', 'tau', 'ptau', 'mass_ratio', 'kinetic_energy0',
             '_context', '_buffer', '_offset', 'name', 'rigidity0',
         }
         if set(kwargs.keys()) - accepted_args:
@@ -282,7 +282,7 @@ class Particles(xo.HybridClass):
              (xo.Float64, 'kinetic_energy0'),
              (xo.Float64, 'rigidity0'),
              (xo.Float64, 'tau'),
-             (xo.Float64, 'pzeta'),
+             (xo.Float64, 'ptau'),
              (xo.Float64, 'mass_ratio'))
         )
 
@@ -535,7 +535,7 @@ class Particles(xo.HybridClass):
 
         dct = xo.HybridClass.to_dict(p_for_dict)
         dct['delta'] = p_for_dict.delta
-        dct['ptau'] = p_for_dict.ptau
+        dct['pzeta'] = p_for_dict.pzeta
         dct['rvv'] = p_for_dict.rvv
         dct['rpp'] = p_for_dict.rpp
         dct['p0c'] = p_for_dict._p0c
@@ -551,7 +551,7 @@ class Particles(xo.HybridClass):
                     del (dct[kk])
 
         if remove_redundant_variables:
-            for kk in ['ptau', 'rpp', 'rvv', 'gamma0', 'beta0']:
+            for kk in ['pzeta', 'rpp', 'rvv', 'gamma0', 'beta0']:
                 del (dct[kk])
 
         return dct
@@ -1157,7 +1157,7 @@ class Particles(xo.HybridClass):
     def update_delta(self, new_delta_value):
 
         """
-        Update the `delta` value of the particles object. `ptau` and `rvv` and
+        Update the `delta` value of the particles object. `pzeta` and `rvv` and
         `rpp` are updated accordingly. If `new_delta_value` contains nans, these
         values are not updated.
         """
@@ -1190,12 +1190,48 @@ class Particles(xo.HybridClass):
         temp_delta[indx] = val
         self.update_delta(temp_delta)
 
+    def update_pzeta(self, new_pzeta):
+
+        """
+        Update the `pzeta` value of the particles object. `delta` and `rvv` and
+        `rpp` are updated accordingly. If `new_pzeta` contains nans, these values
+        are not updated.
+        """
+
+        isnan = self._context.nplike_lib.isnan
+        # The comparison with False is needed as mask consists of int8 on opencl
+        mask = (isnan(new_pzeta) == False) & (self.state > 0)  # noqa
+
+        self._update_energy_deviations(
+            pzeta=new_pzeta,
+            mask=mask
+        )
+
+    def _pzeta_setitem(self, indx, val):
+        ctx = self._buffer.context
+        temp_pzeta = ctx.zeros(shape=self._pzeta.shape, dtype=np.float64)
+        temp_pzeta[:] = np.nan
+        temp_pzeta[indx] = val
+        self.update_pzeta(temp_pzeta)
+
+    @property
+    def pzeta(self):
+        return self._buffer.context.linked_array_type.from_array(
+            self._pzeta,
+            mode='setitem_from_container',
+            container=self,
+            container_setitem_name='_pzeta_setitem')
+
+    @pzeta.setter
+    def pzeta(self, value):
+        self.pzeta[:] = value
+
     def update_ptau(self, new_ptau):
 
         """
-        Update the `ptau` value of the particles object. `delta` and `rvv` and
-        `rpp` are updated accordingly. If `new_ptau` contains nans, these values
-        are not updated.
+        Update the `ptau` value of the particles object. `pzeta`, `delta`,
+        `rvv` and `rpp` are updated accordingly. If `new_ptau` contains nans,
+        these values are not updated.
         """
 
         isnan = self._context.nplike_lib.isnan
@@ -1209,15 +1245,17 @@ class Particles(xo.HybridClass):
 
     def _ptau_setitem(self, indx, val):
         ctx = self._buffer.context
-        temp_ptau = ctx.zeros(shape=self._ptau.shape, dtype=np.float64)
+        temp_ptau = ctx.zeros(shape=self._pzeta.shape, dtype=np.float64)
         temp_ptau[:] = np.nan
         temp_ptau[indx] = val
         self.update_ptau(temp_ptau)
 
     @property
     def ptau(self):
+        # ptau is not stored, it is derived from the stored pzeta
+        ptau = self._pzeta * self._beta0
         return self._buffer.context.linked_array_type.from_array(
-            self._ptau,
+            ptau,
             mode='setitem_from_container',
             container=self,
             container_setitem_name='_ptau_setitem')
@@ -1434,13 +1472,6 @@ class Particles(xo.HybridClass):
             container=self)
 
     @property
-    def pzeta(self):
-        pzeta = self.ptau / self.beta0
-        return self._buffer.context.linked_array_type.from_array(
-            pzeta, mode='readonly',
-            container=self)
-
-    @property
     def kin_px(self):
         out = self.px - self.ax
         return self._buffer.context.linked_array_type.from_array(
@@ -1497,8 +1528,8 @@ class Particles(xo.HybridClass):
 
     def add_to_energy(self, delta_energy):
         """
-        Add `delta_energy` to the `energy` of the particles object. `delta`,
-        `ptau`, `rvv` and `rpp` are updated accordingly.
+        Add `delta_energy` to the `energy` of the particles object. `pzeta`,
+        `delta`, `rvv` and `rpp` are updated accordingly.
         """
         self.ptau += delta_energy / self.p0c / self.mass_ratio
 
@@ -1657,11 +1688,11 @@ class Particles(xo.HybridClass):
                                   _rpp=None, _rvv=None, mask=None):
         if all(ff is None for ff in (delta, ptau, pzeta)):
             if _rpp is not None or _rvv is not None:
-                raise ValueError('Setting `delta` and `ptau` by only giving '
+                raise ValueError('Setting `delta` and `pzeta` by only giving '
                                  '`_rpp` and `_rvv` is not supported.')
             if any(self.mass_ratio != 1.0):
-                raise ValueError('Need to provide `delta` or `ptau` with '
-                                 'non-default mass ratios.')
+                raise ValueError('Need to provide `delta`, `ptau` or `pzeta` '
+                                 'with non-default mass ratios.')
             self._delta = 0.0
             delta = self._delta  # Cupy complains if we later assign LinkedArray
 
@@ -1683,14 +1714,14 @@ class Particles(xo.HybridClass):
         else:
             raise RuntimeError('This statement is unreachable.')
 
-        self._assert_values_consistent(pzeta, _pzeta, mask)
+        self._assert_values_consistent(ptau, _ptau, mask)
         self._setattr_if_consistent('_delta',
                                     given_value=delta,
                                     computed_value=_delta,
                                     mask=mask)
-        self._setattr_if_consistent('_ptau',
-                                    given_value=ptau,
-                                    computed_value=_ptau,
+        self._setattr_if_consistent('_pzeta',
+                                    given_value=pzeta,
+                                    computed_value=_pzeta,
                                     mask=mask)
 
         delta = self._delta  # Cupy complains if we later assign LinkedArray

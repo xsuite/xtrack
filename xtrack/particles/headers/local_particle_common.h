@@ -196,17 +196,29 @@ double LocalParticle_get_energy0(LocalParticle* part) {
 }
 
 GPUFUN
-void LocalParticle_update_ptau(LocalParticle* part, xt_float_or_tpsa_arg new_ptau_value) {
+void LocalParticle_update_pzeta(LocalParticle* part, xt_float_or_tpsa_arg new_pzeta_value) {
     double const beta0 = LocalParticle_get_beta0(part);
-    xt_float_or_tpsa const ptau = new_ptau_value;
+    xt_float_or_tpsa const pzeta = new_pzeta_value;
+    xt_float_or_tpsa const ptau = pzeta * beta0;
     xt_float_or_tpsa const irpp = sqrt(ptau * ptau + 2.0 * ptau / beta0 + 1.0);
     xt_float_or_tpsa const new_rpp = 1.0 / irpp;
     xt_float_or_tpsa const new_rvv = irpp / (1.0 + beta0 * ptau);
 
     LocalParticle_set_delta(part, irpp - 1.0);
     LocalParticle_set_rvv(part, new_rvv);
-    LocalParticle_set_ptau(part, ptau);
+    LocalParticle_set_pzeta(part, pzeta);
     LocalParticle_set_rpp(part, new_rpp);
+}
+
+// ptau is not stored: it is derived from pzeta as ptau = pzeta * beta0.
+GPUFUN
+xt_float_or_tpsa LocalParticle_get_ptau(LocalParticle* part) {
+    return LocalParticle_get_pzeta(part) * LocalParticle_get_beta0(part);
+}
+
+GPUFUN
+void LocalParticle_update_ptau(LocalParticle* part, xt_float_or_tpsa_arg new_ptau_value) {
+    LocalParticle_update_pzeta(part, new_ptau_value / LocalParticle_get_beta0(part));
 }
 
 GPUFUN
@@ -218,22 +230,12 @@ void LocalParticle_update_delta(LocalParticle* part, xt_float_or_tpsa_arg new_de
     xt_float_or_tpsa const one_plus_delta = 1.0 + new_delta_value;
     xt_float_or_tpsa const rvv = one_plus_delta / (1.0 + ptau_beta0);
     xt_float_or_tpsa const rpp = 1.0 / one_plus_delta;
-    xt_float_or_tpsa const ptau = ptau_beta0 / beta0;
+    xt_float_or_tpsa const pzeta = ptau_beta0 / (beta0 * beta0);
 
     LocalParticle_set_delta(part, new_delta_value);
     LocalParticle_set_rvv(part, rvv);
     LocalParticle_set_rpp(part, rpp);
-    LocalParticle_set_ptau(part, ptau);
-}
-
-GPUFUN
-xt_float_or_tpsa LocalParticle_get_pzeta(LocalParticle* part) {
-    return LocalParticle_get_ptau(part) / LocalParticle_get_beta0(part);
-}
-
-GPUFUN
-void LocalParticle_update_pzeta(LocalParticle* part, xt_float_or_tpsa_arg new_pzeta_value) {
-    LocalParticle_update_ptau(part, LocalParticle_get_beta0(part) * new_pzeta_value);
+    LocalParticle_set_pzeta(part, pzeta);
 }
 
 // Turn and element counters operate over the context-specific LocalParticle block.
@@ -358,15 +360,16 @@ int64_t check_is_active(LocalParticle* part) {
 // Energy kicks and reference-momentum updates.
 GPUFUN
 void LocalParticle_add_to_energy(LocalParticle* part, xt_float_or_tpsa_arg delta_energy, int pz_only) {
-    xt_float_or_tpsa ptau = LocalParticle_get_ptau(part);
+    xt_float_or_tpsa pzeta = LocalParticle_get_pzeta(part);
     double const p0c = LocalParticle_get_p0c(part);
+    double const beta0 = LocalParticle_get_beta0(part);
     double const charge_ratio = LocalParticle_get_charge_ratio(part);
     double const chi = LocalParticle_get_chi(part);
     double const mass_ratio = charge_ratio / chi;
 
-    ptau += delta_energy / p0c / mass_ratio;
+    pzeta += delta_energy / p0c / mass_ratio / beta0;
     xt_float_or_tpsa const old_rpp = LocalParticle_get_rpp(part);
-    LocalParticle_update_ptau(part, ptau);
+    LocalParticle_update_pzeta(part, pzeta);
 
     if (!pz_only) {
         xt_float_or_tpsa const new_rpp = LocalParticle_get_rpp(part);
