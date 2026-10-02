@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Iterable, Sequence
+from unicodedata import name
 
 import numpy as np
 import xtrack as xt
@@ -190,23 +191,15 @@ class ParticlesTpsa(TpsaMap):
         return p
 
     def __getattr__(self, name: str) -> Tpsa | float:
-        if name in COORDS:
-            return self.coords[COORDS.index(name)]
         if name in _REF_VARS:
-            if self._xobject is not None:
-                return float(getattr(self._xobject, name))
+            try:
+                xobject = object.__getattribute__(self, '_xobject')
+            except AttributeError:
+                xobject = None
+            if xobject is not None:
+                return float(getattr(xobject, name))
             return self._ref(name)
-        raise AttributeError(name)
-
-    @property
-    def descriptor(self) -> Descriptor:
-        """The GTPSA ``Descriptor`` shared by the six coordinate series (from C)."""
-        return self.coords[0].descriptor
-
-    @property
-    def order(self) -> int:
-        """Truncation order, read back from the coordinate series (single source of truth)."""
-        return self.coords[0].order
+        return super().__getattr__(name)
 
     @property
     def num_vars(self) -> int:
@@ -227,16 +220,7 @@ class ParticlesTpsa(TpsaMap):
         if isinstance(knob, str):
             raise TypeError("ParticlesTpsa does not store parameter names")
         ip = knob
-        return self._series(coord).param_grad()[ip]
-
-    @property
-    def const_part(self) -> np.ndarray:
-        """Tracked orbit: the order-0 part of each coordinate (length-6 array)."""
-        return np.array([c.const_part for c in self.coords])
-
-    def jacobian(self) -> np.ndarray:
-        """The 6x6 order-1 transfer matrix R."""
-        return np.array([c.grad() for c in self.coords])
+        return self[coord].param_grad()[ip]
 
     def optics(self) -> TpsaOptics:
         """Uncoupled optics (betx, alfx, mux, dx, ...) + parameter gradients."""
@@ -268,12 +252,6 @@ class ParticlesTpsa(TpsaMap):
                 mono[j] = 1
                 c.set(mono, R[i, j])
 
-    def _series(self, coord: str | int) -> Tpsa:
-        """The ``Tpsa`` output series for ``coord`` (name like ``'x'`` or index 0..5)."""
-        if isinstance(coord, str):
-            return self.coords[COORDS.index(coord)]
-        return self.coords[coord]
-
     def coefficient(
         self,
         coord: str | int,
@@ -304,7 +282,7 @@ class ParticlesTpsa(TpsaMap):
                     f"(6 vars + {desc.num_params} params) and total order within the "
                     f"descriptor's order/param-order"
                 )
-        return self._series(coord).coefficient(monomials)
+        return self[coord].coefficient(monomials)
 
     def set_coefficient(
         self, coord: str | int, monomial: Sequence[int] | np.ndarray, value: float
@@ -325,16 +303,4 @@ class ParticlesTpsa(TpsaMap):
                 f"(6 vars + {desc.num_params} params) and total order within the "
                 f"descriptor's order/param-order"
             )
-        self._series(coord).set(mono, value)
-
-    def monomial_coeffs(
-        self, coord: str | int | None = None, tol: float = 1e-14
-    ) -> dict[tuple[int, ...], float] | dict[str, dict[tuple[int, ...], float]]:
-        """All ``|c| > tol`` coefficients as ``{monomial_tuple: coefficient}``.
-
-        With ``coord`` given, returns that output series' dictionary.
-        With ``coord=None``, returns ``{coord_name: {monomial_tuple: coefficient}}`` for all.
-        """
-        if coord is not None:
-            return self._series(coord).monomial_coeffs(tol)
-        return {c: s.monomial_coeffs(tol) for c, s in zip(COORDS, self.coords)}
+        self[coord].set(mono, value)
