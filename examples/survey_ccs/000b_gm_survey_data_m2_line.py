@@ -30,7 +30,8 @@ su.write_legacy_survey_tfs(
     element_names=names_align,
     element_container=env,
     compensate_psi_vbend=compensate_psi_vbend,
-    psi_tol_deg=psi_tol_deg
+    psi_tol_deg=psi_tol_deg,
+    mode='element_points'
 )
 
 
