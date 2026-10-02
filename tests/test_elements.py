@@ -129,9 +129,30 @@ def test_quadrupole_to_dict_omits_zero_strengths(copy_to_cpu):
 
     element.knl_rel[:] = 0
     element.ksl_rel[:] = 0
-    assert element.to_dict(copy_to_cpu=copy_to_cpu) == {
-        '__class__': 'Quadrupole', 'order': 7,
-    }
+    dct = element.to_dict(copy_to_cpu=copy_to_cpu)
+    restored = xt.Quadrupole.from_dict(dct.copy())
+    assert restored.order == 7
+    np.testing.assert_array_equal(restored.knl_rel, [0, 0])
+    np.testing.assert_array_equal(restored.ksl_rel, [0, 0])
+    assert len(restored.knl) == len(element.knl)
+    assert len(restored.ksl) == len(element.ksl)
+
+
+def test_zero_relative_strengths_preserve_expressions_on_json_round_trip(tmp_path):
+    env = xt.Environment()
+    env['error_knob'] = 0
+    env.new('q', xt.Quadrupole, knl_rel=np.zeros(15), ksl_rel=np.zeros(15))
+    env.ref['q'].knl_rel[14] = env.ref['error_knob']
+    env.ref['q'].ksl_rel[14] = -env.ref['error_knob']
+
+    path = tmp_path / 'env.json'
+    env.to_json(path)
+    restored = xt.load(path)
+    assert len(restored['q'].knl_rel) == 15
+    assert len(restored['q'].ksl_rel) == 15
+    restored['error_knob'] = 0.25
+    assert restored['q'].knl_rel[14] == 0.25
+    assert restored['q'].ksl_rel[14] == -0.25
 
 
 def test_rfmultipole_phase_n_s_and_deprecated_pn_ps_warnings():
