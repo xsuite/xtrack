@@ -1546,3 +1546,25 @@ def test_action_tpsa_track_rejects_unsupported_targets():
             line, ["kqf"],
             targets=[xt.TargetRelPhaseAdvance("dqx", value=0.0,
                                             start="qf0", end="qd2")], **kwargs)
+
+
+def test_particles_tpsa_is_tpsa_map():
+    particles = xtpsa.ParticlesTpsa(
+        order=2,
+        p0c=P0C,
+        mass0=MASS0,
+    )
+    assert isinstance(particles, madng_tpsa.TpsaMap)
+    assert particles.coord_names == COORDS
+
+
+def test_particles_tpsa_inherits_map_operations():
+    particles = xtpsa.ParticlesTpsa(
+        order=2,
+        p0c=P0C,
+        mass0=MASS0,
+    )
+    identity = madng_tpsa.TpsaMap.identity(particles.descriptor)
+    result = particles @ identity
+    assert isinstance(result, madng_tpsa.TpsaMap)
+    assert result.monomial_coeffs() == particles.monomial_coeffs()
