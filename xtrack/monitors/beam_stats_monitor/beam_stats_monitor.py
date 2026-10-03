@@ -998,6 +998,21 @@ class BeamStatsMonitor(BeamElement):
         """
         _save_to_file(self, output_file=output_file)
 
+    def clear(self):
+        """
+        Clear all recorded in-memory data, keeping the monitor configuration.
+
+        Primitive moment arrays, profile counts, and touched-record flags are
+        reset in place. The turn range and sampling stride are preserved, and
+        the monitor can be reused with an existing tracker. This method is
+        available in all modes, including coasting mode.
+
+        Data already saved to an HDF5 output file is preserved. Use
+        :meth:`start_new_frame` to also retarget the monitor to later turns.
+        """
+        self._reset_data()
+        self._reset_touched_records()
+
     def start_new_frame(self, start_at_turn):
         """
         Clear data and retarget the same-size logged-turn frame.
@@ -1013,8 +1028,7 @@ class BeamStatsMonitor(BeamElement):
         self.start_at_turn = start_at_turn
         self.stop_at_turn = (
             start_at_turn + int(self._num_records) * int(self.every_n_turns))
-        self._reset_data()
-        self._reset_touched_records()
+        self.clear()
 
     def _moments_at_level(self, level):
         """

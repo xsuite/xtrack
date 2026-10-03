@@ -15,6 +15,7 @@ from ..general import DEPRECATION_INFO_PREP_1_0
 from ..internal_record import RecordIndex
 
 DEFAULT_MULTIPOLE_ORDER = 5
+DEFAULT_RELATIVE_MULTIPOLE_LENGTH = 1
 
 _INDEX_TO_MODEL_DRIFT = {
     0: 'adaptive',
@@ -435,11 +436,18 @@ class _HasKnlKsl:
     def to_dict(self, copy_to_cpu=True):
         out = super().to_dict(copy_to_cpu=copy_to_cpu)
 
-        if 'knl' in out and np.allclose(out['knl'], 0, atol=1e-16):
-            out.pop('knl', None)
+        for name in ('knl', 'ksl'):
+            if name in out and np.allclose(out[name], 0, atol=1e-16):
+                out.pop(name)
 
-        if 'ksl' in out and np.allclose(out['ksl'], 0, atol=1e-16):
-            out.pop('ksl', None)
+        # Unlike knl/ksl, whose allocation is restored from order, the relative
+        # arrays have an independent length. Only omit them at the default length
+        # to preserve allocation and indexed expressions on a round trip.
+        for name in ('knl_rel', 'ksl_rel'):
+            if (name in out
+                    and len(out[name]) == DEFAULT_RELATIVE_MULTIPOLE_LENGTH
+                    and np.allclose(out[name], 0, atol=1e-16)):
+                out.pop(name)
 
         if self.order != 0 and 'knl' not in out and 'ksl' not in out:
             out['order'] = self.order
@@ -576,8 +584,8 @@ _ROT_AX_TO_ID = {'x': 0, 'y': 1, 's': 2}
 _ROT_ID_TO_AX = {0: 'x', 1: 'y', 2: 's'}
 
 def _handle_knl_ksl_rel_kwargs(kwargs):
-    knl_rel = kwargs.pop('knl_rel', [0])
-    ksl_rel = kwargs.pop('ksl_rel', [0])
+    knl_rel = kwargs.pop('knl_rel', [0] * DEFAULT_RELATIVE_MULTIPOLE_LENGTH)
+    ksl_rel = kwargs.pop('ksl_rel', [0] * DEFAULT_RELATIVE_MULTIPOLE_LENGTH)
     # pad to have the same length for knl_rel and ksl_rel
     max_len_rel = max(len(knl_rel), len(ksl_rel))
     if len(knl_rel) != len(ksl_rel):

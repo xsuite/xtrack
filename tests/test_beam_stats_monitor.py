@@ -1530,6 +1530,103 @@ def test_beam_stats_monitor_reset_data(test_context):
 
 
 @for_all_test_contexts
+@pytest.mark.parametrize('mode', ['beam', 'bunch', 'slice', 'coasting'])
+@pytest.mark.parametrize('with_profiles', [False, True])
+def test_beam_stats_monitor_clear(test_context, mode, with_profiles):
+    mode_kwargs = {}
+    if mode in ('bunch', 'slice'):
+        mode_kwargs.update(filled_slots=[0, 1], selected_slots=[1, 0],
+                           bunch_spacing_zeta=10.)
+    if mode == 'slice':
+        mode_kwargs.update(zeta_range=(-1., 1.), num_slices=2)
+    elif mode == 'coasting':
+        mode_kwargs.update(coasting=True, num_slices=4)
+
+    monitor = xt.BeamStatsMonitor(
+        _context=test_context,
+        start_at_turn=3, stop_at_turn=8, every_n_turns=2,
+        particle_id_range=(0, 2),
+        stats=['num_particles', 'mean_x', 'sigma_x'],
+        profiles=({'x': {'range': (0., 4.), 'num_bins': 2}}
+                  if with_profiles else None),
+        **mode_kwargs,
+    )
+    line = xt.Line(elements=[monitor, xt.Drift(length=100.)])
+    line.build_tracker(_context=test_context)
+    particles = xt.Particles(
+        _context=test_context, p0c=7e12,
+        x=[1., 3.], zeta=[-0.5, -10.5], weight=[2., 1.], at_turn=3,
+    )
+    configuration = monitor.to_dict()
+    xobject = monitor._xobject
+    buffer = monitor._buffer
+    tracker = line.tracker
+
+    line.track(particles.copy(), num_turns=5)
+    counts = monitor.num_particles.copy()
+    means = monitor.mean_x.copy()
+    profiles = {coord: values.copy()
+                for coord, values in monitor.profiles.items()}
+    assert np.sum(counts) > 0
+    assert monitor._num_touched_records() == 3
+
+    # Clearing twice is harmless, and the existing tracker can record again.
+    for _ in range(2):
+        monitor.clear()
+        assert_equal(monitor.to_dict(), configuration)
+        assert monitor._xobject is xobject
+        assert monitor._buffer is buffer
+        assert line.tracker is tracker
+        assert_equal(monitor.turns, [3, 5, 7])
+        for field in monitor._RAW_FIELDS:
+            assert_allclose(
+                _to_numpy(test_context, getattr(monitor.data, field)), 0.)
+        assert_allclose(_to_numpy(test_context, monitor._profile_data.counts), 0.)
+        assert_equal(_to_numpy(test_context, monitor.touched_records.value), 0)
+        assert monitor._num_touched_records() == 0
+        assert_allclose(monitor.num_particles, 0.)
+        assert_allclose(monitor.mean_x, 0.)
+
+    line.track(particles.copy(), num_turns=5)
+    assert_allclose(monitor.num_particles, counts)
+    assert_allclose(monitor.mean_x, means)
+    for coord, values in profiles.items():
+        assert_allclose(monitor.profiles[coord], values)
+
+
+@for_all_test_contexts
+def test_beam_stats_monitor_clear_hdf5(test_context, tmp_path):
+    h5py = pytest.importorskip('h5py')
+    output_file = tmp_path / 'beam_stats_monitor_clear.h5'
+    monitor = xt.BeamStatsMonitor(
+        _context=test_context, stop_at_turn=3,
+        stats=['num_particles', 'mean_x'], output_file=output_file,
+    )
+    particles = xt.Particles(_context=test_context, p0c=7e12, x=[1., 3.])
+    monitor.track(particles)
+    monitor.save_to_file()
+
+    # Discard an unsaved record. Saving after clear must not append it.
+    particles.at_turn += 1
+    monitor.track(particles)
+    monitor.clear()
+    monitor.save_to_file()
+    assert monitor._output_file == output_file
+    with h5py.File(output_file, 'r') as h5file:
+        assert_equal(h5file['turns'][...], [0])
+        assert_allclose(h5file['stats/beam/num_particles'][...], [2.])
+        assert_allclose(h5file['stats/beam/mean_x'][...], [2.])
+
+    particles.x *= 2
+    monitor.track(particles)
+    monitor.save_to_file()
+    with h5py.File(output_file, 'r') as h5file:
+        assert_equal(h5file['turns'][...], [0, 1])
+        assert_allclose(h5file['stats/beam/num_particles'][...], [2., 2.])
+        assert_allclose(h5file['stats/beam/mean_x'][...], [2., 4.])
+
+
+@for_all_test_contexts
 def test_beam_stats_monitor_save_to_file_hdf5(test_context, tmp_path):
     h5py = pytest.importorskip('h5py')
 

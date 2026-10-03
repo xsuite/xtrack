@@ -40,7 +40,7 @@
 
 // Derived longitudinal quantities represented by TPSAs.
 #define XT_LP_DERIVED_FIELDS(_) \
-    _(ptau)                     \
+    _(pzeta)                    \
     _(rvv)                      \
     _(rpp)                      \
     _(s)
@@ -114,7 +114,7 @@
     _(y)                           \
     _(px)                          \
     _(py)                          \
-    _(ptau)                        \
+    _(pzeta)                       \
     _(delta)                       \
     _(rpp)                         \
     _(rvv)                         \

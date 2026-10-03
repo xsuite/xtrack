@@ -1967,6 +1967,101 @@ def test_line_table_prototype():
 
     assert np.all(tt.name == np.array(['q0', 'q1', 'q2', '_end_point']))
     assert np.all(tt.prototype == np.array([None, 'q0', 'q1', None]))
+    assert list(tt.base_prototype) == [None, 'q0', 'q0', None]
+
+
+@pytest.mark.parametrize('attr', [False, True])
+def test_line_table_base_prototype(attr):
+
+    env = xt.Environment()
+    env.new('q0', 'Quadrupole', length=1.0)
+    env.new('q1', 'q0')
+    env.new('q2', 'q1')
+    env.new('q3', 'q2')
+    env.new('branch', 'q1')
+    env.new('replica', 'q3', mode='replica')
+
+    # Ancestors need not appear in the line; repeated names get unique row names.
+    line = env.new_line(components=['q3', 'branch', 'q3', 'replica', 'q0'])
+    tt = line.get_table(attr=attr)
+    assert list(tt.prototype) == ['q2', 'q1', 'q2', 'q2', None, None]
+    assert list(tt.base_prototype) == ['q0', 'q0', 'q0', 'q0', None, None]
+    assert tt.base_prototype.dtype == object
+    tt_env = env.elements.get_table(attr=attr)
+    assert tt_env['base_prototype', 'q0'] is None
+    assert all(tt_env['base_prototype', nn] == 'q0'
+               for nn in ['q1', 'q2', 'q3', 'branch', 'replica'])
+
+    # Do not retain a stale resolution across calls.
+    env['q1'].prototype = None
+    assert list(line.get_table().base_prototype) == [
+        'q1', 'q1', 'q1', 'q1', None, None]
+
+
+def test_line_table_base_prototype_long_chain():
+
+    # Deeper than Python's recursion limit; include descendants before ancestors.
+    elements = {f'm{ii}': xt.Marker() for ii in range(1100)}
+    for ii in range(1, 1100):
+        elements[f'm{ii}'].prototype = f'm{ii - 1}'
+    line = xt.Line(elements=elements, element_names=list(elements)[::-1])
+    tt = line.get_table()
+    assert list(tt.base_prototype) == ['m0'] * 1099 + [None, None]
+
+
+@pytest.mark.filterwarnings('error')
+def test_line_table_base_prototype_missing_and_circular():
+
+    line = xt.Line(elements={'m': xt.Marker(), 'p': xt.Marker()},
+                   element_names=['m'])
+    line.get('m').prototype = 'p'
+    line.get('p').prototype = 'missing'
+    assert list(line.get_table().base_prototype) == ['missing', None]
+
+    line.get('p').prototype = 'm'
+    with pytest.warns(UserWarning, match='Circular prototype chain') as warnings:
+        tt = line.get_table()
+    assert len(warnings) == 1
+    assert list(tt.base_prototype) == [None, None]
+
+
+@pytest.mark.filterwarnings('error')
+def test_line_table_base_prototype_shared_missing():
+
+    elements = {nn: xt.Marker() for nn in ['a', 'b', 'c', 'd', 'root']}
+    elements['a'].prototype = 'missing'
+    elements['b'].prototype = 'a'
+    elements['c'].prototype = 'missing'
+    elements['d'].prototype = 'other_missing'
+    line = xt.Line(elements=elements,
+                   element_names=['b', 'a', 'c', 'b', 'd', 'root'])
+
+    # Missing prototypes remain silent across shared chains and repeated builds.
+    for _ in range(2):
+        tt = line.get_table()
+        assert list(tt.base_prototype) == [
+            'missing', 'missing', 'missing', 'missing', 'other_missing',
+            None, None]
+
+
+@pytest.mark.parametrize('self_loop', [False, True])
+def test_line_table_base_prototype_shared_loop(self_loop):
+
+    elements = {nn: xt.Marker() for nn in ['a', 'b', 'c', 'root', 'good']}
+    elements['a'].prototype = 'a' if self_loop else 'b'
+    elements['b'].prototype = 'a'
+    elements['c'].prototype = 'b'
+    elements['good'].prototype = 'root'
+    line = xt.Line(elements=elements,
+                   element_names=['c', 'a', 'b', 'c', 'good'])
+    with pytest.warns(UserWarning, match='Circular prototype chain') as warnings:
+        tt = line.get_table()
+    assert len(warnings) == 1
+    assert list(tt.base_prototype) == [None, None, None, None, 'root', None]
+
+
+def test_line_table_base_prototype_empty():
+    assert list(xt.Line().get_table().base_prototype) == [None]
 
 def test_select_in_multiline():
 

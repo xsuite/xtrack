@@ -413,7 +413,7 @@ if MATCH_COMPENSATION_SOLENOID_SCALE:
         targets=[
             xt.Target(
                 name, value=0.0, at=xt.END, tol=1e-12,
-                scale=target_scales[name])
+                weight=target_scales[name])
             for name in ['betx2', 'bety1', 'alfx2', 'alfy1']
         ],
     )

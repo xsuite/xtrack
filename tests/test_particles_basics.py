@@ -62,8 +62,8 @@ def test_basics(test_context):
 
     dct = particles.to_dict() # transfers it to cpu
     assert dct['x'][0] == 1e-3
-    assert dct['ptau'][0] == 0
-    xo.assert_allclose(dct['ptau'][1], 1e-4, rtol=0, atol=1e-9)
+    assert dct['pzeta'][0] == 0
+    xo.assert_allclose(dct['pzeta'][1] * dct['beta0'][1], 1e-4, rtol=0, atol=1e-9)
     xo.assert_allclose(1/(dct['rpp'][1]) - 1, 1e-4, rtol=0, atol=1e-14)
 
     particles = xp.Particles(_context=test_context,
@@ -73,8 +73,8 @@ def test_basics(test_context):
 
     dct = particles.to_dict() # transfers it to cpu
     assert dct['x'][0] == 1e-3
-    xo.assert_allclose(dct['ptau'][0], 0, atol=1e-14, rtol=0)
-    xo.assert_allclose(dct['ptau'][1]/dct['beta0'][1], 1e-4, rtol=0, atol=1e-9)
+    xo.assert_allclose(dct['pzeta'][0], 0, atol=1e-14, rtol=0)
+    xo.assert_allclose(dct['pzeta'][1], 1e-4, rtol=0, atol=1e-9)
     xo.assert_allclose(dct['delta'][1], 9.99995545e-05, rtol=0, atol=1e-13)
 
     particles.move(_context=xo.ContextCpu())
@@ -90,8 +90,8 @@ def test_unallocated_particles(test_context):
 
     dct = particles.to_dict() # transfers it to cpu
     assert dct['x'][0] == 1e-3
-    assert dct['ptau'][0] == 0
-    xo.assert_allclose(dct['ptau'][1], 1e-4, rtol=0, atol=1e-9)
+    assert dct['pzeta'][0] == 0
+    xo.assert_allclose(dct['pzeta'][1] * dct['beta0'][1], 1e-4, rtol=0, atol=1e-9)
     xo.assert_allclose(1/(dct['rpp'][1]) - 1, 1e-4, rtol=0, atol=1e-14)
 
     particles2 = xp.Particles.from_dict(dct, _context=test_context)

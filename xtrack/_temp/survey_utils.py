@@ -3,6 +3,7 @@ from datetime import datetime
 
 import numpy as np
 
+import xtrack as xt
 from ..survey.frame import Frame
 
 
@@ -375,32 +376,86 @@ def comp_psi_vbend(frame_start, frame_end, psi_tol_deg=20):
 
 def write_legacy_survey_tfs(
         file_name, *, survey, element_names, element_container,
-        compensate_psi_vbend=False, psi_tol_deg=20):
-    """Write element entrance and exit frames in the legacy survey format."""
+        compensate_psi_vbend=False, psi_tol_deg=20,
+        mode='element_points'):
+    """Write element entrance and exit points in the legacy survey format.
+
+    For each element two rows are written: a zero-length ``DRIFT_<i>`` row
+    with the entrance point (at the entrance ``S``) and a row with the
+    element name with the exit point (at the exit ``S``).
+
+    Parameters
+    ----------
+    mode : {'element_points', 'ref_points'}, optional
+        ``'element_points'`` (default): the entrance and exit points are
+        those of the element mechanical axis (``elem_start``/``elem_end``
+        frames, including misalignments) and ``ANGLE`` and ``TILT`` are
+        written as zero.
+        ``'ref_points'``: the points are those of the reference trajectory
+        (``ref_start``/``ref_end`` frames), ``ANGLE`` and ``TILT`` are the
+        bending angle and tilt of the element and ``GLOBALTILT`` is the
+        entrance ``PSI`` plus the tilt, as in the output of the MAD-X survey.
+        ``compensate_psi_vbend`` cannot be used in this mode (``PSI`` stays
+        close to zero on the reference trajectory).
+    """
+    if mode not in ('element_points', 'ref_points'):
+        raise ValueError(
+            f'Invalid mode {mode!r}; expected "element_points" or "ref_points"')
+    reference_trajectory = (mode == 'ref_points')
+    if reference_trajectory and compensate_psi_vbend:
+        raise ValueError(
+            '`compensate_psi_vbend` cannot be used with mode="ref_points"')
+
     lines = []
     for ii, nn in enumerate(element_names):
         frames = survey.get_all_frames(nn)
 
-        if compensate_psi_vbend:
-            ff_elem_start = frames['elem_start']
-            ff_elem_end = frames['elem_end']
-            comp_psi_vbend(ff_elem_start, ff_elem_end, psi_tol_deg=psi_tol_deg)
+        if reference_trajectory:
+            frame_start = frames['ref_start']
+            frame_end = frames['ref_end']
+        else:
+            frame_start = frames['elem_start']
+            frame_end = frames['elem_end']
+            if compensate_psi_vbend:
+                comp_psi_vbend(frame_start, frame_end, psi_tol_deg=psi_tol_deg)
+
+        element = element_container[nn]
+        extra = getattr(element, 'extra', None) or {}
+        if reference_trajectory:
+            elem_angle = (element.angle
+                          if isinstance(element, (xt.Bend, xt.RBend)) else 0.)
+            elem_tilt = getattr(element, 'rot_s_rad', 0.)
+        else:
+            elem_angle = 0.
+            elem_tilt = 0.
 
         for place in ('start', 'end'):
 
             if place == 'start':
-                frame = frames['elem_start']
+                frame = frame_start
                 name = f'drift_{ii}'
                 s = survey['s', nn]
                 length = 0
+                angle = 0.
+                tilt = 0.
                 slot_id = 0
             else:
-                frame = frames['elem_end']
+                frame = frame_end
                 name = nn
                 s = survey['s', nn + '>>1']
-                length = np.linalg.norm(
-                    frames['elem_end'].XYZ - frames['elem_start'].XYZ, 2)
-                slot_id = element_container[nn].extra.get('slot_id', 0)
+                if reference_trajectory:
+                    length = s - survey['s', nn]
+                else:
+                    length = np.linalg.norm(
+                        frame_end.XYZ - frame_start.XYZ, 2)
+                angle = elem_angle
+                tilt = elem_tilt
+                slot_id = extra.get('slot_id', 0)
+
+            if reference_trajectory:
+                globaltilt = frame_start.psi + tilt
+            else:
+                globaltilt = frame.psi
 
             line = ' '
 
@@ -419,7 +474,7 @@ def write_legacy_survey_tfs(
             line += f'{length:26.9f}'
 
             # ANGLE
-            line += f'{0:26.9f}'
+            line += f'{angle:26.9f}'
 
             # X, Y, Z, THETA, PHI, PSI
             for value in (
@@ -428,10 +483,10 @@ def write_legacy_survey_tfs(
                 line += f'{value:26.9f}'
 
             # GLOBALTILT
-            line += f'{frame.psi:26.9f}'
+            line += f'{globaltilt:26.9f}'
 
             # TILT
-            line += f'{0:26.9f}'
+            line += f'{tilt:26.9f}'
 
             # SLOT_ID
             line += f'{int(slot_id):11d}'

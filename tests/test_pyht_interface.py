@@ -5,6 +5,7 @@
 
 import pathlib
 
+import pytest
 import xobjects as xo
 from xobjects.test_helpers import for_all_test_contexts
 
@@ -22,7 +23,8 @@ def test_instability_cpu_gpu(test_context):
 
     import xtrack as xt
     import xpart as xp
-    xp.enable_pyheadtail_interface()
+    with pytest.warns(FutureWarning, match='PyHEADTAIL interface'):
+        xp.enable_pyheadtail_interface()
 
     from PyHEADTAIL.particles.generators import generate_Gaussian6DTwiss
     from PyHEADTAIL.particles.slicing import UniformBinSlicer
@@ -246,5 +248,6 @@ def test_instability_cpu_gpu(test_context):
     print(f'{gr_pyht=}, {gr_xtpyht=} {gr_pyht-gr_xtpyht=}')
     xo.assert_allclose(gr_xtpyht, gr_pyht, rtol=1e-3, atol=1e-100)
 
-    xp.disable_pyheadtail_interface() # would stay enabled for following tests
-                                      # called by pytest
+    with pytest.warns(FutureWarning, match='PyHEADTAIL interface'):
+        xp.disable_pyheadtail_interface() # would stay enabled for following tests
+                                          # called by pytest

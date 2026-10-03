@@ -173,12 +173,12 @@ def test_psb_chicane(test_context):
                 xt.Vary('kbrqd14corr', step=1e-4),
             ],
             targets = [
-                xt.Target('qx', value=tw0.qx, tol=1e-5, scale=1),
-                xt.Target('qy', value=tw0.qy, tol=1e-5, scale=1),
+                xt.Target('qx', value=tw0.qx, tol=1e-5, weight=1),
+                xt.Target('qy', value=tw0.qy, tol=1e-5, weight=1),
                 xt.Target('bety', at='mker_match',
-                        value=tw0['bety', 'mker_match'], tol=1e-4, scale=100),
+                        value=tw0['bety', 'mker_match'], tol=1e-4, weight=100),
                 xt.Target('alfy', at='mker_match',
-                        value=tw0['alfy', 'mker_match'], tol=1e-4, scale=100)
+                        value=tw0['alfy', 'mker_match'], tol=1e-4, weight=100)
             ]
         )
 

@@ -87,6 +87,74 @@ def test_scalar_element_fields_accept_length_one_array_like(
     assert getattr(element, field) == pytest.approx(float(value[0]))
 
 
+@pytest.mark.parametrize('copy_to_cpu', [True, False])
+@pytest.mark.parametrize('element_cls, fields', [
+    (xt.Bend, ('k1', 'k2')),
+    (xt.RBend, ('k1', 'k2')),
+    (xt.Quadrupole, ('k1', 'k1s')),
+    (xt.Sextupole, ('k2', 'k2s')),
+    (xt.Octupole, ('k3', 'k3s')),
+    (xt.UniformSolenoid, ('ks',)),
+])
+def test_to_dict_omits_float_or_tpsa_defaults(element_cls, fields, copy_to_cpu):
+    element = element_cls()
+    default_dict = element.to_dict(copy_to_cpu=copy_to_cpu)
+    for field in fields:
+        assert field not in default_dict
+
+    for field in fields:
+        setattr(element, field, 0.125)
+    dct = element.to_dict(copy_to_cpu=copy_to_cpu)
+    restored = element_cls.from_dict(dct.copy())
+    for field in fields:
+        assert dct[field] == 0.125
+        assert getattr(restored, field) == 0.125
+        setattr(element, field, 0.0)
+    assert element.to_dict(copy_to_cpu=copy_to_cpu) == default_dict
+
+
+@pytest.mark.parametrize('copy_to_cpu', [True, False])
+def test_quadrupole_to_dict_omits_zero_strengths(copy_to_cpu):
+    element = xt.Quadrupole()
+    assert element.to_dict(copy_to_cpu=copy_to_cpu) == {
+        '__class__': 'Quadrupole', 'order': 5,
+    }
+
+    element = xt.Quadrupole(order=7, knl_rel=[0, 0.25], ksl_rel=[0, -0.5])
+    dct = element.to_dict(copy_to_cpu=copy_to_cpu)
+    restored = xt.Quadrupole.from_dict(dct.copy())
+    assert restored.order == 7
+    np.testing.assert_array_equal(restored.knl_rel, [0, 0.25])
+    np.testing.assert_array_equal(restored.ksl_rel, [0, -0.5])
+
+    element.knl_rel[:] = 0
+    element.ksl_rel[:] = 0
+    dct = element.to_dict(copy_to_cpu=copy_to_cpu)
+    restored = xt.Quadrupole.from_dict(dct.copy())
+    assert restored.order == 7
+    np.testing.assert_array_equal(restored.knl_rel, [0, 0])
+    np.testing.assert_array_equal(restored.ksl_rel, [0, 0])
+    assert len(restored.knl) == len(element.knl)
+    assert len(restored.ksl) == len(element.ksl)
+
+
+def test_zero_relative_strengths_preserve_expressions_on_json_round_trip(tmp_path):
+    env = xt.Environment()
+    env['error_knob'] = 0
+    env.new('q', xt.Quadrupole, knl_rel=np.zeros(15), ksl_rel=np.zeros(15))
+    env.ref['q'].knl_rel[14] = env.ref['error_knob']
+    env.ref['q'].ksl_rel[14] = -env.ref['error_knob']
+
+    path = tmp_path / 'env.json'
+    env.to_json(path)
+    restored = xt.load(path)
+    assert len(restored['q'].knl_rel) == 15
+    assert len(restored['q'].ksl_rel) == 15
+    restored['error_knob'] = 0.25
+    assert restored['q'].knl_rel[14] == 0.25
+    assert restored['q'].ksl_rel[14] == -0.25
+
+
 def test_rfmultipole_phase_n_s_and_deprecated_pn_ps_warnings():
     with warnings.catch_warnings(record=True) as record:
         warnings.simplefilter('always')

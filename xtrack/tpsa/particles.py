@@ -25,7 +25,7 @@ _REF_VARS: tuple[str, ...] = (
     "weight",
     "anomalous_magnetic_moment",
 )
-_DERIVED_COORDS = ("ptau", "rvv", "rpp", "s")
+_DERIVED_COORDS = ("pzeta", "rvv", "rpp", "s")
 _LOCAL_COORDS = ("ax", "ay")
 _SPIN_COORDS = ("spin_x", "spin_y", "spin_z")
 _INT_FIELDS = (
@@ -47,7 +47,7 @@ class TpsaParticleData(xo.Struct):
     py = xo.UInt64
     zeta = xo.UInt64
     delta = xo.UInt64
-    ptau = xo.UInt64
+    pzeta = xo.UInt64
     rvv = xo.UInt64
     rpp = xo.UInt64
     s = xo.UInt64
