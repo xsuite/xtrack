@@ -927,9 +927,10 @@ def test_set_const_part_and_jacobian_round_trip():
 
 def test_set_const_part_and_jacobian_shape_guards():
     m = _offaxis_map(order=2)
-    with pytest.raises(ValueError, match="length 6"):
+    with pytest.raises(ValueError, match="Expected 6 values"):
         m.set_const_part(np.zeros(5))
-    with pytest.raises(ValueError, match="6x6"):
+    with pytest.raises(ValueError, match="Jacobian must have shape \(6, 6\), "
+                                         "got \(6, 5\)"):
         m.set_jacobian(np.zeros((6, 5)))
 
 

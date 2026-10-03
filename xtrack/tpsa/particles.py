@@ -205,30 +205,6 @@ class ParticlesTpsa(TpsaMap):
 
         return TpsaOptics(self)
 
-    def set_const_part(self, values: Sequence[float] | np.ndarray) -> None:
-        """Set the order-0 part (orbit) of each coordinate from a length-6 array."""
-        v = np.asarray(values, dtype=float).reshape(-1)
-        if v.size != 6:
-            raise ValueError(f"const_part must be length 6, got {v.size}")
-        for c, x in zip(self.coords, v):
-            c.set_const_part(x)
-
-    def set_jacobian(self, R: np.ndarray) -> None:
-        """Set the 6x6 order-1 transfer matrix R (the 6 variables only).
-
-        Always a 6x6 over ``[x, px, y, py, zeta, delta]``, even when the descriptor has
-        parameters: only the order-1 *variable* block is written; the parameter
-        columns are left untouched (``set1`` is normally not used to seed parameters).
-        """
-        R = np.asarray(R, dtype=float)
-        if R.shape != (6, 6):
-            raise ValueError(f"jacobian must be 6x6, got {R.shape}")
-        for i, c in enumerate(self.coords):
-            for j in range(6):
-                mono = [0] * 6
-                mono[j] = 1
-                c.set(mono, R[i, j])
-
     def coefficient(
         self,
         coord: str | int,
