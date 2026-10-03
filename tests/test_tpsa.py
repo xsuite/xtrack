@@ -793,11 +793,11 @@ def test_coefficient_and_set_coefficient():
 def test_coefficient_rejects_invalid_monomials():
     """A malformed or beyond-order monomial raises instead of GTPSA exit(1)-ing."""
     m = _offaxis_map(order=3)
-    with pytest.raises(ValueError, match="Invalid monomial"):
+    with pytest.raises(ValueError, match="Monomial must have length 6"):
         m.coefficient("x", (0, 0, 0, 0, 0))         # wrong length
-    with pytest.raises(ValueError, match="Invalid monomial"):
+    with pytest.raises(ValueError, match="Monomial order exceeds TPSA order 3"):
         m.coefficient("x", (3, 3, 0, 0, 0, 0))      # total order 6 > 3
-    with pytest.raises(ValueError, match="Invalid monomial"):
+    with pytest.raises(ValueError, match="Monomial order exceeds TPSA order 3"):
         m.set_coefficient("x", (3, 3, 0, 0, 0, 0), 1.0)
 
 
@@ -929,8 +929,8 @@ def test_set_const_part_and_jacobian_shape_guards():
     m = _offaxis_map(order=2)
     with pytest.raises(ValueError, match="Expected 6 values"):
         m.set_const_part(np.zeros(5))
-    with pytest.raises(ValueError, match="Jacobian must have shape \(6, 6\), "
-                                         "got \(6, 5\)"):
+    with pytest.raises(ValueError, match="Jacobian must have shape \\(6, 6\\), "
+                                         "got \\(6, 5\\)"):
         m.set_jacobian(np.zeros((6, 5)))
 
 
