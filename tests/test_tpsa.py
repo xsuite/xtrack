@@ -944,8 +944,10 @@ def test_set_jacobian_leaves_parameter_columns():
     xo.assert_allclose(m.jacobian(), R, rtol=0, atol=0)
     xo.assert_allclose(m.param_jacobian(), before, rtol=0, atol=0)
     assert m.sensitivity("x", 0) == 0.25
-    with pytest.raises(TypeError, match="does not store parameter names"):
-        m.sensitivity("x", "kqa")
+    with pytest.raises(KeyError):
+        m.sensitivity("x", "kqf")
+    with pytest.raises(IndexError):
+            m.sensitivity("x", 2)
 
 
 def test_set_jacobian_from_w_matrix():

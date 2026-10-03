@@ -2,15 +2,13 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Iterable, Sequence
-from unicodedata import name
-
 import numpy as np
-import xtrack as xt
+from typing import TYPE_CHECKING, Any, Iterable, Sequence
 
+import xtrack as xt
+import xobjects as xo
 from madng_tpsa import ffi, Descriptor, Tpsa, TpsaMap
 
-import xobjects as xo
 
 COORDS: tuple[str, ...] = ("x", "px", "y", "py", "zeta", "delta")
 _REF_VARS: tuple[str, ...] = (
@@ -200,27 +198,6 @@ class ParticlesTpsa(TpsaMap):
                 return float(getattr(xobject, name))
             return self._ref(name)
         return super().__getattr__(name)
-
-    @property
-    def num_vars(self) -> int:
-        """Number of variables of the underlying descriptor (from C)."""
-        return self.coords[0].descriptor.num_vars
-
-    @property
-    def num_params(self) -> int:
-        """Number of parameters (``np``) of the underlying descriptor (0 if none)."""
-        return self.coords[0].descriptor.num_params
-
-    def param_jacobian(self) -> np.ndarray:
-        """(6, np) first-order sensitivities d coord / d parameter."""
-        return np.array([c.param_grad() for c in self.coords])
-
-    def sensitivity(self, coord: str | int, knob: str | int) -> float:
-        """First-order d coord / d parameter (0-based parameter index)."""
-        if isinstance(knob, str):
-            raise TypeError("ParticlesTpsa does not store parameter names")
-        ip = knob
-        return self[coord].param_grad()[ip]
 
     def optics(self) -> TpsaOptics:
         """Uncoupled optics (betx, alfx, mux, dx, ...) + parameter gradients."""
