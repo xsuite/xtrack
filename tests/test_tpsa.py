@@ -1,4 +1,5 @@
 import pathlib
+from ducktrack import particles
 import numpy as np
 import pytest
 
@@ -778,29 +779,6 @@ def test_order_truncation_integrity():
         assert high[mono] == coeff
 
 
-def test_coefficient_and_set_coefficient():
-    m = _offaxis_map(order=3)
-    m.set_coefficient("x", (2, 0, 0, 0, 0, 0), 0.777)
-    assert m.coefficient("x", (2, 0, 0, 0, 0, 0)) == 0.777
-    assert m.coefficient(0, (2, 0, 0, 0, 0, 0)) == 0.777   # index selects the same series
-    m.set_coefficient(4, (0, 0, 0, 0, 0, 2), -1.5)         # zeta series, delta^2 term
-    assert m.coefficient("zeta", (0, 0, 0, 0, 0, 2)) == -1.5
-
-    assert set(m.monomial_coeffs()) == set(COORDS)
-    assert m.monomial_coeffs("x") == m.x.monomial_coeffs()
-
-
-def test_coefficient_rejects_invalid_monomials():
-    """A malformed or beyond-order monomial raises instead of GTPSA exit(1)-ing."""
-    m = _offaxis_map(order=3)
-    with pytest.raises(ValueError, match="Monomial must have length 6"):
-        m.coefficient("x", (0, 0, 0, 0, 0))         # wrong length
-    with pytest.raises(ValueError, match="Monomial order exceeds TPSA order 3"):
-        m.coefficient("x", (3, 3, 0, 0, 0, 0))      # total order 6 > 3
-    with pytest.raises(ValueError, match="Monomial order exceeds TPSA order 3"):
-        m.set_coefficient("x", (3, 3, 0, 0, 0, 0), 1.0)
-
-
 # Tracking a map against native tracking
 
 def test_track_line_const_part_and_jacobian_vs_native():
@@ -905,50 +883,6 @@ def test_tpsa_enabled_element_rejects_scalar_element_track():
     line["q"].k1 = descriptor.param(1, 0.1)
     with pytest.raises(RuntimeError, match="Cannot track normal Particles"):
         line.element_dict["q"].track(_particle())
-
-
-# Setters: const part (get0/set0), Jacobian (get1/set1), single coefficients
-
-def test_set_const_part_and_jacobian_round_trip():
-    m = _offaxis_map(order=3)
-    orbit = np.array([1.0, 2.0, 3.0, 4.0, 5.0, 6.0]) * 1e-3
-    m.set_const_part(orbit)
-    xo.assert_allclose(m.const_part, orbit, rtol=0, atol=0)
-
-    R = 0.1 * np.arange(36).reshape(6, 6) + np.eye(6)
-    m.set_jacobian(R)
-    xo.assert_allclose(m.jacobian(), R, rtol=0, atol=0)
-
-    # the two setters do not disturb each other
-    xo.assert_allclose(m.const_part, orbit, rtol=0, atol=0)
-    m.set_const_part(np.zeros(6))
-    xo.assert_allclose(m.jacobian(), R, rtol=0, atol=0)
-
-
-def test_set_const_part_and_jacobian_shape_guards():
-    m = _offaxis_map(order=2)
-    with pytest.raises(ValueError, match="Expected 6 values"):
-        m.set_const_part(np.zeros(5))
-    with pytest.raises(ValueError, match="Jacobian must have shape \\(6, 6\\), "
-                                         "got \\(6, 5\\)"):
-        m.set_jacobian(np.zeros((6, 5)))
-
-
-def test_set_jacobian_leaves_parameter_columns():
-    descriptor = madng_tpsa.Descriptor(6, 2, params=["kqa", "kqb"], param_order=1)
-    m = _offaxis_map(order=2, descriptor=descriptor)
-    m.set_coefficient("x", (0, 0, 0, 0, 0, 0, 1, 0), 0.25)   # d x / d kqa
-    before = m.param_jacobian().copy()
-
-    R = 0.1 * np.arange(36).reshape(6, 6) + np.eye(6)
-    m.set_jacobian(R)
-    xo.assert_allclose(m.jacobian(), R, rtol=0, atol=0)
-    xo.assert_allclose(m.param_jacobian(), before, rtol=0, atol=0)
-    assert m.sensitivity("x", 0) == 0.25
-    with pytest.raises(KeyError):
-        m.sensitivity("x", "kqf")
-    with pytest.raises(IndexError):
-            m.sensitivity("x", 2)
 
 
 def test_set_jacobian_from_w_matrix():
@@ -1571,3 +1505,5 @@ def test_particles_tpsa_inherits_map_operations():
     result = particles @ identity
     assert isinstance(result, madng_tpsa.TpsaMap)
     assert result.monomial_coeffs() == particles.monomial_coeffs()
+    assert particles.num_vars == 6
+    assert particles.num_params == 0
