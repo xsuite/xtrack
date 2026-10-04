@@ -1507,3 +1507,30 @@ def test_particles_tpsa_inherits_map_operations():
     assert result.monomial_coeffs() == particles.monomial_coeffs()
     assert particles.num_vars == 6
     assert particles.num_params == 0
+
+
+def test_inherited_set_const_part_remains_trackable():
+    line = xt.Line(elements=[xt.Drift(length=1.0)])
+    line.particle_ref = xt.Particles(p0c=P0C, mass0=MASS0)
+    line.build_tracker()
+    coordinates = np.array([1e-4, 2e-5, -2e-4, 3e-5, 1e-3, 2e-3])
+    m = xtpsa.ParticlesTpsa(order=2, p0c=P0C, mass0=MASS0)
+    m.set_const_part(coordinates)
+    p = xt.Particles(
+        x=coordinates[0],
+        px=coordinates[1],
+        y=coordinates[2],
+        py=coordinates[3],
+        zeta=coordinates[4],
+        delta=coordinates[5],
+        p0c=P0C,
+        mass0=MASS0,
+    )
+    line.track(m)
+    line.track(p)
+    xo.assert_allclose(
+        m.const_part,
+        [float(getattr(p, cc)[0]) for cc in COORDS],
+        rtol=0,
+        atol=1e-15,
+    )

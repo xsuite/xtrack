@@ -81,7 +81,7 @@ if TYPE_CHECKING:
     from .optics import TpsaOptics
 
 
-class ParticlesTpsa(TpsaMap):
+class ParticlesTpsa(TpsaMap[Tpsa]):
     """6 coordinates as TPSA around a reference orbit.  Identity map in -> element map out.
 
     Construction mimics ``xt.Particles``: an internal single-particle ``xt.Particles``
@@ -95,8 +95,6 @@ class ParticlesTpsa(TpsaMap):
     For parametric tracking, pass a descriptor with GTPSA parameters and assign
     descriptor parameters directly to participating element fields or line variables.
     """
-
-    coords: list[Tpsa] | None = None
 
     def __init__(
         self,
