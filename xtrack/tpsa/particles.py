@@ -2,16 +2,15 @@
 
 from __future__ import annotations
 
+import numpy as np
 from typing import TYPE_CHECKING, Any, Iterable, Sequence
 
-import numpy as np
 import xtrack as xt
-
-import madng_tpsa
-
 import xobjects as xo
+from madng_tpsa import ffi, Descriptor, Tpsa, TpsaMap
 
-COORDS: tuple[str, ...] = ("x", "px", "y", "py", "zeta", "delta")
+
+COORDS = ("x", "px", "y", "py", "zeta", "pzeta")
 _REF_VARS: tuple[str, ...] = (
     "q0",
     "mass0",
@@ -24,7 +23,7 @@ _REF_VARS: tuple[str, ...] = (
     "weight",
     "anomalous_magnetic_moment",
 )
-_DERIVED_COORDS = ("pzeta", "rvv", "rpp", "s")
+_DERIVED_COORDS = ("delta", "rvv", "rpp", "s")
 _LOCAL_COORDS = ("ax", "ay")
 _SPIN_COORDS = ("spin_x", "spin_y", "spin_z")
 _INT_FIELDS = (
@@ -82,13 +81,13 @@ if TYPE_CHECKING:
     from .optics import TpsaOptics
 
 
-class ParticlesTpsa:
+class ParticlesTpsa(TpsaMap[Tpsa]):
     """6 coordinates as TPSA around a reference orbit.  Identity map in -> element map out.
 
     Construction mimics ``xt.Particles``: an internal single-particle ``xt.Particles``
     (``_ref_particle``) resolves all reference algebra (``p0c``/``energy0``/``gamma0``/
     ``beta0``/...) exactly as native particles do.
-    ``coords`` is the list of 6 ``Tpsa`` ([x, px, y, py, zeta, delta]) expanded around
+    ``coords`` is the list of 6 ``Tpsa`` ([x, px, y, py, zeta, pzeta]) expanded around
     that reference orbit. The dispatcher passes their handles to the shared object.
     Read the result with ``.const_part`` (orbit) and ``.jacobian()`` (transfer matrix R),
     or per-coordinate ``.x`` etc.
@@ -97,12 +96,10 @@ class ParticlesTpsa:
     descriptor parameters directly to participating element fields or line variables.
     """
 
-    coords: list[madng_tpsa.Tpsa] | None = None
-
     def __init__(
         self,
         order: int = 1,
-        descriptor: madng_tpsa.Descriptor | None = None,
+        descriptor: Descriptor | None = None,
         **kwargs: Any,
     ) -> None:
         # Single source of truth for kwargs and derived values.
@@ -120,16 +117,25 @@ class ParticlesTpsa:
                     f"descriptor is order {desc.order}, map asks for {order}"
                 )
         else:
-            desc = madng_tpsa.Descriptor(variables=COORDS, order=order)
-        self.coords = [
+            desc = Descriptor(variables=COORDS, order=order)
+        coords = [
             desc.var(i + 1, self._ref(c))
             for i, c in enumerate(COORDS)
         ]
+        super().__init__(coords, coord_names=COORDS)
+        pzeta = self.pzeta
+        beta0 = self._ref("beta0")
+        ptau = beta0 * pzeta
+        one_plus_delta = np.sqrt(ptau * ptau + 2 * pzeta + 1)
         self._local_series = {
-            name: desc.constant(self._ref(name)) for name in _DERIVED_COORDS
+            "delta": one_plus_delta - 1,
+            "rpp": 1 / one_plus_delta,
+            "rvv": one_plus_delta / (1 + beta0 * ptau),
+            "s": desc.constant(self._ref("s")),
         }
+
         self._local_series.update({
-            name: madng_tpsa.Tpsa(desc) for name in _LOCAL_COORDS
+            name: Tpsa(desc) for name in _LOCAL_COORDS
         })
         self._local_series.update({
             name: desc.constant(self._ref(name)) for name in _SPIN_COORDS
@@ -144,7 +150,6 @@ class ParticlesTpsa:
         The reference (double) variables never change during tracking. The kernel copies
         this data into an unrolled ``LocalParticle`` and synchronizes tracking state back.
         """
-        ffi = madng_tpsa.ffi
         bp = TpsaParticleData()
         for c, t in zip(COORDS, self.coords):
             setattr(bp, c, int(ffi.cast("uintptr_t", t.ptr)))
@@ -161,7 +166,7 @@ class ParticlesTpsa:
     @classmethod
     def _from_coords(
         cls,
-        coords: Iterable[madng_tpsa.Tpsa],
+        coords: Iterable[Tpsa],
         ref_particle: xt.Particles | None = None,
     ) -> ParticlesTpsa:
         """A map over existing ``Tpsa`` handles without using the ABI.
@@ -170,11 +175,21 @@ class ParticlesTpsa:
         not copied. Not trackable.
         """
         obj = object.__new__(cls)
-        obj.coords = list(coords)
+        TpsaMap.__init__(obj, list(coords), coord_names=COORDS)
         obj._ref_particle = ref_particle
         obj._xobject = None
         obj._local_series = None
         return obj
+
+    @property
+    def delta(self) -> Tpsa:
+        """Momentum deviation derived from the canonical ``pzeta`` series."""
+        beta0 = self._ref("beta0")
+        pzeta = self.pzeta
+        ptau = beta0 * pzeta
+        return np.sqrt(
+            ptau * ptau + 2 * pzeta + 1
+        ) - 1
 
     def _ref(self, name: str) -> float:
         """A reference scalar as ``float`` (per-particle vars are length-1 arrays)."""
@@ -189,152 +204,19 @@ class ParticlesTpsa:
             setattr(p, c, [v])
         return p
 
-    def __getattr__(self, name: str) -> madng_tpsa.Tpsa | float:
-        if name in COORDS:
-            return self.coords[COORDS.index(name)]
+    def __getattr__(self, name: str) -> Tpsa | float:
         if name in _REF_VARS:
-            if self._xobject is not None:
-                return float(getattr(self._xobject, name))
+            try:
+                xobject = object.__getattribute__(self, '_xobject')
+            except AttributeError:
+                xobject = None
+            if xobject is not None:
+                return float(getattr(xobject, name))
             return self._ref(name)
-        raise AttributeError(name)
-
-    @property
-    def descriptor(self) -> madng_tpsa.Descriptor:
-        """The GTPSA ``Descriptor`` shared by the six coordinate series (from C)."""
-        return self.coords[0].descriptor
-
-    @property
-    def order(self) -> int:
-        """Truncation order, read back from the coordinate series (single source of truth)."""
-        return self.coords[0].order
-
-    @property
-    def num_vars(self) -> int:
-        """Number of variables of the underlying descriptor (from C)."""
-        return self.coords[0].descriptor.num_vars
-
-    @property
-    def num_params(self) -> int:
-        """Number of parameters (``np``) of the underlying descriptor (0 if none)."""
-        return self.coords[0].descriptor.num_params
-
-    def param_jacobian(self) -> np.ndarray:
-        """(6, np) first-order sensitivities d coord / d parameter."""
-        return np.array([c.param_grad() for c in self.coords])
-
-    def sensitivity(self, coord: str | int, knob: str | int) -> float:
-        """First-order d coord / d parameter (0-based parameter index)."""
-        if isinstance(knob, str):
-            raise TypeError("ParticlesTpsa does not store parameter names")
-        ip = knob
-        return self._series(coord).param_grad()[ip]
-
-    @property
-    def const_part(self) -> np.ndarray:
-        """Tracked orbit: the order-0 part of each coordinate (length-6 array)."""
-        return np.array([c.const_part for c in self.coords])
-
-    def jacobian(self) -> np.ndarray:
-        """The 6x6 order-1 transfer matrix R."""
-        return np.array([c.grad() for c in self.coords])
+        return super().__getattr__(name)
 
     def optics(self) -> TpsaOptics:
         """Uncoupled optics (betx, alfx, mux, dx, ...) + parameter gradients."""
         from .optics import TpsaOptics
 
         return TpsaOptics(self)
-
-    def set_const_part(self, values: Sequence[float] | np.ndarray) -> None:
-        """Set the order-0 part (orbit) of each coordinate from a length-6 array."""
-        v = np.asarray(values, dtype=float).reshape(-1)
-        if v.size != 6:
-            raise ValueError(f"const_part must be length 6, got {v.size}")
-        for c, x in zip(self.coords, v):
-            c.set_const_part(x)
-
-    def set_jacobian(self, R: np.ndarray) -> None:
-        """Set the 6x6 order-1 transfer matrix R (the 6 variables only).
-
-        Always a 6x6 over ``[x, px, y, py, zeta, delta]``, even when the descriptor has
-        parameters: only the order-1 *variable* block is written; the parameter
-        columns are left untouched (``set1`` is normally not used to seed parameters).
-        """
-        R = np.asarray(R, dtype=float)
-        if R.shape != (6, 6):
-            raise ValueError(f"jacobian must be 6x6, got {R.shape}")
-        for i, c in enumerate(self.coords):
-            for j in range(6):
-                mono = [0] * 6
-                mono[j] = 1
-                c.set(mono, R[i, j])
-
-    def _series(self, coord: str | int) -> madng_tpsa.Tpsa:
-        """The ``Tpsa`` output series for ``coord`` (name like ``'x'`` or index 0..5)."""
-        if isinstance(coord, str):
-            return self.coords[COORDS.index(coord)]
-        return self.coords[coord]
-
-    def coefficient(
-        self,
-        coord: str | int,
-        monomials: Sequence[int] | Sequence[Sequence[int]] | np.ndarray,
-    ) -> float | np.ndarray:
-        """Coefficient(s) of the ``coord`` output series for one or multiple monomials.
-
-        ``coord`` selects the output polynomial (``'x'``, ``'px'``, ... or index 0..5).
-        A monomial is a length ``6 + np`` tuple of per-variable orders over
-        ``[x, px, y, py, zeta, delta, p1..pnp]`` (the same keys ``monomial_coeffs``
-        returns. ``np`` = number of descriptor parameters, 0 without parameters).
-        ``monomials`` is one monomial (-> ``float``) or an iterable of them,
-        e.g. a list of tuples or an ``(N, 6+np)`` array (-> length-N array).
-        Arrays are converted to tuples internally, for example
-        the x^2*px^2 term of x is ``coefficient('x', (2, 2, 0, 0, 0, 0))``.
-
-        A malformed or beyond-order monomial raises ``ValueError`` here rather than
-        letting the C library ``exit(1)`` the interpreter (see ``is_valid_monomial``).
-        """
-        desc = self.descriptor
-        arr = np.asarray(monomials)
-        rows = arr.reshape(1, -1) if arr.ndim == 1 else arr
-        for row in rows:
-            mono = tuple(int(v) for v in row)
-            if len(mono) != desc.monomial_length or not desc.is_valid_monomial(mono):
-                raise ValueError(
-                    f"Invalid monomial {mono}: expected length {desc.monomial_length} "
-                    f"(6 vars + {desc.num_params} params) and total order within the "
-                    f"descriptor's order/param-order"
-                )
-        return self._series(coord).coefficient(monomials)
-
-    def set_coefficient(
-        self, coord: str | int, monomial: Sequence[int] | np.ndarray, value: float
-    ) -> None:
-        """Set the coefficient of one ``monomial`` of the ``coord`` output series.
-
-        ``coord`` selects the output polynomial (``'x'``, ``'px'``, ... or index 0..5).
-        ``monomial`` is a length ``6 + np`` tuple of per-variable orders over
-        ``[x, px, y, py, zeta, delta, p1..pnp]`` (same shape ``coefficient`` accepts).
-        A malformed or beyond-order monomial raises ``ValueError`` rather than letting
-        the C library ``exit(1)`` the interpreter (see ``is_valid_monomial``).
-        """
-        desc = self.descriptor
-        mono = tuple(int(v) for v in np.asarray(monomial).reshape(-1))
-        if len(mono) != desc.monomial_length or not desc.is_valid_monomial(mono):
-            raise ValueError(
-                f"Invalid monomial {mono}: expected length {desc.monomial_length} "
-                f"(6 vars + {desc.num_params} params) and total order within the "
-                f"descriptor's order/param-order"
-            )
-        self._series(coord).set(mono, value)
-
-    def monomial_coeffs(
-        self, coord: str | int | None = None, tol: float = 1e-14
-    ) -> dict[tuple[int, ...], float] | dict[str, dict[tuple[int, ...], float]]:
-        """All ``|c| > tol`` coefficients as ``{monomial_tuple: coefficient}``.
-
-        With ``coord`` given, returns that output series' dictionary.
-        With ``coord=None``, returns ``{coord_name: {monomial_tuple: coefficient}}`` for all.
-        """
-        if coord is not None:
-            return self._series(coord).monomial_coeffs(tol)
-        return {c: s.monomial_coeffs(tol) for c, s in zip(COORDS, self.coords)}

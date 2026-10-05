@@ -77,12 +77,12 @@ void MultiElementMonitor_track_local_particle(MultiElementMonitorData el,
                     XT_MONITOR_STORE_MAP(2, y)
                     XT_MONITOR_STORE_MAP(3, py)
                     XT_MONITOR_STORE_MAP(4, zeta)
-                    XT_MONITOR_STORE_MAP(5, delta)
+                    XT_MONITOR_STORE_MAP(5, pzeta)
 
                     #undef XT_MONITOR_STORE_MAP
                 } else if (num_slots > 0){
                     tpsa_t* const series[6] = {part->x, part->px, part->y,
-                                               part->py, part->zeta, part->delta};
+                                               part->py, part->zeta, part->pzeta};
                     for (int64_t slot = 0; slot < num_slots; slot++){
                         int64_t const coord =
                             MultiElementMonitorData_get_coord_indices(el, slot);
