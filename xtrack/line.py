@@ -2405,6 +2405,18 @@ class Line:
         Create a Particles object from arrays containing physical or
         normalized coordinates.
 
+        In ``set`` and ``shift`` modes, species overrides can be scalars or
+        per-particle arrays. Single-element species arrays are broadcast; other
+        species arrays must match the coordinate arrays and ``num_particles``
+        if provided. Normalized coordinates require a single species per call,
+        including when ``W_matrix`` or ``R_matrix`` is supplied. Arrays with
+        identical species values are accepted in this case.
+
+        To generate a mixed beam from normalized coordinates, call
+        ``build_particles`` separately for each species, then combine the
+        results with ``xt.Particles.merge([particles_a, particles_b])``. This
+        allows the optics to be computed separately for each species.
+
         Parameters
         ----------
 
@@ -2416,18 +2428,18 @@ class Line:
         num_particles : int
             Number of particles to be generated (used if provided coordinates are
             all scalar).
-        chi : float, optional
+        chi : float or array, optional
             Override the charge-to-mass ratio relative to the reference species.
             If provided alone, the reference charge ratio is preserved.
-        charge_ratio : float, optional
+        charge_ratio : float or array, optional
             Override the relative charge q/q0. If provided alone, the reference
             mass ratio is preserved.
-        mass_ratio : float, optional
+        mass_ratio : float or array, optional
             Override the relative mass m/mass0. If provided alone, the reference
             charge ratio is preserved. Species overrides do not modify the
             supplied reference particle and cannot be combined with
             `particle_on_co` or `co_guess`; set ratios on those particles directly.
-        pdg_id : int or str, optional
+        pdg_id : int, str or array, optional
             PDG ID or name of the species to generate. Its mass and charge define
             `mass_ratio` and `charge_ratio` relative to `mass0` and `q0` of the
             reference particle. Any explicitly supplied species ratios (including
