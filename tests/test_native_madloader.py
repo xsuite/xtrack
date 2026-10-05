@@ -10,10 +10,35 @@ from cpymad.madx import Madx
 from xdeps.refs import CompactFormatter
 import xtrack as xt
 from xtrack import Strategy, Uniform
-from xtrack.mad_parser.loader import MadxLoader, MADLoaderWarning
+from xtrack.mad_parser.loader import CONSTANTS, MadxLoader, MADLoaderWarning
 from xtrack.mad_parser.parse import MadxParser
 
 test_data_folder = (Path(__file__).parent / '../test_data').absolute()
+
+
+def test_madx_constants_match_cpymad():
+    mad_src = """
+    dummy: marker;
+    seq: sequence, l=1;
+        dummy, at=0.5;
+    endsequence;
+    """
+
+    native_env = xt.load(string=mad_src, format='madx')
+
+    mad = Madx(stdout=False)
+    mad.input(mad_src)
+    mad.beam()
+    mad.use('seq')
+    cpymad_line = xt.Line.from_madx_sequence(
+        mad.sequence.seq,
+        deferred_expressions=True,
+    )
+
+    for name in CONSTANTS:
+        xo.assert_allclose(
+            native_env[name], cpymad_line.vars[name]._value, rtol=0, atol=0
+        )
 
 
 def test_simple_parser():
