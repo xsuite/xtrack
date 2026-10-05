@@ -1149,7 +1149,12 @@ def test_monitor_monomials_constant_part_is_the_scalar_particle():
             # the same series, but indexed (turn, particle, coord, location)
             own = [np.ravel(_monitor_coordinate(mon, c, name, turn=turn))[0]
                    for c in COORDS]
-            xo.assert_allclose(recorded, own, rtol=0, atol=1e-14)
+            # x, px, y, py and zeta are stored directly in both places.
+            xo.assert_allclose(recorded[:-1], own[:-1], rtol=0, atol=0)
+            # The doubles monitor stores delta, not pzeta. For comparison with the
+            # canonical TPSA map, pzeta is reconstructed from the stored double delta,
+            # so roundoff from the delta <-> pzeta conversion is unavoidable.
+            xo.assert_allclose(recorded[-1], own[-1], rtol=0, atol=1e-15)
 
     # a swapped turn or location index cannot pass unnoticed
     orbit = mon.coefficient("x", constant)
