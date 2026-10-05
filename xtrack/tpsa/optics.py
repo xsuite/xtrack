@@ -1,8 +1,10 @@
 """TpsaOptics: read optical functions and parameter derivatives off a map.
 
-For a ``ParticlesTpsa`` whose Jacobian is the propagated normalizing matrix ``A``, the uncoupled optical
-functions are algebra on ``A``'s columns: ``betx = A00²+A01²``, ``alfx = -(A00·A10+A01·A11)``, ``mux = atan2(A01,A00)/2pi``, and the
-dispersion is the delta column.
+For a ``ParticlesTpsa`` whose Jacobian is the propagated normalizing matrix ``A``,
+the uncoupled optical functions are algebra on ``A``'s columns:
+``betx = A00²+A01²``, ``alfx = -(A00·A10+A01·A11)``, ``mux = atan2(A01,A00)/2pi``.
+Internally column 5 is the canonical pzeta column. User-facing dispersion remains
+d()/d(delta), using dpzeta/ddelta = rvv at the expansion point.
 
 Because a *parametric* map carries parameter dependence in every ``A(i,j)``, the derivative of any
 optical function with respect to a parameter is a chain rule on the map's mixed coefficients
@@ -42,6 +44,7 @@ class TpsaOptics:
         # dJ[i, j] = d A(i,j) / d parameter (length-np). Built lazily per (i,j) on first use
         # (a value read touches no dJ; a gradient builds only the coefficients it needs).
         self._dJ: dict[tuple[int, int], np.ndarray] = {}
+        self._dpzeta_ddelta = map._ref("rvv")
 
     def _dJij(self, i: int, j: int) -> np.ndarray:
         """``d A(i,j) / d parameter`` (length-np), read from the map's mixed coefficients once."""
@@ -102,19 +105,19 @@ class TpsaOptics:
 
     @property
     def dx(self) -> float:
-        return self._jacobian[0, 5]
+        return self._jacobian[0, 5] * self._dpzeta_ddelta
 
     @property
     def dpx(self) -> float:
-        return self._jacobian[1, 5]
+        return self._jacobian[1, 5] * self._dpzeta_ddelta
 
     @property
     def dy(self) -> float:
-        return self._jacobian[2, 5]
+        return self._jacobian[2, 5] * self._dpzeta_ddelta
 
     @property
     def dpy(self) -> float:
-        return self._jacobian[3, 5]
+        return self._jacobian[3, 5] * self._dpzeta_ddelta
 
     def to_dict(self) -> dict[str, float]:
         """All optical function values as ``{name: value}``."""
@@ -177,16 +180,16 @@ class TpsaOptics:
         return self._grad_mu("y")
 
     def _grad_dx(self):
-        return self._dJij(0, 5)
+        return self._dJij(0, 5) * self._dpzeta_ddelta
 
     def _grad_dpx(self):
-        return self._dJij(1, 5)
+        return self._dJij(1, 5) * self._dpzeta_ddelta
 
     def _grad_dy(self):
-        return self._dJij(2, 5)
+        return self._dJij(2, 5) * self._dpzeta_ddelta
 
     def _grad_dpy(self):
-        return self._dJij(3, 5)
+        return self._dJij(3, 5) * self._dpzeta_ddelta
 
     def __repr__(self) -> str:
         return (f"TpsaOptics(betx={self.betx:.6g}, bety={self.bety:.6g}, "

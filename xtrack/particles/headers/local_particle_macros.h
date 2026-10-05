@@ -30,28 +30,28 @@
     _(double, t_sim)
 
 // Phase-space coordinates represented by TPSAs during TPSA tracking.
-#define XT_LP_COORD_FIELDS(_) \
+#define XT_LP_COORD_FIELDS(_)  \
     _(x)                       \
     _(px)                      \
     _(y)                       \
     _(py)                      \
     _(zeta)                    \
-    _(delta)
+    _(pzeta)
 
 // Derived longitudinal quantities represented by TPSAs.
 #define XT_LP_DERIVED_FIELDS(_) \
-    _(pzeta)                    \
+    _(delta)                    \
     _(rvv)                      \
     _(rpp)                      \
     _(s)
 
 // Local vector-potential components represented by TPSAs.
-#define XT_LP_LOCAL_FIELDS(_) \
+#define XT_LP_LOCAL_FIELDS(_)   \
     _(ax)                       \
     _(ay)
 
 // Spin coordinates represented by TPSAs.
-#define XT_LP_SPIN_FIELDS(_) \
+#define XT_LP_SPIN_FIELDS(_)    \
     _(spin_x)                   \
     _(spin_y)                   \
     _(spin_z)

@@ -10,7 +10,7 @@ import xobjects as xo
 from madng_tpsa import ffi, Descriptor, Tpsa, TpsaMap
 
 
-COORDS: tuple[str, ...] = ("x", "px", "y", "py", "zeta", "delta")
+COORDS = ("x", "px", "y", "py", "zeta", "pzeta")
 _REF_VARS: tuple[str, ...] = (
     "q0",
     "mass0",
@@ -23,7 +23,7 @@ _REF_VARS: tuple[str, ...] = (
     "weight",
     "anomalous_magnetic_moment",
 )
-_DERIVED_COORDS = ("pzeta", "rvv", "rpp", "s")
+_DERIVED_COORDS = ("delta", "rvv", "rpp", "s")
 _LOCAL_COORDS = ("ax", "ay")
 _SPIN_COORDS = ("spin_x", "spin_y", "spin_z")
 _INT_FIELDS = (
@@ -87,7 +87,7 @@ class ParticlesTpsa(TpsaMap[Tpsa]):
     Construction mimics ``xt.Particles``: an internal single-particle ``xt.Particles``
     (``_ref_particle``) resolves all reference algebra (``p0c``/``energy0``/``gamma0``/
     ``beta0``/...) exactly as native particles do.
-    ``coords`` is the list of 6 ``Tpsa`` ([x, px, y, py, zeta, delta]) expanded around
+    ``coords`` is the list of 6 ``Tpsa`` ([x, px, y, py, zeta, pzeta]) expanded around
     that reference orbit. The dispatcher passes their handles to the shared object.
     Read the result with ``.const_part`` (orbit) and ``.jacobian()`` (transfer matrix R),
     or per-coordinate ``.x`` etc.
@@ -123,9 +123,17 @@ class ParticlesTpsa(TpsaMap[Tpsa]):
             for i, c in enumerate(COORDS)
         ]
         super().__init__(coords, coord_names=COORDS)
+        pzeta = self.pzeta
+        beta0 = self._ref("beta0")
+        ptau = beta0 * pzeta
+        one_plus_delta = np.sqrt(ptau * ptau + 2 * pzeta + 1)
         self._local_series = {
-            name: desc.constant(self._ref(name)) for name in _DERIVED_COORDS
+            "delta": one_plus_delta - 1,
+            "rpp": 1 / one_plus_delta,
+            "rvv": one_plus_delta / (1 + beta0 * ptau),
+            "s": desc.constant(self._ref("s")),
         }
+
         self._local_series.update({
             name: Tpsa(desc) for name in _LOCAL_COORDS
         })
@@ -172,6 +180,20 @@ class ParticlesTpsa(TpsaMap[Tpsa]):
         obj._xobject = None
         obj._local_series = None
         return obj
+
+    @property
+    def delta(self) -> Tpsa:
+        """Momentum deviation derived from the canonical ``pzeta`` series."""
+        try:
+            local_series = object.__getattribute__(self, "_local_series")
+        except AttributeError:
+            local_series = None
+        if local_series is not None:
+            return local_series["delta"]
+        beta0 = self._ref("beta0")
+        pzeta = self.pzeta
+        ptau = beta0 * pzeta
+        return np.sqrt(ptau * ptau + 2 * pzeta + 1) - 1
 
     def _ref(self, name: str) -> float:
         """A reference scalar as ``float`` (per-particle vars are length-1 arrays)."""
