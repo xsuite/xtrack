@@ -2412,6 +2412,10 @@ class Line:
         including when ``W_matrix`` or ``R_matrix`` is supplied. Arrays with
         identical species values are accepted in this case.
 
+        Species overrides must describe charged particles with nonzero ``chi``
+        and ``charge_ratio``. If all three ratios are provided, they must satisfy
+        ``chi * mass_ratio = charge_ratio`` for every particle.
+
         To generate a mixed beam from normalized coordinates, call
         ``build_particles`` separately for each species, then combine the
         results with ``xt.Particles.merge([particles_a, particles_b])``. This
