@@ -895,7 +895,7 @@ class Tracker:
 
             LocalParticle_set_state(&lpart, 1);
             LocalParticle_set_at_element(&lpart, ele_start);
-            LocalParticle_update_delta(&lpart, LocalParticle_get_delta(&lpart));
+            LocalParticle_update_pzeta(&lpart, LocalParticle_get_pzeta(&lpart));
             LocalParticle_set_s(&lpart, 0.0);
             LocalParticle_set_ax(&lpart, 0.0);
             LocalParticle_set_ay(&lpart, 0.0);

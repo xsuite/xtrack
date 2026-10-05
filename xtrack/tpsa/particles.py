@@ -184,16 +184,12 @@ class ParticlesTpsa(TpsaMap[Tpsa]):
     @property
     def delta(self) -> Tpsa:
         """Momentum deviation derived from the canonical ``pzeta`` series."""
-        try:
-            local_series = object.__getattribute__(self, "_local_series")
-        except AttributeError:
-            local_series = None
-        if local_series is not None:
-            return local_series["delta"]
         beta0 = self._ref("beta0")
         pzeta = self.pzeta
         ptau = beta0 * pzeta
-        return np.sqrt(ptau * ptau + 2 * pzeta + 1) - 1
+        return np.sqrt(
+            ptau * ptau + 2 * pzeta + 1
+        ) - 1
 
     def _ref(self, name: str) -> float:
         """A reference scalar as ``float`` (per-particle vars are length-1 arrays)."""

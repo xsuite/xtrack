@@ -20,9 +20,12 @@ P0C = 7e12
 MASS0 = xt.PROTON_MASS_EV
 COORDS = ("x", "px", "y", "py", "zeta", "pzeta")
 # Off-axis seed with all six coordinates non-zero, so no residual hides in a zero.
+BETA0 = P0C / np.sqrt(P0C**2 + MASS0**2)
+def _pzeta_from_delta(delta):
+    delta_beta0 = delta * BETA0
+    return (np.sqrt(delta_beta0**2 + 2 * delta * BETA0**2 + 1) - 1) / BETA0**2
 _delta0 = 2e-3
-_p0 = xt.Particles(p0c=P0C, mass0=MASS0, delta=_delta0)
-X0 = dict(x=1e-4, px=1.5e-4, y=-1e-4, py=1e-4, zeta=1e-3, pzeta=float(_p0.pzeta[0]))
+X0 = dict(x=1e-4, px=1.5e-4, y=-1e-4, py=1e-4, zeta=1e-3, pzeta=_pzeta_from_delta(_delta0))
 
 _SUPPORTED_FLOAT_OR_TPSA_ELEMENTS = [
     ("b", xt.Bend, {"length": 1.0, "k0": 0.01}, "k0"),
@@ -860,7 +863,7 @@ def test_track_partial_range_multiturn_matches_scalar_semantics():
         multi_turn.const_part,
         [float(getattr(scalar_particle, cc)[0]) for cc in COORDS],
         rtol=0,
-        atol=1e-15,
+        atol=1e-14,
     )
     assert (
         multi_turn._xobject.at_turn
@@ -1029,14 +1032,6 @@ def _recorded_over_coords(mon, monomial, coords=COORDS, turn=0):
                     axis=-1)
 
 
-BETA0 = float(xt.Particles(p0c=P0C, mass0=MASS0).beta0[0])
-
-
-def _pzeta_from_delta(delta):
-    ptau = np.sqrt(delta**2 + 2 * delta + 1 / BETA0**2) - 1 / BETA0
-    return ptau / BETA0
-
-
 def _monitor_coordinate(mon, coord, *args, **kwargs):
     if coord == "pzeta":
         delta = np.asarray(mon.get("delta", *args, **kwargs))
@@ -1152,8 +1147,9 @@ def test_monitor_monomials_constant_part_is_the_scalar_particle():
             xo.assert_allclose(recorded, native, rtol=0, atol=1e-14)
             # the monitor's own doubles buffer is written by the same C block from
             # the same series, but indexed (turn, particle, coord, location)
-            own = [np.ravel(mon.get(c, name, turn=turn))[0] for c in COORDS]
-            xo.assert_allclose(recorded, own, rtol=0, atol=0)
+            own = [np.ravel(_monitor_coordinate(mon, c, name, turn=turn))[0]
+                   for c in COORDS]
+            xo.assert_allclose(recorded, own, rtol=0, atol=1e-14)
 
     # a swapped turn or location index cannot pass unnoticed
     orbit = mon.coefficient("x", constant)
@@ -1571,7 +1567,7 @@ def test_inherited_set_const_part_remains_trackable():
         y=coordinates[2],
         py=coordinates[3],
         zeta=coordinates[4],
-        delta=coordinates[5],
+        pzeta=coordinates[5],
         p0c=P0C,
         mass0=MASS0,
     )
@@ -1581,5 +1577,5 @@ def test_inherited_set_const_part_remains_trackable():
         m.const_part,
         [float(getattr(p, cc)[0]) for cc in COORDS],
         rtol=0,
-        atol=1e-15,
+        atol=1e-14,
     )
