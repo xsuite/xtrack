@@ -456,11 +456,11 @@ class Pyparticles:
             norm = mass_ratio * self.p0c
             self._mass_ratio = mass_ratio
             self._chi = self._charge_ratio / mass_ratio
-            self._ptau = energy / norm - 1
-            self._delta = pc / norm - 1
+            self.delta = pc / norm - 1
             self.px = Px / norm
             self.py = Py / norm
             self.zeta = tau * self.beta0
+            
 
     def __repr__(self):
         out = f"""\
