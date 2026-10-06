@@ -7,13 +7,22 @@ int cidx(int i, int m, int k, int nm, int moff, int deg) {
 }
 
 typedef struct {
-    int num_phi; /* requested output order in y */
+    int num_phi; /* populated output order in y (-1: no field) */
     int ncoef;   /* stored phi_i coefficients: 0..num_phi+1 */
     int deg, eval_deg; /* allocated potential degree and populated degree */
     int mmin, mmax, moff, nm;
+    int nmx; /* bent only: allocated m values per cx row */
     double h;
-    double straight;
-    GPUGLMEM const double *c;  /* c[i,m,k], polynomial coeff of s^k in q^m term */
+    int straight;
+    GPUGLMEM const double *c;  /* c[i,m,k], polynomial coeff of s^k in x^m (straight) or q^m (bent) */
+    GPUGLMEM const double *cx; /* bent only: phi_0, phi_1 seeds as polynomials in x, cx[i,m,k] */
+    /* Populated m range of each row of c (empty rows have mmin > mmax) and
+       the last populated m of each cx row (-1 when empty). The nonzero
+       pattern is a diagonal band, so per-row bounds skip most of the
+       rectangular scan. */
+    GPUGLMEM const int64_t *row_mmin;
+    GPUGLMEM const int64_t *row_mmax;
+    GPUGLMEM const int64_t *xrow_mmax;
 } Expansion;
 
 typedef struct {
@@ -25,14 +34,7 @@ typedef struct {
 } FieldValue;
 
 typedef struct {
-    double H;
-    double delta;
-    double one_plus_delta;
-    double radicand;
-    double root;
-    double grad[6];  /* dH/d{x,px,y,py,tau,ptau} */
-    double rhs[6];   /* canonical flow dz/ds */
-    double dH_ds;    /* explicit derivative at fixed canonical variables */
+    double rhs[6];   /* canonical flow dz/ds for z = {x,px,y,py,tau,ptau} */
     FieldValue pot;
 } HamiltonianFlow;
 
@@ -70,17 +72,6 @@ void poly_eval_d2(GPUGLMEM const double *p, int deg, double s,
     *v = a;
     *d1 = b;
     *d2 = c;
-}
-
-GPUFUN
-void delta_from_ptau(const double beta0, double ptau,
-                     double *delta, double *delta1, double *ddelta1) {
-    {
-        const double r = 1.0 + 2.0 * ptau / beta0 + ptau * ptau;
-        *delta1 = sqrt(r);
-        *delta = *delta1 - 1.0;
-        *ddelta1 = (1.0 / beta0 + ptau) / (*delta1);
-    }
 }
 
 #endif
