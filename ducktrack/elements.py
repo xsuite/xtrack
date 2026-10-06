@@ -934,17 +934,16 @@ class LinearTransferMatrix(Element):
 
         #Transverse linear uncoupled matrix
 
-        # removing dispersion and close orbit
-        old_x=p.x
-        old_px=p.px
-        old_y=p.y
-        old_py=p.py
-
-        p.x -= self.disp_x_0 * p.delta + self.x_ref_0
-        p.px -= self.disp_px_0 * p.delta + self.px_ref_0
-        p.y -= self.disp_y_0 * p.delta + self.y_ref_0
-        p.py -= self.disp_py_0 * p.delta + self.py_ref_0
-        # p.zeta += (self.disp_px_0*old_x - self.disp_x_0*old_px + self.disp_py_0*old_y - self.disp_y_0*old_py)/p.rvv
+        # removing close orbit
+        p.x -= self.x_ref_0
+        p.px -= self.px_ref_0
+        p.y -= self.y_ref_0
+        p.py -= self.py_ref_0
+        p.zeta += (self.disp_px_0*p.x - self.disp_x_0*p.px + self.disp_py_0*p.y - self.disp_y_0*p.py)/p.rvv
+        p.x -= self.disp_x_0 * p.delta
+        p.px -= self.disp_px_0 * p.delta
+        p.y -= self.disp_y_0 * p.delta
+        p.py -= self.disp_py_0 * p.delta
 
         J_x = 0.5 * (
                 (1.0 + self.alpha_x_0*self.alpha_x_0)/self.beta_x_0 * p.x*p.x
@@ -1058,16 +1057,11 @@ class LinearTransferMatrix(Element):
             p.pzeta += self.gauss_noise_ampl_pzeta*np.random.randn(len(p.pzeta))
 
         # re-adding dispersion and closed orbit
-        old_x=p.x
-        old_px=p.px
-        old_y=p.y
-        old_py=p.py
-
+        p.zeta-= (self.disp_px_1*p.x - self.disp_x_1*p.px + self.disp_py_1*p.y - self.disp_y_1*p.py)/p.rvv
         p.x += self.disp_x_1 * p.delta + self.x_ref_1
         p.px += self.disp_px_1 * p.delta + self.px_ref_1 
         p.y += self.disp_y_1 * p.delta + self.y_ref_1
         p.py += self.disp_py_1 * p.delta + self.py_ref_1
-        # p.zeta-= (self.disp_px_1*old_x - self.disp_x_1*old_px + self.disp_py_1*old_y - self.disp_y_1*old_py)/p.rvv
 
 
 class FirstOrderTaylorMap(Element):
