@@ -44,13 +44,12 @@ void remove_dispersion(
 
     START_PER_PARTICLE_BLOCK(part0, part);
         // Remove dispersion
-        // Symplecticity correction (not working, to be investigated)
-        // LocalParticle_add_to_zeta(part, (
-        //     dpx_0 * LocalParticle_get_x(part)
-        //     - dx_0 * LocalParticle_get_px(part)
-        //     + dpy_0 * LocalParticle_get_y(part)
-        //     - dy_0 * LocalParticle_get_py(part)
-        //     )/LocalParticle_get_rvv(part));
+         LocalParticle_add_to_zeta(part, (
+             dpx_0 * LocalParticle_get_x(part)
+             - dx_0 * LocalParticle_get_px(part)
+             + dpy_0 * LocalParticle_get_y(part)
+             - dy_0 * LocalParticle_get_py(part)
+             )/LocalParticle_get_rvv(part));
         double const delta = LocalParticle_get_delta(part);
         LocalParticle_add_to_x(part, -dx_0 * delta);
         LocalParticle_add_to_px(part, -dpx_0 * delta);
@@ -66,13 +65,12 @@ void add_dispersion(
 
     START_PER_PARTICLE_BLOCK(part0, part);
         // Add dispersion
-        // Symplecticity correction (not working, to be investigated)
-        // LocalParticle_add_to_zeta(part, (
-        //     dpx_1 * LocalParticle_get_x(part)
-        //     - dx_1 * LocalParticle_get_px(part)
-        //     + dpy_1 * LocalParticle_get_y(part)
-        //     - dy_1 * LocalParticle_get_py(part)
-        //     )/LocalParticle_get_rvv(part));
+         LocalParticle_add_to_zeta(part, (
+             -dpx_1 * LocalParticle_get_x(part)
+             + dx_1 * LocalParticle_get_px(part)
+             - dpy_1 * LocalParticle_get_y(part)
+             + dy_1 * LocalParticle_get_py(part)
+             )/LocalParticle_get_rvv(part));
         double const delta = LocalParticle_get_delta(part);
         LocalParticle_add_to_x(part, dx_1 * delta);
         LocalParticle_add_to_px(part, dpx_1 * delta);
