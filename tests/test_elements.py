@@ -1165,6 +1165,8 @@ def test_simplified_accelerator_segment(test_context):
                       dtk_particle.y, rtol=1e-14, atol=1e-14)
     xo.assert_allclose(test_context.nparray_from_context_array(particles.py)[0],
                       dtk_particle.py, rtol=1e-14, atol=1e-14)
+    print('track',test_context.nparray_from_context_array(particles.zeta)[0])
+    print('duck',dtk_particle.zeta)
     xo.assert_allclose(test_context.nparray_from_context_array(particles.zeta)[0],
                       dtk_particle.zeta, rtol=1e-14, atol=1e-14)
     xo.assert_allclose(test_context.nparray_from_context_array(particles.delta)[0],
