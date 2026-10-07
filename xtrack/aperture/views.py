@@ -7,10 +7,16 @@ from typing import Literal
 import numpy as np
 
 from xtrack.aperture.structures import (
-    ApertureModel, FloatType, Pipe, PipePosition, Profile, ProfilePosition, Racetrack, ShapeTypes,
+    FloatType, Pipe, PipePosition, Profile, ProfilePosition, Racetrack,
+    ShapeTypes,
 )
 from xtrack.aperture.transform import (
-    Frame, arc_matrix, Transform, matrix_to_transform, transform_matrix, poly2d_to_homogeneous,
+    Frame,
+    Transform,
+    arc_matrix,
+    matrix_to_transform,
+    poly2d_to_homogeneous,
+    transform_matrix,
 )
 
 DTypeFloat = np.dtype[FloatType._dtype]
@@ -37,23 +43,27 @@ def _deduplicate_legend(ax):
         ax.legend(unique.values(), unique.keys())
 
 
+# Views resolve their object by name on every access. This keeps the view valid
+# when its owner switches between standalone and packed Xobject storage.
 class ProfileView:
-    __slots__ = ('_model', '_index')
+    """Persistent view of a profile identified by name."""
 
-    def __init__(self, model: ApertureModel, index: int):
-        self._model = model
-        self._index = index
+    __slots__ = ('_owner', '_name')
+
+    def __init__(self, owner, name: str):
+        self._owner = owner
+        self._name = name
 
     def __repr__(self):
         return f'<ProfileView {self.name!r}: {self.raw!r}>'
 
     @property
     def raw(self) -> Profile:
-        return self._model.profiles[self._index]
+        return self._owner._resolve_profile(self._name)
 
     @property
     def name(self) -> str:
-        return self._model.profile_names[self._index]
+        return self._name
 
     @property
     def shape(self) -> ShapeTypes:
@@ -88,7 +98,12 @@ class ProfileView:
         self.raw.tol_y = tol_y
 
     def plot(self, len_points=128, ax=None):
-        ax = self.raw.plot(len_points=len_points, ax=ax, c='black', label=type(self.shape).__name__)
+        ax = self.raw.plot(
+            len_points=len_points,
+            ax=ax,
+            c='black',
+            label=type(self.shape).__name__,
+        )
 
         if self.tol_x or self.tol_y or self.tol_r:
             tol_rt = Racetrack(
@@ -97,7 +112,13 @@ class ProfileView:
                 half_major=self.tol_r,
                 half_minor=self.tol_r,
             )
-            Profile(shape=tol_rt).plot(len_points=len_points, ax=ax, c='black', linestyle='--', label='Tolerances')
+            Profile(shape=tol_rt).plot(
+                len_points=len_points,
+                ax=ax,
+                c='black',
+                linestyle='--',
+                label='Tolerances',
+            )
 
         ax.set_title(f'Profile {self.name}')
         ax.legend()
@@ -108,10 +129,12 @@ class ProfileView:
 
 
 class ProfilesView:
-    __slots__ = ('_model',)
+    """Read-only mapping-like view of the environment profiles."""
 
-    def __init__(self, model: ApertureModel):
-        self._model = model
+    __slots__ = ('_owner',)
+
+    def __init__(self, owner):
+        self._owner = owner
 
     def __repr__(self):
         count = len(self)
@@ -120,19 +143,23 @@ class ProfilesView:
 
     def __getitem__(self, item: str | int):
         if isinstance(item, str):
-            item = self._model.profile_names.index(item)
+            if item not in self._owner._profile_name_to_index:
+                raise KeyError(item)
+            name = item
+        else:
+            name = list(self._owner._profile_name_to_index)[item]
 
-        return ProfileView(self._model, item)
+        return ProfileView(self._owner, name)
 
     def __len__(self) -> int:
-        return len(self._model.profiles)
+        return len(self._owner._profile_name_to_index)
 
     def __iter__(self):
-        for ii in range(len(self)):
-            yield self[ii]
+        for name in self._owner._profile_name_to_index:
+            yield ProfileView(self._owner, name)
 
     def keys(self):
-        return self._model.profile_names
+        return list(self._owner._profile_name_to_index)
 
     def values(self):
         return list(self)
@@ -147,11 +174,13 @@ class ProfilesView:
 
 
 class PipePositionView:
-    __slots__ = ('_model', '_index')
+    """Persistent view of a pipe placement identified by name."""
 
-    def __init__(self, model: ApertureModel, index: int):
-        self._model = model
-        self._index = index
+    __slots__ = ('_owner', '_name')
+
+    def __init__(self, owner, name: str):
+        self._owner = owner
+        self._name = name
 
     def __repr__(self):
         shift_and_rot = self.get_transform()
@@ -167,11 +196,11 @@ class PipePositionView:
 
     @property
     def raw(self) -> PipePosition:
-        return self._model.pipe_positions[self._index]
+        return self._owner._resolve_pipe_position(self._name)
 
     @property
     def name(self) -> str:
-        return self._model.pipe_position_names[self._index]
+        return self._name
 
     @property
     def pipe_index(self) -> int:
@@ -183,7 +212,10 @@ class PipePositionView:
 
     @property
     def pipe(self) -> PipeView:
-        return PipeView(self._model, self.pipe_index)
+        aperture_environment = self._owner.line.env.aperture
+        pipe_name = list(aperture_environment._pipe_name_to_index)[
+            self.pipe_index]
+        return PipeView(aperture_environment, pipe_name)
 
     @property
     def survey_reference_name(self) -> str:
@@ -278,10 +310,12 @@ class PipePositionView:
 
 
 class PipePositionsView:
-    __slots__ = ('_model',)
+    """Read-only mapping-like view of the line pipe placements."""
 
-    def __init__(self, model: ApertureModel):
-        self._model = model
+    __slots__ = ('_owner',)
+
+    def __init__(self, owner):
+        self._owner = owner
 
     def __repr__(self):
         count = len(self)
@@ -290,19 +324,23 @@ class PipePositionsView:
 
     def __getitem__(self, item: str | int):
         if isinstance(item, str):
-            item = self._model.pipe_position_names.index(item)
+            if item not in self._owner._pipe_position_name_to_index:
+                raise KeyError(item)
+            name = item
+        else:
+            name = list(self._owner._pipe_position_name_to_index)[item]
 
-        return PipePositionView(self._model, item)
+        return PipePositionView(self._owner, name)
 
     def __len__(self) -> int:
-        return len(self._model.pipe_positions)
+        return len(self._owner._pipe_position_name_to_index)
 
     def __iter__(self):
-        for ii in range(len(self)):
-            yield self[ii]
+        for name in self._owner._pipe_position_name_to_index:
+            yield PipePositionView(self._owner, name)
 
     def keys(self):
-        return self._model.pipe_position_names
+        return list(self._owner._pipe_position_name_to_index)
 
     def values(self):
         return list(self)
@@ -317,19 +355,25 @@ class PipePositionsView:
 
 
 class ProfilePositionView:
-    __slots__ = ('_model', '_pipe_index', '_position_index')
+    """View of one profile position inside a named pipe."""
 
-    def __init__(self, model: ApertureModel, pipe_index: int, position_index: int):
-        self._model = model
-        self._pipe_index = pipe_index
+    __slots__ = ('_owner', '_pipe_name', '_position_index')
+
+    def __init__(self, owner, pipe_name: str, position_index: int):
+        self._owner = owner
+        self._pipe_name = pipe_name
         self._position_index = position_index
 
     def __repr__(self):
-        return f'<ProfilePositionView profile={self.profile.name!r}, shift_s={self.shift_s}>'
+        return (
+            f'<ProfilePositionView profile={self.profile.name!r}, '
+            f'shift_s={self.shift_s}>'
+        )
 
     @property
     def raw(self) -> ProfilePosition:
-        return self._model.pipes[self._pipe_index].positions[self._position_index]
+        pipe = self._owner._resolve_pipe(self._pipe_name)
+        return pipe.positions[self._position_index]
 
     @property
     def profile_index(self) -> int:
@@ -341,7 +385,9 @@ class ProfilePositionView:
 
     @property
     def profile(self) -> ProfileView:
-        return ProfileView(self._model, self.profile_index)
+        profile_name = list(self._owner._profile_name_to_index)[
+            self.profile_index]
+        return ProfileView(self._owner, profile_name)
 
     @property
     def shift_s(self) -> float:
@@ -401,18 +447,20 @@ class ProfilePositionView:
         if frame == 'straight':
             return transform_matrix(t_x, t_y, t_s, rot_y, rot_x, rot_s)
 
-        curvature = self._model.pipes[self._pipe_index].curvature
+        curvature = self._owner._resolve_pipe(self._pipe_name).curvature
         local = transform_matrix(t_x, t_y, 0, rot_y, rot_x, rot_s)
         arc = arc_matrix(length=t_s, angle=curvature * t_s, tilt=0)
         return arc @ local
 
 
 class PipeView:
-    __slots__ = ('_model', '_index')
+    """Persistent view of a pipe identified by name."""
 
-    def __init__(self, model: ApertureModel, index: int):
-        self._model = model
-        self._index = index
+    __slots__ = ('_owner', '_name')
+
+    def __init__(self, owner, name: str):
+        self._owner = owner
+        self._name = name
 
     def __repr__(self):
         curved_str = f', curvature = {self.curvature}' if self.curvature else ''
@@ -422,17 +470,18 @@ class PipeView:
     def __getitem__(self, item: int):
         if isinstance(item, slice):
             indices = range(*item.indices(len(self)))
-            return [ProfilePositionView(self._model, self._index, ii) for ii in indices]
+            return [ProfilePositionView(self._owner, self._name, ii)
+                    for ii in indices]
 
-        return ProfilePositionView(self._model, self._index, item)
+        return ProfilePositionView(self._owner, self._name, item)
 
     @property
     def raw(self) -> Pipe:
-        return self._model.pipes[self._index]
+        return self._owner._resolve_pipe(self._name)
 
     @property
     def name(self) -> str:
-        return self._model.pipe_names[self._index]
+        return self._name
 
     @property
     def curvature(self) -> float:
@@ -481,7 +530,13 @@ class PipeView:
             max_curve_angle_rad=max_curve_angle_rad,
         )
 
-    def plot_3d(self, frame: Frame = 'curved', len_points=32, max_curve_angle_rad=np.deg2rad(1), ax=None):
+    def plot_3d(
+        self,
+        frame: Frame = 'curved',
+        len_points=32,
+        max_curve_angle_rad=np.deg2rad(1),
+        ax=None,
+    ):
         from xtrack.aperture.plot import plot_pipe_3d
 
         return plot_pipe_3d(
@@ -494,10 +549,12 @@ class PipeView:
 
 
 class PipesView:
-    __slots__ = ('_model',)
+    """Read-only mapping-like view of the environment pipes."""
 
-    def __init__(self, model: ApertureModel):
-        self._model = model
+    __slots__ = ('_owner',)
+
+    def __init__(self, owner):
+        self._owner = owner
 
     def __repr__(self):
         count = len(self)
@@ -506,19 +563,23 @@ class PipesView:
 
     def __getitem__(self, item: str | int) -> PipeView:
         if isinstance(item, str):
-            item = self._model.pipe_names.index(item)
+            if item not in self._owner._pipe_name_to_index:
+                raise KeyError(item)
+            name = item
+        else:
+            name = list(self._owner._pipe_name_to_index)[item]
 
-        return PipeView(self._model, item)
+        return PipeView(self._owner, name)
 
     def __len__(self) -> int:
-        return len(self._model.pipes)
+        return len(self._owner._pipe_name_to_index)
 
     def __iter__(self):
-        for ii in range(len(self)):
-            yield self[ii]
+        for name in self._owner._pipe_name_to_index:
+            yield PipeView(self._owner, name)
 
     def keys(self):
-        return self._model.pipe_names
+        return list(self._owner._pipe_name_to_index)
 
     def values(self):
         return list(self)

@@ -1,4 +1,4 @@
-from typing import Collection, List, Tuple, Union, get_args
+from typing import Collection, List, Union, get_args
 
 import numpy as np
 
@@ -518,9 +518,13 @@ class SurveyData(xo.Struct):
             poses[idx, :, 3] = np.hstack([row.X[0], row.Y[0], row.Z[0], 1])
             lengths[idx] = row.length[0]
 
-        # The survey has an additional endpoint without a corresponding element.
-        angles[:-1] = line.attr['angle']
-        tilts[:-1] = line.attr['rot_s_rad']
+        # Avoid constructing MultiSetter objects for every element attribute.
+        # They are unnecessary here and retain buffers for the lifetime of the
+        # line, which is especially costly for large imported machines.
+        angles[:-1] = [getattr(element, 'angle', 0.0)
+                       for element in line._elements]
+        tilts[:-1] = [getattr(element, 'rot_s_rad', 0.0)
+                      for element in line._elements]
 
         # Straight-body RBends use an internal reference line that differs from
         # the element entrance frame stored in the survey table.
@@ -550,12 +554,32 @@ class SurveyData(xo.Struct):
         return resampled
 
 
-class ApertureModel(xo.Struct):
-    pipe_positions = PipePosition[:]
+class ApertureEnvStruct(xo.Struct):
     pipes = Pipe[:]
     profiles = Profile[:]
+
+    def __init__(self, pipes, profiles, pipe_names, profile_names, **kwargs):
+        if len(pipe_names) != len(pipes):
+            raise ValueError("Length of pipe_names and pipes must match.")
+        if len(profile_names) != len(profiles):
+            raise ValueError("Length of profile_names and profiles must match.")
+        self.pipe_names = list(pipe_names)
+        self.profile_names = list(profile_names)
+        super().__init__(pipes=pipes, profiles=profiles, **kwargs)
+
+    def to_dict(self):
+        out = self._to_dict()
+        out['pipe_names'] = self.pipe_names
+        out['profile_names'] = self.profile_names
+        return out
+
+
+class LineApertureModel(xo.Struct):
+    pipe_positions = PipePosition[:]
     is_ring = xo.Int8
     survey_length = FloatType
+
+    _depends_on = [ApertureEnvStruct]
 
     _extra_c_sources = [
         '#include "xtrack/aperture/headers/cross_sections.h"',
@@ -568,6 +592,7 @@ class ApertureModel(xo.Struct):
             c_name='build_profile_polygons',
             args=[
                 xo.Arg(xo.ThisClass, name='model'),
+                xo.Arg(ApertureEnvStruct, name='aperture_env'),
                 xo.Arg(ProfilePolygons, name='profile_polygons'),
                 xo.Arg(ApertureBounds, name='aperture_bounds'),
                 xo.Arg(SurveyData, name='survey'),
@@ -578,6 +603,7 @@ class ApertureModel(xo.Struct):
             args=[
                 xo.Arg(SurveyData, name='survey_at_s'),
                 xo.Arg(xo.ThisClass, name='model'),
+                xo.Arg(ApertureEnvStruct, name='aperture_env'),
                 xo.Arg(ProfilePolygons, name='profile_polygons'),
                 xo.Arg(ApertureBounds, name='aperture_bounds'),
                 xo.Arg(SurveyData, name='survey'),
@@ -596,6 +622,7 @@ class ApertureModel(xo.Struct):
             c_name='get_max_aperture_sigma_bisection',
             args=[
                 xo.Arg(xo.ThisClass, name='model'),
+                xo.Arg(ApertureEnvStruct, name='aperture_env'),
                 xo.Arg(SurveyData, name='survey'),
                 xo.Arg(ProfilePolygons, name='profile_polygons'),
                 xo.Arg(ApertureBounds, name='aperture_bounds'),
@@ -612,6 +639,7 @@ class ApertureModel(xo.Struct):
             c_name='get_max_aperture_sigma_rays',
             args=[
                 xo.Arg(xo.ThisClass, name='model'),
+                xo.Arg(ApertureEnvStruct, name='aperture_env'),
                 xo.Arg(SurveyData, name='survey'),
                 xo.Arg(ProfilePolygons, name='profile_polygons'),
                 xo.Arg(ApertureBounds, name='aperture_bounds'),
@@ -630,6 +658,7 @@ class ApertureModel(xo.Struct):
             c_name='get_max_aperture_sigma_exact',
             args=[
                 xo.Arg(xo.ThisClass, name='model'),
+                xo.Arg(ApertureEnvStruct, name='aperture_env'),
                 xo.Arg(SurveyData, name='survey'),
                 xo.Arg(ProfilePolygons, name='profile_polygons'),
                 xo.Arg(ApertureBounds, name='aperture_bounds'),
@@ -648,6 +677,7 @@ class ApertureModel(xo.Struct):
             c_name='compute_beam_envelopes_at_sigma',
             args=[
                 xo.Arg(xo.ThisClass, name='model'),
+                xo.Arg(ApertureEnvStruct, name='aperture_env'),
                 xo.Arg(ApertureBounds, name='aperture_bounds'),
                 xo.Arg(TwissData, name='twiss_at_s'),
                 xo.Arg(BeamData, name='beam_data'),
@@ -666,42 +696,46 @@ class ApertureModel(xo.Struct):
     def __init__(
         self,
         pipe_positions: List[PipePosition],
-        pipes: List[Pipe],
-        profiles: List[Profile],
-        pipe_names: List[str],
-        profile_names: List[str],
         pipe_position_names: List[str],
         is_ring: bool = False,
         survey_length: float = np.nan,
         **kwargs,
     ):
-        if len(pipe_names) != len(pipes):
-            raise ValueError("Length of pipe_names and pipes must match.")
-
-        if len(profile_names) != len(profiles):
-            raise ValueError("Length of profile_names and profiles must match.")
-
         if len(pipe_position_names) != len(pipe_positions):
             raise ValueError("Length of pipe_position_names and pipe_positions must match.")
 
-        self.pipe_names = pipe_names
-        self.profile_names = profile_names
         self.pipe_position_names = pipe_position_names
+        self._aperture_env = None
 
         super().__init__(
             pipe_positions=pipe_positions,
-            pipes=pipes,
-            profiles=profiles,
             is_ring=int(is_ring),
             survey_length=survey_length,
             **kwargs,
         )
 
+    def bind_environment(self, aperture_env):
+        self._aperture_env = aperture_env
+        return self
+
+    @property
+    def pipes(self):
+        return self._aperture_env.pipes
+
+    @property
+    def profiles(self):
+        return self._aperture_env.profiles
+
+    @property
+    def pipe_names(self):
+        return self._aperture_env.pipe_names
+
+    @property
+    def profile_names(self):
+        return self._aperture_env.profile_names
+
     def pipe_name_for_index(self, idx: int) -> str:
         return self.pipe_names[idx]
-
-    def pipe_position_name_for_index(self, idx: int) -> str:
-        return self.pipe_position_names[idx]
 
     def profile_name_for_index(self, idx: int) -> str:
         return self.profile_names[idx]
@@ -712,16 +746,14 @@ class ApertureModel(xo.Struct):
     def pipe_name_for_position(self, pipe_position: PipePosition) -> str:
         return self.pipe_name_for_index(pipe_position.pipe_index)
 
-    def pipe_position_name_for_position_index(self, idx: int) -> str:
-        return self.pipe_position_name_for_index(idx)
-
     def profile_for_position(self, profile_position: ProfilePosition) -> Profile:
         return self.profiles[profile_position.profile_index]
 
     def profile_name_for_position(self, profile_position: ProfilePosition) -> str:
         return self.profile_name_for_index(profile_position.profile_index)
 
-    def pipe_position_profile_names_for_indices(self, pipe_position_index, profile_position_index) -> Tuple[str, str]:
+    def pipe_position_profile_names_for_indices(self, pipe_position_index,
+                                                profile_position_index):
         pipe_pos_name = self.pipe_position_name_for_index(pipe_position_index)
         pipe_pos = self.pipe_positions[pipe_position_index]
         pipe = self.pipe_for_position(pipe_pos)
@@ -729,7 +761,8 @@ class ApertureModel(xo.Struct):
         profile_name = self.profile_name_for_position(profile_pos)
         return pipe_pos_name, profile_name
 
-    def pipe_profile_names_for_indices(self, pipe_position_index, profile_position_index) -> Tuple[str, str]:
+    def pipe_profile_names_for_indices(self, pipe_position_index,
+                                       profile_position_index):
         pipe_pos = self.pipe_positions[pipe_position_index]
         pipe_name = self.pipe_name_for_position(pipe_pos)
         pipe = self.pipe_for_position(pipe_pos)
@@ -737,19 +770,25 @@ class ApertureModel(xo.Struct):
         profile_name = self.profile_name_for_position(profile_pos)
         return pipe_name, profile_name
 
+    def pipe_position_name_for_index(self, idx: int) -> str:
+        return self.pipe_position_names[idx]
+
+    def pipe_position_name_for_position_index(self, idx: int) -> str:
+        return self.pipe_position_name_for_index(idx)
+
     def to_dict(self) -> dict:
         out = self._to_dict()
-        out['pipe_names'] = self.pipe_names
         out['pipe_position_names'] = self.pipe_position_names
-        out['profile_names'] = self.profile_names
         return out
     @classmethod
-    def from_dict(cls, src: dict, context: XContext = None) -> 'ApertureModel':
+    def from_dict(cls, src: dict, context: XContext = None) -> 'LineApertureModel':
         return cls(**src, _context=context)
 
-    def build_profile_polygons(self, **kwargs) -> None:
+    def build_profile_polygons(self, aperture_env=None, **kwargs) -> None:
+        aperture_env = aperture_env or self._aperture_env
         self.compile_kernels(only_if_needed=True)
-        self._context.kernels.build_profile_polygons(model=self, **kwargs)
+        self._context.kernels.build_profile_polygons(
+            model=self, aperture_env=aperture_env, **kwargs)
 
     def cross_sections_at_s(
         self,
@@ -758,11 +797,14 @@ class ApertureModel(xo.Struct):
         max_x=None,
         min_y=None,
         max_y=None,
+        aperture_env=None,
         **kwargs,
     ) -> None:
+        aperture_env = aperture_env or self._aperture_env
         self.compile_kernels(only_if_needed=True)
         self._context.kernels.cross_sections_at_s(
             model=self,
+            aperture_env=aperture_env,
             is_convex=is_convex,
             min_x=min_x,
             max_x=max_x,
@@ -771,17 +813,23 @@ class ApertureModel(xo.Struct):
             **kwargs,
         )
 
-    def get_max_aperture_sigma_bisection(self, **kwargs) -> None:
+    def get_max_aperture_sigma_bisection(self, aperture_env=None, **kwargs) -> None:
+        aperture_env = aperture_env or self._aperture_env
         self.compile_kernels(only_if_needed=True)
-        self._context.kernels.get_max_aperture_sigma_bisection(model=self, **kwargs)
+        self._context.kernels.get_max_aperture_sigma_bisection(
+            model=self, aperture_env=aperture_env, **kwargs)
 
-    def get_max_aperture_sigma_rays(self, **kwargs) -> None:
+    def get_max_aperture_sigma_rays(self, aperture_env=None, **kwargs) -> None:
+        aperture_env = aperture_env or self._aperture_env
         self.compile_kernels(only_if_needed=True)
-        self._context.kernels.get_max_aperture_sigma_rays(model=self, **kwargs)
+        self._context.kernels.get_max_aperture_sigma_rays(
+            model=self, aperture_env=aperture_env, **kwargs)
 
-    def get_max_aperture_sigma_exact(self, **kwargs) -> None:
+    def get_max_aperture_sigma_exact(self, aperture_env=None, **kwargs) -> None:
+        aperture_env = aperture_env or self._aperture_env
         self.compile_kernels(only_if_needed=True)
-        self._context.kernels.get_max_aperture_sigma_exact(model=self, **kwargs)
+        self._context.kernels.get_max_aperture_sigma_exact(
+            model=self, aperture_env=aperture_env, **kwargs)
 
     def get_beam_envelopes_at_sigma(
         self,
@@ -789,11 +837,14 @@ class ApertureModel(xo.Struct):
         max_x=None,
         min_y=None,
         max_y=None,
+        aperture_env=None,
         **kwargs,
     ) -> None:
+        aperture_env = aperture_env or self._aperture_env
         self.compile_kernels(only_if_needed=True)
         self._context.kernels.get_beam_envelopes_at_sigma(
             model=self,
+            aperture_env=aperture_env,
             min_x=min_x,
             max_x=max_x,
             min_y=min_y,

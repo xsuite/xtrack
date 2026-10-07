@@ -1,6 +1,5 @@
 import xtrack as xt
 import numpy as np
-from xtrack.aperture import Aperture, ApertureBuilder
 
 env = xt.get_environment()
 env.particle_ref = xt.Particles(kinetic_energy0=200e6)
@@ -125,36 +124,36 @@ env.vars.update({
 #############
 ring_table = ring.get_table()
 
-builder = ApertureBuilder(ring)
-
-profile_straight = builder.new_profile('straight', 'Ellipse', half_major=0.07, half_minor=0.037)
-profile_dipole = builder.new_profile('dipole', 'Ellipse', half_major=0.07, half_minor=0.032)
+profile_straight = env.aperture.profiles.new(
+    'straight', 'Ellipse', half_major=0.07, half_minor=0.037)
+profile_dipole = env.aperture.profiles.new(
+    'dipole', 'Ellipse', half_major=0.07, half_minor=0.032)
 
 l_mb = float(env['mb'].length)
 l_mq = float(env['mq'].length)
 l_ms = float(env['ms'].length)
 ang_mb = float(env['mb'].angle)
 
-pipe_mb = builder.new_pipe(
+pipe_mb = env.aperture.pipes.new(
     'mb',
     curvature=ang_mb / l_mb,
     positions=[
-        builder.place_profile(profile_dipole, shift_s=0.0),
-        builder.place_profile(profile_dipole, shift_s=l_mb),
+        env.aperture.profiles.place(profile_dipole, at=0.0),
+        env.aperture.profiles.place(profile_dipole, at=l_mb),
     ],
 )
-pipe_mq = builder.new_pipe(
+pipe_mq = env.aperture.pipes.new(
     'mq',
     positions=[
-        builder.place_profile(profile_straight, shift_s=0.0),
-        builder.place_profile(profile_straight, shift_s=l_mq),
+        env.aperture.profiles.place(profile_straight, at=0.0),
+        env.aperture.profiles.place(profile_straight, at=l_mq),
     ],
 )
-pipe_ms = builder.new_pipe(
+pipe_ms = env.aperture.pipes.new(
     'ms',
     positions=[
-        builder.place_profile(profile_straight, shift_s=0.0),
-        builder.place_profile(profile_straight, shift_s=l_ms),
+        env.aperture.profiles.place(profile_straight, at=0.0),
+        env.aperture.profiles.place(profile_straight, at=l_ms),
     ],
 )
 
@@ -167,27 +166,26 @@ for row in ring_table.rows:
     length = s_end - s_start
 
     if name.startswith('mb'):
-        builder.place_pipe(name, pipe_mb.name, at=name)
+        ring.aperture.place_pipe(name, pipe_mb, at=name)
     elif name.startswith('q'):
-        builder.place_pipe(name, pipe_mq.name, at=name)
+        ring.aperture.place_pipe(name, pipe_mq, at=name)
     elif name.startswith('ms'):
-        builder.place_pipe(name, pipe_ms.name, at=name)
+        ring.aperture.place_pipe(name, pipe_ms, at=name)
     elif length > 1e-6:
         key = round(length / 1e-6)
         if key in drift_pipes:
             drift_pipe = drift_pipes[key]
         else:
-            drift_pipe = builder.new_pipe(
+            drift_pipe = env.aperture.pipes.new(
                 f'drift_{length:.6f}',
                 positions=[
-                    builder.place_profile(profile_straight, shift_s=0.0),
-                    builder.place_profile(profile_straight, shift_s=length),
+                    env.aperture.profiles.place(profile_straight, at=0.0),
+                    env.aperture.profiles.place(profile_straight, at=length),
                 ],
             )
             drift_pipes[key] = drift_pipe
-        builder.place_pipe(name, drift_pipe.name, at=name)
+        ring.aperture.place_pipe(name, drift_pipe, at=name)
 
-aperture_model = builder.build()
-aperture = Aperture(line=ring, model=aperture_model)
+ring.aperture.build_model()
 
 ring.twiss_default['method'] = '4d'

@@ -354,6 +354,12 @@ class Line:
 
         self.env = env
 
+        from xtrack.aperture.aperture import LineAperture
+        aperture_struct = env.aperture._struct
+        aperture_context = (
+            aperture_struct._context if aperture_struct is not None else None)
+        self.aperture = LineAperture(self, context=aperture_context)
+
         self.env._lines_weakrefs.add(self)
 
         if particle_ref is None:
@@ -468,6 +474,10 @@ class Line:
                 element_dict=elements,
                 _var_management_dct=var_management_dict)
 
+            if 'aperture_environment' in dct:
+                env.aperture.load_dict(
+                    dct['aperture_environment'], context=_context)
+
             if 'env_particles' in dct:
                 for nn, ppd in dct['env_particles'].items():
                    env._particles[nn] = xt.Particles.from_dict(ppd, _context=_context)
@@ -500,6 +510,9 @@ class Line:
 
         if 'composer' in dct.keys() and dct['composer'] is not None:
             self.composer = xt.Composer.from_dict(dct['composer'], env=self.env)
+
+        if 'aperture' in dct:
+            self.aperture.load_dict(dct['aperture'], context=_context)
 
         if ('energy_program' in self._element_dict
              and self._element_dict['energy_program'] is not None):
@@ -818,6 +831,8 @@ class Line:
 
         if include_element_dict:
             out["elements"] = {k: el.to_dict() for k, el in self._element_dict.items()}
+            if len(self.env.aperture.profiles) or len(self.env.aperture.pipes):
+                out['aperture_environment'] = self.env.aperture.to_dict()
         out["element_names"] = self.element_names[:]
         out['config'] = self.config.data.copy()
         out['_extra_config'] = self._extra_config.copy()
@@ -846,6 +861,9 @@ class Line:
         out['env_particles'] = {k: pp.to_dict() for k, pp in self.env._particles.items()}
 
         out["metadata"] = copy.deepcopy(self.metadata)
+
+        if not self.aperture.empty:
+            out['aperture'] = self.aperture.to_dict()
 
         return out
 
@@ -1285,6 +1303,9 @@ class Line:
 
             env = xt.Environment(element_dict=elements,
                                   _var_management_dct=var_management_dict)
+            if len(self.env.aperture.profiles) or len(self.env.aperture.pipes):
+                env.aperture.load_dict(
+                    self.env.aperture.to_dict(), context=_context)
 
             if isinstance(self._particle_ref, str):
                 env.particles[self._particle_ref] = self.particle_ref.copy()
@@ -1304,6 +1325,9 @@ class Line:
         out._extra_config.update(self._extra_config.copy())
         out.metadata.clear()
         out.metadata.update(self.metadata)
+
+        if not self.aperture.empty:
+            out.aperture.load_dict(self.aperture.to_dict())
 
         if out.energy_program is not None:
             out.energy_program.line = out

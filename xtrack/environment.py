@@ -129,6 +129,8 @@ class Environment:
         self._enable_name_clash_check = True
         self._last_context = None
         self._drift_cache = {}
+        from xtrack.aperture.environment import EnvAperture
+        self.aperture = EnvAperture(self)
 
         for nn, ee in self._element_dict.items():
             if nn.startswith('||drift_') and isinstance(ee, xt.Drift):
@@ -1142,6 +1144,9 @@ class Environment:
 
         out["metadata"] = deepcopy(self.metadata)
 
+        if len(self.aperture.profiles) or len(self.aperture.pipes):
+            out['aperture'] = self.aperture.to_dict()
+
         out['xsuite_data_type'] = 'Environment'
 
         out['lines'] = {}
@@ -1202,7 +1207,8 @@ class Environment:
         particles = {}
         if 'particles' in dct:
             for nn, ppd in dct['particles'].items():
-               particles[nn] = xt.Particles.from_dict(ppd)
+               particles[nn] = xt.Particles.from_dict(
+                   ppd, _context=_context, _buffer=_buffer)
 
         particle_ref = None
         if 'particle_ref' in dct.keys():
@@ -1218,6 +1224,9 @@ class Environment:
 
         out = cls(element_dict=elements, particle_ref=particle_ref,
                 _var_management_dct=_var_management_dct, particles=particles)
+
+        if 'aperture' in dct:
+            out.aperture.load_dict(dct['aperture'], context=_context)
 
         dct_lines = dct.copy()
         dct_lines.pop('elements', None)

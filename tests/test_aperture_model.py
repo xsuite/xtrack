@@ -1,4 +1,5 @@
 import itertools
+import gc
 
 import json
 from pathlib import Path
@@ -13,15 +14,131 @@ from cpymad.madx import Madx
 from xobjects.general import allclose_with_outliers
 from xobjects.test_helpers import (
     allow_kernel_compilation, for_all_test_contexts, requires_context)
-from xtrack.aperture.aperture import Aperture, ProfilesView, _split_wrapped_s_interval
-from xtrack.aperture.builder import ApertureBuilder
-from xtrack.aperture.views import PipePositionsView, PipesView
+from xtrack.aperture.aperture import (
+    LineAperture, _split_wrapped_s_interval, _survey_is_closed,
+)
 from xtrack.aperture.structures import (
-    ApertureModel, Pipe, Circle, FloatType, Polygon, Profile,
-    ProfilePosition, Rectangle, SurveyData, PipePosition
+    ApertureEnvStruct, LineApertureModel, Pipe, Circle, FloatType, Polygon,
+    Profile, ProfilePosition, Rectangle, SurveyData, PipePosition,
 )
 from xtrack.aperture.transform import matrix_to_transform, transform_matrix
 from xdeps.table import Table
+
+
+class ApertureModel:
+    """Test fixture translating legacy model literals to the split structs."""
+
+    def __new__(
+            cls, pipe_positions, pipes, profiles, pipe_names, profile_names,
+            pipe_position_names, is_ring=False, survey_length=np.nan,
+            _context=None, line=None, **kwargs):
+        aperture_env = ApertureEnvStruct(
+            pipes=pipes,
+            profiles=profiles,
+            pipe_names=pipe_names,
+            profile_names=profile_names,
+            _context=_context,
+        )
+        return LineApertureModel(
+            pipe_positions=pipe_positions,
+            pipe_position_names=pipe_position_names,
+            is_ring=is_ring,
+            survey_length=survey_length,
+            _context=_context,
+        ).bind_environment(aperture_env)
+
+    @classmethod
+    def compile_class_kernels(cls, context, **kwargs):
+        LineApertureModel.compile_class_kernels(context, **kwargs)
+
+
+class Aperture(LineAperture):
+    """Test fixture binding split low-level structures to a line."""
+
+    def __init__(self, line, model, **kwargs):
+        skip_check = kwargs.pop('_skip_validity_check', False)
+        super().__init__(line, **kwargs)
+        line.env.aperture._struct = model._aperture_env
+        line.env.aperture._pipe_name_to_index = {
+            name: index
+            for index, name in enumerate(model.pipe_names)
+        }
+        line.env.aperture._profile_name_to_index = {
+            name: index
+            for index, name in enumerate(model.profile_names)
+        }
+        line.env.aperture._pipes_unbuilt = None
+        line.env.aperture._profiles_unbuilt = None
+        self._model = model
+        self._pipe_positions_unbuilt = None
+        self._pipe_position_name_to_index = {
+            name: index
+            for index, name in enumerate(model.pipe_position_names)
+        }
+        self.survey = line.survey()
+        ring_setting = kwargs.get('is_ring', 'auto')
+        self.is_ring = (_survey_is_closed(self.survey)
+                        if ring_setting == 'auto' else bool(ring_setting))
+        model.is_ring = int(self.is_ring)
+        model.survey_length = line.get_length()
+        self._survey_data = SurveyData.from_survey_table(
+            self.survey, line, context=self.context)
+        if not skip_check:
+            self._check_model_validity()
+        self._build_aperture_bounds(
+            check_validity=not skip_check,
+            with_progress=kwargs.get('with_progress', True),
+        )
+
+    @classmethod
+    def from_line_with_madx_metadata(cls, line, **kwargs):
+        kwargs.pop('_skip_validity_check', None)
+        return line.aperture.from_madx_metadata(**kwargs)
+
+    @classmethod
+    def from_line_with_associated_apertures(cls, line, **kwargs):
+        kwargs.pop('_skip_validity_check', None)
+        return line.aperture.from_associated_apertures(**kwargs)
+
+    @classmethod
+    def from_line_with_limits(cls, line, **kwargs):
+        kwargs.pop('_skip_validity_check', None)
+        return line.aperture.from_limits(**kwargs)
+
+
+class ApertureBuilder:
+    """Test helper mapping former builder fixtures onto the container API."""
+
+    def __init__(self, line):
+        self.line = line
+
+    @property
+    def profiles(self):
+        return self.line.env.aperture.profiles
+
+    @property
+    def pipes(self):
+        return self.line.env.aperture.pipes
+
+    @property
+    def pipe_positions(self):
+        return self.line.aperture._pipe_positions_unbuilt
+
+    def new_profile(self, name, shape, **kwargs):
+        return self.profiles.new(name, shape, **kwargs)
+
+    def place_profile(self, profile, shift_s=0.0, **kwargs):
+        return self.profiles.place(profile, at=shift_s, **kwargs)
+
+    def new_pipe(self, name, **kwargs):
+        return self.pipes.new(name, **kwargs)
+
+    def place_pipe(self, name, pipe_name, at, **kwargs):
+        return self.line.aperture.place_pipe(name, pipe_name, at, **kwargs)
+
+    def build(self, context=None):
+        self.line.aperture.context = context or self.line.aperture.context
+        return self.line.aperture.build_model()._model
 
 TOY_RING_SEQUENCE = """
     ! Toy Ring, 4 arcs
@@ -553,9 +670,30 @@ def test_aperture_model_views(test_context):
         _context=test_context,
     )
 
-    profiles = ProfilesView(model)
-    pipes = PipesView(model)
-    pipe_positions = PipePositionsView(model)
+    env = xt.Environment()
+    line = env.new_line(
+        components=[env.new('drift', xt.Drift, length=1.0)])
+    env.aperture._struct = model._aperture_env
+    env.aperture._profile_name_to_index = {
+        name: index
+        for index, name in enumerate(model.profile_names)
+    }
+    env.aperture._pipe_name_to_index = {
+        name: index
+        for index, name in enumerate(model.pipe_names)
+    }
+    env.aperture._profiles_unbuilt = None
+    env.aperture._pipes_unbuilt = None
+    line.aperture._model = model
+    line.aperture._pipe_positions_unbuilt = None
+    line.aperture._pipe_position_name_to_index = {
+        name: index
+        for index, name in enumerate(model.pipe_position_names)
+    }
+
+    profiles = env.aperture.profiles
+    pipes = env.aperture.pipes
+    pipe_positions = line.aperture.pipe_positions
     pipe0 = pipes[0]
     positions = pipe0
 
@@ -613,7 +751,7 @@ def test_aperture_model_views(test_context):
     assert list(name for name, _ in pipe_positions.items()) == ['pipe0_at_drift']
     assert [pipe_pos.name for pipe_pos in pipe_positions.values()] == ['pipe0_at_drift']
     assert [pipe_pos.pipe_index for pipe_pos in pipe_positions.values()] == [0]
-    pipe_positions[0].survey_reference_name = 'drift_entry'
+    pipe_positions[0].survey_reference_name = 'entry'
     pipe_positions[0].survey_index = 3
     pipe_positions[0].pipe_index = 0
     pipe_positions[0].shift_x = 0.1
@@ -622,7 +760,7 @@ def test_aperture_model_views(test_context):
     pipe_positions[0].rot_x_rad = 0.4
     pipe_positions[0].rot_y_rad = -0.5
     pipe_positions[0].rot_z_rad = 0.6
-    assert model.pipe_positions[0].survey_reference_name == 'drift_entry'
+    assert model.pipe_positions[0].survey_reference_name == 'entry'
     assert model.pipe_positions[0].survey_index == 3
     updated_transform = matrix_to_transform(model.pipe_positions[0].transformation.to_nplike())
     xo.assert_allclose(updated_transform.shift_x, 0.1, atol=1e-15, rtol=0)
@@ -3105,7 +3243,10 @@ def hllhc19_end_to_end_model(tmp_path_factory):
     local_context = xo.ContextCpu()
     tmp_path = tmp_path_factory.mktemp('hllhc19_end_to_end_model')
 
-    lhc = xt.load(TEST_DATA_DIR / 'hllhc19_apertures/lhc_aperture.json')
+    lhc = xt.load(
+        TEST_DATA_DIR / 'hllhc19_apertures/lhc_aperture.json',
+        _context=local_context,
+    )
     out = {}
     for beam in ('b1', 'b2'):
         line = getattr(lhc, beam).copy(_context=local_context)
@@ -3122,6 +3263,8 @@ def hllhc19_end_to_end_model(tmp_path_factory):
 
         out[beam] = (line, aperture)
 
+    del lhc
+    gc.collect()
     return out
 
 

@@ -266,7 +266,8 @@ static inline TwissLocalData twiss_data_get_entry(const TwissData twiss_data, co
 
 
 void get_max_aperture_sigma_bisection(
-    ApertureModel model,
+    LineApertureModel model,
+    ApertureEnvStruct aperture_env,
     SurveyData survey,
     ProfilePolygons profile_polygons,
     ApertureBounds aperture_bounds,
@@ -302,6 +303,7 @@ void get_max_aperture_sigma_bisection(
             survey_at_s,
             idx_slice,
             model,
+            aperture_env,
             profile_polygons,
             aperture_bounds,
             survey,
@@ -355,7 +357,8 @@ void get_max_aperture_sigma_bisection(
 
 
 void compute_beam_envelopes_at_sigma(
-    ApertureModel model,
+    LineApertureModel model,
+    ApertureEnvStruct aperture_env,
     ApertureBounds aperture_bounds,
     TwissData twiss_at_s,
     BeamData beam_data,
@@ -390,7 +393,7 @@ void compute_beam_envelopes_at_sigma(
 
         if (include_aper_tols) {
             bound_index = interpolate_aperture_tolerances_at_s(
-                model, aperture_bounds, s, bound_index,
+                model, aperture_env, aperture_bounds, s, bound_index,
                 &s_aperture_data.tol_r, &s_aperture_data.tol_x, &s_aperture_data.tol_y);
         }
 
@@ -505,7 +508,8 @@ static inline float_type compute_n1_for_point(
 
 
 void get_max_aperture_sigma_rays(
-    ApertureModel model,
+    LineApertureModel model,
+    ApertureEnvStruct aperture_env,
     SurveyData survey,
     ProfilePolygons profile_polygons,
     ApertureBounds aperture_bounds,
@@ -542,6 +546,7 @@ void get_max_aperture_sigma_rays(
             survey_at_s,
             idx_slice,
             model,
+            aperture_env,
             profile_polygons,
             aperture_bounds,
             survey,
@@ -629,7 +634,8 @@ void get_max_aperture_sigma_rays(
 
 
 void get_max_aperture_sigma_exact(
-    ApertureModel model,
+    LineApertureModel model,
+    ApertureEnvStruct aperture_env,
     SurveyData survey,
     ProfilePolygons profile_polygons,
     ApertureBounds aperture_bounds,
@@ -667,6 +673,7 @@ void get_max_aperture_sigma_exact(
             survey_at_s,
             idx_slice,
             model,
+            aperture_env,
             profile_polygons,
             aperture_bounds,
             survey,
