@@ -1994,8 +1994,21 @@ class Aperture:
         dist_left = np.abs(tw_s[idx_left] - s_positions)
         dist_right = np.abs(tw_s[idx_right] - s_positions)
 
-        # Keep the nearest row; on ties prefer the rightmost candidate.
+        # Keep the nearest row. At sliced element boundaries, several rows
+        # share the same s but can use different local reference frames.
         tw_indices = np.where(dist_right <= dist_left, idx_right, idx_left)
+
+        group_start = np.searchsorted(tw_s, tw_s[tw_indices], side='left')
+        group_end = np.searchsorted(tw_s, tw_s[tw_indices], side='right')
+        for ii in np.flatnonzero(group_end - group_start > 1):
+            names = full_twiss.name[group_start[ii]:group_end[ii]]
+            # The survey pose at a boundary is after the preceding exit map
+            # and before the following entry map.
+            for suffix in ('_exit', '_entry'):
+                matches = [jj for jj, name in enumerate(names) if name.endswith(suffix)]
+                if matches:
+                    tw_indices[ii] = group_start[ii] + matches[0]
+                    break
 
         sliced_twiss = full_twiss.rows[tw_indices]
         return sliced_twiss
