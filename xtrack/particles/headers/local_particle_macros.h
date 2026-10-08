@@ -27,7 +27,9 @@
 #define XT_LP_SCALAR_FIELDS(_)   \
     _(double, q0)                \
     _(double, mass0)             \
-    _(double, t_sim)
+    _(double, t_sim)             \
+    _(double, t_frame)           \
+    _(int64_t, at_frame)
 
 // Phase-space coordinates represented by TPSAs during TPSA tracking.
 #define XT_LP_COORD_FIELDS(_) \

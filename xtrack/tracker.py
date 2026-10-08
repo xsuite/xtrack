@@ -25,6 +25,7 @@ from .progress_indicator import progress
 from .tpsa import ParticlesTpsa
 from .tracker_data import TrackerData, _expand_element_classes_with_slice_classes
 from .track_flags import TrackFlags
+from .synctime import SyncTime, _SyncTimeClock
 
 logger = logging.getLogger(__name__)
 
@@ -65,6 +66,10 @@ class Tracker:
             particles_monitor_class = self._get_default_monitor_class()
 
         self.line = line
+        self._sync_time_clock = (
+            _SyncTimeClock(line)
+            if any(isinstance(ee, SyncTime) and ee.frame_clock
+                   for ee in line._elements) else None)
         self.particles_monitor_class = particles_monitor_class
         self.extra_headers = extra_headers
         self._enable_pipeline_hold = enable_pipeline_hold
@@ -1393,6 +1398,14 @@ class Tracker:
         if ele_start is None:
             ele_start = 0
 
+        if self._sync_time_clock is not None:
+            if (ele_start != 0 or ele_stop is not None or num_elements is not None
+                    or _session_to_resume is not None or self._enable_pipeline_hold
+                    or self.skip_end_turn_actions or not self.reset_s_at_end_turn
+                    or particles.start_tracking_at_element >= 0):
+                raise NotImplementedError(
+                    'Frame-clock SyncTime currently requires complete frames')
+
         if freeze_longitudinal:
             raise NotImplementedError('freeze_longitudinal not implemented yet'
                                       ' for collective tracking')
@@ -1452,6 +1465,9 @@ class Tracker:
         for tt in range(num_turns):
             if tt_resume is not None and tt < tt_resume:
                 continue
+
+            if self._sync_time_clock is not None:
+                self._sync_time_clock.prepare_frame(particles)
 
             if (flag_monitor and (ele_start == 0 or tt>0) # second condition is for delayed start
                 and not _is_resume_within_turn(tt, tt_resume)):
@@ -1572,6 +1588,8 @@ class Tracker:
             self._track_no_collective(particles,
                                ele_start=self.num_elements,
                                num_elements=0)
+            if self._sync_time_clock is not None:
+                self._sync_time_clock.advance_frame(particles)
 
         self.record_last_track = monitor
         self.record_multi_element_last_track = multi_element_monitor
@@ -2012,7 +2030,9 @@ class Tracker:
         else:
             at_turn = particles._xobject.at_turn[ii_first_active]
 
-        if self.line.energy_program is not None:
+        if self._sync_time_clock is not None:
+            t_turn = particles.t_frame
+        elif self.line.energy_program is not None:
             t_turn = self.line.energy_program.get_t_s_at_turn(at_turn)
         else:
             beta0 = particles._xobject.beta0[ii_first_active]
@@ -2024,7 +2044,8 @@ class Tracker:
             t_turn < self.line._t_last_update_time_dependent_vars):
             self.line._t_last_update_time_dependent_vars = None
 
-        if (self.line._t_last_update_time_dependent_vars is None
+        if (self._sync_time_clock is not None
+            or self.line._t_last_update_time_dependent_vars is None
             or self.line.dt_update_time_dependent_vars is None
             or t_turn > self.line._t_last_update_time_dependent_vars
                         + self.line.dt_update_time_dependent_vars):
@@ -2033,7 +2054,10 @@ class Tracker:
 
             if self.line.energy_program is not None:
                 p0c = self.line.particle_ref._xobject.p0c[0]
-                particles.update_p0c_and_energy_deviations(p0c, update_pxpy=True)
+                mask = (self._sync_time_clock.surviving_mask(particles)
+                        if self._sync_time_clock is not None else None)
+                particles.update_p0c_and_energy_deviations(
+                    p0c, update_pxpy=True, _mask=mask)
 
     def _handle_log(self, _session_to_resume, particles, log):
         if _session_to_resume is not None:

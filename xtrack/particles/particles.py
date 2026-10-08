@@ -36,6 +36,8 @@ scalar_vars = (
     (xo.Float64, 'q0'),
     (xo.Float64, 'mass0'),
     (xo.Float64, 't_sim'),
+    (xo.Float64, 't_frame'),
+    (xo.Int64, 'at_frame'),
 )
 
 part_energy_vars = (
@@ -239,6 +241,11 @@ class Particles(xo.HybridClass):
             Identifier of the parent particle (secondary production processes)
         t_sim : float, optional
             Simulation frame time (typically one revolution period)
+        t_frame : float, optional
+            Absolute time at the origin of the current SyncTime frame [s].
+        at_frame : int, optional
+            Common SyncTime frame index. The default (-1) selects ordinary
+            turn-based time bookkeeping.
         name : str, optional
             Optional label attached to this Particles object as ``name``.
             It does not affect particle identifiers or tracking.
@@ -364,6 +371,8 @@ class Particles(xo.HybridClass):
         self.q0 = kwargs.get('q0', 1.0)
         self.mass0 = kwargs.get('mass0', PROTON_MASS_EV)
         self.t_sim = kwargs.get('t_sim', 0)
+        self.t_frame = kwargs.get('t_frame', 0)
+        self.at_frame = kwargs.get('at_frame', -1)
         self.start_tracking_at_element = kwargs.get(
                             'start_tracking_at_element', -1)
 
@@ -1799,12 +1808,13 @@ class Particles(xo.HybridClass):
                                     computed_value=_charge_ratio,
                                     mask=mask)
 
-    def update_p0c_and_energy_deviations(self, p0c, update_pxpy=False):
+    def update_p0c_and_energy_deviations(self, p0c, update_pxpy=False,
+                                        _mask=None):
 
         assert np.isscalar(p0c), 'p0c must be a scalar'
 
         # Assign with a mask
-        mask = self.state > 0
+        mask = self.state > 0 if _mask is None else _mask
 
         old_p0c = self.p0c.copy()
         old_beta0 = self.beta0.copy()
@@ -1817,7 +1827,11 @@ class Particles(xo.HybridClass):
 
         self._update_refs(p0c=new_p0c, mask=mask)
         self._update_energy_deviations(mask=mask, delta=new_delta)
-        self._update_zeta(mask=mask, zeta=self.zeta * self.beta0 / old_beta0)
+        # In a SyncTime frame, t = t_frame + (s - zeta) / (beta0 * c).
+        # Waiting particles can be at s != 0 when the reference changes.
+        s_origin = self.s if self.at_frame >= 0 else 0
+        self._update_zeta(mask=mask, zeta=s_origin
+                         + (self.zeta - s_origin) * self.beta0 / old_beta0)
 
         if update_pxpy:
             if isinstance(self._context, xo.ContextPyopencl):

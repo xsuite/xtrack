@@ -16,6 +16,7 @@ _REF_VARS: tuple[str, ...] = (
     "q0",
     "mass0",
     "t_sim",
+    "t_frame",
     "beta0",
     "gamma0",
     "p0c",
@@ -58,6 +59,8 @@ class TpsaParticleData(xo.Struct):
     q0 = xo.Float64
     mass0 = xo.Float64
     t_sim = xo.Float64
+    t_frame = xo.Float64
+    at_frame = xo.Int64
     beta0 = xo.Float64
     gamma0 = xo.Float64
     p0c = xo.Float64
@@ -152,6 +155,7 @@ class ParticlesTpsa:
             setattr(bp, c, int(ffi.cast("uintptr_t", self._local_series[c].ptr)))
         for r in _REF_VARS:
             setattr(bp, r, self._ref(r))
+        bp.at_frame = int(self._ref("at_frame"))
         for name in _INT_FIELDS + _RNG_FIELDS:
             setattr(bp, name, int(self._ref(name)))
         bp.track_flags = 0
