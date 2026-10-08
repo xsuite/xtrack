@@ -1628,6 +1628,7 @@ class Aperture:
         self._aperture_bounds.reorder_for_tolerated_pipe_overlaps(
             s_tol=self.s_tol,
             is_ring=self.is_ring,
+            line_length=self.line.get_length(),
         )
 
         if check_validity:

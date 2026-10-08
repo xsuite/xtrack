@@ -822,6 +822,57 @@ def test_pipe_overlap_validation_allows_wrapped_and_regular_non_overlapping_pipe
 
 
 @for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
+def test_reorder_bounds_for_reversed_pipe_on_ring(test_context):
+    env = xt.Environment()
+    length = 10.0
+    angle = np.pi / 4
+    bend = env.new('bend', xt.Bend, length=length, angle=angle, k0=0)
+    line = env.new_line(name='ring', components=[bend] * 8)
+    sv = line.survey()
+
+    # The first pipe runs from s=10 to 20, but its profile indices run in
+    # reverse. Place the second pipe first in the model so its entry at s=20
+    # sorts between the two bounds of the first pipe.
+    model = ApertureModel(
+        line=line,
+        pipe_positions=[
+            PipePosition(pipe_index=1, survey_reference_name=sv.name[2],
+                         survey_index=2, transformation=transform_matrix()),
+            PipePosition(pipe_index=0, survey_reference_name=sv.name[1],
+                         survey_index=1, transformation=transform_matrix()),
+        ],
+        pipes=[
+            Pipe(curvature=angle / length, positions=[
+                ProfilePosition(profile_index=0, shift_s=length),
+                ProfilePosition(profile_index=0, shift_s=0.0),
+            ]),
+            Pipe(curvature=angle / length, positions=[
+                ProfilePosition(profile_index=1, shift_s=0.0),
+                ProfilePosition(profile_index=1, shift_s=length),
+            ]),
+        ],
+        profiles=[
+            Profile(shape=Circle(radius=0.03)),
+            Profile(shape=Circle(radius=0.04)),
+        ],
+        pipe_names=['first', 'second'],
+        pipe_position_names=['second', 'first'],
+        profile_names=['small', 'large'],
+        _context=test_context,
+    )
+    aperture = Aperture(line, model, context=test_context, num_profile_points=64)
+    assert aperture.is_ring
+
+    bounds = aperture._aperture_bounds
+    np.testing.assert_array_equal(bounds.pipe_position_indices.to_nparray(), [1, 1, 0, 0])
+    np.testing.assert_array_equal(bounds.profile_position_indices.to_nparray(), [1, 0, 0, 1])
+
+    sections = aperture.cross_sections_at_s([15.0, 25.0]).cross_section
+    radii = np.linalg.norm(sections, axis=2)
+    np.testing.assert_allclose(np.mean(radii, axis=1), [0.03, 0.04], atol=1e-6, rtol=0)
+
+
+@for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
 def test_cross_sections_do_not_interpolate_between_pipes_overlapping_within_tolerance(test_context):
     env = xt.Environment()
     line = env.new_line(
