@@ -1640,7 +1640,7 @@ def test_get_aperture_sigmas_at_element_output_cross_sections_match_cross_sectio
 
     ref = aperture_model.cross_sections_at_element('m1', resolution=None).cross_section
     xo.assert_allclose(aperture_points, ref, atol=1e-12, rtol=0)
-    assert sigmas.shape == (2,)
+    assert sigmas.shape == (1,)
 
 
 @pytest.mark.parametrize('method', ['bisection', 'rays'])
@@ -1917,6 +1917,111 @@ def test_survey_resample_out_of_range_returns_nans_with_precision_tolerance(cont
     xo.assert_allclose(resampled.s[4], 1.0, atol=0, rtol=0)
     assert np.isnan(resampled.s[5])
     assert np.isnan(resampled.pose[5, 0, 0])
+
+
+def test_survey_resample_rbend_exit_uses_left_hand_frame():
+    env = xt.Environment()
+    env.new('bend', xt.RBend, length_straight=1.0, angle=0.1,
+            rbend_model='straight-body')
+    env.new('drift', xt.Drift, length=1.0)
+    line = env.new_line(name='line', components=['bend', 'drift'])
+    line.particle_ref = xt.Particles(p0c=7e12)
+    line.twiss_default['method'] = '4d'
+    s_exit = line['bend'].length
+
+    survey = SurveyData.from_survey_table(line.survey(), line=line, context=xo.ContextCpu())
+    # A sliced Twiss row may round slightly past the boundary. It must still
+    # use the left segment's pre-exit frame.
+    exit_poses = survey.resample([s_exit, s_exit + 1e-9]).pose.to_nparray()
+
+    sliced_line = line.copy()
+    sliced_line.cut_at_s([0.5, s_exit], with_progress=False)
+    sliced_survey = sliced_line.survey()
+    exit_map_idx = np.flatnonzero(sliced_survey.name == 'bend..exit_map').item()
+
+    for exit_pose in exit_poses:
+        xo.assert_allclose(exit_pose[:3, 3], sliced_survey.XYZ[exit_map_idx],
+                           atol=1e-12, rtol=0)
+        xo.assert_allclose(exit_pose[:3, :3], sliced_survey.E_matrix[exit_map_idx],
+                           atol=1e-12, rtol=0)
+        assert abs(exit_pose[0, 3] - line.survey().XYZ[-2, 0]) > 1e-3
+
+    aperture = Aperture.__new__(Aperture)
+    aperture.line = line
+    aperture._survey_data = survey
+    twiss = aperture._sliced_twiss_at_s(
+        [0.5, s_exit],
+        twiss_init=xt.TwissInit(betx=1.0, bety=1.0),
+        with_progress=False,
+    )
+    assert twiss.name[-1] == 'bend..exit_map'
+    twiss_exit_pose = survey.resample(twiss.s[-1:]).pose.to_nparray()[0]
+    xo.assert_allclose(twiss_exit_pose, exit_poses[0], atol=1e-12, rtol=0)
+
+
+def test_transverse_element_samples_avoid_boundary_frames():
+    env = xt.Environment()
+    env.new('drift', xt.Drift, length=1.0)
+    env.new('shift', xt.Translation, shift_x=0.1)
+    env.new('bend', xt.RBend, length_straight=1.0, angle=0.1)
+    env.new('short', xt.Drift, length=1e-6)
+    line = env.new_line(name='line', components=['drift', 'shift', 'bend', 'short'])
+    line.particle_ref = xt.Particles(p0c=7e12)
+    line.twiss_default['method'] = '4d'
+
+    aperture = Aperture.__new__(Aperture)
+    aperture.line = line
+    aperture.s_tol = 1e-6
+    aperture._survey_data = SurveyData.from_survey_table(
+        line.survey(), line=line, context=xo.ContextCpu(),
+    )
+
+    s_positions = aperture._get_cuts_inside_element('bend', resolution=0.5)
+    s_entry = line._get_s_position('bend')
+    s_exit = s_entry + line['bend'].length
+    assert s_positions[0] > s_entry + aperture.s_tol
+    assert s_positions[-1] < s_exit - aperture.s_tol
+
+    twiss = aperture._sliced_twiss_at_s(
+        s_positions,
+        twiss_init=xt.TwissInit(betx=1.0, bety=1.0),
+        with_progress=False,
+    )
+    xo.assert_allclose(twiss.s, s_positions, atol=1e-12, rtol=0)
+    xo.assert_allclose(aperture._survey_data.resample(twiss.s).pose[0, 0, 3], 0.1,
+                       atol=1e-12, rtol=0)
+
+    short_start = line._get_s_position('short')
+    short_cuts = aperture._get_cuts_inside_element('short', resolution=0.5)
+    xo.assert_allclose(short_cuts, [short_start + 0.5e-6], atol=1e-12, rtol=0)
+
+
+def test_element_computations_sample_inside_thick_elements():
+    env = xt.Environment()
+    env.new('drift', xt.Drift, length=1.0)
+    line = env.new_line(name='line', components=['drift'])
+    line.particle_ref = xt.Particles(p0c=7e12)
+    line.twiss_default['method'] = '4d'
+    line.twiss_default['init'] = xt.TwissInit(betx=1.0, bety=1.0)
+
+    builder = ApertureBuilder(line)
+    builder.new_profile('circle', Circle, radius=0.04)
+    builder.new_pipe('pipe', positions=[
+        builder.place_profile('circle', shift_s=0.0),
+        builder.place_profile('circle', shift_s=1.0),
+    ])
+    builder.place_pipe('pipe', 'pipe', at='drift')
+    aperture = Aperture(line, builder.build(context=xo.ContextCpu()),
+                        context=xo.ContextCpu(), with_progress=False)
+    sigmas, _ = aperture.get_aperture_sigmas_at_element('drift', with_progress=False)
+    hvd, _ = aperture.get_hvd_aperture_sigmas_at_element('drift', with_progress=False)
+    envelopes, _ = aperture.get_envelope_at_element('drift', sigmas=1.0,
+                                                    with_progress=False)
+    sections = aperture.cross_sections_at_element('drift', resolution=None)
+
+    for table in (sigmas, hvd, envelopes, sections):
+        assert len(table.s) == 2
+        assert np.all((0 < table.s) & (table.s < 1.0))
 
 
 @pytest.mark.parametrize(

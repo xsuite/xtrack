@@ -657,8 +657,8 @@ class Aperture:
         element_name
             The name of the element at which the sigmas should be computed.
         resolution
-            The desired resolution, in meters along s, at which the sigmas should be computed. If not provided only the
-            values at the entry and exit will be output.
+            The desired resolution, in meters along s. If not provided, sample
+            near the entry and exit of a thick element.
         twiss
             Optionally provided twiss table from which to derive the initial beam parameters at the element.
         **kwargs
@@ -668,7 +668,7 @@ class Aperture:
         -------
         See :meth:`get_aperture_sigmas_at_s`.
         """
-        s_positions = self._get_cuts_at_element(element_name, resolution)
+        s_positions = self._get_cuts_inside_element(element_name, resolution)
         twiss_init = twiss.get_twiss_init(at_element=element_name) if twiss else None
         return self.get_aperture_sigmas_at_s(s_positions, twiss_init, **kwargs)
 
@@ -888,8 +888,8 @@ class Aperture:
         element_name
             The name of the element at which the sigmas should be computed.
         resolution
-            The desired resolution, in meters along s, at which the sigmas should be computed. If not provided only the
-            values at the entry and exit will be output.
+            The desired resolution, in meters along s. If not provided, sample
+            near the entry and exit of a thick element.
         twiss
             Optionally provided twiss table from which to derive the initial beam parameters at the element.
         with_progress
@@ -900,7 +900,7 @@ class Aperture:
         -------
         See :meth:`get_hvd_aperture_sigmas_at_s`.
         """
-        s_positions = self._get_cuts_at_element(element_name, resolution)
+        s_positions = self._get_cuts_inside_element(element_name, resolution)
         twiss_init = twiss.get_twiss_init(at_element=element_name) if twiss else None
         return self.get_hvd_aperture_sigmas_at_s(
             s_positions=s_positions, twiss_init=twiss_init,
@@ -998,8 +998,8 @@ class Aperture:
         sigmas
             The beam size, in sigmas, at which the envelope should be evaluated.
         resolution
-            The desired resolution, in meters along s, at which the envelope should be computed. If not provided only
-            the values at the entry and exit will be output.
+            The desired resolution, in meters along s. If not provided, sample
+            near the entry and exit of a thick element.
         twiss
             Optionally provided twiss table from which to derive the initial beam parameters at the element.
         **kwargs
@@ -1011,7 +1011,7 @@ class Aperture:
         - ``envelopes`` is the table returned by :meth:`get_envelope_at_s`.
         - ``sliced_twiss`` is the twiss table computed as part of the calculation.
         """
-        s_positions = self._get_cuts_at_element(element_name, resolution)
+        s_positions = self._get_cuts_inside_element(element_name, resolution)
         twiss_init = twiss.get_twiss_init(at_element=element_name) if twiss else None
         return self.get_envelope_at_s(s_positions, sigmas, twiss_init, **kwargs)
 
@@ -1170,7 +1170,7 @@ class Aperture:
         extents: bool = False,
     ) -> Table:
         """Return aperture cross-sections sampled across an element."""
-        s_positions = self._get_cuts_at_element(element_name, resolution)
+        s_positions = self._get_cuts_inside_element(element_name, resolution)
         return self.cross_sections_at_s(s_positions, extents=extents)
 
     @doc_group("Aperture Computations")
@@ -1403,7 +1403,7 @@ class Aperture:
         ----------
         name
             Name of the element at which to plot. If given, ``s_positions`` are
-            obtained from the element entry, exit, and optional resolution cuts.
+            sampled inside the element, away from its entry and exit maps.
         s_positions
             Longitudinal positions to plot directly. Provide either ``name`` or
             ``s_positions``.
@@ -1438,7 +1438,7 @@ class Aperture:
             raise ValueError("Provide exactly one of `name` or `s_positions`.")
 
         if name is not None:
-            s_positions = self._get_cuts_at_element(name, resolution)
+            s_positions = self._get_cuts_inside_element(name, resolution)
             title_location = name
         else:
             s_positions = np.asarray(s_positions, dtype=FloatType._dtype)
@@ -1567,20 +1567,38 @@ class Aperture:
             aspect=aspect,
         )
 
-    def _get_cuts_at_element(self, element_name: str, resolution: float | None) -> list[float]:
-        """Get list of s positions so that the element ``element_name`` is cut with a ``resolution``."""
+    def _get_cuts_inside_element(self, element_name: str, resolution: float | None) -> np.ndarray:
+        """Get list of s positions so that the element ``element_name`` is cut with a ``resolution``.
+
+        This is done within ``s_tol`` inside the element, to avoid artefacts that may be caused
+        by discontinuities, e.g. in case of RBends. If the element has no length (below ``2 * s_tol``),
+        this returns one point (in the "middle" of such an element).
+        """
         element = self.line[element_name]
         s_start = self.line._get_s_position(element_name)
         element_length = getattr(element, 'length', 0)
         s_end = s_start + element_length
 
-        if resolution is not None:
-            num_cuts = int(element_length / resolution)
+        if resolution is not None and resolution <= 0:
+            raise ValueError('`resolution` must be positive.')
+
+        # Cut positions at an edge are snapped to it within the slicing tolerance.
+        s_tol = max(self.s_tol, 1e-6)
+        s_middle = s_start + element_length / 2
+
+        # Step just past the tolerance so cut_at_s creates interior cuts.
+        s_start = np.nextafter(s_start + s_tol, s_end)
+        s_end = np.nextafter(s_end - s_tol, s_start)
+
+        if s_start >= s_end:
+            s_positions = [s_middle]
+        elif resolution is not None:
+            num_cuts = max(2, int(element_length / resolution))
             s_positions = np.linspace(s_start, s_end, num_cuts)
         else:
             s_positions = [s_start, s_end]
 
-        return s_positions
+        return np.asarray(s_positions, dtype=FloatType._dtype)
 
     def _build_aperture_bounds(self, check_validity=True, with_progress=True):
         # Pre-allocate the cross-sections with the correct sizes
@@ -1994,21 +2012,8 @@ class Aperture:
         dist_left = np.abs(tw_s[idx_left] - s_positions)
         dist_right = np.abs(tw_s[idx_right] - s_positions)
 
-        # Keep the nearest row. At sliced element boundaries, several rows
-        # share the same s but can use different local reference frames.
+        # Keep the nearest row; at duplicate s, this picks the first row.
         tw_indices = np.where(dist_right <= dist_left, idx_right, idx_left)
-
-        group_start = np.searchsorted(tw_s, tw_s[tw_indices], side='left')
-        group_end = np.searchsorted(tw_s, tw_s[tw_indices], side='right')
-        for ii in np.flatnonzero(group_end - group_start > 1):
-            names = full_twiss.name[group_start[ii]:group_end[ii]]
-            # The survey pose at a boundary is after the preceding exit map
-            # and before the following entry map.
-            for suffix in ('_exit', '_entry'):
-                matches = [jj for jj, name in enumerate(names) if name.endswith(suffix)]
-                if matches:
-                    tw_indices[ii] = group_start[ii] + matches[0]
-                    break
 
         sliced_twiss = full_twiss.rows[tw_indices]
         return sliced_twiss
