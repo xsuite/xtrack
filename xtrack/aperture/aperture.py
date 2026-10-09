@@ -330,7 +330,7 @@ class Aperture:
                 if 'aperture' not in element_metadata:
                     continue
 
-                shape_name, params, tols = element_metadata['aperture']
+                shape_name, params, _ = element_metadata['aperture']
                 shape = profile_from_madx_aperture(shape_name, params)
 
                 if not shape:
@@ -340,8 +340,7 @@ class Aperture:
                 if cls._is_broken_madx_aperture(shape):
                     continue
 
-                tol_r, tol_x, tol_y = tols
-                profile = Profile(shape=shape, tol_r=tol_r, tol_x=tol_x, tol_y=tol_y)
+                profile = Profile(shape=shape)
 
                 assert len(pipes) == len(profiles)  # in MAD-X we will have just one pipe per profile
 
@@ -383,11 +382,15 @@ class Aperture:
                 pipes.append(pipe)
                 profiles.append(profile)
 
+            tols = layout_data[aper_name]['aperture'][2]
             pipe_position = PipePosition(
                 pipe_index=aperture_indices[aper_name],
                 survey_reference_name=survey_reference_name,
                 survey_index=name_to_sv_index[survey_reference_name],
                 transformation=pipe_transform,
+                tol_r=tols[0],
+                tol_x=tols[1],
+                tol_y=tols[2],
             )
             pipe_positions_list.append(pipe_position)
             pipe_position_names.append(aper_name)

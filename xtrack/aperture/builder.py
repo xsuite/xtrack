@@ -75,6 +75,9 @@ class ProfilePositionBlueprint:
     rot_y_rad: float = 0.0
     rot_x_rad: float = 0.0
     rot_s_rad: float = 0.0
+    tol_r: float = 0.0
+    tol_x: float = 0.0
+    tol_y: float = 0.0
 
     @property
     def profile(self):
@@ -97,6 +100,9 @@ class PipeBlueprint:
         rot_y_rad: float = 0.0,
         rot_x_rad: float = 0.0,
         rot_s_rad: float = 0.0,
+        tol_r: float = 0.0,
+        tol_x: float = 0.0,
+        tol_y: float = 0.0,
     ) -> ProfilePositionBlueprint:
         """Create and append a profile position blueprint to this pipe.
 
@@ -110,6 +116,8 @@ class PipeBlueprint:
             Transverse offsets of the profile in the pipe frame.
         rot_y_rad, rot_x_rad, rot_s_rad : float, optional
             Rotations of the profile in the pipe frame.
+        tol_r, tol_x, tol_y : float, optional
+            Tolerances at this profile position.
 
         Returns
         -------
@@ -124,6 +132,9 @@ class PipeBlueprint:
             rot_y_rad=rot_y_rad,
             rot_x_rad=rot_x_rad,
             rot_s_rad=rot_s_rad,
+            tol_r=tol_r,
+            tol_x=tol_x,
+            tol_y=tol_y,
         )
         self.positions.append(profile_position)
         return profile_position
@@ -171,6 +182,9 @@ class PipePositionBlueprint:
     pipe_name: str
     survey_reference: str
     transformation: np.ndarray
+    tol_r: float = 0.0
+    tol_x: float = 0.0
+    tol_y: float = 0.0
 
 
 class ApertureBuilder:
@@ -207,9 +221,6 @@ class ApertureBuilder:
         self,
         name: str,
         shape: str | type,
-        tol_r: float = 0.0,
-        tol_x: float = 0.0,
-        tol_y: float = 0.0,
         **shape_params,
     ) -> str:
         """Create and register a new profile blueprint.
@@ -220,8 +231,6 @@ class ApertureBuilder:
             Name of the new profile.
         shape : str or type
             Shape name or shape class used to construct the profile geometry.
-        tol_r, tol_x, tol_y : float, optional
-            Profile tolerances.
         **shape_params
             Parameters forwarded to the shape constructor.
 
@@ -240,9 +249,6 @@ class ApertureBuilder:
 
         self._profiles[name] = Profile(
             shape=_shape_from_input(shape, **shape_params),
-            tol_r=tol_r,
-            tol_x=tol_x,
-            tol_y=tol_y,
         )
         return name
 
@@ -255,6 +261,9 @@ class ApertureBuilder:
         rot_y_rad: float = 0.0,
         rot_x_rad: float = 0.0,
         rot_s_rad: float = 0.0,
+        tol_r: float = 0.0,
+        tol_x: float = 0.0,
+        tol_y: float = 0.0,
     ) -> ProfilePositionBlueprint:
         """Create a profile position blueprint.
 
@@ -268,6 +277,8 @@ class ApertureBuilder:
             Transverse offsets of the profile in the pipe frame.
         rot_y_rad, rot_x_rad, rot_s_rad : float, optional
             Rotations of the profile in the pipe frame.
+        tol_r, tol_x, tol_y : float, optional
+            Tolerances at this profile position.
 
         Returns
         -------
@@ -283,6 +294,9 @@ class ApertureBuilder:
             rot_y_rad=rot_y_rad,
             rot_x_rad=rot_x_rad,
             rot_s_rad=rot_s_rad,
+            tol_r=tol_r,
+            tol_x=tol_x,
+            tol_y=tol_y,
         )
 
     def new_pipe(
@@ -387,6 +401,9 @@ class ApertureBuilder:
         rot_y_rad: Optional[float] = None,
         rot_x_rad: Optional[float] = None,
         rot_z_rad: Optional[float] = None,
+        tol_r: float = 0.0,
+        tol_x: float = 0.0,
+        tol_y: float = 0.0,
     ) -> PipePositionBlueprint | list[PipePositionBlueprint]:
         """Create and register a pipe-position blueprint.
 
@@ -411,6 +428,8 @@ class ApertureBuilder:
             Translation component used when ``transformation`` is not given.
         rot_y_rad, rot_x_rad, rot_z_rad : float, optional
             Rotation component used when ``transformation`` is not given.
+        tol_r, tol_x, tol_y : float, optional
+            Tolerances added to all profile positions of this installed pipe.
 
         Returns
         -------
@@ -443,6 +462,9 @@ class ApertureBuilder:
                     rot_y_rad=rot_y_rad,
                     rot_x_rad=rot_x_rad,
                     rot_z_rad=rot_z_rad,
+                    tol_r=tol_r,
+                    tol_x=tol_x,
+                    tol_y=tol_y,
                 )
                 for position_name, at_value in zip(names, at_values)
             ]
@@ -477,6 +499,9 @@ class ApertureBuilder:
             pipe_name=pipe_name,
             survey_reference=survey_reference,
             transformation=transformation,
+            tol_r=tol_r,
+            tol_x=tol_x,
+            tol_y=tol_y,
         )
         self._pipe_positions.append(pipe_position)
         return pipe_position
@@ -519,6 +544,9 @@ class ApertureBuilder:
                     rot_y_rad=position.rot_y_rad,
                     rot_x_rad=position.rot_x_rad,
                     rot_s_rad=position.rot_s_rad,
+                    tol_r=position.tol_r,
+                    tol_x=position.tol_x,
+                    tol_y=position.tol_y,
                     _context=context,
                 )
                 for position in sorted_positions
@@ -538,6 +566,9 @@ class ApertureBuilder:
                 survey_reference_name=pipe_position.survey_reference,
                 survey_index=survey_name_to_index[pipe_position.survey_reference],
                 transformation=pipe_position.transformation,
+                tol_r=pipe_position.tol_r,
+                tol_x=pipe_position.tol_x,
+                tol_y=pipe_position.tol_y,
                 _context=context,
             )
             for pipe_position in self._pipe_positions

@@ -8,6 +8,7 @@ import numpy as np
 
 from xtrack.aperture.structures import (
     ApertureModel, FloatType, Pipe, PipePosition, Profile, ProfilePosition, Racetrack, ShapeTypes,
+    _nonzero_tolerances_repr,
 )
 from xtrack.aperture.transform import (
     Frame, arc_matrix, Transform, matrix_to_transform, transform_matrix, poly2d_to_homogeneous,
@@ -45,7 +46,7 @@ class ProfileView:
         self._index = index
 
     def __repr__(self):
-        return f'<ProfileView {self.name!r}: {self.raw!r}>'
+        return f'<ProfileView {self.name!r}: {self.shape!r}>'
 
     @property
     def raw(self) -> Profile:
@@ -63,42 +64,8 @@ class ProfileView:
     def shape(self, shape: ShapeTypes):
         self.raw.shape = shape
 
-    @property
-    def tol_r(self) -> float:
-        return self.raw.tol_r
-
-    @tol_r.setter
-    def tol_r(self, tol_r: float):
-        self.raw.tol_r = tol_r
-
-    @property
-    def tol_x(self) -> float:
-        return self.raw.tol_x
-
-    @tol_x.setter
-    def tol_x(self, tol_x: float):
-        self.raw.tol_x = tol_x
-
-    @property
-    def tol_y(self) -> float:
-        return self.raw.tol_y
-
-    @tol_y.setter
-    def tol_y(self, tol_y: float):
-        self.raw.tol_y = tol_y
-
     def plot(self, len_points=128, ax=None):
         ax = self.raw.plot(len_points=len_points, ax=ax, c='black', label=type(self.shape).__name__)
-
-        if self.tol_x or self.tol_y or self.tol_r:
-            tol_rt = Racetrack(
-                half_width=self.tol_x + self.tol_r,
-                half_height=self.tol_y + self.tol_r,
-                half_major=self.tol_r,
-                half_minor=self.tol_r,
-            )
-            Profile(shape=tol_rt).plot(len_points=len_points, ax=ax, c='black', linestyle='--', label='Tolerances')
-
         ax.set_title(f'Profile {self.name}')
         ax.legend()
         return ax
@@ -163,7 +130,8 @@ class PipePositionView:
         transform = ''.join(f', {k} = {v}' for k, v in non_zero_transform.items())
 
         return (f'<PipePositionView {self.name!r}: {self.pipe.name!r}, '
-                f'survey_ref = {self.survey_reference_name!r}{transform}>')
+                f'survey_ref = {self.survey_reference_name!r}'
+                f'{transform}{_nonzero_tolerances_repr(self)}>')
 
     @property
     def raw(self) -> PipePosition:
@@ -184,6 +152,30 @@ class PipePositionView:
     @property
     def pipe(self) -> PipeView:
         return PipeView(self._model, self.pipe_index)
+
+    @property
+    def tol_r(self) -> float:
+        return self.raw.tol_r
+
+    @tol_r.setter
+    def tol_r(self, value: float):
+        self.raw.tol_r = value
+
+    @property
+    def tol_x(self) -> float:
+        return self.raw.tol_x
+
+    @tol_x.setter
+    def tol_x(self, value: float):
+        self.raw.tol_x = value
+
+    @property
+    def tol_y(self) -> float:
+        return self.raw.tol_y
+
+    @tol_y.setter
+    def tol_y(self, value: float):
+        self.raw.tol_y = value
 
     @property
     def survey_reference_name(self) -> str:
@@ -325,7 +317,8 @@ class ProfilePositionView:
         self._position_index = position_index
 
     def __repr__(self):
-        return f'<ProfilePositionView profile={self.profile.name!r}, shift_s={self.shift_s}>'
+        return (f'<ProfilePositionView profile={self.profile.name!r}, '
+                f'shift_s={self.shift_s}{_nonzero_tolerances_repr(self)}>')
 
     @property
     def raw(self) -> ProfilePosition:
@@ -342,6 +335,52 @@ class ProfilePositionView:
     @property
     def profile(self) -> ProfileView:
         return ProfileView(self._model, self.profile_index)
+
+    @property
+    def tol_r(self) -> float:
+        return self.raw.tol_r
+
+    @tol_r.setter
+    def tol_r(self, value: float):
+        self.raw.tol_r = value
+
+    @property
+    def tol_x(self) -> float:
+        return self.raw.tol_x
+
+    @tol_x.setter
+    def tol_x(self, value: float):
+        self.raw.tol_x = value
+
+    @property
+    def tol_y(self) -> float:
+        return self.raw.tol_y
+
+    @tol_y.setter
+    def tol_y(self, value: float):
+        self.raw.tol_y = value
+
+    def plot(self, len_points=128, ax=None):
+        """Plot the profile shape and this position's transverse tolerances."""
+        profile = self.profile
+        ax = profile.raw.plot(
+            len_points=len_points, ax=ax, c='black', label=type(profile.shape).__name__,
+        )
+
+        if self.tol_x or self.tol_y or self.tol_r:
+            tol_rt = Racetrack(
+                half_width=self.tol_x + self.tol_r,
+                half_height=self.tol_y + self.tol_r,
+                half_major=self.tol_r,
+                half_minor=self.tol_r,
+            )
+            Profile(shape=tol_rt).plot(
+                len_points=len_points, ax=ax, c='black', linestyle='--', label='Tolerances',
+            )
+
+        ax.set_title(f'Profile {profile.name}')
+        ax.legend()
+        return ax
 
     @property
     def shift_s(self) -> float:

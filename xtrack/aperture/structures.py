@@ -11,6 +11,14 @@ from xtrack.twiss import TwissTable
 FloatType = xo.Float64
 
 
+def _nonzero_tolerances_repr(position) -> str:
+    return ''.join(
+        f', {name}={value}'
+        for name in ('tol_r', 'tol_x', 'tol_y')
+        if (value := getattr(position, name)) != 0
+    )
+
+
 class Circle(xo.Struct):
     radius = FloatType
 
@@ -151,23 +159,14 @@ class Shape(xo.UnionRef):
 
 
 class Profile(xo.Struct):
-    """Structure representing a profile with associated tolerances.
+    """Structure representing a profile shape.
 
     Parameters
     ----------
     shape: Shape
         The profile shape.
-    tol_r: float
-        Radial tolerance for point-in-aperture check.
-    tol_x: float
-        Horizontal tolerance for point-in-aperture check.
-    tol_y: float
-        Vertical tolerance for point-in-aperture check.
     """
     shape = Shape
-    tol_r = FloatType
-    tol_x = FloatType
-    tol_y = FloatType
 
     _extra_c_sources = [
         '#include "xtrack/aperture/headers/profile.h"',
@@ -198,14 +197,7 @@ class Profile(xo.Struct):
         return points
 
     def __repr__(self):
-        tols_str = ''
-        if self.tol_r != 0:
-            tols_str += f', tol_r={self.tol_r}'
-        if self.tol_x != 0:
-            tols_str += f', tol_x={self.tol_x}'
-        if self.tol_y != 0:
-            tols_str += f', tol_y={self.tol_y}'
-        return f'Profile({self.shape!r}{tols_str})'
+        return f'Profile({self.shape!r})'
 
     def plot(self, len_points=128, ax=None, **kwargs):
         from matplotlib import pyplot as plt
@@ -235,6 +227,8 @@ class ProfilePosition(xo.Struct):
         The rotation of the profile around the vertical axis in radians.
     rot_s_rad: float
         The rotation of the profile around the pipe axis in radians.
+    tol_r, tol_x, tol_y: float
+        Radial, horizontal, and vertical tolerances for this profile position.
     """
     profile_index = xo.Int32
     shift_s = FloatType
@@ -243,6 +237,16 @@ class ProfilePosition(xo.Struct):
     rot_x_rad = FloatType
     rot_y_rad = FloatType
     rot_s_rad = FloatType
+    tol_r = FloatType
+    tol_x = FloatType
+    tol_y = FloatType
+
+    def __repr__(self):
+        params = f'profile_index={self.profile_index}, shift_s={self.shift_s}'
+        for name in ('shift_x', 'shift_y', 'rot_x_rad', 'rot_y_rad', 'rot_s_rad'):
+            if value := getattr(self, name):
+                params += f', {name}={value}'
+        return f'ProfilePosition({params}{_nonzero_tolerances_repr(self)})'
 
     def copy(self):
         return ProfilePosition(
@@ -253,6 +257,9 @@ class ProfilePosition(xo.Struct):
             rot_x_rad=self.rot_x_rad,
             rot_y_rad=self.rot_y_rad,
             rot_s_rad=self.rot_s_rad,
+            tol_r=self.tol_r,
+            tol_x=self.tol_x,
+            tol_y=self.tol_y,
         )
 
 
@@ -279,10 +286,22 @@ class Pipe(xo.Struct):
 
 
 class PipePosition(xo.Struct):
+    """Installed pipe with tolerances added to those of its profile positions."""
     pipe_index = xo.Int32
     survey_reference_name = xo.String  # identify a point in survey
     survey_index = xo.Int32  # index of the point in the survey
     transformation = FloatType[4, 4]  # 3D rigid transformation matrix from the survey entry to 0 shift_s of pipe
+    tol_r = FloatType
+    tol_x = FloatType
+    tol_y = FloatType
+
+    def __repr__(self):
+        params = (
+            f'pipe_index={self.pipe_index}, '
+            f'survey_reference_name={self.survey_reference_name!r}, '
+            f'survey_index={self.survey_index}'
+        )
+        return f'PipePosition({params}{_nonzero_tolerances_repr(self)})'
 
 
 class ApertureBounds(xo.Struct):

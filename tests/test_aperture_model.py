@@ -219,7 +219,7 @@ def _make_pipe_table_test_ring(test_context, *, extra_pipe_positions=None):
     line = env.new_line(name='ring', components=[bend] * num_bends)
     sv = line.survey()
 
-    profiles = [Profile(shape=Circle(radius=0.03), tol_r=0, tol_x=0, tol_y=0)]
+    profiles = [Profile(shape=Circle(radius=0.03))]
     pipes = [
         Pipe(curvature=bend_angle / bend_length, positions=[
             ProfilePosition(profile_index=0, shift_s=0.0),
@@ -297,7 +297,7 @@ def _make_transition_test_aperture(test_context):
             ProfilePosition(profile_index=0, shift_s=3.0),
             ProfilePosition(profile_index=0, shift_s=7.0),
         ])],
-        profiles=[Profile(shape=Circle(radius=1.0), tol_r=0, tol_x=0, tol_y=0)],
+        profiles=[Profile(shape=Circle(radius=1.0))],
         pipe_names=['pipe0'],
         pipe_position_names=['pipe0'],
         profile_names=['profile0'],
@@ -541,11 +541,11 @@ def test_aperture_model_views(test_context):
         ],
         pipes=[Pipe(curvature=0.5, positions=[
             ProfilePosition(profile_index=0, shift_s=0.1, shift_x=0.2, shift_y=-0.3, rot_x_rad=0.4, rot_y_rad=-0.5, rot_s_rad=0.6),
-            ProfilePosition(profile_index=1, shift_s=0.7),
+            ProfilePosition(profile_index=1, shift_s=0.7, tol_r=0.1, tol_x=0.2, tol_y=0.3),
         ])],
         profiles=[
-            Profile(shape=Circle(radius=1.0), tol_r=0, tol_x=0, tol_y=0),
-            Profile(shape=Rectangle(half_width=2.0, half_height=3.0), tol_r=0.1, tol_x=0.2, tol_y=0.3),
+            Profile(shape=Circle(radius=1.0)),
+            Profile(shape=Rectangle(half_width=2.0, half_height=3.0)),
         ],
         pipe_names=['pipe0'],
         pipe_position_names=['pipe0_at_drift'],
@@ -574,20 +574,35 @@ def test_aperture_model_views(test_context):
 
     assert profiles[0].name == 'circ0'
     assert profiles['rect0'].name == 'rect0'
+    assert repr(profiles['rect0']) == (
+        "<ProfileView 'rect0': Rectangle(half_width=2.0, half_height=3.0)>"
+    )
     assert list(name for name, _ in profiles.items()) == ['circ0', 'rect0']
     assert list(type(profile.raw.shape).__name__ for profile in [profiles[0], profiles[1]]) == ['Circle', 'Rectangle']
     assert [profile.name for profile in profiles.values()] == ['circ0', 'rect0']
     assert [type(profile.shape).__name__ for profile in profiles.values()] == ['Circle', 'Rectangle']
 
-    xo.assert_allclose(profiles['rect0'].tol_r, 0.1, atol=1e-15, rtol=0)
-    xo.assert_allclose(profiles['rect0'].tol_x, 0.2, atol=1e-15, rtol=0)
-    xo.assert_allclose(profiles['rect0'].tol_y, 0.3, atol=1e-15, rtol=0)
-    profiles['rect0'].tol_r = 0.4
-    profiles['rect0'].tol_x = 0.5
-    profiles['rect0'].tol_y = 0.6
-    xo.assert_allclose(model.profiles[1].tol_r, 0.4, atol=1e-15, rtol=0)
-    xo.assert_allclose(model.profiles[1].tol_x, 0.5, atol=1e-15, rtol=0)
-    xo.assert_allclose(model.profiles[1].tol_y, 0.6, atol=1e-15, rtol=0)
+    xo.assert_allclose(positions[1].tol_r, 0.1, atol=1e-15, rtol=0)
+    xo.assert_allclose(positions[1].tol_x, 0.2, atol=1e-15, rtol=0)
+    xo.assert_allclose(positions[1].tol_y, 0.3, atol=1e-15, rtol=0)
+    positions[1].tol_r = 0.4
+    positions[1].tol_x = 0.5
+    positions[1].tol_y = 0.6
+    xo.assert_allclose(model.pipes[0].positions[1].tol_r, 0.4, atol=1e-15, rtol=0)
+    xo.assert_allclose(model.pipes[0].positions[1].tol_x, 0.5, atol=1e-15, rtol=0)
+    xo.assert_allclose(model.pipes[0].positions[1].tol_y, 0.6, atol=1e-15, rtol=0)
+    assert repr(model.pipes[0].positions[1]) == (
+        'ProfilePosition(profile_index=1, shift_s=0.7, tol_r=0.4, tol_x=0.5, tol_y=0.6)'
+    )
+    assert repr(positions[1]) == (
+        "<ProfilePositionView profile='rect0', shift_s=0.7, "
+        'tol_r=0.4, tol_x=0.5, tol_y=0.6>'
+    )
+    ax = positions[1].plot()
+    assert [line.get_label() for line in ax.lines] == ['Rectangle', 'Tolerances']
+    assert ax.lines[1].get_linestyle() == '--'
+    from matplotlib import pyplot as plt
+    plt.close(ax.figure)
 
     assert pipes[0].name == 'pipe0'
     assert pipes['pipe0'].name == 'pipe0'
@@ -604,6 +619,22 @@ def test_aperture_model_views(test_context):
     assert pipe_positions[0].pipe.name == 'pipe0'
     assert pipe_positions[0].survey_reference_name == 'drift'
     assert pipe_positions[0].survey_index == 0
+    pipe_positions[0].tol_r = 0.01
+    pipe_positions[0].tol_x = 0.02
+    pipe_positions[0].tol_y = 0.03
+    xo.assert_allclose(
+        [model.pipe_positions[0].tol_r, model.pipe_positions[0].tol_x,
+         model.pipe_positions[0].tol_y],
+        [0.01, 0.02, 0.03], atol=0, rtol=0,
+    )
+    assert repr(model.pipe_positions[0]) == (
+        "PipePosition(pipe_index=0, survey_reference_name='drift', survey_index=0, "
+        'tol_r=0.01, tol_x=0.02, tol_y=0.03)'
+    )
+    assert repr(pipe_positions[0]) == (
+        "<PipePositionView 'pipe0_at_drift': 'pipe0', survey_ref = 'drift', "
+        'tol_r=0.01, tol_x=0.02, tol_y=0.03>'
+    )
     xo.assert_allclose(pipe_positions[0].shift_x, 0.0, atol=1e-15, rtol=0)
     xo.assert_allclose(pipe_positions[0].shift_y, 0.0, atol=1e-15, rtol=0)
     xo.assert_allclose(pipe_positions[0].shift_z, 0.0, atol=1e-15, rtol=0)
@@ -718,7 +749,7 @@ def test_bounds_table_uses_pipe_position_name_in_installed_profile_name(test_con
             ),
         ],
         pipes=[Pipe(curvature=0.0, positions=[ProfilePosition(profile_index=0)])],
-        profiles=[Profile(shape=Circle(radius=1.0), tol_r=0, tol_x=0, tol_y=0)],
+        profiles=[Profile(shape=Circle(radius=1.0))],
         pipe_names=['shared_type'],
         pipe_position_names=['entry_ap', 'middle_ap'],
         profile_names=['circ0'],
@@ -915,8 +946,8 @@ def test_cross_sections_do_not_interpolate_between_pipes_overlapping_within_tole
             ]),
         ],
         profiles=[
-            Profile(shape=Circle(radius=0.1), tol_r=0, tol_x=0, tol_y=0),
-            Profile(shape=Circle(radius=1.0), tol_r=0, tol_x=0, tol_y=0),
+            Profile(shape=Circle(radius=0.1)),
+            Profile(shape=Circle(radius=1.0)),
         ],
         pipe_names=['small_pipe', 'large_pipe'],
         pipe_position_names=['small_pipe', 'large_pipe', 'small_pipe_again'],
@@ -1018,8 +1049,8 @@ def test_aperture_bounds_preserve_overlap_larger_than_tolerance(test_context):
             ]),
         ],
         profiles=[
-            Profile(shape=Circle(radius=0.1), tol_r=0, tol_x=0, tol_y=0),
-            Profile(shape=Circle(radius=1.0), tol_r=0, tol_x=0, tol_y=0),
+            Profile(shape=Circle(radius=0.1)),
+            Profile(shape=Circle(radius=1.0)),
         ],
         pipe_names=['small_pipe', 'large_pipe'],
         pipe_position_names=['small_pipe', 'large_pipe'],
@@ -1119,7 +1150,7 @@ def test_aperture_json_roundtrip_preserves_explicit_ring_flag(test_context, tmp_
             ),
         ],
         pipes=[Pipe(curvature=0.0, positions=[ProfilePosition(profile_index=0)])],
-        profiles=[Profile(shape=Circle(radius=1.0), tol_r=0, tol_x=0, tol_y=0)],
+        profiles=[Profile(shape=Circle(radius=1.0))],
         pipe_names=['pipe0'],
         pipe_position_names=['pipe0'],
         profile_names=['circ0'],
@@ -1461,9 +1492,9 @@ def test_get_aperture_sigmas_at_element_analytic(method, shape, aper_params, ape
     aperture_model.halo_params.update(halo_params)
 
     # Needed as these quantities are not imported by the native madloader
-    aperture_model._model.profiles[0].tol_r = aper_tol[0]
-    aperture_model._model.profiles[0].tol_x = aper_tol[1]
-    aperture_model._model.profiles[0].tol_y = aper_tol[2]
+    aperture_model._model.pipe_positions[0].tol_r = aper_tol[0]
+    aperture_model._model.pipe_positions[0].tol_x = aper_tol[1]
+    aperture_model._model.pipe_positions[0].tol_y = aper_tol[2]
 
     # Compute n1 with Xsuite
     n1_table, tw = aperture_model.get_aperture_sigmas_at_element(
@@ -1531,9 +1562,9 @@ def test_get_aperture_sigmas_at_element_analytic_rays(context):
     aperture_model.halo_params.update(beam_data)
 
     # Needed as these quantities are not imported by the native madloader
-    aperture_model._model.profiles[0].tol_r = tol_r
-    aperture_model._model.profiles[0].tol_x = tol_x
-    aperture_model._model.profiles[0].tol_y = tol_y
+    aperture_model._model.pipe_positions[0].tol_r = tol_r
+    aperture_model._model.pipe_positions[0].tol_x = tol_x
+    aperture_model._model.pipe_positions[0].tol_y = tol_y
 
     n1_table, tw = (
         aperture_model.get_aperture_sigmas_at_element(
@@ -1586,9 +1617,9 @@ def _build_single_marker_aperture_model(context):
         'halo_primary': 10,
     })
 
-    aperture_model._model.profiles[0].tol_r = 0.002
-    aperture_model._model.profiles[0].tol_x = 0.006
-    aperture_model._model.profiles[0].tol_y = 0.002
+    aperture_model._model.pipe_positions[0].tol_r = 0.002
+    aperture_model._model.pipe_positions[0].tol_x = 0.006
+    aperture_model._model.pipe_positions[0].tol_y = 0.002
 
     return aperture_model, tw
 
@@ -2144,8 +2175,8 @@ def test_aperture_bounds_straight_survey(rot_x_rad, rot_y_rad, dx, dy, ds1, ds2,
     rectangle = Rectangle(half_width=0.6, half_height=0.4)
 
     profiles = [
-        Profile(shape=circle, tol_r=0, tol_x=0, tol_y=0),
-        Profile(shape=rectangle, tol_r=0, tol_x=0, tol_y=0),
+        Profile(shape=circle),
+        Profile(shape=rectangle),
     ]
 
     profile_positions = [
@@ -2217,7 +2248,7 @@ def test_aperture_bounds_and_cross_sections_curved_survey_follows_pipe(test_cont
 
     shape = Circle(radius=radius)
     profiles = [
-        Profile(shape=shape, tol_r=0, tol_x=0, tol_y=0),
+        Profile(shape=shape),
     ]
     profile_positions = [
         ProfilePosition(profile_index=0, shift_s=0.0),
@@ -2426,7 +2457,7 @@ def test_aperture_bounds_and_cross_sections_large_curved_ring_follows_pipe(test_
     sv = line.survey()
 
     shape = Circle(radius=aperture_radius)
-    profiles = [Profile(shape=shape, tol_r=0, tol_x=0, tol_y=0)]
+    profiles = [Profile(shape=shape)]
     profile_positions = [
         ProfilePosition(profile_index=0, shift_s=0.0),
         ProfilePosition(profile_index=0, shift_s=bend_length),
@@ -2634,8 +2665,8 @@ def test_cross_sections_at_s_interpolate_circles_to_cone(test_context):
     r0, r1 = 0.8, 2.0
 
     profiles = [
-        Profile(shape=Circle(radius=r0), tol_r=0, tol_x=0, tol_y=0),
-        Profile(shape=Circle(radius=r1), tol_r=0, tol_x=0, tol_y=0),
+        Profile(shape=Circle(radius=r0)),
+        Profile(shape=Circle(radius=r1)),
     ]
     profile_positions = [
         ProfilePosition(profile_index=0, shift_s=s0),
@@ -2704,12 +2735,12 @@ def test_cross_sections_at_s_interpolates_tolerances(test_context):
     sv = line.survey()
 
     profiles = [
-        Profile(shape=Circle(radius=1.0), tol_r=0.1, tol_x=0.2, tol_y=0.3),
-        Profile(shape=Circle(radius=1.0), tol_r=0.5, tol_x=0.6, tol_y=0.7),
+        Profile(shape=Circle(radius=1.0)),
+        Profile(shape=Circle(radius=1.0)),
     ]
     profile_positions = [
-        ProfilePosition(profile_index=0, shift_s=0.0),
-        ProfilePosition(profile_index=1, shift_s=10.0),
+        ProfilePosition(profile_index=0, shift_s=0.0, tol_r=0.1, tol_x=0.2, tol_y=0.3),
+        ProfilePosition(profile_index=1, shift_s=10.0, tol_r=0.5, tol_x=0.6, tol_y=0.7),
     ]
 
     model = ApertureModel(
@@ -2720,6 +2751,9 @@ def test_cross_sections_at_s_interpolates_tolerances(test_context):
                 survey_reference_name=sv.name[0],
                 survey_index=0,
                 transformation=transform_matrix(),
+                tol_r=0.05,
+                tol_x=0.06,
+                tol_y=0.07,
             ),
         ],
         pipes=[Pipe(curvature=0.0, positions=profile_positions)],
@@ -2734,9 +2768,9 @@ def test_cross_sections_at_s_interpolates_tolerances(test_context):
     s_samples = np.array([0.0, 2.5, 5.0, 7.5, 10.0], dtype=FloatType._dtype)
     sections_table = ap.cross_sections_at_s(s_samples)
 
-    xo.assert_allclose(sections_table.tol_r, [0.1, 0.2, 0.3, 0.4, 0.5], atol=1e-12, rtol=0)
-    xo.assert_allclose(sections_table.tol_x, [0.2, 0.3, 0.4, 0.5, 0.6], atol=1e-12, rtol=0)
-    xo.assert_allclose(sections_table.tol_y, [0.3, 0.4, 0.5, 0.6, 0.7], atol=1e-12, rtol=0)
+    xo.assert_allclose(sections_table.tol_r, [0.15, 0.25, 0.35, 0.45, 0.55], atol=1e-12, rtol=0)
+    xo.assert_allclose(sections_table.tol_x, [0.26, 0.36, 0.46, 0.56, 0.66], atol=1e-12, rtol=0)
+    xo.assert_allclose(sections_table.tol_y, [0.37, 0.47, 0.57, 0.67, 0.77], atol=1e-12, rtol=0)
 
 
 @for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
@@ -2752,7 +2786,7 @@ def test_cross_sections_at_s_curved_type_preserves_profile_shape(test_context):
 
     shape = Circle(radius=radius)
     profiles = [
-        Profile(shape=shape, tol_r=0, tol_x=0, tol_y=0),
+        Profile(shape=shape),
     ]
     profile_positions = [
         ProfilePosition(profile_index=0, shift_s=0.0),
@@ -2810,7 +2844,7 @@ def test_cross_sections_at_s_returns_axis_extents(test_context):
                 ],
             ),
         ],
-        profiles=[Profile(shape=Rectangle(half_width=2.0, half_height=1.5), tol_r=0, tol_x=0, tol_y=0)],
+        profiles=[Profile(shape=Rectangle(half_width=2.0, half_height=1.5))],
         pipe_names=['pipe0'],
         pipe_position_names=['pipe0'],
         profile_names=['profile0'],
@@ -2860,7 +2894,7 @@ def test_cross_sections_at_s_invalid_section_has_nan_polygon_and_extents(test_co
                 ],
             ),
         ],
-        profiles=[Profile(shape=Circle(radius=0.1), tol_r=0, tol_x=0, tol_y=0)],
+        profiles=[Profile(shape=Circle(radius=0.1))],
         pipe_names=['pipe0'],
         pipe_position_names=['pipe0'],
         profile_names=['profile0'],
@@ -2905,7 +2939,7 @@ def test_cross_sections_at_s_wraps_profile_neighbours_on_ring(test_context):
                 positions=[ProfilePosition(profile_index=0, shift_s=0.5)],
             ),
         ],
-        profiles=[Profile(shape=Circle(radius=0.01), tol_r=0, tol_x=0, tol_y=0)],
+        profiles=[Profile(shape=Circle(radius=0.01))],
         pipe_names=['pipe0'],
         pipe_position_names=['after_seam', 'before_seam'],
         profile_names=['profile0'],
@@ -2937,8 +2971,8 @@ def test_cross_sections_at_s_compare_straight_curved(test_context):
     circle = Circle(radius=1.4)
     rectangle = Rectangle(half_width=0.4, half_height=1.9)
     profiles = [
-        Profile(shape=rectangle, tol_r=0, tol_x=0, tol_y=0),
-        Profile(shape=circle, tol_r=0, tol_x=0, tol_y=0),
+        Profile(shape=rectangle),
+        Profile(shape=circle),
     ]
     profile_positions = [
         ProfilePosition(profile_index=0, shift_s=0.0),
@@ -3010,8 +3044,8 @@ def test_cross_sections_at_s_interpolated_sections_stay_closed(test_context):
     rectangle = Rectangle(half_width=0.4, half_height=1.9)
     circle = Circle(radius=1.4)
     profiles = [
-        Profile(shape=rectangle, tol_r=0, tol_x=0, tol_y=0),
-        Profile(shape=circle, tol_r=0, tol_x=0, tol_y=0),
+        Profile(shape=rectangle),
+        Profile(shape=circle),
     ]
     profile_positions = [
         ProfilePosition(profile_index=0, shift_s=0.0),
@@ -3063,8 +3097,8 @@ def test_open_line_aperture_bounds_do_not_wrap_search(test_context):
     circle = Circle(radius=2.0)
     rectangle = Rectangle(half_width=2.0, half_height=1.0)
     profiles = [
-        Profile(shape=circle, tol_r=0, tol_x=0, tol_y=0),
-        Profile(shape=rectangle, tol_r=0, tol_x=0, tol_y=0),
+        Profile(shape=circle),
+        Profile(shape=rectangle),
     ]
     pipes = [
         Pipe(curvature=0.0, positions=[
@@ -3115,7 +3149,7 @@ def test_aperture_bounds_do_not_depend_on_profile_position_order(test_context):
     line = env.new_line(name='line', components=[bend, drift, anti_bend])
     sv = line.survey()
 
-    profiles = [Profile(shape=Circle(radius=radius), tol_r=0, tol_x=0, tol_y=0)]
+    profiles = [Profile(shape=Circle(radius=radius))]
 
     def make_position(shift_s):
         return ProfilePosition(
@@ -3190,7 +3224,7 @@ def test_aperture_bounds_rot_x_minus_pi_matches_reversed_profiles_with_shift(tes
     line = env.new_line(name='line', components=10 * [drift])
     sv = line.survey()
 
-    profiles = [Profile(shape=Circle(radius=radius), tol_r=0, tol_x=0, tol_y=0)]
+    profiles = [Profile(shape=Circle(radius=radius))]
 
     positions = [
         ProfilePosition(profile_index=0, shift_s=0.2 * length, shift_y=-0.2 * length * np.tan(rot_x_rad)),
@@ -3275,7 +3309,7 @@ def test_aperture_bounds_upstream_of_reference_across_marker(test_context):
             ),
         ],
         pipes=[Pipe(curvature=0.0, positions=[ProfilePosition(profile_index=0)])],
-        profiles=[Profile(shape=Circle(radius=0.01), tol_r=0, tol_x=0, tol_y=0)],
+        profiles=[Profile(shape=Circle(radius=0.01))],
         pipe_names=['pipe0'],
         pipe_position_names=['pipe0'],
         profile_names=['circle'],

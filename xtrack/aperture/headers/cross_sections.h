@@ -781,13 +781,16 @@ uint32_t interpolate_aperture_tolerances_at_s(
     const PipePosition pipe_pos = ApertureModel_getp1_pipe_positions(model, pipe_pos_idx);
     const uint32_t pipe_idx = PipePosition_get_pipe_index(pipe_pos);
     const uint32_t profile_pos_idx = ApertureBounds_get_profile_position_indices(bounds, bound_idx);
-    const uint32_t profile_idx = ApertureModel_get_pipes_positions_profile_index(model, pipe_idx, profile_pos_idx);
-    const Profile profile_center = ApertureModel_getp1_profiles(model, profile_idx);
-
     const float_type s_center = ApertureBounds_get_s_positions(bounds, bound_idx);
-    const float_type tol_r_center = Profile_get_tol_r(profile_center);
-    const float_type tol_x_center = Profile_get_tol_x(profile_center);
-    const float_type tol_y_center = Profile_get_tol_y(profile_center);
+    const float_type tol_r_pipe = PipePosition_get_tol_r(pipe_pos);
+    const float_type tol_x_pipe = PipePosition_get_tol_x(pipe_pos);
+    const float_type tol_y_pipe = PipePosition_get_tol_y(pipe_pos);
+    const float_type tol_r_center = tol_r_pipe
+        + ApertureModel_get_pipes_positions_tol_r(model, pipe_idx, profile_pos_idx);
+    const float_type tol_x_center = tol_x_pipe
+        + ApertureModel_get_pipes_positions_tol_x(model, pipe_idx, profile_pos_idx);
+    const float_type tol_y_center = tol_y_pipe
+        + ApertureModel_get_pipes_positions_tol_y(model, pipe_idx, profile_pos_idx);
 
     if (fabs(target_s - s_center) < eps) {
         if (out_tol_r) *out_tol_r = tol_r_center;
@@ -824,8 +827,6 @@ uint32_t interpolate_aperture_tolerances_at_s(
     const uint32_t profile_pos_idx_side = ApertureBounds_get_profile_position_indices(bounds, side_idx);
     const PipePosition pipe_pos_side = ApertureModel_getp1_pipe_positions(model, pipe_pos_idx_side);
     const uint32_t pipe_idx_side = PipePosition_get_pipe_index(pipe_pos_side);
-    const uint32_t profile_idx_side = ApertureModel_get_pipes_positions_profile_index(model, pipe_idx_side, profile_pos_idx_side);
-    const Profile profile_side = ApertureModel_getp1_profiles(model, profile_idx_side);
     float_type s_side = ApertureBounds_get_s_positions(bounds, side_idx);
     if (is_ring)
         s_side = normalize_s_near_reference(s_side, s_center, survey_length);
@@ -842,9 +843,15 @@ uint32_t interpolate_aperture_tolerances_at_s(
         (target_s_near_center - s_center) / ds, 0.f, 1.f);
     const float_type w_center = 1.f - w_side;
 
-    if (out_tol_r) *out_tol_r = w_center * tol_r_center + w_side * Profile_get_tol_r(profile_side);
-    if (out_tol_x) *out_tol_x = w_center * tol_x_center + w_side * Profile_get_tol_x(profile_side);
-    if (out_tol_y) *out_tol_y = w_center * tol_y_center + w_side * Profile_get_tol_y(profile_side);
+    if (out_tol_r) *out_tol_r = tol_r_pipe + w_center * (
+        tol_r_center - tol_r_pipe) + w_side *
+        ApertureModel_get_pipes_positions_tol_r(model, pipe_idx_side, profile_pos_idx_side);
+    if (out_tol_x) *out_tol_x = tol_x_pipe + w_center * (
+        tol_x_center - tol_x_pipe) + w_side *
+        ApertureModel_get_pipes_positions_tol_x(model, pipe_idx_side, profile_pos_idx_side);
+    if (out_tol_y) *out_tol_y = tol_y_pipe + w_center * (
+        tol_y_center - tol_y_pipe) + w_side *
+        ApertureModel_get_pipes_positions_tol_y(model, pipe_idx_side, profile_pos_idx_side);
     return bound_idx;
 }
 
