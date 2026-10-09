@@ -66,7 +66,17 @@ def plot_pickup(result, output_dir, show=True):
         carbon_profile = result['counts'][0].sum(axis=0)
         carbon_phase = np.angle(np.sum(carbon_profile*np.exp(1j*slice_phase)))
         shift = -int(np.rint(carbon_phase*num_slices/(2*np.pi)))
-        centered_currents = np.roll(currents, shift, axis=-1)
+        # Shift the continuous record so bins crossing a turn boundary move
+        # into the adjacent row. Do not wrap the ends of the acquisition.
+        flat_currents = currents.reshape(2, -1)
+        centered_flat = np.full_like(flat_currents, np.nan)
+        if shift > 0:
+            centered_flat[:, shift:] = flat_currents[:, :-shift]
+        elif shift < 0:
+            centered_flat[:, :shift] = flat_currents[:, -shift:]
+        else:
+            centered_flat[:] = flat_currents
+        centered_currents = centered_flat.reshape(currents.shape)
 
         vmax = currents.max()
         pickup_grid = grid[2, :].subgridspec(1, 3, width_ratios=(1, .025, .025))
