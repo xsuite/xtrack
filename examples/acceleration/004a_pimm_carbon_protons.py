@@ -11,6 +11,8 @@ By default carbon accelerates from 7 to 8 MeV/u in about 422 us, followed by
 normalized magnet strengths stay fixed, and both RF frequencies and their
 integrated phases follow the ramp. The RF voltages are 40 kV and 30 kV.
 Pickup slices have fixed zeta width; their lab-time widths follow the ramp.
+The initial rms bunch duration is 5% of the injection carbon period
+(about 103 ns); the momentum spread uses the small-amplitude RF matching.
 
 Examples (paths are independent of the working directory)::
 
@@ -90,8 +92,10 @@ def simulate(num_particles=4000, num_carbon_turns=256, num_slices=512,
     tw_p = line.twiss4d(delta0=chi_p - 1,
                        mass_ratio=mass_ratio, charge_ratio=charge_ratio)
     rng = np.random.default_rng(20261009)
-    sigma_t = .01 * periods[0]
-    arrival_offsets = np.array([.08, .28]) * periods[0]
+    sigma_t = .05 * periods[0]
+    # Delay both bunches so the longer Gaussian tails fit after the leading
+    # edge of the first SyncTime window. Keep their relative timing unchanged.
+    arrival_offsets = np.array([.58, .78]) * periods[0]
     beams = []
     for ii, (tw, species, chi, beta, voltage) in enumerate(zip(
             (tw_c, tw_p), (carbon, proton), (1., chi_p),
