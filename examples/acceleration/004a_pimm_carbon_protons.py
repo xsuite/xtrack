@@ -11,8 +11,10 @@ By default carbon accelerates from 7 to 8 MeV/u in about 422 us, followed by
 normalized magnet strengths stay fixed, and both RF frequencies and their
 integrated phases follow the ramp. The RF voltages are 40 kV and 30 kV.
 Pickup slices have fixed zeta width; their lab-time widths follow the ramp.
-The initial rms bunch duration is 5% of the injection carbon period
-(about 103 ns); the momentum spread uses the small-amplitude RF matching.
+The initial rms bunch duration is 2% of the injection carbon period
+(about 41 ns); the momentum spread uses the small-amplitude RF matching.
+A horizontal +/-10 cm aperture at the entrance of qfb.3 (Dx about 8.34 m)
+removes particles whose dispersive and betatron excursions exceed the limit.
 
 Examples (paths are independent of the working directory)::
 
@@ -92,7 +94,7 @@ def simulate(num_particles=4000, num_carbon_turns=256, num_slices=512,
     tw_p = line.twiss4d(delta0=chi_p - 1,
                        mass_ratio=mass_ratio, charge_ratio=charge_ratio)
     rng = np.random.default_rng(20261009)
-    sigma_t = .05 * periods[0]
+    sigma_t = .02 * periods[0]
     # Delay both bunches so the longer Gaussian tails fit after the leading
     # edge of the first SyncTime window. Keep their relative timing unchanged.
     arrival_offsets = np.array([.58, .78]) * periods[0]
@@ -128,6 +130,13 @@ def simulate(num_particles=4000, num_carbon_turns=256, num_slices=512,
     particles = xt.Particles.merge(beams)
 
     line.discard_tracker()
+    aperture_name = 'dispersive_aperture'
+    aperture_s = float(tw_c['s', 'qfb.3'])
+    aperture_dx = float(tw_c['dx', 'qfb.3'])
+    aperture_half_width = .10
+    line.insert(aperture_name,
+                xt.LimitRect(min_x=-aperture_half_width, max_x=aperture_half_width),
+                at=aperture_s)
     rf_phases = []
     for ii, (name, position, beta, voltage) in enumerate(zip(
             ('rf_carbon', 'rf_proton'), (.001, .01), (beta_c, beta_p), voltages)):
@@ -191,6 +200,9 @@ def simulate(num_particles=4000, num_carbon_turns=256, num_slices=512,
     num_frames = int(np.ceil(reference_turns / FRAME_FRACTION)) + 1
     print(f'Tracking on {context.omp_num_threads} OpenMP threads')
     print(f'Ring length: {circumference:.2f} m')
+    print(f'Horizontal aperture: +/-{aperture_half_width*100:g} cm at '
+          f's={aperture_s:.4f} m, Dx={aperture_dx:.3f} m '
+          f'(about +/-{aperture_half_width/abs(aperture_dx):.2%} rigidity acceptance)')
     print(f'Carbon: 7 MeV/u, f_rev = {frequencies[0]/1e3:.3f} kHz, '
           f'T_rev = {periods[0]*1e6:.4f} us')
     print(f'Proton: {proton.kinetic_energy0[0]/1e6:.4f} MeV, '
@@ -239,12 +251,16 @@ def simulate(num_particles=4000, num_carbon_turns=256, num_slices=512,
     currents *= elementary_charge / dt
     survivors = []
     bucket_fractions = []
+    aperture_losses = []
+    aperture_index = line.element_names.index(aperture_name)
     for ii, first_id in enumerate((0, PROTON_ID_START)):
         mask = ((particles.particle_id >= first_id)
                 & (particles.particle_id < first_id + num_particles))
         # Waiting SyncTime particles have reserved negative states; they live.
         alive = (particles.state > 0) | (particles.state < -st.COAST_STATE_RANGE_START)
         survivors.append(np.count_nonzero(mask & alive) / num_particles)
+        lost_here = (particles.state == 0) & (particles.at_element == aperture_index)
+        aperture_losses.append(np.count_nonzero(mask & lost_here)/num_particles)
         # At the flat top, compare with the stationary bucket of the own RF.
         # Both cavities remain on: this is a capture diagnostic, not an exact
         # invariant of the driven two-RF system.
@@ -267,7 +283,8 @@ def simulate(num_particles=4000, num_carbon_turns=256, num_slices=512,
               f'{history[-1, 2 + 4*ii]/1e6:.6f} MeV, '
               f'rms {history[-1, 3 + 4*ii]/1e3:.3f} keV; '
               f'max rigidity error {history[-1, 4 + 4*ii]:.3g}; '
-              f'{bucket_fractions[-1]:.1%} inside own-RF flat-top bucket')
+              f'{bucket_fractions[-1]:.1%} inside own-RF flat-top bucket; '
+              f'{aperture_losses[-1]:.1%} lost at the dispersive aperture')
 
     return dict(line=line, particles=particles, monitors=monitors,
                 num_particles_per_species=num_particles, num_threads=num_threads,
@@ -281,6 +298,9 @@ def simulate(num_particles=4000, num_carbon_turns=256, num_slices=512,
                 species_masses_eV=np.array([carbon.mass0, proton.mass0]),
                 species_charge_ratios=np.array([1., charge_ratio]),
                 final_energy_per_nucleon_eV=final_energy_per_nucleon,
+                aperture_s_m=aperture_s, aperture_dx_m=aperture_dx,
+                aperture_half_width_m=aperture_half_width,
+                aperture_losses=np.array(aperture_losses),
                 survivors=np.array(survivors), bucket_fractions=np.array(bucket_fractions))
 
 
@@ -302,6 +322,9 @@ def save_data(result, output_dir):
         species_masses_eV=result['species_masses_eV'],
         species_charge_ratios=result['species_charge_ratios'],
         final_energy_per_nucleon_eV=result['final_energy_per_nucleon_eV'],
+        aperture_s_m=result['aperture_s_m'], aperture_dx_m=result['aperture_dx_m'],
+        aperture_half_width_m=result['aperture_half_width_m'],
+        aperture_losses=result['aperture_losses'],
         num_particles_per_species=result['num_particles_per_species'],
         num_threads=result['num_threads'])
     print(f'Data saved in {output_dir.resolve() / "004_pimm_carbon_protons.npz"}')
