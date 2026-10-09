@@ -20,7 +20,7 @@ DEFAULT_DATA = (Path(__file__).with_name('004_pimm_carbon_protons')
 
 def plot_pickup(result, output_dir, show=True):
     import matplotlib.pyplot as plt
-    from matplotlib.colors import LinearSegmentedColormap
+    from matplotlib.colors import LinearSegmentedColormap, to_rgba
 
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -58,18 +58,32 @@ def plot_pickup(result, output_dir, show=True):
                    transform=first.transAxes, va='top', fontsize=7.5)
         first.set_ylim(0, 1.32*currents.max())
 
+        # Choose one fixed phase origin for the folded pickup image. Use the
+        # circular mean to handle profiles that straddle the turn boundary.
+        # Shift both species equally and retain the carbon centroid oscillation.
+        num_slices = currents.shape[-1]
+        slice_phase = 2*np.pi*((np.arange(num_slices) + .5)/num_slices - .5)
+        carbon_profile = result['counts'][0].sum(axis=0)
+        carbon_phase = np.angle(np.sum(carbon_profile*np.exp(1j*slice_phase)))
+        shift = -int(np.rint(carbon_phase*num_slices/(2*np.pi)))
+        centered_currents = np.roll(currents, shift, axis=-1)
+
         vmax = currents.max()
+        pickup_grid = grid[2, :].subgridspec(1, 3, width_ratios=(1, .025, .025))
+        ax = fig.add_subplot(pickup_grid[0, 0])
+        ax.set_title('Both species — all recorded passages', loc='left', weight='bold')
+        ax.set(xlabel='Arrival coordinate relative to mean carbon [m]',
+               ylabel='Carbon reference-turn index')
         for ii in range(2):
-            ax = fig.add_subplot(grid[2, ii])
-            cmap = LinearSegmentedColormap.from_list('species', ['#ffffff', COLORS[ii]])
-            picture = ax.imshow(currents[ii], origin='lower', aspect='auto',
+            # Empty bins must be transparent so neither species hides the other.
+            cmap = LinearSegmentedColormap.from_list('species',
+                [to_rgba(COLORS[ii], 0), to_rgba(COLORS[ii], 1)])
+            picture = ax.imshow(centered_currents[ii], origin='lower', aspect='auto',
                 extent=(-.5*result['circumference_m'], .5*result['circumference_m'],
                         -.5, n_turns + .5),
                 cmap=cmap, vmin=0, vmax=vmax, interpolation='nearest')
-            ax.set_title(f'{labels[ii]} — all recorded passages', loc='left', weight='bold')
-            ax.set(xlabel=r'Arrival coordinate $-\zeta$ within a turn [m]',
-                   ylabel='Carbon reference-turn index')
-            fig.colorbar(picture, ax=ax, label='Pickup current [mA]', fraction=.045)
+            cax = fig.add_subplot(pickup_grid[0, ii + 1])
+            fig.colorbar(picture, cax=cax, label=f'{labels[ii]} current [mA]')
         fig.savefig(output_dir / '004_pimm_carbon_protons.png', dpi=180)
         fig.savefig(output_dir / '004_pimm_carbon_protons.pdf')
 
