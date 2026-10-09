@@ -661,6 +661,63 @@ def _enable_pipe_annotations(ax, patches) -> None:
     ax.figure.canvas.mpl_connect('pick_event', on_pick)
 
 
+def _floor_survey_samples(aperture) -> np.ndarray:
+    """Sample survey boundaries, aperture transitions, and angled element bodies.
+
+    Points just inside and after angled elements make jumps in the survey frame
+    visible when the samples are joined into a line.
+    """
+    survey_s = np.asarray(aperture._survey_data.s, dtype=float)
+    survey_angle = np.asarray(aperture._survey_data.angle, dtype=float)
+    line_length = float(aperture.line.get_length())
+    offset = 2 * max(aperture.s_tol, 1e-6)
+    samples = [survey_s, aperture.s_around_transitions(tol=offset)]
+
+    for ii in np.flatnonzero(np.isfinite(survey_angle[:-1]) & (survey_angle[:-1] != 0)):
+        s_start, s_end = survey_s[ii:ii + 2]
+        if s_end <= s_start:
+            continue
+        num_points = int(np.ceil(abs(survey_angle[ii]) / np.deg2rad(10)))
+        samples.append(np.linspace(s_start, s_end, num_points + 2)[1:-1])
+        samples.append(np.array([s_end + offset]))
+        if s_end - s_start > 2 * offset:
+            samples.append(np.array([s_start + offset, s_end - offset]))
+
+    samples = np.concatenate(samples)
+    return np.unique(np.clip(samples[np.isfinite(samples)], 0, line_length))
+
+
+def _plot_floor_survey(ax, aperture, plot_shift, s_range, origin_s) -> None:
+    """Draw the resampled survey in the plot frame, respecting the s window."""
+    line_length = float(aperture.line.get_length())
+    samples = _floor_survey_samples(aperture)
+    if s_range is None or (
+        aperture.is_ring and s_range[1] - s_range[0] >= line_length - aperture.s_tol
+    ):
+        range_segments = [(0.0, line_length)]
+    else:
+        range_segments = aperture.get_wrapped_s_interval(
+            origin_s + s_range[0], origin_s + s_range[1]
+        )
+
+    survey_label = 'survey'
+    for range_start, range_end in range_segments:
+        range_start = max(0.0, range_start)
+        range_end = min(line_length, range_end)
+        if range_start > range_end:
+            continue
+        s_plot = np.unique(np.concatenate([
+            samples[(samples >= range_start) & (samples <= range_end)],
+            [range_start, range_end],
+        ]))
+        poses = aperture._survey_data.resample(s_plot).pose.to_nparray()
+        poses = plot_shift @ poses
+        ax.plot(poses[:, 2, 3], poses[:, 0, 3], color='black', alpha=0.5, lw=1.5,
+                label=survey_label)
+        survey_label = None
+    ax.legend()
+
+
 def plot_floor_projection(
     aperture,
     *,
@@ -669,6 +726,7 @@ def plot_floor_projection(
     origin: str | float = None,
     s_range: tuple[float, float] = None,
     aspect='auto',
+    show_survey=True,
 ):
     """Plot analytically projected installed pipe sections onto the floor."""
     if max_curve_angle_rad <= 0:
@@ -738,6 +796,9 @@ def plot_floor_projection(
             patches.append(patch)
 
         ax.plot(projection.axis[:, 0], projection.axis[:, 1], color=colour, linestyle='--')
+
+    if show_survey:
+        _plot_floor_survey(ax, aperture, plot_shift, s_range, origin_s)
 
     _enable_pipe_annotations(ax, patches)
     ax.set_xlabel('Z [m]')

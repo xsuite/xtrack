@@ -1531,6 +1531,7 @@ class Aperture:
         origin: str | None = None,
         s_range: tuple[float, float] | None = None,
         aspect: Literal['auto', 'equal'] = 'auto',
+        show_survey: bool = True,
     ):
         """Plot installed pipe segments projected onto the floor plane.
 
@@ -1550,6 +1551,9 @@ class Aperture:
             are handled across the end of the line.
         aspect
             Aspect ratio applied to the axes after plotting.
+        show_survey
+            Overlay the interpolated survey trajectory on the pipe projection.
+            Defaults to ``True``.
 
         Returns
         -------
@@ -1565,6 +1569,7 @@ class Aperture:
             origin=origin,
             s_range=s_range,
             aspect=aspect,
+            show_survey=show_survey,
         )
 
     def _get_cuts_inside_element(self, element_name: str, resolution: float | None) -> np.ndarray:

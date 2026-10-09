@@ -2275,6 +2275,39 @@ def test_aperture_bounds_and_cross_sections_curved_survey_follows_pipe(test_cont
         xo.assert_allclose(np.linalg.norm(sections[ii], axis=1), radius, atol=1e-6, rtol=0)
 
 
+def test_floor_projection_survey_shows_straight_body_rbend_jump():
+    from matplotlib.figure import Figure
+
+    env = xt.Environment()
+    angle = np.deg2rad(35)
+    env.new('bend', xt.RBend, length_straight=3.2, angle=angle,
+            rbend_model='straight-body')
+    env.new('drift', xt.Drift, length=1.0)
+    line = env.new_line(name='line', components=['bend', 'drift'])
+
+    builder = ApertureBuilder(line)
+    builder.new_profile('circle', Circle, radius=0.1)
+    builder.new_pipe('pipe', positions=[
+        builder.place_profile('circle', shift_s=0.8),
+        builder.place_profile('circle', shift_s=2.4),
+    ])
+    builder.place_pipe('pipe', 'pipe', at='bend')
+    aperture = Aperture(line, builder.build(context=xo.ContextCpu()),
+                        context=xo.ContextCpu(), with_progress=False)
+
+    ax = Figure().subplots()
+    aperture.plot_floor_projection(ax=ax)
+    survey_line, = [artist for artist in ax.lines if artist.get_label() == 'survey']
+    num_angle_points = int(np.ceil(angle / np.deg2rad(10)))
+    s_angle = np.linspace(0, line['bend'].length, num_angle_points + 2)[1:-1]
+    poses = aperture._survey_data.resample(s_angle).pose.to_nparray()
+    plotted = np.column_stack([survey_line.get_xdata(), survey_line.get_ydata()])
+    for pose in poses:
+        expected = [pose[2, 3], pose[0, 3]]
+        assert np.min(np.linalg.norm(plotted - expected, axis=1)) < 1e-10
+    assert abs(survey_line.get_ydata()[1] - survey_line.get_ydata()[0]) > 1e-3
+
+
 @for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
 def test_aperture_bounds_follow_straight_body_rbend(test_context):
     env = xt.Environment()
