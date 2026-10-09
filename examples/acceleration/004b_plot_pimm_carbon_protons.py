@@ -99,25 +99,67 @@ def plot_pickup(result, output_dir, show=True):
 
         energy_fig, axes = plt.subplots(2, 1, figsize=(9, 5), dpi=100,
                                        sharex=True, layout='constrained')
-        energy_fig.suptitle('Acceleration and beam survival', fontsize=15, weight='bold')
-        history = result['history']
+        energy_fig.suptitle('Energy at the pickup', fontsize=15, weight='bold')
         for ii in range(2):
             scale = (12., 1.)[ii]*1e6
             mass = result['species_masses_eV'][ii]
             pc = result['ramp_p0c']*result['species_charge_ratios'][ii]
             target = (np.sqrt(pc**2 + mass**2) - mass)/scale
-            mean, sigma = history[:, 2 + 4*ii]/scale, history[:, 3 + 4*ii]/scale
+            if 'mean_pzeta' in result:
+                # E = mass_ratio*(E0 + beta0*p0c*pzeta). Convert each
+                # occupied slice before combining its moments into a passage.
+                # The recorded mean p0c approximates the reference within a
+                # slice if that slice straddles a SyncTime frame boundary.
+                occupied = ((result['counts'][ii] > 0)
+                            & (result['time_s'] >= 0)
+                            & (result['time_s'] <= result['acquisition_duration_s']))
+                weights = result['counts'][ii][occupied]
+                sample_time = result['time_s'][occupied]
+                p0c = result['reference_p0c_eV'][ii][occupied]
+                mass0 = result['species_masses_eV'][0]
+                energy0 = np.hypot(p0c, mass0)
+                conversion = mass/mass0 * p0c**2/energy0 / scale
+                slice_mean = (mass/mass0*(energy0 - mass0)/scale
+                              + conversion*result['mean_pzeta'][ii][occupied])
+                slice_sigma = conversion*result['sigma_pzeta'][ii][occupied]
+                # Group around each zero of the own RF phase (h=1). A proton
+                # passage is distinct from the longer carbon reference turn.
+                bucket = np.floor(result['pickup_rf_phase_rad'][ii][occupied]
+                                  / (2*np.pi) + .5).astype(int)
+                phase_limits = np.interp(
+                    [0, result['acquisition_duration_s']], result['time_s'].ravel(),
+                    result['pickup_rf_phase_rad'][ii].ravel()) / (2*np.pi)
+                passage = []
+                for number in np.unique(bucket):
+                    # Exclude passages cut by the acquisition boundaries.
+                    if number - .5 < phase_limits[0] or number + .5 > phase_limits[1]:
+                        continue
+                    selected = bucket == number
+                    w = weights[selected]
+                    avg = np.average(slice_mean[selected], weights=w)
+                    variance = np.average(slice_sigma[selected]**2
+                                          + (slice_mean[selected] - avg)**2, weights=w)
+                    passage.append((np.average(sample_time[selected], weights=w),
+                                    avg, np.sqrt(variance)))
+                energy_time, mean, sigma = np.asarray(passage).reshape(-1, 3).T
+            else:
+                # Saved acquisitions from before monitor-based energy logging.
+                history = result['history']
+                energy_time = history[:, 0]
+                mean = history[:, 2 + 4*ii]/scale
+                sigma = history[:, 3 + 4*ii]/scale
             ax = axes[ii]
             ax.plot(result['ramp_times_s']*1e6, target, 'k--', lw=1, label='Programmed')
-            ax.plot(history[:, 0]*1e6, mean, color=COLORS[ii], label='Bunch mean')
-            ax.fill_between(history[:, 0]*1e6, mean-sigma, mean+sigma,
+            ax.plot(energy_time*1e6, mean, color=COLORS[ii], label='Bunch mean')
+            ax.fill_between(energy_time*1e6, mean-sigma, mean+sigma,
                             color=COLORS[ii], alpha=.25, label='Bunch rms spread')
             ax.set_ylabel(('Carbon [MeV/u]', 'Proton [MeV]')[ii])
-            ax.set_title(f'{labels[ii]}: {history[-1, 1+4*ii]:.1%} surviving', loc='left')
+            ax.set_title(f'{labels[ii]}: {result["survivors"][ii]:.1%} surviving at end',
+                         loc='left')
             ax.grid(alpha=.15)
         axes[0].legend(ncols=3, frameon=False)
         axes[1].set_xlabel('Laboratory time [us]')
-        axes[1].set_xlim(0, history[-1, 0]*1e6)
+        axes[1].set_xlim(0, result['acquisition_duration_s']*1e6)
         energy_fig.savefig(output_dir / '004_pimm_carbon_protons_energy.png', dpi=180)
         energy_fig.savefig(output_dir / '004_pimm_carbon_protons_energy.pdf')
 
