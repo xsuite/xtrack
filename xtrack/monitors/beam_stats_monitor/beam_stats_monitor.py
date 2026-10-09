@@ -136,6 +136,12 @@ class BeamStatsMonitor(BeamElement):
       is recorded per logged turn and full-turn slice. Whole-beam statistics
       are also available.
 
+    With an active SyncTime frame clock, coasting mode bins physical arrival
+    time, ``t_frame + (s - zeta) / (beta0 * c)``, in reference-revolution
+    periods. The reference energy must remain constant for this time grid.
+    ``start_at_turn`` and ``stop_at_turn`` then select reference-period bins,
+    not simulation frames or the individual particles' revolution counts.
+
     In this monitor, "slot" means a bunch position on the bunch pattern grid,
     where adjacent slots are separated in `zeta` by `bunch_spacing_zeta`.
     Note that `bunch_spacing_zeta` is distinct from an RF bucket, which can be

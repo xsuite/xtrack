@@ -161,6 +161,7 @@ def test_frame_cavity_phase_and_legacy_time(test_context):
     after = p.copy(_context=xo.ContextCpu())
     xo.assert_allclose(after.energy - before.energy,
         3000 * np.sin(2*np.pi*2e6*time + .2), rtol=0, atol=1e-6)
+
     # Chirped RF: integrate f, rather than replacing f in 2*pi*f*t.
     t_frame, f0, fdot = .01, 2e6, 1e8
     cavity.frequency = f0 + fdot * t_frame
@@ -187,3 +188,39 @@ def test_frame_cavity_phase_and_legacy_time(test_context):
     after = p.copy(_context=xo.ContextCpu())
     xo.assert_allclose(after.energy - before.energy,
         3000 * np.sin(2*np.pi*2e6*time + .2), rtol=0, atol=1e-6)
+
+
+@allow_kernel_compilation
+@for_all_test_contexts(excluding='ContextPyopencl')
+def test_coasting_monitors_use_frame_arrival_time(test_context):
+    # Two species with unrelated revolution counters arrive in known bins at
+    # a pickup away from s=0. Record each species separately, by particle id.
+    monitors = [xt.BeamStatsMonitor(
+        start_at_turn=0, stop_at_turn=6, coasting=True, num_slices=8,
+        particle_id_range=ids, stats=['num_particles'])
+        for ids in [(0, 2), (10, 12)]]
+    line = xt.Line(elements=[xt.Drift(length=25), *monitors,
+                             xt.Drift(length=75)])
+    line.build_tracker(_context=test_context, use_prebuilt_kernels=False)
+    beta0 = .15
+    period = 100 / (beta0 * clight)
+    arrival = np.array([2.0625, 2.3125, 3.1875, 4.0625]) * period
+    p = xt.Particles(_context=test_context, beta0=beta0, at_frame=23,
+                     t_frame=2.1*period, s=25,
+                     particle_id=[0, 1, 10, 11], at_turn=[1, 1, 7, 7],
+                     mass_ratio=[1, 1, 1/12, 1/12],
+                     charge_ratio=[1, 1, 1/6, 1/6],
+                     delta=[0, 0, 1, 1],
+                     weight=[1, 2, 3, 4],
+                     zeta=25 - beta0*clight*(arrival - 2.1*period))
+    line.track(p, ele_start=1, ele_stop=3)
+    expected = np.zeros((2, 6, 8))
+    expected[0, 2, 4] = 1
+    expected[0, 2, 6] = 2
+    expected[1, 3, 5] = 3
+    expected[1, 4, 4] = 4
+    for ii, monitor in enumerate(monitors):
+        xo.assert_allclose(monitor.num_particles, expected[ii], rtol=0, atol=0)
+        tt = monitor.time_centers(line_length=100, beta0=beta0)
+        recorded = tt[expected[ii] > 0]
+        xo.assert_allclose(recorded, arrival[2*ii:2*ii+2], atol=1e-20, rtol=1e-14)

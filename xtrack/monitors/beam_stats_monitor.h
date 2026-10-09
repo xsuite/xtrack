@@ -209,8 +209,16 @@ void BeamStatsMonitor_track_local_particle(
                 if (line_length <= 0.0) {
                     accepted = 0;
                 } else {
-                    double const u = (
+                    double u = (
                         (double)effective_turn - zeta / line_length);
+                    if (LocalParticle_get_at_frame(part) >= 0) {
+                        // SyncTime frames and particle revolutions have
+                        // different counters. Bin physical arrival time in
+                        // reference-revolution periods (fixed beta0).
+                        double const beta0 = LocalParticle_get_beta0(part);
+                        u = (LocalParticle_get_t_frame(part) * beta0 * C_LIGHT
+                             + LocalParticle_get_s(part) - zeta) / line_length;
+                    }
                     effective_turn = (int64_t)floor(u + 0.5);
                     double relative_turn_fraction =
                         u - (double)effective_turn;
