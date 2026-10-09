@@ -50,8 +50,8 @@ s0, s1 = 0.0, 11.0
 r0, r1 = 0.8, 2.0
 
 profiles = [
-    Profile(shape=Circle(radius=r0), tol_r=0, tol_x=0, tol_y=0),
-    Profile(shape=Circle(radius=r1), tol_r=0, tol_x=0, tol_y=0),
+    Profile(shape=Circle(radius=r0)),
+    Profile(shape=Circle(radius=r1)),
 ]
 profile_positions = [
     ProfilePosition(profile_index=0, shift_s=s0),

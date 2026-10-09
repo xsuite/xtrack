@@ -17,21 +17,26 @@ def test_aperture_builder_builds_model_with_expected_ordering(test_context):
     line = env.new_line(name="line", components=[drift, drift])
 
     builder = ApertureBuilder(line)
-    builder.new_profile("rect0", "Rectangle", tol_r=0.1, tol_x=0.2, tol_y=0.3, half_width=2.0, half_height=1.0)
+    builder.new_profile("rect0", "Rectangle", half_width=2.0, half_height=1.0)
     builder.new_profile("circ0", "Circle", radius=3.0)
 
     type0 = builder.new_pipe(
         "type0",
         curvature=0.5,
         positions=[
-            builder.place_profile("rect0", shift_s=5.0, shift_x=1.0),
+            builder.place_profile(
+                "rect0", shift_s=5.0, shift_x=1.0, tol_r=0.1, tol_x=0.2, tol_y=0.3,
+            ),
             builder.place_profile("circ0", shift_s=1.0, rot_s_rad=0.4),
         ],
     )
     type0.place_profile("rect0", shift_s=3.0, shift_y=-2.0, rot_x_rad=0.2)
 
     builder.place_pipe("install0", "type0", at="drift::0")
-    builder.place_pipe("install1", "type0", at="drift::1", shift_x=0.3, shift_z=0.4, rot_z_rad=0.5)
+    builder.place_pipe(
+        "install1", "type0", at="drift::1", shift_x=0.3, shift_z=0.4,
+        rot_z_rad=0.5, tol_r=0.01, tol_x=0.02, tol_y=0.03,
+    )
 
     model = builder.build(context=test_context)
 
@@ -47,11 +52,25 @@ def test_aperture_builder_builds_model_with_expected_ordering(test_context):
     xo.assert_allclose([pp.shift_y for pp in built_type.positions], [0.0, -2.0, 0.0], atol=0, rtol=0)
     xo.assert_allclose([pp.rot_x_rad for pp in built_type.positions], [0.0, 0.2, 0.0], atol=0, rtol=0)
     xo.assert_allclose([pp.rot_s_rad for pp in built_type.positions], [0.4, 0.0, 0.0], atol=0, rtol=0)
+    xo.assert_allclose(
+        [pp.tol_r for pp in built_type.positions], [0.0, 0.0, 0.1], atol=0, rtol=0,
+    )
+    xo.assert_allclose(
+        [pp.tol_x for pp in built_type.positions], [0.0, 0.0, 0.2], atol=0, rtol=0,
+    )
+    xo.assert_allclose(
+        [pp.tol_y for pp in built_type.positions], [0.0, 0.0, 0.3], atol=0, rtol=0,
+    )
 
     assert model.pipe_positions[0].survey_reference_name == "drift::0"
     assert model.pipe_positions[0].survey_index == list(line.survey().name).index("drift::0")
     assert model.pipe_positions[1].survey_reference_name == "drift::1"
     assert model.pipe_positions[1].survey_index == list(line.survey().name).index("drift::1")
+    xo.assert_allclose(
+        [model.pipe_positions[1].tol_r, model.pipe_positions[1].tol_x,
+         model.pipe_positions[1].tol_y],
+        [0.01, 0.02, 0.03], atol=0, rtol=0,
+    )
 
     install1_transform = matrix_to_transform(model.pipe_positions[1].transformation.to_nplike())
     xo.assert_allclose(install1_transform.shift_x, 0.3, atol=1e-15, rtol=0)

@@ -67,7 +67,7 @@ sv = line.survey()
 
 shape = Circle(radius=radius)
 profiles = [
-    Profile(shape=shape, tol_r=0, tol_x=0, tol_y=0),
+    Profile(shape=shape),
 ]
 profile_positions = [
     ProfilePosition(profile_index=0, shift_s=0.0),
