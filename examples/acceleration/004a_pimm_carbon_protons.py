@@ -14,9 +14,14 @@ Pickup slices have fixed zeta width; their lab-time widths follow the ramp.
 
 Examples (paths are independent of the working directory)::
 
-    python 004_pimm_carbon_protons.py
-    python 004_pimm_carbon_protons.py --no-show --output-dir ./pickup_plots
-    python 004_pimm_carbon_protons.py --num-particles 128 --no-show
+    python 004a_pimm_carbon_protons.py
+    python 004a_pimm_carbon_protons.py --output-dir ./pickup_data
+    python 004a_pimm_carbon_protons.py --num-particles 128
+    python 004b_plot_pimm_carbon_protons.py
+
+Simulation uses six OpenMP threads by default and saves an NPZ file. Run the
+separate plotting script to display or export figures. On macOS, source
+compilation needs an OpenMP-enabled compiler (set CC/CXX in your environment).
 
 The tracker is compiled from source because this example needs the coasting
 monitor's new frame-clock time binning. No full kernel-cache rebuild is needed.
@@ -32,6 +37,7 @@ import numpy as np
 from scipy.constants import c as clight, elementary_charge
 from scipy.integrate import cumulative_trapezoid
 
+import xobjects as xo
 import xtrack as xt
 import xtrack.synctime as st
 
@@ -39,11 +45,10 @@ import xtrack.synctime as st
 CARBON_EKIN_PER_NUCLEON = 7e6  # eV/u; 84 MeV total kinetic energy per ion
 FRAME_FRACTION = .45  # Window must move faster than the faster (proton) beam.
 PROTON_ID_START = 1_000_000
-COLORS = ('#007f86', '#d65b32')
 
 
 def simulate(num_particles=4000, num_carbon_turns=256, num_slices=512,
-             final_energy_per_nucleon=8e6):
+             final_energy_per_nucleon=8e6, num_threads=6):
     data = Path(__file__).resolve().parents[2] / 'test_data' / 'pimms'
     line = xt.load([data / 'PIMMS.seq', data / 'pimms_optics.str']).pimms
     line.set_particle_ref('Carbon-12', kinetic_energy0=12*CARBON_EKIN_PER_NUCLEON)
@@ -168,14 +173,19 @@ def simulate(num_particles=4000, num_carbon_turns=256, num_slices=512,
         line, frame_clock=True, frame_relative_length=FRAME_FRACTION,
         at_element_names=monitor_names)
     line.enable_time_dependent_vars = True
+    # Twiss and initial bunch generation above use the serial context. Move
+    # both particles and the tracking line onto the OpenMP context for the run.
+    context = xo.ContextCpu(omp_num_threads=num_threads)
+    particles.move(_context=context)
     # Compile the updated monitor kernel without replacing the user's cache.
     with xt.settings.override(allow_kernel_compilation=True):
-        line.build_tracker(use_prebuilt_kernels=False)
+        line.build_tracker(_context=context, use_prebuilt_kernels=False)
 
     reference_turns = np.interp(duration + periods[0],
         line.energy_program.t_at_turn_interpolator.y,
         line.energy_program.t_at_turn_interpolator.x)
     num_frames = int(np.ceil(reference_turns / FRAME_FRACTION)) + 1
+    print(f'Tracking on {context.omp_num_threads} OpenMP threads')
     print(f'Ring length: {circumference:.2f} m')
     print(f'Carbon: 7 MeV/u, f_rev = {frequencies[0]/1e3:.3f} kHz, '
           f'T_rev = {periods[0]*1e6:.4f} us')
@@ -256,6 +266,7 @@ def simulate(num_particles=4000, num_carbon_turns=256, num_slices=512,
               f'{bucket_fractions[-1]:.1%} inside own-RF flat-top bucket')
 
     return dict(line=line, particles=particles, monitors=monitors,
+                num_particles_per_species=num_particles, num_threads=num_threads,
                 time_s=time, current_A=currents, counts=counts,
                 periods_s=periods, frequencies_Hz=frequencies,
                 proton_kinetic_energy_eV=proton.kinetic_energy0[0],
@@ -269,85 +280,10 @@ def simulate(num_particles=4000, num_carbon_turns=256, num_slices=512,
                 survivors=np.array(survivors), bucket_fractions=np.array(bucket_fractions))
 
 
-def plot_pickup(result, output_dir, show=True):
-    import matplotlib.pyplot as plt
-    from matplotlib.colors import LinearSegmentedColormap
-
+def save_data(result, output_dir):
+    """Save numerical results for the separate plotting script."""
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
-    time_us = result['time_s'].ravel() * 1e6
-    currents = result['current_A'] * 1e3  # mA
-    period_us = result['periods_s'][0] * 1e6
-    n_turns = result['num_carbon_turns']
-    labels = (r'$^{12}$C$^{6+}$', 'protons')
-    freqs = result['frequencies_Hz'] / 1e3
-
-    with plt.rc_context({'font.size': 8, 'axes.spines.top': False,
-                         'axes.spines.right': False, 'figure.facecolor': 'white'}):
-        fig = plt.figure(figsize=(9, 7), dpi=100, layout='constrained')
-        grid = fig.add_gridspec(3, 2, height_ratios=(1, 1, 1.45))
-        fig.suptitle('Two bunches, one magnetic rigidity', fontsize=15, weight='bold')
-        first = fig.add_subplot(grid[0, :])
-        last = fig.add_subplot(grid[1, :], sharey=first)
-        for ax, start, title in (
-                (first, 0., 'Initial passages'),
-                (last, result['acquisition_duration_s']*1e6 - 8*period_us, 'Later passages')):
-            selection = (time_us >= start) & (time_us <= start + 8*period_us)
-            for ii in range(2):
-                ax.plot(time_us[selection], currents[ii].ravel()[selection],
-                        color=COLORS[ii], lw=1.25,
-                        label=f'{labels[ii]}  |  {freqs[ii]:.1f} kHz')
-            ax.set(xlim=(start, start + 8*period_us),
-                   xlabel='Laboratory time [us]', ylabel='Pickup current [mA]')
-            ax.set_title(title, loc='left', weight='bold')
-            ax.grid(alpha=.15)
-        first.legend(loc='upper right', ncols=2, frameon=False)
-        first.text(.005, .96,
-                   f'Injection: C 7 MeV/u   |   p '
-                   f'{result["proton_kinetic_energy_eV"]/1e6:.2f} MeV\n'
-                   f'PIMM: 75.24 m   |   f_p / f_C = {freqs[1]/freqs[0]:.3f}',
-                   transform=first.transAxes, va='top', fontsize=7.5)
-        first.set_ylim(0, 1.32*currents.max())
-
-        vmax = currents.max()
-        for ii in range(2):
-            ax = fig.add_subplot(grid[2, ii])
-            cmap = LinearSegmentedColormap.from_list('species', ['#ffffff', COLORS[ii]])
-            picture = ax.imshow(currents[ii], origin='lower', aspect='auto',
-                extent=(-.5*result['circumference_m'], .5*result['circumference_m'],
-                        -.5, n_turns + .5),
-                cmap=cmap, vmin=0, vmax=vmax, interpolation='nearest')
-            ax.set_title(f'{labels[ii]} — all recorded passages', loc='left', weight='bold')
-            ax.set(xlabel=r'Arrival coordinate $-\zeta$ within a turn [m]',
-                   ylabel='Carbon reference-turn index')
-            fig.colorbar(picture, ax=ax, label='Pickup current [mA]', fraction=.045)
-        fig.savefig(output_dir / '004_pimm_carbon_protons.png', dpi=180)
-        fig.savefig(output_dir / '004_pimm_carbon_protons.pdf')
-
-        energy_fig, axes = plt.subplots(2, 1, figsize=(9, 5), dpi=100,
-                                       sharex=True, layout='constrained')
-        energy_fig.suptitle('Acceleration and beam survival', fontsize=15, weight='bold')
-        history = result['history']
-        for ii in range(2):
-            scale = (12., 1.)[ii]*1e6
-            mass = result['species_masses_eV'][ii]
-            pc = result['ramp_p0c']*result['species_charge_ratios'][ii]
-            target = (np.sqrt(pc**2 + mass**2) - mass)/scale
-            mean, sigma = history[:, 2 + 4*ii]/scale, history[:, 3 + 4*ii]/scale
-            ax = axes[ii]
-            ax.plot(result['ramp_times_s']*1e6, target, 'k--', lw=1, label='Programmed')
-            ax.plot(history[:, 0]*1e6, mean, color=COLORS[ii], label='Bunch mean')
-            ax.fill_between(history[:, 0]*1e6, mean-sigma, mean+sigma,
-                            color=COLORS[ii], alpha=.25, label='Bunch rms spread')
-            ax.set_ylabel(('Carbon [MeV/u]', 'Proton [MeV]')[ii])
-            ax.set_title(f'{labels[ii]}: {history[-1, 1+4*ii]:.1%} surviving', loc='left')
-            ax.grid(alpha=.15)
-        axes[0].legend(ncols=3, frameon=False)
-        axes[1].set_xlabel('Laboratory time [us]')
-        axes[1].set_xlim(0, history[-1, 0]*1e6)
-        energy_fig.savefig(output_dir / '004_pimm_carbon_protons_energy.png', dpi=180)
-        energy_fig.savefig(output_dir / '004_pimm_carbon_protons_energy.pdf')
-
     np.savez_compressed(output_dir / '004_pimm_carbon_protons.npz',
         time_s=result['time_s'], current_A=result['current_A'],
         counts=result['counts'], periods_s=result['periods_s'],
@@ -361,11 +297,10 @@ def plot_pickup(result, output_dir, show=True):
         ramp_times_s=result['ramp_times_s'], ramp_p0c=result['ramp_p0c'],
         species_masses_eV=result['species_masses_eV'],
         species_charge_ratios=result['species_charge_ratios'],
-        final_energy_per_nucleon_eV=result['final_energy_per_nucleon_eV'])
-    print(f'Plots and pickup arrays saved in {output_dir.resolve()}')
-    if show:
-        plt.show()
-    return fig
+        final_energy_per_nucleon_eV=result['final_energy_per_nucleon_eV'],
+        num_particles_per_species=result['num_particles_per_species'],
+        num_threads=result['num_threads'])
+    print(f'Data saved in {output_dir.resolve() / "004_pimm_carbon_protons.npz"}')
 
 
 if __name__ == '__main__':
@@ -376,14 +311,13 @@ if __name__ == '__main__':
     parser.add_argument('--final-energy-mev-u', type=float, default=8.)
     parser.add_argument('--num-slices', type=int, default=512)
     parser.add_argument('--output-dir', type=Path,
-                        default=Path(__file__).with_suffix(''))
-    parser.add_argument('--no-show', action='store_true')
+                        default=Path(__file__).with_name('004_pimm_carbon_protons'))
+    parser.add_argument('--num-threads', type=int, default=6)
     args = parser.parse_args()
     if args.num_carbon_turns < 8 or args.num_particles < 1 or args.num_slices < 1:
         parser.error('Use at least 8 carbon periods, 1 particle and 1 slice')
-    if args.no_show:
-        import matplotlib
-        matplotlib.use('Agg')
+    if args.num_threads < 1:
+        parser.error('Use at least one CPU thread')
     result = simulate(args.num_particles, args.num_carbon_turns, args.num_slices,
-                      args.final_energy_mev_u*1e6)
-    plot_pickup(result, args.output_dir, show=not args.no_show)
+                      args.final_energy_mev_u*1e6, args.num_threads)
+    save_data(result, args.output_dir)
