@@ -194,7 +194,7 @@ void BeamStatsMonitor_track_local_particle(
             int64_t effective_turn = LocalParticle_get_at_turn(part);
             double zeta = LocalParticle_get_zeta(part);
             int64_t coasting_slice = 0;
-            int64_t accepted = 1;
+            int64_t accepted = effective_turn >= 0;
 
             if (particle_id_start >= 0) {
                 int64_t const particle_id = LocalParticle_get_particle_id(part);
@@ -209,19 +209,14 @@ void BeamStatsMonitor_track_local_particle(
                 if (line_length <= 0.0) {
                     accepted = 0;
                 } else {
-                    double u = (
-                        (double)effective_turn - zeta / line_length);
-                    if (LocalParticle_get_at_frame(part) >= 0) {
-                        // Use accumulated reference turns during acceleration,
-                        // keeping a fixed zeta grid within each reference turn.
-                        double const reference_turn =
-                            BeamStatsMonitorData_get_coasting_reference_turn(el);
-                        double const beta0 = LocalParticle_get_beta0(part);
-                        double const clock_turn = reference_turn >= 0.0
-                            ? reference_turn
-                            : LocalParticle_get_t_frame(part)*beta0*C_LIGHT/line_length;
-                        u = clock_turn + (LocalParticle_get_s(part) - zeta)/line_length;
-                    }
+                    // The tracker supplies accumulated reference turns, including
+                    // an EnergyProgram's time map. Slice widths remain fixed in zeta.
+                    double const clock_turn = isnan(part->reference_turn)
+                        ? LocalParticle_get_time_s(part)
+                            * LocalParticle_get_beta0(part)*C_LIGHT/line_length
+                        : part->reference_turn;
+                    double const u = clock_turn
+                        + (LocalParticle_get_s(part) - zeta)/line_length;
                     effective_turn = (int64_t)floor(u + 0.5);
                     double relative_turn_fraction =
                         u - (double)effective_turn;

@@ -1,4 +1,5 @@
 import pathlib
+import numpy as np
 
 import xobjects as xo
 import xtrack as xt
@@ -37,6 +38,10 @@ def test_cavity_absolute_time(test_context):
         line[nn].absolute_time = 1 # Need property
         line[nn].harmonic = 0
         line[nn].frequency = line.vars['f_rf']
+        # absolute_time uses one laboratory origin for every cavity. Preserve
+        # the synchronous phase at the kick in the center of each thick cavity.
+        s_kick = tt['s', nn] + line[nn].length / 2
+        line[nn].phase -= 2 * np.pi * f_rf * s_kick / (tw.beta0 * clight)
 
     tw1 = line.twiss(search_for_t_rev=True)
 

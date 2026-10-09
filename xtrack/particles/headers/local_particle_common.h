@@ -247,8 +247,9 @@ void increment_at_element(LocalParticle* part0, int64_t const increment) {
 }
 
 GPUFUN
-void increment_at_turn(LocalParticle* part0, int flag_reset_s) {
+void increment_at_turn(LocalParticle* part0, int flag_reset_s, double zeta_shift) {
     START_PER_PARTICLE_BLOCK(part0, part);
+        LocalParticle_add_to_zeta(part, zeta_shift);
         LocalParticle_add_to_at_turn(part, 1);
         LocalParticle_set_at_element(part, 0);
         if (flag_reset_s > 0) {
@@ -259,8 +260,9 @@ void increment_at_turn(LocalParticle* part0, int flag_reset_s) {
 
 GPUFUN
 void increment_at_turn_backtrack(
-        LocalParticle* part0, int flag_reset_s, double line_length, int64_t num_elements) {
+        LocalParticle* part0, int flag_reset_s, double line_length, int64_t num_elements, double zeta_shift) {
     START_PER_PARTICLE_BLOCK(part0, part);
+        LocalParticle_add_to_zeta(part, -zeta_shift);
         LocalParticle_add_to_at_turn(part, -1);
         LocalParticle_set_at_element(part, num_elements);
         if (flag_reset_s > 0) {
@@ -398,7 +400,9 @@ void LocalParticle_update_p0c(LocalParticle* part, double new_p0c_value) {
     LocalParticle_update_delta(part, new_delta);
     LocalParticle_scale_px(part, old_p0c / new_p0c_value);
     LocalParticle_scale_py(part, old_p0c / new_p0c_value);
-    LocalParticle_scale_zeta(part, new_beta0 / old_beta0);
+    LocalParticle_set_zeta(part, LocalParticle_get_s(part)
+        + (LocalParticle_get_zeta(part) - LocalParticle_get_s(part))
+            * (new_beta0 / old_beta0));
 }
 
 // Loss-state helpers.

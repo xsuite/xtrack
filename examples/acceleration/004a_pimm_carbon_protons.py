@@ -169,7 +169,6 @@ def simulate(num_particles=4000, num_carbon_turns=256, num_slices=512,
         monitor = xt.BeamStatsMonitor(
             start_at_turn=0, stop_at_turn=num_reference_turns + 1,
             coasting=True, num_slices=num_slices,
-            coasting_reference_turn=0.,
             particle_id_range=(first_id, first_id + num_particles),
             stats=['num_particles'])
         line.env.elements[name] = monitor
@@ -178,25 +177,17 @@ def simulate(num_particles=4000, num_carbon_turns=256, num_slices=512,
     # Install the EnergyProgram after lattice insertions, which create
     # intermediate lines sharing the environment's element dictionary.
     line.energy_program = xt.EnergyProgram(t_s=times, p0c=momentum)
-    line.functions['reference_turn'] = xt.FunctionPieceWiseLinear(
-        x=times, y=reference_turn_grid)
-    for name in monitor_names:
-        line[name].coasting_reference_turn = line.functions['reference_turn'](line.ref['t_turn_s'])
     st.install_sync_time_at_collective_elements(
-        line, frame_clock=True, frame_relative_length=FRAME_FRACTION,
+        line, frame_relative_length=FRAME_FRACTION,
         at_element_names=monitor_names)
     line.enable_time_dependent_vars = True
     # Twiss and initial bunch generation above use the serial context. Move
     # both particles and the tracking line onto the OpenMP context for the run.
     context = xo.ContextCpu(omp_num_threads=num_threads)
     particles.move(_context=context)
-    # Compile the updated monitor kernel without replacing the user's cache.
-    with xt.settings.override(allow_kernel_compilation=True):
-        line.build_tracker(_context=context, use_prebuilt_kernels=False)
+    line.build_tracker(_context=context)
 
-    reference_turns = np.interp(duration + periods[0],
-        line.energy_program.t_at_turn_interpolator.y,
-        line.energy_program.t_at_turn_interpolator.x)
+    reference_turns = line.energy_program.get_turn_at_t_s(duration + periods[0])
     num_frames = int(np.ceil(reference_turns / FRAME_FRACTION)) + 1
     print(f'Tracking on {context.omp_num_threads} OpenMP threads')
     print(f'Ring length: {circumference:.2f} m')
@@ -217,9 +208,9 @@ def simulate(num_particles=4000, num_carbon_turns=256, num_slices=512,
 
     history = []
     def record_beams(line, p):
-        snapshot = [float(p.t_frame)]
+        snapshot = [float(p.time_s)]
         alive = (p.state > 0) | (p.state < -st.COAST_STATE_RANGE_START)
-        arrival = p.t_frame + (p.s - p.zeta)/(p.beta0*clight)
+        arrival = p.time_s + (p.s - p.zeta)/(p.beta0*clight)
         target_pc = np.interp(arrival, times, momentum)
         rigidity_error = (1 + p.delta)/p.chi*p.p0c/target_pc - 1
         for first_id in (0, PROTON_ID_START):
@@ -264,7 +255,7 @@ def simulate(num_particles=4000, num_carbon_turns=256, num_slices=512,
         # At the flat top, compare with the stationary bucket of the own RF.
         # Both cavities remain on: this is a capture diagnostic, not an exact
         # invariant of the driven two-RF system.
-        arrival = particles.t_frame + (particles.s-particles.zeta)/(particles.beta0*clight)
+        arrival = particles.time_s + (particles.s-particles.zeta)/(particles.beta0*clight)
         position = (.001, .01)[ii]
         phase = np.interp(arrival, times, rf_phases[ii]) - 2*np.pi*(particles.s-position)/circumference
         species = (carbon, proton)[ii]

@@ -49,19 +49,11 @@ void track_rf_kick_single_particle(
     }
 
 #ifndef XTRACK_TPSA_TRACK
-    // t_sim / at_turn are turn-bookkeeping vars, excluded from non-scalar tracking
     // Absolute-time cavities are native-only.
     if (absolute_time == 1) {
-        if (LocalParticle_get_at_frame(part) >= 0) {
-            double const t_frame = LocalParticle_get_t_frame(part);
-            double const s = LocalParticle_get_s(part);
-            phase0 += 2 * PI * frequency * (t_frame + s / (beta0 * C_LIGHT));
-        }
-        else {
-            double const t_sim = LocalParticle_get_t_sim(part);
-            int64_t const at_turn = LocalParticle_get_at_turn(part);
-            phase0 += 2 * PI * at_turn * frequency * t_sim;
-        }
+        double const time_s = LocalParticle_get_time_s(part);
+        double const s = LocalParticle_get_s(part);
+        phase0 += 2 * PI * frequency * (time_s + s / (beta0 * C_LIGHT));
     }
 #endif
 

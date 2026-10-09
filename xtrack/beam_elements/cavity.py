@@ -46,10 +46,10 @@ class Cavity(_HasModelRF, _HasIntegrator, BeamElement):
         If True, the cavity phase is computed from the absolute time of the
         simulation, otherwise the cavity is synchronized with the arrival time of
         the reference particle (zeta=0). Default is False.
-        With a SyncTime frame clock (particles.at_frame >= 0), arrival time is
-        particles.t_frame + (s - zeta) / (beta0 * c). The phase then uses one
+        Arrival time is
+        particles.time_s + (s - zeta) / (beta0 * c). The phase then uses one
         laboratory-time origin for all cavity locations. For a frequency ramp,
-        supply phase = Phi(t_frame) - 2*pi*frequency(t_frame)*t_frame, where Phi
+        supply phase = Phi(time_s) - 2*pi*frequency(time_s)*time_s, where Phi
         is the integrated RF phase. This linearizes Phi within each frame;
         changing frequency alone does not integrate the RF phase.
     '''.strip()

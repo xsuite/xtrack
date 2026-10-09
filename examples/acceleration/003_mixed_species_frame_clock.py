@@ -64,7 +64,7 @@ def run(num_frames=900):
                            - 2*np.pi*line.ref[name].frequency*clock)
         line[name].voltage = voltage
 
-    st.install_sync_time_at_collective_elements(line, frame_clock=True)
+    st.install_sync_time_at_collective_elements(line)
     line.enable_time_dependent_vars = True
     line.build_tracker()
     # Shared Fe reference, species-dependent mass/charge ratios. Equal rigidity
@@ -74,15 +74,15 @@ def run(num_frames=900):
         mass_ratio=[1., mass_ratio], charge_ratio=[1., charge_ratio],
         delta=[0., charge_ratio/mass_ratio - 1], zeta=0.)
     line.track(particles, num_turns=num_frames, log=xt.Log(
-        time=lambda line, p: p.t_frame,
+        time=lambda line, p: p.time_s,
         arrival_time=lambda line, p: (
-            p.t_frame + (p.s - p.zeta) / (p.beta0 * clight)),
+            p.time_s + (p.s - p.zeta) / (p.beta0 * clight)),
         energy=lambda line, p: p.energy.copy(),
         particle_id=lambda line, p: p.particle_id.copy()))
     # Snapshots can contain temporarily waiting particles with negative states.
     for ii in np.argsort(particles.particle_id):
         name = ('Fe', 'Bi')[particles.particle_id[ii]]
-        arrival_time = (particles.t_frame
+        arrival_time = (particles.time_s
                         + (particles.s[ii] - particles.zeta[ii])
                         / (particles.beta0[ii] * clight))
         target_p0c = p0c_start + p0c_rate * arrival_time
@@ -90,8 +90,8 @@ def run(num_frames=900):
                           * particles.p0c[ii] / target_p0c - 1)
         print(f'{name}: turns={particles.at_turn[ii]}, '
               f'rigidity error={rigidity_error:+.6e}')
-    print(f'Common clock: {particles.t_frame:.9e} s, '
-          f'{particles.at_frame} frames')
+    print(f'Common clock: {particles.time_s:.9e} s, '
+          f'{num_frames} frames')
     return line, particles
 
 

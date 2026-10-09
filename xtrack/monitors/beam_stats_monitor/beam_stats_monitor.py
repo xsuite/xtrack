@@ -136,13 +136,10 @@ class BeamStatsMonitor(BeamElement):
       is recorded per logged turn and full-turn slice. Whole-beam statistics
       are also available.
 
-    With an active SyncTime frame clock, coasting mode bins physical arrival
-    time, ``t_frame + (s - zeta) / (beta0 * c)``, in reference-revolution
-    periods. During acceleration, drive ``coasting_reference_turn`` with the
-    accumulated reference turns at the frame clock time. The longitudinal
-    slices retain their fixed zeta width; their time widths follow the ramp.
-    ``start_at_turn`` and ``stop_at_turn`` then select reference-period bins,
-    not simulation frames or the individual particles' revolution counts.
+    Coasting mode bins arrival coordinates on a fixed zeta grid. The tracker
+    supplies accumulated reference turns automatically, including during an
+    EnergyProgram. ``start_at_turn`` and ``stop_at_turn`` select reference-turn
+    bins, not SyncTime frames or individual particles' revolution counts.
 
     In this monitor, "slot" means a bunch position on the bunch pattern grid,
     where adjacent slots are separated in `zeta` by `bunch_spacing_zeta`.
@@ -230,11 +227,6 @@ class BeamStatsMonitor(BeamElement):
     coasting : bool, optional
         If True, slice the full turn periodically for a coasting beam.
         Requires `num_slices` and rejects bunched-beam filling inputs.
-    coasting_reference_turn : float, optional
-        Accumulated reference turns at ``particles.t_frame``. Drive this value
-        from the EnergyProgram for coasting acquisition during acceleration
-        with a SyncTime frame clock. Negative (default) uses the constant
-        reference-speed arrival-time convention.
     particle_id_range : tuple[int, int], optional
         Inclusive-lower, exclusive-upper particle-id range to record. By
         default all particles are recorded.
@@ -252,7 +244,6 @@ class BeamStatsMonitor(BeamElement):
         'stop_at_turn': xo.Int64,
         'every_n_turns': xo.Int64,
         '_mode': xo.Int64,
-        'coasting_reference_turn': xo.Float64,
         '_num_records': xo.Int64,
         '_num_selected_slots': xo.Int64,
         '_num_slices': xo.Int64,
@@ -292,7 +283,6 @@ class BeamStatsMonitor(BeamElement):
                  filled_slots=None,
                  selected_slots=None,
                  coasting=False,
-                 coasting_reference_turn=-1.,
                  particle_id_range=None,
                  stats=None,
                  profiles=None,
@@ -311,8 +301,6 @@ class BeamStatsMonitor(BeamElement):
             return
 
         coasting = bool(coasting)
-        if coasting_reference_turn >= 0 and not coasting:
-            raise ValueError('`coasting_reference_turn` requires coasting mode')
         if coasting and num_slices is None:
             raise ValueError('`num_slices` must be provided in coasting mode')
         if coasting and zeta_range is not None:
@@ -527,7 +515,6 @@ class BeamStatsMonitor(BeamElement):
             stop_at_turn=int(stop_at_turn),
             every_n_turns=int(every_n_turns),
             _mode=mode,
-            coasting_reference_turn=coasting_reference_turn,
             _num_records=num_records,
             _num_selected_slots=num_selected_slots,
             _num_slices=num_slices_int,
@@ -698,8 +685,6 @@ class BeamStatsMonitor(BeamElement):
             out['particle_id_range'] = self.particle_id_range
         if self.coasting:
             out['coasting'] = True
-            if self.coasting_reference_turn >= 0:
-                out['coasting_reference_turn'] = float(self.coasting_reference_turn)
             out['num_slices'] = int(self._num_slices)
 
         if 'slice' in self.available_levels and not self.coasting:

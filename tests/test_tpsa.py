@@ -258,6 +258,9 @@ def test_tpsa_multiturn_track_matches_scalar_const_part():
     m = _map()
     line_tpsa.track(m, num_turns=2)
 
+    xo.assert_allclose(m.time_s, part.time_s, rtol=1e-15)
+    xo.assert_allclose(m.to_particles().time_s, part.time_s, rtol=1e-15)
+
     assert np.allclose(
         m.const_part,
         [
