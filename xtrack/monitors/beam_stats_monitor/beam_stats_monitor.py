@@ -138,7 +138,9 @@ class BeamStatsMonitor(BeamElement):
 
     With an active SyncTime frame clock, coasting mode bins physical arrival
     time, ``t_frame + (s - zeta) / (beta0 * c)``, in reference-revolution
-    periods. The reference energy must remain constant for this time grid.
+    periods. During acceleration, drive ``coasting_reference_turn`` with the
+    accumulated reference turns at the frame clock time. The longitudinal
+    slices retain their fixed zeta width; their time widths follow the ramp.
     ``start_at_turn`` and ``stop_at_turn`` then select reference-period bins,
     not simulation frames or the individual particles' revolution counts.
 
@@ -228,6 +230,11 @@ class BeamStatsMonitor(BeamElement):
     coasting : bool, optional
         If True, slice the full turn periodically for a coasting beam.
         Requires `num_slices` and rejects bunched-beam filling inputs.
+    coasting_reference_turn : float, optional
+        Accumulated reference turns at ``particles.t_frame``. Drive this value
+        from the EnergyProgram for coasting acquisition during acceleration
+        with a SyncTime frame clock. Negative (default) uses the constant
+        reference-speed arrival-time convention.
     particle_id_range : tuple[int, int], optional
         Inclusive-lower, exclusive-upper particle-id range to record. By
         default all particles are recorded.
@@ -245,6 +252,7 @@ class BeamStatsMonitor(BeamElement):
         'stop_at_turn': xo.Int64,
         'every_n_turns': xo.Int64,
         '_mode': xo.Int64,
+        'coasting_reference_turn': xo.Float64,
         '_num_records': xo.Int64,
         '_num_selected_slots': xo.Int64,
         '_num_slices': xo.Int64,
@@ -284,6 +292,7 @@ class BeamStatsMonitor(BeamElement):
                  filled_slots=None,
                  selected_slots=None,
                  coasting=False,
+                 coasting_reference_turn=-1.,
                  particle_id_range=None,
                  stats=None,
                  profiles=None,
@@ -302,6 +311,8 @@ class BeamStatsMonitor(BeamElement):
             return
 
         coasting = bool(coasting)
+        if coasting_reference_turn >= 0 and not coasting:
+            raise ValueError('`coasting_reference_turn` requires coasting mode')
         if coasting and num_slices is None:
             raise ValueError('`num_slices` must be provided in coasting mode')
         if coasting and zeta_range is not None:
@@ -516,6 +527,7 @@ class BeamStatsMonitor(BeamElement):
             stop_at_turn=int(stop_at_turn),
             every_n_turns=int(every_n_turns),
             _mode=mode,
+            coasting_reference_turn=coasting_reference_turn,
             _num_records=num_records,
             _num_selected_slots=num_selected_slots,
             _num_slices=num_slices_int,
@@ -633,14 +645,25 @@ class BeamStatsMonitor(BeamElement):
             return centers[None, :] - turn_offsets[:, None]
         return centers[None, :, :] - turn_offsets[:, None, None]
 
-    def time_centers(self, *, line_length, beta0):
+    def time_centers(self, *, line_length, beta0=None, energy_program=None):
         """
         Return time centers for the monitor's most detailed longitudinal grid.
+
+        For coasting acquisition during a ramp, pass ``energy_program``
+        instead of ``beta0`` to convert reference turns to laboratory time.
+        The leading half-turn before t=0 uses the injection reference speed.
         """
         line_length = float(line_length)
-        beta0 = float(beta0)
         centers = self._longitudinal_centers(line_length=line_length)
         turn_offsets = self.turns * line_length
+        if energy_program is not None:
+            if not self.coasting:
+                raise ValueError("`energy_program` requires coasting mode")
+            reference_turns = (turn_offsets[:, None] - centers[None, :])/line_length
+            times = energy_program.get_t_s_at_turn(reference_turns)
+            injection_period = line_length / (energy_program.get_beta0_at_t_s(0)*_C_LIGHT)
+            return np.where(reference_turns < 0, reference_turns*injection_period, times)
+        beta0 = float(beta0)
         if self.coasting:
             return ((turn_offsets[:, None] - centers[None, :])
                     / (beta0 * _C_LIGHT))
@@ -675,6 +698,8 @@ class BeamStatsMonitor(BeamElement):
             out['particle_id_range'] = self.particle_id_range
         if self.coasting:
             out['coasting'] = True
+            if self.coasting_reference_turn >= 0:
+                out['coasting_reference_turn'] = float(self.coasting_reference_turn)
             out['num_slices'] = int(self._num_slices)
 
         if 'slice' in self.available_levels and not self.coasting:

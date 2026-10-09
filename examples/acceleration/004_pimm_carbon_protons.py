@@ -1,15 +1,22 @@
 """Two bunches racing in PIMM: C-12(6+) at 7 MeV/u and equal-rigidity protons.
 
-Fixed magnetic rigidity, two h=1 RF systems, and no collective forces. Both
+A common rigidity ramp, two chirped h=1 RF systems, and no collective forces. Both
 species see both cavities. Separate coasting BeamStatsMonitors select the two
 particle-id ranges and reconstruct an ideal charge-current pickup in lab time.
 Coasting here describes the monitor's full-period acquisition, not the beam:
 the two beams are bunched.
 
+By default carbon accelerates from 7 to 8 MeV/u in about 422 us, followed by
+105 us at the final energy. Protons follow the same magnetic rigidity. The
+normalized magnet strengths stay fixed, and both RF frequencies and their
+integrated phases follow the ramp. The RF voltages are 40 kV and 30 kV.
+Pickup slices have fixed zeta width; their lab-time widths follow the ramp.
+
 Examples (paths are independent of the working directory)::
 
     python 004_pimm_carbon_protons.py
     python 004_pimm_carbon_protons.py --no-show --output-dir ./pickup_plots
+    python 004_pimm_carbon_protons.py --num-particles 128 --no-show
 
 The tracker is compiled from source because this example needs the coasting
 monitor's new frame-clock time binning. No full kernel-cache rebuild is needed.
@@ -23,6 +30,7 @@ from pathlib import Path
 
 import numpy as np
 from scipy.constants import c as clight, elementary_charge
+from scipy.integrate import cumulative_trapezoid
 
 import xtrack as xt
 import xtrack.synctime as st
@@ -34,7 +42,8 @@ PROTON_ID_START = 1_000_000
 COLORS = ('#007f86', '#d65b32')
 
 
-def simulate(num_particles=4000, num_carbon_turns=64, num_slices=512):
+def simulate(num_particles=4000, num_carbon_turns=256, num_slices=512,
+             final_energy_per_nucleon=8e6):
     data = Path(__file__).resolve().parents[2] / 'test_data' / 'pimms'
     line = xt.load([data / 'PIMMS.seq', data / 'pimms_optics.str']).pimms
     line.set_particle_ref('Carbon-12', kinetic_energy0=12*CARBON_EKIN_PER_NUCLEON)
@@ -50,6 +59,26 @@ def simulate(num_particles=4000, num_carbon_turns=64, num_slices=512):
     charge_ratio = proton.q0 / carbon.q0
     chi_p = charge_ratio / mass_ratio
 
+    # Keep the normalized magnetic strengths fixed: the physical dipole and
+    # quadrupole fields then rise with the common reference rigidity.
+    # Duration is measured in INJECTION carbon periods, not actual turns.
+    duration = num_carbon_turns * periods[0]
+    ramp_duration = .8 * duration
+    times = np.linspace(0, duration + 8*periods[0], 20001)
+    ramp_fraction = np.clip(times / ramp_duration, 0, 1)
+    smooth = 10*ramp_fraction**3 - 15*ramp_fraction**4 + 6*ramp_fraction**5
+    smooth_rate = 30*ramp_fraction**2*(1 - ramp_fraction)**2 / ramp_duration
+    p_start = float(carbon.p0c[0])
+    p_end = np.sqrt((carbon.mass0 + 12*final_energy_per_nucleon)**2
+                    - carbon.mass0**2)
+    momentum = p_start + (p_end - p_start)*smooth
+    momentum_rate = (p_end - p_start)*smooth_rate
+    voltage_acc = circumference/clight * momentum_rate/carbon.q0
+    # Both beams require the same energy gain per charge per revolution.
+    voltages = (40000., 30000.)
+    if np.max(np.abs(voltage_acc)) >= min(voltages):
+        raise ValueError('Ramp too fast for these RF voltages; increase num_carbon_turns')
+
     # Find the two transverse closed orbits with RF off. Equal rigidity means
     # delta=chi-1 in Xsuite's shared reference, including the proton near +1.
     tw_c = line.twiss4d()
@@ -58,7 +87,6 @@ def simulate(num_particles=4000, num_carbon_turns=64, num_slices=512):
     rng = np.random.default_rng(20261009)
     sigma_t = .01 * periods[0]
     arrival_offsets = np.array([.08, .28]) * periods[0]
-    voltages = (500., 300.)  # V, deliberately modest for this circulation demo
     beams = []
     for ii, (tw, species, chi, beta, voltage) in enumerate(zip(
             (tw_c, tw_p), (carbon, proton), (1., chi_p),
@@ -91,33 +119,63 @@ def simulate(num_particles=4000, num_carbon_turns=64, num_slices=512):
     particles = xt.Particles.merge(beams)
 
     line.discard_tracker()
+    rf_phases = []
     for ii, (name, position, beta, voltage) in enumerate(zip(
             ('rf_carbon', 'rf_proton'), (.001, .01), (beta_c, beta_p), voltages)):
-        # Phase is referred to the same lab-time origin at both locations.
-        phase = -2*np.pi*frequencies[ii]*(arrival_offsets[ii]
-                                        + position/(beta*clight))
-        line.insert(name, xt.Cavity(voltage=voltage, frequency=frequencies[ii],
-                                    phase=phase, absolute_time=True), at=position)
+        species = (carbon, proton)[ii]
+        pc = momentum * species.q0/carbon.q0
+        rf_frequency = clight/circumference * pc/np.sqrt(pc**2 + species.mass0**2)
+        # Integrate frequency; frequency(t)*t is not the chirped RF phase.
+        rf_phase = (2*np.pi*cumulative_trapezoid(rf_frequency, times, initial=0)
+                    + np.arcsin(voltage_acc/voltage)
+                    - 2*np.pi*frequencies[ii]*arrival_offsets[ii]
+                    - 2*np.pi*position/circumference)
+        rf_phases.append(rf_phase)
+        line.insert(name, xt.Cavity(voltage=voltage, absolute_time=True), at=position)
+        line.functions[f'frequency_{name}'] = xt.FunctionPieceWiseLinear(
+            x=times, y=rf_frequency)
+        line.functions[f'phase_{name}'] = xt.FunctionPieceWiseLinear(x=times, y=rf_phase)
+        clock = line.ref['t_turn_s']
+        line[name].frequency = line.functions[f'frequency_{name}'](clock)
+        line[name].phase = (line.functions[f'phase_{name}'](clock)
+                           - 2*np.pi*line.ref[name].frequency*clock)
 
     monitor_names = ('pickup_carbon', 'pickup_proton')
+    # Fixed zeta slices, indexed by accumulated carbon reference turns.
+    reference_turn_grid = cumulative_trapezoid(
+        clight/circumference * momentum/np.sqrt(momentum**2 + carbon.mass0**2),
+        times, initial=0)
+    num_reference_turns = int(np.ceil(np.interp(duration, times, reference_turn_grid)))
     monitors = []
     for name, first_id in zip(monitor_names, (0, PROTON_ID_START)):
         monitor = xt.BeamStatsMonitor(
-            start_at_turn=0, stop_at_turn=num_carbon_turns + 1,
+            start_at_turn=0, stop_at_turn=num_reference_turns + 1,
             coasting=True, num_slices=num_slices,
+            coasting_reference_turn=0.,
             particle_id_range=(first_id, first_id + num_particles),
             stats=['num_particles'])
         line.env.elements[name] = monitor
         monitors.append(monitor)
     line.insert(list(monitor_names), at=0)
+    # Install the EnergyProgram after lattice insertions, which create
+    # intermediate lines sharing the environment's element dictionary.
+    line.energy_program = xt.EnergyProgram(t_s=times, p0c=momentum)
+    line.functions['reference_turn'] = xt.FunctionPieceWiseLinear(
+        x=times, y=reference_turn_grid)
+    for name in monitor_names:
+        line[name].coasting_reference_turn = line.functions['reference_turn'](line.ref['t_turn_s'])
     st.install_sync_time_at_collective_elements(
         line, frame_clock=True, frame_relative_length=FRAME_FRACTION,
         at_element_names=monitor_names)
+    line.enable_time_dependent_vars = True
     # Compile the updated monitor kernel without replacing the user's cache.
     with xt.settings.override(allow_kernel_compilation=True):
         line.build_tracker(use_prebuilt_kernels=False)
 
-    num_frames = int(np.ceil((num_carbon_turns + 1) / FRAME_FRACTION)) + 1
+    reference_turns = np.interp(duration + periods[0],
+        line.energy_program.t_at_turn_interpolator.y,
+        line.energy_program.t_at_turn_interpolator.x)
+    num_frames = int(np.ceil(reference_turns / FRAME_FRACTION)) + 1
     print(f'Ring length: {circumference:.2f} m')
     print(f'Carbon: 7 MeV/u, f_rev = {frequencies[0]/1e3:.3f} kHz, '
           f'T_rev = {periods[0]*1e6:.4f} us')
@@ -127,33 +185,88 @@ def simulate(num_particles=4000, num_carbon_turns=64, num_slices=512):
     print(f'f_proton / f_carbon = {frequencies[1]/frequencies[0]:.6f}')
     print(f'{num_slices} samples per carbon period '
           f'({periods[0]/num_slices*1e9:.2f} ns bins)')
-    line.track(particles, num_turns=num_frames, with_progress=20)
+    print(f'Carbon ramp: 7 -> {final_energy_per_nucleon/1e6:g} MeV/u '
+          f'in {ramp_duration*1e6:.1f} us, followed by a flat top')
+    print(f'Peak accelerating voltage per charge: {voltage_acc.max():.1f} V')
 
-    # Monitor rows are lab-time bins of one carbon reference period. They are
-    # NOT SyncTime frames and NOT either species' individual turn counters.
-    time = monitors[0].time_centers(line_length=circumference, beta0=beta_c)
+    history = []
+    def record_beams(line, p):
+        snapshot = [float(p.t_frame)]
+        alive = (p.state > 0) | (p.state < -st.COAST_STATE_RANGE_START)
+        arrival = p.t_frame + (p.s - p.zeta)/(p.beta0*clight)
+        target_pc = np.interp(arrival, times, momentum)
+        rigidity_error = (1 + p.delta)/p.chi*p.p0c/target_pc - 1
+        for first_id in (0, PROTON_ID_START):
+            mask = (p.particle_id >= first_id) & (p.particle_id < first_id + num_particles)
+            live = mask & alive
+            # Include paused particles; each retains its physical energy.
+            kinetic = (p.energy - p.mass0*p.mass_ratio)[live]
+            snapshot.extend([np.count_nonzero(live)/num_particles,
+                np.mean(kinetic), np.std(kinetic),
+                np.max(np.abs(rigidity_error[live])) if np.any(live) else np.nan])
+        history.append(snapshot)
+        return 0
+
+    line.track(particles, num_turns=num_frames, with_progress=20,
+               log=xt.Log(beam_summary=record_beams))
+    record_beams(line, particles)
+    history = np.asarray(history)
+
+    # Convert the fixed zeta grid to lab time with the reference-turn/time map.
+    # Rows are NOT SyncTime frames or individual particles' turn counters.
+    time = monitors[0].time_centers(line_length=circumference,
+                                    energy_program=line.energy_program)
     counts = np.stack([np.asarray(mon.num_particles) for mon in monitors])
-    dt = periods[0] / num_slices
+    turn_edges = (np.arange(counts[0].size + 1)/num_slices - .5)
+    time_edges = line.energy_program.get_t_s_at_turn(turn_edges)
+    time_edges[turn_edges < 0] = turn_edges[turn_edges < 0]*periods[0]
+    dt = np.diff(time_edges).reshape(counts[0].shape)
     currents = counts * np.array([carbon.q0, proton.q0])[:, None, None]
     currents *= elementary_charge / dt
     survivors = []
+    bucket_fractions = []
     for ii, first_id in enumerate((0, PROTON_ID_START)):
         mask = ((particles.particle_id >= first_id)
                 & (particles.particle_id < first_id + num_particles))
         # Waiting SyncTime particles have reserved negative states; they live.
         alive = (particles.state > 0) | (particles.state < -st.COAST_STATE_RANGE_START)
         survivors.append(np.count_nonzero(mask & alive) / num_particles)
+        # At the flat top, compare with the stationary bucket of the own RF.
+        # Both cavities remain on: this is a capture diagnostic, not an exact
+        # invariant of the driven two-RF system.
+        arrival = particles.t_frame + (particles.s-particles.zeta)/(particles.beta0*clight)
+        position = (.001, .01)[ii]
+        phase = np.interp(arrival, times, rf_phases[ii]) - 2*np.pi*(particles.s-position)/circumference
+        species = (carbon, proton)[ii]
+        pc = p_end*species.q0/carbon.q0
+        energy = np.sqrt(pc**2 + species.mass0**2)
+        beta = pc/energy
+        eta = tw_c.momentum_compaction_factor - (species.mass0/energy)**2
+        bucket_dp = np.sqrt(2*species.q0*voltages[ii]/(np.pi*abs(eta)*beta**2*energy))
+        dp = (1 + particles.delta)/particles.chi*particles.p0c/p_end - 1
+        in_bucket = (dp/bucket_dp)**2 + np.sin(phase/2)**2 < 1
+        bucket_fractions.append(np.count_nonzero(mask & alive & in_bucket)/num_particles)
         turns = particles.at_turn[mask & alive]
         print(f'{("Carbon", "Proton")[ii]}: {survivors[-1]:.1%} surviving, '
-              f'{turns.min()}--{turns.max()} completed revolutions')
+              f'{turns.min() if len(turns) else 0}--{turns.max() if len(turns) else 0} '
+              f'completed revolutions; final mean kinetic energy '
+              f'{history[-1, 2 + 4*ii]/1e6:.6f} MeV, '
+              f'rms {history[-1, 3 + 4*ii]/1e3:.3f} keV; '
+              f'max rigidity error {history[-1, 4 + 4*ii]:.3g}; '
+              f'{bucket_fractions[-1]:.1%} inside own-RF flat-top bucket')
 
     return dict(line=line, particles=particles, monitors=monitors,
                 time_s=time, current_A=currents, counts=counts,
                 periods_s=periods, frequencies_Hz=frequencies,
                 proton_kinetic_energy_eV=proton.kinetic_energy0[0],
                 arrival_offsets_s=arrival_offsets,
-                num_carbon_turns=num_carbon_turns,
-                survivors=np.array(survivors))
+                num_carbon_turns=num_reference_turns,
+                acquisition_duration_s=duration, circumference_m=circumference,
+                history=history, ramp_times_s=times, ramp_p0c=momentum,
+                species_masses_eV=np.array([carbon.mass0, proton.mass0]),
+                species_charge_ratios=np.array([1., charge_ratio]),
+                final_energy_per_nucleon_eV=final_energy_per_nucleon,
+                survivors=np.array(survivors), bucket_fractions=np.array(bucket_fractions))
 
 
 def plot_pickup(result, output_dir, show=True):
@@ -178,7 +291,7 @@ def plot_pickup(result, output_dir, show=True):
         last = fig.add_subplot(grid[1, :], sharey=first)
         for ax, start, title in (
                 (first, 0., 'Initial passages'),
-                (last, (n_turns - 8)*period_us, 'Later passages')):
+                (last, result['acquisition_duration_s']*1e6 - 8*period_us, 'Later passages')):
             selection = (time_us >= start) & (time_us <= start + 8*period_us)
             for ii in range(2):
                 ax.plot(time_us[selection], currents[ii].ravel()[selection],
@@ -190,7 +303,7 @@ def plot_pickup(result, output_dir, show=True):
             ax.grid(alpha=.15)
         first.legend(loc='upper right', ncols=2, frameon=False)
         first.text(.005, .96,
-                   f'Carbon: 7 MeV/u   |   Proton: '
+                   f'Injection: C 7 MeV/u   |   p '
                    f'{result["proton_kinetic_energy_eV"]/1e6:.2f} MeV\n'
                    f'PIMM: 75.24 m   |   f_p / f_C = {freqs[1]/freqs[0]:.3f}',
                    transform=first.transAxes, va='top', fontsize=7.5)
@@ -201,21 +314,54 @@ def plot_pickup(result, output_dir, show=True):
             ax = fig.add_subplot(grid[2, ii])
             cmap = LinearSegmentedColormap.from_list('species', ['#ffffff', COLORS[ii]])
             picture = ax.imshow(currents[ii], origin='lower', aspect='auto',
-                extent=(-.5*period_us, .5*period_us, -.5, n_turns + .5),
+                extent=(-.5*result['circumference_m'], .5*result['circumference_m'],
+                        -.5, n_turns + .5),
                 cmap=cmap, vmin=0, vmax=vmax, interpolation='nearest')
             ax.set_title(f'{labels[ii]} — all recorded passages', loc='left', weight='bold')
-            ax.set(xlabel='Time within a carbon period [us]',
-                   ylabel='Carbon reference-period index')
+            ax.set(xlabel=r'Arrival coordinate $-\zeta$ within a turn [m]',
+                   ylabel='Carbon reference-turn index')
             fig.colorbar(picture, ax=ax, label='Pickup current [mA]', fraction=.045)
         fig.savefig(output_dir / '004_pimm_carbon_protons.png', dpi=180)
         fig.savefig(output_dir / '004_pimm_carbon_protons.pdf')
+
+        energy_fig, axes = plt.subplots(2, 1, figsize=(9, 5), dpi=100,
+                                       sharex=True, layout='constrained')
+        energy_fig.suptitle('Acceleration and beam survival', fontsize=15, weight='bold')
+        history = result['history']
+        for ii in range(2):
+            scale = (12., 1.)[ii]*1e6
+            mass = result['species_masses_eV'][ii]
+            pc = result['ramp_p0c']*result['species_charge_ratios'][ii]
+            target = (np.sqrt(pc**2 + mass**2) - mass)/scale
+            mean, sigma = history[:, 2 + 4*ii]/scale, history[:, 3 + 4*ii]/scale
+            ax = axes[ii]
+            ax.plot(result['ramp_times_s']*1e6, target, 'k--', lw=1, label='Programmed')
+            ax.plot(history[:, 0]*1e6, mean, color=COLORS[ii], label='Bunch mean')
+            ax.fill_between(history[:, 0]*1e6, mean-sigma, mean+sigma,
+                            color=COLORS[ii], alpha=.25, label='Bunch rms spread')
+            ax.set_ylabel(('Carbon [MeV/u]', 'Proton [MeV]')[ii])
+            ax.set_title(f'{labels[ii]}: {history[-1, 1+4*ii]:.1%} surviving', loc='left')
+            ax.grid(alpha=.15)
+        axes[0].legend(ncols=3, frameon=False)
+        axes[1].set_xlabel('Laboratory time [us]')
+        axes[1].set_xlim(0, history[-1, 0]*1e6)
+        energy_fig.savefig(output_dir / '004_pimm_carbon_protons_energy.png', dpi=180)
+        energy_fig.savefig(output_dir / '004_pimm_carbon_protons_energy.pdf')
 
     np.savez_compressed(output_dir / '004_pimm_carbon_protons.npz',
         time_s=result['time_s'], current_A=result['current_A'],
         counts=result['counts'], periods_s=result['periods_s'],
         frequencies_Hz=result['frequencies_Hz'],
         carbon_kinetic_energy_per_nucleon_eV=CARBON_EKIN_PER_NUCLEON,
-        proton_kinetic_energy_eV=result['proton_kinetic_energy_eV'])
+        proton_kinetic_energy_eV=result['proton_kinetic_energy_eV'],
+        num_carbon_turns=result['num_carbon_turns'], history=result['history'],
+        acquisition_duration_s=result['acquisition_duration_s'],
+        circumference_m=result['circumference_m'],
+        survivors=result['survivors'], bucket_fractions=result['bucket_fractions'],
+        ramp_times_s=result['ramp_times_s'], ramp_p0c=result['ramp_p0c'],
+        species_masses_eV=result['species_masses_eV'],
+        species_charge_ratios=result['species_charge_ratios'],
+        final_energy_per_nucleon_eV=result['final_energy_per_nucleon_eV'])
     print(f'Plots and pickup arrays saved in {output_dir.resolve()}')
     if show:
         plt.show()
@@ -225,7 +371,9 @@ def plot_pickup(result, output_dir, show=True):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--num-particles', type=int, default=4000)
-    parser.add_argument('--num-carbon-turns', type=int, default=64)
+    parser.add_argument('--num-carbon-turns', type=int, default=256,
+                        help='Acquisition duration in injection carbon periods')
+    parser.add_argument('--final-energy-mev-u', type=float, default=8.)
     parser.add_argument('--num-slices', type=int, default=512)
     parser.add_argument('--output-dir', type=Path,
                         default=Path(__file__).with_suffix(''))
@@ -236,5 +384,6 @@ if __name__ == '__main__':
     if args.no_show:
         import matplotlib
         matplotlib.use('Agg')
-    result = simulate(args.num_particles, args.num_carbon_turns, args.num_slices)
+    result = simulate(args.num_particles, args.num_carbon_turns, args.num_slices,
+                      args.final_energy_mev_u*1e6)
     plot_pickup(result, args.output_dir, show=not args.no_show)

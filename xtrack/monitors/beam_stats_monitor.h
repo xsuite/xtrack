@@ -212,12 +212,15 @@ void BeamStatsMonitor_track_local_particle(
                     double u = (
                         (double)effective_turn - zeta / line_length);
                     if (LocalParticle_get_at_frame(part) >= 0) {
-                        // SyncTime frames and particle revolutions have
-                        // different counters. Bin physical arrival time in
-                        // reference-revolution periods (fixed beta0).
+                        // Use accumulated reference turns during acceleration,
+                        // keeping a fixed zeta grid within each reference turn.
+                        double const reference_turn =
+                            BeamStatsMonitorData_get_coasting_reference_turn(el);
                         double const beta0 = LocalParticle_get_beta0(part);
-                        u = (LocalParticle_get_t_frame(part) * beta0 * C_LIGHT
-                             + LocalParticle_get_s(part) - zeta) / line_length;
+                        double const clock_turn = reference_turn >= 0.0
+                            ? reference_turn
+                            : LocalParticle_get_t_frame(part)*beta0*C_LIGHT/line_length;
+                        u = clock_turn + (LocalParticle_get_s(part) - zeta)/line_length;
                     }
                     effective_turn = (int64_t)floor(u + 0.5);
                     double relative_turn_fraction =

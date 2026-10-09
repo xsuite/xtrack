@@ -192,27 +192,33 @@ def test_frame_cavity_phase_and_legacy_time(test_context):
 
 @allow_kernel_compilation
 @for_all_test_contexts(excluding='ContextPyopencl')
-def test_coasting_monitors_use_frame_arrival_time(test_context):
+@pytest.mark.parametrize('ramping', [False, True])
+def test_coasting_monitors_use_frame_arrival_time(test_context, ramping):
     # Two species with unrelated revolution counters arrive in known bins at
     # a pickup away from s=0. Record each species separately, by particle id.
     monitors = [xt.BeamStatsMonitor(
         start_at_turn=0, stop_at_turn=6, coasting=True, num_slices=8,
+        coasting_reference_turn=2.1 if ramping else -1.,
         particle_id_range=ids, stats=['num_particles'])
         for ids in [(0, 2), (10, 12)]]
     line = xt.Line(elements=[xt.Drift(length=25), *monitors,
                              xt.Drift(length=75)])
     line.build_tracker(_context=test_context, use_prebuilt_kernels=False)
-    beta0 = .15
+    # A changed reference speed and an independent clock origin must keep
+    # the same fixed zeta slices around the accumulated reference turn.
+    beta0 = .21 if ramping else .15
     period = 100 / (beta0 * clight)
-    arrival = np.array([2.0625, 2.3125, 3.1875, 4.0625]) * period
+    frame_time = 9*period if ramping else 2.1*period
+    reference_turn = np.array([2.0625, 2.3125, 3.1875, 4.0625])
+    arrival = frame_time + (reference_turn - 2.1)*period
     p = xt.Particles(_context=test_context, beta0=beta0, at_frame=23,
-                     t_frame=2.1*period, s=25,
+                     t_frame=frame_time, s=25,
                      particle_id=[0, 1, 10, 11], at_turn=[1, 1, 7, 7],
                      mass_ratio=[1, 1, 1/12, 1/12],
                      charge_ratio=[1, 1, 1/6, 1/6],
                      delta=[0, 0, 1, 1],
                      weight=[1, 2, 3, 4],
-                     zeta=25 - beta0*clight*(arrival - 2.1*period))
+                     zeta=25 - beta0*clight*(arrival - frame_time))
     line.track(p, ele_start=1, ele_stop=3)
     expected = np.zeros((2, 6, 8))
     expected[0, 2, 4] = 1
@@ -223,4 +229,23 @@ def test_coasting_monitors_use_frame_arrival_time(test_context):
         xo.assert_allclose(monitor.num_particles, expected[ii], rtol=0, atol=0)
         tt = monitor.time_centers(line_length=100, beta0=beta0)
         recorded = tt[expected[ii] > 0]
-        xo.assert_allclose(recorded, arrival[2*ii:2*ii+2], atol=1e-20, rtol=1e-14)
+        xo.assert_allclose(recorded, reference_turn[2*ii:2*ii+2]*period,
+                           atol=1e-20, rtol=1e-14)
+        restored = xt.BeamStatsMonitor.from_dict(monitor.to_dict())
+        assert restored.coasting_reference_turn == monitor.coasting_reference_turn
+
+
+def test_coasting_time_centers_follow_energy_program():
+    monitor = xt.BeamStatsMonitor(coasting=True, num_slices=8,
+                                 start_at_turn=0, stop_at_turn=5)
+    line = xt.Line(elements=[xt.Drift(length=100)])
+    line.particle_ref = xt.Particles(p0c=1e9)
+    line.energy_program = xt.EnergyProgram(t_s=np.linspace(0, 1e-5, 100),
+                                          p0c=np.linspace(1e9, 2e9, 100))
+    turns = -monitor.zeta_centers_unwrapped(line_length=100)/100
+    actual = monitor.time_centers(line_length=100, energy_program=line.energy_program)
+    expected = line.energy_program.get_t_s_at_turn(turns)
+    expected[turns < 0] = turns[turns < 0]*100/(line.particle_ref.beta0[0]*clight)
+    xo.assert_allclose(actual, expected, rtol=1e-14, atol=0)
+    assert np.all(np.diff(actual.ravel()) > 0)
+    assert np.diff(actual[-1]).mean() < np.diff(actual[0]).mean()
