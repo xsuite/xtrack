@@ -559,6 +559,8 @@ def test_beam_stats_monitor_particle_id_range_coasting(test_context):
         particle_id=[0, 1, 2, 3],
     )
 
+    # Coasting bins use the particle clock, not at_turn. Setting at_turn
+    # does not set time_s, so initialize it to at_turn * C / (beta0*c).
     particles.time_s = 8. / (float(particles._xobject.beta0[0]) * 299792458.)
     line.track(particles, num_turns=1)
 
@@ -1097,6 +1099,8 @@ def test_beam_stats_monitor_coasting_slice_stats(test_context):
         at_turn=[1, 1, 1, 1, 1, 1],
     )
 
+    # Coasting bins use the particle clock, not at_turn. Setting at_turn
+    # does not set time_s, so initialize it to at_turn * C / (beta0*c).
     particles.time_s = 8. / (float(particles._xobject.beta0[0]) * 299792458.)
     line.track(particles, num_turns=1)
 
@@ -1191,6 +1195,8 @@ def test_beam_stats_monitor_coasting_folds_particles_to_effective_turn(
         at_turn=[1, 1, 1, 1, 1, 1],
     )
 
+    # Coasting bins use the particle clock, not at_turn. Setting at_turn
+    # does not set time_s, so initialize it to at_turn * C / (beta0*c).
     particles.time_s = 8. / (float(particles._xobject.beta0[0]) * 299792458.)
     line.track(particles, num_turns=1)
 
@@ -1235,6 +1241,8 @@ def test_beam_stats_monitor_coasting_hdf5_public_shape(test_context, tmp_path):
         at_turn=[1, 1, 1, 1, 1, 1],
     )
 
+    # Coasting bins use the particle clock, not at_turn. Setting at_turn
+    # does not set time_s, so initialize it to at_turn * C / (beta0*c).
     particles.time_s = 8. / (float(particles._xobject.beta0[0]) * 299792458.)
     line.track(particles, num_turns=1)
     monitor.save_to_file()
@@ -1424,6 +1432,8 @@ def test_beam_stats_monitor_profiles_slice_and_coasting_shapes(test_context):
         at_turn=[1, 1, 1, 1],
     )
 
+    # Coasting bins use the particle clock, not at_turn. Setting at_turn
+    # does not set time_s, so initialize it to at_turn * C / (beta0*c).
     coasting_particles.time_s = 8. / (float(coasting_particles._xobject.beta0[0]) * 299792458.)
     line.track(coasting_particles, num_turns=1)
 
@@ -1562,6 +1572,8 @@ def test_beam_stats_monitor_clear(test_context, mode, with_profiles):
         _context=test_context, p0c=7e12,
         x=[1., 3.], zeta=[-0.5, -10.5], weight=[2., 1.], at_turn=3,
     )
+    # Coasting bins use the particle clock, not at_turn. Setting at_turn
+    # does not set time_s, so initialize it to at_turn * C / (beta0*c).
     particles.time_s = 3 * 100. / (float(particles._xobject.beta0[0]) * 299792458.)
     configuration = monitor.to_dict()
     xobject = monitor._xobject

@@ -8593,9 +8593,13 @@ class EnergyProgram:
         e0 = np.hypot(p0, self._mass0)
         gain = np.abs(slope) * distance_over_c
         p = np.sqrt(p0**2 + gain * (2*e0 + gain))
-        # E-E0 = |a|*distance_over_c; invert P(t) and rationalize P-P0:
-        # dt = distance_over_c*(2*E0 + |a|*distance_over_c)/(P+P0).
-        # This also reduces to distance_over_c/beta for constant momentum.
+        # Write D = distance_over_c and a = dP/dt, with P = p*c and
+        # E = sqrt(P**2 + (m*c**2)**2). Starting from the lower-momentum
+        # endpoint gives E-E0 = |a|*D = gain and dt = (P-P0)/|a|.
+        # Using (P-P0)*(P+P0) = E**2-E0**2 = gain*(2*E0+gain),
+        # substitute gain = |a|*D and cancel |a| to obtain
+        # dt = D*(2*E0+gain)/(P+P0), avoiding subtraction of nearby momenta.
+        # For constant nonzero P, gain=0 and this gives dt = D*E0/P0 = D/beta.
         dt = np.divide(distance_over_c * (2*e0 + gain), p + p0,
                        out=np.zeros_like(n), where=(p + p0) != 0)
         out = times[anchor] + direction * dt
