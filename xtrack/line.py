@@ -8692,8 +8692,14 @@ class EnergyProgram:
         self = cls.__new__(cls)
         self.p0c_interpolator = xd.FunctionPieceWiseLinear.from_dict(
                                         dct['p0c_interpolator'])
-        # Old files may also contain an approximate t_at_turn_interpolator.
-        # Rebuild exact turn knots from the momentum ramp when attached to a line.
+        # Old files may also contain an approximate t_at_turn_interpolator;
+        # ignore it and reconstruct the analytical turn/time map from the
+        # saved momentum ramp. The ramp is already constructed, so no input
+        # energy-to-momentum conversion is needed (needs_complete=False).
+        # The program is not yet attached to a machine: leave line=None until
+        # attachment supplies the circumference and reference mass. The line
+        # setter then rebuilds the exact accumulated turn counts at the ramp
+        # time knots, which are needed for turn/time queries.
         self.needs_complete = False
         self.line = None
         return self
