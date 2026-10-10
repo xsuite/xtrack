@@ -36,14 +36,14 @@ void track_magnet_kick_path_correction_single_particle_h0(
     LocalParticle* part, double length
 ) {
     if (length == 0.0) return;
-    const double px = LocalParticle_get_px(part);
-    const double py = LocalParticle_get_py(part);
-    const double one_plus_delta = 1.0 + LocalParticle_get_delta(part);
-    const double inv_p = LocalParticle_get_rpp(part);  // == 1/(1 + delta)
-    const double rv0v = 1.0 / LocalParticle_get_rvv(part);
-    const double p_perp2 = px * px + py * py;
-    const double one_over_pz = 1.0 / sqrt(one_plus_delta * one_plus_delta - p_perp2);
-    const double d_length = length * (one_over_pz - inv_p);
+    xt_float_or_tpsa const px = LocalParticle_get_px(part);
+    xt_float_or_tpsa const py = LocalParticle_get_py(part);
+    xt_float_or_tpsa const one_plus_delta = 1.0 + LocalParticle_get_delta(part);
+    xt_float_or_tpsa const inv_p = LocalParticle_get_rpp(part);  // == 1/(1 + delta)
+    xt_float_or_tpsa const rv0v = 1.0 / LocalParticle_get_rvv(part);
+    xt_float_or_tpsa const p_perp2 = px * px + py * py;
+    xt_float_or_tpsa const one_over_pz = 1.0 / sqrt(one_plus_delta * one_plus_delta - p_perp2);
+    xt_float_or_tpsa const d_length = length * (one_over_pz - inv_p);
 
     LocalParticle_add_to_x(part, px * d_length);
     LocalParticle_add_to_y(part, py * d_length);
