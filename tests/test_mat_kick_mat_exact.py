@@ -6,6 +6,7 @@ import xtrack as xt
 
 N_KICKS_YOSHIDA = 7
 
+
 def make_particles(context, off_momentum=False):
     if off_momentum:
         return xt.Particles(

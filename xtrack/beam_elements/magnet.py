@@ -80,15 +80,11 @@ class Magnet(_BendCommon, BeamElement):
             - ``mat-kick-mat``: use an expanded combined-function magnet map
                 for ``k0``, ``k1``, ``h``, and handle the other strengths in
                 the kicks.
-            - ``mat-kick-mat-exact``: same combined-function map as
-                ``mat-kick-mat`` for ``k0``, ``k1``, ``h``, but additionally
-                applies an exact momentum-only path-length correction, making
-                the splitting error in the body map's ``1/(1 + delta)``
-                scaling vanish instead of merely staying small. This is only
-                exact for a straight magnet (``h == 0``, e.g. ``k0`` alone is
-                fine); when ``h != 0`` the correction would not capture the
-                curvature's coupling into the residual, so this model
-                silently behaves exactly like ``mat-kick-mat`` instead.
+            - ``mat-kick-mat-exact``: like ``mat-kick-mat``, with an additional
+                exact path correction in the kicks, which removes the
+                ``1/(1 + delta)`` approximation of the expanded map. Only
+                applied for ``h == 0``; for ``h != 0`` it is identical to
+                ``mat-kick-mat``.
             - ``drift-kick-drift-exact``: use an exact drift map with no curvature,
                 and handle all strengths in the kicks.
             - ``drift-kick-drift-expanded``: use an expanded drift map with no

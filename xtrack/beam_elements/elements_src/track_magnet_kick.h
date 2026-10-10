@@ -87,13 +87,8 @@ void track_magnet_kick_single_particle(
     double const length_of_this_kick = length * kick_weight;
 
     if (kick_is_empty) {
-        // Every field this function would apply is exactly zero (the caller
-        // checked), so the multipole kicks and the curvature corrections
-        // below are all no-ops and are skipped outright.
-        //
-        // For mat-kick-mat-exact that leaves nothing between the two path
-        // corrections, and the correction is a momentum-only map, so
-        // B(l/2) B(l/2) = B(l) and a single call does the job.
+        // Nothing to apply: skip the kick. For mat-kick-mat-exact the two
+        // half path corrections depend only on the momenta, so they merge.
         if (drift_model == 9) {
             track_magnet_kick_path_correction_single_particle_h0(
                 part, length_of_this_kick);

@@ -510,11 +510,7 @@ void track_magnet_particles(
             &drift_model
         );
 
-        /* True when the kick has no field left to apply at all: every
-         * multipole and curvature correction it would compute is exactly
-         * zero. Thick models routinely leave the kick empty -- in
-         * mat-kick-mat-exact the exact path correction is applied instead;
-         * see track_magnet_kick_single_particle. */
+        // The kick is empty if all its multipole and curvature terms vanish
         uint8_t const kick_is_empty = (hxl == 0.0)
             && kick_is_inactive(
                 order, knl, ksl,

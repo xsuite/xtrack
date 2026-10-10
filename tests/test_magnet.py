@@ -1936,6 +1936,7 @@ def test_convergence_mat_kick_mat():
     xo.assert_allclose(p_ref.zeta, p_yoshida.zeta, rtol=0, atol=1e-13)
     xo.assert_allclose(p_ref.delta, p_yoshida.delta, rtol=0, atol=1e-13)
 
+
 @for_all_test_contexts
 def test_convergence_mat_kick_mat_exact(test_context):
     n_kicks_yoshida = 7
