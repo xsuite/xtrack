@@ -8514,6 +8514,12 @@ class EnergyProgram:
 
     @line.setter
     def line(self, line):
+        # Attach the program to a line and build its analytical turn/time map.
+        # The momentum ramp alone is insufficient: converting momentum to
+        # revolution frequency also needs the line's reference mass and length.
+        # Validate the ramp and recompute accumulated turns at its time knots
+        # on attachment, including after loading or copying a saved program.
+        # Assigning None leaves the program unattached and skips this setup.
         self._line = line
         if line is None:
             return
