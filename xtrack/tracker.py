@@ -547,7 +547,7 @@ class Tracker:
                 num_ele_line=len(tracker_data.element_names),
                 line_length=tracker_data.line_length,
                 time_s=p.time_s,
-                reference_turn=p.time_s / p.t_sim if p.t_sim else 0.,
+                reference_turns=p.time_s / p.t_sim if p.t_sim else 0.,
                 end_turn_zeta_shift=0.,
                 buffer_tbt_monitor=dummy_buffer,
                 offset_tbt_monitor=0,
@@ -833,7 +833,7 @@ class Tracker:
                              int num_ele_line,
                              double line_length,
                              double time_s,
-                             double reference_turn,
+                             double reference_turns,
                              double end_turn_zeta_shift,
                 /*gpuglmem*/ int8_t* buffer_tbt_monitor,
                              int64_t offset_tbt_monitor,
@@ -894,14 +894,14 @@ class Tracker:
             Particles_to_LocalParticle(particles, &lpart, part_id, end_id);
 
             lpart.time_s = time_s;
-            lpart.reference_turn = reference_turn;
+            lpart.reference_turns = reference_turns;
             int64_t isactive = check_is_active(&lpart);
 #else
             LocalParticle lpart;
             Particles_to_LocalParticle(particles, &lpart, 0, 1);
             lpart.line_length = line_length;
             lpart.time_s = time_s;
-            lpart.reference_turn = reference_turn;
+            lpart.reference_turns = reference_turns;
             lpart._num_active_particles = 1;
             lpart._num_lost_particles = 0;
             lpart.track_flags = track_flags;
@@ -947,7 +947,7 @@ class Tracker:
                                                     line_length, num_ele_line,
                                                     end_turn_zeta_shift);
                         lpart.time_s -= lpart.t_sim;
-                        lpart.reference_turn -= 1.;
+                        lpart.reference_turns -= 1.;
                     }
                 }
                 else{
@@ -1074,7 +1074,7 @@ class Tracker:
 #endif
                 ) {
                     lpart.time_s += lpart.t_sim;
-                    lpart.reference_turn += 1.;
+                    lpart.reference_turns += 1.;
                 }
             } // for turns
 
@@ -1227,7 +1227,7 @@ class Tracker:
                     xo.Arg(xo.Int32, name='num_ele_line'),
                     xo.Arg(xo.Float64, name='line_length'),
                     xo.Arg(xo.Float64, name='time_s'),
-                    xo.Arg(xo.Float64, name='reference_turn'),
+                    xo.Arg(xo.Float64, name='reference_turns'),
                     xo.Arg(xo.Float64, name='end_turn_zeta_shift'),
                     xo.Arg(xo.Int8, pointer=True, name="buffer_tbt_monitor"),
                     xo.Arg(xo.Int64, name="offset_tbt_monitor"),
@@ -2089,18 +2089,18 @@ class Tracker:
     def _clock_kernel_arguments(self, particles):
         length = self._tracker_data_base.line_length
         beta_c = particles._xobject.beta0[0] * clight
-        reference_turn = particles.time_s * beta_c / length if length else 0.
+        reference_turns = particles.time_s * beta_c / length if length else 0.
         zeta_shift = 0.
         program = self.line.energy_program
         if program is not None and self.line.enable_time_dependent_vars:
-            reference_turn = program.get_turn_at_t_s(particles.time_s)
+            reference_turns = program.get_turn_at_t_s(particles.time_s)
             if self._sync_time_clock is None:
                 # Resetting s and advancing time must preserve arrival time,
                 # even when the exact ramp duration differs from C/(beta0*c).
                 zeta_shift = beta_c * particles.t_sim - length
         if not self.reset_s_at_end_turn:
             zeta_shift += length
-        return dict(time_s=particles.time_s, reference_turn=reference_turn,
+        return dict(time_s=particles.time_s, reference_turns=reference_turns,
                     end_turn_zeta_shift=zeta_shift)
 
     def _handle_time_dependent_vars(self, particles):

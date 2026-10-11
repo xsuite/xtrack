@@ -29,7 +29,7 @@ struct LocalParticle {
     int64_t endpart;
     uint64_t track_flags;
     double line_length;
-    double reference_turn; // NAN outside a tracker
+    double reference_turns; // Accumulated reference revolutions at time_s; NAN outside a tracker
     int8_t* io_buffer;
 };
 
@@ -41,7 +41,7 @@ static inline void Particles_to_LocalParticle(
         XT_LP_TPSA_NUM_FIELDS(COPY_NUM_FROM_PARTICLES)
     #undef COPY_NUM_FROM_PARTICLES
 
-    dest->reference_turn = NAN;
+    dest->reference_turns = NAN;
     #define COPY_SCALAR_FROM_PARTICLES(TYPE, NAME) \
         dest->NAME = TpsaParticleData_get_ ## NAME(source);
         XT_LP_SCALAR_FIELDS(COPY_SCALAR_FROM_PARTICLES)

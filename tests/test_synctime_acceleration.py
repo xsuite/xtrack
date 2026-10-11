@@ -207,8 +207,8 @@ def test_coasting_monitors_use_frame_arrival_time(test_context, ramping):
         frame_time = float(line.energy_program.get_t_s_at_turn(np.array(2.1)))
         beta0 = float(line.energy_program.get_beta0_at_t_s(frame_time))
         period = 100 / (beta0 * clight)
-    reference_turn = np.array([2.0625, 2.3125, 3.1875, 4.0625])
-    arrival = frame_time + (reference_turn - 2.1)*period
+    arrival_turns = np.array([2.0625, 2.3125, 3.1875, 4.0625])
+    arrival = frame_time + (arrival_turns - 2.1)*period
     p = xt.Particles(_context=test_context, beta0=beta0,
                      time_s=frame_time, s=25,
                      particle_id=[0, 1, 10, 11], at_turn=[1, 1, 7, 7],
@@ -231,7 +231,7 @@ def test_coasting_monitors_use_frame_arrival_time(test_context, ramping):
         xo.assert_allclose(monitor.num_particles, expected[ii], rtol=0, atol=0)
         tt = monitor.time_centers(line_length=100, beta0=beta0)
         recorded = tt[expected[ii] > 0]
-        xo.assert_allclose(recorded, reference_turn[2*ii:2*ii+2]*period,
+        xo.assert_allclose(recorded, arrival_turns[2*ii:2*ii+2]*period,
                            atol=1e-20, rtol=1e-14)
         restored = xt.BeamStatsMonitor.from_dict(monitor.to_dict())
         assert restored.to_dict() == monitor.to_dict()
