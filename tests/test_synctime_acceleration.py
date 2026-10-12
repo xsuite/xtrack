@@ -96,6 +96,8 @@ def test_two_species_against_lab_time_tracking(test_context, ramp):
     for frame in range(45):
         line.track(p, num_turns=1)
         snapshot = p.copy(_context=xo.ContextCpu())
+        xo.assert_allclose(snapshot.reference_turns,
+                           (frame + 1) * st.DEFAULT_FRAME_RELATIVE_LENGTH, rtol=2e-15)
         assert snapshot.time_s > previous_clock
         xo.assert_allclose(line['t_turn_s'], previous_clock, atol=1e-20)
         previous_clock = snapshot.time_s
@@ -133,6 +135,7 @@ def test_clock_restart_and_independent_ensembles(test_context):
     p = p.copy(_context=xo.ContextCpu())
     restored = restored.copy(_context=xo.ContextCpu())
     assert restored.time_s == p.time_s
+    assert restored.reference_turns == p.reference_turns
     for name in ('s', 'zeta', 'delta', 'p0c', 'at_turn', 'state', 'particle_id'):
         xo.assert_allclose(getattr(restored, name), getattr(p, name),
                            rtol=0, atol=0)
@@ -222,7 +225,7 @@ def test_coasting_monitors_use_frame_arrival_time(test_context, ramping):
         line.tracker._track_no_collective(p, ele_start=1, ele_stop=3)
     else:
         line.track(p, ele_start=1, ele_stop=3)
-    assert np.isnan(p._reference_turns)
+    xo.assert_allclose(p.reference_turns, 2.1, rtol=1e-14)
     expected = np.zeros((2, 6, 8))
     expected[0, 2, 4] = 1
     expected[0, 2, 6] = 2
@@ -266,6 +269,8 @@ def test_clock_partial_turns_losses_and_empty_ensemble(num_threads):
     period = 100 / (float(p._xobject.beta0[0]) * clight)
     line.track(p, ele_stop=1)
     assert p.time_s == 3e-6  # no turn boundary crossed
+    initial_turns = p.reference_turns
+    xo.assert_allclose(initial_turns, 3e-6 / period, rtol=1e-15)
     line.track(p, ele_start=1)
     xo.assert_allclose(p.time_s, 3e-6 + period, rtol=1e-15)
     assert np.count_nonzero(p.state > 0) == 2
@@ -275,6 +280,7 @@ def test_clock_partial_turns_losses_and_empty_ensemble(num_threads):
     p.reorganize()
     line.track(p, num_turns=23)
     xo.assert_allclose(p.time_s, 3e-6 + 43*period, rtol=1e-15)
+    xo.assert_allclose(p.reference_turns, initial_turns + 43, rtol=1e-15)
 
 
 @for_all_test_contexts
@@ -285,7 +291,7 @@ def test_tracking_kernel_leaves_shared_clock_unchanged(test_context, monkeypatch
     initial_time = 3e-6
     p = xt.Particles(_context=test_context, p0c=1e9, time_s=initial_time,
                      x=np.zeros(2048))
-    assert np.isnan(p._reference_turns)
+    assert np.isnan(p.reference_turns)
     # Different threads can finish at different times, or skip tracking entirely.
     p.state[::2] = -1
     p.reorganize()
@@ -298,12 +304,12 @@ def test_tracking_kernel_leaves_shared_clock_unchanged(test_context, monkeypatch
         def __call__(self, **kwargs):
             particles = kwargs['particles']
             before = particles.time_s
-            reference_turns = particles._reference_turns
+            reference_turns = particles.reference_turns
             xo.assert_allclose(reference_turns, before / period, rtol=1e-15)
             kernel(**kwargs)
             # Reading the scalar also waits for the GPU kernel to finish.
             assert particles.time_s == before
-            assert particles._reference_turns == reference_turns
+            assert particles.reference_turns == reference_turns
             kernel_times.append(before)
 
     monkeypatch.setattr(line.tracker, 'get_track_kernel_and_data_for_present_config',
@@ -311,7 +317,40 @@ def test_tracking_kernel_leaves_shared_clock_unchanged(test_context, monkeypatch
     line.track(p, num_turns=5)
     xo.assert_allclose(kernel_times, [initial_time, initial_time + period], rtol=1e-15)
     xo.assert_allclose(p.time_s, initial_time + 5*period, rtol=1e-15)
-    assert np.isnan(p._reference_turns)
+    xo.assert_allclose(p.reference_turns, initial_time / period + 5, rtol=1e-15)
+
+
+@for_all_test_contexts
+def test_reference_turns_persist_and_reinitialize(test_context, monkeypatch, tmp_path):
+    line = xt.Line(elements=[xt.Drift(length=100)])
+    line.build_tracker(_context=test_context)
+    p = xt.Particles(_context=test_context, p0c=1e9)
+    period = 100 / (float(p._xobject.beta0[0]) * clight)
+    p.time_s = .25 * period
+    line.track(p, num_turns=7)
+    counter = p.reference_turns
+    xo.assert_allclose(counter, 7.25, rtol=1e-15)
+    assert p.copy().reference_turns == counter
+
+    # Tracking/restarting must retain the counter without reconstructing it
+    # from the floating-point time at every kernel launch.
+    get_reference_turns = line.tracker._get_reference_turns
+    def unexpected_reinitialization(particles):
+        pytest.fail('The reference-turn counter was unnecessarily reinitialized')
+    monkeypatch.setattr(line.tracker, '_get_reference_turns', unexpected_reinitialization)
+    path = tmp_path / 'particles.json'
+    p.to_json(path, compact=True)
+    restored = xt.Particles.from_json(path, _context=test_context)
+    assert restored.reference_turns == counter
+    line.track(restored, num_turns=5)
+    assert restored.reference_turns == counter + 5
+
+    # A manual time change can explicitly request a new counter origin.
+    monkeypatch.setattr(line.tracker, '_get_reference_turns', get_reference_turns)
+    restored.time_s = 2.5 * period
+    restored.reference_turns = np.nan
+    line.track(restored)
+    xo.assert_allclose(restored.reference_turns, 3.5, rtol=1e-15)
 
 
 @for_all_test_contexts
@@ -331,11 +370,15 @@ def test_clock_chunking_backtracking_and_absolute_rf(test_context, reset_s):
     for turns in [2, 13, 16]:
         line.track(chunked, num_turns=turns)
     xo.assert_allclose(p.time_s, chunked.time_s, rtol=2e-15)
+    xo.assert_allclose(p.reference_turns, chunked.reference_turns, rtol=2e-15)
     for name in ['zeta', 'delta', 's', 'at_turn']:
         xo.assert_allclose(getattr(p, name), getattr(chunked, name),
                            rtol=1e-11, atol=1e-10)
     line.track(p, num_turns=31, backtrack=True)
     xo.assert_allclose(p.time_s, initial.time_s, rtol=2e-14)
+    xo.assert_allclose(p.reference_turns,
+                       initial.time_s * float(initial._xobject.beta0[0]) * clight / 100,
+                       rtol=2e-14)
     for name in ['zeta', 'delta', 's', 'at_turn']:
         xo.assert_allclose(getattr(p, name), getattr(initial, name),
                            rtol=1e-10, atol=1e-9)
@@ -382,6 +425,7 @@ def test_energy_program_clock_preserves_physical_flight_time(test_context, reset
     actual = p.copy(_context=xo.ContextCpu())
     expected_clock = line.energy_program.get_t_s_at_turn(np.array(nturns))
     xo.assert_allclose(actual.time_s, expected_clock, rtol=2e-14)
+    assert actual.reference_turns == nturns
     # With no RF, each particle keeps its energy and physical velocity while
     # the reference momentum and frame duration change.
     flight_time = (initial.time_s - initial.zeta/(initial.beta0*clight)
@@ -410,12 +454,14 @@ def test_sync_time_clock_advances_while_all_particles_wait(num_threads):
     arrival = -p.zeta / (p.beta0 * clight)
     line.track(p, num_turns=2)
     xo.assert_allclose(p.time_s, period, rtol=1e-15)
+    assert p.reference_turns == 1.
     assert np.all(p.state < -st.COAST_STATE_RANGE_START)
     xo.assert_allclose(p.time_s + (p.s-p.zeta)/(p.beta0*clight),
                        arrival[p.particle_id], rtol=2e-15)
     line.track(p, num_turns=5)
     assert np.any(p.at_turn > 0)
     xo.assert_allclose(p.time_s, 3.5*period, rtol=2e-15)
+    assert p.reference_turns == 3.5
 
 
 def test_sparse_energy_program_resolves_reference_clock_speed():

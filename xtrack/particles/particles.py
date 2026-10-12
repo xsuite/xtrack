@@ -37,7 +37,7 @@ scalar_vars = (
     (xo.Float64, 'mass0'),
     (xo.Float64, 't_sim'),
     (xo.Float64, 'time_s'),
-    (xo.Float64, '_reference_turns'),
+    (xo.Float64, 'reference_turns'),
 )
 
 part_energy_vars = (
@@ -245,6 +245,12 @@ class Particles(xo.HybridClass):
             Shared simulation clock [s], advanced at every completed turn or
             SyncTime frame. Particle arrival time is
             time_s + (s - zeta) / (beta0 * c). Defaults to zero.
+        reference_turns : float, optional
+            Accumulated reference revolutions at time_s, including fractional
+            turns. Advanced by one per turn, or by frame_relative_length per
+            SyncTime frame. Defaults to NaN, which initializes it from time_s
+            on the next tracking call. Reset to NaN after manually changing
+            time_s or its reference-turn map (line length / energy program).
         name : str, optional
             Optional label attached to this Particles object as ``name``.
             It does not affect particle identifiers or tracking.
@@ -371,9 +377,10 @@ class Particles(xo.HybridClass):
         self.mass0 = kwargs.get('mass0', PROTON_MASS_EV)
         self.t_sim = kwargs.get('t_sim', 0)
         self.time_s = kwargs.get('time_s', 0)
-        # Tracker input: accumulated reference revolutions at time_s.
-        # NAN outside tracking, where no line/energy-program map is available.
-        self._reference_turns = kwargs.get('_reference_turns', np.nan)
+        # Persistent accumulated reference revolutions at time_s. NAN asks the
+        # tracker to initialize from time_s; reset to NAN after manually changing
+        # time_s or its reference-turn map (line length / energy program).
+        self.reference_turns = kwargs.get('reference_turns', np.nan)
         self.start_tracking_at_element = kwargs.get(
                             'start_tracking_at_element', -1)
 
@@ -753,11 +760,9 @@ class Particles(xo.HybridClass):
 
         # Check that scalar variables are compatible
         for tt, nn in cls.scalar_vars:
-            if nn == '_reference_turns':
-                continue  # Derived tracker input, not an independent beam property
             vals = [getattr(pp, nn) for pp in cpu_lst]
             assert np.allclose(vals, getattr(cpu_lst[0], nn),
-                               rtol=0, atol=1e-14)
+                               rtol=0, atol=1e-14, equal_nan=(nn == 'reference_turns'))
 
         # Make new particle on CPU
         capacity = np.sum([pp._capacity for pp in cpu_lst])
@@ -1037,10 +1042,10 @@ class Particles(xo.HybridClass):
             raise NotImplementedError("Out of space, need to regenerate xobject")
 
         for tt, nn in self.scalar_vars:
-            if nn in ('t_sim', '_reference_turns'):
+            if nn == 't_sim':
                 continue
             assert np.isclose(getattr(self, nn), getattr(part, nn),
-                              rtol=1e-14, atol=1e-14)
+                              rtol=1e-14, atol=1e-14, equal_nan=(nn == 'reference_turns'))
 
         with self._bypass_linked_vars():
             for tt, nn in self.per_particle_vars:

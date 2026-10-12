@@ -12,17 +12,27 @@ import xobjects as xo
 import xpart as xp
 
 
-def test_combine_particles_with_unset_reference_turns():
-    first = xt.Particles(p0c=1e9, x=1., _capacity=3)
-    second = xt.Particles(p0c=1e9, x=2.)
-    # An unset tracker input must not prevent combining compatible beams.
-    assert np.isnan(first._reference_turns)
+@pytest.mark.parametrize('reference_turns', [np.nan, 3.25])
+def test_combine_particles_with_reference_turns(reference_turns):
+    first = xt.Particles(p0c=1e9, x=1., _capacity=3, reference_turns=reference_turns)
+    second = xt.Particles(p0c=1e9, x=2., reference_turns=reference_turns)
+    # Unset or matching counters allow combining compatible beams.
     merged = xt.Particles.merge([first, second])
-    assert np.isnan(merged._reference_turns)
+    np.testing.assert_equal(merged.reference_turns, reference_turns)
     xo.assert_allclose(np.sort(merged.x[merged.state > 0]), [1., 2.])
     first.add_particles(second)
-    assert np.isnan(first._reference_turns)
+    np.testing.assert_equal(first.reference_turns, reference_turns)
     xo.assert_allclose(np.sort(first.x[first.state > 0]), [1., 2.])
+
+
+@pytest.mark.parametrize('other_turns', [np.nan, 4.25])
+def test_combine_particles_rejects_different_reference_turns(other_turns):
+    first = xt.Particles(p0c=1e9, _capacity=3, reference_turns=3.25)
+    second = xt.Particles(p0c=1e9, reference_turns=other_turns)
+    with pytest.raises(AssertionError):
+        xt.Particles.merge([first, second])
+    with pytest.raises(AssertionError):
+        first.add_particles(second)
 
 
 @allow_kernel_compilation

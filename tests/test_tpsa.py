@@ -260,8 +260,8 @@ def test_tpsa_multiturn_track_matches_scalar_const_part():
 
     xo.assert_allclose(m.time_s, part.time_s, rtol=1e-15)
     xo.assert_allclose(m.to_particles().time_s, part.time_s, rtol=1e-15)
-    assert np.isnan(m._reference_turns)
-    assert np.isnan(m.to_particles()._reference_turns)
+    assert m.reference_turns == part.reference_turns == 2.
+    assert m.to_particles().reference_turns == 2.
 
     assert np.allclose(
         m.const_part,

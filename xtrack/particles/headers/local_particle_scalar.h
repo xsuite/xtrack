@@ -115,8 +115,8 @@ void LocalParticle_to_Particles(
 ) {
     if (set_scalar) {
         // Only tracking metadata is copied back. Shared particle scalars
-        // (q0, mass0, t_sim, time_s, _reference_turns) are read-only during a kernel call;
-        // the Python tracker advances the shared clock after the call.
+        // (q0, mass0, t_sim, time_s, reference_turns) are read-only during a kernel call;
+        // the Python tracker advances the shared clock and turn counter after the call.
         #define COPY_SCALAR_TO_PARTICLES(TYPE, NAME) \
                 ParticlesData_set_ ## NAME(dest, LocalParticle_get_ ## NAME(source));
                 XT_LP_SIZE_FIELDS(COPY_SCALAR_TO_PARTICLES)

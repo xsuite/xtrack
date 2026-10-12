@@ -177,7 +177,7 @@ class _SyncTimeController:
             def time_at_offset(offset):
                 return time + offset * period
         else:
-            turn = program.get_turn_at_t_s(time)
+            turn = particles.reference_turns
             def time_at_offset(offset):
                 return program.get_t_s_at_turn(turn + offset)
 

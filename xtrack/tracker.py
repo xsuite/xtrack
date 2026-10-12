@@ -533,9 +533,10 @@ class Tracker:
         # t_sim is the clock advance (seconds) per completed turn, here equal
         # to the reference revolution period. It also sets the end-turn zeta shift.
         p.t_sim = tracker_data.line_length / (p.beta0 * clight)
+        if np.isnan(p.reference_turns):
+            p.reference_turns = p.time_s / p.t_sim if p.t_sim else 0.
 
         def run_track_kernel(num_turns, ele_start, num_ele_track, flag_end_turn_actions):
-            p._reference_turns = p.time_s / p.t_sim if p.t_sim else 0.
             track_kernel(
                 buffer=tracker_data._buffer.buffer,
                 tracker_data=tracker_data._element_ref_data,
@@ -555,7 +556,6 @@ class Tracker:
                 io_buffer=self.io_buffer.buffer,
                 track_flags=p.track_flags,
             )
-            p._reference_turns = np.nan
             self._advance_particle_clock(p, int(num_turns)*flag_end_turn_actions)
 
         run_track_kernel(
@@ -942,7 +942,7 @@ class Tracker:
                         increment_at_turn_backtrack(&lpart, flag_reset_s_at_end_turn,
                                                     line_length, num_ele_line);
                         lpart.time_s -= lpart.t_sim;
-                        lpart._reference_turns -= 1.;
+                        lpart.reference_turns -= 1.;
                     }
                 }
                 else{
@@ -1069,7 +1069,7 @@ class Tracker:
 #endif
                 ) {
                     lpart.time_s += lpart.t_sim;
-                    lpart._reference_turns += 1.;
+                    lpart.reference_turns += 1.;
                 }
             } // for turns
 
@@ -1502,10 +1502,9 @@ class Tracker:
                 self._handle_time_dependent_vars(particles=particles)
 
             if particles is not None and not _is_resume_within_turn(tt, tt_resume):
+                self._prepare_particle_clock(particles)
                 if self._sync_time_controller is not None:
                     self._sync_time_controller.prepare_frame(particles)
-                else:
-                    self._prepare_particle_clock(particles)
 
             if log is not None and not _is_resume_within_turn(tt, tt_resume):
                 self._handle_log(_session_to_resume=_session_to_resume,
@@ -1745,9 +1744,6 @@ class Tracker:
 
         # First turn
         assert num_elements_first_turn >= 0
-        # Supply derived reference turns through Particles as a read-only kernel
-        # input. Clear it afterwards so standalone monitors cannot use stale data.
-        particles._reference_turns = self._get_reference_turns(particles)
         track_kernel(
             buffer=tracker_data._buffer.buffer,
             tracker_data=tracker_data._element_ref_data,
@@ -1767,14 +1763,12 @@ class Tracker:
             io_buffer=self.io_buffer.buffer,
             track_flags=track_flags
         )
-        particles._reference_turns = np.nan
 
         self._advance_particle_clock(particles, flag_end_first_turn_actions)
 
         # Middle turns
         if num_middle_turns > 0:
             assert self.num_elements > 0
-            particles._reference_turns = self._get_reference_turns(particles)
             track_kernel(
                 buffer=tracker_data._buffer.buffer,
                 tracker_data=tracker_data._element_ref_data,
@@ -1794,7 +1788,6 @@ class Tracker:
                 io_buffer=self.io_buffer.buffer,
                 track_flags=track_flags
             )
-            particles._reference_turns = np.nan
 
             self._advance_particle_clock(
                 particles, num_middle_turns*flag_end_middle_turn_actions)
@@ -1802,7 +1795,6 @@ class Tracker:
         # Last turn, only if incomplete
         if num_elements_last_turn > 0:
             assert num_elements_last_turn > 0
-            particles._reference_turns = self._get_reference_turns(particles)
             track_kernel(
                 buffer=tracker_data._buffer.buffer,
                 tracker_data=tracker_data._element_ref_data,
@@ -1822,7 +1814,6 @@ class Tracker:
                 io_buffer=self.io_buffer.buffer,
                 track_flags=track_flags
             )
-            particles._reference_turns = np.nan
 
         self.record_last_track = monitor
         self.record_multi_element_last_track = multi_element_monitor
@@ -2065,6 +2056,10 @@ class Tracker:
 
     def _prepare_particle_clock(self, particles):
         """Set the duration used by the local and shared particle clocks."""
+        # Initialize once; subsequent calls retain the accumulated counter.
+        # Reset it to NAN after manually changing time_s or its reference-turn map.
+        if np.isnan(particles.reference_turns):
+            particles.reference_turns = self._get_reference_turns(particles)
         if self._sync_time_controller is not None:
             return  # prepare_frame supplies the fractional-turn duration
         length = self._tracker_data_base.line_length
@@ -2072,7 +2067,7 @@ class Tracker:
         particles.t_sim = length / (beta0 * clight)
         program = self.line.energy_program
         if program is not None and self.line.enable_time_dependent_vars:
-            turn = program.get_turn_at_t_s(particles.time_s)
+            turn = particles.reference_turns
             particles.t_sim = program.get_t_s_at_turn(turn + 1) - particles.time_s
 
     def _advance_particle_clock(self, particles, num_turns):
@@ -2084,6 +2079,9 @@ class Tracker:
         if num_turns:
             direction = -1 if self.track_flags.XS_FLAG_BACKTRACK else 1
             particles.time_s += direction * num_turns * particles.t_sim
+            turn_step = (self._sync_time_controller.fraction
+                         if self._sync_time_controller is not None else 1.)
+            particles.reference_turns += direction * num_turns * turn_step
 
     def _get_reference_turns(self, particles):
         program = self.line.energy_program
