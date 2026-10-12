@@ -545,7 +545,6 @@ class Tracker:
                 flag_monitor=0,
                 num_ele_line=len(tracker_data.element_names),
                 line_length=tracker_data.line_length,
-                time_s=p.time_s,
                 reference_turns=p.time_s / p.t_sim if p.t_sim else 0.,
                 end_turn_zeta_shift=0.,
                 buffer_tbt_monitor=dummy_buffer,
@@ -555,6 +554,7 @@ class Tracker:
                 io_buffer=self.io_buffer.buffer,
                 track_flags=p.track_flags,
             )
+            self._advance_particle_clock(p, int(num_turns)*flag_end_turn_actions)
 
         run_track_kernel(
             num_turns=1,
@@ -831,7 +831,6 @@ class Tracker:
                              int flag_monitor,
                              int num_ele_line,
                              double line_length,
-                             double time_s,
                              double reference_turns,
                              double end_turn_zeta_shift,
                 /*gpuglmem*/ int8_t* buffer_tbt_monitor,
@@ -892,14 +891,12 @@ class Tracker:
             if (part_id<part_capacity){
             Particles_to_LocalParticle(particles, &lpart, part_id, end_id);
 
-            lpart.time_s = time_s;
             lpart.reference_turns = reference_turns;
             int64_t isactive = check_is_active(&lpart);
 #else
             LocalParticle lpart;
             Particles_to_LocalParticle(particles, &lpart, 0, 1);
             lpart.line_length = line_length;
-            lpart.time_s = time_s;
             lpart.reference_turns = reference_turns;
             lpart._num_active_particles = 1;
             lpart._num_lost_particles = 0;
@@ -1077,19 +1074,6 @@ class Tracker:
                 }
             } // for turns
 
-            // Losses can end a thread's loop early. The common clock still
-            // advances over the full requested interval. Only thread zero
-            // writes scalar state, using launch arguments rather than shared
-            // clock reads that could race with other threads.
-            double clock_direction = 1.;
-#ifndef XTRACK_TPSA_TRACK
-            if (LocalParticle_check_track_flag(&lpart, XS_FLAG_BACKTRACK)) {
-                clock_direction = -1.;
-            }
-#endif
-            lpart.time_s = time_s + clock_direction
-                * flag_end_turn_actions * num_turns * lpart.t_sim;
-
 #ifndef XTRACK_TPSA_TRACK
             LocalParticle_to_Particles(&lpart, particles, part_id, part_id == 0);
 
@@ -1225,7 +1209,6 @@ class Tracker:
                     xo.Arg(xo.Int32, name="flag_monitor"),
                     xo.Arg(xo.Int32, name='num_ele_line'),
                     xo.Arg(xo.Float64, name='line_length'),
-                    xo.Arg(xo.Float64, name='time_s'),
                     xo.Arg(xo.Float64, name='reference_turns'),
                     xo.Arg(xo.Float64, name='end_turn_zeta_shift'),
                     xo.Arg(xo.Int8, pointer=True, name="buffer_tbt_monitor"),
@@ -1786,6 +1769,8 @@ class Tracker:
             track_flags=track_flags
         )
 
+        self._advance_particle_clock(particles, flag_end_first_turn_actions)
+
         # Middle turns
         if num_middle_turns > 0:
             assert self.num_elements > 0
@@ -1809,6 +1794,9 @@ class Tracker:
                 io_buffer=self.io_buffer.buffer,
                 track_flags=track_flags
             )
+
+            self._advance_particle_clock(
+                particles, num_middle_turns*flag_end_middle_turn_actions)
 
         # Last turn, only if incomplete
         if num_elements_last_turn > 0:
@@ -2074,7 +2062,7 @@ class Tracker:
         )
 
     def _prepare_particle_clock(self, particles):
-        """Set frame duration; the C kernel advances the persistent clock."""
+        """Set the duration used by the local and shared particle clocks."""
         if self._sync_time_controller is not None:
             return  # prepare_frame supplies the fractional-turn duration
         length = self._tracker_data_base.line_length
@@ -2084,6 +2072,16 @@ class Tracker:
         if program is not None and self.line.enable_time_dependent_vars:
             turn = program.get_turn_at_t_s(particles.time_s)
             particles.t_sim = program.get_t_s_at_turn(turn + 1) - particles.time_s
+
+    def _advance_particle_clock(self, particles, num_turns):
+        # Keep the shared clock read-only during a kernel call. GPU threads
+        # can then start at different times without observing another thread's
+        # final clock. The context's scalar read/write operations are ordered
+        # after the kernel. Advance the full interval even if tracking loops
+        # ended early because all particles were lost or paused.
+        if num_turns:
+            direction = -1 if self.track_flags.XS_FLAG_BACKTRACK else 1
+            particles.time_s += direction * num_turns * particles.t_sim
 
     def _clock_kernel_arguments(self, particles):
         length = self._tracker_data_base.line_length
@@ -2099,7 +2097,7 @@ class Tracker:
                 zeta_shift = beta_c * particles.t_sim - length
         if not self.reset_s_at_end_turn:
             zeta_shift += length
-        return dict(time_s=particles.time_s, reference_turns=reference_turns,
+        return dict(reference_turns=reference_turns,
                     end_turn_zeta_shift=zeta_shift)
 
     def _handle_time_dependent_vars(self, particles):

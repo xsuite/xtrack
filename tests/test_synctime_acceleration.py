@@ -277,6 +277,38 @@ def test_clock_partial_turns_losses_and_empty_ensemble(num_threads):
 
 
 @for_all_test_contexts
+def test_tracking_kernel_leaves_shared_clock_unchanged(test_context, monkeypatch):
+    line = xt.Line(elements=[xt.Drift(length=100)])
+    line.build_tracker(_context=test_context)
+    kernel, data = line.tracker.get_track_kernel_and_data_for_present_config()
+    initial_time = 3e-6
+    p = xt.Particles(_context=test_context, p0c=1e9, time_s=initial_time,
+                     x=np.zeros(2048))
+    # Different threads can finish at different times, or skip tracking entirely.
+    p.state[::2] = -1
+    p.reorganize()
+    period = 100 / (float(p._xobject.beta0[0]) * clight)
+    kernel_times = []
+
+    class CheckedKernel:
+        description = kernel.description
+
+        def __call__(self, **kwargs):
+            particles = kwargs['particles']
+            before = particles.time_s
+            kernel(**kwargs)
+            # Reading the scalar also waits for the GPU kernel to finish.
+            assert particles.time_s == before
+            kernel_times.append(before)
+
+    monkeypatch.setattr(line.tracker, 'get_track_kernel_and_data_for_present_config',
+                        lambda: (CheckedKernel(), data))
+    line.track(p, num_turns=5)
+    xo.assert_allclose(kernel_times, [initial_time, initial_time + period], rtol=1e-15)
+    xo.assert_allclose(p.time_s, initial_time + 5*period, rtol=1e-15)
+
+
+@for_all_test_contexts
 def test_clock_chunking_backtracking_and_absolute_rf(test_context):
     line = xt.Line(elements=[xt.Drift(length=25),
                             xt.Cavity(voltage=1500, frequency=2.1e6,

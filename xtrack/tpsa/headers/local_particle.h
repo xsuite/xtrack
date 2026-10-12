@@ -64,7 +64,7 @@ static inline void Particles_to_LocalParticle(
 
 static inline void LocalParticle_to_Particles(
         LocalParticle* source, TpsaParticleData dest, int64_t, int64_t) {
-    TpsaParticleData_set_time_s(dest, source->time_s);
+    // The Python tracker advances the shared clock after the kernel call.
     TpsaParticleData_set_track_flags(dest, source->track_flags);
     TpsaParticleData_set_line_length(dest, source->line_length);
 }
