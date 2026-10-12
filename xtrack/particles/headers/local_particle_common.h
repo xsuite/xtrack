@@ -269,6 +269,10 @@ void increment_at_turn(LocalParticle* part0, int flag_reset_s, double line_lengt
             LocalParticle_set_s(part, next_s);
         }
     END_PER_PARTICLE_BLOCK;
+    // Advance the local clock once per tracking context, not once per particle
+    // in a CPU chunk. The Python tracker advances the shared Particles values.
+    part0->time_s += direction * part0->t_sim;
+    part0->reference_turns += direction;
 }
 
 // Native CPU contexts reorganize particle arrays. TPSA and GPU contexts track one

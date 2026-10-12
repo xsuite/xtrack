@@ -941,8 +941,6 @@ class Tracker:
                     if (flag_end_turn_actions>0){
                         increment_at_turn(&lpart, flag_reset_s_at_end_turn,
                                           line_length, num_ele_line, -1);
-                        lpart.time_s -= lpart.t_sim;
-                        lpart.reference_turns -= 1.;
                     }
                 }
                 else{
@@ -1063,14 +1061,6 @@ class Tracker:
                                       line_length, num_ele_line, 1);
                 }
 #endif
-                if (flag_end_turn_actions > 0
-#ifndef XTRACK_TPSA_TRACK
-                    && !LocalParticle_check_track_flag(&lpart, XS_FLAG_BACKTRACK)
-#endif
-                ) {
-                    lpart.time_s += lpart.t_sim;
-                    lpart.reference_turns += 1.;
-                }
             } // for turns
 
 #ifndef XTRACK_TPSA_TRACK
