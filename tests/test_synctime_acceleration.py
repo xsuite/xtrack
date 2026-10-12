@@ -1,3 +1,5 @@
+import json
+
 import numpy as np
 import pytest
 from scipy.constants import c as clight
@@ -340,7 +342,7 @@ def test_reference_turns_persist_and_reinitialize(test_context, monkeypatch, tmp
     monkeypatch.setattr(line.tracker, '_get_reference_turns', unexpected_reinitialization)
     path = tmp_path / 'particles.json'
     p.to_json(path, compact=True)
-    restored = xt.Particles.from_json(path, _context=test_context)
+    restored = xt.Particles.from_dict(json.loads(path.read_text()), _context=test_context)
     assert restored.reference_turns == counter
     line.track(restored, num_turns=5)
     assert restored.reference_turns == counter + 5
