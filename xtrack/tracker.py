@@ -2047,10 +2047,6 @@ class Tracker:
         )
 
     def _prepare_particle_time_s_and_reference_turns(self, particles):
-        """Set the duration used by the local and shared particle clocks."""
-        # Initialize once; subsequent calls retain the accumulated counter.
-        # The time_s setter invalidates it; changes to the reference-turn map
-        # require explicitly resetting reference_turns to NAN.
         if np.isnan(particles.reference_turns):
             particles.reference_turns = self._get_reference_turns(particles)
         if self._sync_time_controller is not None:
@@ -2065,11 +2061,6 @@ class Tracker:
             particles.t_sim = length / (beta0 * clight)
 
     def _advance_particle_time_s_and_reference_turns(self, particles, num_turns):
-        # Keep the shared clock read-only during a kernel call. GPU threads
-        # can then start at different times without observing another thread's
-        # final clock. The context's scalar read/write operations are ordered
-        # after the kernel. Advance the full interval even if tracking loops
-        # ended early because all particles were lost or paused.
         if num_turns:
             # Bypass the public time_s setter: both values advance together,
             # so this is not a change of clock origin requiring reinitialization.
