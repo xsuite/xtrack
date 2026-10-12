@@ -230,6 +230,16 @@ class LineAperture:
         """Return the pipe collection view."""
         return self.line.env.aperture.pipes
 
+    def new_profile(self, name, shape, **shape_params):
+        """Create a profile in the line's aperture environment."""
+        return self.line.env.aperture.new_profile(name, shape, **shape_params)
+
+    def new_pipe(self, name, curvature=0.0, positions=None):
+        """Create a pipe in the line's aperture environment."""
+        return self.line.env.aperture.new_pipe(
+            name, curvature=curvature, positions=positions,
+        )
+
     @property
     def is_built(self):
         """Whether pipe placements are stored in a packed line model."""
@@ -929,7 +939,7 @@ class LineAperture:
             pipe_indices, aperture_environment.pipes.keys())
 
         for name, profile in zip(profile_names, profile_list):
-            aperture_environment.profiles.new(
+            aperture_environment.new_profile(
                 name,
                 profile.shape,
             )
@@ -950,7 +960,7 @@ class LineAperture:
                     tol_y=position.tol_y,
                 ))
 
-            aperture_environment.pipes.new(
+            aperture_environment.new_pipe(
                 name, curvature=pipe.curvature, positions=positions)
 
         aperture = line.aperture

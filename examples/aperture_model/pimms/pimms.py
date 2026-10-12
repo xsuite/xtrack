@@ -124,9 +124,9 @@ env.vars.update({
 #############
 ring_table = ring.get_table()
 
-profile_straight = env.aperture.profiles.new(
+profile_straight = env.aperture.new_profile(
     'straight', 'Ellipse', half_major=0.07, half_minor=0.037)
-profile_dipole = env.aperture.profiles.new(
+profile_dipole = env.aperture.new_profile(
     'dipole', 'Ellipse', half_major=0.07, half_minor=0.032)
 
 l_mb = float(env['mb'].length)
@@ -134,7 +134,7 @@ l_mq = float(env['mq'].length)
 l_ms = float(env['ms'].length)
 ang_mb = float(env['mb'].angle)
 
-pipe_mb = env.aperture.pipes.new(
+pipe_mb = env.aperture.new_pipe(
     'mb',
     curvature=ang_mb / l_mb,
     positions=[
@@ -142,14 +142,14 @@ pipe_mb = env.aperture.pipes.new(
         env.aperture.profiles.place(profile_dipole, at=l_mb),
     ],
 )
-pipe_mq = env.aperture.pipes.new(
+pipe_mq = env.aperture.new_pipe(
     'mq',
     positions=[
         env.aperture.profiles.place(profile_straight, at=0.0),
         env.aperture.profiles.place(profile_straight, at=l_mq),
     ],
 )
-pipe_ms = env.aperture.pipes.new(
+pipe_ms = env.aperture.new_pipe(
     'ms',
     positions=[
         env.aperture.profiles.place(profile_straight, at=0.0),
@@ -176,7 +176,7 @@ for row in ring_table.rows:
         if key in drift_pipes:
             drift_pipe = drift_pipes[key]
         else:
-            drift_pipe = env.aperture.pipes.new(
+            drift_pipe = env.aperture.new_pipe(
                 f'drift_{length:.6f}',
                 positions=[
                     env.aperture.profiles.place(profile_straight, at=0.0),

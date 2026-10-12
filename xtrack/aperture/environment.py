@@ -40,18 +40,10 @@ def _shape_from_input(shape, **shape_params):
 
 
 class ProfileCollection(ProfilesView):
-    """Named collection used to inspect and create aperture profiles."""
-
-    def new(self, name, shape, **shape_params):
-        """Create a profile and return its persistent name-based view."""
-        return self._owner.new_profile(
-            name=name,
-            shape=shape,
-            **shape_params,
-        )
+    """Named profile collection with a profile-position factory."""
 
     def place(self, profile, at=0.0, shift_s=None, **kwargs):
-        """Create a profile position to be passed to ``pipes.new``."""
+        """Create a profile position to be passed to ``new_pipe``."""
         if shift_s is not None:
             if at != 0.0:
                 raise ValueError("Provide either `at` or `shift_s`, not both.")
@@ -60,18 +52,6 @@ class ProfileCollection(ProfilesView):
 
         index = self._owner.profile_index(profile)
         return ProfilePosition(profile_index=index, shift_s=at, **kwargs)
-
-
-class PipeCollection(PipesView):
-    """Named collection used to inspect and create aperture pipes."""
-
-    def new(self, name, curvature=0.0, positions=None):
-        """Create a pipe and return its persistent name-based view."""
-        return self._owner.new_pipe(
-            name=name,
-            curvature=curvature,
-            positions=positions,
-        )
 
 
 class EnvAperture:
@@ -91,7 +71,7 @@ class EnvAperture:
         self._pipes_unbuilt = []
         self._struct = None
         self.profiles = ProfileCollection(self)
-        self.pipes = PipeCollection(self)
+        self.pipes = PipesView(self)
 
     @property
     def env(self):

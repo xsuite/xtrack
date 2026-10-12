@@ -125,13 +125,13 @@ class ApertureBuilder:
         return self.line.aperture._pipe_positions_unbuilt
 
     def new_profile(self, name, shape, **kwargs):
-        return self.profiles.new(name, shape, **kwargs)
+        return self.line.aperture.new_profile(name, shape, **kwargs)
 
     def place_profile(self, profile, shift_s=0.0, **kwargs):
         return self.profiles.place(profile, at=shift_s, **kwargs)
 
     def new_pipe(self, name, **kwargs):
-        return self.pipes.new(name, **kwargs)
+        return self.line.aperture.new_pipe(name, **kwargs)
 
     def place_pipe(self, name, pipe_name, at, **kwargs):
         return self.line.aperture.place_pipe(name, pipe_name, at, **kwargs)

@@ -10,6 +10,22 @@ from xtrack.aperture.transform import transform_matrix
 from xtrack.slicing import Strategy, Uniform
 
 
+def test_line_aperture_creation_uses_environment_collections():
+    env = xt.Environment()
+    line = env.new_line(name='line', components=[env.new('drift', xt.Drift, length=1.0)])
+
+    profile = line.aperture.new_profile('profile', Circle, radius=0.1)
+    pipe = line.aperture.new_pipe('pipe', positions=[
+        env.aperture.profiles.place(profile, at=0.0),
+        env.aperture.profiles.place(profile, at=1.0),
+    ])
+
+    assert profile.name == env.aperture.profiles['profile'].name
+    assert pipe.name == env.aperture.pipes['pipe'].name
+    assert not hasattr(env.aperture.profiles, 'new')
+    assert not hasattr(env.aperture.pipes, 'new')
+
+
 @for_all_test_contexts(excluding=("ContextPyopencl", "ContextCupy"))
 def test_aperture_containers_build_expected_ordering(test_context):
     env = xt.Environment()
@@ -17,9 +33,9 @@ def test_aperture_containers_build_expected_ordering(test_context):
         name="line",
         components=[env.new("drift", xt.Drift, length=1.0)] * 2,
     )
-    second = env.aperture.profiles.new("second", Circle, radius=2.0)
-    first = env.aperture.profiles.new("first", Circle, radius=1.0)
-    pipe = env.aperture.pipes.new(
+    second = env.aperture.new_profile("second", Circle, radius=2.0)
+    first = env.aperture.new_profile("first", Circle, radius=1.0)
+    pipe = env.aperture.new_pipe(
         "pipe",
         curvature=0.25,
         positions=[
@@ -47,8 +63,8 @@ def test_place_pipe_accepts_transform_or_components():
     env = xt.Environment()
     line = env.new_line(
         name="line", components=[env.new("drift", xt.Drift, length=1.0)])
-    profile = env.aperture.profiles.new("profile", Circle, radius=1.0)
-    pipe = env.aperture.pipes.new(
+    profile = env.aperture.new_profile("profile", Circle, radius=1.0)
+    pipe = env.aperture.new_pipe(
         "pipe", positions=[env.aperture.profiles.place(profile)])
     matrix = transform_matrix(shift_x=1.0, rot_z_rad=0.2)
     placed = line.aperture.place_pipe(
@@ -65,8 +81,8 @@ def test_place_pipe_at_anchor_and_sequence_names():
     env = xt.Environment()
     line = env.new_line(
         name="line", components=[env.new("drift", xt.Drift, length=2.0)])
-    profile = env.aperture.profiles.new("profile", Circle, radius=1.0)
-    pipe = env.aperture.pipes.new(
+    profile = env.aperture.new_profile("profile", Circle, radius=1.0)
+    pipe = env.aperture.new_pipe(
         "pipe", positions=[env.aperture.profiles.place(profile)])
     placed = line.aperture.place_pipe(
         "installed", pipe, at=["drift@start", "drift@end"])
@@ -117,8 +133,8 @@ def test_pipe_anchor_uses_element_local_survey(element_type, anchor):
     anchor_pose = survey_data.resample([float(anchor_s)]).pose.to_nplike()[0]
     expected = np.linalg.inv(reference_pose) @ anchor_pose
 
-    profile = env.aperture.profiles.new("profile", Circle, radius=1.0)
-    pipe = env.aperture.pipes.new(
+    profile = env.aperture.new_profile("profile", Circle, radius=1.0)
+    pipe = env.aperture.new_pipe(
         "pipe", positions=[env.aperture.profiles.place(profile)])
     placed = line.aperture.place_pipe("installed", pipe, at=f"{reference}@{anchor}")
 
@@ -132,8 +148,8 @@ def test_build_model_and_discard_model_freeze_and_restore_collections():
     drift = env.new("drift", xt.Drift, length=1.0)
     line = env.new_line(
         name="line", components=[drift, drift])
-    profile = env.aperture.profiles.new("profile", Circle, radius=1.0)
-    pipe = env.aperture.pipes.new(
+    profile = env.aperture.new_profile("profile", Circle, radius=1.0)
+    pipe = env.aperture.new_pipe(
         "pipe", positions=[env.aperture.profiles.place(profile)])
     assert line.aperture.empty
 
@@ -148,13 +164,13 @@ def test_build_model_and_discard_model_freeze_and_restore_collections():
     with pytest.raises(RuntimeError, match="after the line aperture is built"):
         line.aperture.place_pipe("other", pipe, at="drift")
     with pytest.raises(RuntimeError, match="env.aperture.discard_model"):
-        env.aperture.profiles.new("added", Circle, radius=2.0)
+        env.aperture.new_profile("added", Circle, radius=2.0)
 
     env.aperture.discard_model()
     assert not env.aperture.is_built
     assert not line.aperture.is_built
     assert not line.aperture.empty
-    added = env.aperture.profiles.new("added", Circle, radius=2.0)
+    added = env.aperture.new_profile("added", Circle, radius=2.0)
     line.aperture.place_pipe("other", pipe, at="drift::1")
 
     line.aperture.build_model()
@@ -169,8 +185,8 @@ def test_aperture_computation_builds_model_implicitly():
     env = xt.Environment()
     line = env.new_line(
         name="line", components=[env.new("drift", xt.Drift, length=1.0)])
-    profile = env.aperture.profiles.new("profile", Circle, radius=1.0)
-    pipe = env.aperture.pipes.new(
+    profile = env.aperture.new_profile("profile", Circle, radius=1.0)
+    pipe = env.aperture.new_pipe(
         "pipe",
         positions=[
             env.aperture.profiles.place(profile),
@@ -190,8 +206,8 @@ def test_views_follow_authoritative_representation_and_build_refreshes_geometry(
     env = xt.Environment()
     line = env.new_line(
         name="line", components=[env.new("drift", xt.Drift, length=1.0)])
-    profile = env.aperture.profiles.new("profile", Circle, radius=1.0)
-    pipe = env.aperture.pipes.new(
+    profile = env.aperture.new_profile("profile", Circle, radius=1.0)
+    pipe = env.aperture.new_pipe(
         "pipe",
         positions=[
             env.aperture.profiles.place(profile),
@@ -239,8 +255,8 @@ def test_line_and_environment_aperture_json_data_roundtrip():
     env = xt.Environment()
     line = env.new_line(
         name="line", components=[env.new("drift", xt.Drift, length=1.0)])
-    profile = env.aperture.profiles.new("profile", Circle, radius=0.1)
-    pipe = env.aperture.pipes.new(
+    profile = env.aperture.new_profile("profile", Circle, radius=0.1)
+    pipe = env.aperture.new_pipe(
         "pipe",
         positions=[
             env.aperture.profiles.place(profile),
@@ -279,8 +295,8 @@ def test_floor_projection_survey_shows_straight_body_rbend_jump():
     env.new('drift', xt.Drift, length=1.0)
     line = env.new_line(name='line', components=['bend', 'drift'])
 
-    profile = env.aperture.profiles.new('circle', Circle, radius=0.1)
-    pipe = env.aperture.pipes.new('pipe', positions=[
+    profile = env.aperture.new_profile('circle', Circle, radius=0.1)
+    pipe = env.aperture.new_pipe('pipe', positions=[
         env.aperture.profiles.place(profile, at=0.8),
         env.aperture.profiles.place(profile, at=2.4),
     ])
@@ -309,8 +325,8 @@ def test_tolerances_follow_profile_and_pipe_positions_through_build_and_json():
     line = env.new_line(name='line', components=[
         env.new('drift', xt.Drift, length=10.0),
     ])
-    profile = env.aperture.profiles.new('circle', Circle, radius=1.0)
-    pipe = env.aperture.pipes.new('pipe', positions=[
+    profile = env.aperture.new_profile('circle', Circle, radius=1.0)
+    pipe = env.aperture.new_pipe('pipe', positions=[
         env.aperture.profiles.place(profile, at=0.0, tol_r=0.1, tol_x=0.2, tol_y=0.3),
         env.aperture.profiles.place(profile, at=10.0, tol_r=0.5, tol_x=0.6, tol_y=0.7),
     ])
@@ -348,8 +364,8 @@ def test_element_computations_sample_inside_thick_elements():
     line.twiss_default['method'] = '4d'
     line.twiss_default['init'] = xt.TwissInit(betx=1.0, bety=1.0)
 
-    profile = env.aperture.profiles.new('circle', Circle, radius=0.04)
-    pipe = env.aperture.pipes.new('pipe', positions=[
+    profile = env.aperture.new_profile('circle', Circle, radius=0.04)
+    pipe = env.aperture.new_pipe('pipe', positions=[
         env.aperture.profiles.place(profile, at=0.0),
         env.aperture.profiles.place(profile, at=1.0),
     ])
