@@ -2107,8 +2107,15 @@ class Tracker:
 
             if self.line.energy_program is not None:
                 p0c = self.line.particle_ref._xobject.p0c[0]
-                mask = (self._sync_time_controller.surviving_mask(particles)
-                        if self._sync_time_controller is not None else None)
+                if self._sync_time_controller is not None:
+                    # Include particles temporarily paused by SyncTime: they
+                    # must follow the reference-momentum change while waiting,
+                    # preserving their physical energy and arrival time.
+                    # The controller excludes particles that are actually lost.
+                    mask = self._sync_time_controller.surviving_mask(particles)
+                else:
+                    # Use the default mask: only active particles (state > 0).
+                    mask = None
                 particles.update_p0c_and_energy_deviations(
                     p0c, update_pxpy=True, _mask=mask)
 
