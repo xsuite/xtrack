@@ -138,22 +138,22 @@ pipe_mb = env.aperture.new_pipe(
     'mb',
     curvature=ang_mb / l_mb,
     positions=[
-        env.aperture.profiles.place(profile_dipole, at=0.0),
-        env.aperture.profiles.place(profile_dipole, at=l_mb),
+        profile_dipole.place(at=0.0),
+        profile_dipole.place(at=l_mb),
     ],
 )
 pipe_mq = env.aperture.new_pipe(
     'mq',
     positions=[
-        env.aperture.profiles.place(profile_straight, at=0.0),
-        env.aperture.profiles.place(profile_straight, at=l_mq),
+        profile_straight.place(at=0.0),
+        profile_straight.place(at=l_mq),
     ],
 )
 pipe_ms = env.aperture.new_pipe(
     'ms',
     positions=[
-        env.aperture.profiles.place(profile_straight, at=0.0),
-        env.aperture.profiles.place(profile_straight, at=l_ms),
+        profile_straight.place(at=0.0),
+        profile_straight.place(at=l_ms),
     ],
 )
 
@@ -179,8 +179,8 @@ for row in ring_table.rows:
             drift_pipe = env.aperture.new_pipe(
                 f'drift_{length:.6f}',
                 positions=[
-                    env.aperture.profiles.place(profile_straight, at=0.0),
-                    env.aperture.profiles.place(profile_straight, at=length),
+                    profile_straight.place(at=0.0),
+                    profile_straight.place(at=length),
                 ],
             )
             drift_pipes[key] = drift_pipe

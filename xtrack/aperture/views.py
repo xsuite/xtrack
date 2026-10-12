@@ -88,6 +88,11 @@ class ProfileView:
     def build_polygon(self, len_points):
         return self.raw.build_polygon(len_points)
 
+    def place(self, at=0.0, shift_s=None, **kwargs):
+        """Create a position for this profile in a pipe."""
+        return self._owner.place_profile(
+            self, at=at, shift_s=shift_s, **kwargs)
+
 
 class ProfilesView:
     """Read-only mapping-like view of the environment profiles."""

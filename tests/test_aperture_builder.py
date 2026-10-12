@@ -16,12 +16,16 @@ def test_line_aperture_creation_uses_environment_collections():
 
     profile = line.aperture.new_profile('profile', Circle, radius=0.1)
     pipe = line.aperture.new_pipe('pipe', positions=[
-        env.aperture.profiles.place(profile, at=0.0),
-        env.aperture.profiles.place(profile, at=1.0),
+        profile.place(at=0.0),
+        profile.place(at=1.0),
     ])
 
     assert profile.name == env.aperture.profiles['profile'].name
+    assert env.aperture.profiles['profile'].place(at=0.5).profile_index == 0
+    assert env.aperture.place_profile('profile', at=0.5).profile_index == 0
+    assert env.aperture.place_profile(profile, shift_s=0.5).shift_s == 0.5
     assert pipe.name == env.aperture.pipes['pipe'].name
+    assert not hasattr(env.aperture.profiles, 'place')
     assert not hasattr(env.aperture.profiles, 'new')
     assert not hasattr(env.aperture.pipes, 'new')
 
@@ -39,9 +43,9 @@ def test_aperture_containers_build_expected_ordering(test_context):
         "pipe",
         curvature=0.25,
         positions=[
-            env.aperture.profiles.place(first, at=0.7),
-            env.aperture.profiles.place(second, at=0.1),
-            env.aperture.profiles.place(second, at=0.4),
+            first.place(at=0.7),
+            second.place(at=0.1),
+            second.place(at=0.4),
         ],
     )
     line.aperture.context = test_context
@@ -65,7 +69,7 @@ def test_place_pipe_accepts_transform_or_components():
         name="line", components=[env.new("drift", xt.Drift, length=1.0)])
     profile = env.aperture.new_profile("profile", Circle, radius=1.0)
     pipe = env.aperture.new_pipe(
-        "pipe", positions=[env.aperture.profiles.place(profile)])
+        "pipe", positions=[profile.place()])
     matrix = transform_matrix(shift_x=1.0, rot_z_rad=0.2)
     placed = line.aperture.place_pipe(
         "installed", pipe, at="drift", transformation=matrix)
@@ -83,7 +87,7 @@ def test_place_pipe_at_anchor_and_sequence_names():
         name="line", components=[env.new("drift", xt.Drift, length=2.0)])
     profile = env.aperture.new_profile("profile", Circle, radius=1.0)
     pipe = env.aperture.new_pipe(
-        "pipe", positions=[env.aperture.profiles.place(profile)])
+        "pipe", positions=[profile.place()])
     placed = line.aperture.place_pipe(
         "installed", pipe, at=["drift@start", "drift@end"])
 
@@ -135,7 +139,7 @@ def test_pipe_anchor_uses_element_local_survey(element_type, anchor):
 
     profile = env.aperture.new_profile("profile", Circle, radius=1.0)
     pipe = env.aperture.new_pipe(
-        "pipe", positions=[env.aperture.profiles.place(profile)])
+        "pipe", positions=[profile.place()])
     placed = line.aperture.place_pipe("installed", pipe, at=f"{reference}@{anchor}")
 
     xo.assert_allclose(placed.transformation.to_nplike(), expected, atol=1e-12, rtol=0)
@@ -150,7 +154,7 @@ def test_build_model_and_discard_model_freeze_and_restore_collections():
         name="line", components=[drift, drift])
     profile = env.aperture.new_profile("profile", Circle, radius=1.0)
     pipe = env.aperture.new_pipe(
-        "pipe", positions=[env.aperture.profiles.place(profile)])
+        "pipe", positions=[profile.place()])
     assert line.aperture.empty
 
     line.aperture.place_pipe("installed", pipe, at="drift::0")
@@ -189,8 +193,8 @@ def test_aperture_computation_builds_model_implicitly():
     pipe = env.aperture.new_pipe(
         "pipe",
         positions=[
-            env.aperture.profiles.place(profile),
-            env.aperture.profiles.place(profile, at=1.0),
+            profile.place(),
+            profile.place(at=1.0),
         ],
     )
     line.aperture.place_pipe("installed", pipe, at="drift")
@@ -210,8 +214,8 @@ def test_views_follow_authoritative_representation_and_build_refreshes_geometry(
     pipe = env.aperture.new_pipe(
         "pipe",
         positions=[
-            env.aperture.profiles.place(profile),
-            env.aperture.profiles.place(profile, at=1.0),
+            profile.place(),
+            profile.place(at=1.0),
         ],
     )
     line.aperture.place_pipe("installed", pipe, at="drift")
@@ -259,8 +263,8 @@ def test_line_and_environment_aperture_json_data_roundtrip(tmp_path):
     pipe = env.aperture.new_pipe(
         "pipe",
         positions=[
-            env.aperture.profiles.place(profile),
-            env.aperture.profiles.place(profile, at=1.0),
+            profile.place(),
+            profile.place(at=1.0),
         ],
     )
     line.aperture.place_pipe("installed", pipe, at="drift")
@@ -336,8 +340,8 @@ def test_floor_projection_survey_shows_straight_body_rbend_jump():
 
     profile = env.aperture.new_profile('circle', Circle, radius=0.1)
     pipe = env.aperture.new_pipe('pipe', positions=[
-        env.aperture.profiles.place(profile, at=0.8),
-        env.aperture.profiles.place(profile, at=2.4),
+        profile.place(at=0.8),
+        profile.place(at=2.4),
     ])
     line.aperture.place_pipe('installed', pipe, at='bend')
     line.aperture.build_model()
@@ -366,8 +370,8 @@ def test_tolerances_follow_profile_and_pipe_positions_through_build_and_json():
     ])
     profile = env.aperture.new_profile('circle', Circle, radius=1.0)
     pipe = env.aperture.new_pipe('pipe', positions=[
-        env.aperture.profiles.place(profile, at=0.0, tol_r=0.1, tol_x=0.2, tol_y=0.3),
-        env.aperture.profiles.place(profile, at=10.0, tol_r=0.5, tol_x=0.6, tol_y=0.7),
+        profile.place(at=0.0, tol_r=0.1, tol_x=0.2, tol_y=0.3),
+        profile.place(at=10.0, tol_r=0.5, tol_x=0.6, tol_y=0.7),
     ])
     installed = line.aperture.place_pipe(
         'installed', pipe, at='drift', tol_r=0.05, tol_x=0.06, tol_y=0.07,
@@ -406,8 +410,8 @@ def test_element_computations_sample_inside_thick_elements():
 
     profile = env.aperture.new_profile('circle', Circle, radius=0.04)
     pipe = env.aperture.new_pipe('pipe', positions=[
-        env.aperture.profiles.place(profile, at=0.0),
-        env.aperture.profiles.place(profile, at=1.0),
+        profile.place(at=0.0),
+        profile.place(at=1.0),
     ])
     line.aperture.place_pipe('installed', pipe, at='drift')
     line.aperture.build_model()

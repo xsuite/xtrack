@@ -40,21 +40,6 @@ def _shape_from_input(shape, **shape_params):
     return shape_cls(**shape_params)
 
 
-class ProfileCollection(ProfilesView):
-    """Named profile collection with a profile-position factory."""
-
-    def place(self, profile, at=0.0, shift_s=None, **kwargs):
-        """Create a profile position to be passed to ``new_pipe``."""
-        if shift_s is not None:
-            if at != 0.0:
-                raise ValueError("Provide either `at` or `shift_s`, not both.")
-
-            at = shift_s
-
-        index = self._owner.profile_index(profile)
-        return ProfilePosition(profile_index=index, shift_s=at, **kwargs)
-
-
 class EnvAperture:
     """Profiles and pipes shared by the aperture models in an environment.
 
@@ -71,7 +56,7 @@ class EnvAperture:
         self._profiles_unbuilt = []
         self._pipes_unbuilt = []
         self._struct = None
-        self.profiles = ProfileCollection(self)
+        self.profiles = ProfilesView(self)
         self.pipes = PipesView(self)
 
     @property
@@ -105,6 +90,20 @@ class EnvAperture:
             return self._profile_name_to_index[profile]
 
         raise TypeError("A profile must be identified by name or ProfileView.")
+
+    def place_profile(self, profile, at=0.0, shift_s=None, **kwargs):
+        """Create a position for a named profile in a pipe."""
+        if shift_s is not None:
+            if at != 0.0:
+                raise ValueError("Provide either `at` or `shift_s`, not both.")
+
+            at = shift_s
+
+        return ProfilePosition(
+            profile_index=self.profile_index(profile),
+            shift_s=at,
+            **kwargs,
+        )
 
     def pipe_index(self, pipe):
         """Return the stable index associated with a pipe name or view."""
