@@ -556,7 +556,8 @@ class Tracker:
                 io_buffer=self.io_buffer.buffer,
                 track_flags=p.track_flags,
             )
-            self._advance_particle_clock(particles, int(num_turns)*flag_end_turn_actions)
+            self._advance_particle_time_s_and_reference_turns(
+                particles, int(num_turns)*flag_end_turn_actions)
 
         run_track_kernel(
             num_turns=1,
@@ -1492,7 +1493,7 @@ class Tracker:
                 self._handle_time_dependent_vars(particles=particles)
 
             if particles is not None and not _is_resume_within_turn(tt, tt_resume):
-                self._prepare_particle_clock(particles)
+                self._prepare_particle_time_s_and_reference_turns(particles)
                 if self._sync_time_controller is not None:
                     self._sync_time_controller.prepare_frame(particles)
 
@@ -1727,7 +1728,7 @@ class Tracker:
         if self.line._needs_rng and not particles._has_valid_rng_state():
             particles._init_random_number_generator()
 
-        self._prepare_particle_clock(particles)
+        self._prepare_particle_time_s_and_reference_turns(particles)
 
         track_kernel, tracker_data = self.get_track_kernel_and_data_for_present_config()
         track_kernel.description.n_threads = particles._capacity
@@ -1754,7 +1755,8 @@ class Tracker:
             track_flags=track_flags
         )
 
-        self._advance_particle_clock(particles, flag_end_first_turn_actions)
+        self._advance_particle_time_s_and_reference_turns(
+            particles, flag_end_first_turn_actions)
 
         # Middle turns
         if num_middle_turns > 0:
@@ -1779,7 +1781,7 @@ class Tracker:
                 track_flags=track_flags
             )
 
-            self._advance_particle_clock(
+            self._advance_particle_time_s_and_reference_turns(
                 particles, num_middle_turns*flag_end_middle_turn_actions)
 
         # Last turn, only if incomplete
@@ -2044,7 +2046,7 @@ class Tracker:
             verbose=True
         )
 
-    def _prepare_particle_clock(self, particles):
+    def _prepare_particle_time_s_and_reference_turns(self, particles):
         """Set the duration used by the local and shared particle clocks."""
         # Initialize once; subsequent calls retain the accumulated counter.
         # The time_s setter invalidates it; changes to the reference-turn map
@@ -2061,7 +2063,7 @@ class Tracker:
             turn = particles.reference_turns
             particles.t_sim = program.get_t_s_at_turn(turn + 1) - particles.time_s
 
-    def _advance_particle_clock(self, particles, num_turns):
+    def _advance_particle_time_s_and_reference_turns(self, particles, num_turns):
         # Keep the shared clock read-only during a kernel call. GPU threads
         # can then start at different times without observing another thread's
         # final clock. The context's scalar read/write operations are ordered
