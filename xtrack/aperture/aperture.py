@@ -455,8 +455,8 @@ class LineAperture:
         """Whether the line has no pipe placements."""
         return not self._pipe_position_name_to_index
 
-    def to_dict(self):
-        """Serialize pipe placements by name without changing build state."""
+    def _to_dict(self):
+        """Serialize line-owned pipe placements without changing build state."""
         if self._model is not None:
             positions_source = self._model.pipe_positions
             position_names = self._model.pipe_position_names
@@ -482,6 +482,13 @@ class LineAperture:
             'halo_params': dict(self.halo_params),
             's_tol': self.s_tol,
             'is_ring': is_ring,
+        }
+
+    def to_dict(self):
+        """Serialize this line's aperture and its environment aperture data."""
+        return {
+            'environment': self.line.env.aperture._to_dict(),
+            'aperture': self._to_dict(),
         }
 
     def load_dict(self, data, context=None):
@@ -513,11 +520,7 @@ class LineAperture:
     @doc_group("Loading and Serialization")
     def to_json(self, filename):
         """Serialize the aperture model and halo parameters to JSON."""
-        json = {
-            'aperture': self.to_dict(),
-            'environment': self.line.env.aperture.to_dict(),
-        }
-        json_dump(json, filename)
+        json_dump(self.to_dict(), filename)
 
     @doc_group("Loading and Serialization")
     @classmethod

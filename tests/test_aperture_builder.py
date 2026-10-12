@@ -251,7 +251,7 @@ def test_views_follow_authoritative_representation_and_build_refreshes_geometry(
     assert installed.pipe.name == "pipe"
 
 
-def test_line_and_environment_aperture_json_data_roundtrip():
+def test_line_and_environment_aperture_json_data_roundtrip(tmp_path):
     env = xt.Environment()
     line = env.new_line(
         name="line", components=[env.new("drift", xt.Drift, length=1.0)])
@@ -266,11 +266,50 @@ def test_line_and_environment_aperture_json_data_roundtrip():
     line.aperture.place_pipe("installed", pipe, at="drift")
     line.aperture.build_model()
 
-    data = env.to_dict()
+    assert 'aperture' not in env.to_dict()
+    assert 'aperture' not in env.to_dict()['lines']['line']
+    assert 'aperture' not in line.to_dict()
+    assert 'aperture_environment' not in line.to_dict()
+
+    data = env.to_dict(include_aperture=True)
     position_data = data["lines"]["line"]["aperture"]["pipe_positions"][0]
     assert position_data["pipe"] == "pipe"
     assert "pipe_index" not in position_data
     assert "survey_index" not in position_data
+
+    other_line = env.new_line(name='other', components=['drift'])
+    env_aperture_data = env.aperture.to_dict()
+    assert set(env_aperture_data['lines']) == {'line', 'other'}
+    assert env_aperture_data['environment'] == data['aperture']
+
+    line_aperture_data = line.aperture.to_dict()
+    assert line_aperture_data['aperture'] == data['lines']['line']['aperture']
+    assert line_aperture_data['environment'] == data['aperture']
+    assert 'lines' not in line_aperture_data
+
+    env_file = tmp_path / 'environment.json'
+    line_file = tmp_path / 'line.json'
+    aperture_file = tmp_path / 'aperture.json'
+    line_aperture_file = tmp_path / 'line_aperture.json'
+    env.to_json(env_file)
+    line.to_json(line_file)
+    env.aperture.to_json(aperture_file)
+    line.aperture.to_json(line_aperture_file)
+    assert 'aperture' not in xt.json.load(env_file)
+    assert 'aperture' not in xt.json.load(line_file)
+    loaded_aperture_data = xt.json.load(aperture_file)
+    assert set(loaded_aperture_data['lines']) == {'line', 'other'}
+    assert loaded_aperture_data['environment']['profile_names'] == ['profile']
+    assert loaded_aperture_data['lines']['line']['pipe_positions'][0]['pipe'] == 'pipe'
+    assert 'lines' not in xt.json.load(line_aperture_file)
+    assert xt.json.load(line_aperture_file)['aperture']['pipe_positions'][0]['pipe'] == 'pipe'
+
+    env.to_json(env_file, include_aperture=True)
+    assert 'aperture' in xt.json.load(env_file)
+    assert 'aperture' in xt.json.load(env_file)['lines']['line']
+    line.to_json(line_file, include_aperture=True)
+    assert 'aperture' in xt.json.load(line_file)
+    assert 'aperture_environment' in xt.json.load(line_file)
 
     restored = xt.Environment.from_dict(data, with_progress=False)
     restored_line = restored.lines["line"]
@@ -344,7 +383,8 @@ def test_tolerances_follow_profile_and_pipe_positions_through_build_and_json():
     xo.assert_allclose(sections.tol_x, [0.26, 0.36, 0.46, 0.56, 0.66], atol=1e-12)
     xo.assert_allclose(sections.tol_y, [0.37, 0.47, 0.57, 0.67, 0.77], atol=1e-12)
 
-    restored = xt.Environment.from_dict(env.to_dict(), with_progress=False)
+    restored = xt.Environment.from_dict(
+        env.to_dict(include_aperture=True), with_progress=False)
     restored_pipe = restored.aperture.pipes['pipe']
     restored_installation = restored.lines['line'].aperture.pipe_positions['installed']
     assert restored_pipe[0].tol_r == 0.1

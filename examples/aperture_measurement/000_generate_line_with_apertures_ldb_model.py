@@ -51,4 +51,4 @@ line = env.sps
 line.insert(insertions)
 
 # Save
-line.to_json('sps_with_apertures_ldb_model.json.gz')
+line.to_json('sps_with_apertures_ldb_model.json.gz', include_aperture=True)

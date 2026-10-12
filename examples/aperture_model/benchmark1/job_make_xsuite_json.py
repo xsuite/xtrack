@@ -32,4 +32,4 @@ for ipn in range(1, 9):
         line = lhc.b1 if beam == "1" else lhc.b2
         line.metadata["aperture_offsets"][f"ip{ipn}"] = tfs._data.copy()
 
-lhc.to_json("lhc_aperture.json")
+lhc.to_json("lhc_aperture.json", include_aperture=True)

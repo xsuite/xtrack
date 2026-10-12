@@ -4,6 +4,7 @@ from typing import get_args
 from weakref import ref
 
 import xobjects as xo
+from xtrack.json import dump as json_dump
 
 from xtrack.aperture.structures import (
     ApertureEnvStruct,
@@ -196,8 +197,8 @@ class EnvAperture:
 
         return self
 
-    def to_dict(self):
-        """Serialize the authoritative representation without changing state."""
+    def _to_dict(self):
+        """Serialize the environment-owned aperture data without changing state."""
         if self._struct is not None:
             return self._struct.to_dict()
 
@@ -207,6 +208,20 @@ class EnvAperture:
             'profile_names': list(self._profile_name_to_index),
             'pipe_names': list(self._pipe_name_to_index),
         }
+
+    def to_dict(self):
+        """Serialize aperture data for this environment and all its lines."""
+        return {
+            'environment': self._to_dict(),
+            'lines': {
+                name: line.aperture._to_dict()
+                for name, line in self.env.lines.items()
+            },
+        }
+
+    def to_json(self, filename):
+        """Write aperture data for this environment and all its lines to JSON."""
+        json_dump(self.to_dict(), filename)
 
     def load_dict(self, data, context=None):
         """Replace the current data with a packed representation."""
