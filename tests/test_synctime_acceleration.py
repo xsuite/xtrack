@@ -123,6 +123,63 @@ def test_two_species_against_lab_time_tracking(test_context, ramp):
 
 @allow_kernel_compilation
 @for_all_test_contexts(excluding='ContextPyopencl')
+@pytest.mark.parametrize('mode', ['copy', 'serialize', 'rebuild'])
+def test_synctime_controller_binding(test_context, mode):
+    line = make_line(test_context, ramp=True)
+    p = make_particles(line, test_context)
+    line.track(p, num_turns=3)
+    checkpoint = p.copy()
+    original_controller = line.tracker._sync_time_controller
+
+    if mode == 'copy':
+        restored = line.copy()
+    elif mode == 'serialize':
+        restored = xt.Line.from_dict(line.to_dict())
+    else:
+        restored = line
+        restored.discard_tracker()
+
+    if mode != 'rebuild':
+        for name in restored.element_names:
+            element = restored._element_dict[name]
+            if isinstance(element, st.SyncTime):
+                assert element._controller is None
+
+    restored.build_tracker(_context=test_context)
+    controller = restored.tracker._sync_time_controller
+    assert controller is not original_controller
+    assert controller.line is restored
+    for element, _ in controller.elements:
+        assert element._controller is controller
+
+    # Interleaving the copied/original lines must use their own ramp windows.
+    line.track(p, num_turns=7)
+    restored.track(checkpoint, num_turns=7)
+    assert checkpoint.time_s == p.time_s
+    assert checkpoint.reference_turns == p.reference_turns
+    for name in ('zeta', 'delta', 's', 'state', 'at_turn'):
+        xo.assert_allclose(getattr(checkpoint, name), getattr(p, name), rtol=0, atol=0)
+
+
+@allow_kernel_compilation
+def test_synctime_rejects_shared_active_controller():
+    context = xo.ContextCpu()
+    line = make_line(context, ramp=False)
+    shared = line.copy(shallow=True)
+    original_controller = line.tracker._sync_time_controller
+    with pytest.raises(ValueError, match='cannot be shared by active trackers'):
+        shared.build_tracker(_context=context)
+    for element, _ in original_controller.elements:
+        assert element._controller is original_controller
+    line.discard_tracker()
+    shared.build_tracker(_context=context)
+    for element, _ in shared.tracker._sync_time_controller.elements:
+        assert element._controller is shared.tracker._sync_time_controller
+    shared.track(make_particles(shared, context), num_turns=2)
+
+
+@allow_kernel_compilation
+@for_all_test_contexts(excluding='ContextPyopencl')
 def test_clock_restart_and_independent_ensembles(test_context):
     line = make_line(test_context, ramp=True)
     p = make_particles(line, test_context)

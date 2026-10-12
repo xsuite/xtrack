@@ -25,7 +25,7 @@ from .progress_indicator import progress
 from .tpsa import ParticlesTpsa
 from .tracker_data import TrackerData, _expand_element_classes_with_slice_classes
 from .track_flags import TrackFlags
-from .synctime import SyncTime, _SyncTimeController
+from .synctime import _SyncTimeController
 
 logger = logging.getLogger(__name__)
 
@@ -1322,12 +1322,6 @@ class Tracker:
 
         return _need_unhide_lost_particles, moveback_to_buffer, moveback_to_offset
 
-    def _track_collective_element(self, element, particles):
-        if isinstance(element, SyncTime):
-            return element.track(particles,
-                time_window=self._sync_time_controller.windows[element.id])
-        return element.track(particles)
-
     def _track_part(self, particles, pp, tt, ipp, ele_start, ele_stop, num_turns,
                     monitor, multi_element_monitor):
         ret = None
@@ -1345,7 +1339,7 @@ class Tracker:
                 # The start part is collective
                 if multi_element_monitor is not None:
                     multi_element_monitor.track(particles)
-                ret = self._track_collective_element(pp, particles)
+                ret = pp.track(particles)
             else:
                 # The start part is a non-collective tracker
                 if (ele_stop is not None and ele_stop < self.num_elements
@@ -1386,7 +1380,7 @@ class Tracker:
                     monitor.track(particles)
                 if multi_element_monitor is not None:
                     multi_element_monitor.track(particles)
-                ret = self._track_collective_element(pp, particles)
+                ret = pp.track(particles)
 
         return stop_tracking, skip, ret
 

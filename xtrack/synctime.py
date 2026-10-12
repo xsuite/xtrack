@@ -21,6 +21,7 @@ class SyncTime(BeamElement):
     # Use our Python track() below instead of generating C tracking kernels.
     allow_track = False
     allow_rot_and_shift = False
+    _controller = None
 
     def __init__(self, circumference, id, frame_relative_length=None,
                  at_start=False, at_end=False, **kwargs):
@@ -38,10 +39,15 @@ class SyncTime(BeamElement):
             **kwargs,
         )
 
-    def track(self, particles, *, time_window=None):
-        if time_window is None:
-            raise ValueError('SyncTime requires time-window bounds from the tracker')
-        lower, upper = time_window
+    def copy(self, **kwargs):
+        out = super().copy(**kwargs)
+        out._controller = None  # The copied line binds its own controller.
+        return out
+
+    def track(self, particles):
+        if self._controller is None:
+            raise ValueError('SyncTime must be attached to a line with a built tracker')
+        lower, upper = self._controller.windows[self.id]
         particles.state[particles.state == -self.id] = 1
         particles.reorganize()
         active = particles.state > 0
@@ -156,6 +162,15 @@ class _SyncTimeController:
                or ee.circumference != self.circumference
                for ee, _ in self.elements):
             raise ValueError('SyncTime elements must use the same frame geometry')
+        # Each SyncTime instance belongs to one line's controller. Rebuilding
+        # that line replaces the binding; line/element copies start unbound.
+        for ee, _ in self.elements:
+            if (ee._controller is not None and ee._controller.line is not line
+                    and ee._controller.line._has_valid_tracker()):
+                raise ValueError('SyncTime elements cannot be shared by active trackers; '
+                                 'copy the elements or discard the other tracker first')
+        for ee, _ in self.elements:
+            ee._controller = self
 
     def surviving_mask(self, particles):
         mask = particles.state > 0
