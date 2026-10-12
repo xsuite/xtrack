@@ -25,7 +25,7 @@ from .progress_indicator import progress
 from .tpsa import ParticlesTpsa
 from .tracker_data import TrackerData, _expand_element_classes_with_slice_classes
 from .track_flags import TrackFlags
-from .synctime import SyncTime, _SyncTimeClock
+from .synctime import SyncTime, _SyncTimeController
 
 logger = logging.getLogger(__name__)
 
@@ -114,8 +114,8 @@ class Tracker:
         tracker_data_base._line_table = tt
         tracker_data_base._element_names_unique = tuple(
                 tracker_data_base._line_table.name[:-1]) # remove _endpoint
-        self._sync_time_clock = (
-            _SyncTimeClock(line, tracker_data_base)
+        self._sync_time_controller = (
+            _SyncTimeController(line, tracker_data_base)
             if 'SyncTime' in tracker_data_base._line_table.element_type else None)
         line._freeze()
 
@@ -1354,7 +1354,7 @@ class Tracker:
     def _track_collective_element(self, element, particles):
         if isinstance(element, SyncTime):
             return element.track(particles,
-                time_window=self._sync_time_clock.windows[element.id])
+                time_window=self._sync_time_controller.windows[element.id])
         return element.track(particles)
 
     def _track_part(self, particles, pp, tt, ipp, ele_start, ele_stop, num_turns,
@@ -1445,7 +1445,7 @@ class Tracker:
         if ele_start is None:
             ele_start = 0
 
-        if self._sync_time_clock is not None:
+        if self._sync_time_controller is not None:
             if (ele_start != 0 or ele_stop is not None or num_elements is not None
                     or _session_to_resume is not None or self._enable_pipeline_hold
                     or self.skip_end_turn_actions or not self.reset_s_at_end_turn
@@ -1522,8 +1522,8 @@ class Tracker:
                 self._handle_time_dependent_vars(particles=particles)
 
             if particles is not None and not _is_resume_within_turn(tt, tt_resume):
-                if self._sync_time_clock is not None:
-                    self._sync_time_clock.prepare_frame(particles)
+                if self._sync_time_controller is not None:
+                    self._sync_time_controller.prepare_frame(particles)
                 else:
                     self._prepare_particle_clock(particles)
 
@@ -1633,8 +1633,8 @@ class Tracker:
                 ele_stop is None or ele_stop == self.num_elements):
                 monitor.track(particles)
 
-            if self._sync_time_clock is not None:
-                self._sync_time_clock.shift_coordinates(particles)
+            if self._sync_time_controller is not None:
+                self._sync_time_controller.shift_coordinates(particles)
 
             # Increment at_turn and reset at_element
             # (use the non-collective track method to perform only end-turn actions)
@@ -2075,7 +2075,7 @@ class Tracker:
 
     def _prepare_particle_clock(self, particles):
         """Set frame duration; the C kernel advances the persistent clock."""
-        if self._sync_time_clock is not None:
+        if self._sync_time_controller is not None:
             return  # prepare_frame supplies the fractional-turn duration
         length = self._tracker_data_base.line_length
         beta0 = particles._xobject.beta0[0]
@@ -2093,7 +2093,7 @@ class Tracker:
         program = self.line.energy_program
         if program is not None and self.line.enable_time_dependent_vars:
             reference_turns = program.get_turn_at_t_s(particles.time_s)
-            if self._sync_time_clock is None:
+            if self._sync_time_controller is None:
                 # Resetting s and advancing time must preserve arrival time,
                 # even when the exact ramp duration differs from C/(beta0*c).
                 zeta_shift = beta_c * particles.t_sim - length
@@ -2111,7 +2111,7 @@ class Tracker:
             t_turn < self.line._t_last_update_time_dependent_vars):
             self.line._t_last_update_time_dependent_vars = None
 
-        if (self._sync_time_clock is not None
+        if (self._sync_time_controller is not None
             or self.line._t_last_update_time_dependent_vars is None
             or self.line.dt_update_time_dependent_vars is None
             or t_turn > self.line._t_last_update_time_dependent_vars
@@ -2121,8 +2121,8 @@ class Tracker:
 
             if self.line.energy_program is not None:
                 p0c = self.line.particle_ref._xobject.p0c[0]
-                mask = (self._sync_time_clock.surviving_mask(particles)
-                        if self._sync_time_clock is not None else None)
+                mask = (self._sync_time_controller.surviving_mask(particles)
+                        if self._sync_time_controller is not None else None)
                 particles.update_p0c_and_energy_deviations(
                     p0c, update_pxpy=True, _mask=mask)
 

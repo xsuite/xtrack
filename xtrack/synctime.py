@@ -133,7 +133,7 @@ def prepare_particles_for_sync_time(particles, line):
     pass
 
 
-class _SyncTimeClock:
+class _SyncTimeController:
     """Frame geometry/controller; persistent clock state lives on Particles."""
 
     def __init__(self, line, tracker_data):
