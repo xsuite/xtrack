@@ -556,7 +556,7 @@ class Tracker:
                 io_buffer=self.io_buffer.buffer,
                 track_flags=p.track_flags,
             )
-            self._advance_particle_clock(p, int(num_turns)*flag_end_turn_actions)
+            self._advance_particle_clock(particles, int(num_turns)*flag_end_turn_actions)
 
         run_track_kernel(
             num_turns=1,
@@ -939,8 +939,8 @@ class Tracker:
                     elem_idx = ele_stop - 1;
                     increm = -1;
                     if (flag_end_turn_actions>0){
-                        increment_at_turn_backtrack(&lpart, flag_reset_s_at_end_turn,
-                                                    line_length, num_ele_line);
+                        increment_at_turn(&lpart, flag_reset_s_at_end_turn,
+                                          line_length, num_ele_line, -1);
                         lpart.time_s -= lpart.t_sim;
                         lpart.reference_turns -= 1.;
                     }
@@ -1053,14 +1053,14 @@ class Tracker:
                 else if (flag_end_turn_actions>0){
                     if (isactive){
                         increment_at_turn(&lpart, flag_reset_s_at_end_turn,
-                                          line_length);
+                                          line_length, num_ele_line, 1);
                     }
                 }
 #else
                 if (flag_end_turn_actions>0
                         && LocalParticle_get_state(&lpart) > 0){
                     increment_at_turn(&lpart, flag_reset_s_at_end_turn,
-                                          line_length);
+                                      line_length, num_ele_line, 1);
                 }
 #endif
                 if (flag_end_turn_actions > 0
@@ -2057,7 +2057,8 @@ class Tracker:
     def _prepare_particle_clock(self, particles):
         """Set the duration used by the local and shared particle clocks."""
         # Initialize once; subsequent calls retain the accumulated counter.
-        # Reset it to NAN after manually changing time_s or its reference-turn map.
+        # The time_s setter invalidates it; changes to the reference-turn map
+        # require explicitly resetting reference_turns to NAN.
         if np.isnan(particles.reference_turns):
             particles.reference_turns = self._get_reference_turns(particles)
         if self._sync_time_controller is not None:
@@ -2077,11 +2078,14 @@ class Tracker:
         # after the kernel. Advance the full interval even if tracking loops
         # ended early because all particles were lost or paused.
         if num_turns:
+            # Bypass the public time_s setter: both values advance together,
+            # so this is not a change of clock origin requiring reinitialization.
+            p = particles._xobject
             direction = -1 if self.track_flags.XS_FLAG_BACKTRACK else 1
-            particles.time_s += direction * num_turns * particles.t_sim
+            p.time_s += direction * num_turns * p.t_sim
             turn_step = (self._sync_time_controller.fraction
                          if self._sync_time_controller is not None else 1.)
-            particles.reference_turns += direction * num_turns * turn_step
+            p.reference_turns += direction * num_turns * turn_step
 
     def _get_reference_turns(self, particles):
         program = self.line.energy_program

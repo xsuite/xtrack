@@ -206,6 +206,34 @@ class ParticlesTpsa:
         raise AttributeError(name)
 
     @property
+    def time_s(self) -> float:
+        if self._xobject is not None:
+            return float(self._xobject.time_s)
+        return self._ref('time_s')
+
+    @time_s.setter
+    def time_s(self, value):
+        # Match Particles: changing the clock origin invalidates its turn counter.
+        if self._xobject is not None:
+            self._xobject.time_s = value
+            self._xobject.reference_turns = np.nan
+        else:
+            self._ref_particle.time_s = value
+
+    @property
+    def reference_turns(self) -> float:
+        if self._xobject is not None:
+            return float(self._xobject.reference_turns)
+        return self._ref('reference_turns')
+
+    @reference_turns.setter
+    def reference_turns(self, value):
+        if self._xobject is not None:
+            self._xobject.reference_turns = value
+        else:
+            self._ref_particle.reference_turns = value
+
+    @property
     def descriptor(self) -> madng_tpsa.Descriptor:
         """The GTPSA ``Descriptor`` shared by the six coordinate series (from C)."""
         return self.coords[0].descriptor

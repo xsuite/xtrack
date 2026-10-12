@@ -347,10 +347,10 @@ def test_reference_turns_persist_and_reinitialize(test_context, monkeypatch, tmp
     line.track(restored, num_turns=5)
     assert restored.reference_turns == counter + 5
 
-    # A manual time change can explicitly request a new counter origin.
+    # A manual time change automatically requests a new counter origin.
     monkeypatch.setattr(line.tracker, '_get_reference_turns', get_reference_turns)
     restored.time_s = 2.5 * period
-    restored.reference_turns = np.nan
+    assert np.isnan(restored.reference_turns)
     line.track(restored)
     xo.assert_allclose(restored.reference_turns, 3.5, rtol=1e-15)
 

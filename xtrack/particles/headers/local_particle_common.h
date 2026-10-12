@@ -247,34 +247,26 @@ void increment_at_element(LocalParticle* part0, int64_t const increment) {
 }
 
 GPUFUN
-void increment_at_turn(LocalParticle* part0, int flag_reset_s, double line_length) {
+void increment_at_turn(LocalParticle* part0, int flag_reset_s, double line_length,
+                       int64_t num_elements, int direction) {
+    // direction is +1 after a forward turn, -1 before a backward turn.
+    int64_t next_at_element = 0;
+    double next_s = 0.;
+    if (direction < 0) {
+        next_at_element = num_elements;
+        next_s = line_length;
+    }
     START_PER_PARTICLE_BLOCK(part0, part);
-        // Preserve time_s + (s-zeta)/(beta0*c) when the clock advances by
-        // t_sim and s is optionally reset. This applies to both full turns
+        // Preserve time_s + (s-zeta)/(beta0*c) when the clock changes by
+        // direction*t_sim and s is optionally reset. This applies to full turns
         // and SyncTime frames; paused particles are handled by the controller.
         double const zeta_shift = LocalParticle_get_beta0(part) * C_LIGHT
             * LocalParticle_get_t_sim(part) - (flag_reset_s > 0 ? line_length : 0.);
-        LocalParticle_add_to_zeta(part, zeta_shift);
-        LocalParticle_add_to_at_turn(part, 1);
-        LocalParticle_set_at_element(part, 0);
+        LocalParticle_add_to_zeta(part, direction * zeta_shift);
+        LocalParticle_add_to_at_turn(part, direction);
+        LocalParticle_set_at_element(part, next_at_element);
         if (flag_reset_s > 0) {
-            LocalParticle_set_s(part, 0.0);
-        }
-    END_PER_PARTICLE_BLOCK;
-}
-
-GPUFUN
-void increment_at_turn_backtrack(
-        LocalParticle* part0, int flag_reset_s, double line_length, int64_t num_elements) {
-    START_PER_PARTICLE_BLOCK(part0, part);
-        // Undo the forward clock/coordinate change before tracking backwards.
-        double const zeta_shift = LocalParticle_get_beta0(part) * C_LIGHT
-            * LocalParticle_get_t_sim(part) - (flag_reset_s > 0 ? line_length : 0.);
-        LocalParticle_add_to_zeta(part, -zeta_shift);
-        LocalParticle_add_to_at_turn(part, -1);
-        LocalParticle_set_at_element(part, num_elements);
-        if (flag_reset_s > 0) {
-            LocalParticle_set_s(part, line_length);
+            LocalParticle_set_s(part, next_s);
         }
     END_PER_PARTICLE_BLOCK;
 }

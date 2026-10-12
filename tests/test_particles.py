@@ -12,6 +12,21 @@ import xobjects as xo
 import xpart as xp
 
 
+@pytest.mark.parametrize('particle_class', [xt.Particles, xt.ParticlesTpsa])
+def test_time_assignment_invalidates_reference_turns(particle_class):
+    p = particle_class(p0c=1e9, time_s=1e-6, reference_turns=3.25)
+    # Explicit initial clock pairs survive construction.
+    assert p.time_s == 1e-6
+    assert p.reference_turns == 3.25
+    p.time_s = 2e-6
+    assert p.time_s == p._xobject.time_s == 2e-6
+    assert np.isnan(p.reference_turns)
+    assert np.isnan(p._xobject.reference_turns)
+    # An explicit counter can also be supplied after choosing a new time.
+    p.reference_turns = 4.25
+    assert p.reference_turns == p._xobject.reference_turns == 4.25
+
+
 @pytest.mark.parametrize('reference_turns', [np.nan, 3.25])
 def test_combine_particles_with_reference_turns(reference_turns):
     first = xt.Particles(p0c=1e9, x=1., _capacity=3, reference_turns=reference_turns)

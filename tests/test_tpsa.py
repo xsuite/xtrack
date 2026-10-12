@@ -249,19 +249,29 @@ def test_tpsa_element_track_matches_scalar_const_part():
     )
 
 
-def test_tpsa_multiturn_track_matches_scalar_const_part():
+@pytest.mark.parametrize('change_time', [False, True])
+def test_tpsa_multiturn_track_matches_scalar_const_part(change_time):
     line_scalar = _line()
     part = _particle()
+    m = _map()
+    initial_turns = 0.
+    if change_time:
+        # Exercise the public setter after a counter has already been set.
+        part.reference_turns = m.reference_turns = 1.
+        period = line_scalar.get_length() / (float(part.beta0[0]) * 299792458.)
+        part.time_s = m.time_s = 4 * period
+        assert np.isnan(part.reference_turns)
+        assert np.isnan(m.reference_turns)
+        initial_turns = 4.
     line_scalar.track(part, num_turns=2)
 
     line_tpsa = _line()
-    m = _map()
     line_tpsa.track(m, num_turns=2)
 
     xo.assert_allclose(m.time_s, part.time_s, rtol=1e-15)
     xo.assert_allclose(m.to_particles().time_s, part.time_s, rtol=1e-15)
-    assert m.reference_turns == part.reference_turns == 2.
-    assert m.to_particles().reference_turns == 2.
+    xo.assert_allclose([m.reference_turns, part.reference_turns,
+                       m.to_particles().reference_turns], initial_turns + 2, rtol=1e-15)
 
     assert np.allclose(
         m.const_part,

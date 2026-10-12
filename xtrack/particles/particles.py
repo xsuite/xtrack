@@ -112,6 +112,7 @@ class Particles(xo.HybridClass):
         'p0c': '_p0c',
         'gamma0': '_gamma0',
         'beta0': '_beta0',
+        'time_s': '_time_s',
     }
 
     _noexpr_fields = ['pdg_id_0', 'pdg_id']
@@ -245,12 +246,14 @@ class Particles(xo.HybridClass):
             Shared simulation clock [s], advanced at every completed turn or
             SyncTime frame. Particle arrival time is
             time_s + (s - zeta) / (beta0 * c). Defaults to zero.
+            Assigning time_s resets reference_turns to NaN, so the tracker
+            initializes the counter from the new time on the next call.
         reference_turns : float, optional
             Accumulated reference revolutions at time_s, including fractional
             turns. Advanced by one per turn, or by frame_relative_length per
             SyncTime frame. Defaults to NaN, which initializes it from time_s
-            on the next tracking call. Reset to NaN after manually changing
-            time_s or its reference-turn map (line length / energy program).
+            on the next tracking call. Reset to NaN after changing the
+            reference-turn map (line length / energy program).
         name : str, optional
             Optional label attached to this Particles object as ``name``.
             It does not affect particle identifiers or tracking.
@@ -378,8 +381,8 @@ class Particles(xo.HybridClass):
         self.t_sim = kwargs.get('t_sim', 0)
         self.time_s = kwargs.get('time_s', 0)
         # Persistent accumulated reference revolutions at time_s. NAN asks the
-        # tracker to initialize from time_s; reset to NAN after manually changing
-        # time_s or its reference-turn map (line length / energy program).
+        # tracker to initialize from time_s. Assign this after time_s, whose
+        # setter invalidates the counter, to preserve an explicitly supplied pair.
         self.reference_turns = kwargs.get('reference_turns', np.nan)
         self.start_tracking_at_element = kwargs.get(
                             'start_tracking_at_element', -1)
@@ -1187,6 +1190,17 @@ class Particles(xo.HybridClass):
             delta=new_delta_value,
             mask=mask
         )
+
+    @property
+    def time_s(self):
+        return self._time_s
+
+    @time_s.setter
+    def time_s(self, value):
+        # A new clock origin invalidates the accumulated reference turns.
+        # Normal tracking updates both underlying fields together instead.
+        self._time_s = value
+        self.reference_turns = np.nan
 
     @property
     def delta(self):
