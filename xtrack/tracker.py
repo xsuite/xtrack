@@ -530,6 +530,8 @@ class Tracker:
                 num_elements_first_turn + ele_start == self.num_elements)
             flag_end_middle_turn_actions = True
 
+        # t_sim is the clock advance (seconds) per completed turn, here equal
+        # to the reference revolution period. It also sets the end-turn zeta shift.
         p.t_sim = tracker_data.line_length / (p.beta0 * clight)
 
         def run_track_kernel(num_turns, ele_start, num_ele_track, flag_end_turn_actions):
