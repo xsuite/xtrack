@@ -18,8 +18,12 @@ typedef struct {
     float_type tol_y;  // vertical tolerance for point-in-aperture check
 } BeamApertureLocalData;
 
-void build_profile_polygons(const LineApertureModel, const ApertureEnvStruct,
-    const ProfilePolygons, ApertureBounds, const SurveyData survey);
+void build_profile_polygons(
+    const LineApertureModel,
+    const ApertureEnvStruct,
+    const ProfilePolygons,
+    const ApertureBounds,
+    const SurveyData survey);
 uint32_t cross_section_at_s(
     const SurveyData survey_at_s,
     const uint32_t idx_cross_section,
