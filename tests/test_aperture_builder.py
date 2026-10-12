@@ -267,3 +267,106 @@ def test_line_and_environment_aperture_json_data_roundtrip():
         atol=1e-12,
         rtol=0,
     )
+
+
+def test_floor_projection_survey_shows_straight_body_rbend_jump():
+    from matplotlib.figure import Figure
+
+    env = xt.Environment()
+    angle = np.deg2rad(35)
+    env.new('bend', xt.RBend, length_straight=3.2, angle=angle,
+            rbend_model='straight-body')
+    env.new('drift', xt.Drift, length=1.0)
+    line = env.new_line(name='line', components=['bend', 'drift'])
+
+    profile = env.aperture.profiles.new('circle', Circle, radius=0.1)
+    pipe = env.aperture.pipes.new('pipe', positions=[
+        env.aperture.profiles.place(profile, at=0.8),
+        env.aperture.profiles.place(profile, at=2.4),
+    ])
+    line.aperture.place_pipe('installed', pipe, at='bend')
+    line.aperture.build_model()
+
+    ax = Figure().subplots()
+    line.aperture.plot_floor_projection(ax=ax)
+    survey_line, = [artist for artist in ax.lines if artist.get_label() == 'survey']
+    num_angle_points = int(np.ceil(angle / np.deg2rad(10)))
+    s_angle = np.linspace(0, line['bend'].length, num_angle_points + 2)[1:-1]
+    poses = line.aperture._survey_data.resample(s_angle).pose.to_nparray()
+    plotted = np.column_stack([survey_line.get_xdata(), survey_line.get_ydata()])
+    for pose in poses:
+        expected = [pose[2, 3], pose[0, 3]]
+        assert np.min(np.linalg.norm(plotted - expected, axis=1)) < 1e-10
+    assert abs(survey_line.get_ydata()[1] - survey_line.get_ydata()[0]) > 1e-3
+
+    ax_without_survey = Figure().subplots()
+    line.aperture.plot_floor_projection(ax=ax_without_survey, show_survey=False)
+    assert not any(artist.get_label() == 'survey' for artist in ax_without_survey.lines)
+
+
+def test_tolerances_follow_profile_and_pipe_positions_through_build_and_json():
+    env = xt.Environment()
+    line = env.new_line(name='line', components=[
+        env.new('drift', xt.Drift, length=10.0),
+    ])
+    profile = env.aperture.profiles.new('circle', Circle, radius=1.0)
+    pipe = env.aperture.pipes.new('pipe', positions=[
+        env.aperture.profiles.place(profile, at=0.0, tol_r=0.1, tol_x=0.2, tol_y=0.3),
+        env.aperture.profiles.place(profile, at=10.0, tol_r=0.5, tol_x=0.6, tol_y=0.7),
+    ])
+    installed = line.aperture.place_pipe(
+        'installed', pipe, at='drift', tol_r=0.05, tol_x=0.06, tol_y=0.07,
+    )
+
+    assert not hasattr(profile, 'tol_r')
+    assert pipe[0].tol_r == 0.1
+    assert installed.tol_r == 0.05
+
+    line.aperture.build_model()
+    sections = line.aperture.cross_sections_at_s([0.0, 2.5, 5.0, 7.5, 10.0])
+    xo.assert_allclose(sections.tol_r, [0.15, 0.25, 0.35, 0.45, 0.55], atol=1e-12)
+    xo.assert_allclose(sections.tol_x, [0.26, 0.36, 0.46, 0.56, 0.66], atol=1e-12)
+    xo.assert_allclose(sections.tol_y, [0.37, 0.47, 0.57, 0.67, 0.77], atol=1e-12)
+
+    restored = xt.Environment.from_dict(env.to_dict(), with_progress=False)
+    restored_pipe = restored.aperture.pipes['pipe']
+    restored_installation = restored.lines['line'].aperture.pipe_positions['installed']
+    assert restored_pipe[0].tol_r == 0.1
+    assert restored_installation.tol_r == 0.05
+
+    env.aperture.discard_model()
+    assert pipe[0].tol_r == 0.1
+    assert line.aperture.pipe_positions['installed'].tol_r == 0.05
+
+
+def test_element_computations_sample_inside_thick_elements():
+    env = xt.Environment()
+    line = env.new_line(name='line', components=[
+        env.new('drift', xt.Drift, length=1.0),
+    ])
+    line.particle_ref = xt.Particles(p0c=7e12)
+    line.twiss_default['method'] = '4d'
+    line.twiss_default['init'] = xt.TwissInit(betx=1.0, bety=1.0)
+
+    profile = env.aperture.profiles.new('circle', Circle, radius=0.04)
+    pipe = env.aperture.pipes.new('pipe', positions=[
+        env.aperture.profiles.place(profile, at=0.0),
+        env.aperture.profiles.place(profile, at=1.0),
+    ])
+    line.aperture.place_pipe('installed', pipe, at='drift')
+    line.aperture.build_model()
+
+    sigmas, _ = line.aperture.get_aperture_sigmas_at_element(
+        'drift', with_progress=False,
+    )
+    hvd, _ = line.aperture.get_hvd_aperture_sigmas_at_element(
+        'drift', with_progress=False,
+    )
+    envelopes, _ = line.aperture.get_envelope_at_element(
+        'drift', sigmas=1.0, with_progress=False,
+    )
+    sections = line.aperture.cross_sections_at_element('drift', resolution=None)
+
+    for table in (sigmas, hvd, envelopes, sections):
+        assert len(table.s) == 2
+        assert np.all((0 < table.s) & (table.s < 1.0))

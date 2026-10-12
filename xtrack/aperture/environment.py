@@ -42,14 +42,11 @@ def _shape_from_input(shape, **shape_params):
 class ProfileCollection(ProfilesView):
     """Named collection used to inspect and create aperture profiles."""
 
-    def new(self, name, shape, tol_r=0.0, tol_x=0.0, tol_y=0.0, **shape_params):
+    def new(self, name, shape, **shape_params):
         """Create a profile and return its persistent name-based view."""
         return self._owner.new_profile(
             name=name,
             shape=shape,
-            tol_r=tol_r,
-            tol_x=tol_x,
-            tol_y=tol_y,
             **shape_params,
         )
 
@@ -138,8 +135,7 @@ class EnvAperture:
 
         raise TypeError("A pipe must be identified by name or PipeView.")
 
-    def new_profile(self, name, shape, tol_r=0.0, tol_x=0.0, tol_y=0.0,
-                    **shape_params):
+    def new_profile(self, name, shape, **shape_params):
         """Create a named profile while the environment is unbuilt."""
         if self.is_built:
             raise RuntimeError(
@@ -151,9 +147,6 @@ class EnvAperture:
 
         profile = Profile(
             shape=_shape_from_input(shape, **shape_params),
-            tol_r=tol_r,
-            tol_x=tol_x,
-            tol_y=tol_y,
         )
         index = len(self._profile_name_to_index)
         self._profiles_unbuilt.append(profile)

@@ -276,8 +276,15 @@ class LineAperture:
         rot_y_rad=None,
         rot_x_rad=None,
         rot_z_rad=None,
+        tol_r=0.0,
+        tol_x=0.0,
+        tol_y=0.0,
     ):
-        """Place (a) pipe(s) relative to one or more line survey reference points."""
+        """Place pipes relative to survey references.
+
+        Tolerances apply to each installed pipe in addition to those on its
+        profile positions.
+        """
         if self._model is not None:
             raise RuntimeError("Cannot place pipes after the line aperture is built.")
 
@@ -304,6 +311,9 @@ class LineAperture:
                     rot_y_rad=rot_y_rad,
                     rot_x_rad=rot_x_rad,
                     rot_z_rad=rot_z_rad,
+                    tol_r=tol_r,
+                    tol_x=tol_x,
+                    tol_y=tol_y,
                 )
                 for position_name, at_value in zip(names, at_values)
             ]
@@ -339,6 +349,9 @@ class LineAperture:
             survey_reference_name=survey_reference,
             survey_index=-1,
             transformation=transformation,
+            tol_r=tol_r,
+            tol_x=tol_x,
+            tol_y=tol_y,
         )
         index = len(self._pipe_position_name_to_index)
         self._pipe_positions_unbuilt.append(position)
@@ -607,7 +620,7 @@ class LineAperture:
                 if 'aperture' not in element_metadata:
                     continue
 
-                shape_name, params, tols = element_metadata['aperture']
+                shape_name, params, _ = element_metadata['aperture']
                 shape = profile_from_madx_aperture(shape_name, params)
 
                 if not shape:
@@ -619,10 +632,7 @@ class LineAperture:
 
                 shape = type(shape)(**shape._to_dict(), _context=context)
 
-                tol_r, tol_x, tol_y = tols
-                profile = Profile(
-                    shape=shape, tol_r=tol_r, tol_x=tol_x, tol_y=tol_y,
-                    _context=context)
+                profile = Profile(shape=shape, _context=context)
 
                 assert len(pipes) == len(profiles)  # in MAD-X we will have just one pipe per profile
 
@@ -670,11 +680,15 @@ class LineAperture:
                 pipes.append(pipe)
                 profiles.append(profile)
 
+            tols = layout_data[aper_name]['aperture'][2]
             pipe_position = PipePosition(
                 pipe_index=aperture_indices[aper_name],
                 survey_reference_name=survey_reference_name,
                 survey_index=name_to_sv_index[survey_reference_name],
                 transformation=pipe_transform,
+                tol_r=tols[0],
+                tol_x=tols[1],
+                tol_y=tols[2],
                 _context=context,
             )
             pipe_positions_list.append(pipe_position)
@@ -918,9 +932,6 @@ class LineAperture:
             aperture_environment.profiles.new(
                 name,
                 profile.shape,
-                tol_r=profile.tol_r,
-                tol_x=profile.tol_x,
-                tol_y=profile.tol_y,
             )
 
         for name, pipe in zip(pipe_names, pipe_list):
@@ -934,6 +945,9 @@ class LineAperture:
                     rot_y_rad=position.rot_y_rad,
                     rot_x_rad=position.rot_x_rad,
                     rot_s_rad=position.rot_s_rad,
+                    tol_r=position.tol_r,
+                    tol_x=position.tol_x,
+                    tol_y=position.tol_y,
                 ))
 
             aperture_environment.pipes.new(
@@ -952,6 +966,9 @@ class LineAperture:
                 pipe_names[position.pipe_index],
                 at=position.survey_reference_name,
                 transformation=position.transformation.to_nplike(),
+                tol_r=position.tol_r,
+                tol_x=position.tol_x,
+                tol_y=position.tol_y,
             )
 
         for key, value in kwargs.items():
@@ -1007,7 +1024,7 @@ class LineAperture:
         -------
         See :meth:`get_aperture_sigmas_at_s`.
         """
-        s_positions = self._get_cuts_at_element(element_name, resolution)
+        s_positions = self._get_cuts_inside_element(element_name, resolution)
         twiss_init = twiss.get_twiss_init(at_element=element_name) if twiss else None
         return self.get_aperture_sigmas_at_s(s_positions, twiss_init, **kwargs)
 
@@ -1242,7 +1259,7 @@ class LineAperture:
         -------
         See :meth:`get_hvd_aperture_sigmas_at_s`.
         """
-        s_positions = self._get_cuts_at_element(element_name, resolution)
+        s_positions = self._get_cuts_inside_element(element_name, resolution)
         twiss_init = twiss.get_twiss_init(at_element=element_name) if twiss else None
         return self.get_hvd_aperture_sigmas_at_s(
             s_positions=s_positions, twiss_init=twiss_init,
@@ -1356,7 +1373,7 @@ class LineAperture:
         - ``envelopes`` is the table returned by :meth:`get_envelope_at_s`.
         - ``sliced_twiss`` is the twiss table computed as part of the calculation.
         """
-        s_positions = self._get_cuts_at_element(element_name, resolution)
+        s_positions = self._get_cuts_inside_element(element_name, resolution)
         twiss_init = twiss.get_twiss_init(at_element=element_name) if twiss else None
         return self.get_envelope_at_s(s_positions, sigmas, twiss_init, **kwargs)
 
@@ -1521,7 +1538,7 @@ class LineAperture:
         extents: bool = False,
     ) -> Table:
         """Return aperture cross-sections sampled across an element."""
-        s_positions = self._get_cuts_at_element(element_name, resolution)
+        s_positions = self._get_cuts_inside_element(element_name, resolution)
         return self.cross_sections_at_s(s_positions, extents=extents)
 
     @doc_group("Aperture Computations")
@@ -1792,7 +1809,7 @@ class LineAperture:
             raise ValueError("Provide exactly one of `name` or `s_positions`.")
 
         if name is not None:
-            s_positions = self._get_cuts_at_element(name, resolution)
+            s_positions = self._get_cuts_inside_element(name, resolution)
             title_location = name
         else:
             s_positions = np.asarray(s_positions, dtype=FloatType._dtype)
@@ -1885,6 +1902,7 @@ class LineAperture:
         origin: str | None = None,
         s_range: tuple[float, float] | None = None,
         aspect: Literal['auto', 'equal'] = 'auto',
+        show_survey: bool = True,
     ):
         """Plot installed pipe segments projected onto the floor plane.
 
@@ -1904,6 +1922,8 @@ class LineAperture:
             are handled across the end of the line.
         aspect
             Aspect ratio applied to the axes after plotting.
+        show_survey
+            Overlay the interpolated survey trajectory on the pipe projection.
 
         Returns
         -------
@@ -1919,22 +1939,35 @@ class LineAperture:
             origin=origin,
             s_range=s_range,
             aspect=aspect,
+            show_survey=show_survey,
         )
 
-    def _get_cuts_at_element(self, element_name: str, resolution: float | None) -> list[float]:
-        """Get list of s positions so that the element ``element_name`` is cut with a ``resolution``."""
+    def _get_cuts_inside_element(
+        self, element_name: str, resolution: float | None,
+    ) -> np.ndarray:
+        """Sample within an element, away from boundary-frame discontinuities."""
         element = self.line[element_name]
         s_start = self.line._get_s_position(element_name)
         element_length = getattr(element, 'length', 0)
         s_end = s_start + element_length
 
-        if resolution is not None:
-            num_cuts = int(element_length / resolution)
+        if resolution is not None and resolution <= 0:
+            raise ValueError('`resolution` must be positive.')
+
+        s_tol = max(self.s_tol, 1e-6)
+        s_middle = s_start + element_length / 2
+        s_start = np.nextafter(s_start + s_tol, s_end)
+        s_end = np.nextafter(s_end - s_tol, s_start)
+
+        if s_start >= s_end:
+            s_positions = [s_middle]
+        elif resolution is not None:
+            num_cuts = max(2, int(element_length / resolution))
             s_positions = np.linspace(s_start, s_end, num_cuts)
         else:
             s_positions = [s_start, s_end]
 
-        return s_positions
+        return np.asarray(s_positions, dtype=FloatType._dtype)
 
     def _build_aperture_bounds(self, check_validity=True, with_progress=True):
         # Pre-allocate the cross-sections with the correct sizes
@@ -1982,6 +2015,7 @@ class LineAperture:
         self._aperture_bounds.reorder_for_tolerated_pipe_overlaps(
             s_tol=self.s_tol,
             is_ring=self.is_ring,
+            line_length=self.line.get_length(),
         )
 
         if check_validity:
@@ -2359,8 +2393,21 @@ class LineAperture:
         dist_left = np.abs(tw_s[idx_left] - s_positions)
         dist_right = np.abs(tw_s[idx_right] - s_positions)
 
-        # Keep the nearest row; on ties prefer the rightmost candidate.
+        # Keep the nearest row. At sliced element boundaries, several rows
+        # share the same s but can use different local reference frames.
         tw_indices = np.where(dist_right <= dist_left, idx_right, idx_left)
+
+        group_start = np.searchsorted(tw_s, tw_s[tw_indices], side='left')
+        group_end = np.searchsorted(tw_s, tw_s[tw_indices], side='right')
+        for ii in np.flatnonzero(group_end - group_start > 1):
+            names = full_twiss.name[group_start[ii]:group_end[ii]]
+            # The survey pose at a boundary is after the preceding exit map
+            # and before the following entry map.
+            for suffix in ('..exit_map', '_exit', '_entry'):
+                matches = [jj for jj, name in enumerate(names) if name.endswith(suffix)]
+                if matches:
+                    tw_indices[ii] = group_start[ii] + matches[0]
+                    break
 
         sliced_twiss = full_twiss.rows[tw_indices]
         return sliced_twiss

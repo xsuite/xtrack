@@ -31,8 +31,8 @@ circle = Circle(radius=2)
 rectangle = Rectangle(half_width=2, half_height=1)
 
 profiles = [
-    Profile(shape=circle, tol_r=0, tol_x=0, tol_y=0),
-    Profile(shape=rectangle, tol_r=0, tol_x=0, tol_y=0),
+    Profile(shape=circle),
+    Profile(shape=rectangle),
 ]
 
 pipes = [
