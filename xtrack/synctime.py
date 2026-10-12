@@ -53,11 +53,6 @@ class SyncTime(BeamElement):
         if (active & (arrival < lower - tol)).any():
             raise ValueError('Some particles move faster than the time window')
         particles.state[active & (arrival >= upper)] = -self.id
-        if self.at_end:
-            # The tracker subsequently resets s and increments at_turn only
-            # for particles that have actually finished a revolution.
-            active = particles.state > 0
-            particles.zeta[active] -= self.circumference
 
 
 def install_sync_time_at_collective_elements(
@@ -197,6 +192,9 @@ class _SyncTimeController:
         self.windows = {ee.id: (lower, upper)
                         for ee, lower, upper in boundaries}
 
-    def shift_coordinates(self, particles):
-        mask = self.surviving_mask(particles)
+    def shift_waiting_particles(self, particles):
+        # Paused particles do not execute the kernel's end-turn actions and
+        # keep their s. Compensate only for the common clock advance here;
+        # active particles receive the clock and s-reset corrections in C.
+        mask = self.surviving_mask(particles) & (particles.state < 0)
         particles.zeta[mask] += particles.beta0[mask] * clight * particles.t_sim

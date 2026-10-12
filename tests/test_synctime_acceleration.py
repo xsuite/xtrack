@@ -309,11 +309,13 @@ def test_tracking_kernel_leaves_shared_clock_unchanged(test_context, monkeypatch
 
 
 @for_all_test_contexts
-def test_clock_chunking_backtracking_and_absolute_rf(test_context):
+@pytest.mark.parametrize('reset_s', [True, False])
+def test_clock_chunking_backtracking_and_absolute_rf(test_context, reset_s):
     line = xt.Line(elements=[xt.Drift(length=25),
                             xt.Cavity(voltage=1500, frequency=2.1e6,
                                       phase=.3, absolute_time=True),
                             xt.Drift(length=75)])
+    line.reset_s_at_end_turn = reset_s
     line.build_tracker(_context=test_context)
     p = xt.Particles(_context=test_context, p0c=1e9, time_s=2e-6,
                      zeta=[0., -10.], delta=[0., .02])
@@ -357,8 +359,10 @@ def test_particle_clock_and_machine_time_ownership(test_context):
 
 
 @for_all_test_contexts
-def test_energy_program_clock_preserves_physical_flight_time(test_context):
+@pytest.mark.parametrize('reset_s', [True, False])
+def test_energy_program_clock_preserves_physical_flight_time(test_context, reset_s):
     line = xt.Line(elements=[xt.Drift(length=100)])
+    line.reset_s_at_end_turn = reset_s
     line.particle_ref = xt.Particles(p0c=1e9)
     line.energy_program = xt.EnergyProgram(
         t_s=np.linspace(0, 1e-3, 1001), p0c=np.linspace(1e9, 2e9, 1001))

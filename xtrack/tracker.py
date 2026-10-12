@@ -546,7 +546,6 @@ class Tracker:
                 num_ele_line=len(tracker_data.element_names),
                 line_length=tracker_data.line_length,
                 reference_turns=p.time_s / p.t_sim if p.t_sim else 0.,
-                end_turn_zeta_shift=0.,
                 buffer_tbt_monitor=dummy_buffer,
                 offset_tbt_monitor=0,
                 buffer_multi_element_monitor=buffer_multi_element_monitor,
@@ -832,7 +831,6 @@ class Tracker:
                              int num_ele_line,
                              double line_length,
                              double reference_turns,
-                             double end_turn_zeta_shift,
                 /*gpuglmem*/ int8_t* buffer_tbt_monitor,
                              int64_t offset_tbt_monitor,
                 /*gpuglmem*/ int8_t* buffer_multi_element_monitor,
@@ -940,8 +938,7 @@ class Tracker:
                     increm = -1;
                     if (flag_end_turn_actions>0){
                         increment_at_turn_backtrack(&lpart, flag_reset_s_at_end_turn,
-                                                    line_length, num_ele_line,
-                                                    end_turn_zeta_shift);
+                                                    line_length, num_ele_line);
                         lpart.time_s -= lpart.t_sim;
                         lpart.reference_turns -= 1.;
                     }
@@ -1054,14 +1051,14 @@ class Tracker:
                 else if (flag_end_turn_actions>0){
                     if (isactive){
                         increment_at_turn(&lpart, flag_reset_s_at_end_turn,
-                                          end_turn_zeta_shift);
+                                          line_length);
                     }
                 }
 #else
                 if (flag_end_turn_actions>0
                         && LocalParticle_get_state(&lpart) > 0){
                     increment_at_turn(&lpart, flag_reset_s_at_end_turn,
-                                          end_turn_zeta_shift);
+                                          line_length);
                 }
 #endif
                 if (flag_end_turn_actions > 0
@@ -1210,7 +1207,6 @@ class Tracker:
                     xo.Arg(xo.Int32, name='num_ele_line'),
                     xo.Arg(xo.Float64, name='line_length'),
                     xo.Arg(xo.Float64, name='reference_turns'),
-                    xo.Arg(xo.Float64, name='end_turn_zeta_shift'),
                     xo.Arg(xo.Int8, pointer=True, name="buffer_tbt_monitor"),
                     xo.Arg(xo.Int64, name="offset_tbt_monitor"),
                     xo.Arg(xo.Int8, pointer=True, name="buffer_multi_element_monitor"),
@@ -1617,7 +1613,7 @@ class Tracker:
                 monitor.track(particles)
 
             if self._sync_time_controller is not None:
-                self._sync_time_controller.shift_coordinates(particles)
+                self._sync_time_controller.shift_waiting_particles(particles)
 
             # Increment at_turn and reset at_element
             # (use the non-collective track method to perform only end-turn actions)
@@ -1760,7 +1756,7 @@ class Tracker:
             flag_monitor=flag_monitor,
             num_ele_line=len(tracker_data.element_names),
             line_length=tracker_data.line_length,
-            **self._clock_kernel_arguments(particles),
+            reference_turns=self._get_reference_turns(particles),
             buffer_tbt_monitor=buffer_monitor,
             offset_tbt_monitor=offset_monitor,
             buffer_multi_element_monitor=buffer_multi_element_monitor,
@@ -1786,7 +1782,7 @@ class Tracker:
                 flag_monitor=flag_monitor,
                 num_ele_line=len(tracker_data.element_names),
                 line_length=tracker_data.line_length,
-                **self._clock_kernel_arguments(particles),
+                reference_turns=self._get_reference_turns(particles),
                 buffer_tbt_monitor=buffer_monitor,
                 offset_tbt_monitor=offset_monitor,
                 buffer_multi_element_monitor=buffer_multi_element_monitor,
@@ -1813,7 +1809,7 @@ class Tracker:
                 flag_monitor=flag_monitor,
                 num_ele_line=len(tracker_data.element_names),
                 line_length=tracker_data.line_length,
-                **self._clock_kernel_arguments(particles),
+                reference_turns=self._get_reference_turns(particles),
                 buffer_tbt_monitor=buffer_monitor,
                 offset_tbt_monitor=offset_monitor,
                 buffer_multi_element_monitor=buffer_multi_element_monitor,
@@ -2083,22 +2079,13 @@ class Tracker:
             direction = -1 if self.track_flags.XS_FLAG_BACKTRACK else 1
             particles.time_s += direction * num_turns * particles.t_sim
 
-    def _clock_kernel_arguments(self, particles):
-        length = self._tracker_data_base.line_length
-        beta_c = particles._xobject.beta0[0] * clight
-        reference_turns = particles.time_s * beta_c / length if length else 0.
-        zeta_shift = 0.
+    def _get_reference_turns(self, particles):
         program = self.line.energy_program
         if program is not None and self.line.enable_time_dependent_vars:
-            reference_turns = program.get_turn_at_t_s(particles.time_s)
-            if self._sync_time_controller is None:
-                # Resetting s and advancing time must preserve arrival time,
-                # even when the exact ramp duration differs from C/(beta0*c).
-                zeta_shift = beta_c * particles.t_sim - length
-        if not self.reset_s_at_end_turn:
-            zeta_shift += length
-        return dict(reference_turns=reference_turns,
-                    end_turn_zeta_shift=zeta_shift)
+            return program.get_turn_at_t_s(particles.time_s)
+        length = self._tracker_data_base.line_length
+        beta_c = particles._xobject.beta0[0] * clight
+        return particles.time_s * beta_c / length if length else 0.
 
     def _handle_time_dependent_vars(self, particles):
 
