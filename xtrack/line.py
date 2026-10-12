@@ -11,6 +11,7 @@ from contextlib import contextmanager
 from pprint import pformat
 from typing import Container, Dict, List, Literal, Optional
 from warnings import warn
+from weakref import ref
 
 import numpy as np
 import xdeps as xd
@@ -918,10 +919,6 @@ class Line:
 
 
     def __repr__(self):
-        if hasattr(self, '_name'):
-            name = self._name
-        else:
-            name = ''
         tokens = []
         if hasattr(self, '_name') and self._name:
             tokens.append(f'name={self._name}')
@@ -940,6 +937,7 @@ class Line:
 
     def __setstate__(self, state):
         self.__dict__.update(state)
+        self.aperture._line_ref = ref(self)
 
     @doc_group("Constructors and Serialization")
     def to_json(self, file, indent=1, **kwargs):
@@ -956,7 +954,7 @@ class Line:
 
         '''
 
-        if 'inlude_version' not in kwargs:
+        if 'include_version' not in kwargs:
             kwargs['include_version'] = True
 
         json_utils.dump(self.to_dict(**kwargs), file, indent=indent)

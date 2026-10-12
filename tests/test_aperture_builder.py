@@ -1,3 +1,5 @@
+import pickle
+
 import numpy as np
 import pytest
 
@@ -28,6 +30,22 @@ def test_line_aperture_creation_uses_environment_collections():
     assert not hasattr(env.aperture.profiles, 'place')
     assert not hasattr(env.aperture.profiles, 'new')
     assert not hasattr(env.aperture.pipes, 'new')
+
+
+def test_line_with_aperture_can_be_pickled():
+    env = xt.Environment()
+    line = env.new_line(name='line', components=[env.new('drift', xt.Drift, length=1.0)])
+    profile = env.aperture.new_profile('profile', Circle, radius=0.1)
+    pipe = env.aperture.new_pipe('pipe', positions=[profile.place()])
+    line.aperture.place_pipe('installed', pipe, at='drift')
+
+    restored = pickle.loads(pickle.dumps(line))
+
+    assert restored.aperture.line is restored
+    assert restored.env.aperture.env is restored.env
+    assert restored.env.aperture.profiles['profile'].name == 'profile'
+    assert restored.env.aperture.pipes['pipe'].name == 'pipe'
+    assert restored.aperture.pipe_positions['installed'].name == 'installed'
 
 
 @for_all_test_contexts(excluding=("ContextPyopencl", "ContextCupy"))

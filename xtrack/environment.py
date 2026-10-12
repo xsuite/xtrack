@@ -9,7 +9,7 @@ from copy import deepcopy
 from pathlib import Path
 from typing import Literal
 from warnings import warn
-from weakref import WeakKeyDictionary, WeakSet
+from weakref import WeakKeyDictionary, WeakSet, ref
 
 import numpy as np
 import pandas as pd
@@ -198,6 +198,7 @@ class Environment:
         self.__dict__.update(state)
         self._lines_weakrefs = WeakSet()
         self._line_composers = WeakKeyDictionary()
+        self.aperture._env_ref = ref(self)
 
     @classmethod
     def _generate_doc_rst(

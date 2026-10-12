@@ -175,6 +175,12 @@ class LineAperture:
         """Line owning this aperture container."""
         return self._line_ref()
 
+    def __getstate__(self):
+        """Leave the owner reference to be restored by the line after unpickling."""
+        state = self.__dict__.copy()
+        state.pop('_line_ref')
+        return state
+
     @classmethod
     def _generate_doc_rst(cls, *, include_summary_table=True):
         """Generate API documentation in RST format."""
@@ -950,7 +956,7 @@ class LineAperture:
         for name, pipe in zip(pipe_names, pipe_list):
             positions = []
             for position in pipe.positions:
-                positions.append(aperture_environment.profiles.place(
+                positions.append(aperture_environment.place_profile(
                     profile_names[position.profile_index],
                     at=position.shift_s,
                     shift_x=position.shift_x,

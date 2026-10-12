@@ -64,6 +64,12 @@ class EnvAperture:
         """Environment owning this aperture container."""
         return self._env_ref()
 
+    def __getstate__(self):
+        """Leave the owner reference to be restored by the environment."""
+        state = self.__dict__.copy()
+        state.pop('_env_ref')
+        return state
+
     @property
     def is_built(self):
         """Whether profiles and pipes are stored in the packed structure."""
