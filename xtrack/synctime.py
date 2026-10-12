@@ -136,18 +136,21 @@ def prepare_particles_for_sync_time(particles, line):
 class _SyncTimeClock:
     """Frame geometry/controller; persistent clock state lives on Particles."""
 
-    def __init__(self, line):
+    def __init__(self, line, tracker_data):
         self.line = line
-        table = line.get_table()
-        self.elements = [(ee, ss) for ee, ss in zip(line._elements, table.s)
-                         if isinstance(ee, SyncTime)]
+        # The cached table retains the original element types, whereas the
+        # kernel's element list replaces collective elements with drifts.
+        table = tracker_data._line_table
+        indices = np.flatnonzero(table.element_type[:-1] == 'SyncTime')
+        self.elements = [(line._element_dict[line.element_names[ii]], table.s[ii])
+                         for ii in indices]
         if (not self.elements
-                or not isinstance(line._elements[0], SyncTime)
-                or not line._elements[0].at_start
-                or not isinstance(line._elements[-1], SyncTime)
-                or not line._elements[-1].at_end):
+                or indices[0] != 0
+                or not self.elements[0][0].at_start
+                or indices[-1] != len(line.element_names) - 1
+                or not self.elements[-1][0].at_end):
             raise ValueError('Frame-clock SyncTime must bracket the complete line')
-        self.circumference = line.get_length()
+        self.circumference = tracker_data.line_length
         self.fraction = self.elements[0][0].frame_relative_length
         if not 0 < self.fraction <= 1:
             raise ValueError('frame_relative_length must be in (0, 1]')

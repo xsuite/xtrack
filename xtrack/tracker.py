@@ -66,10 +66,6 @@ class Tracker:
             particles_monitor_class = self._get_default_monitor_class()
 
         self.line = line
-        self._sync_time_clock = (
-            _SyncTimeClock(line)
-            if any(isinstance(ee, SyncTime)
-                   for ee in line._elements) else None)
         self.particles_monitor_class = particles_monitor_class
         self.extra_headers = extra_headers
         self._enable_pipeline_hold = enable_pipeline_hold
@@ -118,6 +114,9 @@ class Tracker:
         tracker_data_base._line_table = tt
         tracker_data_base._element_names_unique = tuple(
                 tracker_data_base._line_table.name[:-1]) # remove _endpoint
+        self._sync_time_clock = (
+            _SyncTimeClock(line, tracker_data_base)
+            if 'SyncTime' in tracker_data_base._line_table.element_type else None)
         line._freeze()
 
         if np.any([hasattr(ee, 'needs_rng') and ee.needs_rng for ee in line._elements]):
