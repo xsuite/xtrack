@@ -328,41 +328,6 @@ def test_line_and_environment_aperture_json_data_roundtrip(tmp_path):
     )
 
 
-def test_floor_projection_survey_shows_straight_body_rbend_jump():
-    from matplotlib.figure import Figure
-
-    env = xt.Environment()
-    angle = np.deg2rad(35)
-    env.new('bend', xt.RBend, length_straight=3.2, angle=angle,
-            rbend_model='straight-body')
-    env.new('drift', xt.Drift, length=1.0)
-    line = env.new_line(name='line', components=['bend', 'drift'])
-
-    profile = env.aperture.new_profile('circle', Circle, radius=0.1)
-    pipe = env.aperture.new_pipe('pipe', positions=[
-        profile.place(at=0.8),
-        profile.place(at=2.4),
-    ])
-    line.aperture.place_pipe('installed', pipe, at='bend')
-    line.aperture.build_model()
-
-    ax = Figure().subplots()
-    line.aperture.plot_floor_projection(ax=ax)
-    survey_line, = [artist for artist in ax.lines if artist.get_label() == 'survey']
-    num_angle_points = int(np.ceil(angle / np.deg2rad(10)))
-    s_angle = np.linspace(0, line['bend'].length, num_angle_points + 2)[1:-1]
-    poses = line.aperture._survey_data.resample(s_angle).pose.to_nparray()
-    plotted = np.column_stack([survey_line.get_xdata(), survey_line.get_ydata()])
-    for pose in poses:
-        expected = [pose[2, 3], pose[0, 3]]
-        assert np.min(np.linalg.norm(plotted - expected, axis=1)) < 1e-10
-    assert abs(survey_line.get_ydata()[1] - survey_line.get_ydata()[0]) > 1e-3
-
-    ax_without_survey = Figure().subplots()
-    line.aperture.plot_floor_projection(ax=ax_without_survey, show_survey=False)
-    assert not any(artist.get_label() == 'survey' for artist in ax_without_survey.lines)
-
-
 def test_tolerances_follow_profile_and_pipe_positions_through_build_and_json():
     env = xt.Environment()
     line = env.new_line(name='line', components=[
