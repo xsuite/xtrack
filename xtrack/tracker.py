@@ -862,8 +862,10 @@ class Tracker:
                     const int64_t num_particles_to_track = capacity;
                 #endif
 
-                const int64_t chunk_size = num_particles_to_track > 0
-                    ? (num_particles_to_track + num_threads - 1)/num_threads : 1; // ceil division
+                int64_t chunk_size = (num_particles_to_track + num_threads - 1)/num_threads; // ceil division
+                if (chunk_size == 0) {
+                    chunk_size = 1;
+                }
             #endif // CONTEXT_OPENMP
 
             #pragma omp parallel for                                                           //only_for_context cpu_openmp
