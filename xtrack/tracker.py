@@ -2055,13 +2055,14 @@ class Tracker:
             particles.reference_turns = self._get_reference_turns(particles)
         if self._sync_time_controller is not None:
             return  # prepare_frame supplies the fractional-turn duration
-        length = self._tracker_data_base.line_length
-        beta0 = particles._xobject.beta0[0]
-        particles.t_sim = length / (beta0 * clight)
         program = self.line.energy_program
         if program is not None and self.line.enable_time_dependent_vars:
             turn = particles.reference_turns
             particles.t_sim = program.get_t_s_at_turn(turn + 1) - particles.time_s
+        else:
+            length = self._tracker_data_base.line_length
+            beta0 = particles._xobject.beta0[0]
+            particles.t_sim = length / (beta0 * clight)
 
     def _advance_particle_time_s_and_reference_turns(self, particles, num_turns):
         # Keep the shared clock read-only during a kernel call. GPU threads
