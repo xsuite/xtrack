@@ -28,7 +28,8 @@
     _(double, q0)                \
     _(double, mass0)             \
     _(double, t_sim)             \
-    _(double, time_s)
+    _(double, time_s)             \
+    _(double, _reference_turns)
 
 // Phase-space coordinates represented by TPSAs during TPSA tracking.
 #define XT_LP_COORD_FIELDS(_) \

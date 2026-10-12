@@ -17,6 +17,7 @@ _REF_VARS: tuple[str, ...] = (
     "mass0",
     "t_sim",
     "time_s",
+    "_reference_turns",
     "beta0",
     "gamma0",
     "p0c",
@@ -60,6 +61,7 @@ class TpsaParticleData(xo.Struct):
     mass0 = xo.Float64
     t_sim = xo.Float64
     time_s = xo.Float64
+    _reference_turns = xo.Float64
     beta0 = xo.Float64
     gamma0 = xo.Float64
     p0c = xo.Float64
@@ -189,6 +191,7 @@ class ParticlesTpsa:
         p = self._ref_particle.copy()
         p.time_s = self.time_s
         p.t_sim = self.t_sim
+        p._reference_turns = self._reference_turns
         for c, v in zip(COORDS, self.const_part):
             setattr(p, c, [v])
         return p

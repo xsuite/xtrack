@@ -37,6 +37,7 @@ scalar_vars = (
     (xo.Float64, 'mass0'),
     (xo.Float64, 't_sim'),
     (xo.Float64, 'time_s'),
+    (xo.Float64, '_reference_turns'),
 )
 
 part_energy_vars = (
@@ -370,6 +371,9 @@ class Particles(xo.HybridClass):
         self.mass0 = kwargs.get('mass0', PROTON_MASS_EV)
         self.t_sim = kwargs.get('t_sim', 0)
         self.time_s = kwargs.get('time_s', 0)
+        # Tracker input: accumulated reference revolutions at time_s.
+        # NAN outside tracking, where no line/energy-program map is available.
+        self._reference_turns = kwargs.get('_reference_turns', np.nan)
         self.start_tracking_at_element = kwargs.get(
                             'start_tracking_at_element', -1)
 
@@ -749,6 +753,8 @@ class Particles(xo.HybridClass):
 
         # Check that scalar variables are compatible
         for tt, nn in cls.scalar_vars:
+            if nn == '_reference_turns':
+                continue  # Derived tracker input, not an independent beam property
             vals = [getattr(pp, nn) for pp in cpu_lst]
             assert np.allclose(vals, getattr(cpu_lst[0], nn),
                                rtol=0, atol=1e-14)
@@ -1031,7 +1037,7 @@ class Particles(xo.HybridClass):
             raise NotImplementedError("Out of space, need to regenerate xobject")
 
         for tt, nn in self.scalar_vars:
-            if nn == 't_sim':
+            if nn in ('t_sim', '_reference_turns'):
                 continue
             assert np.isclose(getattr(self, nn), getattr(part, nn),
                               rtol=1e-14, atol=1e-14)

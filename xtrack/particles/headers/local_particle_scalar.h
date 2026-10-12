@@ -33,7 +33,6 @@ typedef struct {
     int64_t endpart;
     uint64_t track_flags;
     double line_length;
-    double reference_turns; // Accumulated reference revolutions at time_s; NAN outside a tracker
     GPUGLMEM int8_t* io_buffer;
 } LocalParticle;
 
@@ -86,7 +85,6 @@ void Particles_to_LocalParticle(
     int64_t id,
     int64_t eid
 ) {
-    dest->reference_turns = NAN;
     #define COPY_SCALAR_FROM_PARTICLES(TYPE, NAME) \
             dest->NAME = ParticlesData_get_ ## NAME(source);
         XT_LP_SIZE_FIELDS(COPY_SCALAR_FROM_PARTICLES)
@@ -117,7 +115,7 @@ void LocalParticle_to_Particles(
 ) {
     if (set_scalar) {
         // Only tracking metadata is copied back. Shared particle scalars
-        // (q0, mass0, t_sim, time_s) are read-only during a kernel call;
+        // (q0, mass0, t_sim, time_s, _reference_turns) are read-only during a kernel call;
         // the Python tracker advances the shared clock after the call.
         #define COPY_SCALAR_TO_PARTICLES(TYPE, NAME) \
                 ParticlesData_set_ ## NAME(dest, LocalParticle_get_ ## NAME(source));

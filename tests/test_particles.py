@@ -12,6 +12,19 @@ import xobjects as xo
 import xpart as xp
 
 
+def test_combine_particles_with_unset_reference_turns():
+    first = xt.Particles(p0c=1e9, x=1., _capacity=3)
+    second = xt.Particles(p0c=1e9, x=2.)
+    # An unset tracker input must not prevent combining compatible beams.
+    assert np.isnan(first._reference_turns)
+    merged = xt.Particles.merge([first, second])
+    assert np.isnan(merged._reference_turns)
+    xo.assert_allclose(np.sort(merged.x[merged.state > 0]), [1., 2.])
+    first.add_particles(second)
+    assert np.isnan(first._reference_turns)
+    xo.assert_allclose(np.sort(first.x[first.state > 0]), [1., 2.])
+
+
 @allow_kernel_compilation
 def test_check_is_active_sorting_openmp():
 

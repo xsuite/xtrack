@@ -222,6 +222,7 @@ def test_coasting_monitors_use_frame_arrival_time(test_context, ramping):
         line.tracker._track_no_collective(p, ele_start=1, ele_stop=3)
     else:
         line.track(p, ele_start=1, ele_stop=3)
+    assert np.isnan(p._reference_turns)
     expected = np.zeros((2, 6, 8))
     expected[0, 2, 4] = 1
     expected[0, 2, 6] = 2
@@ -284,6 +285,7 @@ def test_tracking_kernel_leaves_shared_clock_unchanged(test_context, monkeypatch
     initial_time = 3e-6
     p = xt.Particles(_context=test_context, p0c=1e9, time_s=initial_time,
                      x=np.zeros(2048))
+    assert np.isnan(p._reference_turns)
     # Different threads can finish at different times, or skip tracking entirely.
     p.state[::2] = -1
     p.reorganize()
@@ -296,9 +298,12 @@ def test_tracking_kernel_leaves_shared_clock_unchanged(test_context, monkeypatch
         def __call__(self, **kwargs):
             particles = kwargs['particles']
             before = particles.time_s
+            reference_turns = particles._reference_turns
+            xo.assert_allclose(reference_turns, before / period, rtol=1e-15)
             kernel(**kwargs)
             # Reading the scalar also waits for the GPU kernel to finish.
             assert particles.time_s == before
+            assert particles._reference_turns == reference_turns
             kernel_times.append(before)
 
     monkeypatch.setattr(line.tracker, 'get_track_kernel_and_data_for_present_config',
@@ -306,6 +311,7 @@ def test_tracking_kernel_leaves_shared_clock_unchanged(test_context, monkeypatch
     line.track(p, num_turns=5)
     xo.assert_allclose(kernel_times, [initial_time, initial_time + period], rtol=1e-15)
     xo.assert_allclose(p.time_s, initial_time + 5*period, rtol=1e-15)
+    assert np.isnan(p._reference_turns)
 
 
 @for_all_test_contexts

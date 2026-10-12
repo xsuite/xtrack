@@ -535,6 +535,7 @@ class Tracker:
         p.t_sim = tracker_data.line_length / (p.beta0 * clight)
 
         def run_track_kernel(num_turns, ele_start, num_ele_track, flag_end_turn_actions):
+            p._reference_turns = p.time_s / p.t_sim if p.t_sim else 0.
             track_kernel(
                 buffer=tracker_data._buffer.buffer,
                 tracker_data=tracker_data._element_ref_data,
@@ -547,7 +548,6 @@ class Tracker:
                 flag_monitor=0,
                 num_ele_line=len(tracker_data.element_names),
                 line_length=tracker_data.line_length,
-                reference_turns=p.time_s / p.t_sim if p.t_sim else 0.,
                 buffer_tbt_monitor=dummy_buffer,
                 offset_tbt_monitor=0,
                 buffer_multi_element_monitor=buffer_multi_element_monitor,
@@ -555,6 +555,7 @@ class Tracker:
                 io_buffer=self.io_buffer.buffer,
                 track_flags=p.track_flags,
             )
+            p._reference_turns = np.nan
             self._advance_particle_clock(p, int(num_turns)*flag_end_turn_actions)
 
         run_track_kernel(
@@ -832,7 +833,6 @@ class Tracker:
                              int flag_monitor,
                              int num_ele_line,
                              double line_length,
-                             double reference_turns,
                 /*gpuglmem*/ int8_t* buffer_tbt_monitor,
                              int64_t offset_tbt_monitor,
                 /*gpuglmem*/ int8_t* buffer_multi_element_monitor,
@@ -893,13 +893,11 @@ class Tracker:
             if (part_id<part_capacity){
             Particles_to_LocalParticle(particles, &lpart, part_id, end_id);
 
-            lpart.reference_turns = reference_turns;
             int64_t isactive = check_is_active(&lpart);
 #else
             LocalParticle lpart;
             Particles_to_LocalParticle(particles, &lpart, 0, 1);
             lpart.line_length = line_length;
-            lpart.reference_turns = reference_turns;
             lpart._num_active_particles = 1;
             lpart._num_lost_particles = 0;
             lpart.track_flags = track_flags;
@@ -944,7 +942,7 @@ class Tracker:
                         increment_at_turn_backtrack(&lpart, flag_reset_s_at_end_turn,
                                                     line_length, num_ele_line);
                         lpart.time_s -= lpart.t_sim;
-                        lpart.reference_turns -= 1.;
+                        lpart._reference_turns -= 1.;
                     }
                 }
                 else{
@@ -1071,7 +1069,7 @@ class Tracker:
 #endif
                 ) {
                     lpart.time_s += lpart.t_sim;
-                    lpart.reference_turns += 1.;
+                    lpart._reference_turns += 1.;
                 }
             } // for turns
 
@@ -1210,7 +1208,6 @@ class Tracker:
                     xo.Arg(xo.Int32, name="flag_monitor"),
                     xo.Arg(xo.Int32, name='num_ele_line'),
                     xo.Arg(xo.Float64, name='line_length'),
-                    xo.Arg(xo.Float64, name='reference_turns'),
                     xo.Arg(xo.Int8, pointer=True, name="buffer_tbt_monitor"),
                     xo.Arg(xo.Int64, name="offset_tbt_monitor"),
                     xo.Arg(xo.Int8, pointer=True, name="buffer_multi_element_monitor"),
@@ -1748,6 +1745,9 @@ class Tracker:
 
         # First turn
         assert num_elements_first_turn >= 0
+        # Supply derived reference turns through Particles as a read-only kernel
+        # input. Clear it afterwards so standalone monitors cannot use stale data.
+        particles._reference_turns = self._get_reference_turns(particles)
         track_kernel(
             buffer=tracker_data._buffer.buffer,
             tracker_data=tracker_data._element_ref_data,
@@ -1760,7 +1760,6 @@ class Tracker:
             flag_monitor=flag_monitor,
             num_ele_line=len(tracker_data.element_names),
             line_length=tracker_data.line_length,
-            reference_turns=self._get_reference_turns(particles),
             buffer_tbt_monitor=buffer_monitor,
             offset_tbt_monitor=offset_monitor,
             buffer_multi_element_monitor=buffer_multi_element_monitor,
@@ -1768,12 +1767,14 @@ class Tracker:
             io_buffer=self.io_buffer.buffer,
             track_flags=track_flags
         )
+        particles._reference_turns = np.nan
 
         self._advance_particle_clock(particles, flag_end_first_turn_actions)
 
         # Middle turns
         if num_middle_turns > 0:
             assert self.num_elements > 0
+            particles._reference_turns = self._get_reference_turns(particles)
             track_kernel(
                 buffer=tracker_data._buffer.buffer,
                 tracker_data=tracker_data._element_ref_data,
@@ -1786,7 +1787,6 @@ class Tracker:
                 flag_monitor=flag_monitor,
                 num_ele_line=len(tracker_data.element_names),
                 line_length=tracker_data.line_length,
-                reference_turns=self._get_reference_turns(particles),
                 buffer_tbt_monitor=buffer_monitor,
                 offset_tbt_monitor=offset_monitor,
                 buffer_multi_element_monitor=buffer_multi_element_monitor,
@@ -1794,6 +1794,7 @@ class Tracker:
                 io_buffer=self.io_buffer.buffer,
                 track_flags=track_flags
             )
+            particles._reference_turns = np.nan
 
             self._advance_particle_clock(
                 particles, num_middle_turns*flag_end_middle_turn_actions)
@@ -1801,6 +1802,7 @@ class Tracker:
         # Last turn, only if incomplete
         if num_elements_last_turn > 0:
             assert num_elements_last_turn > 0
+            particles._reference_turns = self._get_reference_turns(particles)
             track_kernel(
                 buffer=tracker_data._buffer.buffer,
                 tracker_data=tracker_data._element_ref_data,
@@ -1813,7 +1815,6 @@ class Tracker:
                 flag_monitor=flag_monitor,
                 num_ele_line=len(tracker_data.element_names),
                 line_length=tracker_data.line_length,
-                reference_turns=self._get_reference_turns(particles),
                 buffer_tbt_monitor=buffer_monitor,
                 offset_tbt_monitor=offset_monitor,
                 buffer_multi_element_monitor=buffer_multi_element_monitor,
@@ -1821,6 +1822,7 @@ class Tracker:
                 io_buffer=self.io_buffer.buffer,
                 track_flags=track_flags
             )
+            particles._reference_turns = np.nan
 
         self.record_last_track = monitor
         self.record_multi_element_last_track = multi_element_monitor
