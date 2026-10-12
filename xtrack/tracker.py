@@ -114,9 +114,10 @@ class Tracker:
         tracker_data_base._line_table = tt
         tracker_data_base._element_names_unique = tuple(
                 tracker_data_base._line_table.name[:-1]) # remove _endpoint
-        self._sync_time_controller = (
-            _SyncTimeController(line, tracker_data_base)
-            if 'SyncTime' in tracker_data_base._line_table.element_type else None)
+        if 'SyncTime' in tracker_data_base._line_table.element_type:
+            self._sync_time_controller = _SyncTimeController(line, tracker_data_base)
+        else:
+            self._sync_time_controller = None
         line._freeze()
 
         if np.any([hasattr(ee, 'needs_rng') and ee.needs_rng for ee in line._elements]):
