@@ -1835,7 +1835,9 @@ class Particles(xo.HybridClass):
 
         assert np.isscalar(p0c), 'p0c must be a scalar'
 
-        # Assign with a mask
+        # If _mask is provided, use it to select the particles for the update.
+        # Note that mask might include lost particles (for the case of SyncTime,
+        # where particles are disabled only temporarily.
         mask = self.state > 0 if _mask is None else _mask
 
         old_p0c = self.p0c.copy()
