@@ -1489,8 +1489,6 @@ class Tracker:
 
             if particles is not None and not _is_resume_within_turn(tt, tt_resume):
                 self._prepare_particle_time_s_and_reference_turns(particles)
-                if self._sync_time_controller is not None:
-                    self._sync_time_controller.prepare_frame(particles)
 
             if log is not None and not _is_resume_within_turn(tt, tt_resume):
                 self._handle_log(_session_to_resume=_session_to_resume,
@@ -2042,7 +2040,7 @@ class Tracker:
         if np.isnan(particles.reference_turns):
             particles.reference_turns = self._get_reference_turns(particles)
         if self._sync_time_controller is not None:
-            return  # prepare_frame supplies the fractional-turn duration
+            return  # The first SyncTime supplies the fractional-turn duration.
         program = self.line.energy_program
         if program is not None and self.line.enable_time_dependent_vars:
             turn = particles.reference_turns

@@ -47,6 +47,8 @@ class SyncTime(BeamElement):
     def track(self, particles):
         if self._controller is None:
             raise ValueError('SyncTime must be attached to a line with a built tracker')
+        if self.at_start:
+            self._controller.start_turn(particles)
         lower, upper = self._controller.windows[self.id]
         particles.state[particles.state == -self.id] = 1
         particles.reorganize()
@@ -186,7 +188,7 @@ class _SyncTimeController:
             mask |= particles.state == -id_
         return mask
 
-    def prepare_frame(self, particles):
+    def start_turn(self, particles):
         if isinstance(particles._context, xo.ContextPyopencl):
             raise ValueError('SyncTime does not work with ContextPyopencl')
         if particles.lost_particles_are_hidden:
