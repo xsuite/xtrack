@@ -24,8 +24,8 @@ typedef struct
 
 
 typedef struct {
-    float_type emitx_norm;        // normalized emittance x
-    float_type emity_norm;        // normalized emittance y
+    float_type nemitt_x;        // normalized emittance x
+    float_type nemitt_y;        // normalized emittance y
     float_type delta_rms;         // rms energy spread
     float_type tol_co;            // tolerance for closed orbit [co_radius]
     float_type tol_disp;          // tolerance for normalized dispersion [dqf]
@@ -103,8 +103,8 @@ static inline Racetrack_s beam_racetrack(
     const float_type hy = beam->halo_y / beam->halo_primary;
     const float_type hr = beam->halo_r / beam->halo_primary;
 
-    const float_type ex = beam->emitx_norm / (twiss->gamma * twiss->beta);
-    const float_type ey = beam->emity_norm / (twiss->gamma * twiss->beta);
+    const float_type ex = beam->nemitt_x / (twiss->gamma * twiss->beta);
+    const float_type ey = beam->nemitt_y / (twiss->gamma * twiss->beta);
 
     const float_type sigma_x = sqrt(ex * twiss->betx) * beam->tol_beta_beating;
     const float_type sigma_y = sqrt(ey * twiss->bety) * beam->tol_beta_beating;
@@ -234,8 +234,8 @@ Contract: len(out_points)=len_points; len_poly_points=len(poly_points)
 static inline BeamLocalData beam_data_get_entry(const BeamData beam_data)
 {
     return (BeamLocalData){
-        .emitx_norm = BeamData_get_emitx_norm(beam_data),
-        .emity_norm = BeamData_get_emity_norm(beam_data),
+        .nemitt_x = BeamData_get_nemitt_x(beam_data),
+        .nemitt_y = BeamData_get_nemitt_y(beam_data),
         .delta_rms = BeamData_get_delta_rms(beam_data),
         .tol_co = BeamData_get_tol_co(beam_data),
         .tol_disp = BeamData_get_tol_disp(beam_data),
@@ -266,7 +266,8 @@ static inline TwissLocalData twiss_data_get_entry(const TwissData twiss_data, co
 
 
 void get_max_aperture_sigma_bisection(
-    ApertureModel model,
+    LineApertureModel model,
+    ApertureEnvStruct aperture_env,
     SurveyData survey,
     ProfilePolygons profile_polygons,
     ApertureBounds aperture_bounds,
@@ -302,6 +303,7 @@ void get_max_aperture_sigma_bisection(
             survey_at_s,
             idx_slice,
             model,
+            aperture_env,
             profile_polygons,
             aperture_bounds,
             survey,
@@ -355,7 +357,8 @@ void get_max_aperture_sigma_bisection(
 
 
 void compute_beam_envelopes_at_sigma(
-    ApertureModel model,
+    LineApertureModel model,
+    ApertureEnvStruct aperture_env,
     ApertureBounds aperture_bounds,
     TwissData twiss_at_s,
     BeamData beam_data,
@@ -390,7 +393,7 @@ void compute_beam_envelopes_at_sigma(
 
         if (include_aper_tols) {
             bound_index = interpolate_aperture_tolerances_at_s(
-                model, aperture_bounds, s, bound_index,
+                model, aperture_env, aperture_bounds, s, bound_index,
                 &s_aperture_data.tol_r, &s_aperture_data.tol_x, &s_aperture_data.tol_y);
         }
 
@@ -505,7 +508,8 @@ static inline float_type compute_n1_for_point(
 
 
 void get_max_aperture_sigma_rays(
-    ApertureModel model,
+    LineApertureModel model,
+    ApertureEnvStruct aperture_env,
     SurveyData survey,
     ProfilePolygons profile_polygons,
     ApertureBounds aperture_bounds,
@@ -542,6 +546,7 @@ void get_max_aperture_sigma_rays(
             survey_at_s,
             idx_slice,
             model,
+            aperture_env,
             profile_polygons,
             aperture_bounds,
             survey,
@@ -629,7 +634,8 @@ void get_max_aperture_sigma_rays(
 
 
 void get_max_aperture_sigma_exact(
-    ApertureModel model,
+    LineApertureModel model,
+    ApertureEnvStruct aperture_env,
     SurveyData survey,
     ProfilePolygons profile_polygons,
     ApertureBounds aperture_bounds,
@@ -667,6 +673,7 @@ void get_max_aperture_sigma_exact(
             survey_at_s,
             idx_slice,
             model,
+            aperture_env,
             profile_polygons,
             aperture_bounds,
             survey,

@@ -11,6 +11,7 @@ from contextlib import contextmanager
 from pprint import pformat
 from typing import Container, Dict, List, Literal, Optional
 from warnings import warn
+from weakref import ref
 
 import numpy as np
 import xdeps as xd
@@ -354,6 +355,12 @@ class Line:
 
         self.env = env
 
+        from xtrack.aperture.aperture import LineAperture
+        aperture_struct = env.aperture._struct
+        aperture_context = (
+            aperture_struct._context if aperture_struct is not None else None)
+        self.aperture = LineAperture(self, context=aperture_context)
+
         self.env._lines_weakrefs.add(self)
 
         if particle_ref is None:
@@ -468,6 +475,10 @@ class Line:
                 element_dict=elements,
                 _var_management_dct=var_management_dict)
 
+            if 'aperture_environment' in dct:
+                env.aperture.from_dict(
+                    dct['aperture_environment'], context=_context)
+
             if 'env_particles' in dct:
                 for nn, ppd in dct['env_particles'].items():
                    env._particles[nn] = xt.Particles.from_dict(ppd, _context=_context)
@@ -500,6 +511,9 @@ class Line:
 
         if 'composer' in dct.keys() and dct['composer'] is not None:
             self.composer = xt.Composer.from_dict(dct['composer'], env=self.env)
+
+        if 'aperture' in dct:
+            self.aperture.from_dict(dct['aperture'], context=_context)
 
         if ('energy_program' in self._element_dict
              and self._element_dict['energy_program'] is not None):
@@ -787,7 +801,7 @@ class Line:
 
     @doc_group("Constructors and Serialization")
     def to_dict(self, include_var_management=True, include_element_dict=True,
-                include_version=False):
+                include_version=False, include_aperture=False):
 
         '''
         Returns a dictionary representation of the line.
@@ -803,6 +817,9 @@ class Line:
         include_version : bool, optional
             If True, the xtrack version is stored in the dictionary. Default
             is False.
+        include_aperture : bool, optional
+            If True, include this line's aperture and, when element definitions
+            are included, its environment aperture data. Default is False.
 
         Returns
         -------
@@ -818,6 +835,10 @@ class Line:
 
         if include_element_dict:
             out["elements"] = {k: el.to_dict() for k, el in self._element_dict.items()}
+            if include_aperture and (
+                len(self.env.aperture.profiles) or len(self.env.aperture.pipes)
+            ):
+                out['aperture_environment'] = self.env.aperture.to_dict(include_line_models=False)
         out["element_names"] = self.element_names[:]
         out['config'] = self.config.data.copy()
         out['_extra_config'] = self._extra_config.copy()
@@ -846,6 +867,9 @@ class Line:
         out['env_particles'] = {k: pp.to_dict() for k, pp in self.env._particles.items()}
 
         out["metadata"] = copy.deepcopy(self.metadata)
+
+        if include_aperture and not self.aperture.empty:
+            out['aperture'] = self.aperture._to_dict()
 
         return out
 
@@ -895,10 +919,6 @@ class Line:
 
 
     def __repr__(self):
-        if hasattr(self, '_name'):
-            name = self._name
-        else:
-            name = ''
         tokens = []
         if hasattr(self, '_name') and self._name:
             tokens.append(f'name={self._name}')
@@ -917,6 +937,7 @@ class Line:
 
     def __setstate__(self, state):
         self.__dict__.update(state)
+        self.aperture._line_ref = ref(self)
 
     @doc_group("Constructors and Serialization")
     def to_json(self, file, indent=1, **kwargs):
@@ -928,11 +949,12 @@ class Line:
             The file to save to. If a string is provided, a file is opened and
             closed. If a file-like object is provided, it is used directly.
         **kwargs:
-            Additional keyword arguments are passed to the `Line.to_dict` method.
+            Additional keyword arguments, including ``include_aperture``, are
+            passed to the `Line.to_dict` method.
 
         '''
 
-        if 'inlude_version' not in kwargs:
+        if 'include_version' not in kwargs:
             kwargs['include_version'] = True
 
         json_utils.dump(self.to_dict(**kwargs), file, indent=indent)
@@ -1285,6 +1307,9 @@ class Line:
 
             env = xt.Environment(element_dict=elements,
                                   _var_management_dct=var_management_dict)
+            if len(self.env.aperture.profiles) or len(self.env.aperture.pipes):
+                env.aperture.from_dict(
+                    self.env.aperture.to_dict(include_line_models=False), context=_context)
 
             if isinstance(self._particle_ref, str):
                 env.particles[self._particle_ref] = self.particle_ref.copy()
@@ -1304,6 +1329,9 @@ class Line:
         out._extra_config.update(self._extra_config.copy())
         out.metadata.clear()
         out.metadata.update(self.metadata)
+
+        if not self.aperture.empty:
+            out.aperture.from_dict(self.aperture._to_dict())
 
         if out.energy_program is not None:
             out.energy_program.line = out
