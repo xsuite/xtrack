@@ -866,7 +866,8 @@ class Tracker:
                         Particles_to_LocalParticle(particles, &lpart, 0, capacity);
                         check_is_active(&lpart);
                         count_reorganized_particles(&lpart);
-                        LocalParticle_to_Particles(&lpart, particles, 0, capacity);
+                        LocalParticle_to_Particles(&lpart, particles, 0,
+                            1); // set_scalar
                     }
                 #else // When we skip reorganize, we cannot just batch active particles
                     const int64_t num_particles_to_track = capacity;
@@ -950,7 +951,8 @@ class Tracker:
                     increm = -1;
                     if (flag_end_turn_actions>0){
                         increment_at_turn(&lpart, flag_reset_s_at_end_turn,
-                                          line_length, num_ele_line, -1);
+                                          line_length, num_ele_line,
+                                          -1); // direction
                     }
                 }
                 else{
@@ -1061,20 +1063,23 @@ class Tracker:
                 else if (flag_end_turn_actions>0){
                     if (isactive){
                         increment_at_turn(&lpart, flag_reset_s_at_end_turn,
-                                          line_length, num_ele_line, 1);
+                                          line_length, num_ele_line,
+                                          1); // direction
                     }
                 }
 #else
                 if (flag_end_turn_actions>0
                         && LocalParticle_get_state(&lpart) > 0){
                     increment_at_turn(&lpart, flag_reset_s_at_end_turn,
-                                      line_length, num_ele_line, 1);
+                                      line_length, num_ele_line,
+                                      1); // direction
                 }
 #endif
             } // for turns
 
 #ifndef XTRACK_TPSA_TRACK
-            LocalParticle_to_Particles(&lpart, particles, part_id, part_id == 0);
+            LocalParticle_to_Particles(&lpart, particles, part_id,
+                part_id == 0); // set_scalar
 
             }// if partid
             } //only_for_context cpu_openmp
@@ -1087,13 +1092,15 @@ class Tracker:
             Particles_to_LocalParticle(particles, &lpart, 0, capacity);//only_for_context cpu_openmp
             check_is_active(&lpart);                                   //only_for_context cpu_openmp
             count_reorganized_particles(&lpart);                       //only_for_context cpu_openmp
-            LocalParticle_to_Particles(&lpart, particles, 0, capacity);//only_for_context cpu_openmp
+            LocalParticle_to_Particles(&lpart, particles, 0, //only_for_context cpu_openmp
+                1); // set_scalar //only_for_context cpu_openmp
             #endif                                                     //only_for_context cpu_openmp
 #else
             } catch (const xt_tpsa::tracking_error&) {
                 LocalParticle_set_state(&lpart, XT_LOST_ON_TPSA_ERROR);
             }
-            LocalParticle_to_Particles(&lpart, particles, 0, 1);
+            LocalParticle_to_Particles(&lpart, particles, 0,
+                1); // set_scalar
 #endif
         }//kernel
         """
