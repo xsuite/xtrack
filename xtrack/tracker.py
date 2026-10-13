@@ -305,6 +305,14 @@ class Tracker:
             self, particles, *args, with_progress: Union[bool, int] = False,
             time=False, multi_element_monitor_at=None, monitor_monomials=None, **kwargs):
 
+        # Re-evaluate on each call: time-dependent variables can be toggled
+        # after tracker construction. Element-driven reference ramps retain
+        # conventional zeta updates even when their clock is approximate.
+        self.track_flags.XS_FLAG_USE_TIME_BASED_ZETA_UPDATE = (
+            self._sync_time_controller is not None
+            or (self.line.energy_program is not None
+                and self.line.enable_time_dependent_vars))
+
         # if not self.config.get('XTRACK_MULTIPOLE_NO_SYNRAD', False):
         #     # Radiation and spin share a compile flag. BFieldExpansion may
         #     # track without radiating, but spin transport is not implemented.

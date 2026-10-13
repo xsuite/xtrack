@@ -536,6 +536,99 @@ def test_particle_clock_and_machine_time_ownership(test_context):
 
 @for_all_test_contexts
 @pytest.mark.parametrize('reset_s', [True, False])
+@pytest.mark.parametrize('reference_change', ['segment_map', 'reference_element'])
+def test_element_reference_ramp_uses_conventional_zeta_updates(
+        test_context, reset_s, reference_change):
+    if reference_change == 'segment_map':
+        elements = [xt.LineSegmentMap(
+            length=100., energy_ref_increment=1e5,
+            longitudinal_mode='nonlinear', momentum_compaction_factor=.04,
+            voltage_rf=1e5, frequency_rf=1.1e6, phase_rf=.3)]
+    else:
+        elements = [xt.Drift(length=37.),
+                    xt.Cavity(voltage=1e5, frequency=1.1e6, phase=.3),
+                    xt.ReferenceEnergyIncrease(Delta_p0c=1e5),
+                    xt.Drift(length=63.)]
+    line = xt.Line(elements=elements)
+    line.reset_s_at_end_turn = reset_s
+    line.build_tracker(_context=test_context)
+    p = xt.Particles(_context=test_context, p0c=1e9,
+                     zeta=[.2, -.3], delta=[.001, -.002])
+    chunked = p.copy()
+    manual = p.copy()
+    line.track(p, num_turns=20)
+    assert not line.tracker.track_flags.XS_FLAG_USE_TIME_BASED_ZETA_UPDATE
+    for _ in range(20):
+        line.track(chunked)
+        for element in line.elements:
+            element.track(manual)
+        if reset_s:
+            manual.s = 0.
+        else:
+            manual.zeta += line.get_length()
+
+    # The approximate clock of an element-driven ramp must not feed back
+    # into the coordinates, including the phase seen by ordinary RF cavities.
+    for name in ('zeta', 's', 'p0c', 'delta'):
+        xo.assert_allclose(getattr(p, name), getattr(chunked, name),
+                           rtol=1e-12, atol=1e-10)
+        xo.assert_allclose(getattr(p, name), getattr(manual, name),
+                           rtol=1e-12, atol=1e-10)
+
+
+@for_all_test_contexts
+@pytest.mark.parametrize('time_based', [False, True])
+def test_element_reference_update_at_nonzero_s(test_context, time_based):
+    line = xt.Line(elements=[xt.Drift(length=37.),
+                            xt.ReferenceEnergyIncrease(Delta_p0c=1e8),
+                            xt.Drift(length=63.)])
+    line.particle_ref = xt.Particles(p0c=1e9)
+    line.energy_program = xt.EnergyProgram(t_s=[0., 1.], p0c=[1e9, 1e9])
+    line.build_tracker(_context=test_context)
+    line.enable_time_dependent_vars = time_based
+    p = xt.Particles(_context=test_context, p0c=1e9, s=37., zeta=4.)
+    initial = p.copy()
+    line.track(p, ele_start=1, num_elements=1)
+
+    ratio = p.beta0 / initial.beta0
+    if time_based:
+        expected_zeta = initial.s + (initial.zeta - initial.s) * ratio
+    else:
+        expected_zeta = initial.zeta * ratio
+    xo.assert_allclose(p.zeta, expected_zeta, rtol=1e-14, atol=1e-13)
+    xo.assert_allclose(p.energy, initial.energy, rtol=1e-14)
+    assert line.tracker.track_flags.XS_FLAG_USE_TIME_BASED_ZETA_UPDATE == time_based
+
+
+@for_all_test_contexts
+def test_time_based_zeta_flag_follows_tracking_configuration(test_context):
+    line = xt.Line(elements=[xt.Drift(length=100.)])
+    line.particle_ref = xt.Particles(p0c=1e9)
+    line.build_tracker(_context=test_context)
+    p = xt.Particles(_context=test_context, p0c=1e9)
+    line.enable_time_dependent_vars = True
+    line.track(p)
+    assert not line.tracker.track_flags.XS_FLAG_USE_TIME_BASED_ZETA_UPDATE
+
+    # Both the program and its activation can change after tracker construction.
+    line.energy_program = xt.EnergyProgram(t_s=[0., 1.], p0c=[1e9, 1e9])
+    for enabled in (False, True, False, True):
+        line.enable_time_dependent_vars = enabled
+        line.track(p)
+        assert line.tracker.track_flags.XS_FLAG_USE_TIME_BASED_ZETA_UPDATE == enabled
+
+    sync_line = xt.Line(elements=[xt.Drift(length=100.)])
+    st.install_sync_time_at_collective_elements(sync_line)
+    sync_line.build_tracker(_context=test_context)
+    sync_particles = xt.Particles(_context=test_context, p0c=1e9)
+    for enabled in (False, True, False):
+        sync_line.enable_time_dependent_vars = enabled
+        sync_line.track(sync_particles)
+        assert sync_line.tracker.track_flags.XS_FLAG_USE_TIME_BASED_ZETA_UPDATE
+
+
+@for_all_test_contexts
+@pytest.mark.parametrize('reset_s', [True, False])
 def test_energy_program_clock_preserves_physical_flight_time(test_context, reset_s):
     line = xt.Line(elements=[xt.Drift(length=100)])
     line.reset_s_at_end_turn = reset_s

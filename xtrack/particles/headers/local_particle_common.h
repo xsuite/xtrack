@@ -257,13 +257,19 @@ void increment_at_turn(LocalParticle* part0, int flag_reset_s, double line_lengt
         next_s = line_length;
     }
     START_PER_PARTICLE_BLOCK(part0, part);
-        // Preserve time_s + (s-zeta)/(beta0*c) when the clock changes by
-        // direction*t_sim and s is optionally reset. This applies to full turns
-        // and SyncTime frames; paused particles are handled by the controller.
-        double zeta_shift = LocalParticle_get_beta0(part) * C_LIGHT
-            * LocalParticle_get_t_sim(part);
-        if (flag_reset_s > 0) {
-            zeta_shift -= line_length;
+        // Conventional turns advance the longitudinal origin by one circumference.
+        // EnergyProgram and SyncTime instead use the clock interval, preserving
+        // time_s + (s-zeta)/(beta0*c). Paused particles are handled by the controller.
+        double zeta_shift = 0.;
+        if (LocalParticle_check_track_flag(part, XS_FLAG_USE_TIME_BASED_ZETA_UPDATE)) {
+            zeta_shift = LocalParticle_get_beta0(part) * C_LIGHT
+                * LocalParticle_get_t_sim(part);
+            if (flag_reset_s > 0) {
+                zeta_shift -= line_length;
+            }
+        }
+        else if (flag_reset_s <= 0) {
+            zeta_shift = line_length;
         }
         LocalParticle_add_to_zeta(part, direction * zeta_shift);
         LocalParticle_add_to_at_turn(part, direction);
@@ -407,9 +413,16 @@ void LocalParticle_update_p0c(LocalParticle* part, double new_p0c_value) {
     LocalParticle_update_delta(part, new_delta);
     LocalParticle_scale_px(part, old_p0c / new_p0c_value);
     LocalParticle_scale_py(part, old_p0c / new_p0c_value);
-    LocalParticle_set_zeta(part, LocalParticle_get_s(part)
-        + (LocalParticle_get_zeta(part) - LocalParticle_get_s(part))
-            * (new_beta0 / old_beta0));
+    if (LocalParticle_check_track_flag(part, XS_FLAG_USE_TIME_BASED_ZETA_UPDATE)) {
+        // Preserve absolute arrival time when changing the reference velocity.
+        LocalParticle_set_zeta(part, LocalParticle_get_s(part)
+            + (LocalParticle_get_zeta(part) - LocalParticle_get_s(part))
+                * (new_beta0 / old_beta0));
+    }
+    else {
+        // Conventional reference updates preserve the relative delay zeta/beta0.
+        LocalParticle_scale_zeta(part, new_beta0 / old_beta0);
+    }
 }
 
 // Loss-state helpers.

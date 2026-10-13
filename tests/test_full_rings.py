@@ -64,7 +64,8 @@ def test_full_rings(
     ##################
     print('Build tracker...')
     line.build_tracker(_context=test_context)
-    line.reset_s_at_end_turn = False
+    # Compare in the periodic longitudinal frame used by ducktrack's RF model.
+    line.reset_s_at_end_turn = True
 
     assert line._buffer.context is test_context
     assert line[23]._buffer.context is test_context
@@ -93,6 +94,7 @@ def test_full_rings(
     dtk_part = dtk.TestParticles.from_dict(input_data['particle']).copy()
     for _ in range(n_turns):
         testline.track(dtk_part)
+        dtk_part.s *= 0.
 
     for vv in vars_to_check:
         dtk_value = getattr(dtk_part, vv)[0]
