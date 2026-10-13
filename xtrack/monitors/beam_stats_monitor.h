@@ -210,13 +210,9 @@ void BeamStatsMonitor_track_local_particle(
                 if (line_length <= 0.0) {
                     accepted = 0;
                 } else {
-                    // Accumulated reference revolutions at time_s, including fractional
-                    // turns. With an EnergyProgram the tracker integrates beta0*c/C;
-                    // the fallback below assumes constant reference momentum.
-                    double const reference_turns = isnan(part->reference_turns)
-                        ? LocalParticle_get_time_s(part)
-                            * LocalParticle_get_beta0(part)*C_LIGHT/line_length
-                        : part->reference_turns;
+                    // The tracker supplies accumulated reference revolutions at time_s,
+                    // including fractional turns and the EnergyProgram's integral of beta0*c/C.
+                    double const reference_turns = part->reference_turns;
                     // Express arrival on the fixed-zeta acquisition grid in turn units.
                     // During a ramp this differs from evaluating the integrated
                     // reference-turn map at the particle's arrival time.
