@@ -1150,7 +1150,7 @@ class Environment:
         out["metadata"] = deepcopy(self.metadata)
 
         if include_aperture and (len(self.aperture.profiles) or len(self.aperture.pipes)):
-            out['aperture'] = self.aperture._to_dict()
+            out['aperture'] = self.aperture.to_dict(include_line_models=False)
 
         out['xsuite_data_type'] = 'Environment'
 
@@ -1232,7 +1232,7 @@ class Environment:
                 _var_management_dct=_var_management_dct, particles=particles)
 
         if 'aperture' in dct:
-            out.aperture.load_dict(dct['aperture'], context=_context)
+            out.aperture.from_dict(dct['aperture'], context=_context)
 
         dct_lines = dct.copy()
         dct_lines.pop('elements', None)

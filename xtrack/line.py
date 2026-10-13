@@ -476,7 +476,7 @@ class Line:
                 _var_management_dct=var_management_dict)
 
             if 'aperture_environment' in dct:
-                env.aperture.load_dict(
+                env.aperture.from_dict(
                     dct['aperture_environment'], context=_context)
 
             if 'env_particles' in dct:
@@ -513,7 +513,7 @@ class Line:
             self.composer = xt.Composer.from_dict(dct['composer'], env=self.env)
 
         if 'aperture' in dct:
-            self.aperture.load_dict(dct['aperture'], context=_context)
+            self.aperture.from_dict(dct['aperture'], context=_context)
 
         if ('energy_program' in self._element_dict
              and self._element_dict['energy_program'] is not None):
@@ -838,7 +838,7 @@ class Line:
             if include_aperture and (
                 len(self.env.aperture.profiles) or len(self.env.aperture.pipes)
             ):
-                out['aperture_environment'] = self.env.aperture._to_dict()
+                out['aperture_environment'] = self.env.aperture.to_dict(include_line_models=False)
         out["element_names"] = self.element_names[:]
         out['config'] = self.config.data.copy()
         out['_extra_config'] = self._extra_config.copy()
@@ -1308,8 +1308,8 @@ class Line:
             env = xt.Environment(element_dict=elements,
                                   _var_management_dct=var_management_dict)
             if len(self.env.aperture.profiles) or len(self.env.aperture.pipes):
-                env.aperture.load_dict(
-                    self.env.aperture._to_dict(), context=_context)
+                env.aperture.from_dict(
+                    self.env.aperture.to_dict(include_line_models=False), context=_context)
 
             if isinstance(self._particle_ref, str):
                 env.particles[self._particle_ref] = self.particle_ref.copy()
@@ -1331,7 +1331,7 @@ class Line:
         out.metadata.update(self.metadata)
 
         if not self.aperture.empty:
-            out.aperture.load_dict(self.aperture._to_dict())
+            out.aperture.from_dict(self.aperture._to_dict())
 
         if out.energy_program is not None:
             out.energy_program.line = out

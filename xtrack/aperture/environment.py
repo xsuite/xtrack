@@ -387,37 +387,43 @@ class EnvAperture:
 
         return self
 
-    def _to_dict(self):
-        """Serialize the environment-owned aperture data without changing state."""
-        if self._struct is not None:
-            return self._struct.to_dict()
-
-        return {
-            'profiles': [item._to_dict() for item in self._profiles_unbuilt],
-            'pipes': [item._to_dict() for item in self._pipes_unbuilt],
-            'profile_names': list(self._profile_name_to_index),
-            'pipe_names': list(self._pipe_name_to_index),
-        }
-
     @doc_group("Loading and Serialization")
-    def to_dict(self):
-        """Serialize aperture definitions and all named lines' aperture data.
+    def to_dict(self, include_line_models=True):
+        """Serialize shared aperture definitions, optionally including line models.
+
+        Parameters
+        ----------
+        include_line_models : bool, optional
+            If True (default), include all named lines' aperture data. If
+            False, return only the shared profile and pipe definitions.
 
         Returns
         -------
         dict
             Shared definitions under ``environment`` and per-line aperture
-            data under ``lines``. References use names rather than internal
-            indices. Surveys and derived geometry are not serialized, and
-            the current build state is not changed.
+            data under ``lines`` when ``include_line_models=True``. Otherwise,
+            return the shared definitions directly, without those wrapper keys.
 
         Notes
         -----
         Ordinary ``Environment.to_dict()`` omits aperture data unless
         ``include_aperture=True`` is supplied.
         """
+        if self._struct is not None:
+            definitions = self._struct.to_dict()
+        else:
+            definitions = {
+                'profiles': [item._to_dict() for item in self._profiles_unbuilt],
+                'pipes': [item._to_dict() for item in self._pipes_unbuilt],
+                'profile_names': list(self._profile_name_to_index),
+                'pipe_names': list(self._pipe_name_to_index),
+            }
+
+        if not include_line_models:
+            return definitions
+
         return {
-            'environment': self._to_dict(),
+            'environment': definitions,
             'lines': {
                 name: line.aperture._to_dict()
                 for name, line in self.env.lines.items()
@@ -425,18 +431,21 @@ class EnvAperture:
         }
 
     @doc_group("Loading and Serialization")
-    def to_json(self, filename):
-        """Write shared definitions and all named lines' aperture data to JSON.
+    def to_json(self, filename, **kwargs):
+        """Write aperture definitions and optional line models to JSON.
 
         Parameters
         ----------
         filename : str, pathlib.Path, or writable file object
             Destination for the data returned by :meth:`to_dict`.
+        **kwargs
+            Arguments passed to :meth:`to_dict`, including
+            ``include_line_models``.
         """
-        json_dump(self.to_dict(), filename)
+        json_dump(self.to_dict(**kwargs), filename)
 
     @doc_group("Loading and Serialization")
-    def load_dict(self, data, context=None):
+    def from_dict(self, data, context=None):
         """Replace shared definitions with a packed representation.
 
         Dependent line aperture models are discarded before replacing the
@@ -445,8 +454,9 @@ class EnvAperture:
         Parameters
         ----------
         data : dict
-            Shared definitions, corresponding to the ``environment`` entry
-            returned by :meth:`to_dict`, rather than the complete export.
+            Shared definitions returned by
+            ``to_dict(include_line_models=False)``, or the ``environment``
+            entry of a complete export.
         context : xobjects.ContextCpu, optional
             Context used for the replacement packed structure.
 

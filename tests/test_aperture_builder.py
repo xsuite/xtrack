@@ -303,6 +303,7 @@ def test_line_and_environment_aperture_json_data_roundtrip(tmp_path):
     env_aperture_data = env.aperture.to_dict()
     assert set(env_aperture_data['lines']) == {'line', 'other'}
     assert env_aperture_data['environment'] == data['aperture']
+    assert env.aperture.to_dict(include_line_models=False) == data['aperture']
 
     line_aperture_data = line.aperture.to_dict()
     assert line_aperture_data['aperture'] == data['lines']['line']['aperture']
@@ -323,6 +324,8 @@ def test_line_and_environment_aperture_json_data_roundtrip(tmp_path):
     assert set(loaded_aperture_data['lines']) == {'line', 'other'}
     assert loaded_aperture_data['environment']['profile_names'] == ['profile']
     assert loaded_aperture_data['lines']['line']['pipe_positions'][0]['pipe'] == 'pipe'
+    env.aperture.to_json(aperture_file, include_line_models=False)
+    assert xt.json.load(aperture_file) == loaded_aperture_data['environment']
     assert 'lines' not in xt.json.load(line_aperture_file)
     assert xt.json.load(line_aperture_file)['aperture']['pipe_positions'][0]['pipe'] == 'pipe'
 

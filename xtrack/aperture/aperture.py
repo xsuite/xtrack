@@ -493,11 +493,12 @@ class LineAperture:
     def to_dict(self):
         """Serialize this line's aperture and its environment aperture data."""
         return {
-            'environment': self.line.env.aperture._to_dict(),
+            'environment': self.line.env.aperture.to_dict(include_line_models=False),
             'aperture': self._to_dict(),
         }
 
-    def load_dict(self, data, context=None):
+    @doc_group("Loading and Serialization")
+    def from_dict(self, data, context=None):
         """Load unbuilt pipe placements from their name-based form."""
         if self._model is not None:
             raise RuntimeError("Cannot load into a built line aperture.")
@@ -536,11 +537,11 @@ class LineAperture:
         if context is None:
             context = line.aperture.context
         json = json_load(filename)
-        line.env.aperture.load_dict(json['environment'], context=context)
+        line.env.aperture.from_dict(json['environment'], context=context)
         aperture = line.aperture
         aperture._clear_model()
         aperture.context = context or aperture.context
-        aperture.load_dict(json['aperture'], context=context)
+        aperture.from_dict(json['aperture'], context=context)
         if 'ring' in kwargs:
             aperture._is_ring_setting = kwargs.pop('ring')
         for key, value in kwargs.items():
