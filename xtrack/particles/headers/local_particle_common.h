@@ -260,8 +260,11 @@ void increment_at_turn(LocalParticle* part0, int flag_reset_s, double line_lengt
         // Preserve time_s + (s-zeta)/(beta0*c) when the clock changes by
         // direction*t_sim and s is optionally reset. This applies to full turns
         // and SyncTime frames; paused particles are handled by the controller.
-        double const zeta_shift = LocalParticle_get_beta0(part) * C_LIGHT
-            * LocalParticle_get_t_sim(part) - (flag_reset_s > 0 ? line_length : 0.);
+        double zeta_shift = LocalParticle_get_beta0(part) * C_LIGHT
+            * LocalParticle_get_t_sim(part);
+        if (flag_reset_s > 0) {
+            zeta_shift -= line_length;
+        }
         LocalParticle_add_to_zeta(part, direction * zeta_shift);
         LocalParticle_add_to_at_turn(part, direction);
         LocalParticle_set_at_element(part, next_at_element);
