@@ -27,8 +27,8 @@ SPECIF = 7
 
 aperture_model.halo_params.update(
     {
-        "emitx_norm": emittance_norm,
-        "emity_norm": emittance_norm,
+        "nemitt_x": emittance_norm,
+        "nemitt_y": emittance_norm,
         "delta_rms": dPmax,
         "tol_co": COmax,
         "tol_disp": DParcx,  # MADX has different settings for x/y

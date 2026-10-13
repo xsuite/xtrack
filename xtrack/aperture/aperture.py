@@ -117,18 +117,18 @@ _aperture_doc_groups = GroupedAPICollector([
 ])
 
 DEFAULT_HALO_PARAMS = {
-    "emitx_norm": 3.5e-6,
-    "emity_norm": 3.5e-6,
+    "nemitt_x": 1e-6,
+    "nemitt_y": 1e-6,
     "delta_rms": 0.0,
     "tol_co": 0.0,
     "tol_disp": 0.0,
-    "tol_disp_ref": 1.8,
-    "tol_disp_ref_beta": 170,
+    "tol_disp_ref": 1.0,
+    "tol_disp_ref_beta": 1.0,
     "tol_beta_beating": 1.0,
-    "halo_x": 6.0,
-    "halo_y": 6.0,
-    "halo_r": 6.0,
-    "halo_primary": 6.0,
+    "halo_x": 1.0,
+    "halo_y": 1.0,
+    "halo_r": 1.0,
+    "halo_primary": 1.0,
 }
 
 
@@ -197,18 +197,18 @@ class LineAperture:
         ========================  =======  =====================================================
         Key                       Default  Description
         ========================  =======  =====================================================
-        ``emitx_norm``            3.5e-6   Normalised horizontal emittance [m·rad]
-        ``emity_norm``            3.5e-6   Normalised vertical emittance [m·rad]
+        ``nemitt_x``              1e-6     Normalised horizontal emittance [m·rad]
+        ``nemitt_y``              1e-6     Normalised vertical emittance [m·rad]
         ``delta_rms``             0.0      RMS momentum spread
         ``tol_co``                0.0      Closed-orbit tolerance [m]
         ``tol_disp``              0.0      Normalised dispersion tolerance [m]
-        ``tol_disp_ref``          1.8      Reference dispersion derivative tolerance [m]
-        ``tol_disp_ref_beta``     170      Reference dispersion beta-function [m]
+        ``tol_disp_ref``          1.0      Reference dispersion derivative tolerance [m]
+        ``tol_disp_ref_beta``     1.0      Reference dispersion beta-function [m]
         ``tol_beta_beating``      1.0      Beta-beating tolerance [sigma]
-        ``halo_x``                6.0      Horizontal halo size [sigma]
-        ``halo_y``                6.0      Vertical halo size [sigma]
-        ``halo_r``                6.0      45° halo size [sigma]
-        ``halo_primary``          6.0      Primary halo size [sigma]
+        ``halo_x``                1.0      Horizontal halo size [sigma]
+        ``halo_y``                1.0      Vertical halo size [sigma]
+        ``halo_r``                1.0      45° halo size [sigma]
+        ``halo_primary``          1.0      Primary halo size [sigma]
         ========================  =======  =====================================================
 
         The dictionary is mutable; individual entries can be changed with

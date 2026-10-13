@@ -1464,7 +1464,7 @@ def test_points_inside_polygon_simpler(kernels):
             #   tol_x + tol_r + tol_co + tol_dx = 0.006 + 0.002 + 0.002 + 0.03 = 0.04
             #
             # One-sigma beam horizontal half-size:
-            #   (halo_x / halo_primary) * sqrt((emitx_norm / gamma) * betx) * tol_beta_beating
+            #   (halo_x / halo_primary) * sqrt((nemitt_x / gamma) * betx) * tol_beta_beating
             #   = 0.05 * sqrt((4e-3 / 10) * 9) * 0.8 = 0.0024
             #
             # Dispersive orbit shift:
@@ -1517,8 +1517,8 @@ def test_get_aperture_sigmas_at_element_analytic(method, shape, aper_params, ape
         return '{' + ', '.join([str(v) for v in values]) + '}'
 
     halo_params_for_test = {
-        'emitx_norm': beam_params['exn'],
-        'emity_norm': beam_params['eyn'],
+        'nemitt_x': beam_params['exn'],
+        'nemitt_y': beam_params['eyn'],
         'tol_beta_beating': 1,
         'tol_disp': 0,
         'tol_disp_ref_beta': 1,
@@ -1587,8 +1587,8 @@ def test_get_aperture_sigmas_at_element_analytic_rays(context):
     gamma = np.sqrt(101)
 
     beam_data = {
-        'emitx_norm': 4e-3,
-        'emity_norm': 4e-3,
+        'nemitt_x': 4e-3,
+        'nemitt_y': 4e-3,
         'delta_rms': 0.001,
         'tol_co': 0.002,
         'tol_disp': 1.25,
@@ -1669,8 +1669,8 @@ def _build_single_marker_aperture_model(context):
 
     aperture_model = Aperture.from_line_with_associated_apertures(seq, context=context)
     aperture_model.halo_params.update({
-        'emitx_norm': 4e-3,
-        'emity_norm': 4e-3,
+        'nemitt_x': 4e-3,
+        'nemitt_y': 4e-3,
         'delta_rms': 0.001,
         'tol_co': 0.002,
         'tol_disp': 1.25,
@@ -1897,8 +1897,8 @@ def test_get_aperture_sigmas_at_element_vs_madx(
         return '{' + ', '.join([str(v) for v in values]) + '}'
 
     halo_params_for_test = {
-        'emitx_norm': exn,
-        'emity_norm': eyn,
+        'nemitt_x': exn,
+        'nemitt_y': eyn,
         'tol_beta_beating': 1,
         'tol_disp': 0,
         'tol_disp_ref_beta': 1,
@@ -1963,8 +1963,8 @@ def test_get_aperture_sigmas_at_element_vs_madx(
     xo.assert_allclose(aperture_model.halo_params['halo_r'], aper_summ.halo_r, atol=3e-6, rtol=0)
     xo.assert_allclose(aperture_model.halo_params['halo_x'], aper_summ.halo_h, atol=1e-8, rtol=0)
     xo.assert_allclose(aperture_model.halo_params['halo_y'], aper_summ.halo_v, atol=1e-8, rtol=0)
-    xo.assert_allclose(aperture_model.halo_params['emitx_norm'], mad.beam.exn, atol=1e-8, rtol=0)
-    xo.assert_allclose(aperture_model.halo_params['emity_norm'], mad.beam.eyn, atol=1e-8, rtol=0)
+    xo.assert_allclose(aperture_model.halo_params['nemitt_x'], mad.beam.exn, atol=1e-8, rtol=0)
+    xo.assert_allclose(aperture_model.halo_params['nemitt_y'], mad.beam.eyn, atol=1e-8, rtol=0)
 
     # Compute n1 with Xsuite
     n1_table, tw = aperture_model.get_aperture_sigmas_at_element(

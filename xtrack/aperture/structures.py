@@ -455,8 +455,8 @@ class TwissData(xo.Struct):
 
 
 class BeamData(xo.Struct):
-    emitx_norm = xo.Float64        # normalized emittance x
-    emity_norm = xo.Float64        # normalized emittance y
+    nemitt_x = xo.Float64        # normalized emittance x
+    nemitt_y = xo.Float64        # normalized emittance y
     delta_rms = xo.Float64         # rms energy spread
     tol_co = xo.Float64            # tolerance for closed orbit [co_radius]
     tol_disp = xo.Float64          # tolerance for normalized dispersion [dqf]
