@@ -667,7 +667,7 @@ def _floor_survey_samples(aperture) -> np.ndarray:
     survey_angle = np.asarray(aperture._survey_data.angle, dtype=float)
     line_length = float(aperture.line.get_length())
     offset = 2 * max(aperture.s_tol, 1e-6)
-    samples = [survey_s, aperture.s_around_transitions(tol=offset)]
+    samples = [survey_s, aperture.get_s_around_transitions(tol=offset)]
 
     for ii in np.flatnonzero(np.isfinite(survey_angle[:-1]) & (survey_angle[:-1] != 0)):
         s_start, s_end = survey_s[ii:ii + 2]

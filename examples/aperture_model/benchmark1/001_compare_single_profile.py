@@ -78,7 +78,7 @@ for name in ["MB.A9L5", "MQXFA.A1R5", "MBXF.4R5", "TAXN.4L5"]:
     )
     envel = envel_table.cross_section
 
-    cross_sections_table = aperture_model.cross_sections_at_s(s_positions=[s])
+    cross_sections_table = aperture_model.get_cross_sections_at_s(s_positions=[s])
     cross_sections = cross_sections_table.cross_section
     poses = cross_sections_table.pose
 

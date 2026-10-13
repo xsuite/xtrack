@@ -139,7 +139,7 @@ def poses_at_s(line, s_positions):
 
 
 s_for_cuts = np.linspace(1, 11, 20)
-cs_table = aper.cross_sections_at_s(s_for_cuts)
+cs_table = aper.get_cross_sections_at_s(s_for_cuts)
 profiles, poses = cs_table.cross_section, cs_table.pose
 
 expected_poses = poses_at_s(line, s_for_cuts)

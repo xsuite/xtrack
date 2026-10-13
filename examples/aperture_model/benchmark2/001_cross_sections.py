@@ -48,7 +48,7 @@ sigmas = n1_table.n1
 cross_sections = n1_table.cross_section
 max_envelope = n1_table.envelope
 
-cross_sections_table = apx.cross_sections_at_element(
+cross_sections_table = apx.get_cross_sections_at_element(
     element_name=xs_name,
     resolution=resolution,
 )

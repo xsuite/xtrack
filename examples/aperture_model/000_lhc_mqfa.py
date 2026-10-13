@@ -49,7 +49,7 @@ envelopes_table, tw_envel = aperture_model.get_envelope_at_element(
 )
 envelopes = envelopes_table.cross_section
 
-aper_table = aperture_model.cross_sections_at_element(
+aper_table = aperture_model.get_cross_sections_at_element(
     element_name=mqxfa_name,
     resolution=0.1,
 )

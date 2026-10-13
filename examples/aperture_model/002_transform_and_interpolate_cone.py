@@ -86,7 +86,7 @@ pipe_from_world = np.linalg.inv(world_from_pipe)
 
 # Compute interpolated cross-sections.
 s_samples = np.linspace(1.0, 11.0, 21, dtype=np.float32)
-sections_table = ap.cross_sections_at_s(s_samples)
+sections_table = ap.get_cross_sections_at_s(s_samples)
 sections = sections_table.cross_section
 poses = sections_table.pose
 

@@ -258,7 +258,7 @@ class LineAperture:
 
         return self._pipe_positions_unbuilt[index]
 
-    def _anchor_transform(self, survey_reference, anchor):
+    def _get_anchor_transform(self, survey_reference, anchor):
         """Return the transform from an element entrance to an anchor."""
         if anchor in (None, 'start'):
             return np.identity(4)
@@ -358,7 +358,7 @@ class LineAperture:
         else:
             transformation = np.array(transformation, dtype=float, copy=True)
 
-        transformation = self._anchor_transform(survey_reference, anchor) @ transformation
+        transformation = self._get_anchor_transform(survey_reference, anchor) @ transformation
 
         position = PipePosition(
             pipe_index=self.line.env.aperture.pipe_index(pipe),
@@ -1099,7 +1099,7 @@ class LineAperture:
         - if ``output_max_envelopes`` is true, ``table`` also contains ``envelope``.
         - ``sliced_twiss`` is the twiss table computed as part of the calculation.
         """
-        sliced_twiss = self._sliced_twiss_at_s(
+        sliced_twiss = self._get_sliced_twiss_at_s(
             s_positions=s_positions, twiss_init=twiss_init,
             with_progress=with_progress)
         table = self.get_aperture_sigmas_for_twiss(
@@ -1315,7 +1315,7 @@ class LineAperture:
         if not self.is_built:
             self.build_model()
 
-        sliced_twiss = self._sliced_twiss_at_s(
+        sliced_twiss = self._get_sliced_twiss_at_s(
             s_positions=s_positions, twiss_init=twiss_init,
             with_progress=with_progress)
         num_slices = len(sliced_twiss.s)
@@ -1438,7 +1438,7 @@ class LineAperture:
           the requested polygon and extent outputs.
         - ``sliced_twiss`` is the twiss table computed as part of the calculation.
         """
-        sliced_twiss = self._sliced_twiss_at_s(
+        sliced_twiss = self._get_sliced_twiss_at_s(
             s_positions=s_positions, twiss_init=twiss_init,
             with_progress=with_progress)
         envelope_table = self.get_envelope_for_twiss(
@@ -1542,8 +1542,8 @@ class LineAperture:
         return Table(table_data, index='index')
 
     @doc_group("Aperture Computations")
-    def poses_at_s(self, s_positions: Collection[float]) -> HomogeneousMatrices:
-        """Return a local coordinate system (each represented by a homogeneous matrix) at all ``s_positions``."""
+    def get_poses_at_s(self, s_positions: Collection[float]) -> HomogeneousMatrices:
+        """Return local coordinate systems as homogeneous matrices at ``s_positions``."""
         if not self.is_built:
             self.build_model()
 
@@ -1551,7 +1551,7 @@ class LineAperture:
         return sv_resampled.pose.to_nparray()
 
     @doc_group("Aperture Computations")
-    def cross_sections_at_element(
+    def get_cross_sections_at_element(
         self,
         element_name: str,
         resolution: float | None,
@@ -1559,10 +1559,10 @@ class LineAperture:
     ) -> Table:
         """Return aperture cross-sections sampled across an element."""
         s_positions = self._get_cuts_inside_element(element_name, resolution)
-        return self.cross_sections_at_s(s_positions, extents=extents)
+        return self.get_cross_sections_at_s(s_positions, extents=extents)
 
     @doc_group("Aperture Computations")
-    def cross_sections_at_s(
+    def get_cross_sections_at_s(
         self,
         s_positions: Collection[float],
         extents: bool = False,
@@ -1629,9 +1629,9 @@ class LineAperture:
         return Table(table_data, index='index')
 
     @doc_group("Aperture Computations")
-    def get_limit_elements(self, s_positions: list[float]) -> dict[float, LimitElement]:
+    def get_limit_elements_at_s(self, s_positions: list[float]) -> dict[float, LimitElement]:
         """Obtain interpolated cross-sections as limit beam elements."""
-        cross_sections_table = self.cross_sections_at_s(s_positions)
+        cross_sections_table = self.get_cross_sections_at_s(s_positions)
         limit_elements = {}
         for s, row in zip(s_positions, cross_sections_table.rows):
             cross_section = row.cross_section
@@ -1707,7 +1707,7 @@ class LineAperture:
         undo_order[order] = np.arange(len(order))
         s_sorted = s_positions[order]
 
-        sliced_twiss = self._sliced_twiss_at_s(
+        sliced_twiss = self._get_sliced_twiss_at_s(
             s_positions=s_sorted,
             twiss_init=twiss_init,
             with_progress=with_progress,
@@ -1728,7 +1728,7 @@ class LineAperture:
             polygons=False,
             extents=True,
         )
-        sections_table = self.cross_sections_at_s(s_sorted, extents=True, polygons=False)
+        sections_table = self.get_cross_sections_at_s(s_sorted, extents=True, polygons=False)
 
         min_envel_x = np.asarray(envelopes_table.min_x, dtype=FloatType._dtype)[undo_order]
         max_envel_x = np.asarray(envelopes_table.max_x, dtype=FloatType._dtype)[undo_order]
@@ -1852,7 +1852,7 @@ class LineAperture:
             beam_label = f'envelope ({method}, min($n_1$) = {sigmas:.3f})'
             title_sigma = fr"min($n_1$) = {sigmas:.3f}"
         else:
-            sliced_twiss = self._sliced_twiss_at_s(
+            sliced_twiss = self._get_sliced_twiss_at_s(
                 s_positions=s_positions,
                 twiss_init=twiss_init,
                 with_progress=with_progress,
@@ -1875,7 +1875,7 @@ class LineAperture:
             )
             beam_tols = beam_tols.cross_section
             beam_no_tols = beam_no_tols.cross_section
-            profiles = self.cross_sections_at_s(s_positions=s_positions)
+            profiles = self.get_cross_sections_at_s(s_positions=s_positions)
             polygons = profiles.cross_section
             beam_label = 'envelope (with tolerances)'
             title_sigma = fr"$n$ = {sigmas:.3f}"
@@ -2166,7 +2166,7 @@ class LineAperture:
         return bounds_table
 
     @doc_group("Introspection")
-    def s_around_transitions(
+    def get_s_around_transitions(
         self,
         tol: float | None = None,
         resolution: float | None = None,
@@ -2376,7 +2376,7 @@ class LineAperture:
         order = np.argsort(s_start, kind='stable')
         return table.rows[order]
 
-    def _sliced_twiss_at_s(
+    def _get_sliced_twiss_at_s(
             self,
             s_positions: Iterable[float],
             twiss_init: TwissInit | None = None,

@@ -612,7 +612,7 @@ def test_from_line_with_limits_preserves_limit_polygon_geometry(test_context):
         context=test_context,
         _skip_validity_check=True,
     )
-    section = aperture_model.cross_sections_at_s([0.0]).cross_section[0]
+    section = aperture_model.get_cross_sections_at_s([0.0]).cross_section[0]
 
     xo.assert_allclose(section[0], [x_vertices[0], y_vertices[0]], atol=1e-15, rtol=0)
     assert np.min(section[:, 0]) < -0.02
@@ -832,9 +832,9 @@ def test_get_limit_elements(monkeypatch):
         },
         index='index',
     )
-    monkeypatch.setattr(ap, 'cross_sections_at_s', lambda s_positions: table)
+    monkeypatch.setattr(ap, 'get_cross_sections_at_s', lambda s_positions: table)
 
-    out = ap.get_limit_elements([1.5, 3.5])
+    out = ap.get_limit_elements_at_s([1.5, 3.5])
 
     assert list(out) == [1.5, 3.5]
     assert all(isinstance(value, xt.LimitPolygon) for value in out.values())
@@ -1073,7 +1073,7 @@ def test_cross_sections_do_not_interpolate_between_pipes_overlapping_within_tole
 
     # These points are away from the overlap and lie in exactly one pipe.
     # Each cylindrical pipe must retain its constant circular cross-section.
-    sections = aperture.cross_sections_at_s([0.5, 1.5, 3.5]).cross_section
+    sections = aperture.get_cross_sections_at_s([0.5, 1.5, 3.5]).cross_section
     radii = np.linalg.norm(sections, axis=2)
     xo.assert_allclose(np.mean(radii, axis=1), [0.1, 1.0, 0.1], atol=1e-12, rtol=0)
 
@@ -1172,10 +1172,10 @@ def test_split_wrapped_s_interval_drops_zero_length_segment_at_ring_boundary():
 def test_s_around_transitions_basic_pattern_and_resolution(test_context):
     ap = _make_transition_test_aperture(test_context)
 
-    s_positions = ap.s_around_transitions(tol=0.5)
+    s_positions = ap.get_s_around_transitions(tol=0.5)
     xo.assert_allclose(s_positions, [2.5, 3.5, 6.5, 7.5], atol=1e-12, rtol=0)
 
-    s_positions_with_grid = ap.s_around_transitions(tol=0.5, resolution=2.0, s_range=(2.0, 8.0))
+    s_positions_with_grid = ap.get_s_around_transitions(tol=0.5, resolution=2.0, s_range=(2.0, 8.0))
     xo.assert_allclose(s_positions_with_grid, [2.0, 2.5, 3.5, 4.0, 6.0, 6.5, 7.5, 8.0], atol=1e-12, rtol=0)
 
 
@@ -1193,7 +1193,7 @@ def test_s_around_transitions_wrapped_ring_range(test_context):
         line.get_length(),
     ))
 
-    s_positions = ap.s_around_transitions(tol=0.1, s_range=(74.0, 4.0))
+    s_positions = ap.get_s_around_transitions(tol=0.1, s_range=(74.0, 4.0))
 
     xo.assert_allclose(s_positions, expected, atol=1e-12, rtol=0)
     assert np.all((s_positions >= 74.0) | (s_positions <= 4.0))
@@ -1735,7 +1735,7 @@ def test_get_aperture_sigmas_at_element_output_cross_sections_match_cross_sectio
     sigmas = n1_table.n1
     aperture_points = n1_table.cross_section
 
-    ref = aperture_model.cross_sections_at_element('m1', resolution=None).cross_section
+    ref = aperture_model.get_cross_sections_at_element('m1', resolution=None).cross_section
     xo.assert_allclose(aperture_points, ref, atol=1e-12, rtol=0)
     assert sigmas.shape == (1,)
 
@@ -2260,7 +2260,7 @@ def test_aperture_bounds_and_cross_sections_curved_survey_follows_pipe(test_cont
     assert all(bounds_table.profile_name == ['circ0'])
 
     s_samples = np.linspace(0, 3 * length, 51, dtype=FloatType._dtype)
-    sections_table = ap.cross_sections_at_s(s_samples)
+    sections_table = ap.get_cross_sections_at_s(s_samples)
     sections = sections_table.cross_section
 
     for ii in range(1, len(sections)):
@@ -2434,7 +2434,7 @@ def test_aperture_bounds_and_cross_sections_large_curved_ring_follows_pipe(test_
     assert np.all(np.isfinite(bounds_table.s_end))
 
     s_samples = np.linspace(0, ring_length, 101, dtype=FloatType._dtype)
-    sections = ap.cross_sections_at_s(s_samples).cross_section
+    sections = ap.get_cross_sections_at_s(s_samples).cross_section
     radii = np.linalg.norm(sections, axis=2)
     xo.assert_allclose(radii, aperture_radius, atol=1e-6, rtol=0)
 
@@ -2513,7 +2513,7 @@ def test_aperture_bounds_large_curved_ring_with_shifted_survey_references(test_c
     assert np.all(np.isfinite(bounds_table.s_end))
 
     s_samples = np.linspace(0, ring_length, 101, dtype=FloatType._dtype)
-    sections = ap.cross_sections_at_s(s_samples).cross_section
+    sections = ap.get_cross_sections_at_s(s_samples).cross_section
     radii = np.linalg.norm(sections, axis=2)
     xo.assert_allclose(radii, aperture_radius, atol=1e-6, rtol=0)
 
@@ -2621,7 +2621,7 @@ def test_cross_sections_at_s_interpolate_circles_to_cone(test_context):
     ap = Aperture(line=line, model=model, context=test_context)
 
     s_samples = np.linspace(1.0, 11.0, 21, dtype=FloatType._dtype)
-    sections_table = ap.cross_sections_at_s(s_samples)
+    sections_table = ap.get_cross_sections_at_s(s_samples)
     sections = sections_table.cross_section
     poses = sections_table.pose
 
@@ -2694,7 +2694,7 @@ def test_cross_sections_at_s_interpolates_tolerances(test_context):
     ap = Aperture(line=line, model=model, context=test_context)
 
     s_samples = np.array([0.0, 2.5, 5.0, 7.5, 10.0], dtype=FloatType._dtype)
-    sections_table = ap.cross_sections_at_s(s_samples)
+    sections_table = ap.get_cross_sections_at_s(s_samples)
 
     xo.assert_allclose(sections_table.tol_r, [0.15, 0.25, 0.35, 0.45, 0.55], atol=1e-12, rtol=0)
     xo.assert_allclose(sections_table.tol_x, [0.26, 0.36, 0.46, 0.56, 0.66], atol=1e-12, rtol=0)
@@ -2744,7 +2744,7 @@ def test_reorder_bounds_for_reversed_pipe_on_ring(test_context):
     np.testing.assert_array_equal(bounds.pipe_position_indices.to_nparray(), [1, 1, 0, 0])
     np.testing.assert_array_equal(bounds.profile_position_indices.to_nparray(), [1, 0, 0, 1])
 
-    sections = aperture.cross_sections_at_s([15.0, 25.0]).cross_section
+    sections = aperture.get_cross_sections_at_s([15.0, 25.0]).cross_section
     radii = np.linalg.norm(sections, axis=2)
     np.testing.assert_allclose(np.mean(radii, axis=1), [0.03, 0.04], atol=1e-6, rtol=0)
 
@@ -2774,7 +2774,7 @@ def test_survey_resample_rbend_exit_uses_left_hand_frame():
                            atol=1e-12, rtol=0)
         assert abs(exit_pose[0, 3] - line.survey().XYZ[-2, 0]) > 1e-3
 
-    twiss = line.aperture._sliced_twiss_at_s(
+    twiss = line.aperture._get_sliced_twiss_at_s(
         [0.5, s_exit],
         twiss_init=xt.TwissInit(betx=1.0, bety=1.0),
         with_progress=False,
@@ -2806,7 +2806,7 @@ def test_element_samples_avoid_boundary_frames():
     assert s_positions[0] > s_entry + aperture.s_tol
     assert s_positions[-1] < s_exit - aperture.s_tol
 
-    twiss = aperture._sliced_twiss_at_s(
+    twiss = aperture._get_sliced_twiss_at_s(
         s_positions,
         twiss_init=xt.TwissInit(betx=1.0, bety=1.0),
         with_progress=False,
@@ -2860,7 +2860,7 @@ def test_cross_sections_at_s_curved_type_preserves_profile_shape(test_context):
     ap = Aperture(line=line, model=model, context=test_context, num_profile_points=256)
 
     s_samples = np.linspace(0.0, length, 33, dtype=FloatType._dtype)
-    sections = ap.cross_sections_at_s(s_samples).cross_section
+    sections = ap.get_cross_sections_at_s(s_samples).cross_section
 
     for ii in range(1, len(sections)):
         xo.assert_allclose(np.linalg.norm(sections[ii], axis=1), radius, atol=1e-6, rtol=0)
@@ -2898,8 +2898,8 @@ def test_cross_sections_at_s_returns_axis_extents(test_context):
     )
 
     ap = Aperture(line=line, model=model, context=test_context)
-    sections_table = ap.cross_sections_at_s([0.0, 0.5], extents=True, polygons=False)
-    sections_with_polygons = ap.cross_sections_at_s([0.0, 0.5], extents=True)
+    sections_table = ap.get_cross_sections_at_s([0.0, 0.5], extents=True, polygons=False)
+    sections_with_polygons = ap.get_cross_sections_at_s([0.0, 0.5], extents=True)
 
     xo.assert_allclose(sections_table.min_x, [-2.0, -2.0], atol=1e-12, rtol=0)
     xo.assert_allclose(sections_table.max_x, [2.0, 2.0], atol=1e-12, rtol=0)
@@ -2948,7 +2948,7 @@ def test_cross_sections_at_s_invalid_section_has_nan_polygon_and_extents(test_co
     )
 
     ap = Aperture(line=line, model=model, context=test_context)
-    sections = ap.cross_sections_at_s([0.0], extents=True)
+    sections = ap.get_cross_sections_at_s([0.0], extents=True)
 
     assert np.all(np.isnan(sections.cross_section))
     assert np.isnan(sections.min_x[0])
@@ -2996,7 +2996,7 @@ def test_cross_sections_at_s_wraps_profile_neighbours_on_ring(test_context):
     bounds = aperture.get_bounds_table()
     xo.assert_allclose(bounds.s, [0.5, 3.5], atol=1e-12, rtol=0)
 
-    sections = aperture.cross_sections_at_s([0.1])
+    sections = aperture.get_cross_sections_at_s([0.1])
 
     assert np.all(np.isfinite(sections.cross_section))
     # TODO: This only asserts that there is a cross section. We should assert on the shape, but since this is
@@ -3057,8 +3057,8 @@ def test_cross_sections_at_s_compare_straight_curved(test_context):
     s_samples0 = np.linspace(0.1, length - 0.1, 33, dtype=FloatType._dtype)
     s_samples1 = s_samples0 + length
 
-    sections_straight = ap.cross_sections_at_s(s_samples0).cross_section
-    sections_curv = ap.cross_sections_at_s(s_samples1).cross_section
+    sections_straight = ap.get_cross_sections_at_s(s_samples0).cross_section
+    sections_curv = ap.get_cross_sections_at_s(s_samples1).cross_section
 
     # Compare up to cyclic polygon indexing: point ordering can differ by a
     # rotation along the closed contour while representing the same shape.
@@ -3119,7 +3119,7 @@ def test_cross_sections_at_s_interpolated_sections_stay_closed(test_context):
     ap = Aperture(line=line, model=model, context=test_context, num_profile_points=256)
 
     s_samples = np.linspace(0.1, length - 0.1, 33, dtype=FloatType._dtype)
-    sections = ap.cross_sections_at_s(s_samples).cross_section
+    sections = ap.get_cross_sections_at_s(s_samples).cross_section
 
     xo.assert_allclose(sections[:, 0, :], sections[:, -1, :], atol=1e-12, rtol=0)
 

@@ -36,7 +36,7 @@ envel_table, tw_envel = aperture_model.get_envelope_at_s(
 envel = envel_table.cross_section
 
 cs_s = np.linspace(0, lhc_length, int(lhc_length))
-cs_table = aperture_model.cross_sections_at_s(s_positions=cs_s)
+cs_table = aperture_model.get_cross_sections_at_s(s_positions=cs_s)
 cs = cs_table.cross_section
 
 # Calculate n1's with the ``bisection`` method

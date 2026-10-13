@@ -76,10 +76,10 @@ def main():
     survey_s = np.asarray(survey_sliced.s, dtype=float)
     survey_mask = (element_s - WINDOW <= survey_s) & (survey_s <= element_s + WINDOW)
 
-    # cross_sections_at_s returns both the local polygon and the pose that moves
+    # get_cross_sections_at_s returns both the local polygon and the pose that moves
     # the polygon into the survey/world frame, as used in the other examples.
-    sections_table = aperture.cross_sections_at_s(profile_s)
-    bound_points_table = aperture.poses_at_s(survey_cut_s)
+    sections_table = aperture.get_cross_sections_at_s(profile_s)
+    bound_points_table = aperture.get_poses_at_s(survey_cut_s)
 
     fig, ax = plt.subplots(figsize=(10, 6))
     ax.plot(
@@ -94,7 +94,7 @@ def main():
         ("s", profile_s, "tab:red", "x"),
         ("s_end", profile_s_end, "tab:green", "s"),
     ]:
-        poses = aperture.poses_at_s(s_values)
+        poses = aperture.get_poses_at_s(s_values)
         ax.scatter(
             poses[:, 2, 3],
             poses[:, 0, 3],

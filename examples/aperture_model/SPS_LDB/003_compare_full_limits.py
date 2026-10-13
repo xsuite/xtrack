@@ -16,9 +16,10 @@ aperture = xt.Aperture.from_json(
 
 aperture_from_limits = xt.Aperture.from_line_with_limits(sps_with_limits, s_tol=S_TOL)
 
-s_positions = aperture.s_around_transitions(resolution=0.1)
-sections_original = aperture.cross_sections_at_s(s_positions, extents=True, polygons=False)
-sections_recovered = aperture_from_limits.cross_sections_at_s(s_positions, extents=True, polygons=False)
+s_positions = aperture.get_s_around_transitions(resolution=0.1)
+sections_original = aperture.get_cross_sections_at_s(s_positions, extents=True, polygons=False)
+sections_recovered = aperture_from_limits.get_cross_sections_at_s(
+    s_positions, extents=True, polygons=False)
 
 fig, (ax_x, ax_y) = plt.subplots(2, 1, sharex=True)
 

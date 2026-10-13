@@ -381,7 +381,7 @@ aperture.plot_floor_projection(ax=ax, aspect='equal')
 plt.title('SPS Aperture and Survey Floor Plot')
 plt.show()
 
-aperture.plot_extents(s_positions=aperture.s_around_transitions(resolution=0.1))
+aperture.plot_extents(s_positions=aperture.get_s_around_transitions(resolution=0.1))
 plt.show()
 
 aperture.to_json('sps_aperture.json')

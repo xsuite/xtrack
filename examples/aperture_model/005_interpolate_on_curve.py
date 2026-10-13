@@ -118,7 +118,7 @@ assert all(bounds_table.pipe_name == ['pipe0', 'pipe0', 'pipe1', 'pipe1', 'pipe2
 assert all(bounds_table.profile_name == ['circ0'])
 
 s_samples = np.linspace(0, 3 * length, 51, dtype=np.float32)
-sections_table = ap.cross_sections_at_s(s_samples)
+sections_table = ap.get_cross_sections_at_s(s_samples)
 sections = sections_table.cross_section
 poses = sections_table.pose
 

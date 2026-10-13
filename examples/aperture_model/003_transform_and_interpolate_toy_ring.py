@@ -128,7 +128,7 @@ def poses_at_s(line, s_positions):
 
 
 s_for_cuts = np.linspace(0, ring.get_length(), 300, endpoint=False)
-profiles_table = aper.cross_sections_at_s(s_for_cuts)
+profiles_table = aper.get_cross_sections_at_s(s_for_cuts)
 profiles = profiles_table.cross_section
 poses = profiles_table.pose
 

@@ -219,7 +219,7 @@ def test_aperture_computation_builds_model_implicitly():
 
     assert not line.aperture.is_built
 
-    line.aperture.cross_sections_at_s([0.5])
+    line.aperture.get_cross_sections_at_s([0.5])
 
     assert line.aperture.is_built
 
@@ -253,13 +253,13 @@ def test_views_follow_authoritative_representation_and_build_refreshes_geometry(
     assert installed.survey_index == 0
     assert installed.pipe.name == "pipe"
 
-    before = line.aperture.cross_sections_at_s([0.5]).cross_section[0]
+    before = line.aperture.get_cross_sections_at_s([0.5]).cross_section[0]
     profile.shape.radius = 2.0
-    stale = line.aperture.cross_sections_at_s([0.5]).cross_section[0]
+    stale = line.aperture.get_cross_sections_at_s([0.5]).cross_section[0]
     xo.assert_allclose(stale, before, atol=1e-14, rtol=0)
 
     line.aperture.build_model()
-    refreshed = line.aperture.cross_sections_at_s([0.5]).cross_section[0]
+    refreshed = line.aperture.get_cross_sections_at_s([0.5]).cross_section[0]
     xo.assert_allclose(
         np.max(np.linalg.norm(refreshed, axis=1)), 2.0, atol=1e-12, rtol=0)
 
@@ -342,7 +342,7 @@ def test_line_and_environment_aperture_json_data_roundtrip(tmp_path):
     assert restored.aperture.pipes.keys() == ["pipe"]
     assert restored_line.aperture.pipe_positions.keys() == ["installed"]
     xo.assert_allclose(
-        restored_line.aperture.cross_sections_at_s([0.5]).cross_section[0, 0],
+        restored_line.aperture.get_cross_sections_at_s([0.5]).cross_section[0, 0],
         [0.1, 0.0],
         atol=1e-12,
         rtol=0,
@@ -368,7 +368,7 @@ def test_tolerances_follow_profile_and_pipe_positions_through_build_and_json():
     assert installed.tol_r == 0.05
 
     line.aperture.build_model()
-    sections = line.aperture.cross_sections_at_s([0.0, 2.5, 5.0, 7.5, 10.0])
+    sections = line.aperture.get_cross_sections_at_s([0.0, 2.5, 5.0, 7.5, 10.0])
     xo.assert_allclose(sections.tol_r, [0.15, 0.25, 0.35, 0.45, 0.55], atol=1e-12)
     xo.assert_allclose(sections.tol_x, [0.26, 0.36, 0.46, 0.56, 0.66], atol=1e-12)
     xo.assert_allclose(sections.tol_y, [0.37, 0.47, 0.57, 0.67, 0.77], atol=1e-12)
@@ -411,7 +411,7 @@ def test_element_computations_sample_inside_thick_elements():
     envelopes, _ = line.aperture.get_envelope_at_element(
         'drift', sigmas=1.0, with_progress=False,
     )
-    sections = line.aperture.cross_sections_at_element('drift', resolution=None)
+    sections = line.aperture.get_cross_sections_at_element('drift', resolution=None)
 
     for table in (sigmas, hvd, envelopes, sections):
         assert len(table.s) == 2
