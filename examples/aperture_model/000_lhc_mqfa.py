@@ -1,16 +1,20 @@
+from pathlib import Path
+
 import matplotlib.pyplot as plt
 import xobjects as xo
 import xtrack as xt
 
-from xtrack.aperture import Aperture
-
 context = xo.ContextCpu(omp_num_threads='auto')
 
-lhc_with_metadata = xt.load('./lhc_aperture.json')
+lhc_with_metadata = xt.load(Path(__file__).with_name('lhc_aperture.json'))
 b1 = lhc_with_metadata['b1']
 lhc_length = b1.get_length()
 
-aperture_model = Aperture.from_line_with_madx_metadata(b1, num_profile_points=100, context=context)
+# This older data file predates the explicit offset-frame direction flag.
+for section in b1.metadata['aperture_offsets'].values():
+    section['reversed'] = False
+
+aperture_model = b1.aperture.from_madx_metadata(num_profile_points=100, context=context)
 
 mqxfa_name = 'mqy.4r1.b1'
 

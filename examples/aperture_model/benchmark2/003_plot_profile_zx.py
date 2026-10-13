@@ -4,7 +4,6 @@ import numpy as np
 import xtrack as xt
 from xdeps import Table
 from xobjects import ContextCpu
-from xtrack.aperture import Aperture
 
 
 BASE = "./acc-models-lhc/"
@@ -41,12 +40,10 @@ def _load_line():
 
 def main():
     line = _load_line()
-    aperture = Aperture.from_line_with_madx_metadata(
-        line,
+    aperture = line.aperture.from_madx_metadata(
         num_profile_points=100,
         include_offsets=True,
         context=ContextCpu(omp_num_threads="auto"),
-        _skip_validity_check=True,
     )
 
     survey = line.survey()

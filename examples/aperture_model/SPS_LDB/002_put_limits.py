@@ -8,7 +8,12 @@ sps = xt.load('sps.json')
 sps.twiss_default['method'] = '4d'
 env = sps.env
 
-aperture = xt.Aperture.from_json('sps_aperture.json', line=sps, s_tol=S_TOL)
+aperture_data = xt.json.load('sps_aperture.json')
+env.aperture.from_dict(aperture_data['environment'])
+aperture = sps.aperture.from_dict(aperture_data['aperture'])
+aperture.s_tol = S_TOL
+# This snapshot contains known overlaps; build explicitly before any computations.
+aperture.build_model(_skip_validity_check=True)
 
 sps_thin = sps.copy(shallow=True)
 sps_thin.slice_thick_elements(
@@ -51,7 +56,7 @@ sps_with_limits.insert(insertions_up_downstream)
 sps_with_limits.insert(insertions_transitions)
 
 
-aperture_from_limits = xt.Aperture.from_line_with_limits(sps_with_limits)
+aperture_from_limits = sps_with_limits.aperture.from_limits()
 aperture_from_limits.plot_extents(
     aperture_from_limits.get_s_around_transitions(resolution=10), include_aper_tols=True)
 plt.show()

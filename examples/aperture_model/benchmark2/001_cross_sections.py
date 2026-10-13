@@ -4,7 +4,6 @@ import xtrack as xt
 from lhcoptics import LHCOptics
 from xdeps import Table
 from xobjects import ContextCpu
-from xtrack.aperture import Aperture
 
 
 base = "./acc-models-lhc/"
@@ -18,15 +17,16 @@ for ipn in range(1, 9):
     for beam in "14":
         tfs = Table.from_tfs(f"./temp/offset.ip{ipn}.b{beam}.tfs")
         line = lhc.b1 if beam == "1" else lhc.b2
-        line.metadata["aperture_offsets"][f"ip{ipn}"] = tfs._data.copy()
+        offset_data = tfs._data.copy()
+        offset_data['reversed'] = beam == '4'
+        line.metadata["aperture_offsets"][f"ip{ipn}"] = offset_data
 
 opt = LHCOptics.from_xsuite(lhc)
 mad = opt.make_madx_model()
 
 context = ContextCpu(omp_num_threads="auto")
 b1 = lhc.b1
-apx = Aperture.from_line_with_madx_metadata(
-    b1,
+apx = b1.aperture.from_madx_metadata(
     num_profile_points=100,
     include_offsets=True,
     context=context,

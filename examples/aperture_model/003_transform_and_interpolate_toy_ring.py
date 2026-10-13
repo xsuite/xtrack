@@ -2,7 +2,6 @@ import xtrack as xt
 import xobjects as xo
 import numpy as np
 import matplotlib.pyplot as plt
-from xtrack.aperture.aperture import Aperture
 from xtrack.aperture.transform import arc_matrix, poly2d_to_homogeneous, transform_matrix
 
 
@@ -37,7 +36,7 @@ env = xt.load(string=TOY_RING_SEQUENCE, format='madx', install_limits=False)
 env.set_particle_ref('proton', p0c=1.2e9)
 ring = env['ring']
 
-aper = Aperture.from_line_with_associated_apertures(ring)
+aper = ring.aperture.from_associated_apertures()
 
 sv = ring.survey()
 
@@ -72,15 +71,15 @@ def matrix_from_survey_point(sv_row):
 
 
 seen_installed_profiles = False
-for pipe_pos in aper._model.pipe_positions:
-    aper_pipe = aper._model.pipe_for_position(pipe_pos)
+for pipe_pos in aper.pipe_positions:
+    aper_pipe = pipe_pos.pipe
     sv_ref = sv.rows[pipe_pos.survey_index]
 
     sv_ref_matrix = matrix_from_survey_point(sv_ref)
-    pipe_matrix = pipe_pos.transformation.to_nparray()
+    pipe_matrix = pipe_pos.transformation
 
-    for profile_pos in aper_pipe.positions:
-        profile = aper._model.profile_for_position(profile_pos)
+    for profile_pos in aper_pipe:
+        profile = profile_pos.profile
 
         num_points = 100
         poly = profile.build_polygon(len_points=num_points)

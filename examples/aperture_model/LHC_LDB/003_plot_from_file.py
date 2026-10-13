@@ -2,7 +2,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import xtrack as xt
 import xobjects as xo
-from xtrack.aperture import Aperture
 
 # Run 002_build_model.py first to generate the aperture model in JSON format.
 
@@ -25,7 +24,13 @@ sv_b1 = b1.survey()
 sv_b2 = b2.survey(theta0=np.pi)
 
 # Build the curved model
-aperture = Aperture.from_json('b1_aperture.json', line=b1, s_tol=PIPE_OVERLAP_TOL, context=context)
+aperture_data = xt.json.load('b1_aperture.json')
+lattice.aperture.from_dict(aperture_data['environment'], context=context)
+aperture = b1.aperture.from_dict(aperture_data['aperture'], context=context)
+aperture.context = context
+aperture.s_tol = PIPE_OVERLAP_TOL
+# The downloaded LDB geometry contains known overlaps; retain it for inspection.
+aperture.build_model(_skip_validity_check=True)
 b_tab = aperture.get_bounds_table()
 s_positions_at_lattice_changes = np.array(sorted(set(b_tab.s_start) | set(b_tab.s_end) | set(sv_b1.s)))
 s_positions = np.array(sorted(set(s_positions_at_lattice_changes - PIPE_OVERLAP_TOL) | set(s_positions_at_lattice_changes + PIPE_OVERLAP_TOL)))

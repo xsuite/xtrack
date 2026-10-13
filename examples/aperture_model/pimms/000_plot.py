@@ -1,7 +1,9 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-from pimms import aperture, ring
+from pimms import ring
+
+aperture = ring.aperture
 
 ring_table = ring.get_table()
 bounds_table = aperture.get_bounds_table()
@@ -14,7 +16,7 @@ s_positions = np.unique(s_positions)
 aperture.plot_extents(s_positions=s_positions, sigmas=1)
 plt.show()
 
-aperture.pipes['mb'].plot_projection(plane='zx')
+aperture.pipes['mb'].plot(plane='zx')
 plt.show()
 
 aperture.profiles['dipole'].plot()

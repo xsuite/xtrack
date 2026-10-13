@@ -2,7 +2,6 @@ import matplotlib.pyplot as plt
 from pyoptics import BeamEnvelope
 import xobjects as xo
 import xtrack as xt
-from xtrack.aperture import Aperture
 import numpy as np
 
 context = xo.ContextCpu(omp_num_threads="auto")
@@ -12,7 +11,9 @@ lhc_with_metadata = xt.load("./lhc_aperture.json")
 b1 = lhc_with_metadata["b1"]
 lhc_length = b1.get_length()
 
-aperture_model = Aperture.from_line_with_madx_metadata(b1, num_profile_points=100, include_offsets=True, context=context)
+aperture_model = b1.aperture.from_madx_metadata(
+    num_profile_points=100, include_offsets=True, context=context,
+)
 
 emittance_norm = 2.5e-6
 apbbeat = 1.1
