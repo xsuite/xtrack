@@ -4,6 +4,7 @@ import pytest
 
 import xdeps as xd
 import xtrack as xt
+from xtrack.aperture.environment import EnvAperture
 from xtrack.environment import (
     ENVIRONMENT_DOC_GROUP_ORDER,
     EnvElements,
@@ -43,6 +44,7 @@ def _iter_public_members(cls):
     [
         xt.Line,
         xt.Environment,
+        EnvAperture,
         xt.Table,
         xt.TwissTable,
         SurveyTable,
@@ -62,6 +64,7 @@ def _iter_public_members(cls):
     ids=[
         "Line",
         "Environment",
+        "EnvAperture",
         "Table",
         "TwissTable",
         "SurveyTable",
@@ -108,8 +111,9 @@ def test_public_api_members_have_docstrings(cls):
     [
         (xt.Line, set(LINE_DOC_GROUP_ORDER)),
         (xt.Environment, set(ENVIRONMENT_DOC_GROUP_ORDER)),
+        (EnvAperture, {group['name'] for group in EnvAperture.__doc_groups__}),
     ],
-    ids=["Line", "Environment"],
+    ids=["Line", "Environment", "EnvAperture"],
 )
 def test_public_api_members_have_valid_doc_groups(cls, valid_groups):
     missing_group = []
@@ -150,8 +154,11 @@ def test_public_api_members_have_valid_doc_groups(cls, valid_groups):
 def test_generate_doc_rst_methods_run_without_errors():
     line_rst = xt.Line._generate_doc_rst()
     env_rst = xt.Environment._generate_doc_rst()
+    env_aperture_rst = EnvAperture._generate_doc_rst()
 
     assert isinstance(line_rst, str)
     assert isinstance(env_rst, str)
     assert line_rst.strip()
     assert env_rst.strip()
+    assert 'automethod:: xtrack.aperture.environment.EnvAperture.new_profile' in env_aperture_rst
+    assert 'autoproperty:: xtrack.aperture.environment.EnvAperture.profiles' in env_aperture_rst

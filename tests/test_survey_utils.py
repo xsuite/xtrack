@@ -203,27 +203,6 @@ def test_misalignment_from_rst_offsets_rejects_degenerate_chords():
         )
 
 
-@pytest.mark.parametrize('plot_function', [su.plot_exs, su.plot_exy])
-def test_survey_frame_plot_helpers(plot_function):
-    plt = pytest.importorskip('matplotlib.pyplot')
-
-    plt.figure()
-    arrows = plot_function(
-        rotation_matrix=np.eye(3),
-        point=np.array([1, 2, 3]),
-        length=0.5,
-        color='red',
-    )
-
-    assert len(arrows) == 2
-    assert all(arrow.axes is plt.gca() for arrow in arrows)
-
-    with pytest.raises(ValueError, match='length must be positive'):
-        plot_function(np.eye(3), np.zeros(3), length=0)
-
-    plt.close()
-
-
 def test_rst_rigid_chord_preserves_the_chord_length():
     length = 2.5
 

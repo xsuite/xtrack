@@ -32,65 +32,65 @@ static inline void build_circle_polygon(Point2D *const points, const uint32_t le
 
 static inline void build_rectangle_polygon(Point2D *const points, const uint32_t len_points, const Rectangle rectangle)
 {
-    const float_type half_width = Rectangle_get_half_width(rectangle);
-    const float_type half_height = Rectangle_get_half_height(rectangle);
+    const float_type max_x = Rectangle_get_max_x(rectangle);
+    const float_type max_y = Rectangle_get_max_y(rectangle);
 
     Segment2D segments[4];
     Path2D path = {.segments = segments, .len_segments = 4};
-    segments_from_rectangle(half_width, half_height, segments);
+    segments_from_rectangle(max_x, max_y, segments);
     poly_get_n_uniform_points(&path, len_points, points);
 }
 
 
 static inline void build_ellipse_polygon(Point2D *const points, const uint32_t len_points, const Ellipse ellipse)
 {
-    const float_type half_major = Ellipse_get_half_major(ellipse);
-    const float_type half_minor = Ellipse_get_half_minor(ellipse);
+    const float_type a = Ellipse_get_a(ellipse);
+    const float_type b = Ellipse_get_b(ellipse);
 
     Segment2D segments[1];
     Path2D path = {.segments = segments, .len_segments = 1};
-    segments_from_ellipse(half_major, half_minor, segments);
+    segments_from_ellipse(a, b, segments);
     poly_get_n_uniform_points(&path, len_points, points);
 }
 
 
 static inline void build_rect_ellipse_polygon(Point2D *const points, const uint32_t len_points, const RectEllipse rect_ellipse)
 {
-    const float_type half_width = RectEllipse_get_half_width(rect_ellipse);
-    const float_type half_height = RectEllipse_get_half_height(rect_ellipse);
-    const float_type half_major = RectEllipse_get_half_major(rect_ellipse);
-    const float_type half_minor = RectEllipse_get_half_minor(rect_ellipse);
+    const float_type max_x = RectEllipse_get_max_x(rect_ellipse);
+    const float_type max_y = RectEllipse_get_max_y(rect_ellipse);
+    const float_type a = RectEllipse_get_a(rect_ellipse);
+    const float_type b = RectEllipse_get_b(rect_ellipse);
 
     Segment2D segments[8];
     Path2D path = {.segments = segments, .len_segments = 8};
-    segments_from_rectellipse(half_width, half_height, half_major, half_minor, segments, &path.len_segments);
+    segments_from_rectellipse(max_x, max_y, a, b, segments, &path.len_segments);
     poly_get_n_uniform_points(&path, len_points, points);
 }
 
 
 static inline void build_racetrack_polygon(Point2D *const points, const uint32_t len_points, const Racetrack racetrack)
 {
-    const float_type half_width = Racetrack_get_half_width(racetrack);
-    const float_type half_height = Racetrack_get_half_height(racetrack);
-    const float_type half_major = Racetrack_get_half_major(racetrack);
-    const float_type half_minor = Racetrack_get_half_minor(racetrack);
+    const float_type max_x = Racetrack_get_max_x(racetrack);
+    const float_type max_y = Racetrack_get_max_y(racetrack);
+    const float_type a = Racetrack_get_a(racetrack);
+    const float_type b = Racetrack_get_b(racetrack);
 
     Segment2D segments[8];
     Path2D path = {.segments = segments, .len_segments = 8};
-    segments_from_racetrack(half_width, half_height, half_major, half_minor, segments, &path.len_segments);
+    segments_from_racetrack(max_x, max_y, a, b, segments, &path.len_segments);
     poly_get_n_uniform_points(&path, len_points, points);
 }
 
 
 static inline void build_octagon_polygon(Point2D *const points, const uint32_t len_points, const Octagon octagon)
 {
-    const float_type half_width = Octagon_get_half_width(octagon);
-    const float_type half_height = Octagon_get_half_height(octagon);
-    const float_type half_diagonal = Octagon_get_half_diagonal(octagon);
+    const float_type max_x = Octagon_get_max_x(octagon);
+    const float_type max_y = Octagon_get_max_y(octagon);
+    const float_type max_diagonal = Octagon_get_max_diagonal(octagon);
 
     Segment2D segments[8];
     Path2D path = {.segments = segments, .len_segments = 8};
-    segments_from_octagon(half_width, half_height, half_diagonal, segments, &path.len_segments);
+    segments_from_octagon(max_x, max_y, max_diagonal, segments, &path.len_segments);
     poly_get_n_uniform_points(&path, len_points, points);
 }
 

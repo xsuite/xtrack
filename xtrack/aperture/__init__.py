@@ -1,2 +1,2 @@
-from xtrack.aperture.aperture import Aperture
-from xtrack.aperture.builder import ApertureBuilder
+from xtrack.aperture.aperture import LineAperture
+from xtrack.aperture.environment import EnvAperture

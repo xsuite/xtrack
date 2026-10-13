@@ -12,7 +12,7 @@ import operator
 import xdeps as xd
 import xtrack as xt
 import xobjects as xo
-from xtrack.aperture import Aperture, ApertureBuilder
+from xtrack.aperture import structures
 from xtrack.aperture.structures import Polygon
 from xtrack.aperture.transform import transform_matrix
 from warnings import warn
@@ -138,7 +138,7 @@ def _straight_pose_in_survey_frame(straight_pose, survey_reference_s):
 
 
 def _pipe_middle_shift_s(pipe):
-    positions_s = [position.shift_s for position in pipe.positions]
+    positions_s = [position.shift_s for position in pipe]
     if not positions_s:
         return 0.0
     return 0.5 * (min(positions_s) + max(positions_s))
@@ -147,11 +147,11 @@ def _pipe_middle_shift_s(pipe):
 # See https://edms.cern.ch/document/2405052/1.0
 LDB_SHAPE_TO_XS = {
     'CIRCLE': ('Circle', ['radius']),
-    'ELLIPSE': ('Ellipse', ['half_major', 'half_minor']),
-    'OCTAGON': ('Octagon', ['half_width', 'half_height', 'half_diagonal']),
-    'RACETRACK': ('Racetrack', ['half_width', 'half_height', 'half_major', 'half_minor']),
-    'RECTANGLE': ('Rectangle', ['half_width', 'half_height']),
-    'RECTELLIPSE': ('RectEllipse', ['half_width', 'half_height', 'half_major', 'half_minor']),
+    'ELLIPSE': ('Ellipse', ['a', 'b']),
+    'OCTAGON': ('Octagon', ['max_x', 'max_y', 'max_diagonal']),
+    'RACETRACK': ('Racetrack', ['max_x', 'max_y', 'a', 'b']),
+    'RECTANGLE': ('Rectangle', ['max_x', 'max_y']),
+    'RECTELLIPSE': ('RectEllipse', ['max_x', 'max_y', 'a', 'b']),
 }
 LDB_PARAMS = ('ellipse_a' ,'ellipse_b' ,'ellipse_c' ,'ellipse_d')
 
@@ -191,7 +191,9 @@ plt.xlabel('$Z$ = $s_{B0}$ [m]')
 plt.ylabel('$X$ = $x_{B0}$ [m]')
 
 # Build the model
-builder = ApertureBuilder(line=sps)
+aperture = sps.aperture
+aperture.context = context
+aperture.s_tol = PIPE_OVERLAP_TOL
 
 # Build the profiles
 ignored_profiles = []
@@ -214,11 +216,12 @@ for profile_name, profile in ldb_model.profiles.items():
 
     shape_params = dict(zip(param_names, ldb_params))
 
-    builder.new_profile(profile_name, shape, **shape_params)
+    shape_object = getattr(structures, shape)(**shape_params)
+    if not shape_object.valid():
+        ignored_profiles.append(profile_name)
+        continue
 
-    if not builder._profiles[profile_name].shape.valid():
-        # raise ValueError(f'{profile_name} has invalid shape: {builder._profiles[profile_name].shape}')
-        builder._profiles.pop(profile_name)
+    sps.env.aperture.new_profile(profile_name, shape_object)
 
 if ignored_profiles:
     warn(
@@ -227,6 +230,7 @@ if ignored_profiles:
     )
 
 # Build the pipes
+profile_names = set(aperture.profiles.keys())
 ignored_types = []
 for type_name, type_ in ldb_model.types.items():
     if (aperture_straight := type_.aperture) is None:
@@ -237,18 +241,23 @@ for type_name, type_ in ldb_model.types.items():
     offsets = (aperture_straight.offset_x, aperture_straight.offset_y, aperture_straight.offset_z)
     s_patches = TYPE_APERTURE_PLACEMENT_PATCHES.get(type_name, repeat(0, len(profiles)))
 
-    pipe = builder.new_pipe(type_name, curvature=0)
+    if any(profile not in profile_names for profile in profiles):
+        ignored_types.append(type_name)
+        continue
+
+    positions = []
 
     for profile, off_x, off_y, off_z, s_patch in zip(profiles, *offsets, s_patches):
         mad_off = layout.LDBPoint(x=off_x, y=off_y, z=off_z).to_madpoint()
-        pipe.place_profile(
+        positions.append(sps.env.aperture.place_profile(
             profile,
             shift_s=mad_off.z + s_patch,
             shift_x=mad_off.x,
             shift_y=mad_off.y,
-        )
+        ))
 
-    pipe.positions = sorted(pipe.positions, key=lambda p: p.shift_s)
+    sps.env.aperture.new_pipe(
+        type_name, curvature=0, positions=sorted(positions, key=lambda p: p.shift_s))
 
 
 if ignored_types:
@@ -259,6 +268,7 @@ if ignored_types:
 
 
 # Map pipes to their positions
+pipe_names = set(aperture.pipes.keys())
 pipes_loc = {}
 pipes_loc_middles = {}
 ignored_transforms = []
@@ -267,7 +277,7 @@ for transform_name, transformation in ldb_model.transformations.items():
         ignored_transforms.append(transform_name)
         continue
 
-    if target_type not in builder._pipes:
+    if target_type not in pipe_names:
         ignored_transforms.append(transform_name)
         continue
 
@@ -330,7 +340,7 @@ for transform_name, mad_point in pipes_loc:
         # the magnet centre so the straight pipe body is aligned with the
         # straight magnet body rather than with the entry frame.
         pipe_middle_pose = pipes_loc_middles[transform_name].matrix
-        pipe_middle_shift_s = _pipe_middle_shift_s(builder._pipes[pipe_to_place])
+        pipe_middle_shift_s = _pipe_middle_shift_s(aperture.pipes[pipe_to_place])
         mad_point_pose = (
             pipe_middle_pose
             @ transform_matrix(shift_x=-2 * sps[survey_ref]._x0_mid)  # RBend offset
@@ -352,10 +362,11 @@ for transform_name, mad_point in pipes_loc:
     )
 
     if pipe_to_place:
-        builder.place_pipe(transform_name, pipe_to_place, transformation=from_ref_to_here, at=at)
+        aperture.place_pipe(transform_name, pipe_to_place, transformation=from_ref_to_here, at=at)
 
-aperture_model = builder.build(context=context)
-aperture = Aperture(model=aperture_model, line=sps, s_tol=PIPE_OVERLAP_TOL, context=context)
+# The current LDB snapshot has overlapping pipes (e.g. VMFD.20902/VEQF.10010).
+# Keep the data for inspection; the overlap report below records these inconsistencies.
+aperture.build_model(_skip_validity_check=True)
 
 p_tab = aperture.get_pipe_table()
 pipe_overlap_rows = _write_pipe_overlap_report(
@@ -381,7 +392,7 @@ aperture.plot_floor_projection(ax=ax, aspect='equal')
 plt.title('SPS Aperture and Survey Floor Plot')
 plt.show()
 
-aperture.plot_extents(s_positions=aperture.s_around_transitions(resolution=0.1))
+aperture.plot_extents(s_positions=aperture.get_s_around_transitions(resolution=0.1))
 plt.show()
 
 aperture.to_json('sps_aperture.json')

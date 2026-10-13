@@ -1,18 +1,23 @@
+from pathlib import Path
+
 import matplotlib.pyplot as plt
 import numpy as np
 
 import xobjects as xo
 import xtrack as xt
 
-from xtrack.aperture import Aperture
 
 context = xo.ContextCpu(omp_num_threads='auto')
 
-lhc_with_metadata = xt.load('./benchmark1/lhc_aperture.json')
+lhc_with_metadata = xt.load(Path(__file__).with_name('lhc_aperture.json'))
 b1 = lhc_with_metadata['b1']
 lhc_length = b1.get_length()
 
-aperture_model = Aperture.from_line_with_madx_metadata(b1, num_profile_points=100, context=context)
+# This older data file predates the explicit offset-frame direction flag.
+for section in b1.metadata['aperture_offsets'].values():
+    section['reversed'] = False
+
+aperture_model = b1.aperture.from_madx_metadata(num_profile_points=100, context=context)
 
 end_s = lhc_length / 8
 s_positions = np.linspace(0, end_s, int(end_s))
@@ -36,7 +41,7 @@ envel_table, tw_envel = aperture_model.get_envelope_at_s(
 envel = envel_table.cross_section
 
 cs_s = np.linspace(0, lhc_length, int(lhc_length))
-cs_table = aperture_model.cross_sections_at_s(s_positions=cs_s)
+cs_table = aperture_model.get_cross_sections_at_s(s_positions=cs_s)
 cs = cs_table.cross_section
 
 # Calculate n1's with the ``bisection`` method
