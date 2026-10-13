@@ -170,6 +170,9 @@ class LineAperture:
         if halo_params is not None:
             self.halo_params.update(halo_params)
 
+    def __repr__(self):
+        return f'<LineAperture: {len(self.pipe_positions)} pipe positions>'
+
     @property
     def line(self):
         """Line owning this aperture container."""

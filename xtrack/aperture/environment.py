@@ -88,6 +88,9 @@ class EnvAperture:
         self._profiles = ProfilesView(self)
         self._pipes = PipesView(self)
 
+    def __repr__(self):
+        return f'<EnvAperture: {len(self.pipes)} pipes, {len(self.profiles)} profiles>'
+
     @classmethod
     def _generate_doc_rst(cls, *, include_properties=True, include_summary_table=True):
         """Generate grouped API documentation in RST format."""
