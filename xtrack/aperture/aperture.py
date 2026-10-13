@@ -378,12 +378,19 @@ class LineAperture:
 
         return position
 
-    def build_model(self):
+    def build_model(self, _skip_validity_check=False):
         """Build the packed model and its derived geometry.
 
         The first call freezes the current pipe placements and survey. Later
         calls keep that model and survey, but rebuild profile polygons and
         aperture bounds from the current packed Xobjects.
+
+        Parameters
+        ----------
+        _skip_validity_check : bool, optional
+            Skip model-consistency and pipe-overlap checks for this build only.
+            Intended for inspecting inconsistent imported geometry. It does
+            not repair that geometry or guarantee meaningful computations.
         """
         if self._model is not None:
             aperture_env = self.line.env.aperture.build_model(
@@ -399,8 +406,11 @@ class LineAperture:
 
                 position.survey_index = survey_name_to_index[reference]
 
-            self._check_model_validity()
-            self._build_aperture_bounds(with_progress=self._with_progress)
+            if not _skip_validity_check:
+                self._check_model_validity()
+
+            self._build_aperture_bounds(
+                check_validity=not _skip_validity_check, with_progress=self._with_progress)
 
             return self
 
@@ -433,8 +443,11 @@ class LineAperture:
 
         self._survey_data = SurveyData.from_survey_table(
             self.survey, self.line, context=self.context)
-        self._check_model_validity()
-        self._build_aperture_bounds(with_progress=self._with_progress)
+        if not _skip_validity_check:
+            self._check_model_validity()
+
+        self._build_aperture_bounds(
+            check_validity=not _skip_validity_check, with_progress=self._with_progress)
 
         return self
 

@@ -12,6 +12,33 @@ from xtrack.aperture.transform import transform_matrix
 from xtrack.slicing import Strategy, Uniform
 
 
+def test_build_model_can_explicitly_skip_overlap_checks():
+    env = xt.Environment()
+    line = env.new_line(components=[env.new('drift', xt.Drift, length=2.0)])
+    profile = env.aperture.new_profile('circle', Circle, radius=0.1)
+    pipe = env.aperture.new_pipe(
+        'pipe', positions=[profile.place(at=0), profile.place(at=1)])
+    line.aperture.place_pipe('first', pipe, at='drift')
+    line.aperture.place_pipe('second', pipe, at='drift')
+
+    with pytest.raises(ValueError, match='overlaps pipe position'):
+        line.aperture.build_model()
+
+    line.aperture.build_model(_skip_validity_check=True)
+    assert len(line.aperture.get_bounds_table()) == 4
+
+    # The escape hatch applies to one call, not to future builds.
+    with pytest.raises(ValueError, match='overlaps pipe position'):
+        line.aperture.build_model()
+
+    line.aperture.discard_model()
+    line.aperture.build_model(_skip_validity_check=True)
+    assert len(line.aperture.get_bounds_table()) == 4
+
+    with pytest.raises(ValueError, match='overlaps pipe position'):
+        line.aperture.build_model()
+
+
 def test_line_aperture_creation_uses_environment_collections():
     env = xt.Environment()
     line = env.new_line(name='line', components=[env.new('drift', xt.Drift, length=1.0)])
