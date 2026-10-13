@@ -1598,9 +1598,6 @@ class Tracker:
                 ele_stop is None or ele_stop == self.num_elements):
                 monitor.track(particles)
 
-            if self._sync_time_controller is not None:
-                self._sync_time_controller.shift_waiting_particles(particles)
-
             # Increment at_turn and reset at_element
             # (use the non-collective track method to perform only end-turn actions)
             self._track_no_collective(particles,

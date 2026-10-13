@@ -86,6 +86,37 @@ def event_reference(initial, turns, s):
     return time, energy
 
 
+@pytest.mark.parametrize('invalid_boundary', [
+    'missing_start', 'missing_end', 'unmarked_start', 'unmarked_end',
+    'misplaced_start', 'misplaced_end', 'interior_start', 'interior_end'])
+def test_synctime_requires_unique_ring_boundaries(invalid_boundary):
+    line = xt.Line(elements={
+        'start': st.SyncTime(circumference=100, id=1000001, at_start=True),
+        'd0': xt.Drift(length=40),
+        'middle': st.SyncTime(circumference=100, id=1000002),
+        'd1': xt.Drift(length=60),
+        'end': st.SyncTime(circumference=100, id=1000003, at_end=True),
+    })
+    if invalid_boundary == 'missing_start':
+        line.element_names = line.element_names[1:]
+    elif invalid_boundary == 'missing_end':
+        line.element_names = line.element_names[:-1]
+    elif invalid_boundary == 'unmarked_start':
+        line['start'].at_start = False
+    elif invalid_boundary == 'unmarked_end':
+        line['end'].at_end = False
+    elif invalid_boundary == 'misplaced_start':
+        line.element_names = ['d0', 'start', 'middle', 'd1', 'end']
+    elif invalid_boundary == 'misplaced_end':
+        line.element_names = ['start', 'd0', 'middle', 'end', 'd1']
+    elif invalid_boundary == 'interior_start':
+        line['middle'].at_start = True
+    else:
+        line['middle'].at_end = True
+    with pytest.raises(ValueError, match='SyncTime'):
+        line.build_tracker()
+
+
 @pytest.mark.parametrize('ramp', [False, True])
 @allow_kernel_compilation
 @for_all_test_contexts(excluding='ContextPyopencl')

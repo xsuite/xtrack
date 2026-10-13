@@ -59,6 +59,10 @@ class SyncTime(BeamElement):
         if (active & (arrival < lower - tol)).any():
             raise ValueError('Some particles move faster than the time window')
         particles.state[active & (arrival >= upper)] = -self.id
+        if self.at_end:
+            # All waiting particles are now known, including those paused here.
+            # Shift them before the tracker advances the shared frame clock.
+            self._controller.shift_waiting_particles(particles)
 
 
 def install_sync_time_at_collective_elements(
@@ -145,12 +149,16 @@ class _SyncTimeController:
         indices = np.flatnonzero(table.element_type[:-1] == 'SyncTime')
         self.elements = [(line._element_dict[line.element_names[ii]], table.s[ii])
                          for ii in indices]
-        if (not self.elements
+        if (len(self.elements) < 2
                 or indices[0] != 0
                 or not self.elements[0][0].at_start
                 or indices[-1] != len(line.element_names) - 1
                 or not self.elements[-1][0].at_end):
             raise ValueError('Frame-clock SyncTime must bracket the complete line')
+        if (any(ee.at_start for ee, _ in self.elements[1:])
+                or any(ee.at_end for ee, _ in self.elements[:-1])):
+            raise ValueError('Only the first SyncTime can have at_start=True, '
+                             'and only the last can have at_end=True')
         self.circumference = tracker_data.line_length
         self.fraction = self.elements[0][0].frame_relative_length
         if not 0 < self.fraction <= 1:
