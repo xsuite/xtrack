@@ -86,6 +86,41 @@ def event_reference(initial, turns, s):
     return time, energy
 
 
+@pytest.mark.parametrize('boundary_markers', [False, True])
+def test_synctime_installation_preserves_order_at_shared_positions(boundary_markers):
+    elements = {
+        'rf0': xt.Cavity(),
+        'rf1': xt.Cavity(),
+        'd0': xt.Drift(length=40),
+        'pickup': xt.Marker(),
+        'rf2': xt.Cavity(),
+        'd1': xt.Drift(length=60),
+        'rf3': xt.Cavity(),
+        'rf4': xt.Cavity(),
+    }
+    if boundary_markers:
+        elements = {'start': xt.Marker(), **elements, 'end': xt.Marker()}
+    line = xt.Line(elements=elements)
+    before = line.get_table()
+
+    st.install_sync_time_at_collective_elements(
+        line, at_element_names=['pickup'], with_progress=False)
+
+    expected = [
+        'synctime_start',
+        'synctime_0', 'rf0', 'synctime_1', 'rf1', 'd0',
+        'synctime_2', 'pickup', 'synctime_3', 'rf2', 'd1',
+        'synctime_4', 'rf3', 'synctime_5', 'rf4',
+        'synctime_end',
+    ]
+    if boundary_markers:
+        expected.insert(1, 'start')
+        expected.insert(-1, 'end')
+    assert list(line.element_names) == expected
+    after = line.get_table()
+    xo.assert_allclose(after.rows[before.name].s, before.s, rtol=0, atol=0)
+
+
 @pytest.mark.parametrize('invalid_boundary', [
     'missing_start', 'missing_end', 'unmarked_start', 'unmarked_end',
     'misplaced_start', 'misplaced_end', 'interior_start', 'interior_end'])

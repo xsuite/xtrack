@@ -102,12 +102,14 @@ def install_sync_time_at_collective_elements(
     tab_collective = ltab.rows[selected]
 
     env = line.env
+    places = []
 
     env.elements["synctime_start"] = SyncTime(circumference=circumference,
         frame_relative_length=frame_relative_length,
         id=COAST_STATE_RANGE_START + len(tab_collective)+1,
         at_start=True,
     )
+    places.append(env.place('synctime_start', at=f'{ltab.name[0]}@start'))
 
     for ii, nn in enumerate(tab_collective.name):
         name = f"synctime_{ii}"
@@ -116,23 +118,17 @@ def install_sync_time_at_collective_elements(
             frame_relative_length=frame_relative_length,
             id=COAST_STATE_RANGE_START + ii + 1,
         )
+        places.append(env.place(name, at=f'{nn}@start'))
 
     env.elements["synctime_end"] = SyncTime(circumference=circumference,
         frame_relative_length=frame_relative_length,
         id=COAST_STATE_RANGE_START + len(tab_collective)+2,
         at_end=True,
     )
+    assert ltab.name[-1] == '_end_point'
+    places.append(env.place('synctime_end', at=f'{ltab.name[-2]}@end'))
 
-    # Preserve ordering, including multiple thin elements at s=0/C.
-    names = ['synctime_start']
-    ii = 0
-    for nn, use_sync in zip(line.element_names, selected[:-1]):
-        if use_sync:
-            names.append(f'synctime_{ii}')
-            ii += 1
-        names.append(nn)
-    names.append('synctime_end')
-    line.element_names = names
+    line.insert(places, with_progress=with_progress)
 
 
 def prepare_particles_for_sync_time(particles, line):
