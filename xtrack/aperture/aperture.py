@@ -111,7 +111,7 @@ def _split_wrapped_s_interval(
 
 _aperture_doc_groups = GroupedAPICollector([
     "Loading and Serialization",
-    "Aperture Computations",
+    "Aperture Computation",
     "Introspection",
     "Visualization",
 ])
@@ -1018,7 +1018,7 @@ class LineAperture:
 
         return result
 
-    @doc_group("Aperture Computations")
+    @doc_group("Aperture Computation")
     def get_aperture_sigmas_at_element(
             self,
             element_name: str,
@@ -1048,7 +1048,7 @@ class LineAperture:
         twiss_init = twiss.get_twiss_init(at_element=element_name) if twiss else None
         return self.get_aperture_sigmas_at_s(s_positions, twiss_init, **kwargs)
 
-    @doc_group("Aperture Computations")
+    @doc_group("Aperture Computation")
     def get_aperture_sigmas_at_s(
             self,
             s_positions: Iterable[float],
@@ -1112,7 +1112,7 @@ class LineAperture:
         )
         return table, sliced_twiss
 
-    @doc_group("Aperture Computations")
+    @doc_group("Aperture Computation")
     def get_aperture_sigmas_for_twiss(
         self,
         sliced_twiss: TwissTable,
@@ -1252,7 +1252,7 @@ class LineAperture:
             table_data['envelope'] = envelope_at_max_sigma
         return Table(table_data, index='index')
 
-    @doc_group("Aperture Computations")
+    @doc_group("Aperture Computation")
     def get_hvd_aperture_sigmas_at_element(
             self,
             element_name: str,
@@ -1285,7 +1285,7 @@ class LineAperture:
             s_positions=s_positions, twiss_init=twiss_init,
             with_progress=with_progress)
 
-    @doc_group("Aperture Computations")
+    @doc_group("Aperture Computation")
     def get_hvd_aperture_sigmas_at_s(
             self,
             s_positions: Iterable[float],
@@ -1362,7 +1362,7 @@ class LineAperture:
 
         return table, sliced_twiss
 
-    @doc_group("Aperture Computations")
+    @doc_group("Aperture Computation")
     def get_envelope_at_element(
             self,
             element_name: str,
@@ -1385,19 +1385,17 @@ class LineAperture:
         twiss
             Optionally provided twiss table from which to derive the initial beam parameters at the element.
         **kwargs
-            Other parameters to be forwarded to ``Aperture.get_envelope_at_s``.
+            Other parameters to be forwarded to :meth:`get_envelope_at_s`.
 
         Returns
         -------
-        A two-tuple ``(envelopes, sliced_twiss)``, where:
-        - ``envelopes`` is the table returned by :meth:`get_envelope_at_s`.
-        - ``sliced_twiss`` is the twiss table computed as part of the calculation.
+        See :meth:`get_envelope_at_s`.
         """
         s_positions = self._get_cuts_inside_element(element_name, resolution)
         twiss_init = twiss.get_twiss_init(at_element=element_name) if twiss else None
         return self.get_envelope_at_s(s_positions, sigmas, twiss_init, **kwargs)
 
-    @doc_group("Aperture Computations")
+    @doc_group("Aperture Computation")
     def get_envelope_at_s(
             self,
             s_positions: Iterable[float],
@@ -1451,7 +1449,7 @@ class LineAperture:
         )
         return envelope_table, sliced_twiss
 
-    @doc_group("Aperture Computations")
+    @doc_group("Aperture Computation")
     def get_envelope_for_twiss(
         self,
         sliced_twiss: TwissTable,
@@ -1541,7 +1539,7 @@ class LineAperture:
 
         return Table(table_data, index='index')
 
-    @doc_group("Aperture Computations")
+    @doc_group("Aperture Computation")
     def get_poses_at_s(self, s_positions: Collection[float]) -> HomogeneousMatrices:
         """Return local coordinate systems as homogeneous matrices at ``s_positions``."""
         if not self.is_built:
@@ -1550,25 +1548,45 @@ class LineAperture:
         sv_resampled = self._survey_data.resample(s_positions)
         return sv_resampled.pose.to_nparray()
 
-    @doc_group("Aperture Computations")
+    @doc_group("Aperture Computation")
     def get_cross_sections_at_element(
         self,
         element_name: str,
         resolution: float | None,
         extents: bool = False,
+        polygons: bool = True,
     ) -> Table:
-        """Return aperture cross-sections sampled across an element."""
-        s_positions = self._get_cuts_inside_element(element_name, resolution)
-        return self.get_cross_sections_at_s(s_positions, extents=extents)
+        """Return aperture cross-sections sampled across an element.
 
-    @doc_group("Aperture Computations")
+        Parameters
+        ----------
+        element_name
+            Name of the element to sample.
+        resolution
+            Longitudinal sampling step [m]. If None, sample just inside the
+            element entry and exit to avoid boundary-frame discontinuities.
+        extents
+            Whether to include the aperture intersections with the transverse
+            coordinate axes. Defaults to False.
+        polygons
+            Whether to include the interpolated cross-section polygons.
+            Defaults to True.
+
+        Returns
+        -------
+        See :meth:`get_cross_sections_at_s`.
+        """
+        s_positions = self._get_cuts_inside_element(element_name, resolution)
+        return self.get_cross_sections_at_s(s_positions, extents=extents, polygons=polygons)
+
+    @doc_group("Aperture Computation")
     def get_cross_sections_at_s(
         self,
         s_positions: Collection[float],
         extents: bool = False,
         polygons: bool = True,
     ) -> Table:
-        """Return aperture cross-sections at the requested `s` positions.
+        """Return aperture cross-sections at the requested ``s`` positions.
 
         Parameters
         ----------
@@ -1579,6 +1597,26 @@ class LineAperture:
             coordinate axes.
         polygons
             Whether to include the interpolated cross-section polygons.
+
+        Returns
+        -------
+        table : xtrack.Table
+            Table with one row per requested position, preserving the input
+            order, and the following columns:
+
+            - ``index``: row index.
+            - ``s``: longitudinal position [m].
+            - ``cross_section``: polygon of shape ``(num_profile_points, 2)``
+              in the local survey frame [m], included when ``polygons`` is True.
+            - ``min_x`` and ``max_x``: intersections with the horizontal axis
+              [m], included when ``extents`` is True.
+            - ``min_y`` and ``max_y``: intersections with the vertical axis
+              [m], included when ``extents`` is True.
+            - ``tol_r``, ``tol_x``, and ``tol_y``: radial, horizontal, and
+              vertical mechanical tolerances [m], returned separately from
+              the aperture geometry.
+            - ``pose``: 4-by-4 homogeneous matrix transforming the local survey
+              frame to the global survey frame.
         """
         if not self.is_built:
             self.build_model()
@@ -1626,9 +1664,65 @@ class LineAperture:
             table_data['cross_section'] = cross_sections
         if extents:
             table_data.update(min_x=min_x, max_x=max_x, min_y=min_y, max_y=max_y)
-        return Table(table_data, index='index')
 
-    @doc_group("Aperture Computations")
+        column_order = [
+            'index', 's', 'cross_section', 'min_x', 'max_x', 'min_y', 'max_y',
+            'tol_r', 'tol_x', 'tol_y', 'pose',
+
+        ]
+        return Table(
+            table_data,
+            index='index',
+            col_names=[name for name in column_order if name in table_data],
+        )
+
+    @doc_group("Aperture Computation")
+    def get_extents_at_element(
+        self,
+        element_name: str,
+        resolution: float | None = None,
+    ) -> Table:
+        """Return aperture limits along the transverse axes across an element.
+
+        Parameters
+        ----------
+        element_name
+            Name of the element to sample.
+        resolution
+            Longitudinal sampling step [m]. If omitted, sample just inside
+            the element entry and exit to avoid boundary-frame discontinuities.
+
+        Returns
+        -------
+        See :meth:`get_extents_at_s`.
+        """
+        s_positions = self._get_cuts_inside_element(element_name, resolution)
+        return self.get_extents_at_s(s_positions)
+
+    @doc_group("Aperture Computation")
+    def get_extents_at_s(self, s_positions: Collection[float]) -> Table:
+        """Return aperture limits along the transverse axes at ``s_positions``.
+
+        This is a convenience function for :meth:`get_cross_sections_at_s` with
+        ``extents=True`` and ``polygons=False``.
+
+        Parameters
+        ----------
+        s_positions
+            Longitudinal positions [m] at which to evaluate the aperture.
+
+        Returns
+        -------
+        table : xtrack.Table
+            One row per requested position, preserving the input order, with
+            columns ``index``, ``s``, ``min_x``, ``max_x``, ``min_y``, ``max_y``,
+            ``tol_r``, ``tol_x``, ``tol_y``, and ``pose``. The limits are the
+            aperture's intersections with the transverse coordinate axes in
+            the local survey frame, rather than a polygon bounding box.
+        """
+        return self.get_cross_sections_at_s(s_positions, extents=True, polygons=False)
+
+    @doc_group("Aperture Computation")
     def get_limit_elements_at_s(self, s_positions: list[float]) -> dict[float, LimitElement]:
         """Obtain interpolated cross-sections as limit beam elements."""
         cross_sections_table = self.get_cross_sections_at_s(s_positions)
@@ -1656,7 +1750,17 @@ class LineAperture:
         axs=None,
         with_progress: bool = True,
     ):
-        """Plot beam-envelope and aperture extents along the beam line.
+        """Plot aperture limits and beam-envelope extents along the line.
+
+        The aperture limits are those returned by :meth:`get_extents_at_s`. Solid
+        curves show the geometric limits; dashed curves show those limits
+        reduced by the mechanical tolerances.
+
+        If ``sigmas`` is given, the beam envelope is as calculated with
+        :meth:`get_envelope_at_s` at that sigma level. Otherwise, the local
+        aperture sigmas are calculated using ``method``, as with
+        :meth:`get_aperture_sigmas_at_s`, and their minimum ``n1`` is used as
+        the common sigma level for the plotted envelope.
 
         Parameters
         ----------
@@ -1671,12 +1775,14 @@ class LineAperture:
             Twiss initial conditions forwarded to the envelope and aperture-sigma
             computations.
         method
-            Method used to compute the maximum aperture sigmas when ``sigmas`` is not given.
+            Method used to compute the local aperture sigmas when ``sigmas``
+            is not given.
         envelopes_num_points
             Number of points used to discretise each transverse beam envelope.
         include_aper_tols
-            Whether aperture tolerances should be included in the beam-envelope
-            computation.
+            Whether to enlarge the beam envelope by aperture tolerances.
+            Defaults to False. The dashed aperture limits always include
+            these tolerances, independently of this setting.
         plot_s_positions
             Coordinates to be used on the horizontal axis. If omitted, ``s_positions``
             are used directly. This is useful when the data are evaluated at one
@@ -1768,9 +1874,11 @@ class LineAperture:
         ax_y.set_xlabel('s [m]')
 
         sigma_label = 'n_1' if sigmas_was_computed else 'n'
+        nemitt_x, nemitt_y = self.halo_params['nemitt_x'], self.halo_params['nemitt_y']
         fig.suptitle(
             fr"Extents and beam envelope at ${sigma_label} = {sigmas:.3g}$ and "
-            fr"$s \in [{np.min(plot_s_positions):.3g}, {np.max(plot_s_positions):.3g}]$"
+            fr"$s \in [{np.min(plot_s_positions):.3g}, {np.max(plot_s_positions):.3g}]$\n"
+            fr"$\varepsilon_{{n,x}}$ = {nemitt_x:.3e}, $\varepsilon_{{n,y}}$ = {nemitt_y:.3e}"
         )
 
         return fig, axs
@@ -1789,6 +1897,14 @@ class LineAperture:
             with_progress: bool = True,
     ):
         """Display transverse aperture cross-sections and beam envelopes.
+
+        If ``sigmas`` is given, plots the interpolated aperture cross-sections
+        obtained with :meth:`get_cross_sections_at_s`, and the beam envelope
+        as calculated with :meth:`get_envelope_at_s`. If ``sigmas`` is not given,
+        the plot visualises the cross-sections and the envelope at the maximum
+        value of ``sigmas`` for the specified locations, obtained with
+        :meth:`get_aperture_sigmas_at_s`, which also outputs the cross-sections
+        and beam envelope polygons.
 
         Parameters
         ----------
@@ -1810,7 +1926,8 @@ class LineAperture:
             Optional initial Twiss conditions forwarded to the envelope and
             aperture-sigma calculations.
         middle
-            Whether the plot should be centred around the ``aperture`` middle, or ``beam`` reference.
+            Whether the plot should be centred around the ``aperture`` middle,
+            or ``beam`` reference.
         ax
             Axes object to plot on. If not given, the current axes are used.
         with_progress
@@ -1906,10 +2023,12 @@ class LineAperture:
                 ax.plot(pt[:, 0] - mid[0], pt[:, 1] - mid[1], c='skyblue', linestyle=':', label=label)
                 seen = True
 
+        nemitt_x, nemitt_y = self.halo_params['nemitt_x'], self.halo_params['nemitt_y']
         ax.set_aspect('equal')
         ax.set_title(
             fr"Transverse aperture at {title_location}, "
-            fr"s $\in$ [{s_positions[0]:.2f}, {s_positions[-1]:.2f}], {title_sigma}"
+            fr"s $\in$ [{s_positions[0]:.2f}, {s_positions[-1]:.2f}], {title_sigma},\n"
+            fr"$\varepsilon_{{n,x}}$ = {nemitt_x:.3e}, $\varepsilon_{{n,y}}$ = {nemitt_y:.3e}"
         )
         ax.legend()
         return ax
@@ -1919,30 +2038,35 @@ class LineAperture:
         self,
         ax=None,
         max_curve_angle_rad: float = np.deg2rad(1),
-        origin: str | None = None,
+        origin: str | float | None = None,
         s_range: tuple[float, float] | None = None,
         aspect: Literal['auto', 'equal'] = 'auto',
         show_survey: bool = True,
     ):
-        """Plot installed pipe segments projected onto the floor plane.
+        """Plot the projection of the aperture model onto the Z-X plane.
+
+        An interactive visualisation of the data contained in the model.
+        Plots the installed pipes in the survey frame.
 
         Parameters
         ----------
         ax
             Axes object to plot on. If not given, use the current axes.
-        max_curve_angle_rad
-            Maximum angular step used to draw curved pipe boundaries and axes.
-        origin
-            Name of a pipe position to use as the plotting origin. When given,
-            the floor projection is expressed in the local frame of that pipe
-            position.
-        s_range
+        max_curve_angle_rad: float, optional
+            Maximum angular step (resolution in radians) used to draw curved
+            pipe boundaries and axes.
+        origin: str or float, optional
+            Plotting origin. If a string a pipe position of that name will be
+            taken as the origin. If a float, the survey frame at the ``s`` [m]
+            of that value will be taken as the origin. If omitted, the survey's
+            global frame will be used.
+        s_range: tuple[float, float], optional
             Longitudinal window, relative to ``origin`` when provided, used to
             restrict which pipe segments are plotted. On rings, wrapped ranges
             are handled across the end of the line.
-        aspect
-            Aspect ratio applied to the axes after plotting.
-        show_survey
+        aspect: 'auto' or 'equal'
+            Aspect ratio applied to the axes after plotting, defaults to 'auto'.
+        show_survey: bool
             Overlay the interpolated survey trajectory on the pipe projection.
 
         Returns

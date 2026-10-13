@@ -368,10 +368,22 @@ def test_tolerances_follow_profile_and_pipe_positions_through_build_and_json():
     assert installed.tol_r == 0.05
 
     line.aperture.build_model()
-    sections = line.aperture.get_cross_sections_at_s([0.0, 2.5, 5.0, 7.5, 10.0])
+    sections = line.aperture.get_cross_sections_at_s([0.0, 2.5, 5.0, 7.5, 10.0], extents=True)
+    assert sections._col_names[-1] == 'pose'
     xo.assert_allclose(sections.tol_r, [0.15, 0.25, 0.35, 0.45, 0.55], atol=1e-12)
     xo.assert_allclose(sections.tol_x, [0.26, 0.36, 0.46, 0.56, 0.66], atol=1e-12)
     xo.assert_allclose(sections.tol_y, [0.37, 0.47, 0.57, 0.67, 0.77], atol=1e-12)
+
+    extents = line.aperture.get_extents_at_s([7.5, 2.5, 7.5])
+    xo.assert_allclose(extents.s, [7.5, 2.5, 7.5], atol=0, rtol=0)
+    xo.assert_allclose(extents.min_x, sections.min_x[[3, 1, 3]], atol=1e-12)
+    xo.assert_allclose(extents.max_x, sections.max_x[[3, 1, 3]], atol=1e-12)
+    xo.assert_allclose(extents.min_y, sections.min_y[[3, 1, 3]], atol=1e-12)
+    xo.assert_allclose(extents.max_y, sections.max_y[[3, 1, 3]], atol=1e-12)
+    xo.assert_allclose(extents.tol_r, [0.45, 0.25, 0.45], atol=1e-12)
+    xo.assert_allclose(extents.tol_x, [0.56, 0.36, 0.56], atol=1e-12)
+    xo.assert_allclose(extents.tol_y, [0.67, 0.47, 0.67], atol=1e-12)
+    assert 'cross_section' not in extents._col_names
 
     restored = xt.Environment.from_dict(
         env.to_dict(include_aperture=True), with_progress=False)
@@ -412,7 +424,17 @@ def test_element_computations_sample_inside_thick_elements():
         'drift', sigmas=1.0, with_progress=False,
     )
     sections = line.aperture.get_cross_sections_at_element('drift', resolution=None)
+    extents = line.aperture.get_extents_at_element('drift')
+    sections_extents = line.aperture.get_cross_sections_at_element(
+        'drift', resolution=None, extents=True, polygons=False)
 
-    for table in (sigmas, hvd, envelopes, sections):
+    for table in (sigmas, hvd, envelopes, sections, extents, sections_extents):
         assert len(table.s) == 2
         assert np.all((0 < table.s) & (table.s < 1.0))
+
+    assert 'cross_section' not in extents._col_names
+    assert 'cross_section' not in sections_extents._col_names
+    xo.assert_allclose(sections_extents.min_x, extents.min_x, atol=1e-12)
+    xo.assert_allclose(sections_extents.max_x, extents.max_x, atol=1e-12)
+    xo.assert_allclose(sections_extents.min_y, extents.min_y, atol=1e-12)
+    xo.assert_allclose(sections_extents.max_y, extents.max_y, atol=1e-12)
