@@ -213,11 +213,12 @@ void BeamStatsMonitor_track_local_particle(
                     // The tracker supplies accumulated reference revolutions at time_s,
                     // including fractional turns and the EnergyProgram's integral of beta0*c/C.
                     double const reference_turns = part->reference_turns;
-                    // Express arrival on the fixed-zeta acquisition grid in turn units.
+                    // Express arrival relative to the monitor on the fixed-zeta grid
+                    // in turn units. A particle with zeta=0 records at reference_turns,
+                    // regardless of the monitor's position in the line.
                     // During a ramp this differs from evaluating the integrated
                     // reference-turn map at the particle's arrival time.
-                    double const arrival_turns = reference_turns
-                        + (LocalParticle_get_s(part) - record_zeta)/line_length;
+                    double const arrival_turns = reference_turns - record_zeta/line_length;
                     // Choose the integer turn bin, then its offset in [-0.5, 0.5).
                     record_turn = (int64_t)floor(arrival_turns + 0.5);
                     double arrival_turn_offset =

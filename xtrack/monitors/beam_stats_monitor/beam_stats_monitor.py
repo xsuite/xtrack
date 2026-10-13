@@ -136,7 +136,10 @@ class BeamStatsMonitor(BeamElement):
       is recorded per logged turn and full-turn slice. Whole-beam statistics
       are also available.
 
-    Coasting mode bins arrival coordinates on a fixed zeta grid. The tracker
+    Coasting mode bins arrival coordinates on a fixed zeta grid relative to
+    the monitor: ``reference_turns - zeta / line_length``. A particle with
+    ``zeta=0`` records at ``reference_turns`` regardless of monitor position;
+    no flight-time offset from the start of the line is included. The tracker
     supplies accumulated reference turns automatically, including during an
     EnergyProgram. ``start_at_turn`` and ``stop_at_turn`` select reference-turn
     bins, not SyncTime frames or individual particles' revolution counts.
@@ -636,8 +639,10 @@ class BeamStatsMonitor(BeamElement):
         """
         Return time centers for the monitor's most detailed longitudinal grid.
 
-        For coasting acquisition during a ramp, pass ``energy_program``
-        instead of ``beta0`` to convert reference turns to laboratory time.
+        The time origin is local to the monitor; no flight-time offset from
+        the start of the line is included. For coasting acquisition during a
+        ramp, pass ``energy_program`` instead of ``beta0`` to convert the
+        grid's reference-turn coordinates using the program's time map.
         The leading half-turn before t=0 uses the injection reference speed.
         """
         line_length = float(line_length)

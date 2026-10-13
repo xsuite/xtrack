@@ -276,15 +276,17 @@ def test_cavity_uses_particle_clock(test_context):
 @allow_kernel_compilation
 @for_all_test_contexts(excluding='ContextPyopencl')
 @pytest.mark.parametrize('ramping', [False, True])
-def test_coasting_monitors_use_frame_arrival_time(test_context, ramping):
+@pytest.mark.parametrize('pickup_s', [25., 75.])
+def test_coasting_monitors_use_local_arrival_coordinate(test_context, ramping, pickup_s):
     # Two species with unrelated revolution counters arrive in known bins at
     # a pickup away from s=0. Record each species separately, by particle id.
+    # The same zeta and reference turns must give the same bins at either pickup.
     monitors = [xt.BeamStatsMonitor(
         start_at_turn=0, stop_at_turn=6, coasting=True, num_slices=8,
         particle_id_range=ids, stats=['num_particles'])
         for ids in [(0, 2), (10, 12)]]
-    line = xt.Line(elements=[xt.Drift(length=25), *monitors,
-                             xt.Drift(length=75)])
+    line = xt.Line(elements=[xt.Drift(length=pickup_s), *monitors,
+                             xt.Drift(length=100 - pickup_s)])
     line.build_tracker(_context=test_context)
     # A changed reference speed and an independent clock origin must keep
     # the same fixed zeta slices around the accumulated reference turn.
@@ -301,15 +303,15 @@ def test_coasting_monitors_use_frame_arrival_time(test_context, ramping):
         beta0 = float(line.energy_program.get_beta0_at_t_s(frame_time))
         period = 100 / (beta0 * clight)
     arrival_turns = np.array([2.0625, 2.3125, 3.1875, 4.0625])
-    arrival = frame_time + (arrival_turns - 2.1)*period
+    local_arrival_time = frame_time + (arrival_turns - 2.1)*period
     p = xt.Particles(_context=test_context, beta0=beta0,
-                     time_s=frame_time, s=25,
+                     time_s=frame_time, s=pickup_s,
                      particle_id=[0, 1, 10, 11], at_turn=[1, 1, 7, 7],
                      mass_ratio=[1, 1, 1/12, 1/12],
                      charge_ratio=[1, 1, 1/6, 1/6],
                      delta=[0, 0, 1, 1],
                      weight=[1, 2, 3, 4],
-                     zeta=25 - beta0*clight*(arrival - frame_time))
+                     zeta=-beta0*clight*(local_arrival_time - frame_time))
     if ramping:
         # Isolate the pickup acquisition while retaining the tracker's ramp map.
         line.tracker._track_no_collective(p, ele_start=1, ele_stop=3)
