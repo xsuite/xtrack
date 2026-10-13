@@ -41,11 +41,44 @@ def test_combine_particles_with_reference_turns(reference_turns):
 
 
 @pytest.mark.parametrize('other_turns', [np.nan, 4.25])
-def test_combine_particles_rejects_different_reference_turns(other_turns):
+def test_merge_particles_rejects_different_reference_turns(other_turns):
     first = xt.Particles(p0c=1e9, _capacity=3, reference_turns=3.25)
     second = xt.Particles(p0c=1e9, reference_turns=other_turns)
     with pytest.raises(AssertionError):
         xt.Particles.merge([first, second])
+
+
+@pytest.mark.parametrize('reference_turns', [np.nan, 3.25])
+@pytest.mark.parametrize('incoming_clock', [
+    {},
+    {'time_s': 7e-5, 'reference_turns': 42., 't_sim': 3e-6},
+])
+def test_add_particles_retains_receiving_clock(reference_turns, incoming_clock):
+    first = xt.Particles(p0c=1e9, x=1., _capacity=3,
+                         time_s=2e-5, reference_turns=reference_turns, t_sim=2e-6)
+    # Secondary-particle producers need not supply clock metadata. Even explicit
+    # incoming clocks do not change the receiving frame or transform coordinates.
+    second = xt.Particles(p0c=1e9, x=2., zeta=28., s=7., at_turn=5,
+                          **incoming_clock)
+    incoming_before = (second.time_s, second.reference_turns, second.t_sim)
+    first.add_particles(second)
+
+    assert first.time_s == 2e-5
+    np.testing.assert_equal(first.reference_turns, reference_turns)
+    assert first.t_sim == 2e-6
+    added = (first.state > 0) & (first.x == 2.)
+    assert np.count_nonzero(added) == 1
+    xo.assert_allclose(first.zeta[added], [28.], rtol=0, atol=0)
+    xo.assert_allclose(first.s[added], [7.], rtol=0, atol=0)
+    np.testing.assert_equal(first.at_turn[added], [5])
+    np.testing.assert_equal(
+        (second.time_s, second.reference_turns, second.t_sim), incoming_before)
+
+
+@pytest.mark.parametrize('reference', [{'q0': 2.}, {'mass0': 2*xt.PROTON_MASS_EV}])
+def test_add_particles_rejects_different_physical_reference(reference):
+    first = xt.Particles(p0c=1e9, _capacity=3, time_s=2e-5, reference_turns=3.25)
+    second = xt.Particles(p0c=1e9, **reference)
     with pytest.raises(AssertionError):
         first.add_particles(second)
 

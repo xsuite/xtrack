@@ -1019,6 +1019,11 @@ class Particles(xo.HybridClass):
         """
         Add particles to the particles object.
 
+        Incoming coordinates are interpreted in this object's current reference
+        frame and copied without a time-coordinate transformation. This object's
+        ``time_s``, ``reference_turns`` and ``t_sim`` are retained; the incoming
+        values of these fields are ignored.
+
         Parameters
         ----------
         part : Particles
@@ -1045,10 +1050,11 @@ class Particles(xo.HybridClass):
             raise NotImplementedError("Out of space, need to regenerate xobject")
 
         for tt, nn in self.scalar_vars:
-            if nn == 't_sim':
+            if nn in ('t_sim', 'time_s', 'reference_turns'):
+                # Added particles use the receiving collection's clock.
                 continue
             assert np.isclose(getattr(self, nn), getattr(part, nn),
-                              rtol=1e-14, atol=1e-14, equal_nan=(nn == 'reference_turns'))
+                              rtol=1e-14, atol=1e-14)
 
         with self._bypass_linked_vars():
             for tt, nn in self.per_particle_vars:
