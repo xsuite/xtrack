@@ -704,6 +704,13 @@ def test_bucket_with_energy_program():
 
     rfb = line._get_bucket()
 
+    def delta_in_program_reference(monitor):
+        # Turn monitors record before the reference-momentum update. Express
+        # every sample relative to the program's momentum at that turn's time.
+        times = line.energy_program.get_t_s_at_turn(monitor.at_turn)
+        p0c = line.energy_program.get_p0c_at_t_s(times)
+        return monitor.p0c * (1 + monitor.delta) / p0c - 1
+
     # Mostly checking that they do not change
     xo.assert_allclose(line['otm'].phase_rf[0], np.deg2rad(30.), # degrees
                     atol=1e-4, rtol=0)
@@ -717,10 +724,10 @@ def test_bucket_with_energy_program():
     xo.assert_allclose(rfb.z_right, 4.776244, atol=2e-4, rtol=0)
 
     xo.assert_allclose(rfb.h_sfp(), -30.833797, atol=1e-3, rtol=0)
-    xo.assert_allclose(rfb.h_sfp(), rfb.hamiltonian(0, 0), atol=1e-3, rtol=0)
+    xo.assert_allclose(rfb.h_sfp(), rfb.hamiltonian(0, rfb.dp0), atol=1e-3, rtol=0)
     xo.assert_allclose(rfb.h_sfp(make_convex=True), 30.833797, atol=1e-3, rtol=0)
     xo.assert_allclose(rfb.h_sfp(make_convex=True),
-                    rfb.hamiltonian(rfb.z_sfp, 0, make_convex=True),
+                    rfb.hamiltonian(rfb.z_sfp, rfb.dp0, make_convex=True),
                     atol=1e-3, rtol=0)
 
     # Build separatrix
@@ -730,7 +737,7 @@ def test_bucket_with_energy_program():
     z_separatrix = np.array(
         list(z_separatrix_up) + list(z_separatrix_up[::-1]))
     delta_separatrix = np.array(
-        list(delta_separatrix_up) + list(-delta_separatrix_up[::-1]))
+        list(delta_separatrix_up) + list(rfb.separatrix(z_separatrix_up[::-1], sgn=-1)))
 
     # Hamiltonian is defined to be zero on the separatrix
     xo.assert_allclose(rfb.hamiltonian(z_separatrix, delta_separatrix), 0,
@@ -739,7 +746,9 @@ def test_bucket_with_energy_program():
                     atol=1e-3, rtol=0)
 
     # Check that the separatrix behaves as such in tracking
-    p = line.build_particles(delta=delta_separatrix[::10]*0.99, zeta=z_separatrix[::10]*0.99)
+    p = line.build_particles(
+        delta=rfb.dp0 + (delta_separatrix[::10]-rfb.dp0)*0.99,
+        zeta=z_separatrix[::10]*0.99)
     line.enable_time_dependent_vars = True
     line['t_turn_s'] = 0
     line.track(p, turn_by_turn_monitor=True, num_turns=1000)
@@ -749,7 +758,9 @@ def test_bucket_with_energy_program():
 
     line.enable_time_dependent_vars = True
     line['t_turn_s'] = 0
-    p = line.build_particles(delta=delta_separatrix[::10]*1.01, zeta=z_separatrix[::10]*1.01)
+    p = line.build_particles(
+        delta=rfb.dp0 + (delta_separatrix[::10]-rfb.dp0)*1.01,
+        zeta=z_separatrix[::10]*1.01)
     line.track(p, turn_by_turn_monitor=True, num_turns=1000)
     mon = line.record_last_track
     assert not np.all(mon.zeta < rfb.z_right)
@@ -758,13 +769,15 @@ def test_bucket_with_energy_program():
     # Check the stable fixed point against tracking
     line.enable_time_dependent_vars = True
     line['t_turn_s'] = 0
-    p = line.build_particles(delta=0, zeta=rfb.z_sfp)
+    # The integrated reference clock gives a nonzero synchronous momentum.
+    p = line.build_particles(delta=rfb.dp0, zeta=rfb.z_sfp)
     line.track(p, turn_by_turn_monitor=True, num_turns=1000)
     mon = line.record_last_track
     xo.assert_allclose(mon.zeta, rfb.z_sfp, atol=2e-3*(rfb.z_right - rfb.z_left),
                     rtol=0)
-    bucket_height = rfb.separatrix(rfb.z_sfp)[0]
-    xo.assert_allclose(mon.delta, 0, atol=2e-2*bucket_height, rtol=0)
+    bucket_height = rfb.separatrix(rfb.z_sfp)[0] - rfb.dp0
+    xo.assert_allclose(delta_in_program_reference(mon), rfb.dp0,
+                       atol=2e-2*bucket_height, rtol=0)
 
     # Fix numpy random seed
     np.random.seed(0)
@@ -784,11 +797,11 @@ def test_bucket_with_energy_program():
 
     assert np.all(p.zeta < rfb.z_right)
     assert np.all(p.zeta > rfb.z_left)
-    assert np.all(p.delta < bucket_height)
-    assert np.all(p.delta > -bucket_height)
+    assert np.all(p.delta - rfb.dp0 < bucket_height)
+    assert np.all(p.delta - rfb.dp0 > -bucket_height)
 
-    xo.assert_allclose(p.delta.max(), bucket_height, atol=0, rtol=0.03)
-    xo.assert_allclose(p.delta.min(), -bucket_height, atol=0, rtol=0.03)
+    xo.assert_allclose(p.delta.max() - rfb.dp0, bucket_height, atol=0, rtol=0.03)
+    xo.assert_allclose(p.delta.min() - rfb.dp0, -bucket_height, atol=0, rtol=0.03)
     xo.assert_allclose(p.zeta.max(), rfb.z_right, atol=0, rtol=0.03)
     xo.assert_allclose(p.zeta.min(), rfb.z_left, atol=0, rtol=0.1) # this part of the bucket is poorly populated
     xo.assert_allclose(p.zeta.std(), sigma_z, atol=0, rtol=0.001)
@@ -820,8 +833,9 @@ def test_bucket_with_energy_program():
 
     z_mean = np.squeeze(np.mean(mon.zeta, axis=1))
     z_std = np.squeeze(np.std(mon.zeta, axis=1))
-    delta_mean = np.squeeze(np.mean(mon.delta, axis=1))
-    delta_std = np.squeeze(np.std(mon.delta, axis=1))
+    delta_samples = delta_in_program_reference(mon)
+    delta_mean = np.squeeze(np.mean(delta_samples, axis=1))
+    delta_std = np.squeeze(np.std(delta_samples, axis=1))
 
     xo.assert_allclose(z_mean, np.mean(z_mean), atol=0.02*sigma_z)
     xo.assert_allclose(z_std, np.mean(z_std), atol=0.02*sigma_z)
