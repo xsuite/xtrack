@@ -663,7 +663,7 @@ def test_bucket_with_energy_program():
     t_rev = circumference / (particle_ref.beta0[0] * clight)
     f_rev = 1 / t_rev
 
-    energy_ref_increment =  50e3 # eV
+    energy_ref_increment =  25e3 # eV
 
     eta = momentum_compaction_factor - 1 / particle_ref.gamma0[0]**2
     assert eta < 0
@@ -700,25 +700,25 @@ def test_bucket_with_energy_program():
 
     tw = line.twiss()
     xo.assert_allclose(tw.slip_factor, eta, atol=1e-3, rtol=0)
-    xo.assert_allclose(tw.qs, 0.003274, atol=1e-6, rtol=0)
+    xo.assert_allclose(tw.qs, 0.003461, atol=1e-6, rtol=0)
 
     rfb = line._get_bucket()
 
     # Mostly checking that they do not change
-    xo.assert_allclose(line['otm'].phase_rf[0], np.deg2rad(30.), # degrees
+    xo.assert_allclose(line['otm'].phase_rf[0], np.deg2rad(14.477512), # degrees
                     atol=1e-4, rtol=0)
 
-    xo.assert_allclose(rfb.dphi[0], np.deg2rad(30.),
+    xo.assert_allclose(rfb.dphi[0], np.deg2rad(14.477512),
                     atol=1e-4, rtol=0)
 
     xo.assert_allclose(rfb.z_sfp, 0, atol=3e-3, rtol=0)
-    xo.assert_allclose(rfb.z_ufp, -8.335833, atol=2e-4, rtol=0)
+    xo.assert_allclose(rfb.z_ufp, -10.489799, atol=2e-4, rtol=0)
     xo.assert_allclose(rfb.z_left, rfb.z_ufp, atol=2e-4, rtol=0)
-    xo.assert_allclose(rfb.z_right, 4.776244, atol=2e-4, rtol=0)
+    xo.assert_allclose(rfb.z_right, 6.789530, atol=2e-4, rtol=0)
 
-    xo.assert_allclose(rfb.h_sfp(), -30.833797, atol=1e-3, rtol=0)
+    xo.assert_allclose(rfb.h_sfp(), -57.433930, atol=1e-3, rtol=0)
     xo.assert_allclose(rfb.h_sfp(), rfb.hamiltonian(0, 0), atol=1e-3, rtol=0)
-    xo.assert_allclose(rfb.h_sfp(make_convex=True), 30.833797, atol=1e-3, rtol=0)
+    xo.assert_allclose(rfb.h_sfp(make_convex=True), 57.433930, atol=1e-3, rtol=0)
     xo.assert_allclose(rfb.h_sfp(make_convex=True),
                     rfb.hamiltonian(rfb.z_sfp, 0, make_convex=True),
                     atol=1e-3, rtol=0)
@@ -761,23 +761,16 @@ def test_bucket_with_energy_program():
     p = line.build_particles(delta=0, zeta=rfb.z_sfp)
     line.track(p, turn_by_turn_monitor=True, num_turns=1000)
     mon = line.record_last_track
-    # The smooth bucket is centred at delta=0. Discrete acceleration and the
-    # integrated turn clock shift the synchronous momentum by about 1.3e-5
-    # (one turn's momentum gain is 2e-5), giving a roughly 3 cm oscillation.
-    xo.assert_allclose(mon.zeta, rfb.z_sfp, atol=3e-3*(rfb.z_right - rfb.z_left),
+    xo.assert_allclose(mon.zeta, rfb.z_sfp, atol=2e-3*(rfb.z_right - rfb.z_left),
                     rtol=0)
     bucket_height = rfb.separatrix(rfb.z_sfp)[0]
-    # The monitor also samples before the reference-momentum update. Allow
-    # one turn's fractional momentum gain in the momentum-centre checks.
-    delta_acceleration = dp0c_eV / particle_ref.p0c[0]
-    xo.assert_allclose(mon.delta, 0,
-                      atol=2e-2*bucket_height + delta_acceleration, rtol=0)
+    xo.assert_allclose(mon.delta, 0, atol=2e-2*bucket_height, rtol=0)
 
     # Fix numpy random seed
     np.random.seed(0)
 
     # Match a bunch
-    sigma_z = 2.
+    sigma_z = 2.6
     line.enable_time_dependent_vars = False
     line['t_turn_s'] = 0
     p, matcher = xp.generate_matched_gaussian_bunch(
@@ -830,14 +823,9 @@ def test_bucket_with_energy_program():
     delta_mean = np.squeeze(np.mean(mon.delta, axis=1))
     delta_std = np.squeeze(np.std(mon.delta, axis=1))
 
-    # Allow the small centroid oscillation from the acceleration offset;
-    # retain the original tolerances on both bunch widths.
-    xo.assert_allclose(z_mean, np.mean(z_mean), atol=0.03*sigma_z)
+    xo.assert_allclose(z_mean, np.mean(z_mean), atol=0.02*sigma_z)
     xo.assert_allclose(z_std, np.mean(z_std), atol=0.02*sigma_z)
-    # Include both the coherent momentum oscillation and the reference-update
-    # offset between the initial monitor sample and subsequent turns.
-    xo.assert_allclose(delta_mean, np.mean(delta_mean),
-                      atol=0.02*sigma_delta + 2*delta_acceleration)
+    xo.assert_allclose(delta_mean, np.mean(delta_mean), atol=0.03*sigma_delta)
     xo.assert_allclose(delta_std, np.mean(delta_std), atol=0.02*sigma_delta)
 
 def test_bucket_with_reference_ernergy_increase_elem():
