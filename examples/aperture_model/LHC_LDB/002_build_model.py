@@ -177,11 +177,11 @@ def _write_pipe_overlap_report(pipe_table, line_length, filename, s_tol=1e-6, ex
 # See https://edms.cern.ch/document/2405052/1.0
 LDB_SHAPE_TO_XS = {
     'CIRCLE': ('Circle', ['radius']),
-    'ELLIPSE': ('Ellipse', ['half_major', 'half_minor']),
-    'OCTAGON': ('Octagon', ['half_width', 'half_height', 'half_diagonal']),
-    'RACETRACK': ('Racetrack', ['half_width', 'half_height', 'half_major', 'half_minor']),
-    'RECTANGLE': ('Rectangle', ['half_width', 'half_height']),
-    'RECTELLIPSE': ('RectEllipse', ['half_width', 'half_height', 'half_major', 'half_minor']),
+    'ELLIPSE': ('Ellipse', ['a', 'b']),
+    'OCTAGON': ('Octagon', ['max_x', 'max_y', 'max_diagonal']),
+    'RACETRACK': ('Racetrack', ['max_x', 'max_y', 'a', 'b']),
+    'RECTANGLE': ('Rectangle', ['max_x', 'max_y']),
+    'RECTELLIPSE': ('RectEllipse', ['max_x', 'max_y', 'a', 'b']),
 }
 LDB_PARAMS = ('ellipse_a' ,'ellipse_b' ,'ellipse_c' ,'ellipse_d')
 
@@ -203,7 +203,7 @@ ELEMENT_APERTURE_TYPE_OVERRIDES = {
 
 PROFILE_OVERRIDES = {
     'AP207': ('Rectangle', 0.04978, 0.04978),  # ditto
-    'AP163': ('RectEllipse', 0.068, 0.0328, 0.0101, 0.0101)  # Originally half_minor was zero...
+    'AP163': ('RectEllipse', 0.068, 0.0328, 0.0101, 0.0101)  # Originally b was zero...
 }
 
 LONGITUDINAL_PLACEMENT_PATCHES = {

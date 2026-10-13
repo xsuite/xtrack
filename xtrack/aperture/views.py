@@ -413,10 +413,10 @@ class ProfilePositionView:
 
         if self.tol_x or self.tol_y or self.tol_r:
             tol_rt = Racetrack(
-                half_width=self.tol_x + self.tol_r,
-                half_height=self.tol_y + self.tol_r,
-                half_major=self.tol_r,
-                half_minor=self.tol_r,
+                max_x=self.tol_x + self.tol_r,
+                max_y=self.tol_y + self.tol_r,
+                a=self.tol_r,
+                b=self.tol_r,
             )
             Profile(shape=tol_rt).plot(
                 len_points=len_points, ax=ax, c='black', linestyle='--', label='Tolerances',

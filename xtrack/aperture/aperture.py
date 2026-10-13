@@ -2611,14 +2611,14 @@ class LineAperture:
             return shape.radius < 1e-6 or shape.radius > 9.98
 
         if isinstance(shape, Rectangle):
-            return (shape.half_width < 1e-6 or shape.half_width > 9.98) and (shape.half_height < 1e-6 or shape.half_height > 9.98)
+            return (shape.max_x < 1e-6 or shape.max_x > 9.98) and (shape.max_y < 1e-6 or shape.max_y > 9.98)
 
         if isinstance(shape, RectEllipse):
             return (
-                (shape.half_width < 1e-6 or shape.half_width > 9.98) and
-                (shape.half_height < 1e-6 or shape.half_height > 9.98) and
-                (shape.half_major < 1e-6 or shape.half_major > 9.98) and
-                (shape.half_minor < 1e-6 or shape.half_minor > 9.98)
+                (shape.max_x < 1e-6 or shape.max_x > 9.98) and
+                (shape.max_y < 1e-6 or shape.max_y > 9.98) and
+                (shape.a < 1e-6 or shape.a > 9.98) and
+                (shape.b < 1e-6 or shape.b > 9.98)
             )
 
         return False

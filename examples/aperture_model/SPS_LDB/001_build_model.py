@@ -147,11 +147,11 @@ def _pipe_middle_shift_s(pipe):
 # See https://edms.cern.ch/document/2405052/1.0
 LDB_SHAPE_TO_XS = {
     'CIRCLE': ('Circle', ['radius']),
-    'ELLIPSE': ('Ellipse', ['half_major', 'half_minor']),
-    'OCTAGON': ('Octagon', ['half_width', 'half_height', 'half_diagonal']),
-    'RACETRACK': ('Racetrack', ['half_width', 'half_height', 'half_major', 'half_minor']),
-    'RECTANGLE': ('Rectangle', ['half_width', 'half_height']),
-    'RECTELLIPSE': ('RectEllipse', ['half_width', 'half_height', 'half_major', 'half_minor']),
+    'ELLIPSE': ('Ellipse', ['a', 'b']),
+    'OCTAGON': ('Octagon', ['max_x', 'max_y', 'max_diagonal']),
+    'RACETRACK': ('Racetrack', ['max_x', 'max_y', 'a', 'b']),
+    'RECTANGLE': ('Rectangle', ['max_x', 'max_y']),
+    'RECTELLIPSE': ('RectEllipse', ['max_x', 'max_y', 'a', 'b']),
 }
 LDB_PARAMS = ('ellipse_a' ,'ellipse_b' ,'ellipse_c' ,'ellipse_d')
 

@@ -50,16 +50,16 @@ def _shape_projection_extents(shape, direction: np.ndarray) -> tuple[float, floa
         support = float(shape.radius)
 
     elif isinstance(shape, Ellipse):
-        support = float(np.hypot(shape.half_major * dx, shape.half_minor * dy))
+        support = float(np.hypot(shape.a * dx, shape.b * dy))
 
     elif isinstance(shape, Rectangle):
-        support = float(shape.half_width * abs(dx) + shape.half_height * abs(dy))
+        support = float(shape.max_x * abs(dx) + shape.max_y * abs(dy))
 
     elif isinstance(shape, Racetrack):
-        width = float(shape.half_width)
-        height = float(shape.half_height)
-        major = float(shape.half_major)
-        minor = float(shape.half_minor)
+        width = float(shape.max_x)
+        height = float(shape.max_y)
+        major = float(shape.a)
+        minor = float(shape.b)
         if major <= 0 or minor <= 0:
             support = width * abs(dx) + height * abs(dy)
         else:
@@ -72,9 +72,9 @@ def _shape_projection_extents(shape, direction: np.ndarray) -> tuple[float, floa
             )
 
     elif isinstance(shape, Octagon):
-        width = float(shape.half_width)
-        height = float(shape.half_height)
-        diagonal = float(shape.half_diagonal)
+        width = float(shape.max_x)
+        height = float(shape.max_y)
+        diagonal = float(shape.max_diagonal)
         corner_x = np.sqrt(2.0) * diagonal - height
         corner_y = np.sqrt(2.0) * diagonal - width
         if corner_x < -_GEOMETRY_TOL or corner_y < -_GEOMETRY_TOL:
@@ -118,10 +118,10 @@ def _shape_projection_extents(shape, direction: np.ndarray) -> tuple[float, floa
 
 
 def _rectellipse_boundary_candidates(shape: RectEllipse, direction: np.ndarray) -> np.ndarray:
-    width = float(shape.half_width)
-    height = float(shape.half_height)
-    major = float(shape.half_major)
-    minor = float(shape.half_minor)
+    width = float(shape.max_x)
+    height = float(shape.max_y)
+    major = float(shape.a)
+    minor = float(shape.b)
     candidates = []
 
     def add(x, y):

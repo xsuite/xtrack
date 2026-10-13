@@ -28,7 +28,7 @@ line = env.new_line(
 sv = line.survey()
 
 circle = Circle(radius=2)
-rectangle = Rectangle(half_width=2, half_height=1)
+rectangle = Rectangle(max_x=2, max_y=1)
 
 profiles = [
     Profile(shape=circle),

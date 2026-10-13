@@ -30,65 +30,88 @@ class Circle(xo.Struct):
 
 
 class Rectangle(xo.Struct):
-    half_width = FloatType
-    half_height = FloatType
+    """Centred rectangle with bounds ``±max_x`` and ``±max_y`` [m]."""
+
+    max_x = FloatType
+    max_y = FloatType
 
     def __repr__(self):
-        return f'Rectangle(half_width={self.half_width}, half_height={self.half_height})'
+        return f'Rectangle(max_x={self.max_x}, max_y={self.max_y})'
 
     def valid(self):
-        return np.min((self.half_width, self.half_height)) > 0
+        return np.min((self.max_x, self.max_y)) > 0
 
 
 class Ellipse(xo.Struct):
-    half_major = FloatType
-    half_minor = FloatType
+    """Centred ellipse with horizontal semi-axis ``a`` and vertical semi-axis ``b`` [m]."""
+
+    a = FloatType
+    b = FloatType
 
     def __repr__(self):
-        return f'Ellipse(half_major={self.half_major}, half_minor={self.half_minor})'
+        return f'Ellipse(a={self.a}, b={self.b})'
 
     def valid(self):
-        return np.min((self.half_major, self.half_minor)) > 0
+        return np.min((self.a, self.b)) > 0
 
 
 class RectEllipse(xo.Struct):
-    half_width = FloatType
-    half_height = FloatType
-    half_major = FloatType
-    half_minor = FloatType
+    """Intersection of a centred rectangle and ellipse.
+
+    ``max_x`` and ``max_y`` are the positive rectangular bounds [m]; ``a``
+    and ``b`` are the horizontal and vertical ellipse semi-axes [m].
+    """
+
+    max_x = FloatType
+    max_y = FloatType
+    a = FloatType
+    b = FloatType
 
     def __repr__(self):
-        return (f'RectEllipse(half_width={self.half_width}, half_height={self.half_height}, '
-                f'half_major={self.half_major}, half_minor={self.half_minor})')
+        return (f'RectEllipse(max_x={self.max_x}, max_y={self.max_y}, '
+                f'a={self.a}, b={self.b})')
 
     def valid(self):
-        return np.min((self.half_width, self.half_height, self.half_major, self.half_minor)) > 0
+        return np.min((self.max_x, self.max_y, self.a, self.b)) > 0
 
 
 class Racetrack(xo.Struct):
-    half_width = FloatType
-    half_height = FloatType
-    half_major = FloatType
-    half_minor = FloatType
+    """Centred rectangle with elliptically rounded corners.
+
+    ``max_x`` and ``max_y`` are the positive outer bounds [m]; ``a`` and
+    ``b`` are the horizontal and vertical semi-axes of the corner ellipses [m].
+    """
+
+    max_x = FloatType
+    max_y = FloatType
+    a = FloatType
+    b = FloatType
 
     def __repr__(self):
-        return (f'Racetrack(half_width={self.half_width}, half_height={self.half_height}, '
-                f'half_major={self.half_major}, half_minor={self.half_minor})')
+        return (f'Racetrack(max_x={self.max_x}, max_y={self.max_y}, '
+                f'a={self.a}, b={self.b})')
 
     def valid(self):
-        return np.min((self.half_width, self.half_height)) > 0
+        return np.min((self.max_x, self.max_y)) > 0
 
 
 class Octagon(xo.Struct):
-    half_width = FloatType
-    half_height = FloatType
-    half_diagonal = FloatType
+    """Centred octagon with axis-aligned and 45-degree faces.
+
+    ``max_x`` and ``max_y`` are the positive axis-aligned bounds [m].
+    ``max_diagonal`` is the perpendicular distance to the slanted faces [m],
+    which impose ``abs(x) + abs(y) <= sqrt(2) * max_diagonal``.
+    """
+
+    max_x = FloatType
+    max_y = FloatType
+    max_diagonal = FloatType
 
     def __repr__(self):
-        return f'Octagon(half_width={self.half_width}, half_height={self.half_height}, half_diagonal={self.half_diagonal})'
+        return f'Octagon(max_x={self.max_x}, max_y={self.max_y}, max_diagonal={self.max_diagonal})'
 
     def valid(self):
-        return np.min((self.half_width, self.half_height, self.half_diagonal)) > 0
+        return np.min((self.max_x, self.max_y, self.max_diagonal)) > 0
 
 
 class Polygon(xo.Struct):

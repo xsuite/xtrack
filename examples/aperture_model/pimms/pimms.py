@@ -125,9 +125,9 @@ env.vars.update({
 ring_table = ring.get_table()
 
 profile_straight = env.aperture.new_profile(
-    'straight', 'Ellipse', half_major=0.07, half_minor=0.037)
+    'straight', 'Ellipse', a=0.07, b=0.037)
 profile_dipole = env.aperture.new_profile(
-    'dipole', 'Ellipse', half_major=0.07, half_minor=0.032)
+    'dipole', 'Ellipse', a=0.07, b=0.032)
 
 l_mb = float(env['mb'].length)
 l_mq = float(env['mq'].length)

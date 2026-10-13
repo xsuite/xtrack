@@ -641,8 +641,8 @@ def test_bounds_table_for_perfect_overlap_interval(test_context):
     xo.assert_allclose(rows.s, [1.0, 1.3], atol=1e-12)
     assert list(rows.profile_name) == ['mqf_aper', 'mqf_aper']
     assert list(rows.shape) == ['Rectangle', 'Rectangle']
-    assert all(sp['half_width'] == 0.08 for sp in rows.shape_param)
-    assert all(sp['half_height'] == 0.04 for sp in rows.shape_param)
+    assert all(sp['max_x'] == 0.08 for sp in rows.shape_param)
+    assert all(sp['max_y'] == 0.04 for sp in rows.shape_param)
 
 
 @for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
@@ -664,7 +664,7 @@ def test_aperture_model_views(test_context):
         ])],
         profiles=[
             Profile(shape=Circle(radius=1.0)),
-            Profile(shape=Rectangle(half_width=2.0, half_height=3.0)),
+            Profile(shape=Rectangle(max_x=2.0, max_y=3.0)),
         ],
         pipe_names=['pipe0'],
         pipe_position_names=['pipe0_at_drift'],
@@ -899,20 +899,20 @@ def test_bounds_table_for_interval_spanning_multiple_types(test_context):
     assert list(rows.shape) == ['Ellipse', 'RectEllipse', 'RectEllipse', 'Rectangle']
 
     mb_shape = rows.shape_param[0]
-    assert mb_shape['half_major'] == 0.1
-    assert mb_shape['half_minor'] == 0.1
+    assert mb_shape['a'] == 0.1
+    assert mb_shape['b'] == 0.1
 
     ap_ds_shape_0 = rows.shape_param[1]
     ap_ds_shape_1 = rows.shape_param[2]
     for ap_ds_shape in (ap_ds_shape_0, ap_ds_shape_1):
-        assert ap_ds_shape['half_major'] == 0.022
-        assert ap_ds_shape['half_minor'] == 0.022
-        assert ap_ds_shape['half_width'] == 0.022
-        assert ap_ds_shape['half_height'] == 0.01715
+        assert ap_ds_shape['a'] == 0.022
+        assert ap_ds_shape['b'] == 0.022
+        assert ap_ds_shape['max_x'] == 0.022
+        assert ap_ds_shape['max_y'] == 0.01715
 
     mqf_shape = rows.shape_param[3]
-    assert mqf_shape['half_width'] == 0.08
-    assert mqf_shape['half_height'] == 0.04
+    assert mqf_shape['max_x'] == 0.08
+    assert mqf_shape['max_y'] == 0.04
 
 
 @for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
@@ -2133,7 +2133,7 @@ def test_aperture_bounds_straight_survey(rot_x_rad, rot_y_rad, dx, dy, ds1, ds2,
     sv = line.survey()
 
     circle = Circle(radius=1)
-    rectangle = Rectangle(half_width=0.6, half_height=0.4)
+    rectangle = Rectangle(max_x=0.6, max_y=0.4)
 
     profiles = [
         Profile(shape=circle),
@@ -2891,7 +2891,7 @@ def test_cross_sections_at_s_returns_axis_extents(test_context):
                 ],
             ),
         ],
-        profiles=[Profile(shape=Rectangle(half_width=2.0, half_height=1.5))],
+        profiles=[Profile(shape=Rectangle(max_x=2.0, max_y=1.5))],
         pipe_names=['pipe0'],
         pipe_position_names=['pipe0'],
         profile_names=['profile0'],
@@ -3016,7 +3016,7 @@ def test_cross_sections_at_s_compare_straight_curved(test_context):
     sv = line.survey()
 
     circle = Circle(radius=1.4)
-    rectangle = Rectangle(half_width=0.4, half_height=1.9)
+    rectangle = Rectangle(max_x=0.4, max_y=1.9)
     profiles = [
         Profile(shape=rectangle),
         Profile(shape=circle),
@@ -3088,7 +3088,7 @@ def test_cross_sections_at_s_interpolated_sections_stay_closed(test_context):
     line = env.new_line(name='line', components=[bend])
     sv = line.survey()
 
-    rectangle = Rectangle(half_width=0.4, half_height=1.9)
+    rectangle = Rectangle(max_x=0.4, max_y=1.9)
     circle = Circle(radius=1.4)
     profiles = [
         Profile(shape=rectangle),
@@ -3142,7 +3142,7 @@ def test_open_line_aperture_bounds_do_not_wrap_search(test_context):
     sv = line.survey()
 
     circle = Circle(radius=2.0)
-    rectangle = Rectangle(half_width=2.0, half_height=1.0)
+    rectangle = Rectangle(max_x=2.0, max_y=1.0)
     profiles = [
         Profile(shape=circle),
         Profile(shape=rectangle),
