@@ -1942,15 +1942,10 @@ def test_convergence_mat_kick_mat_exact(test_context):
     n_kicks_yoshida = 7
     num_slices = 50
 
-    magnet = xt.Magnet(
-        k0=0.02,
+    magnet = xt.Quadrupole(
         k1=0.01,
-        length=2.0,
-        k2=0.005,
-        k3=0.03,
         k1s=0.01,
-        k2s=0.005,
-        k3s=0.05,
+        length=2.0,
         knl=[0.003, 0.001, 0.01, 0.02, 4.0, 6e2, 7e6],
         ksl=[-0.005, 0.002, -0.02, 0.03, -2, 700.0, 4e6],
         _context=test_context,

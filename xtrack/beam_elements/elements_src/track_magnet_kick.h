@@ -80,7 +80,7 @@ void track_magnet_kick_single_particle(
     xt_float_or_tpsa_arg k0_h_correction,
     xt_float_or_tpsa_arg k1_h_correction,
     uint8_t rot_frame,
-    int8_t drift_model,
+    uint8_t do_drift_correction,
     uint8_t kick_is_empty
 ){
 
@@ -89,7 +89,7 @@ void track_magnet_kick_single_particle(
     if (kick_is_empty) {
         // Nothing to apply: skip the kick. For mat-kick-mat-exact the two
         // half path corrections depend only on the momenta, so they merge.
-        if (drift_model == 9) {
+        if (do_drift_correction) {
             track_magnet_kick_path_correction_single_particle_h0(
                 part, length_of_this_kick);
         }
@@ -100,7 +100,7 @@ void track_magnet_kick_single_particle(
     xt_float_or_tpsa const x = LocalParticle_get_x(part);
     xt_float_or_tpsa const y = LocalParticle_get_y(part);
 
-    if (drift_model == 9) {
+    if (do_drift_correction) {
         track_magnet_kick_path_correction_single_particle_h0(
             part, 0.5 * length_of_this_kick);
     }
@@ -190,7 +190,7 @@ void track_magnet_kick_single_particle(
     LocalParticle_add_to_py(part, dpy);
     LocalParticle_add_to_zeta(part, dzeta);
 
-    if (drift_model == 9) {
+    if (do_drift_correction) {
         track_magnet_kick_path_correction_single_particle_h0(
             part, 0.5 * length_of_this_kick);
     }

@@ -77,7 +77,7 @@ void track_magnet_body_single_particle(
             factor_knl_ksl, (weight),\
             k0_kick, k1_kick, k2, k3, k0s, k1s, k2s, k3s, h_kick,\
             hxl, k0_h_correction, k1_h_correction, kick_rot_frame,\
-            drift_model, kick_is_empty\
+            (drift_model == 9), kick_is_empty\
         )
 
     #define MAGNET_DRIFT(part, dlength) \

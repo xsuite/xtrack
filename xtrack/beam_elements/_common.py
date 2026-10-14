@@ -35,7 +35,6 @@ _INDEX_TO_MODEL_CURVED = {
     6: 'drift-kick-drift-expanded',
     7: 'rot-kick-rot-low-order',
     8: 'rot-kick-rot-high-order',
-    9: 'mat-kick-mat-exact',
 }
 
 _MODEL_TO_INDEX_CURVED = {k: v for v, k in _INDEX_TO_MODEL_CURVED.items()} | {'expanded': 4}
@@ -61,23 +60,41 @@ _INDEX_TO_EDGE_MODEL = {
 
 _EDGE_MODEL_TO_INDEX = {k: v for v, k in _INDEX_TO_EDGE_MODEL.items()}
 
-_INDEX_TO_MODEL_STRAIGHT = _INDEX_TO_MODEL_CURVED.copy()
-
-_INDEX_TO_MODEL_STRAIGHT.pop(2)
-
-_INDEX_TO_MODEL_STRAIGHT.pop(3)
+_INDEX_TO_MODEL_STRAIGHT = {
+    0: 'adaptive',
+    1: 'full',
+    4: 'mat-kick-mat',
+    5: 'drift-kick-drift-exact',
+    6: 'drift-kick-drift-expanded',
+    7: 'rot-kick-rot-low-order',
+    8: 'rot-kick-rot-high-order',
+    9: 'mat-kick-mat-exact',
+}
 
 _MODEL_TO_INDEX_STRAIGHT = {k: v for v, k in _INDEX_TO_MODEL_STRAIGHT.items()}
 
-_INDEX_TO_MODEL_RF = _INDEX_TO_MODEL_STRAIGHT.copy()
-
-_INDEX_TO_MODEL_RF.pop(1)
-
-_INDEX_TO_MODEL_RF.pop(4)
-
-_INDEX_TO_MODEL_RF.pop(9)
+_INDEX_TO_MODEL_RF = {
+    0: 'adaptive',
+    5: 'drift-kick-drift-exact',
+    6: 'drift-kick-drift-expanded',
+    7: 'rot-kick-rot-low-order',
+    8: 'rot-kick-rot-high-order',
+}
 
 _MODEL_TO_INDEX_RF = {k: v for v, k in _INDEX_TO_MODEL_RF.items()}
+
+def _assert_model_tables_consistent(*tables):
+    # An index must mean the same model in every table that contains it
+    merged = {}
+    for table in tables:
+        for index, name in table.items():
+            assert merged.setdefault(index, name) == name, (
+                f'Model index {index} is both "{merged[index]}" and "{name}"')
+
+
+_assert_model_tables_consistent(
+    _INDEX_TO_MODEL_CURVED, _INDEX_TO_MODEL_STRAIGHT, _INDEX_TO_MODEL_RF
+)
 
 _NOEXPR_FIELDS = {'model', 'integrator', 'edge_entry_model', 'edge_exit_model',
                   'name_associated_aperture', 'rbend_model'}
@@ -270,7 +287,10 @@ class _HasModelStraight:
     model : str
         Model used for the element. Available models are: "adaptive", "mat-kick-mat",
         "drift-kick-drift-exact", "drift-kick-drift-expanded", "rot-kick-rot-low-order",
-        "rot-kick-rot-high-order". Default is "adaptive".
+        "rot-kick-rot-high-order", "mat-kick-mat-exact". Default is "adaptive".
+        "mat-kick-mat-exact" is like "mat-kick-mat" with an additional exact
+        path correction applied in the kicks, which removes the
+        1/(1 + delta) approximation of the expanded map.
     ''').strip()
 
     @property

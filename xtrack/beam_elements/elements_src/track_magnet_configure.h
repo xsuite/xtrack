@@ -32,7 +32,7 @@ void configure_tracking_model(
     // model = 7: rot-kick-rot-low-order
     // model = 8: rot-kick-rot-high-order
     // model = 9: mat-kick-mat-exact (mat-kick-mat plus an exact path
-    //            correction in the kick; only for h == 0)
+    //            correction in the kick; straight elements only, h == 0)
     // model = -1: kick only (not exposed in python)
     // model = -2: sol-kick-sol (not exposed in python)
 
@@ -63,12 +63,7 @@ void configure_tracking_model(
         drift_model = 3; // expanded
     }
     else if(model == 9){ // mat-kick-mat-exact
-        if (h_is_zero){
-            drift_model = 9; // expanded dipole-quad + exact path correction
-        }
-        else{
-            drift_model = 3; // h != 0: same as mat-kick-mat
-        }
+        drift_model = 9; // expanded dipole-quad + exact path correction
     }
     else if(model == 5){ // drift-kick-drift-exact
         drift_model = 1; // drift exact

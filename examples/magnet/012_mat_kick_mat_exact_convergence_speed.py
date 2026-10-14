@@ -25,7 +25,7 @@ configs = {
 coords = ('x', 'px', 'y', 'py', 'zeta')
 n_repeat = 5
 
-magnet = xt.Magnet(k0=0.05, k1=0.37, length=1.2, angle=0.0)
+magnet = xt.Quadrupole(k1=0.37, length=1.2)
 
 rng = np.random.default_rng(1)
 n_part = 10_000
