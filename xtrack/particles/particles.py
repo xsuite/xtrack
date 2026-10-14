@@ -19,6 +19,7 @@ from .masses import PROTON_MASS_EV
 from .pdg import get_pdg_id_from_name, get_properties_from_pdg_id, \
                  get_mass_from_pdg_id
 from ..general import _print, DEPRECATION_INFO_PREP_1_0
+from ..track_flags import c_header_flag_mapping
 
 LAST_INVALID_STATE = -999999999
 
@@ -101,6 +102,7 @@ class Particles(xo.HybridClass):
                     if (not vv[1].startswith('_') and vv[1] != 't_sim')] + ['t_sim']
 
     _extra_c_sources = [
+        c_header_flag_mapping,
         '#include "xtrack/particles/headers/local_particle.h"'
     ]
 
