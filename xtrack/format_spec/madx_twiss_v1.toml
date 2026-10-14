@@ -1,0 +1,57 @@
+# MAD-X-style layout based on the common optics/orbit/strength columns of:
+# https://abpdata.web.cern.ch/abpdata/lhc_optics_web/www/hllhc14/inj/twiss_lhcb1.tfs
+# Hardware, aperture and provenance fields are deliberately omitted.
+# This is a serialization format: it does not change Xtrack's entry-point or
+# momentum-derivative conventions. See 005_madx_tfs_format.py for preparation
+# of exit-point values and MAD-X dispersion/chromaticity normalization.
+# This preset is frozen. Changes to its output require a new preset name.
+version = "madx_twiss_v1"
+case = "upper"
+float_format = ".15e"
+numeric_column_width = 23
+default_column_width = 18
+
+columns = [
+    { name = "name", type = "string" },
+    { name = "s", type = "float" },
+    { name = "l", source_name = "length", type = "float" },
+    { name = "hkick", type = "float" },
+    { name = "vkick", type = "float" },
+    { name = "angle", type = "float" },
+    { name = "k0l", type = "float" },
+    { name = "k1l", type = "float" },
+    { name = "k2l", type = "float" },
+    { name = "k3l", type = "float" },
+    { name = "k4l", type = "float" },
+    { name = "k5l", type = "float" },
+    { name = "k0sl", type = "float" },
+    { name = "k1sl", type = "float" },
+    { name = "k2sl", type = "float" },
+    { name = "k3sl", type = "float" },
+    { name = "k4sl", type = "float" },
+    { name = "k5sl", type = "float" },
+    { name = "x", type = "float" },
+    { name = "y", type = "float" },
+    { name = "px", type = "float" },
+    { name = "py", type = "float" },
+    { name = "betx", type = "float" },
+    { name = "bety", type = "float" },
+    { name = "alfx", type = "float" },
+    { name = "alfy", type = "float" },
+    { name = "mux", type = "float" },
+    { name = "muy", type = "float" },
+    { name = "dx", type = "float" },
+    { name = "dy", type = "float" },
+    { name = "dpx", type = "float" },
+    { name = "dpy", type = "float" },
+]
+
+scalars = [
+    { name = "type", value = "TWISS", type = "string" },
+    { name = "length", source_name = "line_length", type = "float" },
+    { name = "alfa", source_name = "momentum_compaction_factor", type = "float" },
+    { name = "q1", source_name = "qx", type = "float" },
+    { name = "q2", source_name = "qy", type = "float" },
+    { name = "dq1", source_name = "dqx", type = "float" },
+    { name = "dq2", source_name = "dqy", type = "float" },
+]

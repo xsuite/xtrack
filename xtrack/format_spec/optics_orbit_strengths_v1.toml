@@ -1,0 +1,49 @@
+# Periodic Twiss optics, closed orbit and integrated magnetic strengths.
+# Compute with line.twiss(strengths=True) or line.twiss4d(strengths=True).
+# This preset is frozen. Changes to its output require a new preset name.
+version = "optics_orbit_strengths_v1"
+case = "preserve"
+float_format = ".16e"
+numeric_column_width = 24
+default_column_width = 0
+
+columns = [
+    { name = "NAME", source_name = "name", type = "string" },
+    { name = "S", source_name = "s", type = "float" },
+    { name = "ELEMENT_TYPE", source_name = "element_type", type = "string" },
+    { name = "LENGTH", source_name = "length", type = "float" },
+    { name = "BETX", source_name = "betx", type = "float" },
+    { name = "BETY", source_name = "bety", type = "float" },
+    { name = "ALFX", source_name = "alfx", type = "float" },
+    { name = "ALFY", source_name = "alfy", type = "float" },
+    { name = "DX", source_name = "dx", type = "float" },
+    { name = "DPX", source_name = "dpx", type = "float" },
+    { name = "DY", source_name = "dy", type = "float" },
+    { name = "DPY", source_name = "dpy", type = "float" },
+    { name = "MUX", source_name = "mux", type = "float" },
+    { name = "MUY", source_name = "muy", type = "float" },
+    { name = "X", source_name = "x", type = "float" },
+    { name = "PX", source_name = "px", type = "float" },
+    { name = "Y", source_name = "y", type = "float" },
+    { name = "PY", source_name = "py", type = "float" },
+    { name = "ANGLE", source_name = "angle", type = "float" },
+    { name = "K0L", source_name = "k0l", type = "float" },
+    { name = "K1L", source_name = "k1l", type = "float" },
+    { name = "K2L", source_name = "k2l", type = "float" },
+    { name = "K3L", source_name = "k3l", type = "float" },
+    { name = "K4L", source_name = "k4l", type = "float" },
+    { name = "K5L", source_name = "k5l", type = "float" },
+    { name = "K0SL", source_name = "k0sl", type = "float" },
+    { name = "K1SL", source_name = "k1sl", type = "float" },
+    { name = "K2SL", source_name = "k2sl", type = "float" },
+    { name = "K3SL", source_name = "k3sl", type = "float" },
+    { name = "K4SL", source_name = "k4sl", type = "float" },
+    { name = "K5SL", source_name = "k5sl", type = "float" },
+    { name = "ISTHICK", source_name = "isthick", type = "bool" },
+]
+
+scalars = [
+    { name = "LINE_LENGTH", source_name = "line_length", type = "float" },
+    { name = "QX", source_name = "qx", type = "float" },
+    { name = "QY", source_name = "qy", type = "float" },
+]

@@ -8,3 +8,4 @@ include LICENSE.txt
 
 recursive-include xtrack *.h
 recursive-include xtrack *.lark
+recursive-include xtrack/format_spec *.toml
