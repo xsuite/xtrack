@@ -521,7 +521,8 @@ void get_max_aperture_sigma_rays(
     float_type* const out_envelope_at_max_sigma,
     float_type* const ray_angles,
     const uint32_t num_ray_angles,
-    float_type* const out_sigmas
+    float_type* const out_sigmas,
+    float_type* const out_contact_points
 ) {
     const uint32_t num_slices = TwissData_len_x(twiss_at_s);
     const uint32_t len_points = ProfilePolygons_get_len_points(profile_polygons);
@@ -592,6 +593,7 @@ void get_max_aperture_sigma_rays(
 
         float_type* const slice_sigmas = out_sigmas + idx_slice * num_ray_angles;
         float_type slice_min_sigma = INFINITY;
+        Point2D contact = {NAN, NAN};
         for (uint32_t i = 0; i < num_ray_angles; i++) {
             const float_type angle = ray_angles[i];
             const float_type d_halo = racetrack_radius_at_angle(angle, halo_rt);
@@ -600,8 +602,24 @@ void get_max_aperture_sigma_rays(
             const float_type n1_lin_approx = (d_aperture - d_halo) / (d_envelope_one_sigma - d_halo);
             float_type n1 = compute_n1_for_point(angle, d_aperture, halo_rt, beam_rt, 0.f, n1_lin_approx);
             slice_sigmas[i] = n1;
-            if (n1 < slice_min_sigma)
+            if (n1 < slice_min_sigma) {
                 slice_min_sigma = n1;
+                if (out_contact_points != NULL) {
+                    // Use the same dispersive orbit endpoint as d_aperture.
+                    const float_type disp_sign =
+                        (aperture_distances_minus[i] < aperture_distances_plus[i]
+                         || isnan(aperture_distances_plus[i])) ? -1 : 1;
+                    contact.x = s_twiss_data.x + disp_sign * disp_orbit_shift_x
+                                + d_aperture * cos(angle);
+                    contact.y = s_twiss_data.y + disp_sign * disp_orbit_shift_y
+                                + d_aperture * sin(angle);
+                }
+            }
+        }
+
+        if (out_contact_points != NULL) {
+            out_contact_points[2 * idx_slice] = contact.x;
+            out_contact_points[2 * idx_slice + 1] = contact.y;
         }
 
         if (out_envelope_at_max_sigma != NULL)

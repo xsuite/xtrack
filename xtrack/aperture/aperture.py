@@ -1096,6 +1096,7 @@ class LineAperture:
             output_max_envelopes: bool = False,
             output_cross_sections: bool = False,
             with_progress: bool = True,
+            output_contact_points: bool = False,
     ) -> tuple[Table, TwissTable]:
         """Compute the maximum number of sigmas at which the beam fits in the aperture at the given ``s_positions``.
 
@@ -1128,6 +1129,13 @@ class LineAperture:
         with_progress:
             Whether to show progress while slicing the line. Defaults to
             ``True``.
+        output_contact_points:
+            For ``method='rays'``, include ``x`` and ``y`` (metres) at the
+            aperture hit of the ray determining ``n1``, including its
+            dispersive orbit offset. Coordinates use the native transverse
+            survey frame, not offsets from the closed orbit or pipe centre.
+            If several rays tie, return the first sampled direction.
+            Nonfinite ``n1`` has NaN coordinates.
 
         Returns
         -------
@@ -1136,8 +1144,11 @@ class LineAperture:
         - ``table`` is an :class:`xdeps.table.Table` with columns ``s`` and ``n1``.
         - if ``output_cross_sections`` is true, ``table`` also contains ``cross_section``.
         - if ``output_max_envelopes`` is true, ``table`` also contains ``envelope``.
+        - if ``output_contact_points`` is true, ``table`` contains ``x`` and ``y``.
         - ``sliced_twiss`` is the twiss table computed as part of the calculation.
         """
+        if output_contact_points and method != 'rays':
+            raise ValueError("Contact points are supported only for method='rays'")
         sliced_twiss = self._get_sliced_twiss_at_s(
             s_positions=s_positions, twiss_init=twiss_init,
             with_progress=with_progress)
@@ -1148,6 +1159,7 @@ class LineAperture:
             num_rays=num_rays,
             output_max_envelopes=output_max_envelopes,
             output_cross_sections=output_cross_sections,
+            output_contact_points=output_contact_points,
         )
         return table, sliced_twiss
 
@@ -1160,6 +1172,7 @@ class LineAperture:
         num_rays: int = 32,
         output_max_envelopes: bool = False,
         output_cross_sections: bool = False,
+        output_contact_points: bool = False,
     ) -> Table:
         """Compute the maximum aperture sigmas from an already sampled Twiss table.
 
@@ -1189,6 +1202,12 @@ class LineAperture:
             Whether to include beam-envelope polygons at the computed sigma.
         output_cross_sections
             Whether to include the interpolated aperture cross-sections.
+        output_contact_points
+            For ``method='rays'``, return the limiting aperture hit as ``x``
+            and ``y`` in metres in the native transverse survey frame.
+            Include the limiting dispersive orbit offset; ties use the first
+            sampled ray. Nonfinite ``n1`` has NaN coordinates. Requires a
+            Twiss table in the same native frame as the aperture geometry.
 
         Returns
         -------
@@ -1199,11 +1218,15 @@ class LineAperture:
             - ``index``: row index.
             - ``s``: longitudinal position.
             - ``n1``: maximum number of beam sigmas that fit in the aperture.
+            - ``x``, ``y``: limiting aperture contact, included when
+              ``output_contact_points`` is true.
             - ``cross_section``: aperture polygon, included when
               ``output_cross_sections`` is true.
             - ``envelope``: beam-envelope polygon at ``n1``, included when
               ``output_max_envelopes`` is true.
         """
+        if output_contact_points and method != 'rays':
+            raise ValueError("Contact points are supported only for method='rays'")
         if not self.is_built:
             self.build_model()
 
@@ -1221,6 +1244,11 @@ class LineAperture:
             envelope_at_max_sigma = np.zeros(shape=(num_slices, envelopes_num_points, 2), dtype=FloatType._dtype)
         else:
             envelope_at_max_sigma = None
+
+        contact_points = (
+            np.full((num_slices, 2), np.nan, dtype=FloatType._dtype)
+            if output_contact_points else None
+        )
 
         if method == 'bisection':
             sigmas = np.zeros(num_slices, dtype=FloatType._dtype)
@@ -1255,6 +1283,7 @@ class LineAperture:
                 ray_angles=ray_angles,
                 num_ray_angles=num_rays,
                 sigmas=ray_sigmas,
+                out_contact_points=contact_points,
 
             )
             n1s = np.min(ray_sigmas, axis=1)
@@ -1285,6 +1314,10 @@ class LineAperture:
             's': sliced_twiss.s,
             'n1': n1s,
         }
+        if output_contact_points:
+            contact_points[~np.isfinite(n1s)] = np.nan
+            table_data['x'] = contact_points[:, 0]
+            table_data['y'] = contact_points[:, 1]
         if output_cross_sections:
             table_data['cross_section'] = interpolated_points
         if output_max_envelopes:

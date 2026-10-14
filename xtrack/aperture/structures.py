@@ -685,6 +685,7 @@ class LineApertureModel(xo.Struct):
                 xo.Arg(FloatType, pointer=True, name='ray_angles'),
                 xo.Arg(xo.UInt32, name='num_ray_angles'),
                 xo.Arg(FloatType, pointer=True, name='sigmas'),
+                xo.Arg(FloatType, pointer=True, name='out_contact_points'),
             ],
         ),
         'get_max_aperture_sigma_exact': xo.Kernel(
@@ -852,11 +853,13 @@ class LineApertureModel(xo.Struct):
         self._context.kernels.get_max_aperture_sigma_bisection(
             model=self, aperture_env=aperture_env, **kwargs)
 
-    def get_max_aperture_sigma_rays(self, aperture_env=None, **kwargs) -> None:
+    def get_max_aperture_sigma_rays(
+            self, aperture_env=None, out_contact_points=None, **kwargs) -> None:
         aperture_env = aperture_env or self._aperture_env
         self.compile_kernels(only_if_needed=True)
         self._context.kernels.get_max_aperture_sigma_rays(
-            model=self, aperture_env=aperture_env, **kwargs)
+            model=self, aperture_env=aperture_env,
+            out_contact_points=out_contact_points, **kwargs)
 
     def get_max_aperture_sigma_exact(self, aperture_env=None, **kwargs) -> None:
         aperture_env = aperture_env or self._aperture_env
