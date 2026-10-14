@@ -8,3 +8,7 @@ include LICENSE.txt
 
 recursive-include xtrack *.h
 recursive-include xtrack *.lark
+
+# Keep examples and test datasets out of source distributions.
+prune examples
+prune test_data

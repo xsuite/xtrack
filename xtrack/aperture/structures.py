@@ -555,13 +555,9 @@ class SurveyData(xo.Struct):
             poses[idx, :, 3] = np.hstack([row.X[0], row.Y[0], row.Z[0], 1])
             lengths[idx] = row.length[0]
 
-        # Avoid constructing MultiSetter objects for every element attribute.
-        # They are unnecessary here and retain buffers for the lifetime of the
-        # line, which is especially costly for large imported machines.
-        angles[:-1] = [getattr(element, 'angle', 0.0)
-                       for element in line._elements]
-        tilts[:-1] = [getattr(element, 'rot_s_rad', 0.0)
-                      for element in line._elements]
+        # Resolve slice weights and attributes inherited from parent elements.
+        angles[:-1] = line.attr['angle']
+        tilts[:-1] = line.attr['rot_s_rad']
 
         # Straight-body RBends use an internal reference line that differs from
         # the element entrance frame stored in the survey table.

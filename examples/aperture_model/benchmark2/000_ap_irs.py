@@ -180,7 +180,7 @@ def main():
         s_positions_ring = np.asarray(n1_table.s[undo_order], dtype=float)
         n1_madx = np.asarray(reference["n1_madx"], dtype=float)
 
-        min_idx = int(np.argmin(sigmas))
+        min_idx = int(np.nanargmin(sigmas))
         min_n1 = float(sigmas[min_idx])
         min_s = float(s_positions_ring[min_idx])
         element_name = _get_nearest_element_name(line_table, min_s)

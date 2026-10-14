@@ -7,10 +7,10 @@ S_TOL = 3.1e-2
 sps = xt.load('sps.json')
 sps.twiss_default['method'] = '4d'
 env = sps.env
+env.lines['sps'] = sps
 
-aperture_data = xt.json.load('sps_aperture.json')
-env.aperture.from_dict(aperture_data['environment'])
-aperture = sps.aperture.from_dict(aperture_data['aperture'])
+env.aperture.from_json('sps_aperture.json')
+aperture = sps.aperture
 aperture.s_tol = S_TOL
 # This snapshot contains known overlaps; build explicitly before any computations.
 aperture.build_model(_skip_validity_check=True)

@@ -4,12 +4,12 @@ import xtrack as xt
 S_TOL = 3.1e-2
 
 sps = xt.load('sps.json')
+sps.env.lines['sps'] = sps
 env = xt.load('sps_env.json')
 sps_with_limits = env.lines['sps_with_limits']
 
-aperture_data = xt.json.load('sps_aperture.json')
-sps.env.aperture.from_dict(aperture_data['environment'])
-aperture = sps.aperture.from_dict(aperture_data['aperture'])
+sps.env.aperture.from_json('sps_aperture.json')
+aperture = sps.aperture
 aperture.s_tol = S_TOL
 # Preserve the known overlaps in the original LDB model for this comparison.
 aperture.build_model(_skip_validity_check=True)

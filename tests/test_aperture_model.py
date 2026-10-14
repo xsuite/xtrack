@@ -438,6 +438,28 @@ def _transition_test_twiss_init(aperture):
 
 
 @for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
+@pytest.mark.parametrize('roll', [0.0, 0.3])
+def test_survey_interpolation_thick_sliced_bend(test_context, roll):
+    line = xt.Line(
+        elements=[xt.Bend(length=4.0, angle=0.2, rot_s_rad=roll)],
+        element_names=['bend'],
+    )
+    reference = line.copy()
+    reference.cut_at_s([0.7])
+    expected = reference.survey().rows[0.7:0.7:'s']
+    assert len(expected) == 1
+
+    line.slice_thick_elements(
+        slicing_strategies=[xt.Strategy(slicing=xt.Uniform(2, mode='thick'))],
+    )
+    data = SurveyData.from_survey_table(line.survey(), line, context=test_context)
+    pose = data.resample([0.7]).pose.to_nplike()[0]
+
+    xo.assert_allclose(pose[:3, 3], expected.XYZ[0], atol=1e-12, rtol=0)
+    xo.assert_allclose(pose[:3, :3], expected.E_matrix[0], atol=1e-12, rtol=0)
+
+
+@for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
 def test_aperture_does_not_add_columns_to_survey(test_context):
     aperture = _make_transition_test_aperture(test_context)
 
@@ -1204,32 +1226,23 @@ def test_aperture_json_roundtrip_preserves_explicit_ring_flag(test_context, tmp_
     env = xt.Environment()
     drift = env.new('drift', xt.Drift, length=3.0)
     line = env.new_line(name='line', components=[drift])
-    sv = line.survey()
-
-    model = ApertureModel(
-        pipe_positions=[
-            PipePosition(
-                pipe_index=0,
-                survey_reference_name='drift',
-                survey_index=sv.name.tolist().index('drift'),
-                transformation=transform_matrix(),
-            ),
-        ],
-        pipes=[Pipe(curvature=0.0, positions=[ProfilePosition(profile_index=0)])],
-        profiles=[Profile(shape=Circle(radius=1.0))],
-        pipe_names=['pipe0'],
-        pipe_position_names=['pipe0'],
-        profile_names=['circ0'],
-        _context=test_context,
-    )
-
-    ap = Aperture(line, model, context=test_context, is_ring=False)
+    profile = env.aperture.new_profile('circ0', Circle, radius=1.0)
+    pipe = env.aperture.new_pipe('pipe0', positions=[profile.place()])
+    ap = line.aperture
+    ap.context = test_context
+    ap._is_ring_setting = False
+    ap.place_pipe('pipe0', pipe, at='drift')
+    ap.build_model()
     path = tmp_path / 'aperture.json'
 
-    ap.to_json(path)
-    loaded = Aperture.from_json(path, line=line, context=test_context)
-
+    env.aperture.to_json(path)
     assert ap.is_ring is False
+    env.aperture.clear()
+    env.aperture.from_json(path, context=test_context)
+    loaded = line.aperture
+    assert loaded._model is None
+    loaded.build_model()
+
     assert loaded.is_ring is False
 
 
@@ -3390,8 +3403,12 @@ def hllhc19_end_to_end_model(tmp_path_factory):
         )
 
         aperture_path = tmp_path / f'aperture_model_{beam}.json'
-        aperture.to_json(aperture_path)
-        aperture = Aperture.from_json(aperture_path, line)
+        line.env.lines[beam] = line
+        line.env.aperture.to_json(aperture_path)
+        line.env.aperture.clear()
+        line.env.aperture.from_json(aperture_path, context=local_context)
+        aperture = line.aperture
+        aperture.build_model()
 
         out[beam] = (line, aperture)
 
