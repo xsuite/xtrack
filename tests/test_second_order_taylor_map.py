@@ -11,7 +11,7 @@ from cpymad.madx import Madx
 
 import xobjects as xo
 import xtrack as xt
-from xobjects.test_helpers import for_all_test_contexts
+from xobjects.test_helpers import allow_kernel_compilation, for_all_test_contexts
 
 test_data_folder = pathlib.Path(
         __file__).parent.joinpath('../test_data').absolute()
@@ -61,6 +61,7 @@ def test_line_with_second_order_maps(test_context):
 
 
 @for_all_test_contexts
+@allow_kernel_compilation
 def test_line_with_second_order_maps_split_at_octupoles(test_context):
 
     line = xt.load(test_data_folder /
@@ -125,11 +126,11 @@ def test_line_with_second_order_maps_split_at_octupoles(test_context):
                       ('maps', line_maps)):
         pp = ll.build_particles(x_norm=[0.5, 5., 0.5], y_norm=[0.5, 0.5, 5.],
                                 nemitt_x=2.5e-6, nemitt_y=2.5e-6)
-        ll.track(pp, num_turns=512, turn_by_turn_monitor=True)
+        ll.track(pp, num_turns=512, turn_by_turn_monitor=True,
+                 freeze_longitudinal=True)
         mon = ll.record_last_track
-        ctx2np = test_context.nparray_from_context_array
-        qx = [_tune_fft(ctx2np(mon.x)[jj, :]) for jj in range(3)]
-        qy = [_tune_fft(ctx2np(mon.y)[jj, :]) for jj in range(3)]
+        qx = [_tune_fft(mon.x[jj, :]) for jj in range(3)]
+        qy = [_tune_fft(mon.y[jj, :]) for jj in range(3)]
         dq[label] = (qx[1] - qx[0], qy[2] - qy[0])  # amplitude detuning
 
     assert dq['ref'][0] > 5e-3   # measured: ~1e-2
@@ -188,6 +189,7 @@ def test_second_order_maps_split_at_thick_elements(test_context):
                       ('ref', line)):
         pp = ll.build_particles(**p_test)
         ll.track(pp, num_turns=50)
+        pp.move(_context=xo.context_default)
         res[label] = np.array([getattr(pp, cc)[0] for cc in ['x', 'px', 'y', 'py']])
 
     # kept octupoles -> exact (everything else is linear)
@@ -259,6 +261,7 @@ def test_second_order_maps_split_at_repeated_names(test_context):
                       ('ref', line)):
         pp = ll.build_particles(**p_test)
         ll.track(pp, num_turns=50)
+        pp.move(_context=xo.context_default)
         res[label] = np.array([getattr(pp, cc)[0] for cc in ['x', 'px', 'y', 'py']])
 
     # split octupole -> exact (everything else is linear)
@@ -316,6 +319,7 @@ def test_second_order_maps_split_at_sliced_line(test_context):
                       ('ref', line)):
         pp = ll.build_particles(**p_test)
         ll.track(pp, num_turns=50)
+        pp.move(_context=xo.context_default)
         res[label] = np.array([getattr(pp, cc)[0] for cc in ['x', 'px', 'y', 'py']])
 
     # split octupole -> exact (thin quad slices and drifts are linear)

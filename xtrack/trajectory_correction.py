@@ -3,6 +3,8 @@ from scipy.optimize import lsq_linear
 import xtrack as xt
 
 import logging
+
+from .general import _print
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.StreamHandler())
 
@@ -283,7 +285,7 @@ class OrbitCorrectionSinglePlane:
             if i_iter == 0:
                 self._position_before = position
             if verbose:
-                print(
+                _print(
                     f'Trajectory correction - iter {i_iter}, rms: {position.std()}')
 
             if n_iter == 'auto':
@@ -310,7 +312,7 @@ class OrbitCorrectionSinglePlane:
             position = self._measure_position()
             self._position_after = position
             if verbose:
-                print(
+                _print(
                     f'Trajectory correction - iter {i_iter}, rms: {position.std()}')
         else:
             self._position_after = None
@@ -389,7 +391,7 @@ class OrbitCorrectionSinglePlane:
                         self.line.ref.elements[nn_kick].knl[0] -= ( # knl[0] is -kick
                             self.line.vars[f'orbit_corr_{nn_kick}_x'])
                     else:
-                        # Workarond for https://github.com/xsuite/xsuite/issues/501
+                        # Workaround for https://github.com/xsuite/xsuite/issues/501
                         val = self.line.ref.elements[nn_kick].knl[0]._value
                         if hasattr(val, 'get'):
                             val = val.get()
@@ -403,7 +405,7 @@ class OrbitCorrectionSinglePlane:
                         self.line.ref.elements[nn_kick].ksl[0] += ( # ksl[0] is +kick
                             self.line.vars[f'orbit_corr_{nn_kick}_y'])
                     else:
-                        # Workarond for https://github.com/xsuite/xsuite/issues/501
+                        # Workaround for https://github.com/xsuite/xsuite/issues/501
                         val = self.line.ref.elements[nn_kick].ksl[0]._value
                         if hasattr(val, 'get'):
                             val = val.get()
@@ -716,7 +718,7 @@ class TrajectoryCorrection:
                         correction_kicks_y = self.y_correction.get_kick_values()
                         relative_limits_y = (self.y_correction.corrector_limits[0] - correction_kicks_y,
                                              self.y_correction.corrector_limits[1] - correction_kicks_y)
-                print(str_2print)
+                _print(str_2print)
             if stop_x and stop_y:
                 break
             i_iter += 1
@@ -728,8 +730,8 @@ class TrajectoryCorrection:
         '''
         Thread the trajectory along the line. The correction is performed in
         portions of length `ds_thread`. For each portion the correction is
-        first performed only on the new added part, then on the whole portion up
-        to the end of the new added part.
+        first performed only on the newly added part, then on the whole portion up
+        to the end of the newly added part.
 
         Parameters
         ----------
@@ -741,7 +743,7 @@ class TrajectoryCorrection:
         rcond_long : float or tuple of float
             Cutoff for small singular values (relative to the largest singular
             value) used for the correction of the whole portion up to the end
-            of the new added part.
+            of the newly added part.
 
         Returns
         -------
@@ -902,7 +904,7 @@ def _thread(line, ds_thread, twiss_table=None, rcond_short = None, rcond_long = 
 
     assert ds_thread is not None
 
-    # r_cond_short is not used anymore, see commented code below
+    # rcond_short is not used anymore, see commented code below
 
     tt = line.get_table()
     line_length = tt.s[-1]
@@ -929,9 +931,9 @@ def _thread(line, ds_thread, twiss_table=None, rcond_short = None, rcond_long = 
             end_loop = True
 
         # ----- The following was used to correct only the newly added part
-        # ----- It us not used anymore, as it was observed not to help
-        # ----- We keep it in case it is needed in the futures
-        # Correct only the new added portion
+        # ----- It is not used anymore, as it was observed not to help
+        # ----- We keep it in case it is needed in the future
+        # Correct only the newly added portion
         # tt_new_part = tt.rows[s_corr_end-ds_thread:s_corr_end:'s']
         #
         # Get initial conditions for the new added portion
@@ -989,7 +991,7 @@ def _thread(line, ds_thread, twiss_table=None, rcond_short = None, rcond_long = 
         #         f' -> {y_meas_print.std():.2e}]')
         #     print(str_2print)
 
-        # Correct from start line to end of new added portion
+        # Correct from start of line to end of newly added portion
         tt_part = tt.rows[0:s_corr_end:'s']
         ocorr = TrajectoryCorrection(
             twiss_table=twiss_table,
@@ -1015,7 +1017,7 @@ def _thread(line, ds_thread, twiss_table=None, rcond_short = None, rcond_long = 
                 f' -> {x_meas_print.std():.2e}, ')
             str_2print += (f'y: {ocprint.y_correction._position_before_iter.std():.2e}'
                 f' -> {y_meas_print.std():.2e}]')
-            print(str_2print)
+            _print(str_2print)
 
         s_corr_end += ds_thread
         i_win += 1

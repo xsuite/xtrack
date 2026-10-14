@@ -16,6 +16,28 @@ test_data_folder = pathlib.Path(
     __file__).parent.joinpath('../test_data').absolute()
 
 
+def test_twiss_table_to_pandas_columns():
+    tw = xt.TwissTable({
+        'name': np.array(['a', 'b'], dtype=object),
+        's': np.array([0., 1.]),
+        'betx': np.array([2., 3.]),
+        'W_matrix': np.array([np.eye(6), 2 * np.eye(6)]),
+    })
+
+    df = tw.to_pandas(columns=['betx', 's'])
+    assert list(df.columns) == ['betx', 's']
+    np.testing.assert_array_equal(df['betx'], tw.betx)
+    np.testing.assert_array_equal(df['s'], tw.s)
+
+    df = tw.to_pandas(columns=['W_matrix', 'name'], index='name')
+    assert list(df.columns) == ['W_matrix']
+    assert df.index.name == 'name'
+    np.testing.assert_array_equal(df.index, tw.name)
+    np.testing.assert_array_equal(np.stack(df['W_matrix']), tw.W_matrix)
+
+    assert list(tw.to_pandas().columns) == tw._col_names
+
+
 def test_twiss_table_row_slice_drops_periodic():
     tw = xt.TwissTable(
         {
@@ -30,6 +52,63 @@ def test_twiss_table_row_slice_drops_periodic():
 
     assert tw.periodic is True
     assert 'periodic' not in tw_slice
+
+
+def test_twiss_with_different_particle_species():
+    line = xt.Line(elements=[
+        xt.Drift(length=1),
+        xt.Multipole(knl=[0, 0.1]),
+        xt.Drift(length=1),
+        xt.Multipole(knl=[0, -0.1]),
+    ] * 4)
+    line.particle_ref = xt.Particles(
+        p0c=1e9, mass0=xt.PROTON_MASS_EV)
+
+    tw_reference = line.twiss4d(chrom=False)
+    tw_chi = line.twiss4d(chi=0.8)
+    tw_charge_ratio = line.twiss4d(charge_ratio=0.8, chrom=False)
+    tw_mass_ratio = line.twiss4d(mass_ratio=1.25, chrom=False)
+
+    particle_ref = line.particle_ref.copy()
+    particle_ref._update_chi_charge_ratio(
+        charge_ratio=0.8, mass_ratio=1.0)
+    tw_particle_ref = line.twiss4d(
+        particle_ref=particle_ref, chrom=False)
+
+    # For magnetic elements, chi=0.8 at delta=0 is equivalent to a reference
+    # species at delta=1/chi-1.
+    tw_equivalent_delta = line.twiss4d(delta0=0.25, chrom=False)
+
+    tw_open = line.twiss4d(
+        start=line.element_names[0], end=line.element_names[-1],
+        betx=1, bety=1, chi=0.8, chrom=False)
+
+    for tw in (tw_chi, tw_charge_ratio, tw_mass_ratio, tw_particle_ref):
+        xo.assert_allclose(tw.qx, tw_equivalent_delta.qx,
+                           rtol=0, atol=1e-12)
+        xo.assert_allclose(tw.qy, tw_equivalent_delta.qy,
+                           rtol=0, atol=1e-12)
+        xo.assert_allclose(tw.particle_on_co.chi, 0.8,
+                           rtol=0, atol=1e-14)
+
+    assert abs(tw_chi.qx - tw_reference.qx) > 1e-3
+    xo.assert_allclose(tw_chi.particle_on_co.charge_ratio, 1,
+                       rtol=0, atol=1e-14)
+    xo.assert_allclose(tw_chi.particle_on_co.mass_ratio, 1.25,
+                       rtol=0, atol=1e-14)
+    xo.assert_allclose(tw_charge_ratio.particle_on_co.charge_ratio, 0.8,
+                       rtol=0, atol=1e-14)
+    xo.assert_allclose(tw_charge_ratio.particle_on_co.mass_ratio, 1,
+                       rtol=0, atol=1e-14)
+    xo.assert_allclose(tw_open.particle_on_co.chi, 0.8,
+                       rtol=0, atol=1e-14)
+
+    # The line reference particle is not modified.
+    xo.assert_allclose(line.particle_ref.chi, 1, rtol=0, atol=1e-14)
+    xo.assert_allclose(line.particle_ref.charge_ratio, 1,
+                       rtol=0, atol=1e-14)
+    xo.assert_allclose(line.particle_ref.mass_ratio, 1,
+                       rtol=0, atol=1e-14)
 
 
 @for_all_test_contexts
@@ -643,6 +722,8 @@ def test_twiss_range(test_context, cycle_to, line_name, check, init_at_edge, col
         s=2e-8,
         zeta=5e-5,
         alfx=1e-8, alfy=1e-8, alfx1=1e-8, alfy2=1e-8, alfx2=1e-6, alfy1=1e-6,
+        alfx_edw_teng=1e-8, alfy_edw_teng=1e-8,
+        f1001=1e-8, f1010=1e-8, f0110=1e-8, f0101=1e-8,
         dzeta=1e-4, dx=1e-4, dy=1e-4, dpx=1e-5, dpy=1e-5,
         nuzeta=1e-5, dx_zeta=1e-7, dy_zeta=1e-7, dpx_zeta=1e-8, dpy_zeta=1e-8,
         nux=1e-8, nuy=1e-8,
@@ -652,15 +733,26 @@ def test_twiss_range(test_context, cycle_to, line_name, check, init_at_edge, col
 
     rtols = dict(
         alfx=5e-9, alfy=5e-8, alfx1=5e-9, alfy2=5e-8, alfx2=5e-8, alfy1=5e-8,
+        alfx_edw_teng=5e-9, alfy_edw_teng=5e-8,
         betx=1e-8, bety=1e-8, betx1=1e-8, bety2=1e-8, betx2=1e-7, bety1=1e-7,
+        betx_edw_teng=1e-8, bety_edw_teng=1e-8,
+        g_edw_teng=1e-8,
+        f1001=5e-8, f1010=5e-8, f0110=5e-8, f0101=5e-8,
         gamx=5e-9, gamy=5e-9, gamx1=5e-9, gamy2=5e-9, gamx2=1e-7, gamy1=1e-7,
     )
 
     if loop_around or not init_at_edge:
         rtols['betx'] = 2e-5
         rtols['bety'] = 2e-5
+        rtols['betx_edw_teng'] = 2e-5
+        rtols['bety_edw_teng'] = 2e-5
+        rtols['g_edw_teng'] = 2e-5
+        rtols['f1001'] = rtols['f0110'] = 2e-5
+        rtols['f1010'] = rtols['f0101'] = 2e-5
         rtols['alfx'] = rtols['alfx1'] = 4e-5
         rtols['alfy'] = rtols['alfy2'] = 4e-5
+        rtols['alfx_edw_teng'] = 4e-5
+        rtols['alfy_edw_teng'] = 4e-5
         rtols['gamx'] = 2e-5
         rtols['gamy'] = 2e-5
         rtols['betx1'] = 2e-5
@@ -676,6 +768,8 @@ def test_twiss_range(test_context, cycle_to, line_name, check, init_at_edge, col
 
         atols['alfy'] = atols['alfy2'] = 4e-5
         atols['alfx'] = atols['alfx1'] = 4e-5
+        atols['alfy_edw_teng'] = 4e-5
+        atols['alfx_edw_teng'] = 4e-5
         atols['mux'] = 1e-5
         atols['muy'] = 1e-5
         atols['nux'] = 1e-8
@@ -687,6 +781,12 @@ def test_twiss_range(test_context, cycle_to, line_name, check, init_at_edge, col
 
     atol_default = 1e-11
     rtol_default = 1e-9
+
+    if check.endswith('_kw'):
+        # Scalar Twiss initialization does not provide the coupled W matrix,
+        # therefore the coupling RDTs cannot be meaningfully compared here.
+        atols['f1001'] = atols['f1010'] = 100
+        atols['f0110'] = atols['f0101'] = 100
 
     line = collider[line_name]
 
@@ -1179,6 +1279,33 @@ def test_longitudinal_plane_against_matrix(machine, test_context):
         xo.assert_allclose(np.std(particles_matrix.pzeta), np.std(particles_line.pzeta),
             atol=0, rtol=(25e-2 if longitudinal_mode.startswith('linear') else 2e-2))
 
+@for_all_test_contexts
+def test_supplied_twiss_init_is_not_modified(test_context):
+
+    line = xt.Line(
+        elements=[xt.Marker(), xt.Drift(length=1), xt.Marker()],
+        element_names=['start', 'drift', 'end'])
+    line.particle_ref = xt.Particles(p0c=7e12, mass0=xt.PROTON_MASS_EV)
+    line.build_tracker(_context=test_context)
+
+    supplied_init = xt.TwissInit(betx=1., bety=2.)
+    assert supplied_init.element_name is None
+    assert supplied_init.reference_frame is None
+    assert supplied_init._has_deferred_inputs()
+
+    tw = line.twiss(
+        method='4d', start='start', end='end',
+        init=supplied_init, init_at='start')
+
+    # Completing the init for Twiss must not alter the caller-owned object.
+    assert supplied_init.element_name is None
+    assert supplied_init.reference_frame is None
+    assert supplied_init._has_deferred_inputs()
+    assert tw.completed_init.element_name == 'start'
+    assert tw.completed_init.reference_frame == 'proper'
+    assert not tw.completed_init._has_deferred_inputs()
+
+
 @for_all_test_contexts(excluding=('ContextCupy', 'ContextPyopencl'))
 def test_custom_twiss_init(test_context):
 
@@ -1385,7 +1512,7 @@ def test_twiss_init_file(test_context):
     check_vars = ['betx', 'bety', 'alfx', 'alfy', 'dx', 'dpx', 'dy', 'dpy',
                     'mux', 'muy', 'x', 'y', 'px', 'py']
 
-    # check at a location downsteam
+    # check at a location downstream
     loc_check = 'bpm.30r6.b1'
     for var in check_vars:
         # Check at starting point
@@ -1996,6 +2123,10 @@ def test_twiss_prototype_with_strengths():
     assert 'prototype' not in tw.keys()
     assert np.all(tw_with_strengths.prototype == np.array(
         [None, 'q0', 'q1', None]))
+    assert 'base_prototype' not in tw.keys()
+    assert list(tw_with_strengths.base_prototype) == [None, 'q0', 'q0', None]
+    assert list(tw_with_strengths.reverse().base_prototype) == [
+        'q0', 'q0', None, None]
 
 def test_coupling_calculations():
 

@@ -30,5 +30,5 @@ line.track(particles, num_turns=num_turns,
 # For example, line.record_last_track.x[0, :, :] contains the recorded
 # x position for the turns 5 to 10, line.record_last_track.x[1, :, :]
 # contains the recorded x position for the turns 25 to 30, etc.
-# The turn indeces that are recorded can be inspected in
+# The turn indices that are recorded can be inspected in
 # line.record_last_track.at_turn.

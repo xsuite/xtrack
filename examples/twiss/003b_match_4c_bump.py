@@ -19,13 +19,13 @@ line.match(
     ],
     targets=[
         # I want the vertical orbit to be at 3 mm at mq.28l8.b1 with zero angle
-        xt.Target('y', at='mb.b28l8.b1', value=3e-3, tol=1e-4, scale=1),
-        xt.Target('py', at='mb.b28l8.b1', value=0, tol=1e-6, scale=1000),
+        xt.Target('y', at='mb.b28l8.b1', value=3e-3, tol=1e-4, weight=1),
+        xt.Target('py', at='mb.b28l8.b1', value=0, tol=1e-6, weight=1000),
         # I want the bump to be closed
         xt.Target('y', at='mq.23l8.b1', value=tw_before['y', 'mq.23l8.b1'],
-                  tol=1e-6, scale=1),
+                  tol=1e-6, weight=1),
         xt.Target('py', at='mq.23l8.b1', value=tw_before['py', 'mq.23l8.b1'],
-                  tol=1e-7, scale=1000),
+                  tol=1e-7, weight=1000),
     ]
 )
 
@@ -92,17 +92,17 @@ line.match(
     ],
     targets=[
         # I want the vertical orbit to be at 3 mm at mq.28l8.b1 with zero angle
-        xt.Target('y', at='mb.b28l8.b1', value=3e-3, tol=1e-4, scale=1),
-        xt.Target('py', at='mb.b28l8.b1', value=0, tol=1e-6, scale=1000),
+        xt.Target('y', at='mb.b28l8.b1', value=3e-3, tol=1e-4, weight=1),
+        xt.Target('py', at='mb.b28l8.b1', value=0, tol=1e-6, weight=1000),
         # I want the bump to be closed
         xt.Target('y', at='mq.23l8.b1', value=tw_before['y', 'mq.23l8.b1'],
-                  tol=1e-6, scale=1),
+                  tol=1e-6, weight=1),
         xt.Target('py', at='mq.23l8.b1', value=tw_before['py', 'mq.23l8.b1'],
-                  tol=1e-7, scale=1000),
+                  tol=1e-7, weight=1000),
         xt.Target('x', at='mq.23l8.b1', value=tw_before['x', 'mq.23l8.b1'],
-                  tol=1e-6, scale=1),
+                  tol=1e-6, weight=1),
         xt.Target('px', at='mq.23l8.b1', value=tw_before['px', 'mq.23l8.b1'],
-                  tol=1e-7, scale=1000),
+                  tol=1e-7, weight=1000),
     ]
 )
 

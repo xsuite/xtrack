@@ -452,6 +452,68 @@ def test_slicing_thick_bend_into_thick_bends_simple():
     xo.assert_allclose(_fact(bend1._parent.order) * bend0._parent.inv_factorial_order, 1, atol=1e-16)
 
 
+def test_slicing_element_with_associated_aperture_is_closed():
+    line = xt.Line(
+        elements={
+            'mb': xt.Bend(length=1.0, angle=0.1),
+            'mb_aper': xt.LimitRect(
+                min_x=-1.0, max_x=1.0, min_y=-1.0, max_y=1.0),
+        },
+        element_names=['mb'],
+    )
+    line['mb'].name_associated_aperture = 'mb_aper'
+
+    line.slice_thick_elements([Strategy(slicing=Uniform(2, mode='thick'))])
+
+    expected_names = [
+        'mb_entry',
+        'mb_aper..0', 'mb..entry_map',
+        'mb_aper..1', 'mb..0',
+        'mb_aper..2', 'mb..1',
+        'mb_aper..3', 'mb..exit_map',
+        'mb_aper..4', 'mb_exit',
+    ]
+    assert line.element_names == expected_names
+
+    for nn in expected_names:
+        if '_aper..' in nn:
+            assert isinstance(line[nn], xt.Replica)
+            assert line[nn].parent_name == 'mb_aper'
+
+
+def test_slicing_element_with_associated_aperture_is_closed_without_edge_markers():
+    line = xt.Line(
+        elements={
+            'mb': xt.Bend(length=1.0, angle=0.1),
+            'mb_aper': xt.LimitRect(
+                min_x=-1.0, max_x=1.0, min_y=-1.0, max_y=1.0),
+        },
+        element_names=['mb'],
+    )
+    line['mb'].name_associated_aperture = 'mb_aper'
+
+    slicer = Slicer(line=line, slicing_strategies=[
+        Strategy(slicing=Uniform(2, mode='thick')),
+    ])
+    slices = slicer._slice_element(
+        name='mb', element=line['mb'], chosen_slicing=Uniform(2, mode='thick'),
+        _edge_markers=False)
+
+    expected_names = [
+        'mb_aper..0', 'mb..entry_map',
+        'mb_aper..1', 'mb..0',
+        'mb_aper..2', 'mb..1',
+        'mb_aper..3', 'mb..exit_map',
+        'mb_aper..4',
+    ]
+    assert slices == expected_names
+
+    for nn in expected_names:
+        if '_aper..' in nn:
+            assert isinstance(line[nn], xt.Replica)
+            assert line[nn].parent_name == 'mb_aper'
+
+
 def test_slicing_xdeps_consistency():
     num_elements = 50000
     num_slices = 1
@@ -787,3 +849,15 @@ def test_slicing_thin_correctly_set_slice_offsets():
     slice_s_positions = [tt.rows[name].s for name in slice_names]
 
     assert np.all(slice_offsets == slice_s_positions)
+
+
+@pytest.mark.parametrize('mode', ['thin', 'thick'])
+def test_reslicing_preserves_parent_slice_offsets(mode):
+    line = xt.Line(elements={'bend': xt.Bend(length=3., angle=0.3)})
+    line.slice_thick_elements([Strategy(Uniform(3, mode='thick'))])
+    line.slice_thick_elements([
+        Strategy(Uniform(2, mode=mode), element_type=xt.ThickSliceBend)])
+    table = line.get_table()
+    for name in line.element_names:
+        if hasattr(line[name], 'slice_offset'):
+            assert line[name].slice_offset == pytest.approx(table['s', name])

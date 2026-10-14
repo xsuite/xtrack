@@ -10,7 +10,7 @@ import xtrack as xt
 import xpart as xp
 
 from xobjects.test_helpers import (
-    allow_no_prebuilt_kernels, for_all_test_contexts)
+    allow_kernel_compilation, for_all_test_contexts)
 
 
 def _check_consistency_energy_variables(particles):
@@ -62,8 +62,8 @@ def test_basics(test_context):
 
     dct = particles.to_dict() # transfers it to cpu
     assert dct['x'][0] == 1e-3
-    assert dct['ptau'][0] == 0
-    xo.assert_allclose(dct['ptau'][1], 1e-4, rtol=0, atol=1e-9)
+    assert dct['pzeta'][0] == 0
+    xo.assert_allclose(dct['pzeta'][1] * dct['beta0'][1], 1e-4, rtol=0, atol=1e-9)
     xo.assert_allclose(1/(dct['rpp'][1]) - 1, 1e-4, rtol=0, atol=1e-14)
 
     particles = xp.Particles(_context=test_context,
@@ -73,8 +73,8 @@ def test_basics(test_context):
 
     dct = particles.to_dict() # transfers it to cpu
     assert dct['x'][0] == 1e-3
-    xo.assert_allclose(dct['ptau'][0], 0, atol=1e-14, rtol=0)
-    xo.assert_allclose(dct['ptau'][1]/dct['beta0'][1], 1e-4, rtol=0, atol=1e-9)
+    xo.assert_allclose(dct['pzeta'][0], 0, atol=1e-14, rtol=0)
+    xo.assert_allclose(dct['pzeta'][1], 1e-4, rtol=0, atol=1e-9)
     xo.assert_allclose(dct['delta'][1], 9.99995545e-05, rtol=0, atol=1e-13)
 
     particles.move(_context=xo.ContextCpu())
@@ -90,8 +90,8 @@ def test_unallocated_particles(test_context):
 
     dct = particles.to_dict() # transfers it to cpu
     assert dct['x'][0] == 1e-3
-    assert dct['ptau'][0] == 0
-    xo.assert_allclose(dct['ptau'][1], 1e-4, rtol=0, atol=1e-9)
+    assert dct['pzeta'][0] == 0
+    xo.assert_allclose(dct['pzeta'][1] * dct['beta0'][1], 1e-4, rtol=0, atol=1e-9)
     xo.assert_allclose(1/(dct['rpp'][1]) - 1, 1e-4, rtol=0, atol=1e-14)
 
     particles2 = xp.Particles.from_dict(dct, _context=test_context)
@@ -195,6 +195,8 @@ def test_sort():
 
     line = xt.Line(elements=[xt.Cavity()])
     line.build_tracker()
+    # This test deliberately uses x values beyond the global safety aperture.
+    line.tracker.track_flags.XS_FLAG_IGNORE_GLOBAL_APERTURE = True
     line.track(p)
 
     assert np.all(p.particle_id == np.array([6, 1, 2, 5, 4, 3, 0,
@@ -339,7 +341,7 @@ def test_python_delta_setter(test_context):
 
 
 @for_all_test_contexts
-@allow_no_prebuilt_kernels
+@allow_kernel_compilation
 def test_LocalParticle_add_to_energy(test_context):
 
 
@@ -418,7 +420,7 @@ def test_LocalParticle_add_to_energy(test_context):
 
 
 @for_all_test_contexts
-@allow_no_prebuilt_kernels
+@allow_kernel_compilation
 def test_LocalParticle_update_delta(test_context):
 
 
@@ -464,7 +466,7 @@ def test_LocalParticle_update_delta(test_context):
 
 
 @for_all_test_contexts
-@allow_no_prebuilt_kernels
+@allow_kernel_compilation
 def test_LocalParticle_update_ptau(test_context):
 
 
@@ -510,7 +512,7 @@ def test_LocalParticle_update_ptau(test_context):
 
 
 @for_all_test_contexts
-@allow_no_prebuilt_kernels
+@allow_kernel_compilation
 def test_LocalParticle_update_pzeta(test_context):
 
 
@@ -558,7 +560,7 @@ def test_LocalParticle_update_pzeta(test_context):
 
 
 @for_all_test_contexts
-@allow_no_prebuilt_kernels
+@allow_kernel_compilation
 def test_LocalParticle_update_p0c(test_context):
 
 
@@ -607,7 +609,7 @@ def test_LocalParticle_update_p0c(test_context):
 
 
 @for_all_test_contexts
-@allow_no_prebuilt_kernels
+@allow_kernel_compilation
 def test_LocalParticle_angles(test_context):
 
 

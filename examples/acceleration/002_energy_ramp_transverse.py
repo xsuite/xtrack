@@ -35,8 +35,8 @@ opt = line.match(
         xt.Vary('kbrqdcorr', step=1e-4),
     ],
     targets = [
-        xt.Target('qx', value=4.15, tol=1e-5, scale=1),
-        xt.Target('qy', value=4.18, tol=1e-5, scale=1),
+        xt.Target('qx', value=4.15, tol=1e-5, weight=1),
+        xt.Target('qy', value=4.18, tol=1e-5, weight=1),
     ]
 )
 opt.solve()

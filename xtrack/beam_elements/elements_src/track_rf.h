@@ -8,6 +8,7 @@
 #include "xtrack/headers/track.h"
 #include "xtrack/beam_elements/elements_src/track_magnet_drift.h"
 #include "xtrack/beam_elements/elements_src/track_magnet_configure.h"
+#include "xtrack/beam_elements/elements_src/integrator.h"
 
 #ifndef VSWAP
     #define VSWAP(a, b) { double tmp = a; a = b; b = tmp; }
@@ -47,21 +48,27 @@ void track_rf_kick_single_particle(
         frequency += (harmonic / t_rev0);
     }
 
+#ifndef XTRACK_TPSA_TRACK
+    // Absolute-time cavities are native-only.
     if (absolute_time == 1) {
-        double const t_sim = LocalParticle_get_t_sim(part);
-        int64_t const at_turn = LocalParticle_get_at_turn(part);
-        phase0 += 2 * PI * at_turn * frequency * t_sim;
+        double const time_s = LocalParticle_get_time_s(part);
+        double const s = LocalParticle_get_s(part);
+        phase0 += 2 * PI * frequency * (time_s + s / (beta0 * C_LIGHT));
     }
+#endif
 
-    double const zeta  = LocalParticle_get_zeta(part);
+    xt_float_or_tpsa const zeta  = LocalParticle_get_zeta(part);
     double const q = fabs(LocalParticle_get_q0(part)) * LocalParticle_get_charge_ratio(part);
-    double const tau = zeta / beta0;
+    xt_float_or_tpsa const tau = zeta / beta0;
 
-    double const energy_kick = q * voltage
+    xt_float_or_tpsa const energy_kick = q * voltage
         * sin(phase0 + DEG2RAD * lag + phase
               - (2.0 * PI) / C_LIGHT * frequency * tau);
 
     double rfmultipole_energy_kick = 0;
+#ifndef XTRACK_TPSA_TRACK
+    // rfmultipole kick reads x,y as doubles; only RFMultipole/CrabCavity use order>=0.
+    // A plain Cavity passes order=-1 (inactive), so the TPSA flavor omits this block.
     if (order >= 0) {
 
         double dpx = 0.0;
@@ -154,6 +161,7 @@ void track_rf_kick_single_particle(
         LocalParticle_add_to_py(part, py_kick);
 
     }
+#endif  // XTRACK_TPSA_TRACK (rfmultipole + transverse-kick blocks)
 
 
     if (!kill_energy_kick) {
@@ -205,8 +213,7 @@ void track_rf_body_single_particle(
 
     #define RF_DRIFT(part, dlength) \
         track_magnet_drift_single_particle(\
-            part, (dlength), 0., 0., 0., 0.,\
-            0., 0., drift_model\
+            part, (dlength), 0., 0., 0., 0., 0., 0., drift_model\
         )
 
     // No radiation implemented for RF elements for now
@@ -215,96 +222,10 @@ void track_rf_body_single_particle(
             code;\
         }
 
-    
-    // START GENERATED INTEGRATION CODE
-
-    if (integrator == 1){ // TEAPOT
-
-        WITH_RF_RADIATION(length,
-            const double kick_weight = 1. / num_kicks;
-            double edge_drift_weight = 0.5;
-            double inside_drift_weight = 0;
-            if (num_kicks > 1) {
-                edge_drift_weight = 1. / (2 * (1 + num_kicks));
-                inside_drift_weight = (
-                    ((double) num_kicks)
-                        / ((double)(num_kicks*num_kicks) - 1));
-            }
-
-            RF_DRIFT(part, edge_drift_weight*length);
-            for (int i_kick=0; i_kick<num_kicks - 1; i_kick++) {
-                RF_KICK(part, kick_weight);
-                RF_DRIFT(part, inside_drift_weight*length);
-            }
-            RF_KICK(part, kick_weight);
-            RF_DRIFT(part, edge_drift_weight*length);
-        )
-
-    }
-    else if (integrator==3){ // uniform
-
-        const double kick_weight = 1. / num_kicks;
-        const double drift_weight = kick_weight;
-
-        for (int i_kick=0; i_kick<num_kicks; i_kick++) {
-            WITH_RF_RADIATION(drift_weight*length,
-                RF_DRIFT(part, 0.5*drift_weight*length);
-                RF_KICK(part, kick_weight);
-                RF_DRIFT(part, 0.5*drift_weight*length);
-            )
-        }
-
-    }
-    else if (integrator==2){ // YOSHIDA 4
-
-        const int64_t n_kicks_yoshida = 7;
-        const int64_t num_slices = (num_kicks / n_kicks_yoshida
-                                + (num_kicks % n_kicks_yoshida != 0));
-
-        const double slice_length = length / (num_slices);
-        const double kick_weight = 1. / num_slices;
-        const double d_yoshida[] =
-                     // From MAD-NG
-                     {3.922568052387799819591407413100e-01,
-                      5.100434119184584780271052295575e-01,
-                      -4.710533854097565531482416645304e-01,
-                      6.875316825251809316199569366290e-02};
-                    //  {0x1.91abc4988937bp-2, 0x1.052468fb75c74p-1, // same in hex
-                    //  -0x1.e25bd194051b9p-2, 0x1.199cec1241558p-4 };
-                    //  {1/8.0, 1/8.0, 1/8.0, 1/8.0}; // Uniform, for debugging
-        const double k_yoshida[] =
-                     // From MAD-NG
-                     {7.845136104775599639182814826199e-01,
-                      2.355732133593569921359289764951e-01,
-                      -1.177679984178870098432412305556e+00,
-                      1.315186320683906284756403692882e+00};
-                    //  {0x1.91abc4988937bp-1, 0x1.e2743579895b4p-3, // same in hex
-                    //  -0x1.2d7c6f7933b93p+0, 0x1.50b00cfb7be3ep+0 };
-                    //  {1/7.0, 1/7.0, 1/7.0, 1/7.0}; // Uniform, for debugging
-
-            for (int ii = 0; ii < num_slices; ii++) {
-                WITH_RF_RADIATION(slice_length,
-                    RF_DRIFT(part, slice_length * d_yoshida[0]);
-                    RF_KICK(part, kick_weight * k_yoshida[0]);
-                    RF_DRIFT(part, slice_length * d_yoshida[1]);
-                    RF_KICK(part, kick_weight * k_yoshida[1]);
-                    RF_DRIFT(part, slice_length * d_yoshida[2]);
-                    RF_KICK(part, kick_weight * k_yoshida[2]);
-                    RF_DRIFT(part, slice_length * d_yoshida[3]);
-                    RF_KICK(part, kick_weight * k_yoshida[3]);
-                    RF_DRIFT(part, slice_length * d_yoshida[3]);
-                    RF_KICK(part, kick_weight * k_yoshida[2]);
-                    RF_DRIFT(part, slice_length * d_yoshida[2]);
-                    RF_KICK(part, kick_weight * k_yoshida[1]);
-                    RF_DRIFT(part, slice_length * d_yoshida[1]);
-                    RF_KICK(part, kick_weight * k_yoshida[0]);
-                    RF_DRIFT(part, slice_length * d_yoshida[0]);
-                ) // WITH_RF_RADIATION
-            }
-    } // integrator if
-
-    // END GENERATED INTEGRATION CODE
-
+    RUN_INTEGRATOR(
+        integrator, length, num_kicks, part,
+        RF_DRIFT, RF_KICK, WITH_RF_RADIATION
+    );
 
 
     #undef RF_KICK
@@ -391,13 +312,15 @@ void track_rf_particles(
         }
 
         // Compute the number of kicks for auto mode
-        if (num_kicks == 0) { // num_multipole_kicks = 0 means auto mode
+        if (num_kicks == 0) { // num_kicks = 0 means auto mode
             num_kicks = 1;
         }
 
-        double k0_drift, k1_drift, h_drift, ks_drift;
-        double k0_kick, k1_kick, h_kick;
-        double k0_h_correction, k1_h_correction;
+        xt_float_or_tpsa k0_drift=0., k1_drift=0., ks_drift=0.;
+        double h_drift;
+        xt_float_or_tpsa k0_kick=0., k1_kick=0.;
+        double h_kick;
+        xt_float_or_tpsa k0_h_correction=0., k1_h_correction=0.;
         int8_t kick_rot_frame;
         int8_t drift_model;
         configure_tracking_model(

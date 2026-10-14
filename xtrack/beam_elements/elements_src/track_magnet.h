@@ -10,6 +10,7 @@
 #include "xtrack/beam_elements/elements_src/track_magnet_drift.h"
 #include "xtrack/beam_elements/elements_src/track_magnet_edge.h"
 #include "xtrack/beam_elements/elements_src/track_magnet_configure.h"
+#include "xtrack/beam_elements/elements_src/integrator.h"
 
 #ifndef XTRACK_MULTIPOLE_NO_SYNRAD
 #include "xtrack/beam_elements/elements_src/track_magnet_radiation.h"
@@ -34,28 +35,28 @@ void track_magnet_body_single_particle(
     double inv_factorial_order_rel,
     GPUGLMEM const double* knl_rel,
     GPUGLMEM const double* ksl_rel,
-    double rel_ref_strength,
+    xt_float_or_tpsa_arg rel_ref_strength,
     const double factor_knl_ksl,
     const int64_t num_multipole_kicks,
     const int8_t kick_rot_frame,
     const int8_t drift_model,
     const int8_t integrator,
-    const double k0_drift,
-    const double k1_drift,
-    const double ks_drift,
+    xt_float_or_tpsa_arg k0_drift,
+    xt_float_or_tpsa_arg k1_drift,
+    xt_float_or_tpsa_arg ks_drift,
     const double h_drift,
-    const double k0_kick,
-    const double k1_kick,
+    xt_float_or_tpsa_arg k0_kick,
+    xt_float_or_tpsa_arg k1_kick,
     const double h_kick,
     const double hxl,
-    const double k0_h_correction,
-    const double k1_h_correction,
-    const double k2,
-    const double k3,
-    const double k0s,
-    const double k1s,
-    const double k2s,
-    const double k3s,
+    xt_float_or_tpsa_arg k0_h_correction,
+    xt_float_or_tpsa_arg k1_h_correction,
+    xt_float_or_tpsa_arg k2,
+    xt_float_or_tpsa_arg k3,
+    xt_float_or_tpsa_arg k0s,
+    xt_float_or_tpsa_arg k1s,
+    xt_float_or_tpsa_arg k2s,
+    xt_float_or_tpsa_arg k3s,
     const double dks_ds,
     const double x0_solenoid,
     const double y0_solenoid,
@@ -83,7 +84,7 @@ void track_magnet_body_single_particle(
             x0_solenoid, y0_solenoid, drift_model\
         )
 
-    #ifdef XTRACK_MULTIPOLE_NO_SYNRAD
+    #if defined(XTRACK_TPSA_TRACK) || defined(XTRACK_MULTIPOLE_NO_SYNRAD)
         #define WITH_RADIATION(ll, code)\
         {\
             code;\
@@ -178,103 +179,18 @@ void track_magnet_body_single_particle(
         }
     #endif
 
-    if (num_multipole_kicks == 0 && k0_kick == 0 && k1_kick == 0 && h_kick == 0) { //only drift
+    if (num_multipole_kicks == 0 && xt_float_or_tpsa_const_part(k0_kick) == 0
+            && xt_float_or_tpsa_const_part(k1_kick) == 0 && h_kick == 0) { //only drift
         WITH_RADIATION(length,
             MAGNET_DRIFT(part, length);
         )
     }
     else{
 
-        
-    // START GENERATED INTEGRATION CODE
-
-    if (integrator == 1){ // TEAPOT
-
-        WITH_RADIATION(length,
-            const double kick_weight = 1. / num_multipole_kicks;
-            double edge_drift_weight = 0.5;
-            double inside_drift_weight = 0;
-            if (num_multipole_kicks > 1) {
-                edge_drift_weight = 1. / (2 * (1 + num_multipole_kicks));
-                inside_drift_weight = (
-                    ((double) num_multipole_kicks)
-                        / ((double)(num_multipole_kicks*num_multipole_kicks) - 1));
-            }
-
-            MAGNET_DRIFT(part, edge_drift_weight*length);
-            for (int i_kick=0; i_kick<num_multipole_kicks - 1; i_kick++) {
-                MAGNET_KICK(part, kick_weight);
-                MAGNET_DRIFT(part, inside_drift_weight*length);
-            }
-            MAGNET_KICK(part, kick_weight);
-            MAGNET_DRIFT(part, edge_drift_weight*length);
-        )
-
-    }
-    else if (integrator==3){ // uniform
-
-        const double kick_weight = 1. / num_multipole_kicks;
-        const double drift_weight = kick_weight;
-
-        for (int i_kick=0; i_kick<num_multipole_kicks; i_kick++) {
-            WITH_RADIATION(drift_weight*length,
-                MAGNET_DRIFT(part, 0.5*drift_weight*length);
-                MAGNET_KICK(part, kick_weight);
-                MAGNET_DRIFT(part, 0.5*drift_weight*length);
-            )
-        }
-
-    }
-    else if (integrator==2){ // YOSHIDA 4
-
-        const int64_t n_kicks_yoshida = 7;
-        const int64_t num_slices = (num_multipole_kicks / n_kicks_yoshida
-                                + (num_multipole_kicks % n_kicks_yoshida != 0));
-
-        const double slice_length = length / (num_slices);
-        const double kick_weight = 1. / num_slices;
-        const double d_yoshida[] =
-                     // From MAD-NG
-                     {3.922568052387799819591407413100e-01,
-                      5.100434119184584780271052295575e-01,
-                      -4.710533854097565531482416645304e-01,
-                      6.875316825251809316199569366290e-02};
-                    //  {0x1.91abc4988937bp-2, 0x1.052468fb75c74p-1, // same in hex
-                    //  -0x1.e25bd194051b9p-2, 0x1.199cec1241558p-4 };
-                    //  {1/8.0, 1/8.0, 1/8.0, 1/8.0}; // Uniform, for debugging
-        const double k_yoshida[] =
-                     // From MAD-NG
-                     {7.845136104775599639182814826199e-01,
-                      2.355732133593569921359289764951e-01,
-                      -1.177679984178870098432412305556e+00,
-                      1.315186320683906284756403692882e+00};
-                    //  {0x1.91abc4988937bp-1, 0x1.e2743579895b4p-3, // same in hex
-                    //  -0x1.2d7c6f7933b93p+0, 0x1.50b00cfb7be3ep+0 };
-                    //  {1/7.0, 1/7.0, 1/7.0, 1/7.0}; // Uniform, for debugging
-
-            for (int ii = 0; ii < num_slices; ii++) {
-                WITH_RADIATION(slice_length,
-                    MAGNET_DRIFT(part, slice_length * d_yoshida[0]);
-                    MAGNET_KICK(part, kick_weight * k_yoshida[0]);
-                    MAGNET_DRIFT(part, slice_length * d_yoshida[1]);
-                    MAGNET_KICK(part, kick_weight * k_yoshida[1]);
-                    MAGNET_DRIFT(part, slice_length * d_yoshida[2]);
-                    MAGNET_KICK(part, kick_weight * k_yoshida[2]);
-                    MAGNET_DRIFT(part, slice_length * d_yoshida[3]);
-                    MAGNET_KICK(part, kick_weight * k_yoshida[3]);
-                    MAGNET_DRIFT(part, slice_length * d_yoshida[3]);
-                    MAGNET_KICK(part, kick_weight * k_yoshida[2]);
-                    MAGNET_DRIFT(part, slice_length * d_yoshida[2]);
-                    MAGNET_KICK(part, kick_weight * k_yoshida[1]);
-                    MAGNET_DRIFT(part, slice_length * d_yoshida[1]);
-                    MAGNET_KICK(part, kick_weight * k_yoshida[0]);
-                    MAGNET_DRIFT(part, slice_length * d_yoshida[0]);
-                ) // WITH_RADIATION
-            }
-    } // integrator if
-
-    // END GENERATED INTEGRATION CODE
-
+        RUN_INTEGRATOR(
+            integrator, length, num_multipole_kicks, part,
+            MAGNET_DRIFT, MAGNET_KICK, WITH_RADIATION
+        );
 
     }
 
@@ -298,7 +214,7 @@ void track_magnet_particles(
     double inv_factorial_order_rel,
     GPUGLMEM const double* knl_rel,
     GPUGLMEM const double* ksl_rel,
-    double rel_ref_strength,
+    xt_float_or_tpsa_arg rel_ref_strength,
     int64_t num_multipole_kicks,
     int8_t model,
     int8_t default_model,
@@ -310,15 +226,15 @@ void track_magnet_particles(
     double delta_taper,
     double h,
     double hxl,
-    double k0,
-    double k1,
-    double k2,
-    double k3,
-    double k0s,
-    double k1s,
-    double k2s,
-    double k3s,
-    double ks,
+    xt_float_or_tpsa k0,
+    xt_float_or_tpsa k1,
+    xt_float_or_tpsa k2,
+    xt_float_or_tpsa k3,
+    xt_float_or_tpsa k0s,
+    xt_float_or_tpsa k1s,
+    xt_float_or_tpsa k2s,
+    xt_float_or_tpsa k3s,
+    xt_float_or_tpsa ks,
     double dks_ds,
     double x0_solenoid,
     double y0_solenoid,
@@ -386,9 +302,10 @@ void track_magnet_particles(
         x0_mid -= rbend_shift;
 
         if (rbend_compensate_sagitta && fabs(angle) > 1e-10){
-            // shift by half the sagitta
-            double cos_rbha = cos(angle / 2.);
-            x0_mid += 0.5 / h * (1 - cos_rbha);
+            // Half the sagitta, via 1 - cos(u) = 2*sin(u/2)^2 to avoid the
+            // cancellation that the large 1/h would amplify.
+            double const sin_rbqa = sin(angle / 4.);
+            x0_mid += sin_rbqa * sin_rbqa / h;
         }
 
         x0_in = x0_mid;
@@ -397,8 +314,15 @@ void track_magnet_particles(
             double const px0_in = sin(theta_in);
             double const px0_mid = px0_in - h * length_straight / 2;
             double const sqrt_mid = sqrt(1 - px0_mid * px0_mid);
-            x0_in -= 1/h *(sqrt_mid - cos_theta_in);
-            x0_out += 1/h * (cos_theta_out - sqrt_mid);
+            // Rationalised forms of (1/h)*(sqrt_mid - cos_theta_in) and
+            // (1/h)*(cos_theta_out - sqrt_mid), so that h cancels exactly.
+            x0_in -= 0.5 * length_straight * (px0_in + px0_mid)
+                        / (sqrt_mid + cos_theta_in);
+            double const term_out_over_h =
+                2 * cos(angle / 2.) * sin(rbend_angle_diff / 2.) / h
+                + length_straight / 2.;
+            x0_out -= term_out_over_h * (px0_mid + sin_theta_out)
+                        / (cos_theta_out + sqrt_mid);
         }
         ;
         h = 0; // treat magnet as straight
@@ -448,12 +372,16 @@ void track_magnet_particles(
     #endif
 
     // Tapering
+#ifndef XTRACK_TPSA_TRACK
+    // delta_taper is a double param, get_delta is xt_float_or_tpsa. Tapering is a radiation-
+    // adjacent double feature, so it is disabled for the TPSA flavor.
     if (LocalParticle_check_track_flag(part0, XS_FLAG_SR_TAPER)){
         part0->ipart = 0;
         delta_taper = LocalParticle_get_delta(part0); // I can use part0 because
                                                       // there is only one particle
                                                       // when doing the tapering
     }
+#endif
 
     #ifndef XTRACK_MULTIPOLE_NO_SYNRAD
         if (radiation_flag){
@@ -483,13 +411,18 @@ void track_magnet_particles(
             END_PER_PARTICLE_BLOCK;
         }
 
-        double knorm[] = {k0, k1, k2, k3};
-        double kskew[] = {k0s, k1s, k2s, k3s};
+        double knorm[] = {xt_float_or_tpsa_const_part(k0), xt_float_or_tpsa_const_part(k1),
+                          xt_float_or_tpsa_const_part(k2), xt_float_or_tpsa_const_part(k3)};
+        double kskew[] = {xt_float_or_tpsa_const_part(k0s), xt_float_or_tpsa_const_part(k1s),
+                          xt_float_or_tpsa_const_part(k2s), xt_float_or_tpsa_const_part(k3s)};
 
         track_magnet_edge_particles(
             part0,
             edge_entry_model,
-            0, // is_exit
+            // Which face of the element this is. The edge parameters are
+            // swapped when backtracking, so this call site handles the exit
+            // face in that case, even though it is the first one traversed.
+            factor_backtrack_edge < 0,
             edge_entry_hgap,
             knorm,
             kskew,
@@ -500,16 +433,16 @@ void track_magnet_particles(
             order,
             knl_rel,
             ksl_rel,
-            factor_knl_ksl_edge * rel_ref_strength,
+            factor_knl_ksl_edge * xt_float_or_tpsa_const_part(rel_ref_strength),
             order_rel,
-            ks,
+            xt_float_or_tpsa_const_part(ks),
             x0_solenoid,
             y0_solenoid,
             length,
             edge_entry_angle,
             edge_entry_angle_fdown,
             edge_entry_fint,
-            factor_backtrack_edge
+            factor_backtrack_edge // -1 for backtracking, 1 for forward tracking
         );
     }
 
@@ -549,9 +482,11 @@ void track_magnet_particles(
             }
         }
 
-        double k0_drift=0, k1_drift=0, h_drift=0, ks_drift=0;
-        double k0_kick=0, k1_kick=0, h_kick=0;
-        double k0_h_correction=0, k1_h_correction=0;
+        xt_float_or_tpsa k0_drift=0., k1_drift=0., ks_drift=0.;
+        double h_drift=0;
+        xt_float_or_tpsa k0_kick=0., k1_kick=0.;
+        double h_kick=0;
+        xt_float_or_tpsa k0_h_correction=0., k1_h_correction=0.;
         int8_t kick_rot_frame=0;
         int8_t drift_model=0;
         configure_tracking_model(
@@ -606,13 +541,16 @@ void track_magnet_particles(
     }
 
     if (edge_exit_active){
-        double knorm[] = {k0, k1, k2, k3};
-        double kskew[] = {k0s, k1s, k2s, k3s};
+        double knorm[] = {xt_float_or_tpsa_const_part(k0), xt_float_or_tpsa_const_part(k1),
+                          xt_float_or_tpsa_const_part(k2), xt_float_or_tpsa_const_part(k3)};
+        double kskew[] = {xt_float_or_tpsa_const_part(k0s), xt_float_or_tpsa_const_part(k1s),
+                          xt_float_or_tpsa_const_part(k2s), xt_float_or_tpsa_const_part(k3s)};
 
         track_magnet_edge_particles(
             part0,
             edge_exit_model,
-            1, // is_exit
+            // As above: when backtracking the swap makes this the entry face.
+            factor_backtrack_edge >= 0,
             edge_exit_hgap,
             knorm,
             kskew,
@@ -623,16 +561,16 @@ void track_magnet_particles(
             order,
             knl_rel,
             ksl_rel,
-            factor_knl_ksl_edge * rel_ref_strength,
+            factor_knl_ksl_edge * xt_float_or_tpsa_const_part(rel_ref_strength),
             order_rel,
-            ks,
+            xt_float_or_tpsa_const_part(ks),
             x0_solenoid,
             y0_solenoid,
             length,
             edge_exit_angle,
             edge_exit_angle_fdown,
             edge_exit_fint,
-            factor_backtrack_edge
+            factor_backtrack_edge // -1 for backtracking, 1 for forward tracking
         );
 
         if (rbend_model == 2){

@@ -2,7 +2,6 @@ import xtrack as xt
 import xobjects as xo
 import numpy as np
 import matplotlib.pyplot as plt
-from xtrack.aperture.aperture import Aperture
 from xtrack.aperture.transform import arc_matrix, poly2d_to_homogeneous, transform_matrix
 
 
@@ -37,7 +36,7 @@ env = xt.load(string=TOY_RING_SEQUENCE, format='madx', install_limits=False)
 env.set_particle_ref('proton', p0c=1.2e9)
 ring = env['ring']
 
-aper = Aperture.from_line_with_associated_apertures(ring)
+aper = ring.aperture.from_associated_apertures()
 
 sv = ring.survey()
 
@@ -66,21 +65,21 @@ def matrix_from_survey_point(sv_row):
     matrix = np.identity(4)
     matrix[:3, 0] = sv_row.ex
     matrix[:3, 1] = sv_row.ey
-    matrix[:3, 2] = sv_row.ez
+    matrix[:3, 2] = sv_row.es
     matrix[:3, 3] = np.hstack([sv_row.X, sv_row.Y, sv_row.Z])
     return matrix
 
 
 seen_installed_profiles = False
-for pipe_pos in aper._model.pipe_positions:
-    aper_pipe = aper._model.pipe_for_position(pipe_pos)
+for pipe_pos in aper.pipe_positions:
+    aper_pipe = pipe_pos.pipe
     sv_ref = sv.rows[pipe_pos.survey_index]
 
     sv_ref_matrix = matrix_from_survey_point(sv_ref)
-    pipe_matrix = pipe_pos.transformation.to_nparray()
+    pipe_matrix = pipe_pos.transformation
 
-    for profile_pos in aper_pipe.positions:
-        profile = aper._model.profile_for_position(profile_pos)
+    for profile_pos in aper_pipe:
+        profile = profile_pos.profile
 
         num_points = 100
         poly = profile.build_polygon(len_points=num_points)
@@ -121,14 +120,14 @@ def poses_at_s(line, s_positions):
         row = survey_sliced.rows[sv_idx]
         poses[idx, :3, 0] = row.ex
         poses[idx, :3, 1] = row.ey
-        poses[idx, :3, 2] = row.ez
+        poses[idx, :3, 2] = row.es
         poses[idx, :, 3] = np.hstack([row.X, row.Y, row.Z, 1])
 
     return poses
 
 
 s_for_cuts = np.linspace(0, ring.get_length(), 300, endpoint=False)
-profiles_table = aper.cross_sections_at_s(s_for_cuts)
+profiles_table = aper.get_cross_sections_at_s(s_for_cuts)
 profiles = profiles_table.cross_section
 poses = profiles_table.pose
 

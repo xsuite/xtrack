@@ -2,7 +2,6 @@ import matplotlib.pyplot as plt
 from pyoptics import BeamEnvelope
 import xobjects as xo
 import xtrack as xt
-from xtrack.aperture import Aperture
 import numpy as np
 
 context = xo.ContextCpu(omp_num_threads="auto")
@@ -12,9 +11,10 @@ lhc_with_metadata = xt.load("./lhc_aperture.json")
 b1 = lhc_with_metadata["b1"]
 lhc_length = b1.get_length()
 
-aperture_model = Aperture.from_line_with_madx_metadata(b1, num_profile_points=100, include_offsets=True, context=context)
-with open('lhc_aperture_model.json', 'w') as f:
-    xt.json.dump(aperture_model._model.to_dict(), f)
+aperture_model = b1.aperture.from_madx_metadata(
+    num_profile_points=100, include_offsets=True, context=context,
+)
+lhc_with_metadata.aperture.to_json('lhc_aperture_model.json')
 
 emittance_norm = 2.5e-6
 apbbeat = 1.1
@@ -27,8 +27,8 @@ SPECIF = 7
 
 aperture_model.halo_params.update(
     {
-        "emitx_norm": emittance_norm,
-        "emity_norm": emittance_norm,
+        "nemitt_x": emittance_norm,
+        "nemitt_y": emittance_norm,
         "delta_rms": dPmax,
         "tol_co": COmax,
         "tol_disp": DParcx,  # MADX has different settings for x/y

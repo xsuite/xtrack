@@ -27,7 +27,7 @@ class IntegralOptimization:
             Name of the element at which the integral starts.
         end: str
             Name of the element at which the integral ends.
-        vary: list xt.Vary
+        vary: list of xt.Vary
             List of knobs to be varied for the correction, together with their
             step and, optionally, limits.
         target_quantities: dict

@@ -54,8 +54,9 @@ class ElementSlicingScheme(abc.ABC):
             element_length: float = None,
     ) -> Iterator[Tuple[float, bool]]:
         """
-        Give an iterator for weights of slices and, assuming the first slice is
-        a drift, followed by an element slice, and so on.
+        Give an iterator over the weights of the slices, assuming the first
+        slice is a drift, followed by an element slice, and so on.
+
         Returns
         -------
         Iterator[Tuple[float, bool]]
@@ -117,12 +118,12 @@ class Teapot(ElementSlicingScheme):
 class Custom(ElementSlicingScheme):
     """The custom slicing scheme slices the element at the fixed s coordinates.
 
-    Arguments
-    ---------
+    Parameters
+    ----------
     at_s
         The s values at which the elements should be sliced. The beginning of
         the element is assumed to be at zero.
-    mode:
+    mode
         Thick or thin slicing.
     """
     def __init__(
@@ -132,7 +133,7 @@ class Custom(ElementSlicingScheme):
     ):
         slicing_order = len(at_s)
         if mode == 'thick':
-            # In thick number of slices is one more than cuts
+            # In thick mode the number of slices is one more than the number of cuts
             slicing_order = len(at_s) + 1
 
         super().__init__(slicing_order, mode)
@@ -231,7 +232,7 @@ class Slicer:
                                     ] + slicing_strategies
         self._has_expressions = line.vars is not None
 
-    def slice_in_place(self, _edge_markers=True):
+    def slice_in_place(self, _edge_markers=True, with_progress=True):
 
         self._line._frozen_check()
 
@@ -241,7 +242,10 @@ class Slicer:
         assert tt.name[-1] == '_end_point'
         tt = tt.rows[:-1]
         slices = {}
-        for ii, nn in enumerate(progress(tt.name, desc='Slicing line')):
+        element_names_iter = tt.name
+        if with_progress:
+            element_names_iter = progress(tt.name, desc='Slicing line')
+        for ii, nn in enumerate(element_names_iter):
             env_name = tt.env_name[ii]
             element = self._line.element_dict[env_name]
 
@@ -296,18 +300,26 @@ class Slicer:
             element = element.resolve(self._line)
         if (hasattr(element, 'name_associated_aperture')
             and element.name_associated_aperture is not None):
+            def _make_aperture_replica(index):
+                aper_name = f'{name}_aper..{index}'
+                self._line._element_dict[aper_name] = xt.Replica(
+                    parent_name=element.name_associated_aperture)
+                return aper_name
+
             new_slices_to_add = []
             aper_index = 0
             for nn in slices_to_add:
                 ee = self._line._element_dict[nn]
                 if (type(ee).__name__.startswith('ThinSlice')
-                    or type(ee).__name__.startswith('ThickSlice')):
-                    aper_name = f'{name}_aper..{aper_index}'
-                    self._line._element_dict[aper_name] = xt.Replica(
-                        parent_name=element.name_associated_aperture)
-                    new_slices_to_add += [aper_name]
+                    or type(ee).__name__.startswith('ThickSlice')
+                    or (_edge_markers and nn == exit_marker)):
+                    new_slices_to_add += [_make_aperture_replica(aper_index)]
                     aper_index += 1
                 new_slices_to_add += [nn]
+            if not _edge_markers:
+                # With edge markers, the closing aperture is added before the
+                # exit marker in the loop above. Without them, append it here.
+                new_slices_to_add += [_make_aperture_replica(aper_index)]
             slices_to_add = new_slices_to_add
 
         return slices_to_add
@@ -370,7 +382,7 @@ class Slicer:
             slices_to_append.append(nn)
 
         if not hasattr(element, 'length'):
-            # Slicing a thick slice of a another element
+            # Slicing a thick slice of another element
             assert hasattr(element, '_parent')
             assert element.isthick
             elem_length = element._parent.length * element.weight
@@ -378,15 +390,21 @@ class Slicer:
             slice_parent_name = element.parent_name
             slice_parent = element._parent
             is_drift_slice = isinstance(element, _DriftSliceElementBase)
+            slice_offset_start = element.slice_offset
         else:
             elem_length = element.length
             elem_weight = 1.
             slice_parent_name = parent_name
             slice_parent = element
             is_drift_slice = False
+            slice_offset_start = 0.
 
         if chosen_slicing.mode == 'thin' or is_drift_slice:
-            slice_offset = 0
+            if getattr(slice_parent, '_drift_slice_class', None) is None:
+                raise NotImplementedError(
+                    f"{type(slice_parent).__name__} only supports thick slicing; "
+                    "use mode='thick'")
+            slice_offset = slice_offset_start
             for weight, is_drift in chosen_slicing.iter_weights(elem_length):
                 prename = "" if is_drift_slice else "drift_"
                 if is_drift:
@@ -405,7 +423,7 @@ class Slicer:
                         ee.parent_name = slice_parent_name
                         self._line._element_dict[nn] = ee
                     slices_to_append.append(nn)
-                    slice_offset += elem_length * weight * elem_weight
+                    slice_offset += elem_length * weight
                 else:
                     if is_drift_slice:
                         continue
@@ -422,7 +440,7 @@ class Slicer:
                         self._line._element_dict[nn] = ee
                         slices_to_append.append(nn)
         elif chosen_slicing.mode == 'thick':
-            slice_offset = 0
+            slice_offset = slice_offset_start
             for weight, is_drift in chosen_slicing.iter_weights(elem_length):
                 if isinstance(element, xt.Drift) and name.startswith('||drift_'):
                     # autogenerated drift (we do not use slices, just make new drifts)
@@ -439,7 +457,7 @@ class Slicer:
                     ee.parent_name = slice_parent_name
                     self._line._element_dict[nn] = ee
                 slices_to_append.append(nn)
-                slice_offset += elem_length * weight * elem_weight
+                slice_offset += elem_length * weight
         else:
             raise ValueError(f'Unknown slicing mode: {chosen_slicing.mode}')
 
@@ -452,7 +470,7 @@ class Slicer:
             ee = element._exit_slice_class(
                     _parent=element, _buffer=element._buffer)
             ee.parent_name = parent_name
-            ee.slice_offset = elem_length  # Entry slice at the end
+            ee.slice_offset = elem_length  # Exit slice at the end
             self._line._element_dict[nn] = ee
             slices_to_append.append(nn)
 

@@ -31,9 +31,9 @@ def transform_matrix(
         Shifts in x, y, and z directions
     rot_y_rad : float
         Rotation around the y-axis (positive s to x) in radians (MAD-X theta)
-    rot_x_rad
+    rot_x_rad : float
         Rotation around the x-axis (positive s to y) in radians (MAD-X phi)
-    rot_z_rad
+    rot_z_rad : float
         Rotation around the z-axis (positive y to x) in radians (MAD-X psi)
     """
     s_phi, c_phi = np.sin(rot_x_rad), np.cos(rot_x_rad)
@@ -72,7 +72,7 @@ def matrix_to_transform(matrix: np.ndarray) -> Transform:
 
         R = Ry(rot_y_rad) @ Rx(rot_x_rad) @ Rz(rot_z_rad)
 
-    and translation taken from the last column.
+    and the translation is taken from the last column.
 
     Parameters
     ----------

@@ -8,38 +8,40 @@
 #include "xtrack/headers/track.h"
 
 
+// Tracks the non-linear dipole edge, or its inverse when `backtrack` is set.
+// The map is a y-rotation, a dipole fringe and a wedge; the exit face applies
+// them in the reverse order (and with -k in the fringe), and backtracking
+// reverses the order again and inverts each of the three maps.
 GPUFUN
-void DipoleEdgeNonLinear_single_particle(LocalParticle* part,
+void DipoleEdgeNonLinear_track_single_particle(LocalParticle* part,
             double const k, double const e1, double const fint, double const hgap,
-            int64_t const side
+            int64_t const side, int64_t const backtrack
 ){
-
-    double sin_, cos_, tan_;
-    if (fabs(e1) < 10e-10) {
-        sin_ = -999.0; cos_ = -999.0; tan_ = -999.0;
-    }
-    else{
-        sin_ = sin(e1); cos_ = cos(e1); tan_ = tan(e1);
+    if (side != 0 && side != 1) {
+        return;
     }
 
-    if (side == 0){ // entry
-        if (sin_ > -99.){
-            YRotation_single_particle(part, -sin_, cos_, -tan_);
-        }
-        DipoleFringe_single_particle(part, fint, hgap, k);
-        if (sin_ > -99.){
-            Wedge_single_particle(part, -e1, k);
-        }
-    }
-    else if (side == 1){ // exit
-        if (sin_ > -99.){
-            Wedge_single_particle(part, -e1, k);
-        }
-        DipoleFringe_single_particle(part, fint, hgap, -k);
-        if (sin_ > -99.){
-            YRotation_single_particle(part, -sin_, cos_, -tan_);
-        }
+    const uint8_t should_rotate = (fabs(e1) >= 10e-10);
+    // Inverting a y-rotation or a wedge amounts to flipping the angle sign.
+    const double sign = backtrack ? 1.0 : -1.0;
+    const double sin_ = sin(e1), cos_ = cos(e1), tan_ = tan(e1);
+    const double k_fringe = (side == 0) ? k : -k;
+    const uint8_t wedge_first = ((side == 1) != (backtrack != 0));
 
+    if (should_rotate && wedge_first){
+        Wedge_single_particle(part, sign * e1, k);
+    }
+    else if (should_rotate){
+        YRotation_single_particle(part, sign * sin_, cos_, sign * tan_);
+    }
+
+    DipoleFringe_track_single_particle(part, fint, hgap, k_fringe, backtrack);
+
+    if (should_rotate && wedge_first){
+        YRotation_single_particle(part, sign * sin_, cos_, sign * tan_);
+    }
+    else if (should_rotate){
+        Wedge_single_particle(part, sign * e1, k);
     }
 }
 

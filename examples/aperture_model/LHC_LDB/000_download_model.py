@@ -3,8 +3,10 @@ from pathlib import Path
 import requests
 
 
-lhc = layout.Machine.from_ldb("LHC", "LS3")
-lhc.to_pickle("LHC.pickle")
+aperture_file = Path(__file__).parent / 'LHC.pickle'
+if not aperture_file.exists():
+    lhc = layout.Machine.from_ldb("LHC", "LS3")
+    lhc.to_pickle(str(aperture_file))
 
 lattice_file = Path(__file__).parent / 'lhc.json'
 if not lattice_file.exists():

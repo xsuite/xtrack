@@ -2,6 +2,13 @@ import numpy as np
 import xobjects as xo
 import xtrack as xt
 
+
+def _trapezoid(nplike_lib, y, x=None, axis=-1):
+    if hasattr(nplike_lib, 'trapezoid'):  # numpy >= 2.0
+        return nplike_lib.trapezoid(y, x=x, axis=axis)
+    return nplike_lib.trapz(y, x=x, axis=axis)
+
+
 class LinearRescale():
 
     def __init__(self, knob_name, v0, dv):
@@ -154,10 +161,10 @@ class Footprint():
             method={True: '4d', False: '6d'}[freeze_longitudinal]
             )
 
-        print('Tracking particles for footprint...')
+        xt._print('Tracking particles for footprint...')
         line.track(particles, num_turns=self.n_turns, turn_by_turn_monitor=True,
                    freeze_longitudinal=freeze_longitudinal)
-        print('Done tracking.')
+        xt._print('Done tracking.')
 
         ctx2np = line._context.nparray_from_context_array
         assert np.all(ctx2np(particles.state == 1)), (
@@ -223,7 +230,9 @@ class Footprint():
         np2ctx = _context.nparray_to_context_array
 
         integrand = -J1_2d*nplike_lib.exp(-J1_2d-J2_2d) / (coherent_tune - q + epsilon*1j)
-        tune_shift = ctx2np(-1.0/nplike_lib.trapz(J2_grid,nplike_lib.trapz(J1_grid,integrand,1),0))
+        tune_shift = ctx2np(-1.0 / _trapezoid(
+            nplike_lib, _trapezoid(nplike_lib, integrand, x=J1_grid, axis=1),
+            x=J2_grid, axis=0))
         return tune_shift
 
     def _get_tune_shift_adaptive_epsilon(self,_context,J1_2d,J1_grid,J2_2d,J2_grid,q,coherent_tune,
@@ -245,7 +254,7 @@ class Footprint():
     def get_stability_diagram(
         self,
         _context=None,
-        n_points_stabiliy_diagram=100,
+        n_points_stability_diagram=100,
         epsilon0=1e-5,
         epsilon_factor=0.1,
         epsilon_rel_tol=0.1,
@@ -261,20 +270,20 @@ class Footprint():
         Parameters
         ----------
         _context:
-        n_points_stabiliy_diagram: scalar(int)
+        n_points_stability_diagram: scalar(int)
             Number of times that the dispersion integral will be solved,
             each yielding a point on the output stability diagram
         epsilon0: scalar(float)
             vanishing imaginary part of the tune shift
         epsilon_factor: scalar(float)
             if larger than 0, an adaptive algorithm will be used to adjust
-            epsilon between epsilon0 and epsilon_min using relative varitions
+            epsilon between epsilon0 and epsilon_min using relative variations
             in the order of the epsilon_factor
         epsilon_rel_tol: scalar(float)
             Stop the iterative algorithm if the relative change of
-            epilson is smaller than epsilon_rel_tol
+            epsilon is smaller than epsilon_rel_tol
         max_iter: scalar(int)
-            Stop the iterative algorithm if the the number of iterations
+            Stop the iterative algorithm if the number of iterations
             reached max_iter
         min_epsilon: scalar(float)
             Stop the iterative algorithm if the epsilon is smaller than
@@ -323,14 +332,14 @@ class Footprint():
             qy = interpolator_y((Jy_2d, Jx_2d))
 
         coherent_tunes_x = np.linspace(
-            np.min(self.qx), np.max(self.qx), n_points_stabiliy_diagram
+            np.min(self.qx), np.max(self.qx), n_points_stability_diagram
         )
         coherent_tunes_y = np.linspace(
-            np.min(self.qy), np.max(self.qy), n_points_stabiliy_diagram
+            np.min(self.qy), np.max(self.qy), n_points_stability_diagram
         )
         tune_shifts_x = np.zeros_like(coherent_tunes_x, dtype=complex)
         tune_shifts_y = np.zeros_like(coherent_tunes_y, dtype=complex)
-        for i in range(n_points_stabiliy_diagram):
+        for i in range(n_points_stability_diagram):
             tune_shifts_x[i] = self._get_tune_shift_adaptive_epsilon(
                 _context=_context,
                 J1_2d=Jx_2d,

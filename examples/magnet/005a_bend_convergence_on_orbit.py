@@ -1,8 +1,9 @@
-import xtrack as xt
 import xobjects as xo
 
+import xtrack as xt
+
 bb = xt.Bend(k0=0.001, h=0.001, length=2)
-bb.integrator = 'yoshida4'
+bb.integrator = 'yoshida-6'
 bb.num_multipole_kicks = 20
 
 p0 = xt.Particles(x=0.0, y=0.0, delta=[0, 1e-3])
@@ -61,15 +62,3 @@ xo.assert_allclose(p_bkb.delta, p_rkr.delta, rtol=0, atol=1e-14)
 xo.assert_allclose(p_bkb.delta, p_mkm.delta, rtol=0, atol=1e-14)
 xo.assert_allclose(p_bkb.delta, p_dkd1.delta, rtol=0, atol=1e-14)
 xo.assert_allclose(p_bkb.delta, p_dkd2.delta, rtol=0, atol=1e-14)
-
-
-
-
-
-
-
-
-
-
-
-

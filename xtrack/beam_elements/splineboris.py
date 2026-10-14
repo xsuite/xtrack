@@ -11,7 +11,7 @@ import xobjects as xo
 
 from ..base_element import BeamElement
 from ..random import RandomUniformAccurate, RandomExponential
-from .elements import SynchrotronRadiationRecord
+from ._common import SynchrotronRadiationRecord
 
 _POLY_ORDER = 4
 _NUM_COEFFS = _POLY_ORDER + 1
@@ -176,7 +176,7 @@ def _sanitize_init_tuple(values, name):
         out.append(_sanitize_init_tuple_elements(item, f"{name}[{order}]"))
     return tuple(out)
 
-# This function checks if the input:
+# This function checks the input:
 # - Finds the maximum multipole order
 # - Validates that the maximum multipole order is not greater than the maximum supported (7)
 # - It also checks if the number of elements in each Spline4 is _NUM_COEFFS (5)

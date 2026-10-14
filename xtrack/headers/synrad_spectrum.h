@@ -82,7 +82,7 @@ double SynRad(double x)
   // x :    energy normalized to the critical energy
   // returns function value _SynRadC   photon spectrum dn/dx
   // (integral of modified 1/3 order Bessel function)
-  // principal: Chebyshev series see H.H.Umstaetter CERN/PS/SM/81-13 10-3-1981
+  // principle: Chebyshev series see H.H.Umstaetter CERN/PS/SM/81-13 10-3-1981
   // see also my LEP Note 632 of 12/1990
   // converted to C++, H.Burkhardt 21-4-1996    */
   double synrad = 0.;
@@ -133,7 +133,7 @@ double SynRad(double x)
       y=pow(x,2./3.);
       synrad=(p/y-q*y-1.)*1.81379936423421784215530788143;
 
-    } else {// 6 < x < 174
+    } else {// 6 <= x < 800
 
       double a,b,z;
       z=20./x-2.;

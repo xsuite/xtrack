@@ -57,7 +57,7 @@ for ipn in [1, 5]:
     opt_ir = opt_ir_b1.opt.clone(add_targets=opt_ir_b2.opt.targets)
 
     # impose the two correctors are powered equally
-    # (they are not independed because the phase advance is pi and leaving them free
+    # (they are not independent because the phase advance is pi and leaving them free
     # leads to an ill-conditioned optimization problem)
     env[f'kqsx3.l{ipn}_from_on_corr_k1s_ir{ipn}_local'] = f'kqsx3.r{ipn}_from_on_corr_k1s_ir{ipn}_local'
     opt_ir.disable(vary_name=f'kqsx3.l{ipn}_from_on_corr_k1s_ir{ipn}_local')

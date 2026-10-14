@@ -50,16 +50,16 @@ def _shape_projection_extents(shape, direction: np.ndarray) -> tuple[float, floa
         support = float(shape.radius)
 
     elif isinstance(shape, Ellipse):
-        support = float(np.hypot(shape.half_major * dx, shape.half_minor * dy))
+        support = float(np.hypot(shape.a * dx, shape.b * dy))
 
     elif isinstance(shape, Rectangle):
-        support = float(shape.half_width * abs(dx) + shape.half_height * abs(dy))
+        support = float(shape.max_x * abs(dx) + shape.max_y * abs(dy))
 
     elif isinstance(shape, Racetrack):
-        width = float(shape.half_width)
-        height = float(shape.half_height)
-        major = float(shape.half_major)
-        minor = float(shape.half_minor)
+        width = float(shape.max_x)
+        height = float(shape.max_y)
+        major = float(shape.a)
+        minor = float(shape.b)
         if major <= 0 or minor <= 0:
             support = width * abs(dx) + height * abs(dy)
         else:
@@ -72,9 +72,9 @@ def _shape_projection_extents(shape, direction: np.ndarray) -> tuple[float, floa
             )
 
     elif isinstance(shape, Octagon):
-        width = float(shape.half_width)
-        height = float(shape.half_height)
-        diagonal = float(shape.half_diagonal)
+        width = float(shape.max_x)
+        height = float(shape.max_y)
+        diagonal = float(shape.max_diagonal)
         corner_x = np.sqrt(2.0) * diagonal - height
         corner_y = np.sqrt(2.0) * diagonal - width
         if corner_x < -_GEOMETRY_TOL or corner_y < -_GEOMETRY_TOL:
@@ -118,10 +118,10 @@ def _shape_projection_extents(shape, direction: np.ndarray) -> tuple[float, floa
 
 
 def _rectellipse_boundary_candidates(shape: RectEllipse, direction: np.ndarray) -> np.ndarray:
-    width = float(shape.half_width)
-    height = float(shape.half_height)
-    major = float(shape.half_major)
-    minor = float(shape.half_minor)
+    width = float(shape.max_x)
+    height = float(shape.max_y)
+    major = float(shape.a)
+    minor = float(shape.b)
     candidates = []
 
     def add(x, y):
@@ -661,6 +661,64 @@ def _enable_pipe_annotations(ax, patches) -> None:
     ax.figure.canvas.mpl_connect('pick_event', on_pick)
 
 
+def _floor_survey_samples(aperture) -> np.ndarray:
+    """Sample boundaries, aperture transitions, and angled element bodies."""
+    survey_s = np.asarray(aperture._survey_data.s, dtype=float)
+    survey_angle = np.asarray(aperture._survey_data.angle, dtype=float)
+    line_length = float(aperture.line.get_length())
+    offset = 2 * max(aperture.s_tol, 1e-6)
+    samples = [survey_s, aperture.get_s_around_transitions(tol=offset)]
+
+    for ii in np.flatnonzero(np.isfinite(survey_angle[:-1]) & (survey_angle[:-1] != 0)):
+        s_start, s_end = survey_s[ii:ii + 2]
+        if s_end <= s_start:
+            continue
+
+        num_points = int(np.ceil(abs(survey_angle[ii]) / np.deg2rad(10)))
+        samples.append(np.linspace(s_start, s_end, num_points + 2)[1:-1])
+        samples.append(np.array([s_end + offset]))
+        if s_end - s_start > 2 * offset:
+            samples.append(np.array([s_start + offset, s_end - offset]))
+
+    samples = np.concatenate(samples)
+    return np.unique(np.clip(samples[np.isfinite(samples)], 0, line_length))
+
+
+def _plot_floor_survey(ax, aperture, plot_shift, s_range, origin_s) -> None:
+    """Draw the resampled survey in the plot frame and requested s window."""
+    line_length = float(aperture.line.get_length())
+    samples = _floor_survey_samples(aperture)
+    if s_range is None or (
+        aperture.is_ring and s_range[1] - s_range[0] >= line_length - aperture.s_tol
+    ):
+        range_segments = [(0.0, line_length)]
+    else:
+        range_segments = aperture.get_wrapped_s_interval(
+            origin_s + s_range[0], origin_s + s_range[1]
+        )
+
+    survey_label = 'survey'
+    for range_start, range_end in range_segments:
+        range_start = max(0.0, range_start)
+        range_end = min(line_length, range_end)
+        if range_start > range_end:
+            continue
+
+        s_plot = np.unique(np.concatenate([
+            samples[(samples >= range_start) & (samples <= range_end)],
+            [range_start, range_end],
+        ]))
+        poses = aperture._survey_data.resample(s_plot).pose.to_nparray()
+        poses = plot_shift @ poses
+        ax.plot(
+            poses[:, 2, 3], poses[:, 0, 3], color='black', alpha=0.5,
+            lw=1.5, label=survey_label,
+        )
+        survey_label = None
+
+    ax.legend()
+
+
 def plot_floor_projection(
     aperture,
     *,
@@ -669,12 +727,13 @@ def plot_floor_projection(
     origin: str | float = None,
     s_range: tuple[float, float] = None,
     aspect='auto',
+    show_survey=True,
 ):
     """Plot analytically projected installed pipe sections onto the floor."""
     if max_curve_angle_rad <= 0:
         raise ValueError('`max_curve_angle_rad` must be positive.')
     if s_range is not None and s_range[0] > s_range[1]:
-        raise ValueError('The `origin` pipe position is outside of the `s_range` specified.')
+        raise ValueError('`s_range[0]` must be less than or equal to `s_range[1]`.')
 
     from matplotlib import pyplot as plt
     from matplotlib.patches import Polygon as PolygonPatch
@@ -738,6 +797,9 @@ def plot_floor_projection(
             patches.append(patch)
 
         ax.plot(projection.axis[:, 0], projection.axis[:, 1], color=colour, linestyle='--')
+
+    if show_survey:
+        _plot_floor_survey(ax, aperture, plot_shift, s_range, origin_s)
 
     _enable_pipe_annotations(ax, patches)
     ax.set_xlabel('Z [m]')

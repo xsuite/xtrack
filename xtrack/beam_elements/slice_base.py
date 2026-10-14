@@ -2,7 +2,7 @@ import xobjects as xo
 
 from ..base_element import BeamElement
 from ..random import RandomUniformAccurate, RandomExponential
-from .elements import SynchrotronRadiationRecord
+from ._common import SynchrotronRadiationRecord
 
 ID_RADIATION_FROM_PARENT = 10
 

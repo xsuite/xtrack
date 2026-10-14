@@ -63,6 +63,24 @@ void get_values_at_offsets_int32(
     END_VECTORIZE;
 }
 
+GPUKERN
+void get_values_at_offsets_int8(
+    MultiSetterData data,
+    GPUGLMEM int8_t* buffer,
+    GPUGLMEM int8_t* out){
+
+    int64_t num_offsets = MultiSetterData_len_offsets(data);
+
+    VECTORIZE_OVER(ii, num_offsets);
+        int64_t offs = MultiSetterData_get_offsets(data, ii);
+
+        if (offs>=0){
+            int8_t val = *((GPUGLMEM int8_t*)(buffer + offs));
+            out[ii] = val;
+        }
+    END_VECTORIZE;
+}
+
 
 GPUKERN
 void set_values_at_offsets_float64(

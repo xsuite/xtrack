@@ -124,10 +124,12 @@ for td in to_do:
                         ll = line
                         ll = ll.split(generated_data_class + '_get_')[0]
                         ll += '0,'  # Disable edges by setting to 0
-                    elif '1' in line or '0' in line or '3' in line:
-                        ll = line
-                        ll = ll.split('1')[0]
-                        ll += '0,'
+                    elif '1' in line:
+                        ll = line.split('1')[0] + '0,'
+                    elif '0' in line:
+                        ll = line.split('0')[0] + '0,'
+                    elif '3' in line:
+                        ll = line.split('3')[0] + '0,'
                     else:
                         raise ValueError(f"Unexpected line format: {line}")
                     if 'edge_exit_hgap' in ll:

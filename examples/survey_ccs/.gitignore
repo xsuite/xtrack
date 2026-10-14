@@ -1,0 +1,4 @@
+# Local survey inputs, exports and comparison tables.
+*.csv
+!/Bumps_sp_report.csv
+*.tfs

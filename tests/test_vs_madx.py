@@ -265,7 +265,7 @@ def test_twiss_and_survey(
                                 atol=3e-4, rtol=0)
 
                 if is_part:
-                    # I chck the phase advance w.r.t. ip1
+                    # I check the phase advance w.r.t. ip1
                     mux0_mad = twmad['mux'][list(twmad.name).index(ref_element_for_mu + ':1')]
                     muy0_mad = twmad['muy'][list(twmad.name).index(ref_element_for_mu + ':1')]
                     mux0_tst = twtst['mux'][list(twtst.name).index(ref_element_for_mu)]

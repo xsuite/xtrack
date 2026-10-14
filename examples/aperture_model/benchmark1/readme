@@ -1,3 +1,6 @@
 1. First need to `git clone https://github.com/lhcopt/hllhc15.git slhc` or make a link to a pre-existing `slhc`
-2. Compute aperture data with `madx job_compute_aperture.madx`
-3. Build Xsuite model with `python job_make_xsuite_json.py`
+3. `ln -s slhc lhc`
+3. Compute aperture data with:
+    - `madx job_compute_aperture.madx` or
+    - `python -c "from cpymad.madx import Madx; m = Madx(); m.call('job_compute_aperture.madx')"`
+4. Build Xsuite model with `python job_make_xsuite_json.py`

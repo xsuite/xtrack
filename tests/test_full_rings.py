@@ -15,7 +15,7 @@ import xobjects as xo
 import xpart as xp
 import xtrack as xt
 from xobjects.test_helpers import (
-    allow_no_prebuilt_kernels, for_all_test_contexts)
+    allow_kernel_compilation, for_all_test_contexts)
 
 test_data_folder = pathlib.Path(
     __file__).parent.joinpath('../test_data').absolute()
@@ -64,7 +64,8 @@ def test_full_rings(
     ##################
     print('Build tracker...')
     line.build_tracker(_context=test_context)
-    line.reset_s_at_end_turn = False
+    # Compare in the periodic longitudinal frame used by ducktrack's RF model.
+    line.reset_s_at_end_turn = True
 
     assert line._buffer.context is test_context
     assert line[23]._buffer.context is test_context
@@ -93,6 +94,7 @@ def test_full_rings(
     dtk_part = dtk.TestParticles.from_dict(input_data['particle']).copy()
     for _ in range(n_turns):
         testline.track(dtk_part)
+        dtk_part.s *= 0.
 
     for vv in vars_to_check:
         dtk_value = getattr(dtk_part, vv)[0]
@@ -152,7 +154,7 @@ def test_full_rings(
                           rtol=0, atol=5e-11)
 
 @for_all_test_contexts
-@allow_no_prebuilt_kernels
+@allow_kernel_compilation
 def test_freeze_vars(test_context):
 
 

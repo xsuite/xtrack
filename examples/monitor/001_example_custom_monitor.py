@@ -30,5 +30,5 @@ line.track(particles, num_turns=num_turns,
 # line.record_last_track.x contains the x coordinate for all particles
 # and the selected turns, e.g. line.record_last_track.x[3, 5] gives the
 # x coordinates for the particle having particle_id = 3 and for the fifth
-# recorded turn. The turn indeces that are recorded can be inspected in
+# recorded turn. The turn indices that are recorded can be inspected in
 # line.record_last_track.at_turn

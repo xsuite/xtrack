@@ -5,12 +5,15 @@ Author: Rahul Singh, Cristopher Cortes, Philipp Niedermayer
 Date: 2023-06-10
 """
 
+from warnings import warn
+
 import numpy as np
 
 import xobjects as xo
 import xtrack as xt
 
 from ..base_element import BeamElement
+from ..general import DEPRECATION_INFO_PREP_1_0
 from ..beam_elements import Marker
 from ..internal_record import RecordIndex
 
@@ -47,10 +50,10 @@ class BeamPositionMonitor(BeamElement):
                  start_at_turn=None, stop_at_turn=None, frev=None,
                  sampling_frequency=None, _xobject=None, **kwargs):
         """
-        Monitor to save the transversal centroid of the tracked particles
+        Monitor to save the transverse centroid of the tracked particles
 
-        The monitor allows for arbitrary sampling rate and can thus not only be used to monitor
-        bunch positions, but also to record schottky spectra. Internally, the particle arrival time
+        The monitor allows for an arbitrary sampling rate and can thus not only be used to monitor
+        bunch positions, but also to record Schottky spectra. Internally, the particle arrival time
         is used when determining the record index:
 
             i = sampling_frequency * ( ( at_turn - start_turn ) / f_rev - zeta / beta0 / c0 )
@@ -70,7 +73,7 @@ class BeamPositionMonitor(BeamElement):
         The monitor provides the following data:
         `count`, `x_sum`, `x_mean`, `y_sum`, `y_mean`,
         each as an array of size:
-            size = int(( stop_at_turn - start_at_turn ) * sampling_frequency / frev)
+            size = round(( stop_at_turn - start_at_turn ) * sampling_frequency / frev)
 
         Args:
             num_particles (int, optional): Number of particles to monitor. Defaults to -1 which means ALL.
@@ -78,11 +81,16 @@ class BeamPositionMonitor(BeamElement):
             particle_id_range (tuple, optional): Range of particle ids to monitor (start, stop). Stop is exclusive.
                                                  Defaults to (particle_id_start, particle_id_start+num_particles).
             start_at_turn (int): First turn of reference particle (inclusive) at which to monitor.
-            stop_at_turn (int): Last turn of reference particle (exclusiv) at which to monitor.
+            stop_at_turn (int): Last turn of reference particle (exclusive) at which to monitor.
             frev (float): Revolution frequency in Hz of circulating beam (used to relate turn number to sample index).
             sampling_frequency (float): Sampling frequency in Hz.
 
         """
+        warn("BeamPositionMonitor is deprecated and will be removed in a future version. "
+             "Please use BeamStatsMonitor instead."
+             + DEPRECATION_INFO_PREP_1_0,
+             DeprecationWarning, stacklevel=2)
+
         if _xobject is not None:
             super().__init__(_xobject=_xobject)
 
@@ -108,7 +116,7 @@ class BeamPositionMonitor(BeamElement):
             if sampling_frequency is None:
                 sampling_frequency = 1
             if "data" not in kwargs:
-                # explicitely init with zeros (instead of size only) to have consistent initial values
+                # explicitly init with zeros (instead of size only) to have consistent initial values
                 size = int(round(( stop_at_turn - start_at_turn ) * sampling_frequency / frev))
                 kwargs["data"] = {prop: np.zeros(size) for prop in self.properties}
 

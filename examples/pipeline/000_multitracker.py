@@ -53,7 +53,7 @@ multitracker = xt.PipelineMultiTracker(
 
 multitracker.track(num_turns=4)
 
-# The simulation switched multiple times from one brach to the other (due to the
+# The simulation switched multiple times from one branch to the other (due to the
 # pipelined elements as it can be seen by the debug log (it is convenient to use
 # a pandas dataframe to view the debug log).
 

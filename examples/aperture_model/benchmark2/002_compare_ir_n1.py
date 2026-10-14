@@ -6,7 +6,6 @@ import numpy as np
 import xtrack as xt
 from xdeps import Table
 from xobjects import ContextCpu
-from xtrack.aperture import Aperture
 
 
 BASE_DIR = Path(__file__).resolve().parents[3] / "test_data" / "hllhc19_apertures"
@@ -16,8 +15,7 @@ lhc = xt.load(BASE_DIR / "lhc_aperture.json")
 
 context = ContextCpu(omp_num_threads="auto")
 b1 = lhc.b1
-aperture_model = Aperture.from_line_with_madx_metadata(
-    b1,
+aperture_model = b1.aperture.from_madx_metadata(
     num_profile_points=100,
     include_offsets=True,
     context=context,

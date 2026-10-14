@@ -1,5 +1,5 @@
 """
-To intall bmad:
+To install bmad:
   conda install -c conda-forge bmad
   pip install pytao
 """

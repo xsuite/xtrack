@@ -9,7 +9,7 @@ from copy import deepcopy
 from pathlib import Path
 from typing import Literal
 from warnings import warn
-from weakref import WeakKeyDictionary, WeakSet
+from weakref import WeakKeyDictionary, WeakSet, ref
 
 import numpy as np
 import pandas as pd
@@ -24,13 +24,13 @@ from .match import Action
 from .multiline_legacy.multiline_legacy import MultilineLegacy
 from .progress_indicator import progress
 from .view import View
-from .general import DEPRECATION_INFO_PREP_1_0
+from .general import _print, DEPRECATION_INFO_PREP_1_0
 from .table import Table
 
 ReferType = Literal['start', 'center', 'centre', 'end']
 
 DEFAULT_REF_STRENGTH_NAME = {
-    'Bend': '_k0', # using underscored to get the value also when k0_from_h is True
+    'Bend': '_k0', # using the underscored attribute to get the value also when k0_from_h is True
     'RBend': '_k0',
     'Quadrupole': 'k1',
     'Sextupole': 'k2',
@@ -67,7 +67,11 @@ class Environment:
             Reference particle.
         lines : dict, optional
             Dictionary with the lines of the environment.
+        particles : dict, optional
+            Dictionary with the named particles of the environment.
 
+        Notes
+        -----
         Short description of main attributes of the Environment class:
          - Environment[...]: accesses values of variables, elements and lines.
          - ref[...]: provides reference objects to variables and elements.
@@ -125,6 +129,8 @@ class Environment:
         self._enable_name_clash_check = True
         self._last_context = None
         self._drift_cache = {}
+        from xtrack.aperture.environment import EnvAperture
+        self.aperture = EnvAperture(self)
 
         for nn, ee in self._element_dict.items():
             if nn.startswith('||drift_') and isinstance(ee, xt.Drift):
@@ -192,6 +198,7 @@ class Environment:
         self.__dict__.update(state)
         self._lines_weakrefs = WeakSet()
         self._line_composers = WeakKeyDictionary()
+        self.aperture._env_ref = ref(self)
 
     @classmethod
     def _generate_doc_rst(
@@ -309,7 +316,7 @@ class Environment:
     def new(self, name, prototype=None, mode=None, at=None, from_=None,
             anchor=None, from_anchor=None,
             extra=None,
-            mirror=False, force=False, import_from=None, parent=None,
+            mirror=False, force=False, parent=None,
             **kwargs):
 
         '''
@@ -323,22 +330,34 @@ class Environment:
             Prototype class or name of the prototype element
         parent : str or class, optional
             Deprecated alias for ``prototype``.
-        mode : str, optional
+        mode : {None, 'clone', 'replica'}, optional
+             - None (default): create an element or line from a class, or clone
+               an existing prototype element or line.
              - clone: clone the prototype element or line.
                The prototype element or line is copied, together with the associated
                expressions.
-             - replica: replicate the prototype elements or lines are made.
-             - import: clone from a different environment. `import_from` must be
-               provided.
+             - replica: a replica of the prototype element or line is made.
         at : float or str, optional
             Position of the created object.
-        from_: str, optional
+        from_ : str, optional
             Name of the element from which the position is calculated (its center
             is used as reference).
+        anchor : {'start', 'center', 'centre', 'end'}, optional
+            Anchor of the created element positioned at ``at``. If omitted, the
+            default reference anchor of the line is used.
+        from_anchor : {'start', 'center', 'centre', 'end'}, optional
+            Anchor of the reference element from which ``at`` is measured. If
+            omitted, the default reference anchor of the line is used.
+        extra : dict, optional
+            Additional metadata associated with the new element.
         mirror : bool, optional
             Can only be used when cloning lines. If True, the order of the elements
             is reversed.
-        import_from : Environment, optional. Only to be used when mode is 'import'.
+        force : bool, optional
+            If True, replace an existing element with the same name. Default is
+            False.
+        **kwargs
+            Attributes used to initialize or customize the element.
 
         Notes
         -----
@@ -458,7 +477,7 @@ class Environment:
 
         if parent is xt.Line or (parent=='Line' and (
             'Line' not in self.lines and 'Line' not in self.elements)):
-            assert mode is None, 'Mode not allowed when cls is Line'
+            assert mode is None, 'Mode not allowed when prototype is Line'
             return self.new_line(name=name, **kwargs)
 
         if mode == 'replica':
@@ -472,8 +491,6 @@ class Environment:
         else:
             assert mode is None, f'Unknown mode {mode}'
 
-        _eval = self._xdeps_eval.eval
-
         if not (isinstance(parent, str) or parent in _ALLOWED_ELEMENT_TYPES_IN_NEW):
             raise ValueError(
             'Only '
@@ -484,22 +501,12 @@ class Environment:
             + '`env.elements["myname"] = MyClass(...)`\n'
             )
 
-        needs_instantiation = True
-        parent_element = None
         element_prototype = None
         if isinstance(parent, str):
             if parent in self.elements:
-                # Clone an existing element
                 element_prototype = parent
-                self.elements[name] = xt.Replica(parent_name=parent)
-                self.replace_replica(name)
-
-                parent_element = self._element_dict[name]
-                parent = type(parent_element)
-                needs_instantiation = False
             elif parent in _ALLOWED_ELEMENT_TYPES_DICT:
                 parent = _ALLOWED_ELEMENT_TYPES_DICT[parent]
-                needs_instantiation = True
             else:
                 raise ValueError(f'Element type {parent} not found')
 
@@ -512,14 +519,22 @@ class Environment:
                              '`length_straight` parameter set accordingly, '
                              'instead of specifying the `rbarc` flag.')
 
-        ref_kwargs, value_kwargs = _parse_kwargs(parent, kwargs, _eval)
-
-        if needs_instantiation: # Prototype is a class and not another element
+        if element_prototype is None:
+            # Construct a new element, then attach its deferred expressions.
+            ref_kwargs, value_kwargs = _parse_kwargs(
+                parent, kwargs, self._xdeps_eval.eval)
             self.elements[name] = parent(**value_kwargs)
-
-        self._set_kwargs(name=name, ref_kwargs=ref_kwargs, value_kwargs=value_kwargs,
-                    container=self._element_dict, container_refs=self._xdeps_eref,
-                    isinit=True)
+            self._set_kwargs(
+                name=name, ref_kwargs=ref_kwargs, value_kwargs=value_kwargs,
+                container=self._element_dict, container_refs=self._xdeps_eref,
+                isinit=True)
+        else:
+            # Copy the prototype and its expressions, resolving replicas too.
+            self.elements[name] = xt.Replica(parent_name=element_prototype)
+            self.replace_replica(name)
+            # Overrides are edits: numeric values must clear inherited
+            # expressions, while unspecified fields keep their expressions.
+            self.set(name, **kwargs)
 
         if extra is not None:
             assert isinstance(extra, dict)
@@ -540,9 +555,9 @@ class Environment:
         Environment.particles, its properties can be controlled with deferred
         expressions and it can be used as reference particle for lines.
 
-        Note that this method is not meant to create particles distributions for
+        Note that this method is not meant to create particle distributions for
         tracking. For that purpose use xt.Particles(...), Line.build_particles(...)
-        or the generation functions for particles distributions available in xpart.
+        or the generation functions for particle distributions available in xpart.
         See https://xsuite.readthedocs.io/en/latest/particlesmanip.html for more
         details.
 
@@ -552,8 +567,11 @@ class Environment:
             Name of the new particle type
         parent : str or class
             Parent class or name of the parent particle type
-        pdg_id_0 : int or str, optional, define reference mass and charge from
-            PDG id or particle name.
+        force : bool, optional
+            If True, replace an existing particle type with the same name.
+            Default is False.
+        pdg_id_0 : int or str, optional
+            Define reference mass and charge from PDG id or particle name.
         mass0 : float, optional
             Reference rest mass [eV]
         q0 : float, optional
@@ -594,7 +612,7 @@ class Environment:
         if parent is None:
             parent = xt.Particles
 
-        _eval = self._xdeps_eval.eval
+        eval_ = self._xdeps_eval.eval
 
         needs_instantiation = True
         prototype = None
@@ -624,7 +642,7 @@ class Environment:
             if kk in xt.Particles._xofields and 'Arr' in xt.Particles._xofields[kk].__name__:
                 kwargs[kk] = [kwargs[kk]]
 
-        ref_kwargs, value_kwargs = _parse_kwargs(parent, kwargs, _eval)
+        ref_kwargs, value_kwargs = _parse_kwargs(parent, kwargs, eval_)
 
         if needs_instantiation: # Parent is a class and not another particle
             self.particles[name] = parent(**value_kwargs)
@@ -640,7 +658,8 @@ class Environment:
 
     @doc_group("Editing, Inspection, Variables and Configuration")
     def new_line(self, components=None, name=None, refer: ReferType = 'center',
-                 length=None, mirror=False, s_tol=1e-6, compose=False) -> xt.Line:
+                 length=None, mirror=False, s_tol=1e-6, compose=False,
+                 diagnostics=False) -> xt.Line:
         """
         Create a new line.
 
@@ -667,6 +686,10 @@ class Environment:
         s_tol : float, optional
             Difference between two s positions below which they should be
             treated as the same location.
+        diagnostics : bool, optional
+            If true, analyze unresolved placement dependencies when immediate
+            line assembly fails. In compose mode, pass this option to
+            :meth:`xtrack.Line.end_compose` when finalizing the line.
 
         Returns
         -------
@@ -702,7 +725,7 @@ class Environment:
             out.composer.components += list(components)
 
         if not compose:
-            out.end_compose()
+            out.end_compose(diagnostics=diagnostics)
 
         self._lines_weakrefs.add(out) # Weak references
 
@@ -726,13 +749,22 @@ class Environment:
 
         Parameters
         ----------
-        name : str or Line
-            Name of the element or line to be placed.
+        name : str, Line, or sequence of str
+            Name of the element or line to be placed. A sequence of element
+            names is first combined into a line.
+        obj : object, optional
+            Object to register in the environment under ``name`` before placing it.
         at : float or str, optional
             Position of the created object.
-        from_: str, optional
+        from_ : str, optional
             Name of the element from which the position is calculated (its center
             is used as reference).
+        anchor : {'start', 'center', 'centre', 'end'}, optional
+            Anchor of the placed component positioned at ``at``. If omitted, the
+            default reference anchor of the line is used.
+        from_anchor : {'start', 'center', 'centre', 'end'}, optional
+            Anchor of the reference component from which ``at`` is measured. If
+            omitted, the default reference anchor of the line is used.
 
         Returns
         -------
@@ -793,41 +825,11 @@ class Environment:
     @doc_group("Deprecated")
     def new_builder(self, components=None, name=None, refer: ReferType = 'center',
                     length=None, s_tol=1e-6):
-        '''
-        Deprecated. Create a new composer.
-
-        .. warning:: The `new_builder` method is deprecated and will be removed in
-           a future version. Use `new_line` with `compose=True` instead.
-
-        Parameters
-        ----------
-        components : list, optional
-            List of components to be added to the composer. It can include strings,
-            place objects, and lines.
-        name : str, optional
-            Name of the line that will be built by the composer.
-        refer : str, optional
-            Specifies which part of the component the ``at`` position will refer
-            to. Allowed values are ``start``, ``center`` (default; also allowed
-            is ``centre``), and ``end``.
-        length : float | str, optional
-            Length of the line to be built by the composer. Can be an expression.
-            If not specified, the length will be the minimum length that can
-            fit all the components.
-
-        Returns
-        -------
-        Composer
-            The new composer.
-        '''
-
-        warn('The `new_builder` method is deprecated and will be removed in a future version. '
-             'Use `new_line` with `compose=True` instead.', FutureWarning)
-
-        out = xt.Composer(env=self, components=components, name=name, refer=refer,
-                       length=length, s_tol=s_tol)
-
-        return out
+        """Raise an error because builders have been replaced by compose-mode lines."""
+        raise RuntimeError(
+            '`Environment.new_builder()` is no longer supported. '
+            'Use `Environment.new_line(..., compose=True)` instead.'
+        )
 
     @doc_group("Constructors and Serialization")
     def call(self, filename):
@@ -849,9 +851,15 @@ class Environment:
         xtrack._passed_env = None
 
     @doc_group("Constructors and Serialization")
-    def copy(self):
+    def copy(self, with_progress=True):
         """
         Create a deep copy of the environment.
+
+        Parameters
+        ----------
+        with_progress : bool, optional
+            Whether to show progress while copying elements. Defaults to
+            ``True``.
 
         Returns
         -------
@@ -859,7 +867,8 @@ class Environment:
             Independent copy of the environment, including elements, lines,
             particles, variables, expressions and metadata.
         """
-        return self.__class__.from_dict(self.to_dict())
+        return self.__class__.from_dict(
+            self.to_dict(include_aperture=True), with_progress=with_progress)
 
     def _copy_element_from(self, name, source, new_name=None):
         """Copy an element from another environment.
@@ -1079,7 +1088,8 @@ class Environment:
             raise ValueError('Only lines, scalars or references are allowed')
 
     @doc_group("Constructors and Serialization")
-    def to_dict(self, include_var_management=True, include_version=True):
+    def to_dict(self, include_var_management=True, include_version=True,
+                include_aperture=False):
         """
         Serialize the environment to a JSON-compatible dictionary.
 
@@ -1091,6 +1101,9 @@ class Environment:
         include_version : bool, optional
             If True, include the xtrack version that generated the dictionary.
             Default is ``True``.
+        include_aperture : bool, optional
+            If True, include environment and line aperture data. Default is
+            ``False``.
 
         Returns
         -------
@@ -1113,7 +1126,7 @@ class Environment:
                 out['particle_ref'] = self._particle_ref.to_dict()
         if self._var_management is not None and include_var_management:
             if hasattr(self, '_in_multiline') and self._in_multiline is not None:
-                raise ValueError('The line is part ot a MultiLine object. '
+                raise ValueError('The line is part of a MultiLine object. '
                     'To save without expressions please use '
                     '`line.to_dict(include_var_management=False)`.\n'
                     'To save also the deferred expressions please save the '
@@ -1136,13 +1149,17 @@ class Environment:
 
         out["metadata"] = deepcopy(self.metadata)
 
+        if include_aperture and (len(self.aperture.profiles) or len(self.aperture.pipes)):
+            out['aperture'] = self.aperture.to_dict(include_line_models=False)
+
         out['xsuite_data_type'] = 'Environment'
 
         out['lines'] = {}
         for nn, ll in self.lines.items():
             if isinstance(ll, xt.Line):
                 out['lines'][nn] = ll.to_dict(include_element_dict=False,
-                                            include_var_management=False)
+                                            include_var_management=False,
+                                            include_aperture=include_aperture)
             else:
                 raise ValueError(f'Unknown line type {type(ll)}')
 
@@ -1154,7 +1171,8 @@ class Environment:
 
     @doc_group("Constructors and Serialization")
     @classmethod
-    def from_dict(cls, dct, _context=None, _buffer=None, classes=()):
+    def from_dict(cls, dct, _context=None, _buffer=None, classes=(),
+                  with_progress=True):
         """
         Rebuild an environment from a serialized dictionary.
 
@@ -1168,6 +1186,9 @@ class Environment:
             Buffer used to rebuild xobjects-backed data.
         classes : tuple, optional
             Extra element classes accepted during element deserialization.
+        with_progress : bool, optional
+            Whether to show progress while deserializing elements. Defaults to
+            ``True``.
 
         Returns
         -------
@@ -1179,7 +1200,7 @@ class Environment:
         if "xtrack_version" in dct:
             version = dct["xtrack_version"]
             if xt.general._compare_versions(version, xt.__version__) > 0:
-                print(f'Warning: The environment you are loading was created '
+                _print(f'Warning: The environment you are loading was created '
                       f'with xtrack version {version}, which is more recent '
                       f'than the current version {xt.__version__}. '
                       'Some features may not be available or '
@@ -1187,11 +1208,13 @@ class Environment:
                       f'package to the latest version.')
 
         elements = _deserialize_elements(dct=dct, classes=classes,
-                                         _buffer=_buffer, _context=_context)
+                                         _buffer=_buffer, _context=_context,
+                                         with_progress=with_progress)
         particles = {}
         if 'particles' in dct:
             for nn, ppd in dct['particles'].items():
-               particles[nn] = xt.Particles.from_dict(ppd)
+               particles[nn] = xt.Particles.from_dict(
+                   ppd, _context=_context, _buffer=_buffer)
 
         particle_ref = None
         if 'particle_ref' in dct.keys():
@@ -1207,6 +1230,9 @@ class Environment:
 
         out = cls(element_dict=elements, particle_ref=particle_ref,
                 _var_management_dct=_var_management_dct, particles=particles)
+
+        if 'aperture' in dct:
+            out.aperture.from_dict(dct['aperture'], context=_context)
 
         dct_lines = dct.copy()
         dct_lines.pop('elements', None)
@@ -1270,7 +1296,8 @@ class Environment:
         indent : int, optional
             Indentation level used for the JSON output. Default is 1.
         **kwargs
-            Additional keyword arguments passed to ``Environment.to_dict``.
+            Additional keyword arguments passed to ``Environment.to_dict``,
+            including ``include_aperture``.
 
         Returns
         -------
@@ -1562,7 +1589,7 @@ class Environment:
                     ] + object.__dir__(self)
 
     @doc_group("Deprecated")
-    def set_multipolar_errors(env, errors):
+    def set_multipolar_errors(self, errors, with_progress=True):
         """Deprecated: set multipolar errors for specified elements of the environment.
 
         .. warning:: This function is deprecated and will be removed in a future
@@ -1581,6 +1608,9 @@ class Environment:
                multiplied by the length. If None, the default reference strength
                is used (k0 for bends, k1 for quadrupoles, k2 for sextupoles,
                and k3 for octupoles).
+        with_progress : bool, optional
+            Whether to show progress while applying errors. Defaults to
+            ``True``.
 
         Examples
         --------
@@ -1611,13 +1641,18 @@ class Environment:
              + DEPRECATION_INFO_PREP_1_0,
              FutureWarning)
 
-        for ele_name in progress(errors.keys(), desc='Setting multipolar errors'):
+        error_names = errors.keys()
+        if with_progress:
+            error_names = progress(
+                error_names, desc='Setting multipolar errors')
+
+        for ele_name in error_names:
 
             err = errors[ele_name]
             rel_knl = err.get('rel_knl', [])
             rel_ksl = err.get('rel_ksl', [])
             refer = err.get('refer', None)
-            ele_class = env[ele_name].__class__.__name__
+            ele_class = self[ele_name].__class__.__name__
 
             if 'Replica' in ele_class or 'Slice' in ele_class:
                 raise ValueError(f'Cannot set multipolar errors for element `{ele_name}`'
@@ -1631,22 +1666,22 @@ class Environment:
             if reference_strength_name is None:
                 raise ValueError(f'Cannot find reference strength for element `{ele_name}`')
 
-            ref_str_ref = getattr(env.ref[ele_name], reference_strength_name)
-            length_ref = env.ref[ele_name].length
+            ref_str_ref = getattr(self.ref[ele_name], reference_strength_name)
+            length_ref = self.ref[ele_name].length
 
             for ii, kk in enumerate(rel_knl):
                 err_vname = f'err_{ele_name}_knl{ii}'
-                env[err_vname] = kk
-                if (env.ref[ele_name].knl[ii]._expr is None or env.ref[err_vname] in
-                        env.ref[ele_name].knl[ii]._expr._get_dependencies()):
-                    env[ele_name].knl[ii] += env.ref[err_vname] * ref_str_ref * length_ref
+                self[err_vname] = kk
+                if (self.ref[ele_name].knl[ii]._expr is None or self.ref[err_vname] in
+                        self.ref[ele_name].knl[ii]._expr._get_dependencies()):
+                    self[ele_name].knl[ii] += self.ref[err_vname] * ref_str_ref * length_ref
 
             for ii, kk in enumerate(rel_ksl):
                 err_vname = f'err_{ele_name}_ksl{ii}'
-                env[err_vname] = kk
-                if (env.ref[ele_name].ksl[ii]._expr is None or env.ref[err_vname] in
-                        env.ref[ele_name].ksl[ii]._expr._get_dependencies()):
-                    env[ele_name].ksl[ii] += env.ref[err_vname] * ref_str_ref * length_ref
+                self[err_vname] = kk
+                if (self.ref[ele_name].ksl[ii]._expr is None or self.ref[err_vname] in
+                        self.ref[ele_name].ksl[ii]._expr._get_dependencies()):
+                    self[ele_name].ksl[ii] += self.ref[err_vname] * ref_str_ref * length_ref
 
     @property_with_doc_group("Editing, Inspection, Variables and Configuration")
     def element_dict(self):
@@ -1922,10 +1957,10 @@ class Environment:
         ----------
         name : str or iterable of str
             Name or names of the variable(s) or element(s).
-        value: float or str
+        value : float or str
             Value or expression of the variable to set. Can be provided only
             if the name is associated to a variable.
-        **kwargs, float or str
+        **kwargs : float or str
             Attributes to set. Can be provided only if the name is associated
             to an element.
 
@@ -1949,7 +1984,7 @@ class Environment:
                 self.set(nn, *args, **kwargs)
             return
 
-        _eval = self._xdeps_eval.eval
+        eval_ = self._xdeps_eval.eval
 
         if hasattr(self, 'lines') and name in self.lines:
             raise ValueError('Cannot set a line')
@@ -1961,7 +1996,7 @@ class Environment:
             extra = kwargs.pop('extra', None)
 
             ref_kwargs, value_kwargs = xt.environment._parse_kwargs(
-                type(self._element_dict[name]), kwargs, _eval)
+                type(self._element_dict[name]), kwargs, eval_)
             self._set_kwargs(
                 name=name, ref_kwargs=ref_kwargs, value_kwargs=value_kwargs,
                 container=self._element_dict, container_refs=self._xdeps_eref,
@@ -1982,7 +2017,7 @@ class Environment:
             if 'extra' in kwargs and kwargs['extra'] is not None:
                 raise ValueError(f'Extra is only allowed for elements')
             if isinstance(value, str):
-                self.vars[name] = _eval(value)
+                self.vars[name] = eval_(value)
             else:
                 self.vars[name] = value
 
@@ -2092,7 +2127,7 @@ class Environment:
 
         Parameters
         ----------
-        var: str
+        var : str
             Name of the variable
 
         Returns
@@ -2195,11 +2230,11 @@ class Environment:
 
         Parameters
         ----------
-        order: int
+        order : int
             New order of the knl and ksl attributes.
-        element_names: list of str
-            Names of the elements to extend. If None, all elements having `knl`
-            and `ksl` attributes are extended.
+        element_names : str or list of str
+            Names of the elements to extend. Must be provided explicitly;
+            None raises NotImplementedError.
 
         """
         self._extend_knl_ksl_abs_rel(order, element_names=element_names,
@@ -2208,15 +2243,15 @@ class Environment:
     @doc_group("Editing, Inspection, Variables and Configuration")
     def extend_knl_rel_ksl_rel(self, order, element_names=None):
         """
-        Extend the order of the rel_knl and rel_ksl attributes of the elements.
+        Extend the order of the knl_rel and ksl_rel attributes of the elements.
 
         Parameters
         ----------
-        order: int
-            New order of the rel_knl and rel_ksl attributes.
-        element_names: list of str
-            Names of the elements to extend. If None, all elements having `knl`
-            and `ksl` attributes are extended.
+        order : int
+            New order of the knl_rel and ksl_rel attributes.
+        element_names : str or list of str
+            Names of the elements to extend. Must be provided explicitly;
+            None raises NotImplementedError.
 
         """
         self._extend_knl_ksl_abs_rel(order, element_names=element_names,
@@ -2282,10 +2317,11 @@ class Environment:
         name: str
             Name of the element.
         ref_kwargs: dict
-            Dictionary with the references to set. The keys are the attribute names,
-            and the values are the references.
+            Dictionary with the references to set, keyed by field name. For
+            array fields the value is a list of `(index, ref_or_None, item)`
+            entries, one per item of the array; otherwise a single reference.
         value_kwargs: dict
-            Dictionary with the values to set. The keys are the attribute names,
+            Dictionary with the values to set. The keys are the field names,
             and the values are the non-reference values.
         container: dict
             Dictionary with the elements.
@@ -2293,37 +2329,40 @@ class Environment:
             Dictionary with the xdeps references to the elements.
         isinit: bool
             Whether the element is being initialized. If True, to gain speed,
-            we assume that no references are alredy present to the element
+            we assume that no references are already present to the element
             in the ref_manager, and we set numerical values directly on the
-            element without unregistering the refereces.
+            element without unregistering the references.
         """
 
-        for kk in value_kwargs:
-            if hasattr(value_kwargs[kk], '__iter__') and not isinstance(value_kwargs[kk], str):
-                len_value = len(value_kwargs[kk])
-                target = getattr(container[name], kk)
+        for field_name, value in value_kwargs.items():
+            if hasattr(value, '__iter__') and not isinstance(value, str):
+                len_value = len(value)
+                target = getattr(container[name], field_name)
                 if len(target) < len_value:
-                    if kk=='knl' or kk=='ksl' and name in self._element_dict:
+                    if field_name in ('knl', 'ksl') and name in self._element_dict:
                         self.extend_knl_ksl(len_value-1, element_names=[name])
-                        target = getattr(container[name], kk)
+                        target = getattr(container[name], field_name)
                     else:
                         raise ValueError(
-                            f'Cannot set attribute {kk} of element {name}: '
+                            f'Cannot set attribute {field_name} of element {name}: '
                             f'length mismatch ({len(target)} vs {len_value})')
-                target[:len_value] = value_kwargs[kk]
-                if kk in ref_kwargs or not isinit:
-                    for ii, vvv in enumerate(value_kwargs[kk]):
-                        if ref_kwargs[kk][ii] is not None:
-                            getattr(container_refs[name], kk)[ii] = ref_kwargs[kk][ii]
+                target[:len_value] = value
+                if field_name in ref_kwargs or not isinit:
+                    attr_ref = getattr(container_refs[name], field_name)
+                    for index, ref, item in ref_kwargs[field_name]:
+                        # `arr[0]` and `arr[(0,)]` are distinct refs, so 1D must stay an int.
+                        ref_key = index[0] if len(index) == 1 else index
+                        if ref is not None:
+                            attr_ref[ref_key] = ref
                         elif not isinit:
-                            getattr(container_refs[name], kk)[ii] = value_kwargs[kk][ii]
-            elif kk in ref_kwargs:
-                setattr(container_refs[name], kk, ref_kwargs[kk])
+                            attr_ref[ref_key] = item
+            elif field_name in ref_kwargs:
+                setattr(container_refs[name], field_name, ref_kwargs[field_name])
             else:
                 if not isinit:
-                    setattr(container_refs[name], kk, value_kwargs[kk])
+                    setattr(container_refs[name], field_name, value)
                 else:
-                    setattr(container[name], kk, value_kwargs[kk])
+                    setattr(container[name], field_name, value)
 
     twiss = doc_group("Analysis and Matching")(MultilineLegacy.twiss)
     build_trackers = doc_group("Tracker Setup")(MultilineLegacy.build_trackers)
@@ -2477,46 +2516,128 @@ Environment.__doc_groups_ungrouped__ = _ENVIRONMENT_DOC_GROUP_COLLECTOR.validate
 )
 
 
-def _parse_kwargs(cls, kwargs, _eval):
+def _parse_array_value(value, eval_, field_name):
+    """Parse the value assigned to an array field, item by item.
+
+    Handles arrays of any dimensionality. Items given as string
+    expressions are evaluated into references; the rest are kept as they
+    are.
+
+    Parameters
+    ----------
+    value : iterable, or a reference to one
+        The value assigned to the array field. May be multi-dimensional,
+        and may hold string expressions or references at any position.
+    eval_ : callable
+        Evaluator turning a string expression into a reference.
+    field_name : str
+        Name of the field, used in error messages.
+
+    Returns
+    -------
+    values : list
+        `value` with the same shape, expressions replaced by their
+        current numerical value.
+    leaves : list of (index, ref_or_None, item)
+        One entry per item of the array: where it goes, the reference to
+        wire there (None for a plain number), and its numerical value.
+    """
+    if hasattr(value, '_value'):
+        # The whole array is a single reference: wire item by item.
+        referenced = value._value
+        return referenced, [((ii,), value[ii], referenced[ii])
+                            for ii in range(len(referenced))]
+
+    # Object dtype keeps expressions as strings; a numeric dtype would
+    # stringify the numbers instead.
+    array = np.array(value, dtype=object)
+    values = np.empty(array.shape, dtype=object)
+    leaves = []
+    for index in np.ndindex(*array.shape):
+        item = array[index]
+        if isinstance(item, (list, tuple, np.ndarray)):
+            # Only a ragged input leaves a sequence at the deepest index.
+            raise ValueError(
+                f'{field_name} must be a rectangular array, but it has '
+                f'rows of differing length.')
+        ref = None
+        if isinstance(item, str):
+            ref = eval_(item)
+            item = ref._value if hasattr(ref, '_value') else ref
+        elif hasattr(item, '_value'):
+            ref = item
+            item = item._value
+        values[index] = item
+        leaves.append((index, ref, item))
+
+    return values.tolist(), leaves
+
+
+def _parse_kwargs(hybrid_class, kwargs, eval_):
+    """Split constructor/setter kwargs into references and plain values.
+
+    Any string value is evaluated as a deferred expression via `eval_`.
+    Values assigned to array fields are parsed item by item with
+    `_parse_array_value`.
+
+    Parameters
+    ----------
+    hybrid_class : type
+        The element (or `Particles`) class the kwargs are meant for.
+    kwargs : dict
+        Keyword arguments as passed by the caller.
+    eval_ : callable
+        Evaluator turning a string expression into a reference.
+
+    Returns
+    -------
+    ref_kwargs : dict
+        References to set, keyed by field name. For array fields this is
+        a list of `(index, ref_or_None, item)` entries (see
+        `_parse_array_value`),
+        otherwise a single reference.
+    value_kwargs : dict
+        Plain numerical values to set, keyed by field name.
+    """
     ref_kwargs = {}
     value_kwargs = {}
-    for kk in kwargs:
-        if hasattr(kwargs[kk], '_value'):
-            ref_kwargs[kk] = kwargs[kk]
-            value_kwargs[kk] = kwargs[kk]._value
-        elif (hasattr(cls, '_xofields') and kk in cls._xofields
-                and xo.array.is_array(cls._xofields[kk])):
-            assert hasattr(kwargs[kk], '__iter__'), (
-                f'{kk} should be an iterable for {cls} element')
-            ref_vv = []
-            value_vv = []
-            for ii, vvv in enumerate(kwargs[kk]):
-                if hasattr(vvv, '_value'):
-                    ref_vv.append(vvv)
-                    value_vv.append(vvv._value)
-                elif isinstance(vvv, str):
-                    ref_vv.append(_eval(vvv))
-                    if hasattr(ref_vv[-1], '_value'):
-                        value_vv.append(ref_vv[-1]._value)
-                    else:
-                        value_vv.append(ref_vv[-1])
-                else:
-                    ref_vv.append(None)
-                    value_vv.append(vvv)
-            ref_kwargs[kk] = ref_vv
-            value_kwargs[kk] = value_vv
-        elif (isinstance(kwargs[kk], str) and hasattr(cls, '_xofields')
-            and (not hasattr(cls, '_noexpr_fields') or kk not in cls._noexpr_fields)):
-            ref_kwargs[kk] = _eval(kwargs[kk])
-            if hasattr(ref_kwargs[kk], '_value'):
-                value_kwargs[kk] = ref_kwargs[kk]._value
-            else:
-                value_kwargs[kk] = ref_kwargs[kk]
-        elif isinstance(kwargs[kk], xo.String):
-            vvv = kwargs[kk].to_str()
-            value_kwargs[kk] = vvv
+    has_xofields = hasattr(hybrid_class, '_xofields')
+    xofields = getattr(hybrid_class, '_xofields', {})
+    noexpr_fields = getattr(hybrid_class, '_noexpr_fields', ())
+    normalize_array_input = getattr(hybrid_class, '_normalize_array_input', None)
+
+    for field_name, value in kwargs.items():
+        # `xo.Field` wraps the type only to attach a default.
+        field_type = xofields.get(field_name)
+        if isinstance(field_type, xo.Field):
+            field_type = field_type.ftype
+        is_array_field = (field_type is not None
+                          and xo.array.is_array(field_type))
+
+        # A whole array can also be given as a single reference.
+        is_ref = hasattr(value, '_value')
+        if is_array_field and not is_ref and normalize_array_input is not None:
+            value = normalize_array_input(field_name, value)
+        assigned = value._value if is_ref else value
+
+        if is_array_field and hasattr(assigned, '__iter__'):
+            value_kwargs[field_name], ref_kwargs[field_name] = \
+                _parse_array_value(value, eval_, field_name)
+        elif is_ref:
+            ref_kwargs[field_name] = value
+            value_kwargs[field_name] = value._value
+        elif is_array_field:
+            raise TypeError(
+                f'{field_name} should be an iterable for {hybrid_class} element')
+        elif (isinstance(value, str) and has_xofields
+                and field_name not in noexpr_fields):
+            ref = eval_(value)
+            ref_kwargs[field_name] = ref
+            value_kwargs[field_name] = ref._value if hasattr(ref, '_value') else ref
+        elif isinstance(value, xo.String):
+            value_kwargs[field_name] = value.to_str()
         else:
-            value_kwargs[kk] = kwargs[kk]
+            value_kwargs[field_name] = value
 
     return ref_kwargs, value_kwargs
 
@@ -2583,13 +2704,15 @@ class EnvElements:
         tt = dumline.get_table(attr=attr)
         assert tt.name[-1] == '_end_point'
         tt = tt.rows[:-1] # Remove endpoint
+        if 'length' not in tt._col_names:
+            tt['length'] = np.array([
+                getattr(self.env._element_dict[nn], 'length', s_end - s_start)
+                for nn, s_start, s_end in zip(tt.name, tt.s_start, tt.s_end)
+            ])
         for cc in ['s', 's_start', 's_center', 's_end', 'env_name']:
             if cc in tt._col_names:
                 tt._col_names.remove(cc)
                 del tt._data[cc]
-        if 'length' not in tt._col_names:
-            tt['length'] = np.array(
-                [getattr(self.env._element_dict[nn], 'length', 0) for nn in tt.name])
         return tt
 
     def remove(self, name):
@@ -3075,11 +3198,11 @@ def get_environment(verbose=False):
     import xtrack
     if hasattr(xtrack, '_passed_env') and xtrack._passed_env is not None:
         if verbose:
-            print('Using existing environment')
+            _print('Using existing environment')
         return xtrack._passed_env
     else:
         if verbose:
-            print('Creating new environment')
+            _print('Creating new environment')
         return Environment()
 
 
@@ -3116,7 +3239,7 @@ def _reverse_element(env, name):
 
     SUPPORTED = {'RBend', 'Bend', 'Quadrupole', 'Sextupole', 'Octupole',
                 'Multipole', 'Cavity', 'UniformSolenoid',
-                'Marker', 'Drift', 'LimitRect', 'LimitEllipse', 'LimitPolygon',
+                'Marker', 'Drift', 'Device', 'LimitRect', 'LimitEllipse', 'LimitPolygon',
                 'LimitRectEllipse', 'CrabCavity'}
 
     ee = env.get(name)
@@ -3196,19 +3319,27 @@ def _reverse_element(env, name):
 
 
 
-def _deserialize_elements(dct, classes, _buffer, _context):
+def _deserialize_elements(dct, classes, _buffer, _context,
+                          with_progress=True):
     class_dict = xt.line.mk_class_namespace(classes)
 
     _buffer = xo.get_a_buffer(context=_context, buffer=_buffer,size=8)
 
     if isinstance(dct['elements'], dict):
         elements = {}
-        for (kk, ee) in progress(dct['elements'].items(), desc='Loading line from dict'):
+        element_items = dct['elements'].items()
+        if with_progress:
+            element_items = progress(
+                element_items, desc='Loading line from dict')
+        for kk, ee in element_items:
             elements[kk] = xt.line._deserialize_element(ee, class_dict, _buffer)
     elif isinstance(dct['elements'], list):
         elements = []
-        for ii, ee in enumerate(
-                progress(dct['elements'], desc='Loading line from dict')):
+        serialized_elements = dct['elements']
+        if with_progress:
+            serialized_elements = progress(
+                serialized_elements, desc='Loading line from dict')
+        for ii, ee in enumerate(serialized_elements):
             elements.append(xt.line._deserialize_element(ee, class_dict, _buffer))
     else:
         raise ValueError('Field `elements` must be a dict or a list')
@@ -3618,7 +3749,7 @@ class EnvVars:
         t_old = mgr.tasks.get(r_old)
         if t_old is not None:
             if verbose:
-                print(f"replacing target {t_old} with {r_new}={t_old.expr}")
+                _print(f"replacing target {t_old} with {r_new}={t_old.expr}")
             mgr.set_value(r_new, t_old.expr)
         for rt in list(env.ref_manager.rdeps[r_old]):
             if rt in mgr.tasks:
@@ -3626,7 +3757,7 @@ class EnvVars:
                 old_expr = str(tt.expr)
                 new_expr = old_expr.replace(str(r_old), str(r_new))
                 if verbose:
-                    print(f"replacing {old_expr} with {new_expr}")
+                    _print(f"replacing {old_expr} with {new_expr}")
                 mgr.set_value(rt, eval(new_expr, mgr.containers))
 
         if verbose:
@@ -3741,13 +3872,13 @@ class EnvVars:
 
     def _load_madx(self, filename=None, string=None):
         """
-        Set variables values of expression from a MAD-X file.
+        Set variable values or expressions from a MAD-X file.
 
         Parameters
         ----------
-        filename: str or list of str
+        filename : str or list of str
             Path to the MAD-X file(s) to load.
-        string: str
+        string : str
             MAD-X source string to load.
         """
         old_default_to_zero = self.default_to_zero
@@ -3774,7 +3905,7 @@ class EnvVars:
             Path to the JSON file to load.
         """
         warn(
-            '`EnvVars.load_json` is deprecated, use `vars.load` ,'
+            '`EnvVars.load_json` is deprecated, use `vars.load`, '
             'optionally with `format="json"` instead.'
             + DEPRECATION_INFO_PREP_1_0,
             FutureWarning
@@ -3809,7 +3940,7 @@ class EnvVars:
         return xt.Target(action=action, tar=tar, value=value, **kwargs)
 
     def __call__(self, *args, **kwargs):
-        _eval = self.env._xdeps_eval.eval
+        eval_ = self.env._xdeps_eval.eval
         if len(args) > 0:
             assert len(kwargs) == 0
             assert len(args) == 1
@@ -3821,7 +3952,7 @@ class EnvVars:
                 raise ValueError('Invalid argument')
         for kk in kwargs:
             if isinstance(kwargs[kk], str):
-                self[kk] = _eval(kwargs[kk])
+                self[kk] = eval_(kwargs[kk])
             else:
                 self[kk] = kwargs[kk]
 

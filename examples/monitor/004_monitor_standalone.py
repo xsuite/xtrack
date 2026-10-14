@@ -31,5 +31,5 @@ for iturn in range(num_turns):
 # For example, monitor.x[0, :, :] contains the recorded
 # x position for the turns 5 to 10, monitor.x[1, :, :]
 # contains the recorded x position for the turns 25 to 30, etc.
-# The turn indeces that are recorded can be inspected in
+# The turn indices that are recorded can be inspected in
 # monitor.at_turn.

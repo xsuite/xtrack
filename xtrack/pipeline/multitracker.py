@@ -69,7 +69,7 @@ class PipelineMultiTracker:
                             'info': branch.pipeline_status.data['status_from_element'].info
                         })
                     if self.verbose:
-                        print(
+                        xt._print(
                             f"Pipeline hold at branch {i_branch} "
                             f"at turn {branch.pipeline_status.data['tt']} "
                             f"by element {branch.line.tracker._part_names[branch.pipeline_status.data['ipp']]} "
@@ -77,6 +77,5 @@ class PipelineMultiTracker:
 
                     branch.pipeline_status = branch.line.tracker.resume(branch.pipeline_status)
                     need_resume = True
-
 
 

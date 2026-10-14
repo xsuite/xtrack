@@ -64,7 +64,7 @@ void ThinSliceUniformSolenoidEntry_track_local_particle(
         /*edge_entry_active*/     ThinSliceUniformSolenoidEntryData_get__parent_edge_entry_active(el),
         /*edge_exit_active*/      0,
         /*edge_entry_model*/      3, // only ax ay cancellation
-        /*edge_exit_model*/       3, // only ax ay cancellation0,
+        /*edge_exit_model*/       0,
         /*edge_entry_angle*/      0.,
         /*edge_exit_angle*/       0.,
         /*edge_entry_angle_fdown*/0.,

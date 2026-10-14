@@ -77,7 +77,7 @@ class TargetLuminosity(xt.Target):
 class TargetSeparationOrthogonalToCrossing(xt.Target):
 
     def __init__(self, ip_name):
-        xt.Target.__init__(self, tar=self.projection, value=0, tol=1e-6, scale=1)
+        xt.Target.__init__(self, tar=self.projection, value=0, tol=1e-6, weight=1)
         self.ip_name = ip_name
 
     def __repr__(self):
@@ -106,8 +106,14 @@ class TargetSeparation(xt.Target):
 
     def __init__(self, ip_name, separation=None, separation_norm=None,
                  plane=None, nemitt_x=None, nemitt_y=None, tol=None, scale=None,
-                 ineq_sign=None):
+                 ineq_sign=None, weight=None):
 
+        if scale is not None:
+            warn('`scale` is deprecated. Use `weight` instead.'
+                 + DEPRECATION_INFO_PREP_1_0, FutureWarning, stacklevel=2)
+            if weight is not None:
+                raise ValueError("Cannot specify both `weight` and `scale` for a target.")
+            weight = scale
 
         # For now nemitt is a scalar, we can move to a tuple for different
         # emittances for the two beams
@@ -132,7 +138,7 @@ class TargetSeparation(xt.Target):
         assert ineq_sign in [None, '<', '>']
 
         xt.Target.__init__(self, tar=self.get_separation, value=value, tol=tol,
-                            scale=scale)
+                            weight=weight)
 
         self.ip_name = ip_name
         self.separation = separation

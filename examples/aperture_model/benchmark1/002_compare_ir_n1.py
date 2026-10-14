@@ -4,7 +4,6 @@ from pyoptics import BeamEnvelope
 
 import xobjects as xo
 import xtrack as xt
-from xtrack.aperture import Aperture
 
 which_ir = '5'
 
@@ -13,8 +12,7 @@ context = xo.ContextCpu(omp_num_threads="auto")
 lhc_with_metadata = xt.load("./lhc_aperture.json")
 b1 = lhc_with_metadata["b1"]
 
-aperture_model = Aperture.from_line_with_madx_metadata(
-    b1,
+aperture_model = b1.aperture.from_madx_metadata(
     num_profile_points=100,
     include_offsets=True,
     context=context,
@@ -31,8 +29,8 @@ SPECIF = 7
 
 aperture_model.halo_params.update(
     {
-        "emitx_norm": emittance_norm,
-        "emity_norm": emittance_norm,
+        "nemitt_x": emittance_norm,
+        "nemitt_y": emittance_norm,
         "delta_rms": dPmax,
         "tol_co": COmax,
         "tol_disp": DParcx,  # MADX has different settings for x/y

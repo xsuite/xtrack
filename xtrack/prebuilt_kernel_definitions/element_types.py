@@ -7,11 +7,14 @@ from ..beam_elements import *
 from ..monitors import *
 from ..multisetter import MultiSetter
 from ..random import *
-from ..aperture.structures import ApertureModel, Profile, Polygon, SurveyData
+from ..aperture.structures import (
+    ApertureEnvStruct, LineApertureModel, Profile, Polygon, SurveyData,
+)
 
 
 ONLY_XTRACK_ELEMENTS = [
     Drift,
+    Device,
     Multipole,
     Bend,
     RBend,
@@ -44,8 +47,10 @@ ONLY_XTRACK_ELEMENTS = [
     DriftExact,
     Misalignment,
     SplineBoris,
+    BFieldExpansion,
     # Drift Slices
     DriftSlice,
+    ThickSliceDevice,
     DriftExactSlice,
     DriftSliceBend,
     DriftSliceRBend,
@@ -65,6 +70,7 @@ ONLY_XTRACK_ELEMENTS = [
     ThickSliceCavity,
     ThickSliceCrabCavity,
     ThickSliceMultipole,
+    ThickSliceBFieldExpansion,
     # Thin slices
     ThinSliceBend,
     ThinSliceRBend,
@@ -118,13 +124,45 @@ NO_SYNRAD_ELEMENTS = [
     Exciter,
 ]
 
+TPSA_SUPPORTED_ELEMENTS = [
+    Drift,
+    Device,
+    ThickSliceDevice,
+    DriftExact,
+    Marker,
+    ReferenceEnergyIncrease,
+    ReferenceEnergyChange,
+    Multipole,
+    Bend,
+    RBend,
+    Quadrupole,
+    Sextupole,
+    Octupole,
+    Magnet,
+    MagnetEdge,
+    Wedge,
+    MultipoleEdge,
+    Cavity,
+    CrabCavity,
+    RFMultipole,
+    UniformSolenoid,
+    Translation,
+    Rotation,
+    XYShift,
+    SRotation,
+    XRotation,
+    YRotation,
+    LimitRectEllipse,
+]
+
 NON_TRACKING_ELEMENTS = [
     RandomUniform,
     RandomExponential,
     RandomNormal,
     RandomRutherford,
     MultiSetter,
-    ApertureModel,
+    ApertureEnvStruct,
+    LineApertureModel,
     Profile,
     SurveyData,
     Polygon,

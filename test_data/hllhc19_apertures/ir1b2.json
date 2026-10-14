@@ -14852,8 +14852,8 @@
     NaN
   ],
   "halo_params": {
-    "emitx_norm": 2.49999e-06,
-    "emity_norm": 2.49999e-06,
+    "nemitt_x": 2.49999e-06,
+    "nemitt_y": 2.49999e-06,
     "delta_rms": 0.0002,
     "tol_co": 0.002,
     "tol_disp": 0.1,

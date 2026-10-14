@@ -15,8 +15,8 @@ import xobjects as xo
 import xpart as xp
 import xtrack as xt
 from xobjects.test_helpers import (
-    allow_no_prebuilt_kernels, fix_random_seed, for_all_test_contexts)
-from xtrack.beam_elements.elements import _angle_from_trig
+    allow_kernel_compilation, fix_random_seed, for_all_test_contexts)
+from xtrack.beam_elements._common import _angle_from_trig
 
 test_data_folder = pathlib.Path(
     __file__).parent.joinpath('../test_data').absolute()
@@ -62,6 +62,97 @@ def test_constructor(test_context):
         assert (ee._xobject._buffer.buffer[ee._xobject._offset:ee._xobject._size]
                 - nee._xobject._buffer.buffer[
                     nee._xobject._offset:nee._xobject._size]).sum() == 0
+
+
+@pytest.mark.parametrize(
+    "element_cls, field, kwargs",
+    [
+        (xt.Bend, "k0", {"length": 1.0}),
+        (xt.Quadrupole, "k1", {"length": 1.0}),
+        (xt.Sextupole, "k2", {"length": 1.0}),
+        (xt.Octupole, "k3", {"length": 1.0}),
+        (xt.UniformSolenoid, "ks", {"length": 1.0}),
+        (xt.Drift, "length", {}),
+    ],
+)
+def test_scalar_element_fields_accept_length_one_array_like(
+        element_cls, field, kwargs):
+    p = xt.Particles(mass0=xt.ELECTRON_MASS_EV, gamma0=10.0, q0=-1)
+    # Dummy strength-like value; the important part is that it is a length-one
+    # array-like scalar, as obtained from single-particle reference data.
+    value = 4.0 / abs(p.p0c / (cst.c * p.q0))
+
+    element = element_cls(**kwargs, **{field: value})
+
+    assert getattr(element, field) == pytest.approx(float(value[0]))
+
+
+@pytest.mark.parametrize('copy_to_cpu', [True, False])
+@pytest.mark.parametrize('element_cls, fields', [
+    (xt.Bend, ('k1', 'k2')),
+    (xt.RBend, ('k1', 'k2')),
+    (xt.Quadrupole, ('k1', 'k1s')),
+    (xt.Sextupole, ('k2', 'k2s')),
+    (xt.Octupole, ('k3', 'k3s')),
+    (xt.UniformSolenoid, ('ks',)),
+])
+def test_to_dict_omits_float_or_tpsa_defaults(element_cls, fields, copy_to_cpu):
+    element = element_cls()
+    default_dict = element.to_dict(copy_to_cpu=copy_to_cpu)
+    for field in fields:
+        assert field not in default_dict
+
+    for field in fields:
+        setattr(element, field, 0.125)
+    dct = element.to_dict(copy_to_cpu=copy_to_cpu)
+    restored = element_cls.from_dict(dct.copy())
+    for field in fields:
+        assert dct[field] == 0.125
+        assert getattr(restored, field) == 0.125
+        setattr(element, field, 0.0)
+    assert element.to_dict(copy_to_cpu=copy_to_cpu) == default_dict
+
+
+@pytest.mark.parametrize('copy_to_cpu', [True, False])
+def test_quadrupole_to_dict_omits_zero_strengths(copy_to_cpu):
+    element = xt.Quadrupole()
+    assert element.to_dict(copy_to_cpu=copy_to_cpu) == {
+        '__class__': 'Quadrupole', 'order': 5,
+    }
+
+    element = xt.Quadrupole(order=7, knl_rel=[0, 0.25], ksl_rel=[0, -0.5])
+    dct = element.to_dict(copy_to_cpu=copy_to_cpu)
+    restored = xt.Quadrupole.from_dict(dct.copy())
+    assert restored.order == 7
+    np.testing.assert_array_equal(restored.knl_rel, [0, 0.25])
+    np.testing.assert_array_equal(restored.ksl_rel, [0, -0.5])
+
+    element.knl_rel[:] = 0
+    element.ksl_rel[:] = 0
+    dct = element.to_dict(copy_to_cpu=copy_to_cpu)
+    restored = xt.Quadrupole.from_dict(dct.copy())
+    assert restored.order == 7
+    np.testing.assert_array_equal(restored.knl_rel, [0, 0])
+    np.testing.assert_array_equal(restored.ksl_rel, [0, 0])
+    assert len(restored.knl) == len(element.knl)
+    assert len(restored.ksl) == len(element.ksl)
+
+
+def test_zero_relative_strengths_preserve_expressions_on_json_round_trip(tmp_path):
+    env = xt.Environment()
+    env['error_knob'] = 0
+    env.new('q', xt.Quadrupole, knl_rel=np.zeros(15), ksl_rel=np.zeros(15))
+    env.ref['q'].knl_rel[14] = env.ref['error_knob']
+    env.ref['q'].ksl_rel[14] = -env.ref['error_knob']
+
+    path = tmp_path / 'env.json'
+    env.to_json(path)
+    restored = xt.load(path)
+    assert len(restored['q'].knl_rel) == 15
+    assert len(restored['q'].ksl_rel) == 15
+    restored['error_knob'] = 0.25
+    assert restored['q'].knl_rel[14] == 0.25
+    assert restored['q'].ksl_rel[14] == -0.25
 
 
 def test_rfmultipole_phase_n_s_and_deprecated_pn_ps_warnings():
@@ -320,12 +411,14 @@ def test_rotation_against_legacy_rotations():
 
 @pytest.mark.filterwarnings('ignore::FutureWarning')
 def test_translation_against_legacy_xyshift():
-    shift = xt.Translation(shift_x=0.1, shift_y=0.2)
+    shift = xt.Translation(shift_x=0.1, shift_y=0.2, shift_s=0.3)
     dct = shift.to_dict()
-    assert set(dct.keys()) == {'__class__', 'shift_x', 'shift_y'}
+    assert set(dct.keys()) == {
+        '__class__', 'shift_x', 'shift_y', 'shift_s'}
     shift2 = xt.Translation.from_dict(dct)
     assert shift2.shift_x == shift.shift_x
     assert shift2.shift_y == shift.shift_y
+    assert shift2.shift_s == shift.shift_s
 
     for shift_x, shift_y in [
         (0.1, 0.2),
@@ -389,6 +482,48 @@ def test_translation_against_legacy_xyshift():
             xo.assert_allclose(
                 getattr(particles, vv), getattr(particles_legacy, vv),
                 atol=1e-12)
+
+
+@for_all_test_contexts
+def test_translation_shift_s_is_exact_drift_without_s_advance(test_context):
+    shift_x = 0.1
+    shift_y = -0.2
+    shift_s = 1.3
+    p0 = xp.Particles(
+        p0c=25.92e9,
+        x=1e-3,
+        px=2e-2,
+        y=-2e-3,
+        py=-3e-2,
+        delta=1e-2,
+        zeta=0.4,
+        s=2.5,
+    )
+
+    expected = p0.copy(_context=test_context)
+    xt.DriftExact(length=shift_s, _context=test_context).track(expected)
+    expected.x -= shift_x
+    expected.y -= shift_y
+    expected.zeta -= shift_s
+    expected.s -= shift_s
+
+    line = xt.Line(elements=[xt.Translation(
+        shift_x=shift_x, shift_y=shift_y, shift_s=shift_s)])
+    line.reset_s_at_end_turn = False
+    line.build_tracker(_context=test_context)
+    actual = p0.copy(_context=test_context)
+    line.track(actual)
+
+    for coordinate in ('x', 'px', 'y', 'py', 'zeta', 'delta', 's'):
+        xo.assert_allclose(
+            getattr(actual, coordinate), getattr(expected, coordinate),
+            atol=1e-14, rtol=1e-14)
+
+    line.track(actual, backtrack=True)
+    for coordinate in ('x', 'px', 'y', 'py', 'zeta', 'delta', 's'):
+        xo.assert_allclose(
+            getattr(actual, coordinate), getattr(p0, coordinate),
+            atol=1e-14, rtol=1e-14)
 
 
 @pytest.mark.parametrize(
@@ -552,7 +687,7 @@ def test_drift_exact_and_expanded(test_context):
 
 @pytest.mark.filterwarnings('ignore::FutureWarning')
 @for_all_test_contexts
-@allow_no_prebuilt_kernels
+@allow_kernel_compilation
 def test_drift_exact_and_expanded_legacy(test_context):
 
 
@@ -917,7 +1052,7 @@ void TestElement_track_local_particle(TestElementData el,
 
 
 @for_all_test_contexts
-@allow_no_prebuilt_kernels
+@allow_kernel_compilation
 def test_per_particle_kernel(test_context):
 
 
@@ -1132,6 +1267,42 @@ def test_simplified_accelerator_segment_bucket_fixed_rf(test_context):
     assert np.isclose(particles.py[0], dtk_particle.py, rtol=1e-14, atol=1e-14)
     assert np.isclose(particles.zeta[0], dtk_particle.zeta, rtol=1e-14, atol=1e-14)
     assert np.isclose(particles.delta[0], dtk_particle.delta, rtol=1e-14, atol=1e-14)
+
+
+@for_all_test_contexts
+@allow_kernel_compilation
+def test_line_segment_map_chromaticity_with_zero_base_tunes(test_context):
+    # Compile the local header rather than use a prebuilt tracking kernel.
+    xt.LineSegmentMap(_context=test_context).compile_kernels(only_if_needed=False)
+    delta = np.array([-0.1, 0.0, 0.1])
+    initial = {'x': 1e-3, 'px': 2e-4, 'y': -3e-3, 'py': 4e-4}
+
+    for plane in ('x', 'y'):
+        # Taylor coefficients 2, 3, 4 correspond to derivatives 2, 6, 24.
+        for order, derivative, coefficient in [(1, 2, 2), (2, 6, 3), (3, 24, 4)]:
+            derivatives = [0] * order + [derivative]
+            segment = xt.LineSegmentMap(
+                _context=test_context, longitudinal_mode='frozen',
+                **{f'dnq{plane}': derivatives})
+            particles = xt.Particles(
+                _context=test_context, p0c=1e9, delta=delta, **initial)
+            segment.track(particles)
+
+            for observed_plane in ('x', 'y'):
+                phase = (2 * np.pi * coefficient * delta**order
+                         if observed_plane == plane else np.zeros_like(delta))
+                position = initial[observed_plane]
+                momentum = initial[f'p{observed_plane}']
+                xo.assert_allclose(
+                    test_context.nparray_from_context_array(
+                        getattr(particles, observed_plane)),
+                    position * np.cos(phase) + momentum * np.sin(phase),
+                    rtol=1e-13, atol=1e-15)
+                xo.assert_allclose(
+                    test_context.nparray_from_context_array(
+                        getattr(particles, f'p{observed_plane}')),
+                    -position * np.sin(phase) + momentum * np.cos(phase),
+                    rtol=1e-13, atol=1e-15)
 
 
 @for_all_test_contexts

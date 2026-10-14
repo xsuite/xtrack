@@ -3,6 +3,8 @@ import numpy as np
 from scipy.constants import c as clight
 from scipy.constants import e as qe
 
+from .general import _print
+
 class BorisSpatialIntegrator:
     """
     Track particles through a magnetic field map with a spatial Boris stepper.
@@ -105,7 +107,8 @@ class BorisSpatialIntegrator:
         for ii in range(self.n_steps):
 
             if self.verbose:
-                print(f's_in = {s_in[0]:.3f} s_in_map = {p.s[0]:.3f}', end='\r', flush=True)
+                _print(f's_in = {s_in[0]:.3f} s_in_map = {p.s[0]:.3f}',
+                       end='\r', flush=True)
 
             x = p.x[mask_alive].copy()
             y = p.y[mask_alive].copy()
@@ -177,6 +180,10 @@ def step_spatial_boris_B(x, y, z, w, q, dz, field_fn, m_kg, gamma):
         Spatial step along z [m].
     field_fn : callable(x, y, z) -> (Bx, By, Bz)
         Function returning magnetic-field components [T].
+    m_kg : (N,) array
+        Particle masses [kg].
+    gamma : (N,) array
+        Relativistic Lorentz factors of the particles.
 
     Returns
     -------
@@ -184,6 +191,8 @@ def step_spatial_boris_B(x, y, z, w, q, dz, field_fn, m_kg, gamma):
         Updated positions [m].
     w1 : (N, 3) array
         Updated momentum state (px, py, P).
+    dt : (N,) array
+        Time of flight for the step [s].
     """
 
     dt = 0.

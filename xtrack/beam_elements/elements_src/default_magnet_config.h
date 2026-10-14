@@ -14,8 +14,8 @@
 #define OCTUPOLE_DEFAULT_MODEL   (6) // drift-kick-drift-expanded
 #define MULTIPOLE_DEFAULT_MODEL  (6) // drift-kick-drift-expanded
 
-#define BEND_DEFAULT_INTEGRATOR       (2) // Yoshida-4
-#define RBEND_DEFAULT_INTEGRATOR      (2) // Yoshida-4
+#define BEND_DEFAULT_INTEGRATOR       (2) // Yoshida-6 (historical index)
+#define RBEND_DEFAULT_INTEGRATOR      (2) // Yoshida-6 (historical index)
 #define QUADRUPOLE_DEFAULT_INTEGRATOR (3) // uniform
 #define SEXTUPOLE_DEFAULT_INTEGRATOR  (3) // uniform
 #define OCTUPOLE_DEFAULT_INTEGRATOR   (3) // uniform

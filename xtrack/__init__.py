@@ -4,10 +4,13 @@
 # ######################################### #
 
 from .general import _pkg_root, _print, START, END
+from xobjects import settings
+from .survey import CCSFrame, Frame, track_frame
 from .particles import (Particles, PROTON_MASS_EV, ELECTRON_MASS_EV,
                         enable_pyheadtail_interface, disable_pyheadtail_interface, masses)
+from .tpsa import ParticlesTpsa
 
-from .base_element import BeamElement, Replica
+from .base_element import BeamElement, Replica, FloatOrTpsa
 from .beam_elements import *
 from .random import *
 from .tracker_data import TrackerData
@@ -22,7 +25,7 @@ from .targets import (TargetLuminosity, TargetSeparationOrthogonalToCrossing,
                       TargetSeparation)
 from .twiss import TwissInit, TwissTable
 from .twiss import twiss_line_multibunch, MultiBunchTwiss
-from .aperture import Aperture, ApertureBuilder
+from .aperture import EnvAperture, LineAperture
 from .rdt import rdt_first_order_perturbation
 from .loss_location_refinement import LossLocationRefinement
 from .internal_record import (RecordIdentifier, RecordIndex, new_io_buffer,

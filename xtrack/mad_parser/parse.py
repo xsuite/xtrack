@@ -8,6 +8,8 @@ from lark import Lark, Transformer, v_args, Token
 
 from xdeps.refs import BaseRef, is_ref
 
+from ..general import _print
+
 grammar = Path(__file__).with_name('madx.lark').read_text()
 
 
@@ -65,7 +67,7 @@ def make_op_handler(op_func):
 
 
 def warn(warning):
-    print(f'Warning: {warning}')
+    _print(f'Warning: {warning}')
 
 
 @v_args(inline=True)
@@ -316,7 +318,7 @@ if __name__ == '__main__':
     def main(file_name, output, test):
         t0 = time.time()
         out = MadxParser().parse_file(file_name)
-        print(f"Parsed `{file_name}` in {time.time() - t0} s")
+        _print(f"Parsed `{file_name}` in {time.time() - t0} s")
 
         # This output is for visualisation purposes only: dict ordering is not guaranteed
         # out of the box by the YAML standard (should use !!omap, but it's not supported by PyYAML)

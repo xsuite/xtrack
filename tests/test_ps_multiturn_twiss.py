@@ -43,7 +43,16 @@ def test_ps_multiturn_twiss(test_context):
     mon = line.record_last_track
 
     tw_mt = line.twiss(co_guess={'x': 0.025}, num_turns=4)
+    tw_mt_zeroed = line.twiss(
+        co_guess={'x': 0.025}, num_turns=4, zero_at='_turn_2')
     tw_core = line.twiss(co_guess={'x': 0.0}, num_turns=0)
+
+    xo.assert_allclose(
+        tw_mt_zeroed['s', '_turn_2'], 0, atol=1e-10, rtol=0)
+    xo.assert_allclose(
+        tw_mt_zeroed['mux', '_turn_2'], 0, atol=1e-10, rtol=0)
+    xo.assert_allclose(
+        tw_mt_zeroed['muy', '_turn_2'], 0, atol=1e-10, rtol=0)
 
     assert len(tw_mt.rows['_turn.*']) == 4
     assert len(tw_mt.rows['_end_poi.*']) == 1

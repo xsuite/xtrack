@@ -1,7 +1,8 @@
 import numpy as np
+from warnings import warn
 
 from .twiss import VARS_FOR_TWISS_INIT_GENERATION
-from .general import _print, _LOC
+from .general import _print, _LOC, DEPRECATION_INFO_PREP_1_0
 import xtrack as xt
 import xdeps as xd
 
@@ -57,10 +58,21 @@ ALLOWED_TARGET_KWARGS= ['x', 'px', 'y', 'py', 'zeta', 'delta', 'pzeta', 'ptau',
                         'c_minus_re', 'c_minus_im',
                         'beta11_ng', 'beta22_ng', 'alfa11_ng', 'alfa22_ng',
                         'dx_ng', 'dpx_ng', 'dy_ng', 'dpy_ng',
-                        'x_ng', 'px_ng', 'y_ng', 'py_ng', 't_ng', 'pt_ng',]
+                        'x_ng', 'px_ng', 'y_ng', 'py_ng', 't_ng', 'pt_ng',
+                        'rad_int_i1x', 'rad_int_i1y', 'rad_int_i2', 'rad_int_i3', 'rad_int_i4',
+                        'rad_int_i4x', 'rad_int_i4y', 'rad_int_i5x', 'rad_int_i5y',
+                        'rad_int_i1x_integrand', 'rad_int_i1y_integrand', 'rad_int_i2_integrand',
+                        'rad_int_i3_integrand', 'rad_int_i4_integrand', 'rad_int_i4x_integrand',
+                        'rad_int_i4y_integrand', 'rad_int_i5x_integrand', 'rad_int_i5y_integrand',
+                        'rad_int_curly_hx', 'rad_int_curly_hy',
+                        'rad_int_eq_gemitt_x', 'rad_int_eq_gemitt_y',
+                        'rad_int_energy_loss', 'rad_int_sigma_delta',
+                        'rad_int_damping_constant_x_s', 'rad_int_damping_constant_y_s',
+                        'rad_int_damping_constant_zeta_s',
+]
 
 
-# Alternative transitions functions
+# Alternative transition functions
 # def _transition_sigmoid_integral(x):
 #     x_shift = x - 3
 #     if x_shift > 10:
@@ -249,12 +261,17 @@ class Target(xd.Target):
             Action used to compute the quantity to be matched. By default the
             action is the Twiss action.
         tag : str, optional
-            Tag associated to the target. Default is ''.
+            Tag associated to the target. If not specified, the tag is built
+            from ``line``, ``at`` and ``tar``.
         optimize_log : bool, optional
             If True, the logarithm of the quantity is used in the cost function
             instead of the quantity itself. Default is False.
         """
 
+
+        if scale is not None:
+            warn('`scale` is deprecated. Use `weight` instead.'
+                 + DEPRECATION_INFO_PREP_1_0, FutureWarning, stacklevel=2)
 
         for kk in kwargs:
             assert kk in ALLOWED_TARGET_KWARGS, (
@@ -378,11 +395,20 @@ class TargetSet(xd.TargetList):
             Action used to compute the quantity to be matched. By default the
             action is the Twiss action.
         tag : str, optional
-            Tag associated to the target. Default is ''.
+            Tag associated to the targets. If not specified, the tag of each
+            target is built from ``line``, ``at`` and its quantity name.
         optimize_log : bool, optional
             If True, the logarithm of the quantity is used in the cost function
             instead of the quantity itself. Default is False.
         """
+
+        if scale is not None:
+            warn('`scale` is deprecated. Use `weight` instead.'
+                 + DEPRECATION_INFO_PREP_1_0, FutureWarning, stacklevel=2)
+            if weight is not None:
+                raise ValueError("Cannot specify both `weight` and `scale` for a target.")
+            weight = scale
+            scale = None
 
         if tars is not None and not isinstance(tars, (list, tuple)):
             tars = [tars]
@@ -483,7 +509,7 @@ class TargetInequality(Target):
     def __init__(self, tar, ineq_sign, rhs, at=None, tol=None, scale=None,
                  line=None, weight=None, tag=''):
 
-        raise NotImplementedError('TargetInequality is not anymore supported. '
+        raise NotImplementedError('TargetInequality is no longer supported. '
             'Please use Target with `GreaterThan` `LessThan` instead. '
             'For example, instead of '
             'TargetInequality("x", "<", 0.1, at="ip1") '
@@ -501,16 +527,17 @@ class TargetRelPhaseAdvance(Target):
         Parameters
         ----------
         tar : str
-            Phase advance to be matched. Can be either 'mux' or 'muy'.
+            Phase advance to be matched. Can be 'mux', 'muy', 'mu1_ng' or
+            'mu2_ng'.
         value : float or GreaterThan or LessThan or TwissTable
             Value to be matched. Inequality constraints can also be specified.
-            If a TwissTable is specified, the target obtained from the table
+            If a TwissTable is specified, the target is obtained from the table
             using the specified tar and at.
         end : str, optional
             Final element at which the phase advance is evaluated. Default is the
-            last element of selected twiss range.
+            last element of the selected twiss range.
         start : str, optional
-            Initali wlement at which the phase advance is evaluated. Default is the
+            Initial element at which the phase advance is evaluated. Default is the
             first element of the selected twiss range.
         tol : float, optional
             Tolerance below which the target is considered to be met.
@@ -525,7 +552,8 @@ class TargetRelPhaseAdvance(Target):
 
         Target.__init__(self, tar=self.compute, value=value, tag=tag, **kwargs)
 
-        assert tar in ['mux', 'muy', 'mu1_ng', 'mu2_ng'], 'Only mux and muy are supported'
+        assert tar in ['mux', 'muy', 'mu1_ng', 'mu2_ng'], (
+            'Only mux, muy, mu1_ng and mu2_ng are supported')
         self.var = tar
         if end is None:
             end = '__ele_stop__'
@@ -564,7 +592,7 @@ class TargetRmatrixTerm(Target):
             Term to be matched. Can be "r11", "r12", "r21", "r22", etc
         value : float or GreaterThan or LessThan or TwissTable
             Value to be matched. Inequality constraints can also be specified.
-            If a TwissTable is specified, the target obtained from the table
+            If a TwissTable is specified, the target is obtained from the table
             using the specified tar and at.
         start : str
             First element of the range for which the R-matrix is computed.
@@ -723,11 +751,11 @@ class ActionTwiss(xd.Action):
         self.kwargs = kwargs
         self.allow_twiss_failure = allow_twiss_failure
         self.compensate_radiation_energy_loss = compensate_radiation_energy_loss
-        self._alredy_prepared = False
+        self._already_prepared = False
 
     def prepare(self, force=False):
 
-        if self._alredy_prepared and not force:
+        if self._already_prepared and not force:
             return
 
         line = self.line
@@ -735,13 +763,13 @@ class ActionTwiss(xd.Action):
 
         ismultiline = isinstance(line, (xt.Multiline, xt.Environment, xt.MultilineLegacy))
 
-        # Forbit specifying init through kwargs for Multiline
+        # Forbid specifying init through kwargs for Multiline
         if ismultiline:
             for kk in VARS_FOR_TWISS_INIT_GENERATION:
                 if kk in kwargs:
                     raise ValueError(
                         f'`{kk}` cannot be specified for a Multiline match. '
-                        f'Please specify provide a TwissInit object for each line instead.')
+                        f'Please provide a TwissInit object for each line instead.')
 
         # Handle init from table
         if ismultiline:
@@ -796,6 +824,8 @@ class ActionTwiss(xd.Action):
 
         self.kwargs = kwargs
 
+        self._already_prepared = True
+
     def run(self, allow_failure=True):
         if self.compensate_radiation_energy_loss:
             if isinstance(self.line, (xt.Multiline, xt.Environment, xt.MultilineLegacy)):
@@ -835,6 +865,7 @@ class MeritFunctionLine(xd.MeritFunctionForMatch):
         self.zero_if_met = merit_function_match.zero_if_met
         self.show_call_counter = merit_function_match.show_call_counter
         self.check_limits = merit_function_match.check_limits
+        self._print = merit_function_match._print
         self.use_tpsa = use_tpsa
 
     def get_jacobian(self, x=None, f0=None):
@@ -843,15 +874,25 @@ class MeritFunctionLine(xd.MeritFunctionForMatch):
         else:
             return super().get_jacobian(x, f0=f0)
 
+    def set_jacobian_flag(self, flag):
+        """Solver hint: the upcoming eval is a Jacobian point (build the parametric map)
+        or a value-only line-search eval (build the cheap map). Harmless for non-TPSA."""
+        if not self.use_tpsa:
+            return
+        for a in self.actions:
+            if hasattr(a, "set_build_parametric"):
+                a.set_build_parametric(flag)
+
     def get_jacobian_tpsa(self, x=None):
-        from .madng_interface import ActionTwissMadngTPSA
+        # Either TPSA action (MAD-NG or native GTPSA) exposes acquire_jacobian().
         action = None
         for a in self.actions:
-            if isinstance(a, ActionTwissMadngTPSA):
+            if hasattr(a, 'acquire_jacobian'):
                 action = a
                 break
         if action is None:
-            raise RuntimeError('No ActionTwissMadngTPSA found in actions for TPSA jacobian computation')
+            raise RuntimeError('No TPSA action (with acquire_jacobian) found in actions '
+                               'for TPSA jacobian computation')
 
         # acquire_jacobian() reads the Jacobian as the linear part of the
         # differential-algebra map from the last MAD-NG track.
@@ -874,8 +915,8 @@ class OptimizeLine(xd.Optimize):
                     restore_if_fail=True, verbose=False,
                     n_steps_max=20, default_tol=None,
                     solver=None, check_limits=True,
-                    action_twiss=None, action_twiss_ng=None,
-                    use_tpsa=False, name="",
+                    action_twiss=None, action_twiss_tpsa=None,
+                    use_tpsa=False, tpsa_backend='madng', name="",
                     **kwargs):
 
         if hasattr(targets, 'values'): # dict like
@@ -937,15 +978,33 @@ class OptimizeLine(xd.Optimize):
             # Handle action
             if tt.action is None:
                 if use_tpsa:
-                    if action_twiss_ng is None:
-                        from .madng_interface import ActionTwissMadngTPSA
+                    if action_twiss_tpsa is None:
+                        if tpsa_backend == 'madng_tpsa':
+                            from .tpsa.match_action import ActionTpsaTrack
 
-                        action_twiss_ng = ActionTwissMadngTPSA(
-                                line, [v.name for v in vary_flatten], targets_flatten, {},
-                                    sum_rmat_tar=len(start_end_tuple_set), **kwargs
-                        )
-                        action_twiss_ng.prepare()
-                    tt.action = action_twiss_ng
+                            action_twiss_tpsa = ActionTpsaTrack(
+                                line,
+                                [v.name for v in vary_flatten],
+                                targets_flatten,
+                                **kwargs,
+                            )
+                        elif tpsa_backend == 'madng':
+                            from .madng_interface import ActionTwissMadngTPSA
+
+                            action_twiss_tpsa = ActionTwissMadngTPSA(
+                                line,
+                                [v.name for v in vary_flatten],
+                                targets_flatten,
+                                {},
+                                sum_rmat_tar=len(start_end_tuple_set),
+                                **kwargs,
+                            )
+                        else:
+                            raise ValueError(
+                                f"unknown tpsa_backend {tpsa_backend!r}; "
+                                f"use 'madng' or 'madng_tpsa'")
+                        action_twiss_tpsa.prepare()
+                    tt.action = action_twiss_tpsa
                 else:
                     if action_twiss is None:
                         action_twiss = ActionTwiss(
@@ -957,7 +1016,7 @@ class OptimizeLine(xd.Optimize):
 
             # Handle at
             if isinstance(tt.tar, tuple):
-                tt_name = tt.tar[0] # `at` is  present
+                tt_name = tt.tar[0] # `at` is present
                 tt_at = tt.tar[1]
             else:
                 tt_name = tt.tar
@@ -969,7 +1028,7 @@ class OptimizeLine(xd.Optimize):
                 this_line = tt.action.line[tt.line] if tt.line else tt.action.line
                 if isinstance(tt_at, _LOC):
                     tt_at= tw0['name', {'START':0, 'END':-1}[tt_at.name]]
-                    # If _end_point preceded by a marker, use the marker
+                    # If _end_point is preceded by a marker, use the marker
                     if tt_at == '_end_point' and len(tw0.name) > 1:
                         nn_prev = tw0['name', -2]
                         nn_env_prev = tw0['env_name', -2]
@@ -1008,7 +1067,8 @@ class OptimizeLine(xd.Optimize):
                         n_steps_max=n_steps_max,
                         restore_if_fail=restore_if_fail,
                         check_limits=check_limits,
-                        name=name)
+                        name=name,
+                        _printer=_print)
 
         _err = MeritFunctionLine(self._err, use_tpsa=use_tpsa)
         self.line = line
@@ -1162,7 +1222,7 @@ def closed_orbit_correction(line, line_co_ref, correction_config,
             start=corr['start'], end=corr['end'])
         opt.solve()
         opts[corr_name] = opt
-        print()
+        _print()
     return opts
 
 def match_knob_line(line, knob_name, vary, targets, knob_value_start,
@@ -1335,6 +1395,7 @@ def opt_from_callable(function, x0, steps, tar, tols):
 
     '''Optimize a generic callable'''
 
-    opt = xd.Optimize.from_callable(function, x0, tar, steps=steps, tols=tols,
-                                    show_call_counter=False)
+    opt = xd.Optimize.from_callable(
+        function, x0, tar, steps=steps, tols=tols,
+        show_call_counter=False, _printer=_print)
     return opt

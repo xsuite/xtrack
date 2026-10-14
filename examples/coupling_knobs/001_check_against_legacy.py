@@ -103,7 +103,7 @@ line_legacy['cmrskew'] = 0
 line_legacy['cmiskew'] = 5e-3
 tt_im_leg = line_legacy.get_table(attr=True)
 
-# Withing 12% of the maximum value
+# Within 12% of the maximum value
 assert np.allclose(tt_re.k1sl, tt_re_leg.k1sl, rtol=0,
                    atol=0.12 * np.max(tt_re_leg.k1sl))
 assert np.allclose(tt_im.k1sl, tt_im_leg.k1sl, rtol=0,

@@ -8,6 +8,8 @@ import xtrack as xt
 
 from xtrack.particles.particles import ptau2delta, dptau2ddelta
 
+from .general import _print
+
 NG_XS_MAP = {
     'beta11': 'betx',
     'beta22': 'bety',
@@ -36,8 +38,8 @@ XS_NG_MAP = {
 }
 
 BETA0_COLUMNS = ['x', 'px', 'y', 'py', 't', 'pt',
-                 'dx', 'dy', 'dpx', 'dpy', 'ddx', 'ddpx', 'ddy', 'ddpy', 'wx', 'phix',
-                 'wy', 'phiy', 'mu1', 'mu2', 'mu3', 'dmu1', 'dmu2', 'dmu3', 'r11',
+                 'dx', 'dy', 'dpx', 'dpy', 'ddx', 'ddpx', 'ddy', 'ddpy', 'wx',
+                 'wxp', 'wy', 'wyp', 'mu1', 'mu2', 'mu3', 'dmu1', 'dmu2', 'dmu3', 'r11',
                  'r12', 'r21', 'r22', 'alfa11', 'alfa12', 'alfa13', 'alfa21',
                  'alfa22', 'alfa23', 'alfa31', 'alfa32', 'alfa33', 'beta11',
                  'beta12', 'beta13', 'beta21', 'beta22', 'beta23', 'beta31',
@@ -52,7 +54,8 @@ OPTFUN_QUANTITIES = ['beta11', 'beta22', 'alfa11', 'alfa22', 'gama11', 'gama22',
                      'dx', 'dy', 'dpx', 'dpy', 'mu1', 'mu2']
 
 CHROM_COLUMNS = ['dmu1', 'dmu2', 'dmu3', 'Dx', 'Dpx', 'Dy',
-                 'Dpy', 'ddx', 'ddpx', 'ddy', 'ddpy', 'wx', 'wy', 'phix', 'phiy']
+                 'Dpy', 'ddx', 'ddpx', 'ddy', 'ddpy', 'wx', 'wxp',
+                 'wy', 'wyp']
 
 COUPLING_COLUMNS = ['alfa12', 'alfa13', 'alfa21', 'alfa23', 'alfa31', 'alfa32',
                     'beta12', 'beta13', 'beta21', 'beta23', 'beta31', 'beta32',
@@ -108,7 +111,8 @@ def build_madng_model(line, sequence_name='seq', **kwargs):
     model : object
         Built MAD-NG model.
     """
-    print('Building MAD-NG model for line', line.name, 'with sequence name', sequence_name)
+    _print('Building MAD-NG model for line', line.name,
+           'with sequence name', sequence_name)
     if line.tracker is None:
         line.build_tracker()
     mng = line.to_madng(sequence_name=sequence_name, **kwargs)
@@ -219,6 +223,11 @@ def _tw_ng(line, rdts=(), normal_form=False,
         If ``True``, use Xsuite Twiss output structure and enrich it with MAD-NG data.
     X0 : object, optional
         Initial condition object for open Twiss calculations.
+    compute_chromatic_properties : bool, optional
+        If ``True``, also compute chromatic quantities (``chrom=true`` in MAD-NG).
+    coupling_edw_teng : bool, optional
+        If ``True``, also compute Edwards-Teng coupling quantities
+        (``coupling=true`` in MAD-NG).
     method : int, optional
         MAD-NG method identifier for Twiss/tracking calls.
     **tw_kwargs
@@ -357,14 +366,14 @@ def _tw_ng(line, rdts=(), normal_form=False,
         tw[nn] = np.atleast_1d(np.squeeze(out_dct[nn]))[:-1]
 
     if compute_chromatic_properties:
-        temp_x = tw.wx_ng * np.exp(1j*2*np.pi*tw.phix_ng)
+        temp_x = tw.wx_ng * np.exp(1j * 2 * np.pi * tw.wxp_ng)
         tw['ax_ng'] = np.imag(temp_x)
         tw['bx_ng'] = np.real(temp_x)
-        temp_y = tw.wy_ng * np.exp(1j*2*np.pi*tw.phiy_ng)
+        temp_y = tw.wy_ng * np.exp(1j * 2 * np.pi * tw.wyp_ng)
         tw['ay_ng'] = np.imag(temp_y)
         tw['by_ng'] = np.real(temp_y)
-        del tw['phix_ng']
-        del tw['phiy_ng']
+        del tw['wxp_ng']
+        del tw['wyp_ng']
 
     if normal_form:
         mng_script_nf = (
@@ -507,12 +516,12 @@ class ActionTwissMadng(Action):
         self.line = line
         self.tw_kwargs = tw_kwargs
         self.tw_kwargs.update(kwargs)
-        self._alredy_prepared = False
+        self._already_prepared = False
         self.X0 = None
 
     def prepare(self, force=False):
 
-        if self._alredy_prepared and not force:
+        if self._already_prepared and not force:
             return
 
         init = self.tw_kwargs.get('init', None)
@@ -526,7 +535,7 @@ class ActionTwissMadng(Action):
             assert isinstance(init, xt.TwissTable)
             self.X0 = madng_get_init(self.line, at=xt.START)
 
-        self._alredy_prepared = True
+        self._already_prepared = True
 
     def run(self):
         return self.line.madng_twiss(xsuite_tw = False, X0=self.X0, **self.tw_kwargs)
@@ -819,7 +828,7 @@ class ActionTwissMadngTPSA(Action):
         """
         Execute the MAD-NG TPSA matching action.
         This method performs either a Twiss or Track operation in MAD-NG
-        depending if quantities can be calculated through tracking or not.
+        depending on whether the quantities can be calculated through tracking or not.
         It retrieves the results and constructs a TwissTable with the requested
         target quantities at the specified target locations.
 
@@ -1029,7 +1038,7 @@ class ActionTwissMadngTPSA(Action):
 def line_to_madng(line, sequence_name='seq', temp_fname=None, keep_files=False,
                   **kwargs):
     try:
-        _ge = xt.elements._get_expr
+        from .beam_elements._common import _get_expr as _ge
         if temp_fname is None:
             temp_fname = 'temp_madng_' + str(uuid.uuid4())
 

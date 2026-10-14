@@ -75,4 +75,4 @@ void Bend_track_local_particle(
 
 }
 
-#endif // XTRACK_TRUEBEND_H
+#endif // XTRACK_BEND_H

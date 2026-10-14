@@ -59,12 +59,12 @@ CONSTANTS = {
     "pmass": 0.93827208816,  # GeV
     "nmass": 0.93956542052,  # GeV
     "umass": 0.93149410242,  # GeV
-    "mumass": 0.1056583715,  # GeV
+    "mumass": 0.1056583755,  # GeV
     "clight": 299792458.0,  # m/s
     "qelect": 1.602176634e-19,  # A * s
     "hbar": 6.582119569e-25,  # MeV * s
     "erad": 2.8179403262e-15,  # m
-    "prad": 'erad / emass * pmass',
+    "prad": 'erad * emass / pmass',
 }
 
 _APERTURE_TYPES = {
@@ -145,16 +145,16 @@ class MadxLoader:
         self._new_builtin("tkicker", "Multipole")
         self._new_builtin("kicker", "Multipole")
         self._new_builtin("drift", "Drift")
-        self._new_builtin("collimator", "Drift")
-        self._new_builtin("rcollimator", "Drift")
-        self._new_builtin("ecollimator", "Drift")
-        self._new_builtin("instrument", "Drift")
-        self._new_builtin("monitor", "Drift")
-        self._new_builtin("hmonitor", "Drift")
-        self._new_builtin("vmonitor", "Drift")
-        self._new_builtin("imonitor", "Drift")
-        self._new_builtin("placeholder", "Drift")
-        self._new_builtin("wire", "Drift")
+        self._new_builtin("collimator", "Device")
+        self._new_builtin("rcollimator", "Device")
+        self._new_builtin("ecollimator", "Device")
+        self._new_builtin("instrument", "Device")
+        self._new_builtin("monitor", "Device")
+        self._new_builtin("hmonitor", "Device")
+        self._new_builtin("vmonitor", "Device")
+        self._new_builtin("imonitor", "Device")
+        self._new_builtin("placeholder", "Device")
+        self._new_builtin("wire", "Device")
         self._new_builtin("sbend", "Bend")
         self._new_builtin("rbend", "RBend")
         self._new_builtin("quadrupole", "Quadrupole")
@@ -270,7 +270,7 @@ class MadxLoader:
                 composer = self.env.new_line(name=name, components=components, compose=True)
             else:
                 raise ValueError(
-                    f'Only a MAD-X sequence or a line type can be used to build'
+                    f'Only a MAD-X sequence or a line type can be used to build '
                     f'a line, but got: {line_type}!'
                 )
 
@@ -341,8 +341,8 @@ class MadxLoader:
 
         for name, body in elements:
 
-            # Parent is None if the element already exists and is referred to,
-            # by name, otherwise we expect a line nested in the current one.
+            # Parent is None if the element already exists and is referred to
+            # by name; otherwise we expect a line nested in the current one.
             parent = body.get('parent', None)
             repeat = body.get('_repeat', 1)
             invert = body.get('_invert', False)
@@ -566,9 +566,8 @@ class MadxLoader:
             if (angle := params.pop('angle', None)):
                 params['rot_y_rad'] = angle
         elif parent_name == 'translation':
-            if (ds := params.pop('ds', None)):
-                raise NotImplementedError('`ds` parameter not supported yet for '
-                                          '`translation` elements.')
+            if 'ds' in params:
+                params['shift_s'] = params.pop('ds')
             if (dx := params.pop('dx', None)):
                 params['shift_x'] = dx
             if (dy := params.pop('dy', None)):
@@ -587,7 +586,7 @@ class MadxLoader:
         return params
 
     def _build_aperture(self, name, aper_name, params, force=False):
-        """Build a Xtrack aperture for element `name` with  `params`.
+        """Build an Xtrack aperture for element `name` with `params`.
 
         Parameters
         ----------
@@ -607,8 +606,8 @@ class MadxLoader:
         -------
         The name of the generated aperture element in the environment, or None.
 
-        Notes:
-        ------
+        Notes
+        -----
         Currently supports all the basic MAD-X aperture types, however when
         ``aper_vx`` or ``aper_vy`` are given, the aperture is assumed to be
         simply a polygon, instead of applying the MAD-X logic (testing first for
@@ -786,7 +785,7 @@ def load_madx_lattice(file=None, string=None, reverse_lines=None, s_tol=1e-6,
         if not end_compose:
             raise ValueError('`end_compose` must be True when using `reverse_lines`!')
 
-        print('Reversing lines:', reverse_lines)
+        xt._print('Reversing lines:', reverse_lines)
         rlines = {}
         for nn in reverse_lines:
             ll = env.lines[nn]

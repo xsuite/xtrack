@@ -14,7 +14,7 @@ import xobjects as xo
 import xpart as xp
 import xtrack as xt
 from xobjects.test_helpers import for_all_test_contexts, fix_random_seed
-from xtrack.beam_elements.elements import _angle_from_trig
+from xtrack.beam_elements._common import _angle_from_trig
 
 test_data_folder = pathlib.Path(
     __file__).parent.joinpath('../test_data').absolute()

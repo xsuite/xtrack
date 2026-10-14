@@ -16,7 +16,7 @@ import xobjects as xo
 import xpart as xp
 import xtrack as xt
 from xobjects.test_helpers import (
-    allow_no_prebuilt_kernels, for_all_test_contexts)
+    allow_kernel_compilation, for_all_test_contexts)
 from xtrack import Line, Node, Multipole
 
 test_data_folder = pathlib.Path(
@@ -205,6 +205,46 @@ def test_line_xpart_facade(monkeypatch):
     assert isinstance(line.xpart, FakeXpartLineAPI)
     assert line.xpart is line.xpart
     assert line.xpart.line is line
+
+
+def test_line_xfields_facade_and_deprecated_ibs_configure(monkeypatch):
+
+    calls = {}
+
+    class FakeXfieldsLineAPI:
+        def __init__(self, line):
+            self.line = line
+
+        def ibs_configure(self, **kwargs):
+            calls['line'] = self.line
+            calls.update(kwargs)
+            return 'configured'
+
+    xfields_module = types.ModuleType('xfields')
+    line_tools_module = types.ModuleType('xfields.line_tools')
+    line_tools_module.XfieldsLineAPI = FakeXfieldsLineAPI
+    xfields_module.line_tools = line_tools_module
+    monkeypatch.setitem(sys.modules, 'xfields', xfields_module)
+    monkeypatch.setitem(sys.modules, 'xfields.line_tools', line_tools_module)
+
+    line = xt.Line(elements=[], element_names=[])
+
+    assert isinstance(line.xfields, FakeXfieldsLineAPI)
+    assert line.xfields is line.xfields
+    assert line.xfields.line is line
+
+    with pytest.warns(
+            FutureWarning,
+            match=r'`Line\.configure_intrabeam_scattering\(\.\.\.\)` '
+                  r'is deprecated'):
+        result = line.configure_intrabeam_scattering(
+            element='ibs_kick', update_every=10, at=0)
+
+    assert result == 'configured'
+    assert calls['line'] is line
+    assert calls['element'] == 'ibs_kick'
+    assert calls['update_every'] == 10
+    assert calls['at'] == 0
 
 
 def test_remove_redundant_apertures():
@@ -451,7 +491,7 @@ def test_get_elements_of_type_is_deprecated():
     assert names == ['cav']
 
 
-@allow_no_prebuilt_kernels
+@allow_kernel_compilation
 def test_insert_omp():
 
 
@@ -480,7 +520,7 @@ def test_to_pandas():
 
     assert tuple(df.columns) == (
         's', 'element_type', 'name', 'isthick', 'isreplica', 'parent_name',
-       'parent_type', 'prototype', 'iscollective', 'element', 's_start',
+       'parent_type', 'prototype', 'base_prototype', 'iscollective', 'element', 's_start',
        's_center', 's_end')
     assert len(df) == 4
 
@@ -866,7 +906,7 @@ def test_from_json_to_json(tmp_path):
 
 
 @for_all_test_contexts
-@allow_no_prebuilt_kernels
+@allow_kernel_compilation
 def test_config_propagation(test_context):
 
 
@@ -914,7 +954,7 @@ def test_pickle():
     # Load the line
     line = xt.load(test_data_folder /
             'hllhc15_noerrors_nobb/line_w_knobs_and_particle.json')
-    line.particle_ref = xp.Particles(p0c=7e12, mass=xp.PROTON_MASS_EV)
+    line.particle_ref = xp.Particles(p0c=7e12, mass0=xp.PROTON_MASS_EV)
     line.build_tracker()
 
     lnss = pickle.dumps(line)
@@ -976,6 +1016,7 @@ def test_line_attr():
     assert np.all(line.attr['angle'] == [0, 8, 0.5 * 6, 0, 0])
 
 
+@pytest.mark.filterwarnings('ignore:The `Solenoid` element is deprecated:FutureWarning')
 def test_line_attr_ks():
     line = xt.Line(
         elements=[
@@ -983,35 +1024,65 @@ def test_line_attr_ks():
             xt.UniformSolenoid(length=2, ks=0.3),
             xt.VariableSolenoid(length=3, ks_profile=[0.2, 0.8]),
             xt.VariableSolenoid(length=4, ks_profile=[0, 0]),
+            xt.Solenoid(length=5, ks=-0.2),
+            xt.Replica(parent_name='uniform_sol'),
         ],
-        element_names=['drift', 'uniform_sol', 'var_sol', 'var_sol_expr'],
+        element_names=['drift', 'uniform_sol', 'var_sol', 'var_sol_expr',
+                       'legacy_sol', 'uniform_replica'],
     )
 
     line.vars['ks_entry'] = 0.4
     line.vars['ks_exit'] = 1.0
     line['var_sol_expr'].ks_profile[0] = line.vars['ks_entry']
     line['var_sol_expr'].ks_profile[1] = line.vars['ks_exit']
+    line.vars['var_length'] = 4.
+    line['var_sol_expr'].length = line.vars['var_length']
 
     line.build_tracker()
 
-    xo.assert_allclose(
-        line.attr['ks'],
-        [0, 0.3, 0.5 * (0.2 + 0.8), 0.5 * (0.4 + 1.0)],
-        rtol=0,
-        atol=1e-14,
-    )
+    def check(ks, ksoll):
+        xo.assert_allclose(line.attr['ks'], ks, rtol=0, atol=1e-14)
+        xo.assert_allclose(line.attr['ksoll'], ksoll, rtol=0, atol=1e-14)
+        for table in (line.get_table(attr=True), line.get_strengths()):
+            xo.assert_allclose(table.ks, [*ks, 0.], rtol=0, atol=1e-14)
+            xo.assert_allclose(table.ksoll, [*ksoll, 0.], rtol=0, atol=1e-14)
 
+    check([0., 0.3, 0.5, 0.7, -0.2, 0.3], [0., 0.6, 1.5, 2.8, -1., 0.6])
+
+    line['uniform_sol'].ks = -0.4
+    line['uniform_sol'].length = 2.5
     line['var_sol'].ks_profile[0] = 0.6
     line['var_sol'].ks_profile[1] = 1.4
+    line['var_sol'].length = 1.5
     line.vars['ks_entry'] = 0.8
     line.vars['ks_exit'] = 1.6
+    line.vars['var_length'] = 6.
+    line['legacy_sol'].ks = -0.1
+    line['legacy_sol'].length = 6.
 
-    xo.assert_allclose(
-        line.attr['ks'],
-        [0, 0.3, 0.5 * (0.6 + 1.4), 0.5 * (0.8 + 1.6)],
-        rtol=0,
-        atol=1e-14,
-    )
+    check([0., -0.4, 1., 1.2, -0.1, -0.4], [0., -1., 1.5, 7.2, -0.6, -1.])
+
+
+def test_line_attr_ksoll_solenoid_slices():
+    line = xt.Line(elements={'sol': xt.UniformSolenoid(length=2., ks=0.3),
+                             'drift': xt.Drift(length=1.)})
+    line.vars['strength'] = 0.3
+    line.vars['sol_length'] = 2.
+    line['sol'].ks = line.vars['strength']
+    line['sol'].length = line.vars['sol_length']
+    line.slice_thick_elements([
+        xt.Strategy(xt.Uniform(3, mode='thick'), element_type=xt.UniformSolenoid)])
+    body_names = [name for name in line.element_names
+                  if isinstance(line.get(name), xt.ThickSliceUniformSolenoid)]
+    assert len(body_names) == 3
+    for strength, length in ((0.3, 2.), (-0.4, 3.), (0., 3.)):
+        line.vars['strength'] = strength
+        line.vars['sol_length'] = length
+        for table in (line.get_table(attr=True), line.get_strengths()):
+            for name in table.name:
+                expected = strength * length / 3 if name in body_names else 0.
+                assert table['ksoll', name] == pytest.approx(expected, abs=1e-14)
+            assert np.sum(table.ksoll) == pytest.approx(strength * length, abs=1e-14)
 
 
 def test_line_attr_splineboris_bs():

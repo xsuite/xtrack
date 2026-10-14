@@ -8,6 +8,7 @@ from numbers import Number
 
 from .masses import U_MASS_EV
 from .masses import __dict__ as mass__dict__
+from ..general import _print
 
 # Monte Carlo numbering scheme as defined by the Particle Data Group
 # See https://pdg.lbl.gov/2007/reviews/montecarlorpp.pdf for implementation
@@ -116,24 +117,124 @@ elements_long = {
 _elements_long_inv = {vv: kk for kk, vv in elements_long.items()}
 
 
+# ===============
+# === Helpers ===
+# ===============
+
 def is_proton(pdg_id):
     """Check if a PDG ID corresponds to a proton."""
-    return int(pdg_id) == 2212
+    pid = np.asarray(pdg_id, dtype=np.int64)
+    return pid == 2212
+
+def is_antiproton(pdg_id):
+    """Check if a PDG ID corresponds to an antiproton."""
+    pid = np.asarray(pdg_id, dtype=np.int64)
+    return pid == -2212
+
+def is_pion(pdg_id):
+    """Check if a PDG ID corresponds to a pion."""
+    pid = np.asarray(pdg_id, dtype=np.int64)
+    return np.isin(pid, [-211, 111, 211])
+
+def is_kaon(pdg_id):
+    """Check if a PDG ID corresponds to a kaon."""
+    pid = np.asarray(pdg_id, dtype=np.int64)
+    return np.isin(pid, [-321, -311, 130, 310, 311, 321])
+
+def is_meson(pdg_id):
+    """Check if a PDG ID corresponds to a general meson."""
+    pid = np.asarray(pdg_id, dtype=np.int64)
+    q1 = (np.abs(pid) // 100) % 10
+    q2 = (np.abs(pid) // 10) % 10
+    q3 = (np.abs(pid) // 1000) % 10
+    return (
+        (np.abs(pid) < 1_000_000_000)
+        & (q3 == 0)
+        & (q1 >= 1) & (q1 <= 6)
+        & (q2 >= 1) & (q2 <= 6)
+    )
+
+def is_baryon(pdg_id):
+    """Check if a PDG ID corresponds to a general baryon."""
+    pid = np.asarray(pdg_id, dtype=np.int64)
+    q1 = (np.abs(pid) // 1000) % 10
+    q2 = (np.abs(pid) // 100) % 10
+    q3 = (np.abs(pid) // 10) % 10
+    return (
+        (np.abs(pid) < 1_000_000_000)
+        & (q1 >= 1) & (q1 <= 6)
+        & (q2 >= 1) & (q2 <= 6)
+        & (q3 >= 1) & (q3 <= 6)
+    )
+
+def is_hadron(pdg_id):
+    """Check if a PDG ID corresponds to a hadron."""
+    return is_meson(pdg_id) | is_baryon(pdg_id)
 
 def is_ion(pdg_id):
-    """Check if a PDG ID corresponds to a heavy ion (A+Z > 1)."""
-    tmpid = pdg_id - 1000000000
-    L = int(tmpid/1e7)
-    tmpid -= L*1e7
-    Z = int(tmpid /1e4)
-    tmpid -= Z*1e4
-    A = int(tmpid /10)
-    return (int(pdg_id) >= 1000000000) and (Z > 0) and (A > Z)
+    """Check for an ion or anti-ion ID with Z > 0 and A > Z.
+
+    Z and A are decoded from the absolute PDG ID, which must be at least 10**9.
+    """
+    pid = np.asarray(pdg_id, dtype=np.int64)
+    tmpid = np.abs(pid) - 1000000000
+    L = (tmpid // 10_000_000).astype(np.int64)
+    tmpid = tmpid - L * 10_000_000
+    Z = (tmpid // 10_000).astype(np.int64)
+    tmpid = tmpid - Z * 10_000
+    A = (tmpid // 10).astype(np.int64)
+    return (np.abs(pid) >= 1000000000) & (Z > 0) & (A > Z)
+
+def is_electron(pdg_id):
+    """Check if a PDG ID corresponds to an electron."""
+    pid = np.asarray(pdg_id, dtype=np.int64)
+    return pid == 11
+
+def is_positron(pdg_id):
+    """Check if a PDG ID corresponds to a positron."""
+    pid = np.asarray(pdg_id, dtype=np.int64)
+    return pid == -11
+
+def is_muon(pdg_id):
+    """Check if a PDG ID corresponds to a muon."""
+    pid = np.asarray(pdg_id, dtype=np.int64)
+    return pid == 13
+
+def is_antimuon(pdg_id):
+    """Check if a PDG ID corresponds to an antimuon."""
+    pid = np.asarray(pdg_id, dtype=np.int64)
+    return pid == -13
 
 def is_lepton(pdg_id):
     """Check if a PDG ID corresponds to a lepton (neutrinos included)."""
-    return 11 <= abs(int(pdg_id)) <= 16
+    pid = np.asarray(pdg_id, dtype=np.int64)
+    return (np.abs(pid) >= 11) & (np.abs(pid) <= 16)
 
+def is_neutrino(pdg_id):
+    """Check if a PDG ID corresponds to a neutrino."""
+    pid = np.asarray(pdg_id, dtype=np.int64)
+    return np.isin(np.abs(pid), [12, 14, 16])
+
+def is_photon(pdg_id):
+    """Check if a PDG ID corresponds to a photon."""
+    pid = np.asarray(pdg_id, dtype=np.int64)
+    return pid == 22
+
+def is_antiparticle(pdg_id):
+    """Check if a PDG ID corresponds to an antiparticle."""
+    pid = np.asarray(pdg_id, dtype=np.int64)
+    return pid < 0
+
+def is_neutral(pdg_id):
+    """Check if a PDG ID corresponds to a neutral particle."""
+    pid = np.asarray(pdg_id, dtype=np.int64)
+    q, _, _, _ = get_properties_from_pdg_id(pdg_id)
+    return (pid != 0) & (q == 0)
+
+
+# ==========================
+# === Property functions ===
+# ==========================
 
 def get_name_from_pdg_id(pdg_id, long_name=True, subscripts=True):
     """
@@ -141,14 +242,16 @@ def get_name_from_pdg_id(pdg_id, long_name=True, subscripts=True):
 
     Parameters
     ----------
+    pdg_id : int or str
+        The PDG ID of the particle.
     long_name : bool, default True
         If True, return the long name of the particle (ASCII-compliant). For a
-        particle in the PDF internal table, this is the last name in the list
+        particle in the PDG internal table, this is the last name in the list
         of alternatives. For an ion, it is the full element name, followed by
         the mass number. If 'long_name' is False, a short name is returned
-        (Unicode). For a particle in the PDF internal table, this is the first
+        (Unicode). For a particle in the PDG internal table, this is the first
         name in the list of alternatives. For an ion, it is the element name
-        preceded (when 'subscripts' is True) of followed (when 'subscripts' is
+        preceded (when 'subscripts' is True) or followed (when 'subscripts' is
         False) by the mass number.
     subscripts : bool, default True
         Controls whether or not to allow sub- and superscripts in the short
@@ -171,10 +274,10 @@ def get_pdg_id_from_name(name=None):
     Parameters
     ----------
     name : str
-        The name of the particle. Can be any alternative from the PDF internal
+        The name of the particle. Can be any alternative from the PDG internal
         table, with or without sub- or superscripts. For ions, the name can be
         any combination of the element short or long name and the mass number,
-        for instance 'Pb208', 'Pb 208', Pb-208', 'Pb_208', '208Pb', 'Lead-208',
+        for instance 'Pb208', 'Pb 208', 'Pb-208', 'Pb_208', '208Pb', 'Lead-208',
         'lead 208', etc.
 
     Returns
@@ -238,19 +341,18 @@ def get_properties_from_pdg_id(pdg_id, long_name=False, subscripts=True):
     ----------
     pdg_id : int or str
         The PDG ID of the particle.
-    long_name : bool, default True
+    long_name : bool, default False
         If True, return the long name of the particle (ASCII-compliant). For a
-        particle in the PDF internal table, this is the last name in the list
+        particle in the PDG internal table, this is the last name in the list
         of alternatives. For an ion, it is the full element name, followed by
         the mass number. If 'long_name' is False, a short name is returned
-        (Unicode). For a particle in the PDF internal table, this is the first
+        (Unicode). For a particle in the PDG internal table, this is the first
         name in the list of alternatives. For an ion, it is the element name
-        preceded (when 'subscripts' is True) of followed (when 'subscripts' is
+        preceded (when 'subscripts' is True) or followed (when 'subscripts' is
         False) by the mass number.
     subscripts : bool, default True
         Controls whether or not to allow sub- and superscripts in the short
         name. Has no function if 'long_name' is True.
-    name : str
 
     Returns
     -------
@@ -427,7 +529,7 @@ def get_mass_from_pdg_id(pdg_id, allow_approximation=True, expected_mass=None, v
     elif pdg_id > 1000000000 and allow_approximation:
         _, A, _, _ = get_properties_from_pdg_id(pdg_id)
         if verbose:
-            print(f"Warning: approximating the mass as {A}u!")
+            _print(f"Warning: approximating the mass as {A}u!")
         return A*U_MASS_EV
     elif expected_mass is not None and _mass_consistent(pdg_id, expected_mass):
         # This is a workaround in case an exact mass is given
@@ -531,7 +633,7 @@ def _mass_consistent(pdg_id, m, mask=None):
         return True
 
 
-# Make sure no duouble names exist in the pdg_table, after removing subscripts
+# Make sure no double names exist in the pdg_table, after removing subscripts
 # and going to lower case
 def _check_pdg_table():
     names = [vvv for vv in pdg_table.values() for vvv in vv[1:]]

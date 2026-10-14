@@ -242,7 +242,17 @@ def gen_py_lattice(env):
         mirror_token=''
         if bb.mirror:
             mirror_token=f', mirror={bb.mirror}'
-        composer_lines.append(f'{lname} = env.new_line(name="{lname}", compose=True{mirror_token})')
+        length_token=''
+        if bb.length is not None:
+            vv = bb.length
+            if hasattr(vv, '_expr'): # has expression
+                # Get string representation of expression
+                env['__temp__'] = vv
+                vv = env.ref["__temp__"]._expr._formatted(formatter)
+            length_token = f', length={vv}'
+
+        composer_lines.append(
+            f'{lname} = env.new_line(name="{lname}", compose=True{mirror_token}{length_token})')
         composer_lines.append(f'{lname} = env["{lname}"]')
         for cc in bb.components:
             cc_tokens=[]

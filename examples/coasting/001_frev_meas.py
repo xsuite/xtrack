@@ -48,7 +48,7 @@ st.install_sync_time_at_collective_elements(line)
 import xobjects as xo
 line.build_tracker(_context=xo.ContextCpu(omp_num_threads='auto'))
 
-beta1 = tw.beta0 / 0.9
+beta1 = tw.beta0 / line['synctime_0'].frame_relative_length
 
 circumference = tw.line_length
 zeta_min0 = -circumference/2*tw.beta0/beta1
@@ -62,7 +62,7 @@ p = line.build_particles(
 
 # Need to take beta of actual particles to convert the distribution along the
 # circumference to a distribution in time
-p.zeta = (np.random.uniform(0, circumference, num_particles) / p.rvv * 0.999
+p.zeta = (np.random.uniform(0, circumference, num_particles) / p.rvv * 0.99
           + (zeta_max0 - circumference) / p.rvv)
 
 st.prepare_particles_for_sync_time(p, line)

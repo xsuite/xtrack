@@ -13,6 +13,36 @@ import pytest
 from cpymad.madx import Madx
 
 
+def test_global_aperture_after_static_thick_elements():
+    test_context = xo.ContextCpu()
+    line = xt.Line(elements=[
+        xt.Drift(length=2),
+        xt.Quadrupole(length=2, k1=0),
+        xt.Multipole(length=2, isthick=True),
+    ])
+    line.build_tracker(_context=test_context)
+
+    p_after_static_thick = xp.Particles(
+        _context=test_context, p0c=7e12, px=0.6)
+    line.track(p_after_static_thick, ele_start=1, num_elements=1)
+    assert test_context.nparray_from_context_array(
+        p_after_static_thick.state)[0] == -1
+
+    # Multipole exposes `isthick` as a property, so no class-level global
+    # aperture check is generated even when this instance is thick.
+    p_after_dynamic_thick = xp.Particles(
+        _context=test_context, p0c=7e12, px=0.6)
+    line.track(p_after_dynamic_thick, ele_start=2, num_elements=1)
+    assert test_context.nparray_from_context_array(
+        p_after_dynamic_thick.state)[0] == 1
+
+    # Drift is statically thick and is therefore checked at its exit too.
+    p_after_drift = xp.Particles(
+        _context=test_context, p0c=7e12, px=0.6)
+    line.track(p_after_drift, ele_start=0, num_elements=1)
+    assert test_context.nparray_from_context_array(p_after_drift.state)[0] == -1
+
+
 @for_all_test_contexts
 def test_rect_ellipse(test_context):
     ctx2np = test_context.nparray_from_context_array
@@ -364,6 +394,41 @@ def test_aper_tilt(test_context):
     assert_allclose(np.mean(y_alive), 0.04, rtol=5e-2, atol=0)
     slope = np.polyfit(x_alive, y_alive, 1)[0]
     assert_allclose(slope, np.tan(np.deg2rad(tilt_deg)), rtol=5e-2, atol=0)
+
+
+@pytest.mark.parametrize('reverse', [False, True])
+@pytest.mark.parametrize('vertices, expected', [
+    ([(1., 2.), (5., 2.), (1., 8.)], (7 / 3, 4.)),
+    ([(1., 2.), (5., 2.), (5., 8.), (1., 8.)], (3., 5.)),
+    # Concave L: a 4x2 rectangle plus a 2x2 square, translated by (1, 2).
+    ([(1., 2.), (5., 2.), (5., 4.), (3., 4.), (3., 6.), (1., 6.)],
+     (8 / 3, 11 / 3)),
+])
+def test_aperture_polygon_centroid(vertices, expected, reverse):
+    vertices = np.array(vertices)
+    if reverse:
+        vertices = vertices[::-1]
+    # Every edge must be included, regardless of which vertex is listed first.
+    for offset in range(len(vertices)):
+        shifted = np.roll(vertices, offset, axis=0)
+        aperture = xt.LimitPolygon(x_vertices=shifted[:, 0],
+                                   y_vertices=shifted[:, 1])
+        xo.assert_allclose(aperture.centroid, expected, rtol=0, atol=1e-14)
+
+
+@pytest.mark.parametrize('line_steps', [2, 4, 6])
+def test_aperture_svg_line_steps(line_steps):
+    aperture = xt.LimitPolygon(svg={
+        'path': 'M 1 2 L 5 2 L 5 8 L 1 8 Z',
+        'scale': 1.,
+        'line_steps': line_steps,
+    })
+    assert len(aperture.x_vertices) == 4 * (line_steps - 1)
+    xo.assert_allclose(aperture.area, 24., rtol=0, atol=1e-14)
+    xo.assert_allclose(aperture.centroid, (3., -5.), rtol=0, atol=1e-14)
+    restored = xt.LimitPolygon.from_dict(aperture.to_dict())
+    xo.assert_allclose(restored.x_vertices, aperture.x_vertices, rtol=0, atol=0)
+    xo.assert_allclose(restored.y_vertices, aperture.y_vertices, rtol=0, atol=0)
 
 
 def test_aperture_svg_path():

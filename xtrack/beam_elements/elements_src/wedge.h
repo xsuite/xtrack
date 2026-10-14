@@ -22,7 +22,7 @@ void Wedge_track_local_particle(
 
     START_PER_PARTICLE_BLOCK(part0, part);
         if (quad_wedge_then_dip_wedge == 0) {
-            // Wedge then quadrupole wedge
+            // Dipole wedge then quadrupole wedge
             Wedge_single_particle(part, angle, k);
             Quad_wedge_single_particle(part, angle, k1);
         }

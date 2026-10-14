@@ -141,7 +141,7 @@ def start_internal_logging(elements, record=None, io_buffer=None, capacity=None)
         elements = [elements]
 
     assert len(set([ee._internal_record_class for ee in elements])) == 1, (
-        'All elements should have the same _interal_record_class.')
+        'All elements should have the same _internal_record_class.')
 
     if record is None:
         assert capacity is not None
@@ -184,7 +184,7 @@ def start_internal_logging_for_elements_of_type(tracker, element_type, capacity)
             raise RuntimeError(f'The element `{nn}` has an io_buffer that is '
                 'incompatible with the io_buffer of the tracker. Please clear '
                 'the internal logging for the element using '
-                '`stop_internal_record(element=...)`.')
+                '`stop_internal_logging(elements=...)`.')
 
         if isinstance(ee, element_type):
             start_internal_logging(ee, record, tracker.io_buffer)
@@ -198,7 +198,6 @@ def stop_internal_logging_for_elements_of_type(tracker, element_type):
 
 def generate_get_record(ele_classname, record_classname):
     content = '''
-/*---GENERATED GET RECORD FUNCTION---*/
 #include "xtrack/headers/track.h"
 
 GPUFUN

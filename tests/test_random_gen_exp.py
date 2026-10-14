@@ -11,12 +11,12 @@ import xobjects as xo
 import xpart as xp
 import xtrack as xt
 from xobjects.test_helpers import (
-    allow_no_prebuilt_kernels, fix_random_seed, for_all_test_contexts)
+    allow_kernel_compilation, fix_random_seed, for_all_test_contexts)
 
 
 @for_all_test_contexts
 @fix_random_seed(46543143)
-@allow_no_prebuilt_kernels
+@allow_kernel_compilation
 def test_random_generation(test_context):
 
 

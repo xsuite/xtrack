@@ -1,6 +1,8 @@
 from math import ceil
 from typing import cast, Iterable, Collection
 
+from xobjects import settings
+
 from .general import _print
 
 
@@ -20,11 +22,11 @@ class DefaultProgressIndicator:
     total: int, optional
         Total number of iterations, if unspecified `len(iterable)` is used.
     miniters: int, optional
-        Minimum number of iterations between updates, by default 1.
+        Minimum number of iterations between updates, by default
+        `ceil(total / 100)`.
     unit_scale: int, optional
-        Unused, kept for compatibility with tqdm. To be interpreted as the
-        scale by which the iteration number and `total` are multiplied: i.e.,
-        one iteration corresponds to `unit_scale` events.
+        Scale by which the iteration number and `total` are multiplied when
+        displayed: i.e., one iteration corresponds to `unit_scale` events.
     """
     def __init__(
             self,
@@ -41,7 +43,7 @@ class DefaultProgressIndicator:
         self._total = total or len(cast(Collection, iterable))
         self._update_interval = miniters or ceil(self._total / 100)
         self._unit_scale = unit_scale or 1
-        print(f'Init: interval {self._update_interval}, total {self._total}')
+        _print(f'Init: interval {self._update_interval}, total {self._total}')
 
     def __iter__(self):
         self._iterator = iter(self.iterable)
@@ -87,7 +89,31 @@ def set_default_indicator(indicator_cls, **options):
 
 
 def progress(iterable: Iterable, **options):
+    """Wrap an iterable with the configured progress indicator.
+
+    Set ``xtrack.settings.progress_indicator`` to ``'tqdm'``, ``'text'``, or
+    ``'suppress'``, or equivalently set the environment variable
+    ``XSUITE_PROGRESS_INDICATOR`` before importing Xtrack. A later Python
+    assignment takes precedence. In ``'tqdm'`` mode, the simple text indicator
+    is used when tqdm is not installed. Setting ``xtrack.settings.print_mode``
+    to ``'suppress'`` also suppresses progress indicators, irrespective of the
+    selected progress-indicator mode.
+    """
+    if settings.print_mode == 'suppress':
+        return iterable
+
+    selected_mode = settings.progress_indicator
+    if selected_mode == 'suppress':
+        return iterable
+
+    if selected_mode not in ('tqdm', 'text'):
+        raise ValueError(
+            'Invalid progress indicator mode '
+            f'{selected_mode!r}; expected "tqdm", "text", or "suppress".')
+
     indicator = _config.default_indicator_cls
+    if selected_mode == 'text':
+        indicator = DefaultProgressIndicator
     return indicator(iterable, **_config.default_options, **options)
 
 

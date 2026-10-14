@@ -10,10 +10,35 @@ from cpymad.madx import Madx
 from xdeps.refs import CompactFormatter
 import xtrack as xt
 from xtrack import Strategy, Uniform
-from xtrack.mad_parser.loader import MadxLoader, MADLoaderWarning
+from xtrack.mad_parser.loader import CONSTANTS, MadxLoader, MADLoaderWarning
 from xtrack.mad_parser.parse import MadxParser
 
 test_data_folder = (Path(__file__).parent / '../test_data').absolute()
+
+
+def test_madx_constants_match_cpymad():
+    mad_src = """
+    dummy: marker;
+    seq: sequence, l=1;
+        dummy, at=0.5;
+    endsequence;
+    """
+
+    native_env = xt.load(string=mad_src, format='madx')
+
+    mad = Madx(stdout=False)
+    mad.input(mad_src)
+    mad.beam()
+    mad.use('seq')
+    cpymad_line = xt.Line.from_madx_sequence(
+        mad.sequence.seq,
+        deferred_expressions=True,
+    )
+
+    for name in CONSTANTS:
+        xo.assert_allclose(
+            native_env[name], cpymad_line.vars[name]._value, rtol=0, atol=0
+        )
 
 
 def test_simple_parser():
@@ -599,7 +624,7 @@ def test_instrument(example_sequence):
     env, positions, _ = example_sequence
     in1 = env['in1/line']
     xo.assert_allclose(positions['in1/line'], 9, atol=1e-14)
-    assert isinstance(in1, xt.Drift)
+    assert isinstance(in1, xt.Device)
     assert in1.length == 2
 
 
@@ -607,7 +632,7 @@ def test_monitor(example_sequence):
     env, positions, _ = example_sequence
     mo1 = env['mo1/line']
     xo.assert_allclose(positions['mo1/line'], 11, atol=1e-14)
-    assert isinstance(mo1, xt.Drift)
+    assert isinstance(mo1, xt.Device)
     assert mo1.length == 1
 
 
@@ -615,7 +640,7 @@ def test_placeholder(example_sequence):
     env, positions, _ = example_sequence
     pl1 = env['pl1/line']
     xo.assert_allclose(positions['pl1/line'], 13, atol=1e-14)
-    assert isinstance(pl1, xt.Drift)
+    assert isinstance(pl1, xt.Device)
     assert pl1.length == 1
 
 
@@ -845,7 +870,7 @@ def test_reversed_instrument(example_sequence):
     env, _, positions_reversed = example_sequence
     in1 = env['in1/line_reversed']
     xo.assert_allclose(positions_reversed['in1/line_reversed'], 36 - 9, atol=1e-14)
-    assert isinstance(in1, xt.Drift)
+    assert isinstance(in1, xt.Device)
     assert in1.length == 2
 
 
@@ -853,7 +878,7 @@ def test_reversed_monitor(example_sequence):
     env, _, positions_reversed = example_sequence
     mo1 = env['mo1/line_reversed']
     xo.assert_allclose(positions_reversed['mo1/line_reversed'], 36 - 11, atol=1e-14)
-    assert isinstance(mo1, xt.Drift)
+    assert isinstance(mo1, xt.Device)
     assert mo1.length == 1
 
 
@@ -861,7 +886,7 @@ def test_reversed_placeholder(example_sequence):
     env, _, positions_reversed = example_sequence
     pl1 = env['pl1/line_reversed']
     xo.assert_allclose(positions_reversed['pl1/line_reversed'], 36 - 13, atol=1e-14)
-    assert isinstance(pl1, xt.Drift)
+    assert isinstance(pl1, xt.Device)
     assert pl1.length == 1
 
 
@@ -1454,12 +1479,13 @@ def test_import_thick_with_apertures_and_slice():
         'drift_elm..2',                 # drift 2
         'elm_aper..3',                  # exit edge aperture
         'elm..exit_map',                # exit edge (+transform)
+        'elm_aper..4',                  # downstream closing aperture
         'elm_exit',                     # exit marker
     ])
 
     line.build_tracker(compile=False) # To resolve parents
 
-    for i in range(4):
+    for i in range(5):
         _assert_eq(line[f'elm_aper..{i}'].resolve(line).rot_s_rad, 0.1)
         _assert_eq(line[f'elm_aper..{i}'].resolve(line).shift_x, 0.2)
         _assert_eq(line[f'elm_aper..{i}'].resolve(line).shift_y, 0.3)
@@ -1651,3 +1677,22 @@ def test_native_loader_yrotation():
     line.vars['angle'] = 2.0
     assert line[0].rot_y_rad == line.vars['angle']._value
 
+
+def test_native_loader_translation_shift_s():
+    mad_src = """
+    longitudinal_shift = 0.2;
+    tr: translation, dx=0.01, dy=-0.02, ds:=longitudinal_shift;
+
+    ss: sequence, l=1; tr: tr, at=0; endsequence;
+    """
+
+    env = xt.load(string=mad_src, format='madx')
+    line = env.ss
+
+    assert isinstance(line['tr'], xt.Translation)
+    assert line['tr'].shift_x == 0.01
+    assert line['tr'].shift_y == -0.02
+    assert line['tr'].shift_s == line.vars['longitudinal_shift']._value
+
+    line.vars['longitudinal_shift'] = -0.4
+    assert line['tr'].shift_s == -0.4

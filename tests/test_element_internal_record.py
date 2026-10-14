@@ -11,14 +11,36 @@ import json
 import xtrack as xt
 import xpart as xp
 import xobjects as xo
+from xobjects.context import Source
 from xobjects.test_helpers import (
-    allow_no_prebuilt_kernels, for_all_test_contexts)
+    allow_kernel_compilation, for_all_test_contexts)
 
 TEST_DATA_FOLDER = pathlib.Path(__file__).parent / '../../xtrack/test_data'
 
 
+def test_internal_record_getter_source_is_not_inherited():
+    class TestRecord(xo.HybridClass):
+        _xofields = {'_index': xt.RecordIndex}
+
+    class ParentElement(xt.BeamElement):
+        _xofields = {'value': xo.Int64}
+        _internal_record_class = TestRecord
+        allow_track = False
+
+    class ChildElement(ParentElement):
+        pass
+
+    getter_sources = [
+        source for source in ChildElement._XoStruct._extra_c_sources
+        if isinstance(source, Source) and source.name == 'internal_record_getter'
+    ]
+    assert len(getter_sources) == 1
+    assert 'ChildElementData_getp_internal_record' in getter_sources[0].source
+    assert 'ParentElementData_getp_internal_record' not in getter_sources[0].source
+
+
 @for_all_test_contexts
-@allow_no_prebuilt_kernels
+@allow_kernel_compilation
 def test_record_single_table(test_context):
 
 
@@ -199,7 +221,7 @@ def test_record_single_table(test_context):
 
 
 @for_all_test_contexts
-@allow_no_prebuilt_kernels
+@allow_kernel_compilation
 def test_record_with_twiss(test_context):
 
 
@@ -288,7 +310,7 @@ def test_record_with_twiss(test_context):
 
 
 @for_all_test_contexts
-@allow_no_prebuilt_kernels
+@allow_kernel_compilation
 def test_record_multiple_tables(test_context):
 
 
@@ -547,7 +569,7 @@ def test_record_multiple_tables(test_context):
 
 
 @for_all_test_contexts
-@allow_no_prebuilt_kernels
+@allow_kernel_compilation
 def test_record_standalone_mode(test_context):
 
 

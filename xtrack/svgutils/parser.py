@@ -167,7 +167,7 @@ def parse_path(pathdef: str) -> path.Path:
 
         elif command == "Z":
             # For Close commands the "relative" argument just preserves case,
-            # it has no different in behavior.
+            # it makes no difference in behavior.
             assert isinstance(start_pos, complex)
             segments.append(path.Close(current_pos, start_pos, relative=relative))
             current_pos = start_pos
@@ -242,7 +242,7 @@ def parse_path(pathdef: str) -> path.Path:
                 control1 = current_pos + current_pos - segments[-1].control2
             else:
                 # If there is no previous command or if the previous command
-                # was not an C, c, S or s, assume the first control point is
+                # was not a C, c, S or s, assume the first control point is
                 # coincident with the current point.
                 control1 = current_pos
 
@@ -285,7 +285,7 @@ def parse_path(pathdef: str) -> path.Path:
                 control = current_pos + current_pos - segments[-1].control
             else:
                 # If there is no previous command or if the previous command
-                # was not an Q, q, T or t, assume the first control point is
+                # was not a Q, q, T or t, assume the first control point is
                 # coincident with the current point.
                 control = current_pos
 

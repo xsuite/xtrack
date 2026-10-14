@@ -7,8 +7,8 @@ def svg_to_points(svgpath, scale=0.001, curved_steps=10, line_steps=2):
     """
     Convert an svg path to a set of points
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
     svgpath : str
         svg path string describing the aperture
     scale: float

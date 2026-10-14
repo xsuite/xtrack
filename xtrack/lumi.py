@@ -3,6 +3,8 @@ from scipy import integrate
 from scipy.constants import c as clight
 from scipy.constants import e as qe
 
+from .general import _print
+
 
 def beta(s, beta0, alpha_s0):
     '''Beta function in drift space'''
@@ -40,8 +42,8 @@ def luminosity(f, nb,
     '''
     Returns luminosity in Hz/cm^2.
     f: revolution frequency
-    nb: number of colliding bunch per beam in the specific Interaction Point (IP).
-    N1,2: B1,2 number of particle per bunch
+    nb: number of colliding bunches per beam in the specific Interaction Point (IP).
+    N1,2: B1,2 number of particles per bunch
     x,y,1,2: horizontal/vertical position at the IP of B1,2, as defined in MADX [m]
     px,y,1,2: px,py at the IP of B1,2, as defined in MADX
     energy_tot1,2: total energy of the B1,2 [GeV]
@@ -60,13 +62,13 @@ def luminosity(f, nb,
     RAB_1,2: B1,2 equivalent H/V linear transfer matrix coefficients between the CC
         that the beam sees before reaching the IP and IP itself [SI units]
     verbose: to have verbose output
-    sigma_integration: the number of sigma consider for the integration
+    sigma_integration: the number of sigma considered for the integration
         (taken into account only if CC(s) is/are present)
     rest_mass_b1, rest_mass_b2: rest mass in GeV
     In MAD-X px is p_x/p_0 (p_x is the x-component of the momentum and p_0 is the design momentum).
     In our approximation we use the paraxial approximation: p_0~p_z so px is an angle.
-    Similar arguments holds for py.
-    In MAD-X, dx and dpx are the literature dispersion and is derivative in s divided by the relatistic beta.
+    Similar arguments hold for py.
+    In MAD-X, dx and dpx are the literature dispersion and its derivative in s divided by the relativistic beta.
     In fact, since pt=beta*deltap, where beta is the relativistic Lorentz factor,
     those functions given by MAD-X must be multiplied by beta a number of times equal to the order of
     the derivative to find the functions given in the literature.
@@ -102,8 +104,8 @@ def luminosity(f, nb,
     v_2=np.array([vx_2, vy_2, vz_2])
 
     if verbose:
-        print(f'B1 velocity vector:{v_1}')
-        print(f'B2 velocity vector:{v_2}')
+        _print(f'B1 velocity vector:{v_1}')
+        _print(f'B2 velocity vector:{v_2}')
 
     diff_v = v_1-v_2
     cross_v= np.cross(v_1, v_2)
@@ -200,7 +202,10 @@ def luminosity(f, nb,
         /np.sqrt((sx1(s)**2 + sx2(s)**2)*(sy1(s)**2 + sy2(s)**2))/sigma_z1/sigma_z2
 
         integral=integrate.dblquad((lambda t, s: kernel_double_integral(t, s)),
-                                   -sigma_integration*sigma_z, sigma_integration*sigma_z,-sigma_integration*sigma_z/c, sigma_integration*sigma_z/c)
+                                   -sigma_integration*sigma_z,
+                                   sigma_integration*sigma_z,
+                                   -sigma_integration*sigma_z/clight,
+                                   sigma_integration*sigma_z/clight)
         L0=f*N1*N2*nb * clight/2/np.pi**(2)*integral[0]
 
     elif crab_crossing is not None and 'phi_crab_x_1' in crab_crossing:
@@ -270,9 +275,9 @@ def luminosity(f, nb,
         L0=f*N1*N2*nb/np.sqrt(2)/np.pi**(3/2)*integral[0]
     result= L0*Moeller_efficiency/1e4
     if verbose:
-        print(f'Moeller efficiency: {Moeller_efficiency}')
-        print(f'Integral Relative Error: {integral[1]/integral[0]}')
-        print(f'==> Luminosity [Hz/cm^2]: {result}')
+        _print(f'Moeller efficiency: {Moeller_efficiency}')
+        _print(f'Integral Relative Error: {integral[1]/integral[0]}')
+        _print(f'==> Luminosity [Hz/cm^2]: {result}')
     return result
 
 

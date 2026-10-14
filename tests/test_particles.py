@@ -5,14 +5,85 @@
 import numpy as np
 import pytest
 from scipy.constants import c as clight
-from xobjects.test_helpers import allow_no_prebuilt_kernels
+from xobjects.test_helpers import allow_kernel_compilation
 
 import xtrack as xt
 import xobjects as xo
 import xpart as xp
 
 
-@allow_no_prebuilt_kernels
+@pytest.mark.parametrize('particle_class', [xt.Particles, xt.ParticlesTpsa])
+def test_time_assignment_invalidates_reference_turns(particle_class):
+    p = particle_class(p0c=1e9, time_s=1e-6, reference_turns=3.25)
+    # Explicit initial clock pairs survive construction.
+    assert p.time_s == 1e-6
+    assert p.reference_turns == 3.25
+    p.time_s = 2e-6
+    assert p.time_s == p._xobject.time_s == 2e-6
+    assert np.isnan(p.reference_turns)
+    assert np.isnan(p._xobject.reference_turns)
+    # An explicit counter can also be supplied after choosing a new time.
+    p.reference_turns = 4.25
+    assert p.reference_turns == p._xobject.reference_turns == 4.25
+
+
+@pytest.mark.parametrize('reference_turns', [np.nan, 3.25])
+def test_combine_particles_with_reference_turns(reference_turns):
+    first = xt.Particles(p0c=1e9, x=1., _capacity=3, reference_turns=reference_turns)
+    second = xt.Particles(p0c=1e9, x=2., reference_turns=reference_turns)
+    # Unset or matching counters allow combining compatible beams.
+    merged = xt.Particles.merge([first, second])
+    np.testing.assert_equal(merged.reference_turns, reference_turns)
+    xo.assert_allclose(np.sort(merged.x[merged.state > 0]), [1., 2.])
+    first.add_particles(second)
+    np.testing.assert_equal(first.reference_turns, reference_turns)
+    xo.assert_allclose(np.sort(first.x[first.state > 0]), [1., 2.])
+
+
+@pytest.mark.parametrize('other_turns', [np.nan, 4.25])
+def test_merge_particles_rejects_different_reference_turns(other_turns):
+    first = xt.Particles(p0c=1e9, _capacity=3, reference_turns=3.25)
+    second = xt.Particles(p0c=1e9, reference_turns=other_turns)
+    with pytest.raises(AssertionError):
+        xt.Particles.merge([first, second])
+
+
+@pytest.mark.parametrize('reference_turns', [np.nan, 3.25])
+@pytest.mark.parametrize('incoming_clock', [
+    {},
+    {'time_s': 7e-5, 'reference_turns': 42., 't_sim': 3e-6},
+])
+def test_add_particles_retains_receiving_clock(reference_turns, incoming_clock):
+    first = xt.Particles(p0c=1e9, x=1., _capacity=3,
+                         time_s=2e-5, reference_turns=reference_turns, t_sim=2e-6)
+    # Secondary-particle producers need not supply clock metadata. Even explicit
+    # incoming clocks do not change the receiving frame or transform coordinates.
+    second = xt.Particles(p0c=1e9, x=2., zeta=28., s=7., at_turn=5,
+                          **incoming_clock)
+    incoming_before = (second.time_s, second.reference_turns, second.t_sim)
+    first.add_particles(second)
+
+    assert first.time_s == 2e-5
+    np.testing.assert_equal(first.reference_turns, reference_turns)
+    assert first.t_sim == 2e-6
+    added = (first.state > 0) & (first.x == 2.)
+    assert np.count_nonzero(added) == 1
+    xo.assert_allclose(first.zeta[added], [28.], rtol=0, atol=0)
+    xo.assert_allclose(first.s[added], [7.], rtol=0, atol=0)
+    np.testing.assert_equal(first.at_turn[added], [5])
+    np.testing.assert_equal(
+        (second.time_s, second.reference_turns, second.t_sim), incoming_before)
+
+
+@pytest.mark.parametrize('reference', [{'q0': 2.}, {'mass0': 2*xt.PROTON_MASS_EV}])
+def test_add_particles_rejects_different_physical_reference(reference):
+    first = xt.Particles(p0c=1e9, _capacity=3, time_s=2e-5, reference_turns=3.25)
+    second = xt.Particles(p0c=1e9, **reference)
+    with pytest.raises(AssertionError):
+        first.add_particles(second)
+
+
+@allow_kernel_compilation
 def test_check_is_active_sorting_openmp():
 
 
@@ -94,7 +165,7 @@ def test_check_is_active_sorting_openmp():
         xo.ContextCpu(omp_num_threads=4),
     ]
 )
-@allow_no_prebuilt_kernels
+@allow_kernel_compilation
 def test_check_is_active_sorting_cpu_default(test_context):
 
 
@@ -144,6 +215,15 @@ def test_check_is_active_sorting_cpu_default(test_context):
     assert np.all(particles.state == ([1] * 8) + ([0] * 10))
     assert set(particles.particle_id[:8]) == {0, 2, 4, 11, 13, 14, 15, 16}
     assert set(particles.particle_id[8:]) == {1, 3, 5, 6, 7, 8, 9, 10, 12, 17}
+
+@pytest.mark.parametrize('mass', [None, 1e9, [1e9, 2e9]])
+def test_particles_rejects_mass_argument(mass):
+    with pytest.raises(NameError) as exc_info:
+        xt.Particles(mass=mass)
+    assert 'The `mass` argument is not supported.' in str(exc_info.value)
+    assert '`mass0`' in str(exc_info.value)
+    assert '`mass_ratio`' in str(exc_info.value)
+
 
 def test_particles_energy_coordinates():
     p = xt.Particles(mass0=xt.PROTON_MASS_EV, q0=2,

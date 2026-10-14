@@ -223,7 +223,7 @@ def test_circle_correctness_and_uniformity(build_polygon_for_profile, r, n):
     (1.0, 1.0, 2000),
 ])
 def test_rectangle_correctness_and_uniformity(build_polygon_for_profile, w, h, n):
-    pts = build_polygon_for_profile(Rectangle(half_width=w, half_height=h), n)
+    pts = build_polygon_for_profile(Rectangle(max_x=w, max_y=h), n)
     assert pts.shape == (n, 2)
     assert_polyline(pts)
 
@@ -237,7 +237,7 @@ def test_rectangle_correctness_and_uniformity(build_polygon_for_profile, w, h, n
     (5.0, 0.5, 4000),
 ])
 def test_ellipse_correctness_and_uniformity(build_polygon_for_profile, a, b, n):
-    pts = build_polygon_for_profile(Ellipse(half_major=a, half_minor=b), n)
+    pts = build_polygon_for_profile(Ellipse(a=a, b=b), n)
     assert pts.shape == (n, 2)
     assert_polyline(pts)
 
@@ -251,7 +251,7 @@ def test_ellipse_correctness_and_uniformity(build_polygon_for_profile, a, b, n):
     (2.0, 1.0, 1.0, 0.25, 6000),
 ])
 def test_racetrack_correctness_and_uniformity(build_polygon_for_profile, w, h, a, b, n):
-    pts = build_polygon_for_profile(Racetrack(half_width=w, half_height=h, half_major=a, half_minor=b), n)
+    pts = build_polygon_for_profile(Racetrack(max_x=w, max_y=h, a=a, b=b), n)
     assert pts.shape == (n, 2)
     assert_polyline(pts)
 
@@ -265,7 +265,7 @@ def test_racetrack_degenerate_to_ellipse(build_polygon_for_profile):
     w, h = a, b
     n = 2500
 
-    pts = build_polygon_for_profile(Racetrack(half_width=w, half_height=h, half_major=a, half_minor=b), n)
+    pts = build_polygon_for_profile(Racetrack(max_x=w, max_y=h, a=a, b=b), n)
     assert pts.shape == (n, 2)
     assert_polyline(pts)
 
@@ -277,7 +277,7 @@ def test_rectellipse_with_zero_length_arcs(build_polygon_for_profile):
     # angle1 == angle2 in `geom2d_segments_from_rectellipse`, yielding zero-length arc segments.
     # This used to expose division-by-zero issues in arc sampling.
     pts = build_polygon_for_profile(
-        RectEllipse(half_width=0.6, half_height=0.8, half_major=1.0, half_minor=1.0),
+        RectEllipse(max_x=0.6, max_y=0.8, a=1.0, b=1.0),
         1200,
     )
     assert pts.shape == (1200, 2)
@@ -295,7 +295,7 @@ def test_rectellipse_with_zero_length_arcs(build_polygon_for_profile):
     (0.022, 0.01715, 0.022, 0.022, 300), # LHC-style screen
 ])
 def test_rectellipse_correctness_and_uniformity(build_polygon_for_profile, w, h, a, b, n):
-    pts = build_polygon_for_profile(RectEllipse(half_width=w, half_height=h, half_major=a, half_minor=b), n)
+    pts = build_polygon_for_profile(RectEllipse(max_x=w, max_y=h, a=a, b=b), n)
     assert pts.shape == (n, 2)
     assert_polyline(pts)
 
@@ -310,7 +310,7 @@ def test_rectellipse_correctness_and_uniformity(build_polygon_for_profile, w, h,
     (2.0, 2.0, 1.5, 5000),
 ])
 def test_octagon_correctness_and_uniformity(build_polygon_for_profile, w, h, d, n):
-    pts = build_polygon_for_profile(Octagon(half_width=w, half_height=h, half_diagonal=d), n)
+    pts = build_polygon_for_profile(Octagon(max_x=w, max_y=h, max_diagonal=d), n)
     assert pts.shape == (n, 2)
     assert_polyline(pts)
 
@@ -322,11 +322,11 @@ def test_octagon_correctness_and_uniformity(build_polygon_for_profile, w, h, d, 
 
 @pytest.mark.parametrize("shape_class,params", [
     ('Circle', {'radius': 1.0}),
-    ('Rectangle', {'half_width': 1.0, 'half_height': 0.5}),
-    ('Ellipse', {'half_major': 1.5, 'half_minor': 1.0}),
-    ('RectEllipse', {'half_width': 1.0, 'half_height': 0.5, 'half_major': 1.2, 'half_minor': 0.8}),
-    ('Racetrack', {'half_width': 1.0, 'half_height': 0.5, 'half_major': 0.3, 'half_minor': 0.2}),
-    ('Octagon', {'half_width': 1.0, 'half_height': 0.8, 'half_diagonal': 0.8}),
+    ('Rectangle', {'max_x': 1.0, 'max_y': 0.5}),
+    ('Ellipse', {'a': 1.5, 'b': 1.0}),
+    ('RectEllipse', {'max_x': 1.0, 'max_y': 0.5, 'a': 1.2, 'b': 0.8}),
+    ('Racetrack', {'max_x': 1.0, 'max_y': 0.5, 'a': 0.3, 'b': 0.2}),
+    ('Octagon', {'max_x': 1.0, 'max_y': 0.8, 'max_diagonal': 0.8}),
 ])
 def test_smoke_small_len_points(build_polygon_for_profile, shape_class, params):
     profile = getattr(structures, shape_class)(**params)
@@ -354,11 +354,11 @@ def test_polygon_correctness_and_uniformity(build_polygon_for_profile):
 
 @pytest.mark.parametrize("shape_class,params", [
     ('Circle', {'radius': 1.0}),
-    ('Rectangle', {'half_width': 1.0, 'half_height': 0.5}),
-    ('Ellipse', {'half_major': 1.5, 'half_minor': 1.0}),
-    ('RectEllipse', {'half_width': 1.0, 'half_height': 0.5, 'half_major': 1.2, 'half_minor': 0.8}),
-    ('Racetrack', {'half_width': 1.0, 'half_height': 0.5, 'half_major': 0.3, 'half_minor': 0.2}),
-    ('Octagon', {'half_width': 1.0, 'half_height': 0.8, 'half_diagonal': 0.8}),
+    ('Rectangle', {'max_x': 1.0, 'max_y': 0.5}),
+    ('Ellipse', {'a': 1.5, 'b': 1.0}),
+    ('RectEllipse', {'max_x': 1.0, 'max_y': 0.5, 'a': 1.2, 'b': 0.8}),
+    ('Racetrack', {'max_x': 1.0, 'max_y': 0.5, 'a': 0.3, 'b': 0.2}),
+    ('Octagon', {'max_x': 1.0, 'max_y': 0.8, 'max_diagonal': 0.8}),
 ])
 def test_builtin_shapes_emit_convexity_true(build_polygon_for_profile_with_convexity, shape_class, params):
     profile = getattr(structures, shape_class)(**params)

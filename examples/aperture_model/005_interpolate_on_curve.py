@@ -3,23 +3,14 @@ import numpy as np
 import xobjects as xo
 import xtrack as xt
 
-from xtrack.aperture.aperture import Aperture
 from xtrack.aperture.transform import transform_matrix
-from xtrack.aperture.structures import (
-    ApertureModel,
-    Pipe,
-    Circle,
-    Profile,
-    ProfilePosition,
-    PipePosition,
-)
 
 
 def matrix_from_survey_row(sv_row):
     out = np.identity(4)
     out[:3, 0] = sv_row.ex
     out[:3, 1] = sv_row.ey
-    out[:3, 2] = sv_row.ez
+    out[:3, 2] = sv_row.es
     out[:3, 3] = np.array([sv_row.X[0], sv_row.Y[0], sv_row.Z[0]])
     return out
 
@@ -65,49 +56,17 @@ anti_bend = env.new('anti_bend', xt.Bend, length=length, angle=-angle, k0=0)
 line = env.new_line(name='line', components=[bend, drift, anti_bend])
 sv = line.survey()
 
-shape = Circle(radius=radius)
-profiles = [
-    Profile(shape=shape, tol_r=0, tol_x=0, tol_y=0),
-]
-profile_positions = [
-    ProfilePosition(profile_index=0, shift_s=0.0),
-    ProfilePosition(profile_index=0, shift_s=length),
-]
+profile = env.aperture.new_profile('circ0', 'Circle', radius=radius)
+ap = line.aperture
+ap.num_profile_points = 256
+for index, curvature in enumerate([angle / length, 0, -angle / length]):
+    pipe = env.aperture.new_pipe(
+        f'pipe{index}', curvature=curvature,
+        positions=[profile.place(at=0), profile.place(at=length)],
+    )
+    ap.place_pipe(f'pipe{index}', pipe, at=sv.name[index])
 
-model = ApertureModel(
-    line=line,
-    pipe_positions=[
-        PipePosition(
-            pipe_index=0,
-            survey_reference_name=sv.name[0],
-            survey_index=0,
-            transformation=transform_matrix(),
-        ),
-        PipePosition(
-            pipe_index=1,
-            survey_reference_name=sv.name[1],
-            survey_index=1,
-            transformation=transform_matrix(),
-        ),
-        PipePosition(
-            pipe_index=2,
-            survey_reference_name=sv.name[2],
-            survey_index=2,
-            transformation=transform_matrix(),
-        ),
-    ],
-    pipes=[
-        Pipe(curvature=angle / length, positions=profile_positions),
-        Pipe(curvature=0, positions=profile_positions),
-        Pipe(curvature=-angle / length, positions=profile_positions),
-    ],
-    profiles=profiles,
-    pipe_names=['pipe0', 'pipe1', 'pipe2'],
-    pipe_position_names=['pipe0', 'pipe1', 'pipe2'],
-    profile_names=['circ0'],
-)
-
-ap = Aperture(line=line, model=model, num_profile_points=256)
+ap.build_model()
 
 bounds_table = ap.get_bounds_table()
 bounds_s = [0, length, length, 2 * length, 2 * length, 3 * length]
@@ -118,7 +77,7 @@ assert all(bounds_table.pipe_name == ['pipe0', 'pipe0', 'pipe1', 'pipe1', 'pipe2
 assert all(bounds_table.profile_name == ['circ0'])
 
 s_samples = np.linspace(0, 3 * length, 51, dtype=np.float32)
-sections_table = ap.cross_sections_at_s(s_samples)
+sections_table = ap.get_cross_sections_at_s(s_samples)
 sections = sections_table.cross_section
 poses = sections_table.pose
 
@@ -130,14 +89,14 @@ sv_fine = line_fine.survey()
 ax.plot(sv_fine.Z, sv_fine.X, sv_fine.Y, c="b", label="survey")
 
 # Plot installed profiles (red)
-for pipe_pos in ap._model.pipe_positions:
-    aper_pipe = ap._model.pipe_for_position(pipe_pos)
+for pipe_pos in ap.pipe_positions:
+    aper_pipe = pipe_pos.pipe
     sv_ref_row = sv.rows[pipe_pos.survey_index]
     sv_ref_matrix = matrix_from_survey_row(sv_ref_row)
-    pipe_pos_matrix = pipe_pos.transformation.to_nparray()
+    pipe_pos_matrix = pipe_pos.transformation
 
-    for profile_pos in aper_pipe.positions:
-        profile = ap._model.profile_for_position(profile_pos)
+    for profile_pos in aper_pipe:
+        profile = profile_pos.profile
         poly = profile.build_polygon(len_points=256)
         poly_hom = poly2d_to_hom(poly)
         profile_matrix_trans = transform_matrix(

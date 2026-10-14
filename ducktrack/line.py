@@ -19,6 +19,7 @@ class_dict['BeamBeamBiGaussian2D'] = BeamBeam4D
 class_dict['BeamBeam3D'] = BeamBeam6D
 class_dict['BeamBeamBiGaussian3D'] = BeamBeam6D
 class_dict['SpaceChargeBiGaussian'] = SCQGaussProfile
+class_dict['Device'] = xstelems.Drift
 
 
 
@@ -34,6 +35,10 @@ class TestLine:
             el_dct_list = dct["elements"]
 
         for el in el_dct_list:
+            if el['__class__'] == 'Device' and any(el.get(field, 0) for field in (
+                    'shift_x', 'shift_y', 'shift_s', 'rot_x_rad', 'rot_y_rad',
+                    'rot_s_rad', 'rot_s_rad_no_frame')):
+                raise NotImplementedError('Ducktrack only supports aligned Devices')
             eltype = class_dict[el["__class__"]]
             eldct=el.copy()
             del eldct['__class__']

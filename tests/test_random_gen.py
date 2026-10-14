@@ -12,13 +12,13 @@ import xobjects as xo
 import xpart as xp
 import xtrack as xt
 from xobjects.test_helpers import (
-    allow_no_prebuilt_kernels, fix_random_seed, for_all_test_contexts)
+    allow_kernel_compilation, fix_random_seed, for_all_test_contexts)
 
 
 @for_all_test_contexts
 @fix_random_seed(1465841)
 @pytest.mark.parametrize('generator', ['RandomUniform', 'RandomUniformAccurate'])
-@allow_no_prebuilt_kernels
+@allow_kernel_compilation
 def test_random_generation(test_context, generator):
 
 
@@ -67,10 +67,12 @@ def test_random_generation(test_context, generator):
 
 @for_all_test_contexts
 @fix_random_seed(8264012)
-def test_direct_sampling(test_context):
+@pytest.mark.parametrize('generator', ['RandomUniform', 'RandomUniformAccurate'])
+@allow_kernel_compilation
+def test_direct_sampling(test_context, generator):
     n_seeds = 3
     n_samples = 3e6
-    ran = xt.RandomUniform(_context=test_context)
+    ran = getattr(xt, generator)(_context=test_context)
     samples = ran.generate(n_samples=n_samples, n_seeds=n_seeds)
     samples = test_context.nparray_from_context_array(samples)
 

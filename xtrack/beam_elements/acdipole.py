@@ -8,19 +8,19 @@ class ACDipole(xt.BeamElement):
     """
     ACDipole is a thin element that applies an oscillating kick to the beam in the x or y direction.
     It is used for beam excitations in circular machines for optics measurements. The kick is
-    a sinusoidal function defined by a voltage amplitude (with ramped up and down), a fixed frequency
-    (small compared to the revolution frequency) and fixed phase lag.
+    a sinusoidal function defined by a voltage amplitude (with ramp-up and ramp-down), a fixed frequency
+    (small compared to the revolution frequency) and a fixed phase lag.
 
     If the dipole is not in twiss mode (typically used for tracking simulations):
         The kick is applied as a function of the turn number, and it can be ramped up and down
-        to avoid emittance growth. The transverse momentum in the vertical plane is changed by
+        to avoid emittance growth. The transverse momentum in the selected plane is changed by
         `(0.3 * volt/p0c) * sin(2π * freq * turn + lag)`.
 
     If the dipole is in twiss mode:
-        It approximates the effect of an AC dipole, simulating it as a thin gradient error
+        It approximates the effect of an AC dipole, simulating it as a thin gradient error,
         see (Miyamoto, R., Kopp, S., Jansson, A., & Syphers, M. (2008). Parametrization of
         the driven betatron oscillation. Phys. Rev. ST Accel. Beams, 11, 084002) for more details.
-        It applies a beta and tune shift to the beam in the horizontal plane,
+        It applies a beta and tune shift to the beam in the selected plane,
         depending on the natural and driven tunes.
 
         If any of the parameters `natural_q` or `beta_at_acdipole` are not provided,
@@ -30,7 +30,7 @@ class ACDipole(xt.BeamElement):
     Parameters
     ----------
     volt : float | None
-        The voltages applied to control the peak of the kick in tracking mode.
+        The voltage applied to control the peak of the kick in tracking mode.
         If `None`, no kick is applied.
     freq : float | None
         The driven frequency of the AC dipole, in units of 2π per turn. This is
@@ -139,7 +139,7 @@ class ACDipole(xt.BeamElement):
             and all(v == int(v) and v >= 0 for v in ramp)
         ):
             raise ValueError(
-                "The ramp parameter must be a sequence of four positive integers:"
+                "The ramp parameter must be a sequence of four positive integers: "
                 "[ramp_up_start_turn, ramp_up_end_turn, ramp_down_start_turn, ramp_down_end_turn]."
             )
 

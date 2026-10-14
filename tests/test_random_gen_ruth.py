@@ -11,7 +11,7 @@ import pytest
 
 import xobjects as xo
 from xobjects.test_helpers import (
-    allow_no_prebuilt_kernels, for_all_test_contexts)
+    allow_kernel_compilation, for_all_test_contexts)
 import xtrack as xt
 import xpart as xp
 
@@ -25,7 +25,7 @@ rB = 53.50625
 iterations = 7
 
 @for_all_test_contexts(excluding=('ContextPyopencl',))
-@allow_no_prebuilt_kernels
+@allow_kernel_compilation
 def test_random_generation_ruth(test_context):
 
 

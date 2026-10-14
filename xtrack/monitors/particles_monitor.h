@@ -42,7 +42,8 @@ void ParticlesMonitor_track_local_particle(ParticlesMonitorData el,
                     int64_t const store_at =
                         n_turns_record * (particle_id - part_id_start)
                         + at_turn - start_at_turn;
-                    LocalParticle_to_Particles(part, data, store_at, 0);
+                    LocalParticle_to_Particles(part, data, store_at,
+                        0); // set_scalar
                 }
             }
         }
@@ -65,7 +66,8 @@ void ParticlesMonitor_track_local_particle(ParticlesMonitorData el,
                         n_turns_record * (part_id_end  - part_id_start) * i_frame
                         + n_turns_record * (particle_id - part_id_start)
                         + (at_turn - i_frame * repetition_period) - start_at_turn;
-                    LocalParticle_to_Particles(part, data, store_at, 0);
+                    LocalParticle_to_Particles(part, data, store_at,
+                        0); // set_scalar
                 }
             }
         }
@@ -77,5 +79,3 @@ void ParticlesMonitor_track_local_particle(ParticlesMonitorData el,
 }
 
 #endif
-
-

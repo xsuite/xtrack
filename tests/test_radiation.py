@@ -95,7 +95,7 @@ def test_radiation(test_context, thick):
     Ps = (2 * r0 * clight * mass0_kg * clight**2 * gamma0**2 * gamma**2)/(3*rho_0**2) # W
 
     Delta_E_eV = -Ps*(L_bend/clight) / qe
-    Delta_E_trk = (dct_ave['ptau']-dct_ave_before['ptau'])*dct_ave['p0c']
+    Delta_E_trk = (dct_ave['pzeta']-dct_ave_before['pzeta'])*dct_ave['beta0']*dct_ave['p0c']
 
     xo.assert_allclose(Delta_E_eV, Delta_E_trk, atol=0, rtol=4e-5)
 
@@ -171,6 +171,50 @@ def test_radiation(test_context, thick):
                                                         )*particles_test.p0c
     assert -np.sum(Delta_E_test) > 0
     assert record._index.num_recorded == 0
+
+
+def test_radiation_analysis_with_decelerating_cavity():
+    env = xt.load([test_data_folder / 'sps_thick/sps.seq',
+                   test_data_folder / 'sps_thick/lhc_q20.str'])
+    line = env.sps
+
+    line.particle_ref = xt.Particles(
+        mass0=xt.ELECTRON_MASS_EV, q0=-1, p0c=50e9)
+    line.cycle('bpv.11706', inplace=True)
+
+    voltage = 250e6
+    num_cavities = 6
+    env['actcse.31632'].voltage = voltage * 10 / num_cavities
+    env['actcse.31632'].frequency = 3e6
+    env['actcse.31632'].phase = np.pi
+
+    for index in range(1, num_cavities + 1):
+        env.new(f'cav{index}', 'actcse.31632', length=0)
+
+    line.insert([
+        env.place('cav1', at='bpv.11706'),
+        env.place('cav2', at='bpv.21508'),
+        env.place('cav3', at='bpv.31508'),
+        env.place('cav4', at='bpv.41508'),
+        env.place('cav5', at='bpv.51508'),
+        env.place('cav6', at='bpv.61508'),
+    ])
+
+    line.configure_radiation(model='mean')
+    twiss_accelerating = line.twiss(radiation_analysis=True)
+
+    env['cav4'].phase -= np.pi
+    twiss_one_decelerating = line.twiss(radiation_analysis=True)
+
+    xo.assert_allclose(
+        twiss_accelerating.energy_loss,
+        twiss_one_decelerating.energy_loss,
+        rtol=0.01,
+    )
+    xo.assert_allclose(
+        twiss_accelerating.partition_numbers.sum(), 4, rtol=1e-4)
+    xo.assert_allclose(
+        twiss_one_decelerating.partition_numbers.sum(), 4, rtol=1e-4)
 
 
 @for_all_test_contexts(excluding=('ContextCupy', 'ContextPyopencl'))

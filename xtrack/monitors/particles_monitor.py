@@ -31,9 +31,9 @@ def _monitor_init(
     Parameters
     ----------
     start_at_turn: int
-        Turn at which the monitor starts logging the particles coordinates.
+        Turn at which the monitor starts logging the particle coordinates.
     stop_at_turn: int
-        Turn at which the monitor stops logging the particles coordinates.
+        Turn at which the monitor stops logging the particle coordinates.
     n_repetitions: int
         Number of times the monitor repeats the logging of the particles.
     repetition_period: int
@@ -213,6 +213,6 @@ per_particle_vars = xt.Particles.per_particle_vars
 for tt, nn in per_particle_vars:
     setattr(ParticlesMonitor, nn, _FieldOfMonitor(name=nn))
 
-for nn in ['pzeta', 'kin_px', 'kin_py', 'kin_ps', 'kin_xprime', 'kin_yprime',
+for nn in ['ptau', 'kin_px', 'kin_py', 'kin_ps', 'kin_xprime', 'kin_yprime',
            'kin_xp', 'kin_yp']:
     setattr(ParticlesMonitor, nn, _FieldOfMonitor(name=nn))

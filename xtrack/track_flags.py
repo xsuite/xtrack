@@ -1,12 +1,15 @@
 import numpy as np
 
+from .general import _print
+
 flag_mapping = {
     'XS_FLAG_BACKTRACK': 0,
     'XS_FLAG_KILL_CAVITY_KICK': 2,
     'XS_FLAG_IGNORE_GLOBAL_APERTURE': 3,
     'XS_FLAG_IGNORE_LOCAL_APERTURE': 4,
     'XS_FLAG_SR_TAPER': 5,
-    'XS_FLAG_SR_KICK_SAME_AS_FIRST': 6
+    'XS_FLAG_SR_KICK_SAME_AS_FIRST': 6,
+    'XS_FLAG_USE_TIME_BASED_ZETA_UPDATE': 7,
 }
 
 flag_defaults = {
@@ -15,7 +18,8 @@ flag_defaults = {
     'XS_FLAG_IGNORE_GLOBAL_APERTURE': False,
     'XS_FLAG_IGNORE_LOCAL_APERTURE': False,
     'XS_FLAG_SR_TAPER': False,
-    'XS_FLAG_SR_KICK_SAME_AS_FIRST': False
+    'XS_FLAG_SR_KICK_SAME_AS_FIRST': False,
+    'XS_FLAG_USE_TIME_BASED_ZETA_UPDATE': False,
 }
 
 c_header_flag_mapping = """
@@ -67,4 +71,4 @@ class TrackFlags:
 
     def print_flag_register(self):
         reg = self.get_flags_register()
-        print(f"Flag register (binary): {bin(reg)[2:].zfill(64)}")
+        _print(f"Flag register (binary): {bin(reg)[2:].zfill(64)}")

@@ -1,9 +1,8 @@
-import xtrack as xt
 import numpy as np
-
-from scipy.constants import hbar
-from scipy.constants import electron_volt
 from scipy.constants import c as clight
+from scipy.constants import electron_volt, hbar
+
+import xtrack as xt
 
 env = xt.load('test_data/sls/sls.madx')
 line = env.ring
@@ -28,7 +27,7 @@ tt_bend = tt.rows[tt.element_type == 'Bend']
 tt_quad = tt.rows[tt.element_type == 'Quadrupole']
 for nn in tt_bend.name:
     line.get(nn).model = 'mat-kick-mat'
-    line.get(nn).integrator = 'yoshida4'
+    line.get(nn).integrator = 'yoshida-6'
     line[nn].num_multipole_kicks = 20
 # # for nn in tt_quad.name:
 # #     line[nn].radiation_flag = 0

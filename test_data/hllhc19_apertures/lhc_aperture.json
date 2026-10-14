@@ -135842,131 +135842,131 @@
    "voltage": 812500.0
   },
   "acsph.a5l4.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.5125
   },
   "acsph.a5l4.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.5125
   },
   "acsph.a5r4.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.5125
   },
   "acsph.a5r4.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.5125
   },
   "acsph.b5l4.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.5125
   },
   "acsph.b5l4.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.5125
   },
   "acsph.b5r4.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.5125
   },
   "acsph.b5r4.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.5125
   },
   "acsph.c5l4.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.5125
   },
   "acsph.c5l4.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.5125
   },
   "acsph.c5r4.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.5125
   },
   "acsph.c5r4.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.5125
   },
   "acsph.d5l4.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.5125
   },
   "acsph.d5l4.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.5125
   },
   "acsph.d5r4.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.5125
   },
   "acsph.d5r4.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.5125
   },
   "acsph.e5l4.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.5825
   },
   "acsph.e5l4.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.5825
   },
   "acsph.e5r4.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.5825
   },
   "acsph.e5r4.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.5825
   },
   "acsph.f5l4.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.5825
   },
   "acsph.f5l4.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.5825
   },
   "acsph.f5r4.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.5825
   },
   "acsph.f5r4.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.5825
   },
   "acsph.g5l4.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.5825
   },
   "acsph.g5l4.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.5825
   },
   "acsph.g5r4.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.5825
   },
   "acsph.g5r4.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.5825
   },
   "acsph.h5l4.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.5825
   },
   "acsph.h5l4.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.5825
   },
   "acsph.h5r4.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.5825
   },
   "acsph.h5r4.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.5825
   },
   "adtkh.a5l4.b1": {
@@ -136130,3847 +136130,3847 @@
    ]
   },
   "apwl.5l4.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "apwl.5r4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "apwl.b5l4.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "apwl.b5r4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "apwl.b6l4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "apwl.b6l4.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bctdc.a6r4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bctdc.a6r4.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bctdc.b6r4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bctdc.b6r4.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bctfr.a6r4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bctfr.a6r4.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bctfr.b6r4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bctfr.b6r4.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bgcac.a5l4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bgvca.a7l4.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bgvca.b7l4.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bgvca.c7l4.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bplh.6r4.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bplh.7r4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bplh.a6r4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bplh.a7l4.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bplh.b6r4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bplh.b7l4.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bplv.7r4.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bplv.a5l4.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bplv.a6r4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bplv.b5l4.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bplv.b6r4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bplv.c6r4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bplx.b6r4.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bplx.d6r4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bplx.d6r4.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bplx.h6r4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.10l1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.10l1.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.10l2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.10l2.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.10l3.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.10l3.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.10l4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.10l4.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.10l5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.10l5.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.10l6.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.10l6.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.10l7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.10l7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.10l8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.10l8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.10r1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.10r1.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.10r2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.10r2.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.10r3.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.10r3.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.10r4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.10r4.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.10r6.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.10r6.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.10r7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.10r7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.10r8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.10r8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.11l1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.11l1.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.11l2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.11l2.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.11l3.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.11l3.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.11l4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.11l4.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.11l5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.11l5.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.11l6.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.11l6.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.11l7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.11l7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.11l8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.11l8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.11r1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.11r1.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.11r2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.11r2.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.11r3.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.11r3.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.11r4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.11r4.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.11r5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.11r5.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.11r6.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.11r6.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.11r7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.11r7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.11r8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.11r8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.12l1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.12l1.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.12l2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.12l2.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.12l3.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.12l3.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.12l4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.12l4.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.12l5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.12l5.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.12l6.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.12l6.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.12l7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.12l7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.12l8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.12l8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.12r1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.12r1.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.12r2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.12r2.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.12r3.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.12r3.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.12r4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.12r4.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.12r5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.12r5.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.12r6.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.12r6.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.12r7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.12r7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.12r8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.12r8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.13l1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.13l1.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.13l2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.13l2.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.13l3.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.13l3.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.13l4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.13l4.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.13l5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.13l5.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.13l6.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.13l6.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.13l7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.13l7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.13l8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.13l8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.13r1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.13r1.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.13r2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.13r2.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.13r3.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.13r3.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.13r4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.13r4.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.13r5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.13r5.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.13r6.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.13r6.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.13r7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.13r7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.13r8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.13r8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.14l1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.14l1.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.14l2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.14l2.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.14l3.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.14l3.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.14l4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.14l4.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.14l5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.14l5.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.14l6.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.14l6.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.14l7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.14l7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.14l8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.14l8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.14r1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.14r1.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.14r2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.14r2.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.14r3.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.14r3.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.14r4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.14r4.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.14r5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.14r5.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.14r6.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.14r6.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.14r7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.14r7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.14r8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.14r8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.15l1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.15l1.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.15l2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.15l2.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.15l3.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.15l3.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.15l4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.15l4.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.15l5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.15l5.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.15l6.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.15l6.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.15l7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.15l7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.15l8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.15l8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.15r1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.15r1.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.15r2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.15r2.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.15r3.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.15r3.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.15r4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.15r4.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.15r5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.15r5.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.15r6.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.15r6.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.15r7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.15r7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.15r8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.15r8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.16l1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.16l1.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.16l2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.16l2.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.16l3.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.16l3.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.16l4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.16l4.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.16l5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.16l5.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.16l6.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.16l6.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.16l7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.16l7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.16l8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.16l8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.16r1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.16r1.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.16r2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.16r2.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.16r3.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.16r3.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.16r4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.16r4.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.16r5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.16r5.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.16r6.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.16r6.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.16r7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.16r7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.16r8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.16r8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.17l1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.17l1.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.17l2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.17l2.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.17l3.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.17l3.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.17l4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.17l4.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.17l5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.17l5.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.17l6.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.17l6.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.17l7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.17l7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.17l8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.17l8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.17r1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.17r1.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.17r2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.17r2.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.17r3.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.17r3.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.17r4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.17r4.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.17r5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.17r5.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.17r6.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.17r6.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.17r7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.17r7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.17r8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.17r8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.18l1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.18l1.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.18l2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.18l2.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.18l3.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.18l3.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.18l4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.18l4.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.18l5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.18l5.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.18l6.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.18l6.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.18l7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.18l7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.18l8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.18l8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.18r1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.18r1.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.18r2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.18r2.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.18r3.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.18r3.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.18r4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.18r4.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.18r5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.18r5.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.18r6.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.18r6.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.18r7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.18r7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.18r8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.18r8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.19l1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.19l1.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.19l2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.19l2.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.19l3.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.19l3.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.19l4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.19l4.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.19l5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.19l5.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.19l6.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.19l6.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.19l7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.19l7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.19l8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.19l8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.19r1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.19r1.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.19r2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.19r2.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.19r3.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.19r3.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.19r4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.19r4.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.19r5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.19r5.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.19r6.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.19r6.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.19r7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.19r7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.19r8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.19r8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.20l1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.20l1.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.20l2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.20l2.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.20l3.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.20l3.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.20l4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.20l4.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.20l5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.20l5.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.20l6.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.20l6.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.20l7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.20l7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.20l8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.20l8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.20r1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.20r1.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.20r2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.20r2.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.20r3.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.20r3.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.20r4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.20r4.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.20r5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.20r5.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.20r6.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.20r6.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.20r7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.20r7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.20r8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.20r8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.21l1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.21l1.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.21l2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.21l2.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.21l3.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.21l3.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.21l4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.21l4.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.21l5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.21l5.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.21l6.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.21l6.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.21l7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.21l7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.21l8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.21l8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.21r1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.21r1.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.21r2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.21r2.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.21r3.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.21r3.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.21r4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.21r4.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.21r5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.21r5.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.21r6.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.21r6.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.21r7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.21r7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.21r8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.21r8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.22l1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.22l1.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.22l2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.22l2.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.22l3.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.22l3.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.22l4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.22l4.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.22l5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.22l5.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.22l6.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.22l6.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.22l7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.22l7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.22l8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.22l8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.22r1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.22r1.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.22r2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.22r2.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.22r3.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.22r3.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.22r4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.22r4.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.22r5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.22r5.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.22r6.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.22r6.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.22r7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.22r7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.22r8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.22r8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.23l1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.23l1.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.23l2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.23l2.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.23l3.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.23l3.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.23l4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.23l4.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.23l5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.23l5.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.23l6.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.23l6.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.23l7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.23l7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.23l8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.23l8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.23r1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.23r1.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.23r2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.23r2.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.23r3.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.23r3.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.23r4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.23r4.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.23r5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.23r5.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.23r6.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.23r6.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.23r7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.23r7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.23r8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.23r8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.24l1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.24l1.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.24l2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.24l2.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.24l3.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.24l3.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.24l4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.24l4.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.24l5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.24l5.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.24l6.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.24l6.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.24l7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.24l7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.24l8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.24l8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.24r1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.24r1.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.24r2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.24r2.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.24r3.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.24r3.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.24r4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.24r4.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.24r5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.24r5.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.24r6.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.24r6.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.24r7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.24r7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.24r8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.24r8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.25l1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.25l1.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.25l2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.25l2.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.25l3.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.25l3.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.25l4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.25l4.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.25l5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.25l5.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.25l6.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.25l6.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.25l7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.25l7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.25l8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.25l8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.25r1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.25r1.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.25r2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.25r2.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.25r3.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.25r3.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.25r4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.25r4.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.25r5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.25r5.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.25r6.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.25r6.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.25r7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.25r7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.25r8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.25r8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.26l1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.26l1.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.26l2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.26l2.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.26l3.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.26l3.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.26l4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.26l4.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.26l5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.26l5.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.26l6.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.26l6.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.26l7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.26l7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.26l8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.26l8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.26r1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.26r1.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.26r2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.26r2.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.26r3.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.26r3.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.26r4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.26r4.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.26r5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.26r5.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.26r6.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.26r6.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.26r7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.26r7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.26r8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.26r8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.27l1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.27l1.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.27l2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.27l2.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.27l3.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.27l3.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.27l4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.27l4.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.27l5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.27l5.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.27l6.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.27l6.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.27l7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.27l7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.27l8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.27l8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.27r1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.27r1.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.27r2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.27r2.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.27r3.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.27r3.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.27r4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.27r4.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.27r5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.27r5.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.27r6.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.27r6.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.27r7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.27r7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.27r8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.27r8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.28l1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.28l1.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.28l2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.28l2.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.28l3.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.28l3.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.28l4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.28l4.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.28l5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.28l5.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.28l6.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.28l6.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.28l7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.28l7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.28l8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.28l8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.28r1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.28r1.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.28r2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.28r2.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.28r3.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.28r3.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.28r4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.28r4.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.28r5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.28r5.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.28r6.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.28r6.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.28r7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.28r7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.28r8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.28r8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.29l1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.29l1.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.29l2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.29l2.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.29l3.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.29l3.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.29l4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.29l4.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.29l5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.29l5.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.29l6.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.29l6.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.29l7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.29l7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.29l8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.29l8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.29r1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.29r1.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.29r2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.29r2.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.29r3.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.29r3.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.29r4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.29r4.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.29r5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.29r5.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.29r6.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.29r6.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.29r7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.29r7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.29r8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.29r8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.30l1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.30l1.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.30l2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.30l2.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.30l3.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.30l3.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.30l4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.30l4.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.30l5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.30l5.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.30l6.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.30l6.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.30l7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.30l7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.30l8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.30l8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.30r1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.30r1.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.30r2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.30r2.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.30r3.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.30r3.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.30r4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.30r4.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.30r5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.30r5.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.30r6.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.30r6.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.30r7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.30r7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.30r8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.30r8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.31l1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.31l1.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.31l2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.31l2.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.31l3.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.31l3.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.31l4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.31l4.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.31l5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.31l5.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.31l6.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.31l6.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.31l7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.31l7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.31l8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.31l8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.31r1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.31r1.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.31r2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.31r2.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.31r3.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.31r3.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.31r4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.31r4.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.31r5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.31r5.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.31r6.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.31r6.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.31r7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.31r7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.31r8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.31r8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.32l1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.32l1.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.32l2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.32l2.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.32l3.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.32l3.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.32l4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.32l4.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.32l5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.32l5.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.32l6.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.32l6.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.32l7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.32l7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.32l8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.32l8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.32r1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.32r1.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.32r2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.32r2.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.32r3.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.32r3.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.32r4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.32r4.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.32r5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.32r5.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.32r6.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.32r6.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.32r7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.32r7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.32r8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.32r8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.33l1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.33l1.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.33l2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.33l2.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.33l3.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.33l3.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.33l4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.33l4.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.33l5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.33l5.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.33l6.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.33l6.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.33l7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.33l7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.33l8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.33l8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.33r1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.33r1.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.33r2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.33r2.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.33r3.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.33r3.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.33r4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.33r4.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.33r5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.33r5.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.33r6.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.33r6.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.33r7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.33r7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.33r8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.33r8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.34r1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.34r1.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.34r2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.34r2.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.34r3.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.34r3.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.34r4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.34r4.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.34r5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.34r5.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.34r6.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.34r6.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.34r7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.34r7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.34r8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.34r8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.5l1.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.5l5.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.5l8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.5r1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.5r2.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.5r5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.6l1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.6l2.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.6l3.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.6l5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.6l7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.6l8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.6r1.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.6r2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.6r3.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.6r5.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.6r7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.6r8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.7l1.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.7l2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.7l2.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.7l3.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.7l3.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.7l4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.7l4.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.7l5.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.7l7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.7l7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.7l8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.7l8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.7r4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.7r4.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.8l1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.8l1.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.8l2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.8l2.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.8l3.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.8l3.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.8l4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.8l4.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.8l5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.8l5.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.8l6.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.8l6.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.8l7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.8l7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.8l8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.8l8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.8r1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.8r1.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.8r2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.8r2.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.8r3.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.8r3.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.8r4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.8r4.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.8r5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.8r5.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.8r6.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.8r6.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.8r7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.8r7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.8r8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.8r8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.9l1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.9l1.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.9l2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.9l2.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.9l3.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.9l3.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.9l4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.9l4.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.9l5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.9l5.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.9l6.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.9l6.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.9l7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.9l7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.9l8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.9l8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.9r1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.9r1.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.9r2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.9r2.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.9r3.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.9r3.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.9r4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.9r4.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.9r5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.9r5.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.9r6.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.9r6.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.9r7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.9r7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.9r8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.9r8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.a10r5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm.a10r5.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm_a.7r1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm_a.7r2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm_a.7r2.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm_a.7r3.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm_a.7r3.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm_a.7r5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm_a.7r7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm_a.7r7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm_a.7r8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpm_a.7r8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmcs.10l4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmcs.10l4.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmcs.10r4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmcs.10r4.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmcs.7l4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmcs.7l4.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmcs.7r4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmcs.7r4.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmcs.8l4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmcs.8l4.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmcs.8r4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmcs.8r4.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmcs.9l4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmcs.9l4.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmcs.9r4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmcs.9r4.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmqbcza.4l1.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmqbcza.4l5.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmqbcza.4r1.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmqbcza.4r5.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmqbczb.4l1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmqbczb.4l5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmqbczb.4r1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmqbczb.4r5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmqstza.1l1/b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmqstza.1l1/b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmqstza.1l5/b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmqstza.1l5/b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmqstza.1r1/b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmqstza.1r1/b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmqstza.1r5/b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmqstza.1r5/b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmqstzb.4l1/b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmqstzb.4l1/b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmqstzb.4l5/b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmqstzb.4l5/b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmqstzb.4r1/b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmqstzb.4r1/b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmqstzb.4r5/b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmqstzb.4r5/b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmqstzb.a2l1/b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmqstzb.a2l1/b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmqstzb.a2l5/b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmqstzb.a2l5/b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmqstzb.a2r1/b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmqstzb.a2r1/b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmqstzb.a2r5/b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmqstzb.a2r5/b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmqstzb.a3l1/b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmqstzb.a3l1/b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmqstzb.a3l5/b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmqstzb.a3l5/b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmqstzb.a3r1/b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmqstzb.a3r1/b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmqstzb.a3r5/b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmqstzb.a3r5/b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmqstzb.b2l1/b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmqstzb.b2l1/b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmqstzb.b2l5/b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmqstzb.b2l5/b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmqstzb.b2r1/b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmqstzb.b2r1/b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmqstzb.b2r5/b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmqstzb.b2r5/b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmqstzb.b3l1/b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmqstzb.b3l1/b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmqstzb.b3l5/b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmqstzb.b3l5/b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmqstzb.b3r1/b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmqstzb.b3r1/b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmqstzb.b3r5/b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmqstzb.b3r5/b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmr.5l1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmr.5l5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmr.5l8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmr.5r1.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmr.5r2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmr.5r5.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmr.6l1.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmr.6l2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmr.6l3.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmr.6l5.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmr.6l7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmr.6l8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmr.6r1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmr.6r2.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmr.6r3.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmr.6r5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmr.6r7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmr.6r8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmr.7l1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmr.7l5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmra.7r1.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmra.7r5.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpms.2l2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpms.2l2.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpms.2l8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpms.2l8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpms.2r2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpms.2r2.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpms.2r8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpms.2r8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmsa.4l6.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmsa.4r6.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmse.4l6.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmse.4r6.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmsi.a4l6.b2_itlk": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmsi.a4r6.b1_itlk": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmsi.b4l6.b2_itlk": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmsi.b4r6.b1_itlk": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmsw.1l2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmsw.1l2.b1_doros": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmsw.1l2.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmsw.1l2.b2_doros": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmsw.1l8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmsw.1l8.b1_doros": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmsw.1l8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmsw.1l8.b2_doros": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmsw.1r2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmsw.1r2.b1_doros": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmsw.1r2.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmsw.1r2.b2_doros": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmsw.1r8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmsw.1r8.b1_doros": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmsw.1r8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmsw.1r8.b2_doros": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmsx.4l2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmsx.4l2.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmsx.4l8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmsx.4l8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmsx.4r2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmsx.4r2.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmsx.4r8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmsx.4r8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmsx.a4l6.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmsx.a4l6.b1_itlk": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmsx.a4r6.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmsx.a4r6.b2_itlk": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmsx.b4l6.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmsx.b4l6.b1_itlk": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmsx.b4r6.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmsx.b4r6.b2_itlk": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmw.4l3.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmw.4l3.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmw.4l7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmw.4l7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmw.4r3.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmw.4r3.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmw.4r7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmw.4r7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmw.5l3.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmw.5l3.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmw.5l7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmw.5l7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmw.5r3.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmw.5r3.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmw.5r7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmw.5r7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmwa.a5l4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmwa.a5l4.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmwa.a5r4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmwa.a5r4.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmwa.b5l4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmwa.b5l4.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmwa.b5r4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmwa.b5r4.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmwb.4l2.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmwb.4l8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmwb.4l8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmwb.4r2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmwb.4r2.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmwb.4r8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmwc.6l7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmwc.6l7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmwc.6r3.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmwc.6r3.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmwe.4l3.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmwe.4l3.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmwe.4l7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmwe.4l7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmwe.4r3.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmwe.4r3.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmwe.4r7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmwe.4r7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmwe.5l7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmwe.5l7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmwe.5r7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmwe.5r7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmwe.a5r3.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmwg.a5l3.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmwi.4l2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmwi.4r8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmwi.a5l4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmwi.a5l8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmwi.a5r4.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmwj.a5l3.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmwj.a5r3.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmya.4l1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmya.4l1.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmya.4l6.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmya.4r1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmya.4r1.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmya.4r5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmya.4r5.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmya.4r6.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmya.5l4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmya.5l6.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmya.5r4.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmya.5r6.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmya.6l4.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmya.6r4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmya.b4l5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmya.b4l5.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmyb.4l2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmyb.4l2.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmyb.4l6.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmyb.4l8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmyb.4l8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmyb.4r2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmyb.4r2.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmyb.4r6.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmyb.4r8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmyb.4r8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmyb.5l2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmyb.5l2.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmyb.5l4.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmyb.5l6.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmyb.5r4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmyb.5r6.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmyb.5r8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmyb.5r8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmyb.6l4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpmyb.6r4.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bptdh.6l7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bptdh.6r7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bptdh.a11l2.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bptdh.a11r2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bptdh.a4l1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bptdh.a4l1.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bptdh.a4l2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bptdh.a4l5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bptdh.a4l5.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bptdh.a4l6.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bptdh.a4l8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bptdh.a4r1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bptdh.a4r1.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bptdh.a4r2.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bptdh.a4r5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bptdh.a4r5.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bptdh.a4r6.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bptdh.a4r8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bptdh.b4l7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bptdh.b4r7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bptdh.c6l7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bptdh.c6r7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bptdj.e5l7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bptdj.e5r7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bptdv.a4l1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bptdv.a4l2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bptdv.a4l5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bptdv.a4l8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bptdv.a4r1.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bptdv.a4r2.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bptdv.a4r5.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bptdv.a4r7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bptdv.a4r8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bptdv.d4l7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bptdv.d4r7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bptdv.d6l7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bptdv.d6r7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bptqr.a4l1.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.12
   },
   "bptqr.a4l1.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.12
   },
   "bptqr.a4l5.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.12
   },
   "bptqr.a4l5.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.12
   },
   "bptqr.a4r1.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.12
   },
   "bptqr.a4r1.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.12
   },
   "bptqr.a4r5.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.12
   },
   "bptqr.a4r5.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.12
   },
   "bptqr.b4l1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bptqr.b4l1.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bptqr.b4l5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bptqr.b4l5.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bptqr.b4r1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bptqr.b4r1.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bptqr.b4r5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bptqr.b4r5.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bptqx.4l1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bptqx.4l5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bptqx.4r1.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bptqx.4r5.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bptuh.6l7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bptuh.6r7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bptuh.a11l2.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bptuh.a11r2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bptuh.a4l1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bptuh.a4l1.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bptuh.a4l2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bptuh.a4l5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bptuh.a4l5.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bptuh.a4l6.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bptuh.a4l8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bptuh.a4r1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bptuh.a4r1.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bptuh.a4r2.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bptuh.a4r5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bptuh.a4r5.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bptuh.a4r6.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bptuh.a4r7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bptuh.a4r8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bptuh.b4l7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bptuh.b4r7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bptuh.c6l7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bptuh.c6r7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bptuh.d4l7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bptuh.d4r7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bptuh.d6l7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bptuh.d6r7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bptuj.e5l7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bptuj.e5r7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bptut.e5l7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bptut.e5r7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bptuv.6l7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bptuv.6r7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bptuv.a4l1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bptuv.a4l2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bptuv.a4l5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bptuv.a4l8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bptuv.a4r1.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bptuv.a4r2.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bptuv.a4r5.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bptuv.a4r7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bptuv.a4r8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bptuv.b4l7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bptuv.b4r7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bptuv.c6l7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bptuv.c6r7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bptuv.d4l7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bptuv.d4r7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bptuv.d6l7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bptuv.d6r7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bptx.5l2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bptx.5l8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bptx.5r2.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bptx.5r8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bpw.4l1.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.4
   },
   "bpw.4l1.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.4
   },
   "bpw.4l5.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.4
   },
   "bpw.4l5.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.4
   },
   "bpw.4r1.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.4
   },
   "bpw.4r1.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.4
   },
   "bpw.4r5.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.4
   },
   "bpw.4r5.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.4
   },
   "bqkh.a6r4.b2": {
@@ -140014,290 +140014,290 @@
    ]
   },
   "bqsh.5r4.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bqsh.7r4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bqsv.5r4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bqsv.7r4.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "branc.4l2/b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "branc.4l2/b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "branc.4l8/b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "branc.4l8/b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "branc.4r2/b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "branc.4r2/b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "branc.4r8/b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "branc.4r8/b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bsrtm.5l4.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bsrtm.5r4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bsrtmb.5l4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bsrto.a5l4.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bsrto.a5r4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bsrtr.5l4.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bsrtr.5r4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "btvm.6l4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "btvm.6l4.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "btvm.7l3.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "btvm.7l3.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "btvse.a4l6.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "btvse.a4r6.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "btvsi.a5l2.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.5
   },
   "btvsi.a5r8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "btvsi.a7r7.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.5
   },
   "btvsi.c5l2.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.5
   },
   "btvsi.c5r8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "btvss.6l2.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.75
   },
   "btvss.6r8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "btvst.a4l2/b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "btvst.a4l2/b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "btvst.a4r8/b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "btvst.a4r8/b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bws.5l4.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bws.5r4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "bwsla.a5r4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "collimator": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "crabcavity": {
    "__class__": "CrabCavity"
   },
   "dfbaa.7l1.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 2.175
   },
   "dfbaa.7l1.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 2.175
   },
   "dfbab.7r1.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 2.675
   },
   "dfbab.7r1.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 2.675
   },
   "dfbac.7l2.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 2.175
   },
   "dfbac.7l2.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 2.175
   },
   "dfbad.7r2.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 2.675
   },
   "dfbad.7r2.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 2.675
   },
   "dfbae.7l3.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 2.175
   },
   "dfbae.7l3.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 2.175
   },
   "dfbaf.7r3.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 2.675
   },
   "dfbaf.7r3.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 2.675
   },
   "dfbag.7l4.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 2.175
   },
   "dfbag.7l4.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 2.175
   },
   "dfbah.7r4.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 2.675
   },
   "dfbah.7r4.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 2.675
   },
   "dfbai.7l5.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 2.175
   },
   "dfbai.7l5.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 2.175
   },
   "dfbaj.7r5.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 2.675
   },
   "dfbaj.7r5.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 2.675
   },
   "dfbak.5l6.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 2.175
   },
   "dfbak.5l6.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 2.175
   },
   "dfbal.5r6.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 2.675
   },
   "dfbal.5r6.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 2.675
   },
   "dfbam.7l7.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 2.175
   },
   "dfbam.7l7.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 2.175
   },
   "dfban.7r7.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 2.675
   },
   "dfban.7r7.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 2.675
   },
   "dfbao.7l8.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 2.175
   },
   "dfbao.7l8.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 2.175
   },
   "dfbap.7r8.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 2.675
   },
   "dfbap.7r8.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 2.675
   },
   "dfbxc.3l2/b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 2.853
   },
   "dfbxc.3l2/b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 2.853
   },
   "dfbxd.3r2/b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 2.853
   },
   "dfbxd.3r2/b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 2.853
   },
   "dfbxg.3l8/b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 2.853
   },
   "dfbxg.3l8/b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 2.853
   },
   "dfbxh.3r8/b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 2.853
   },
   "dfbxh.3r8/b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 2.853
   },
   "dipedge": {
@@ -193847,7 +193847,7 @@
    "__class__": "Marker"
   },
   "ecollimator": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "hkicker": {
    "__class__": "Multipole",
@@ -193859,13 +193859,13 @@
    ]
   },
   "hmonitor": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "imonitor": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "instrument": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "ip1": {
    "__class__": "Marker"
@@ -193916,163 +193916,163 @@
    "__class__": "Marker"
   },
   "leal.11r4.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 12.7747
   },
   "leal.11r4.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 12.7747
   },
   "lear.11r6.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 12.7747
   },
   "lear.11r6.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 12.7747
   },
   "lebl.11l4.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 12.7747
   },
   "lebl.11l4.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 12.7747
   },
   "lebr.11l6.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 12.7747
   },
   "lebr.11l6.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 12.7747
   },
   "lebr.11l8.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 12.7747
   },
   "lebr.11l8.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 12.7747
   },
   "lecl.11r8.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 12.7747
   },
   "lecl.11r8.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 12.7747
   },
   "ledr.11r7.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 13.7167
   },
   "ledr.11r7.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 13.7167
   },
   "leel.11r3.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 13.7167
   },
   "leel.11r3.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 13.7167
   },
   "lefl.11l1.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 13.7167
   },
   "lefl.11l1.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 13.7167
   },
   "lefl.11l3.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 13.7167
   },
   "lefl.11l3.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 13.7167
   },
   "lefl.11l5.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 13.7167
   },
   "lefl.11l5.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 13.7167
   },
   "legr.11r5.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 13.7167
   },
   "legr.11r5.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 13.7167
   },
   "lehr.11r1.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 13.7167
   },
   "lehr.11r1.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 13.7167
   },
   "leir.11l7.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 13.7167
   },
   "leir.11l7.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 13.7167
   },
   "lejl.5l6.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 10.12
   },
   "lejl.5l6.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 10.12
   },
   "lenla.11r2.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 2.156
   },
   "lenra.11l2.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 2.156
   },
   "lepla.11r2.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 5.30935
   },
   "lepla.11r2.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 5.30935
   },
   "leplb.11r2.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 5.30935
   },
   "leplb.11r2.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 5.30935
   },
   "lepra.11l2.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 5.30935
   },
   "lepra.11l2.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 5.30935
   },
   "leprb.11l2.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 5.30935
   },
   "leprb.11l2.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 5.30935
   },
   "lhcb1$end": {
@@ -234129,7 +234129,7 @@
    "length": 0.904
   },
   "mcbcv.8r3.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.904
   },
   "mcbcv.8r4.b2": {
@@ -234546,7 +234546,7 @@
    "length": 0.647
   },
   "mcbh.11r1.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.647
   },
   "mcbh.11r2.b2": {
@@ -238125,7 +238125,7 @@
    "length": 0.647
   },
   "mcbh.31r7.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.647
   },
   "mcbh.31r8.b2": {
@@ -241620,7 +241620,7 @@
    "length": 0.647
   },
   "mcbv.26r5.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.647
   },
   "mcbv.26r6.b2": {
@@ -243777,10 +243777,10 @@
    "length": 1.2
   },
   "mcbxh.1l2/b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mcbxh.1l2/b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mcbxh.1l8/b1": {
    "__class__": "Multipole",
@@ -249923,7 +249923,7 @@
    "order": 4
   },
   "mcd.34l2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mcd.34l2.b2": {
    "__class__": "Multipole",
@@ -259067,7 +259067,7 @@
    "order": 3
   },
   "mco.10l2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.10l2.b2": {
    "__class__": "Multipole",
@@ -259125,7 +259125,7 @@
    "order": 3
   },
   "mco.10l5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.10l5.b2": {
    "__class__": "Multipole",
@@ -259183,13 +259183,13 @@
    "order": 3
   },
   "mco.10l8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.10l8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.10r1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.10r1.b2": {
    "__class__": "Multipole",
@@ -259247,7 +259247,7 @@
    "order": 3
   },
   "mco.10r4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.10r4.b2": {
    "__class__": "Multipole",
@@ -259305,10 +259305,10 @@
    "order": 3
   },
   "mco.10r7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.10r7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.10r8.b1": {
    "__class__": "Multipole",
@@ -259344,10 +259344,10 @@
    "order": 3
   },
   "mco.11l1.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.11l2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.11l2.b2": {
    "__class__": "Multipole",
@@ -259405,7 +259405,7 @@
    "order": 3
   },
   "mco.11l5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.11l5.b2": {
    "__class__": "Multipole",
@@ -259463,13 +259463,13 @@
    "order": 3
   },
   "mco.11l8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.11l8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.11r1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.11r1.b2": {
    "__class__": "Multipole",
@@ -259527,7 +259527,7 @@
    "order": 3
   },
   "mco.11r4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.11r4.b2": {
    "__class__": "Multipole",
@@ -259585,10 +259585,10 @@
    "order": 3
   },
   "mco.11r7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.11r7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.11r8.b1": {
    "__class__": "Multipole",
@@ -259624,10 +259624,10 @@
    "order": 3
   },
   "mco.12l1.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.12l2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.12l2.b2": {
    "__class__": "Multipole",
@@ -259685,7 +259685,7 @@
    "order": 3
   },
   "mco.12l5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.12l5.b2": {
    "__class__": "Multipole",
@@ -259743,13 +259743,13 @@
    "order": 3
   },
   "mco.12l8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.12l8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.13r1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.13r1.b2": {
    "__class__": "Multipole",
@@ -259807,7 +259807,7 @@
    "order": 3
   },
   "mco.13r4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.13r4.b2": {
    "__class__": "Multipole",
@@ -259865,10 +259865,10 @@
    "order": 3
   },
   "mco.13r7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.13r7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.13r8.b1": {
    "__class__": "Multipole",
@@ -259915,7 +259915,7 @@
    "order": 3
   },
   "mco.14l2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.14l2.b2": {
    "__class__": "Multipole",
@@ -259973,7 +259973,7 @@
    "order": 3
   },
   "mco.14l5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.14l5.b2": {
    "__class__": "Multipole",
@@ -260031,13 +260031,13 @@
    "order": 3
   },
   "mco.14l8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.14l8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.15r1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.15r1.b2": {
    "__class__": "Multipole",
@@ -260095,7 +260095,7 @@
    "order": 3
   },
   "mco.15r4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.15r4.b2": {
    "__class__": "Multipole",
@@ -260153,10 +260153,10 @@
    "order": 3
   },
   "mco.15r7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.15r7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.15r8.b1": {
    "__class__": "Multipole",
@@ -260203,7 +260203,7 @@
    "order": 3
   },
   "mco.16l2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.16l2.b2": {
    "__class__": "Multipole",
@@ -260261,7 +260261,7 @@
    "order": 3
   },
   "mco.16l5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.16l5.b2": {
    "__class__": "Multipole",
@@ -260319,13 +260319,13 @@
    "order": 3
   },
   "mco.16l8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.16l8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.17r1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.17r1.b2": {
    "__class__": "Multipole",
@@ -260383,7 +260383,7 @@
    "order": 3
   },
   "mco.17r4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.17r4.b2": {
    "__class__": "Multipole",
@@ -260441,10 +260441,10 @@
    "order": 3
   },
   "mco.17r7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.17r7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.17r8.b1": {
    "__class__": "Multipole",
@@ -260491,7 +260491,7 @@
    "order": 3
   },
   "mco.18l2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.18l2.b2": {
    "__class__": "Multipole",
@@ -260549,7 +260549,7 @@
    "order": 3
   },
   "mco.18l5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.18l5.b2": {
    "__class__": "Multipole",
@@ -260607,13 +260607,13 @@
    "order": 3
   },
   "mco.18l8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.18l8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.19r1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.19r1.b2": {
    "__class__": "Multipole",
@@ -260671,7 +260671,7 @@
    "order": 3
   },
   "mco.19r4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.19r4.b2": {
    "__class__": "Multipole",
@@ -260729,10 +260729,10 @@
    "order": 3
   },
   "mco.19r7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.19r7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.19r8.b1": {
    "__class__": "Multipole",
@@ -260779,7 +260779,7 @@
    "order": 3
   },
   "mco.20l2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.20l2.b2": {
    "__class__": "Multipole",
@@ -260837,7 +260837,7 @@
    "order": 3
   },
   "mco.20l5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.20l5.b2": {
    "__class__": "Multipole",
@@ -260895,13 +260895,13 @@
    "order": 3
   },
   "mco.20l8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.20l8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.21r1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.21r1.b2": {
    "__class__": "Multipole",
@@ -260959,7 +260959,7 @@
    "order": 3
   },
   "mco.21r4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.21r4.b2": {
    "__class__": "Multipole",
@@ -261017,10 +261017,10 @@
    "order": 3
   },
   "mco.21r7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.21r7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.21r8.b1": {
    "__class__": "Multipole",
@@ -261067,7 +261067,7 @@
    "order": 3
   },
   "mco.22l2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.22l2.b2": {
    "__class__": "Multipole",
@@ -261125,7 +261125,7 @@
    "order": 3
   },
   "mco.22l5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.22l5.b2": {
    "__class__": "Multipole",
@@ -261183,13 +261183,13 @@
    "order": 3
   },
   "mco.22l8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.22l8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.23r1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.23r1.b2": {
    "__class__": "Multipole",
@@ -261247,7 +261247,7 @@
    "order": 3
   },
   "mco.23r4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.23r4.b2": {
    "__class__": "Multipole",
@@ -261305,10 +261305,10 @@
    "order": 3
   },
   "mco.23r7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.23r7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.23r8.b1": {
    "__class__": "Multipole",
@@ -261355,7 +261355,7 @@
    "order": 3
   },
   "mco.24l2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.24l2.b2": {
    "__class__": "Multipole",
@@ -261413,7 +261413,7 @@
    "order": 3
   },
   "mco.24l5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.24l5.b2": {
    "__class__": "Multipole",
@@ -261471,13 +261471,13 @@
    "order": 3
   },
   "mco.24l8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.24l8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.25r1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.25r1.b2": {
    "__class__": "Multipole",
@@ -261535,7 +261535,7 @@
    "order": 3
   },
   "mco.25r4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.25r4.b2": {
    "__class__": "Multipole",
@@ -261593,10 +261593,10 @@
    "order": 3
   },
   "mco.25r7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.25r7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.25r8.b1": {
    "__class__": "Multipole",
@@ -261643,7 +261643,7 @@
    "order": 3
   },
   "mco.26l2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.26l2.b2": {
    "__class__": "Multipole",
@@ -261701,7 +261701,7 @@
    "order": 3
   },
   "mco.26l5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.26l5.b2": {
    "__class__": "Multipole",
@@ -261759,13 +261759,13 @@
    "order": 3
   },
   "mco.26l8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.26l8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.27r1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.27r1.b2": {
    "__class__": "Multipole",
@@ -261823,7 +261823,7 @@
    "order": 3
   },
   "mco.27r4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.27r4.b2": {
    "__class__": "Multipole",
@@ -261881,10 +261881,10 @@
    "order": 3
   },
   "mco.27r7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.27r7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.27r8.b1": {
    "__class__": "Multipole",
@@ -261931,7 +261931,7 @@
    "order": 3
   },
   "mco.28l2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.28l2.b2": {
    "__class__": "Multipole",
@@ -261989,7 +261989,7 @@
    "order": 3
   },
   "mco.28l5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.28l5.b2": {
    "__class__": "Multipole",
@@ -262047,13 +262047,13 @@
    "order": 3
   },
   "mco.28l8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.28l8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.29r1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.29r1.b2": {
    "__class__": "Multipole",
@@ -262111,7 +262111,7 @@
    "order": 3
   },
   "mco.29r4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.29r4.b2": {
    "__class__": "Multipole",
@@ -262169,10 +262169,10 @@
    "order": 3
   },
   "mco.29r7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.29r7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.29r8.b1": {
    "__class__": "Multipole",
@@ -262219,7 +262219,7 @@
    "order": 3
   },
   "mco.30l2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.30l2.b2": {
    "__class__": "Multipole",
@@ -262277,7 +262277,7 @@
    "order": 3
   },
   "mco.30l5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.30l5.b2": {
    "__class__": "Multipole",
@@ -262335,13 +262335,13 @@
    "order": 3
   },
   "mco.30l8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.30l8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.31r1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.31r1.b2": {
    "__class__": "Multipole",
@@ -262399,7 +262399,7 @@
    "order": 3
   },
   "mco.31r4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.31r4.b2": {
    "__class__": "Multipole",
@@ -262457,10 +262457,10 @@
    "order": 3
   },
   "mco.31r7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.31r7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.31r8.b1": {
    "__class__": "Multipole",
@@ -262507,7 +262507,7 @@
    "order": 3
   },
   "mco.32l2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.32l2.b2": {
    "__class__": "Multipole",
@@ -262565,7 +262565,7 @@
    "order": 3
   },
   "mco.32l5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.32l5.b2": {
    "__class__": "Multipole",
@@ -262623,13 +262623,13 @@
    "order": 3
   },
   "mco.32l8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.32l8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.33r1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.33r1.b2": {
    "__class__": "Multipole",
@@ -262687,7 +262687,7 @@
    "order": 3
   },
   "mco.33r4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.33r4.b2": {
    "__class__": "Multipole",
@@ -262745,10 +262745,10 @@
    "order": 3
   },
   "mco.33r7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.33r7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.33r8.b1": {
    "__class__": "Multipole",
@@ -262795,7 +262795,7 @@
    "order": 3
   },
   "mco.34l2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.34l2.b2": {
    "__class__": "Multipole",
@@ -262853,7 +262853,7 @@
    "order": 3
   },
   "mco.34l5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.34l5.b2": {
    "__class__": "Multipole",
@@ -262911,10 +262911,10 @@
    "order": 3
   },
   "mco.34l8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.34l8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.8l1.b1": {
    "__class__": "Multipole",
@@ -262939,7 +262939,7 @@
    "order": 3
   },
   "mco.8l2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.8l2.b2": {
    "__class__": "Multipole",
@@ -262997,7 +262997,7 @@
    "order": 3
   },
   "mco.8l5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.8l5.b2": {
    "__class__": "Multipole",
@@ -263055,13 +263055,13 @@
    "order": 3
   },
   "mco.8l8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.8l8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.8r1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.8r1.b2": {
    "__class__": "Multipole",
@@ -263119,7 +263119,7 @@
    "order": 3
   },
   "mco.8r4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.8r4.b2": {
    "__class__": "Multipole",
@@ -263177,10 +263177,10 @@
    "order": 3
   },
   "mco.8r7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.8r7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.8r8.b1": {
    "__class__": "Multipole",
@@ -263227,7 +263227,7 @@
    "order": 3
   },
   "mco.9l2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.9l2.b2": {
    "__class__": "Multipole",
@@ -263285,7 +263285,7 @@
    "order": 3
   },
   "mco.9l5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.9l5.b2": {
    "__class__": "Multipole",
@@ -263343,13 +263343,13 @@
    "order": 3
   },
   "mco.9l8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.9l8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.9r1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.9r1.b2": {
    "__class__": "Multipole",
@@ -263407,7 +263407,7 @@
    "order": 3
   },
   "mco.9r4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.9r4.b2": {
    "__class__": "Multipole",
@@ -263465,10 +263465,10 @@
    "order": 3
   },
   "mco.9r7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.9r7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.9r8.b1": {
    "__class__": "Multipole",
@@ -263493,7 +263493,7 @@
    "order": 3
   },
   "mco.a12r1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.a12r1.b2": {
    "__class__": "Multipole",
@@ -263551,7 +263551,7 @@
    "order": 3
   },
   "mco.a12r4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.a12r4.b2": {
    "__class__": "Multipole",
@@ -263609,10 +263609,10 @@
    "order": 3
   },
   "mco.a12r7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.a12r7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.a12r8.b1": {
    "__class__": "Multipole",
@@ -263659,7 +263659,7 @@
    "order": 3
   },
   "mco.a13l2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.a13l2.b2": {
    "__class__": "Multipole",
@@ -263717,7 +263717,7 @@
    "order": 3
   },
   "mco.a13l5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.a13l5.b2": {
    "__class__": "Multipole",
@@ -263775,13 +263775,13 @@
    "order": 3
   },
   "mco.a13l8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.a13l8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.a14r1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.a14r1.b2": {
    "__class__": "Multipole",
@@ -263839,7 +263839,7 @@
    "order": 3
   },
   "mco.a14r4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.a14r4.b2": {
    "__class__": "Multipole",
@@ -263897,10 +263897,10 @@
    "order": 3
   },
   "mco.a14r7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.a14r7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.a14r8.b1": {
    "__class__": "Multipole",
@@ -263947,7 +263947,7 @@
    "order": 3
   },
   "mco.a15l2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.a15l2.b2": {
    "__class__": "Multipole",
@@ -264005,7 +264005,7 @@
    "order": 3
   },
   "mco.a15l5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.a15l5.b2": {
    "__class__": "Multipole",
@@ -264063,13 +264063,13 @@
    "order": 3
   },
   "mco.a15l8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.a15l8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.a16r1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.a16r1.b2": {
    "__class__": "Multipole",
@@ -264127,7 +264127,7 @@
    "order": 3
   },
   "mco.a16r4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.a16r4.b2": {
    "__class__": "Multipole",
@@ -264185,10 +264185,10 @@
    "order": 3
   },
   "mco.a16r7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.a16r7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.a16r8.b1": {
    "__class__": "Multipole",
@@ -264235,7 +264235,7 @@
    "order": 3
   },
   "mco.a17l2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.a17l2.b2": {
    "__class__": "Multipole",
@@ -264293,7 +264293,7 @@
    "order": 3
   },
   "mco.a17l5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.a17l5.b2": {
    "__class__": "Multipole",
@@ -264351,13 +264351,13 @@
    "order": 3
   },
   "mco.a17l8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.a17l8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.a18r1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.a18r1.b2": {
    "__class__": "Multipole",
@@ -264415,7 +264415,7 @@
    "order": 3
   },
   "mco.a18r4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.a18r4.b2": {
    "__class__": "Multipole",
@@ -264473,10 +264473,10 @@
    "order": 3
   },
   "mco.a18r7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.a18r7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.a18r8.b1": {
    "__class__": "Multipole",
@@ -264523,7 +264523,7 @@
    "order": 3
   },
   "mco.a19l2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.a19l2.b2": {
    "__class__": "Multipole",
@@ -264581,7 +264581,7 @@
    "order": 3
   },
   "mco.a19l5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.a19l5.b2": {
    "__class__": "Multipole",
@@ -264639,13 +264639,13 @@
    "order": 3
   },
   "mco.a19l8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.a19l8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.a20r1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.a20r1.b2": {
    "__class__": "Multipole",
@@ -264703,7 +264703,7 @@
    "order": 3
   },
   "mco.a20r4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.a20r4.b2": {
    "__class__": "Multipole",
@@ -264761,10 +264761,10 @@
    "order": 3
   },
   "mco.a20r7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.a20r7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.a20r8.b1": {
    "__class__": "Multipole",
@@ -264811,7 +264811,7 @@
    "order": 3
   },
   "mco.a21l2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.a21l2.b2": {
    "__class__": "Multipole",
@@ -264869,7 +264869,7 @@
    "order": 3
   },
   "mco.a21l5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.a21l5.b2": {
    "__class__": "Multipole",
@@ -264927,13 +264927,13 @@
    "order": 3
   },
   "mco.a21l8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.a21l8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.a22r1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.a22r1.b2": {
    "__class__": "Multipole",
@@ -264991,7 +264991,7 @@
    "order": 3
   },
   "mco.a22r4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.a22r4.b2": {
    "__class__": "Multipole",
@@ -265049,10 +265049,10 @@
    "order": 3
   },
   "mco.a22r7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.a22r7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.a22r8.b1": {
    "__class__": "Multipole",
@@ -265099,7 +265099,7 @@
    "order": 3
   },
   "mco.a23l2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.a23l2.b2": {
    "__class__": "Multipole",
@@ -265157,7 +265157,7 @@
    "order": 3
   },
   "mco.a23l5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.a23l5.b2": {
    "__class__": "Multipole",
@@ -265215,13 +265215,13 @@
    "order": 3
   },
   "mco.a23l8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.a23l8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.a24r1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.a24r1.b2": {
    "__class__": "Multipole",
@@ -265279,7 +265279,7 @@
    "order": 3
   },
   "mco.a24r4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.a24r4.b2": {
    "__class__": "Multipole",
@@ -265337,10 +265337,10 @@
    "order": 3
   },
   "mco.a24r7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.a24r7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.a24r8.b1": {
    "__class__": "Multipole",
@@ -265387,7 +265387,7 @@
    "order": 3
   },
   "mco.a25l2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.a25l2.b2": {
    "__class__": "Multipole",
@@ -265445,7 +265445,7 @@
    "order": 3
   },
   "mco.a25l5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.a25l5.b2": {
    "__class__": "Multipole",
@@ -265503,13 +265503,13 @@
    "order": 3
   },
   "mco.a25l8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.a25l8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.a26r1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.a26r1.b2": {
    "__class__": "Multipole",
@@ -265567,7 +265567,7 @@
    "order": 3
   },
   "mco.a26r4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.a26r4.b2": {
    "__class__": "Multipole",
@@ -265625,10 +265625,10 @@
    "order": 3
   },
   "mco.a26r7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.a26r7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.a26r8.b1": {
    "__class__": "Multipole",
@@ -265675,7 +265675,7 @@
    "order": 3
   },
   "mco.a27l2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.a27l2.b2": {
    "__class__": "Multipole",
@@ -265733,7 +265733,7 @@
    "order": 3
   },
   "mco.a27l5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.a27l5.b2": {
    "__class__": "Multipole",
@@ -265791,13 +265791,13 @@
    "order": 3
   },
   "mco.a27l8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.a27l8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.a28r1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.a28r1.b2": {
    "__class__": "Multipole",
@@ -265855,7 +265855,7 @@
    "order": 3
   },
   "mco.a28r4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.a28r4.b2": {
    "__class__": "Multipole",
@@ -265913,10 +265913,10 @@
    "order": 3
   },
   "mco.a28r7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.a28r7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.a28r8.b1": {
    "__class__": "Multipole",
@@ -265963,7 +265963,7 @@
    "order": 3
   },
   "mco.a29l2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.a29l2.b2": {
    "__class__": "Multipole",
@@ -266021,7 +266021,7 @@
    "order": 3
   },
   "mco.a29l5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.a29l5.b2": {
    "__class__": "Multipole",
@@ -266079,13 +266079,13 @@
    "order": 3
   },
   "mco.a29l8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.a29l8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.a30r1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.a30r1.b2": {
    "__class__": "Multipole",
@@ -266143,7 +266143,7 @@
    "order": 3
   },
   "mco.a30r4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.a30r4.b2": {
    "__class__": "Multipole",
@@ -266201,10 +266201,10 @@
    "order": 3
   },
   "mco.a30r7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.a30r7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.a30r8.b1": {
    "__class__": "Multipole",
@@ -266251,7 +266251,7 @@
    "order": 3
   },
   "mco.a31l2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.a31l2.b2": {
    "__class__": "Multipole",
@@ -266309,7 +266309,7 @@
    "order": 3
   },
   "mco.a31l5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.a31l5.b2": {
    "__class__": "Multipole",
@@ -266367,13 +266367,13 @@
    "order": 3
   },
   "mco.a31l8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.a31l8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.a32r1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.a32r1.b2": {
    "__class__": "Multipole",
@@ -266431,7 +266431,7 @@
    "order": 3
   },
   "mco.a32r4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.a32r4.b2": {
    "__class__": "Multipole",
@@ -266489,10 +266489,10 @@
    "order": 3
   },
   "mco.a32r7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.a32r7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.a32r8.b1": {
    "__class__": "Multipole",
@@ -266539,7 +266539,7 @@
    "order": 3
   },
   "mco.a33l2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.a33l2.b2": {
    "__class__": "Multipole",
@@ -266597,7 +266597,7 @@
    "order": 3
   },
   "mco.a33l5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.a33l5.b2": {
    "__class__": "Multipole",
@@ -266655,13 +266655,13 @@
    "order": 3
   },
   "mco.a33l8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.a33l8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.a34r1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.a34r1.b2": {
    "__class__": "Multipole",
@@ -266719,7 +266719,7 @@
    "order": 3
   },
   "mco.a34r4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.a34r4.b2": {
    "__class__": "Multipole",
@@ -266777,10 +266777,10 @@
    "order": 3
   },
   "mco.a34r7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.a34r7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.a34r8.b1": {
    "__class__": "Multipole",
@@ -266805,7 +266805,7 @@
    "order": 3
   },
   "mco.b12r1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.b12r1.b2": {
    "__class__": "Multipole",
@@ -266863,7 +266863,7 @@
    "order": 3
   },
   "mco.b12r4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.b12r4.b2": {
    "__class__": "Multipole",
@@ -266921,10 +266921,10 @@
    "order": 3
   },
   "mco.b12r7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.b12r7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.b12r8.b1": {
    "__class__": "Multipole",
@@ -266971,7 +266971,7 @@
    "order": 3
   },
   "mco.b13l2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.b13l2.b2": {
    "__class__": "Multipole",
@@ -267029,7 +267029,7 @@
    "order": 3
   },
   "mco.b13l5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.b13l5.b2": {
    "__class__": "Multipole",
@@ -267087,13 +267087,13 @@
    "order": 3
   },
   "mco.b13l8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.b13l8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.b14r1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.b14r1.b2": {
    "__class__": "Multipole",
@@ -267151,7 +267151,7 @@
    "order": 3
   },
   "mco.b14r4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.b14r4.b2": {
    "__class__": "Multipole",
@@ -267209,10 +267209,10 @@
    "order": 3
   },
   "mco.b14r7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.b14r7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.b14r8.b1": {
    "__class__": "Multipole",
@@ -267259,7 +267259,7 @@
    "order": 3
   },
   "mco.b15l2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.b15l2.b2": {
    "__class__": "Multipole",
@@ -267317,7 +267317,7 @@
    "order": 3
   },
   "mco.b15l5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.b15l5.b2": {
    "__class__": "Multipole",
@@ -267375,13 +267375,13 @@
    "order": 3
   },
   "mco.b15l8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.b15l8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.b16r1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.b16r1.b2": {
    "__class__": "Multipole",
@@ -267439,7 +267439,7 @@
    "order": 3
   },
   "mco.b16r4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.b16r4.b2": {
    "__class__": "Multipole",
@@ -267497,10 +267497,10 @@
    "order": 3
   },
   "mco.b16r7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.b16r7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.b16r8.b1": {
    "__class__": "Multipole",
@@ -267547,7 +267547,7 @@
    "order": 3
   },
   "mco.b17l2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.b17l2.b2": {
    "__class__": "Multipole",
@@ -267605,7 +267605,7 @@
    "order": 3
   },
   "mco.b17l5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.b17l5.b2": {
    "__class__": "Multipole",
@@ -267663,13 +267663,13 @@
    "order": 3
   },
   "mco.b17l8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.b17l8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.b18r1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.b18r1.b2": {
    "__class__": "Multipole",
@@ -267727,7 +267727,7 @@
    "order": 3
   },
   "mco.b18r4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.b18r4.b2": {
    "__class__": "Multipole",
@@ -267785,10 +267785,10 @@
    "order": 3
   },
   "mco.b18r7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.b18r7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.b18r8.b1": {
    "__class__": "Multipole",
@@ -267835,7 +267835,7 @@
    "order": 3
   },
   "mco.b19l2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.b19l2.b2": {
    "__class__": "Multipole",
@@ -267893,7 +267893,7 @@
    "order": 3
   },
   "mco.b19l5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.b19l5.b2": {
    "__class__": "Multipole",
@@ -267951,13 +267951,13 @@
    "order": 3
   },
   "mco.b19l8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.b19l8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.b20r1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.b20r1.b2": {
    "__class__": "Multipole",
@@ -268015,7 +268015,7 @@
    "order": 3
   },
   "mco.b20r4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.b20r4.b2": {
    "__class__": "Multipole",
@@ -268073,10 +268073,10 @@
    "order": 3
   },
   "mco.b20r7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.b20r7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.b20r8.b1": {
    "__class__": "Multipole",
@@ -268123,7 +268123,7 @@
    "order": 3
   },
   "mco.b21l2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.b21l2.b2": {
    "__class__": "Multipole",
@@ -268181,7 +268181,7 @@
    "order": 3
   },
   "mco.b21l5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.b21l5.b2": {
    "__class__": "Multipole",
@@ -268239,13 +268239,13 @@
    "order": 3
   },
   "mco.b21l8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.b21l8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.b22r1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.b22r1.b2": {
    "__class__": "Multipole",
@@ -268303,7 +268303,7 @@
    "order": 3
   },
   "mco.b22r4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.b22r4.b2": {
    "__class__": "Multipole",
@@ -268361,10 +268361,10 @@
    "order": 3
   },
   "mco.b22r7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.b22r7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.b22r8.b1": {
    "__class__": "Multipole",
@@ -268411,7 +268411,7 @@
    "order": 3
   },
   "mco.b23l2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.b23l2.b2": {
    "__class__": "Multipole",
@@ -268469,7 +268469,7 @@
    "order": 3
   },
   "mco.b23l5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.b23l5.b2": {
    "__class__": "Multipole",
@@ -268527,13 +268527,13 @@
    "order": 3
   },
   "mco.b23l8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.b23l8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.b24r1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.b24r1.b2": {
    "__class__": "Multipole",
@@ -268591,7 +268591,7 @@
    "order": 3
   },
   "mco.b24r4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.b24r4.b2": {
    "__class__": "Multipole",
@@ -268649,10 +268649,10 @@
    "order": 3
   },
   "mco.b24r7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.b24r7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.b24r8.b1": {
    "__class__": "Multipole",
@@ -268699,7 +268699,7 @@
    "order": 3
   },
   "mco.b25l2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.b25l2.b2": {
    "__class__": "Multipole",
@@ -268757,7 +268757,7 @@
    "order": 3
   },
   "mco.b25l5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.b25l5.b2": {
    "__class__": "Multipole",
@@ -268815,13 +268815,13 @@
    "order": 3
   },
   "mco.b25l8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.b25l8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.b26r1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.b26r1.b2": {
    "__class__": "Multipole",
@@ -268879,7 +268879,7 @@
    "order": 3
   },
   "mco.b26r4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.b26r4.b2": {
    "__class__": "Multipole",
@@ -268937,10 +268937,10 @@
    "order": 3
   },
   "mco.b26r7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.b26r7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.b26r8.b1": {
    "__class__": "Multipole",
@@ -268987,7 +268987,7 @@
    "order": 3
   },
   "mco.b27l2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.b27l2.b2": {
    "__class__": "Multipole",
@@ -269045,7 +269045,7 @@
    "order": 3
   },
   "mco.b27l5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.b27l5.b2": {
    "__class__": "Multipole",
@@ -269103,13 +269103,13 @@
    "order": 3
   },
   "mco.b27l8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.b27l8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.b28r1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.b28r1.b2": {
    "__class__": "Multipole",
@@ -269167,7 +269167,7 @@
    "order": 3
   },
   "mco.b28r4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.b28r4.b2": {
    "__class__": "Multipole",
@@ -269225,10 +269225,10 @@
    "order": 3
   },
   "mco.b28r7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.b28r7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.b28r8.b1": {
    "__class__": "Multipole",
@@ -269275,7 +269275,7 @@
    "order": 3
   },
   "mco.b29l2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.b29l2.b2": {
    "__class__": "Multipole",
@@ -269333,7 +269333,7 @@
    "order": 3
   },
   "mco.b29l5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.b29l5.b2": {
    "__class__": "Multipole",
@@ -269391,13 +269391,13 @@
    "order": 3
   },
   "mco.b29l8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.b29l8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.b30r1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.b30r1.b2": {
    "__class__": "Multipole",
@@ -269444,10 +269444,10 @@
    "order": 3
   },
   "mco.b30r3.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.b30r4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.b30r4.b2": {
    "__class__": "Multipole",
@@ -269505,10 +269505,10 @@
    "order": 3
   },
   "mco.b30r7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.b30r7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.b30r8.b1": {
    "__class__": "Multipole",
@@ -269555,7 +269555,7 @@
    "order": 3
   },
   "mco.b31l2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.b31l2.b2": {
    "__class__": "Multipole",
@@ -269613,7 +269613,7 @@
    "order": 3
   },
   "mco.b31l5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.b31l5.b2": {
    "__class__": "Multipole",
@@ -269671,13 +269671,13 @@
    "order": 3
   },
   "mco.b31l8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.b31l8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.b32r1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.b32r1.b2": {
    "__class__": "Multipole",
@@ -269735,7 +269735,7 @@
    "order": 3
   },
   "mco.b32r4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.b32r4.b2": {
    "__class__": "Multipole",
@@ -269793,10 +269793,10 @@
    "order": 3
   },
   "mco.b32r7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.b32r7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.b32r8.b1": {
    "__class__": "Multipole",
@@ -269843,7 +269843,7 @@
    "order": 3
   },
   "mco.b33l2.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.b33l2.b2": {
    "__class__": "Multipole",
@@ -269901,7 +269901,7 @@
    "order": 3
   },
   "mco.b33l5.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.b33l5.b2": {
    "__class__": "Multipole",
@@ -269959,13 +269959,13 @@
    "order": 3
   },
   "mco.b33l8.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.b33l8.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.b34r1.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.b34r1.b2": {
    "__class__": "Multipole",
@@ -270023,7 +270023,7 @@
    "order": 3
   },
   "mco.b34r4.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.b34r4.b2": {
    "__class__": "Multipole",
@@ -270081,10 +270081,10 @@
    "order": 3
   },
   "mco.b34r7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.b34r7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mco.b34r8.b1": {
    "__class__": "Multipole",
@@ -270109,10 +270109,10 @@
    "order": 3
   },
   "mcosx.3l2/b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mcosx.3l2/b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mcosx.3l8/b1": {
    "__class__": "Multipole",
@@ -270269,10 +270269,10 @@
    "order": 3
   },
   "mcox.3l2/b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mcox.3l2/b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mcox.3l8/b1": {
    "__class__": "Multipole",
@@ -273784,7 +273784,7 @@
    "order": 5
   },
   "mcs.a19r1.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.11
   },
   "mcs.a19r2.b1": {
@@ -274723,7 +274723,7 @@
    "order": 5
   },
   "mcs.a22l4.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.11
   },
   "mcs.a22l5.b1": {
@@ -277422,7 +277422,7 @@
    "order": 5
   },
   "mcs.a29r7.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.11
   },
   "mcs.a29r8.b1": {
@@ -281749,7 +281749,7 @@
    "order": 5
   },
   "mcs.b15l4.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.11
   },
   "mcs.b15l5.b1": {
@@ -282798,7 +282798,7 @@
    "order": 5
   },
   "mcs.b18l4.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.11
   },
   "mcs.b18l5.b1": {
@@ -286553,7 +286553,7 @@
    "order": 5
   },
   "mcs.b28r7.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.11
   },
   "mcs.b28r8.b1": {
@@ -294994,7 +294994,7 @@
    "order": 5
   },
   "mcs.c27r7.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.11
   },
   "mcs.c27r8.b1": {
@@ -295691,7 +295691,7 @@
    "order": 5
   },
   "mcs.c29r7.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.11
   },
   "mcs.c29r8.b1": {
@@ -297477,10 +297477,10 @@
    "order": 5
   },
   "mcssx.3l2/b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mcssx.3l2/b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mcssx.3l8/b1": {
    "__class__": "Multipole",
@@ -298861,7 +298861,7 @@
    "order": 5
   },
   "mo.22r5.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.32
   },
   "mo.22r5.b2": {
@@ -299206,7 +299206,7 @@
    "order": 5
   },
   "mo.24r5.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.32
   },
   "mo.24r5.b2": {
@@ -300255,7 +300255,7 @@
    "order": 5
   },
   "mo.28r5.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.32
   },
   "mo.28r5.b2": {
@@ -302272,7 +302272,7 @@
    "order": 5
   },
   "monitor": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "mq.10l3.b1": {
    "__class__": "Quadrupole",
@@ -315395,7 +315395,7 @@
    "order": 5
   },
   "mqt.14l1.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.32
   },
   "mqt.14l1.b2": {
@@ -316155,7 +316155,7 @@
    "order": 5
   },
   "mqt.16l1.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.32
   },
   "mqt.16l1.b2": {
@@ -316915,7 +316915,7 @@
    "order": 5
   },
   "mqt.18l1.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.32
   },
   "mqt.18l1.b2": {
@@ -317675,7 +317675,7 @@
    "order": 5
   },
   "mqt.20l1.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.32
   },
   "mqt.20l1.b2": {
@@ -331566,7 +331566,7 @@
    "order": 5
   },
   "mss.29l4.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.369
   },
   "mss.29l5.b2": {
@@ -331636,7 +331636,7 @@
    "order": 5
   },
   "mss.29r3.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.369
   },
   "mss.29r4.b2": {
@@ -331904,7 +331904,7 @@
    "order": 5
   },
   "mss.33l4.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.369
   },
   "mss.33l5.b2": {
@@ -331974,7 +331974,7 @@
    "order": 5
   },
   "mss.33r3.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.369
   },
   "mss.33r4.b2": {
@@ -332229,7 +332229,7 @@
    "order": 5
   },
   "placeholder": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "quadrupole": {
    "__class__": "Quadrupole",
@@ -332255,7 +332255,7 @@
    "rbend_model": "adaptive"
   },
   "rcollimator": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "rfcavity": {
    "__class__": "Cavity"
@@ -332480,777 +332480,777 @@
    "__class__": "Rotation"
   },
   "tanb.a4l8.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.605
   },
   "tanb.a4l8.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.605
   },
   "tanb.a4r8.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.605
   },
   "tanb.a4r8.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.605
   },
   "taxn.4l1/b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 3.31
   },
   "taxn.4l1/b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 3.31
   },
   "taxn.4l5/b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 3.31
   },
   "taxn.4l5/b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 3.31
   },
   "taxn.4r1/b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 3.31
   },
   "taxn.4r1/b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 3.31
   },
   "taxn.4r5/b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 3.31
   },
   "taxn.4r5/b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 3.31
   },
   "taxs1a.1l1/b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.8
   },
   "taxs1a.1l1/b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.8
   },
   "taxs1c.1r1/b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.8
   },
   "taxs1c.1r1/b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.8
   },
   "taxs5a.1l5/b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.8
   },
   "taxs5a.1l5/b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.8
   },
   "taxs5c.1r5/b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.8
   },
   "taxs5c.1r5/b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.8
   },
   "tcapa.6l3.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tcapa.6l7.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tcapa.6r3.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tcapa.6r7.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tcapb.6l7.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.2
   },
   "tcapb.6r7.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.2
   },
   "tcapc.6l7.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.6
   },
   "tcapc.6r7.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.6
   },
   "tcapd.5l3.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.626
   },
   "tcapd.5r3.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.626
   },
   "tcapm.a5l7.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 2.0
   },
   "tcapm.a5r7.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 2.0
   },
   "tccp.4l3.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.07
   },
   "tcdd.4l2/b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tcdd.4l2/b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tcddm.4r8/b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tcddm.4r8/b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tcdqa.a4l6.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "tcdqa.a4r6.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "tcdqa.b4l6.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "tcdqa.b4r6.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "tcdqa.c4l6.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "tcdqa.c4r6.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "tcdqm.a4l6.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.05
   },
   "tcdqm.a4l6.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.05
   },
   "tcdqm.a4r6.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.05
   },
   "tcdqm.a4r6.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.05
   },
   "tcdqm.b4l6.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.05
   },
   "tcdqm.b4l6.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.05
   },
   "tcdqm.b4r6.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.05
   },
   "tcdqm.b4r6.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.05
   },
   "tcdsa.4l6.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 3.012
   },
   "tcdsa.4r6.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 3.012
   },
   "tcdsb.4l6.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 3.012
   },
   "tcdsb.4r6.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 3.012
   },
   "tcl.5l1.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tcl.5l5.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tcl.5r1.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tcl.5r5.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tcl.6l1.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tcl.6l5.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tcl.6r1.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tcl.6r5.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tcla.6l3.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tcla.6r3.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tcla.7l3.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tcla.7r3.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tcla.a5l3.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tcla.a5r3.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tcla.a6l7.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tcla.a6r7.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tcla.a7l7.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tcla.a7r7.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tcla.b5l3.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tcla.b5r3.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tcla.b6l7.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tcla.b6r7.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tcla.c6l7.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tcla.c6r7.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tcla.d6l7.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tcla.d6r7.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tcld.a11l2.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.6
   },
   "tcld.a11r2.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.6
   },
   "tclia.4l8/b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tclia.4l8/b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tclia.4r2/b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tclia.4r2/b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tclib.6l8.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tclib.6r2.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tclim.6l8.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.5
   },
   "tclim.6l8.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.5
   },
   "tclim.6r2.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.5
   },
   "tclim.6r2.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.5
   },
   "tclmb.4l1.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tclmb.4l1.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tclmb.4l5.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tclmb.4l5.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tclmb.4r1.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tclmb.4r1.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tclmb.4r5.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tclmb.4r5.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tclmc.5l1.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tclmc.5l1.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tclmc.5l5.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tclmc.5l5.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tclmc.5r1.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tclmc.5r1.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tclmc.5r5.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tclmc.5r5.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tclmc.6l1.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tclmc.6l1.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tclmc.6l5.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tclmc.6l5.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tclmc.6r1.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tclmc.6r1.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tclmc.6r5.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tclmc.6r5.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tclpx.4l1.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tclpx.4l5.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tclpx.4r1.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tclpx.4r5.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tcp.6l3.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.6
   },
   "tcp.6r3.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.6
   },
   "tcp.b6l7.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.6
   },
   "tcp.b6r7.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.6
   },
   "tcp.c6l7.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.6
   },
   "tcp.c6r7.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.6
   },
   "tcp.d6l7.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.6
   },
   "tcp.d6r7.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.6
   },
   "tcpch.a4l7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "tcpch.a5r7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "tcpcv.a6l7.b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "tcpcv.a6r7.b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "tcsg.4l3.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tcsg.4r3.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tcsg.5l3.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tcsg.5r3.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tcsg.a4l7.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tcsg.a4l7.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tcsg.a4r7.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tcsg.a4r7.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tcsg.a5l3.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tcsg.a5l7.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tcsg.a5r3.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tcsg.a5r7.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tcsg.a6l7.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tcsg.a6r7.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tcsg.b5l3.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tcsg.b5l7.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tcsg.b5l7.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tcsg.b5r3.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tcsg.b5r7.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tcsg.b5r7.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tcsg.d4l7.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tcsg.d4r7.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tcsg.d5l7.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tcsg.d5r7.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tcsp.a4l6.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tcsp.a4r6.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tcspm.6l7.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tcspm.6r7.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tcspm.b4l7.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tcspm.b4r7.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tcspm.d4r7.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tcspm.e5l7.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tcspm.e5r7.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tctph.4l2.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tctph.4l8.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tctph.4r2.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tctph.4r8.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tctph.6l1.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tctph.6l5.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tctph.6r1.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tctph.6r5.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tctpv.4l2.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tctpv.4l8.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tctpv.4r2.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tctpv.4r8.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tctpv.6l1.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tctpv.6l5.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tctpv.6r1.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tctpv.6r5.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tctpxh.4l1.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tctpxh.4l5.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tctpxh.4r1.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tctpxh.4r5.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tctpxv.4l1.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tctpxv.4l5.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tctpxv.4r1.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tctpxv.4r5.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.0
   },
   "tdisa.a4l2.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.565
   },
   "tdisa.a4r8.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.565
   },
   "tdisb.a4l2.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.565
   },
   "tdisb.a4r8.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.565
   },
   "tdisc.a4l2.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.565
   },
   "tdisc.a4r8.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 1.565
   },
   "tkicker": {
@@ -333266,67 +333266,67 @@
    "__class__": "Translation"
   },
   "vczjkiaa.4l1.c/b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.2958
   },
   "vczjkiaa.4l1.c/b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.2958
   },
   "vczjkiaa.4l5.c/b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.2958
   },
   "vczjkiaa.4l5.c/b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.2958
   },
   "vczjkiaa.4r1.c/b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.2958
   },
   "vczjkiaa.4r1.c/b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.2958
   },
   "vczjkiaa.4r5.c/b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.2958
   },
   "vczjkiaa.4r5.c/b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.2958
   },
   "vczkkaia.4l1.c/b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.2077
   },
   "vczkkaia.4l1.c/b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.2077
   },
   "vczkkaia.4l5.c/b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.2077
   },
   "vczkkaia.4l5.c/b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.2077
   },
   "vczkkaia.4r1.c/b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.2077
   },
   "vczkkaia.4r1.c/b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.2077
   },
   "vczkkaia.4r5.c/b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.2077
   },
   "vczkkaia.4r5.c/b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.2077
   },
   "vkicker": {
@@ -333339,96 +333339,96 @@
    ]
   },
   "vmonitor": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "wire": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "x2zdc.4l2/b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "x2zdc.4l2/b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "x2zdc.4r2/b1": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "x2zdc.4r2/b2": {
-   "__class__": "Drift"
+   "__class__": "Device"
   },
   "xrotation": {
    "__class__": "Rotation"
   },
   "xrph.a5l5.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.145
   },
   "xrph.a5r5.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.145
   },
   "xrph.a6l5.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.145
   },
   "xrph.a6r5.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.145
   },
   "xrph.a7l5.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.145
   },
   "xrph.a7r5.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.145
   },
   "xrph.b5l5.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.145
   },
   "xrph.b5r5.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.145
   },
   "xrph.b6l5.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.145
   },
   "xrph.b6r5.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.145
   },
   "xrph.b7l5.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.145
   },
   "xrph.b7r5.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.145
   },
   "xrpv.a4l3.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.013
   },
   "xrpv.a6l5.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.145
   },
   "xrpv.a6r5.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.145
   },
   "xrpv.b4l3.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.013
   },
   "xrpv.b6l5.b2": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.145
   },
   "xrpv.b6r5.b1": {
-   "__class__": "Drift",
+   "__class__": "Device",
    "length": 0.145
   },
   "yrotation": {

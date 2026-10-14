@@ -110,7 +110,7 @@ lprofile = xf.LongitudinalProfileQGaussian(
        z0=0.,
        q_parameter=1.)
 
-xf.install_spacecharge_frozen(line=line,
+line.xfields.spacecharge_install_frozen(
                   particle_ref=line.particle_ref,
                   longitudinal_profile=lprofile,
                   nemitt_x=nemitt_x, nemitt_y=nemitt_y,
@@ -122,13 +122,12 @@ xf.install_spacecharge_frozen(line=line,
 if mode == 'frozen':
    pass # Already configured in line
 elif mode == 'quasi-frozen':
-   xf.replace_spacecharge_with_quasi_frozen(
-                                   line,
+   line.xfields.spacecharge_replace_with_quasi_frozen(
                                    update_mean_x_on_track=True,
                                    update_mean_y_on_track=True)
 elif mode == 'pic':
-   pic_collection, all_pics = xf.replace_spacecharge_with_PIC(
-       _context=context, line=line,
+   pic_collection, all_pics = line.xfields.spacecharge_replace_with_pic(
+       _context=context,
        n_sigmas_range_pic_x=8,
        n_sigmas_range_pic_y=8,
        nx_grid=256, ny_grid=256, nz_grid=100,

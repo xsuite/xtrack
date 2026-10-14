@@ -22,6 +22,7 @@ dependencies = [
   "requests",
   "xobjects",
   "xdeps",
+  "madng-tpsa>=0.3.1",
 ]
 
 [project.urls]
@@ -38,7 +39,7 @@ tests = [
   "PyHEADTAIL",
   "pytest",
   "pytest-mock",
-  "pymadng==0.9.3",
+  "pymadng",
   "requests-mock",
   "tfs-pandas",
 ]

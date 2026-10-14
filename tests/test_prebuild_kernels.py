@@ -3,30 +3,22 @@
 # Copyright (c) CERN, 2024.                   #
 # ########################################### #
 import json
-import os
-
 import cffi
+import numpy as np
 import pytest
 
 import xobjects as xo
 import xtrack as xt
-from xobjects.test_helpers import allow_no_prebuilt_kernels
+from xobjects.test_helpers import allow_kernel_compilation
 
 
 @pytest.fixture
 def with_verbose():
-    old_verbose = os.environ.get('XSUITE_VERBOSE', None)
-    os.environ['XSUITE_VERBOSE'] = '1'
-
-    yield
-
-    if old_verbose is None:
-        del os.environ['XSUITE_VERBOSE']
-    else:
-        os.environ['XSUITE_VERBOSE'] = old_verbose
+    with xt.settings.override(show_kernel_diagnostics=True):
+        yield
 
 
-@allow_no_prebuilt_kernels
+@allow_kernel_compilation
 def test_prebuild_kernels(mocker, tmp_path, temp_context_default_func, capsys, with_verbose):
 
 
@@ -83,9 +75,9 @@ def test_prebuild_kernels(mocker, tmp_path, temp_context_default_func, capsys, w
     mocker.patch('xsuite.kernel_definitions.NAME_CLASS_MAP', NAME_CLASS_MAP)
     mocker.patch('xsuite.prebuild_kernels.NAME_CLASS_MAP', NAME_CLASS_MAP)
     # We need to change the default location so that loading the kernels works
-    mocker.patch('xsuite.prebuild_kernels.XSK_PREBUILT_KERNELS_LOCATION',
+    mocker.patch('xsuite.prebuild_kernels.PREBUILT_KERNELS_LOCATION',
                  tmp_path)
-    mocker.patch('xsuite.XSK_PREBUILT_KERNELS_LOCATION',
+    mocker.patch('xsuite.PREBUILT_KERNELS_LOCATION',
                  tmp_path)
 
     # Try regenerating the kernels
@@ -121,7 +113,7 @@ def test_prebuild_kernels(mocker, tmp_path, temp_context_default_func, capsys, w
     captured = capsys.readouterr()
     assert 'Found suitable prebuilt kernel `111_test_module_cpu_serial`' in captured.out
 
-@allow_no_prebuilt_kernels
+@allow_kernel_compilation
 def test_per_element_prebuild_kernels(mocker, tmp_path, temp_context_default_func):
 
 
@@ -140,21 +132,24 @@ def test_per_element_prebuild_kernels(mocker, tmp_path, temp_context_default_fun
                 xt.ThickSliceCavity,
                 xt.ThinSliceCavity,
             ],
-            'extra_classes': [xt.Particles]
+            'extra_classes': [xt.Particles, xt.ParticlesMonitor, xt.MultiElementMonitor]
         }),
         ("test_module_per_elem_rand", {
             "config": {},
-            "classes": [],
+            "classes": [xt.Marker],
             "extra_classes": [
                 xt.RandomNormal,
                 xt.Particles,
+                xt.ParticlesMonitor,
+                xt.MultiElementMonitor,
             ],
         }),
     ]
 
     all_classes = [xt.Cavity, xt.Drift, xt.DriftSlice, xt.DriftSliceCavity,
                    xt.MultiElementMonitor, xt.ParticlesMonitor, xt.ThickSliceCavity,
-                   xt.ThinSliceCavity, xt.Translation, xt.Particles, xt.RandomNormal]
+                   xt.ThinSliceCavity, xt.Translation, xt.Marker, xt.Particles,
+                   xt.RandomNormal]
     NAME_CLASS_MAP = {cls.__name__: cls for cls in all_classes}
 
     # Override the definitions with the temporary ones
@@ -164,9 +159,9 @@ def test_per_element_prebuild_kernels(mocker, tmp_path, temp_context_default_fun
     mocker.patch('xsuite.kernel_definitions.NAME_CLASS_MAP', NAME_CLASS_MAP)
     mocker.patch('xsuite.prebuild_kernels.NAME_CLASS_MAP', NAME_CLASS_MAP)
     # We need to change the default location so that loading the kernels works
-    mocker.patch('xsuite.prebuild_kernels.XSK_PREBUILT_KERNELS_LOCATION',
+    mocker.patch('xsuite.prebuild_kernels.PREBUILT_KERNELS_LOCATION',
                  tmp_path)
-    mocker.patch('xsuite.XSK_PREBUILT_KERNELS_LOCATION',
+    mocker.patch('xsuite.PREBUILT_KERNELS_LOCATION',
                  tmp_path)
 
     # Try regenerating the kernels
@@ -205,6 +200,39 @@ def test_per_element_prebuild_kernels(mocker, tmp_path, temp_context_default_fun
     cffi_compile.assert_not_called()
 
 
+@allow_kernel_compilation
+def test_tpsa_prebuild_kernel(mocker, tmp_path, temp_context_default_func):
+    import xsuite
+    import xsuite.prebuild_kernels as prebuild_kernels
+    from xtrack.tpsa import ParticlesTpsa
+
+    mocker.patch.object(prebuild_kernels, 'PREBUILT_KERNELS_LOCATION',
+                        tmp_path)
+    mocker.patch.object(xsuite, 'PREBUILT_KERNELS_LOCATION', tmp_path)
+
+    prebuild_kernels.regenerate_kernels(
+        kernels=['tpsa_base_config'], location=tmp_path, n_threads=0)
+
+    line = xt.Line([
+        xt.Drift(length=1.0),
+        xt.LimitRectEllipse(max_x=1.0, max_y=1.0, a=1.0, b=1.0),
+        xt.Quadrupole(length=1.0, k1=0.2),
+    ])
+    line.config.XTRACK_MULTIPOLE_NO_SYNRAD = True
+    line.build_tracker(_context=xo.ContextCpu(), compile=False)
+
+    cffi_compile = mocker.patch.object(cffi.FFI, 'compile')
+    standalone_element = xt.Quadrupole(length=1.0, k1=0.2, _context=xo.ContextCpu())
+    standalone_element.track(ParticlesTpsa(order=1, p0c=1e9))
+
+    particles = ParticlesTpsa(order=1, p0c=1e9)
+    line.track(particles)
+
+    np.testing.assert_allclose(particles.const_part, 0, atol=1e-15)
+    line['e2'].track(ParticlesTpsa(order=1, p0c=1e9))
+    cffi_compile.assert_not_called()
+
+
 def test_context_specific_prebuilt_kernel_selection(mocker, tmp_path):
 
     kernel_defs = [
@@ -220,8 +248,8 @@ def test_context_specific_prebuilt_kernel_selection(mocker, tmp_path):
     mocker.patch('xsuite.prebuild_kernels.kernel_definitions', kernel_defs)
     mocker.patch('xsuite.kernel_definitions.NAME_CLASS_MAP', name_class_map)
     mocker.patch('xsuite.prebuild_kernels.NAME_CLASS_MAP', name_class_map)
-    mocker.patch('xsuite.prebuild_kernels.XSK_PREBUILT_KERNELS_LOCATION', tmp_path)
-    mocker.patch('xsuite.XSK_PREBUILT_KERNELS_LOCATION', tmp_path)
+    mocker.patch('xsuite.prebuild_kernels.PREBUILT_KERNELS_LOCATION', tmp_path)
+    mocker.patch('xsuite.PREBUILT_KERNELS_LOCATION', tmp_path)
 
     versions = {
         'xtrack': xt.__version__,
@@ -264,7 +292,7 @@ def test_context_specific_prebuilt_kernel_selection(mocker, tmp_path):
     assert omp_info['module_name'] == 'test_module_cpu_openmp'
 
 
-@allow_no_prebuilt_kernels
+@allow_kernel_compilation
 def test_regenerate_kernels_multiple_contexts(mocker, tmp_path, temp_context_default_func):
 
 
@@ -272,6 +300,7 @@ def test_regenerate_kernels_multiple_contexts(mocker, tmp_path, temp_context_def
         ("test_module", {
             "config": {},
             "classes": [xt.Drift],
+            "extra_classes": [xt.ParticlesMonitor, xt.MultiElementMonitor],
         }),
     ]
 
