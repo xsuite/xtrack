@@ -477,7 +477,21 @@ class LineAperture:
 
     @doc_group("Loading and Serialization")
     def to_dict(self):
-        """Serialize line-owned pipe placements without changing build state."""
+        """Serialise this line's pipe placements and settings.
+
+        Accepts built and unbuilt models without changing their state.
+
+        Returns
+        -------
+        dict
+            Placements referencing pipes by name, plus computation settings.
+
+        Notes
+        -----
+        Shared definitions are excluded. They must exist in the destination
+        environment before calling :meth:`from_dict`. For JSON serialisation,
+        use ``env.aperture.to_json(...)``.
+        """
         if self._model is not None:
             positions_source = self._model.pipe_positions
             position_names = self._model.pipe_position_names
@@ -509,8 +523,35 @@ class LineAperture:
     def from_dict(self, data, context=None):
         """Replace placements and settings, leaving the line model unbuilt.
 
-        Pipe names refer to definitions already present in the environment.
-        Return this container. For JSON loading, use ``env.aperture.from_json``.
+        Parameters
+        ----------
+        data : dict
+            Line data returned by :meth:`to_dict`. Referenced pipes must already
+            exist in the environment. Missing settings use their defaults.
+        context : xobjects.ContextCpu, optional
+            Context for placements and computations. Defaults to the current
+            line aperture context.
+
+        Returns
+        -------
+        LineAperture
+            This container, with the line model left unbuilt.
+
+        Raises
+        ------
+        ValueError
+            If placement names are duplicated.
+        KeyError
+            If required placement data is missing or a pipe name is unknown.
+        TypeError
+            If placement data is invalid.
+
+        Notes
+        -----
+        Replaces existing placements and settings on built or unbuilt models.
+        Shared definitions and other lines are unchanged. Call :meth:`build_model`
+        to validate geometry and enable computations. For JSON loading, use
+        ``env.aperture.from_json(...)``.
         """
         context = context or self.context
         environment = self.line.env.aperture

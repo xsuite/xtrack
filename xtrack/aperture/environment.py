@@ -410,25 +410,27 @@ class EnvAperture:
 
     @doc_group("Loading and Serialization")
     def to_dict(self, include_line_models=True):
-        """Serialize shared aperture definitions, optionally including line models.
+        """Serialise shared aperture definitions, optionally including line models.
 
         Parameters
         ----------
         include_line_models : bool, optional
-            If True (default), include all named lines' aperture data. If
-            False, return only the shared profile and pipe definitions.
+            Include named lines' placements and settings. If False, export only
+            shared definitions. Unnamed lines are always omitted.
 
         Returns
         -------
         dict
-            Shared definitions under ``environment`` and per-line aperture
-            data under ``lines`` when ``include_line_models=True``. Otherwise,
-            return the shared definitions directly, without those wrapper keys.
+            Shared definitions under ``environment`` and line data under
+            ``lines``. With ``include_line_models=False``, return the shared
+            definitions directly.
 
         Notes
         -----
-        Ordinary ``Environment.to_dict()`` omits aperture data unless
-        ``include_aperture=True`` is supplied.
+        Works with built and unbuilt containers without changing their state.
+        Lattice data and derived geometry are excluded. Register lines in
+        ``env.lines`` to include their aperture data. Either output form can be
+        loaded with :meth:`from_dict`.
         """
         if self._struct is not None:
             definitions = self._struct.to_dict()
@@ -467,12 +469,41 @@ class EnvAperture:
 
     @doc_group("Loading and Serialization")
     def from_dict(self, data, context=None):
-        """Load definitions and optional named line apertures into a clean container.
+        """Load aperture definitions and line data into a clean container.
 
-        Accept either form returned by :meth:`to_dict`. Raise ValueError if any
-        aperture definitions, placements, or built line models already exist;
-        call :meth:`clear` first to replace them. Named lines must already exist.
-        Line models are left unbuilt. Return this container.
+        Parameters
+        ----------
+        data : dict
+            Either form returned by :meth:`to_dict`: shared definitions alone,
+            or a complete export with named lines' placements and settings.
+            Referenced lines must already exist in ``env.lines``.
+        context : xobjects.ContextCpu, optional
+            Context for definitions and placements. If omitted, definitions use
+            the default context and lines retain their aperture contexts.
+
+        Returns
+        -------
+        EnvAperture
+            This container, with shared definitions loaded and line models
+            left unbuilt.
+
+        Raises
+        ------
+        ValueError
+            If aperture data or built line models already exist, including on
+            unnamed lines. Also raised for unknown lines, duplicate names,
+            or mismatched definition/name counts.
+        KeyError
+            If required data is missing or a placement references an unknown pipe.
+        TypeError
+            If definition or placement data is invalid.
+
+        Notes
+        -----
+        Existing lattice elements and lines are allowed. Call :meth:`clear`
+        before replacing aperture data or retrying a failed load: a failure
+        while loading line data may leave a partial result. Call each restored
+        line aperture's ``build_model()`` before computations.
         """
         if (self._profile_name_to_index or self._pipe_name_to_index
                 or any(not line.aperture.empty or line.aperture._model is not None
