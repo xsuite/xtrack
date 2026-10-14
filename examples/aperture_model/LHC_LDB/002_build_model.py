@@ -751,4 +751,4 @@ for pipe_name in main_dipole_pipes:
 # Build the curved model
 aperture = b1.aperture
 aperture.build_model(_skip_validity_check=True)
-aperture.to_json('b1_aperture.json')
+lattice.aperture.to_json('b1_aperture.json')

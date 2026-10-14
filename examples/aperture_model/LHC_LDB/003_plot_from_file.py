@@ -24,10 +24,8 @@ sv_b1 = b1.survey()
 sv_b2 = b2.survey(theta0=np.pi)
 
 # Build the curved model
-aperture_data = xt.json.load('b1_aperture.json')
-lattice.aperture.from_dict(aperture_data['environment'], context=context)
-aperture = b1.aperture.from_dict(aperture_data['aperture'], context=context)
-aperture.context = context
+lattice.aperture.from_json('b1_aperture.json', context=context)
+aperture = b1.aperture
 aperture.s_tol = PIPE_OVERLAP_TOL
 # The downloaded LDB geometry contains known overlaps; retain it for inspection.
 aperture.build_model(_skip_validity_check=True)
