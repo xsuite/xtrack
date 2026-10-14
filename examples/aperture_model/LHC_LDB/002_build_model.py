@@ -11,7 +11,6 @@ import operator
 import xdeps as xd
 import xtrack as xt
 import xobjects as xo
-from xtrack.aperture import Aperture, ApertureBuilder
 from xtrack.aperture.structures import Polygon
 from xtrack.aperture.transform import poly2d_to_homogeneous
 from xtrack.survey import survey_relative_transform
@@ -177,11 +176,11 @@ def _write_pipe_overlap_report(pipe_table, line_length, filename, s_tol=1e-6, ex
 # See https://edms.cern.ch/document/2405052/1.0
 LDB_SHAPE_TO_XS = {
     'CIRCLE': ('Circle', ['radius']),
-    'ELLIPSE': ('Ellipse', ['half_major', 'half_minor']),
-    'OCTAGON': ('Octagon', ['half_width', 'half_height', 'half_diagonal']),
-    'RACETRACK': ('Racetrack', ['half_width', 'half_height', 'half_major', 'half_minor']),
-    'RECTANGLE': ('Rectangle', ['half_width', 'half_height']),
-    'RECTELLIPSE': ('RectEllipse', ['half_width', 'half_height', 'half_major', 'half_minor']),
+    'ELLIPSE': ('Ellipse', ['a', 'b']),
+    'OCTAGON': ('Octagon', ['max_x', 'max_y', 'max_diagonal']),
+    'RACETRACK': ('Racetrack', ['max_x', 'max_y', 'a', 'b']),
+    'RECTANGLE': ('Rectangle', ['max_x', 'max_y']),
+    'RECTELLIPSE': ('RectEllipse', ['max_x', 'max_y', 'a', 'b']),
 }
 LDB_PARAMS = ('ellipse_a' ,'ellipse_b' ,'ellipse_c' ,'ellipse_d')
 
@@ -203,7 +202,7 @@ ELEMENT_APERTURE_TYPE_OVERRIDES = {
 
 PROFILE_OVERRIDES = {
     'AP207': ('Rectangle', 0.04978, 0.04978),  # ditto
-    'AP163': ('RectEllipse', 0.068, 0.0328, 0.0101, 0.0101)  # Originally half_minor was zero...
+    'AP163': ('RectEllipse', 0.068, 0.0328, 0.0101, 0.0101)  # Originally b was zero...
 }
 
 LONGITUDINAL_PLACEMENT_PATCHES = {
@@ -386,7 +385,9 @@ plt.xlabel('$Z$ = $s_{B0}$ [m]')
 plt.ylabel('$X$ = $x_{B0}$ [m]')
 
 # Build the model
-builder = ApertureBuilder(line=b1)
+aperture_straight = b1.aperture
+aperture_straight.context = context
+aperture_straight.s_tol = PIPE_OVERLAP_TOL
 
 # Build the profiles
 ignored_profiles = []
@@ -409,10 +410,10 @@ for profile_name, profile in ldb_model.profiles.items():
 
     shape_params = dict(zip(param_names, ldb_params))
 
-    builder.new_profile(profile_name, shape, **shape_params)
+    new_profile = lattice.aperture.new_profile(profile_name, shape, **shape_params)
 
-    if not builder._profiles[profile_name].shape.valid():
-        raise ValueError(f'{profile_name} has invalid shape: {builder._profiles[profile_name].shape}')
+    if not new_profile.shape.valid():
+        raise ValueError(f'{profile_name} has invalid shape: {new_profile.shape}')
 
 if ignored_profiles:
     warn(
@@ -423,16 +424,16 @@ if ignored_profiles:
 # Build the pipes
 ignored_types = []
 for type_name, type_ in ldb_model.types.items():
-    if (aperture_straight := type_.aperture) is None:
+    if (ldb_aperture := type_.aperture) is None:
         ignored_types.append(type_name)
         continue
 
-    inner_outer = reduce(operator.or_, (set(ie) if ie else {None} for ie in aperture_straight.element_type_aperture), set())
+    inner_outer = reduce(operator.or_, (set(ie) if ie else {None} for ie in ldb_aperture.element_type_aperture), set())
     if 'E' not in inner_outer and None not in inner_outer:
         ignored_types.append(type_name)
         continue
 
-    element_type_aperture = aperture_straight.element_type_aperture
+    element_type_aperture = ldb_aperture.element_type_aperture
 
     # Sanity check the element type apertures, and apply element type overrides if deemed as inconsistent
     if set(element_type_aperture) <= {'E', 'I', 'IE'}:
@@ -456,34 +457,35 @@ for type_name, type_ in ldb_model.types.items():
         if override == 'D':
             override = None  # No one knows what "D" stands for...
 
-        element_type_aperture = [override] * len(aperture_straight.element_type_aperture)
+        element_type_aperture = [override] * len(ldb_aperture.element_type_aperture)
         beam_specific_type = override is not None
 
-    profiles = aperture_straight.aperture_alias
-    offsets = (aperture_straight.offset_x, aperture_straight.offset_y, aperture_straight.offset_z)
+    profiles = ldb_aperture.aperture_alias
+    offsets = (ldb_aperture.offset_x, ldb_aperture.offset_y, ldb_aperture.offset_z)
     s_patches = TYPE_APERTURE_PLACEMENT_PATCHES.get(type_name, repeat(0, len(profiles)))
 
     if not beam_specific_type:
-        pipes = [(None, builder.new_pipe(type_name, curvature=0))]
+        pipes = [(None, type_name, [])]
     else:
         pipes = [
-            ('I', builder.new_pipe(type_name + '/I', curvature=0)),
-            ('E', builder.new_pipe(type_name + '/E', curvature=0)),
+            ('I', type_name + '/I', []),
+            ('E', type_name + '/E', []),
         ]
 
     for profile, side, off_x, off_y, off_z, s_patch in zip(profiles, element_type_aperture, *offsets, s_patches):
         mad_off = layout.LDBPoint(x=off_x, y=off_y, z=off_z).to_madpoint()
-        for side_marker, pipe in pipes:
+        for side_marker, pipe_name, positions in pipes:
             if side_marker is None or side is None or side_marker in side:
-                pipe.place_profile(
+                positions.append(lattice.aperture.place_profile(
                     profile,
                     shift_s=mad_off.z + s_patch,
                     shift_x=mad_off.x,
                     shift_y=mad_off.y,
-                )
+                ))
 
-    for _, pipe in pipes:
-        builder._pipes[pipe.name].positions = sorted(builder._pipes[pipe.name].positions, key=lambda p: p.shift_s)
+    for _, pipe_name, positions in pipes:
+        lattice.aperture.new_pipe(
+            pipe_name, curvature=0, positions=sorted(positions, key=lambda p: p.shift_s))
 
 
 if ignored_types:
@@ -494,6 +496,7 @@ if ignored_types:
 
 
 # Map pipes to their positions
+pipe_names = set(aperture_straight.pipes.keys())
 pipes_loc = {}
 pipes_loc_middles = {}
 ignored_transforms = []
@@ -502,7 +505,7 @@ for transform_name, transformation in ldb_model.transformations.items():
         ignored_transforms.append(transform_name)
         continue
 
-    if target_type not in builder._pipes:
+    if target_type not in pipe_names:
         ignored_transforms.append(transform_name)
         continue
 
@@ -587,7 +590,7 @@ for transform_name, mad_point in pipes_loc:
         offset = np.array([ldb_aper.offset_x[0], ldb_aper.offset_y[0], ldb_aper.offset_z[0]])
 
         # Get a rough polygon in the survey space
-        poly_2d = builder._profiles[profile].build_polygon(8)
+        poly_2d = aperture_straight.profiles[profile].build_polygon(8)
         poly_hom = poly2d_to_homogeneous(poly_2d)  # -> shape is (4, len_points)
         poly_hom[:3, :] += offset[:, np.newaxis]
         poly_hom = mad_point.matrix @ poly_hom
@@ -615,18 +618,13 @@ for transform_name, mad_point in pipes_loc:
     from_ref_to_here = np.linalg.inv(from_ip1_to_ref) @ from_ip1_to_here
 
     if pipe_to_place:
-        builder.place_pipe(transform_name, pipe_to_place, transformation=from_ref_to_here, at=survey_ref)
+        aperture_straight.place_pipe(
+            transform_name, pipe_to_place, transformation=from_ref_to_here, at=survey_ref)
 
-# Clip the pipe that crosses the ring boundary. This avoids placing the single-turn model
-# past _end_point until the aperture model supports wrapped pipe spans.
-last_profile_hcvc1ib = builder._pipes['HCVC1IB'].positions[1]
-old_hcvc1ib_last_shift_s = last_profile_hcvc1ib.shift_s
-vc1ib_1l1_start = dict(pipes_loc)['VC1IB.1L1.X'].z
-boundary_margin = 0.001
-last_profile_hcvc1ib.shift_s = min(old_hcvc1ib_last_shift_s, b1.get_length() - vc1ib_1l1_start - boundary_margin)
-
-aperture_model = builder.build(context=context)
-aperture_straight = Aperture(model=aperture_model, line=b1, s_tol=PIPE_OVERLAP_TOL, context=context)
+# Wrapped pipe spans are supported; no snapshot-specific boundary clipping is needed.
+# The fresh LDB snapshot has overlaps, e.g. VCDNA.B5L4.B/BGIVB.5L4.B1.
+# Bypass validation for inspection, retaining the overlap report below.
+aperture_straight.build_model(_skip_validity_check=True)
 
 p_tab = aperture_straight.get_pipe_table()
 pipe_overlap_rows = _write_pipe_overlap_report(
@@ -732,6 +730,7 @@ assert len(p_tab.rows[indices_with_dipole_pipes & indices_not_main_dipoles]) == 
 
 
 # Unbend the model!
+aperture_straight.discard_model()
 b1.regenerate_from_composer()
 b2.regenerate_from_composer()
 
@@ -749,9 +748,7 @@ for pipe_name in main_dipole_pipes:
     pipe = aperture_straight.pipes[pipe_name]
     pipe.curvature = b1[a_dipole_name].angle / pipe.length
 
-# UNDO THE EARLIER PATCH
-# aperture_model.pipes[aperture_model.pipe_names.index('HCVC1IB')].shift_s = old_hcvc1ib_last_shift_s
-
 # Build the curved model
-aperture = Aperture(model=aperture_model, line=b1, s_tol=PIPE_OVERLAP_TOL, context=context)
+aperture = b1.aperture
+aperture.build_model(_skip_validity_check=True)
 aperture.to_json('b1_aperture.json')

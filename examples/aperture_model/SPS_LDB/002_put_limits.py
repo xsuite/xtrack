@@ -8,7 +8,12 @@ sps = xt.load('sps.json')
 sps.twiss_default['method'] = '4d'
 env = sps.env
 
-aperture = xt.Aperture.from_json('sps_aperture.json', line=sps, s_tol=S_TOL)
+aperture_data = xt.json.load('sps_aperture.json')
+env.aperture.from_dict(aperture_data['environment'])
+aperture = sps.aperture.from_dict(aperture_data['aperture'])
+aperture.s_tol = S_TOL
+# This snapshot contains known overlaps; build explicitly before any computations.
+aperture.build_model(_skip_validity_check=True)
 
 sps_thin = sps.copy(shallow=True)
 sps_thin.slice_thick_elements(
@@ -20,8 +25,8 @@ sps_thin.slice_thick_elements(
 )
 tt = sps_thin.get_table()
 
-s_positions = aperture.s_around_transitions()
-limits_transitions = aperture.get_limit_elements(s_positions)
+s_positions = aperture.get_s_around_transitions()
+limits_transitions = aperture.get_limit_elements_at_s(s_positions)
 insertions_transitions = []
 
 for ii, (s, limit) in enumerate(limits_transitions.items()):
@@ -30,7 +35,8 @@ for ii, (s, limit) in enumerate(limits_transitions.items()):
     insertions_transitions.append(env.place(name=name, at=s))
 
 tt_active = tt.rows.match_not(element_type='Drift.*|Limit.*|Marker|')
-limits_up_downstream_active = aperture.get_limit_elements(np.unique(np.concatenate([tt_active.s_start, tt_active.s_end])))
+limits_up_downstream_active = aperture.get_limit_elements_at_s(
+    np.unique(np.concatenate([tt_active.s_start, tt_active.s_end])))
 insertions_up_downstream = []
 
 for row in tt_active.rows:
@@ -50,8 +56,9 @@ sps_with_limits.insert(insertions_up_downstream)
 sps_with_limits.insert(insertions_transitions)
 
 
-aperture_from_limits = xt.Aperture.from_line_with_limits(sps_with_limits)
-aperture_from_limits.plot_extents(aperture_from_limits.s_around_transitions(resolution=10), include_aper_tols=True)
+aperture_from_limits = sps_with_limits.aperture.from_limits()
+aperture_from_limits.plot_extents(
+    aperture_from_limits.get_s_around_transitions(resolution=10), include_aper_tols=True)
 plt.show()
 
 env.lines['sps_thin'] = sps_thin
