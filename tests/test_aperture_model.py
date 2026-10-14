@@ -438,6 +438,28 @@ def _transition_test_twiss_init(aperture):
 
 
 @for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
+@pytest.mark.parametrize('roll', [0.0, 0.3])
+def test_survey_interpolation_thick_sliced_bend(test_context, roll):
+    line = xt.Line(
+        elements=[xt.Bend(length=4.0, angle=0.2, rot_s_rad=roll)],
+        element_names=['bend'],
+    )
+    reference = line.copy()
+    reference.cut_at_s([0.7])
+    expected = reference.survey().rows[0.7:0.7:'s']
+    assert len(expected) == 1
+
+    line.slice_thick_elements(
+        slicing_strategies=[xt.Strategy(slicing=xt.Uniform(2, mode='thick'))],
+    )
+    data = SurveyData.from_survey_table(line.survey(), line, context=test_context)
+    pose = data.resample([0.7]).pose.to_nplike()[0]
+
+    xo.assert_allclose(pose[:3, 3], expected.XYZ[0], atol=1e-12, rtol=0)
+    xo.assert_allclose(pose[:3, :3], expected.E_matrix[0], atol=1e-12, rtol=0)
+
+
+@for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
 def test_aperture_does_not_add_columns_to_survey(test_context):
     aperture = _make_transition_test_aperture(test_context)
 

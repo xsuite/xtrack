@@ -1086,6 +1086,7 @@ class LineAperture:
             Optionally provided initial twiss conditions.
         method
             A method to use for the computation:
+
             - 'rays' - the aperture sigma is estimated from sampled rays and the minimum over the sampled directions
               is returned (faster method, O(R) where R is the number of rays)
             - 'exact' - the aperture sigma is estimated from sampled points on the halo racetrack, at which new sample
@@ -1110,6 +1111,7 @@ class LineAperture:
         Returns
         -------
         A two-tuple ``(table, sliced_twiss)``, where:
+
         - ``table`` is an :class:`xdeps.table.Table` with columns ``s`` and ``n1``.
         - if ``output_cross_sections`` is true, ``table`` also contains ``cross_section``.
         - if ``output_max_envelopes`` is true, ``table`` also contains ``envelope``.
@@ -1322,11 +1324,11 @@ class LineAperture:
 
         Returns
         -------
-        A two-tuple ``(table, sliced_twiss)``:
-        - ``table`` is an :class:`xdeps.table.Table` with columns ``s``,
-          ``n1_horizontal``, ``n1_vertical``, ``n1_diagonal``, and
-          ``cross_section``.
-        - ``sliced_twiss`` is the twiss table computed as part of the calculation.
+        table : xdeps.table.Table
+            Table with columns ``s``, ``n1_horizontal``, ``n1_vertical``,
+            ``n1_diagonal``, and ``cross_section``.
+        sliced_twiss : xtrack.TwissTable
+            Twiss table sampled at the requested positions.
         """
         if not self.is_built:
             self.build_model()
@@ -2241,6 +2243,7 @@ class LineAperture:
         -------
         bounds_table
             Table with the following columns:
+
             - ``name``: name of the aperture bound, formed from the pipe-position
               name and, when needed, a ``::i`` suffix identifying the profile
               order within the pipe
@@ -2420,6 +2423,7 @@ class LineAperture:
         -------
         pipe_table
             Table with the following columns:
+
             - ``name``: pipe-position name
             - ``pipe_name``: underlying pipe (type) name
             - ``survey_reference``: survey element used as the placement reference
