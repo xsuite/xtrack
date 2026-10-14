@@ -21,8 +21,6 @@ from xtrack.aperture.structures import (
     LineApertureModel, Pipe, PipePosition, Profile, ProfilePolygons, ProfilePosition,
     Rectangle, RectEllipse, ShapeTypes, SurveyData, TwissData,
 )
-from xtrack.json import dump as json_dump
-from xtrack.json import load as json_load
 from xtrack.line import Line
 from xtrack.progress_indicator import progress
 from xtrack.survey import survey_relative_transform
@@ -477,7 +475,8 @@ class LineAperture:
         """Whether the line has no pipe placements."""
         return not self._pipe_position_name_to_index
 
-    def _to_dict(self):
+    @doc_group("Loading and Serialization")
+    def to_dict(self):
         """Serialize line-owned pipe placements without changing build state."""
         if self._model is not None:
             positions_source = self._model.pipe_positions
@@ -506,64 +505,45 @@ class LineAperture:
             'is_ring': is_ring,
         }
 
-    def to_dict(self):
-        """Serialize this line's aperture and its environment aperture data."""
-        return {
-            'environment': self.line.env.aperture.to_dict(include_line_models=False),
-            'aperture': self._to_dict(),
-        }
-
     @doc_group("Loading and Serialization")
     def from_dict(self, data, context=None):
-        """Load unbuilt pipe placements from their name-based form."""
-        if self._model is not None:
-            raise RuntimeError("Cannot load into a built line aperture.")
+        """Replace placements and settings, leaving the line model unbuilt.
 
+        Pipe names refer to definitions already present in the environment.
+        Return this container. For JSON loading, use ``env.aperture.from_json``.
+        """
         context = context or self.context
-        self.num_profile_points = data.get('num_profile_points', 128)
-        self._halo_params.update(data.get('halo_params', {}))
-        self.s_tol = data.get('s_tol', 1e-6)
-        self._is_ring_setting = data.get('is_ring', 'auto')
+        environment = self.line.env.aperture
+        pipe_names = list(environment._pipe_name_to_index)
+        pipe_indices = {name: index for index, name in enumerate(pipe_names)}
+        positions = []
+        position_indices = {}
         for item in data.get('pipe_positions', []):
             item = dict(item)
             name = item.pop('name')
             pipe_name = item.pop('pipe')
+            if name in position_indices:
+                raise ValueError(f"Duplicate pipe position `{name}`.")
             position = PipePosition(
-                pipe_index=self.line.env.aperture.pipe_index(pipe_name),
+                pipe_index=pipe_indices[pipe_name],
                 survey_index=-1,
                 _context=context,
                 **item,
             )
-            index = len(self._pipe_position_name_to_index)
-            self._pipe_positions_unbuilt.append(position)
-            self._pipe_position_name_to_index[name] = index
+            position_indices[name] = len(positions)
+            positions.append(position)
+
+        self._clear_model()
+        self.context = context
+        self.num_profile_points = data.get('num_profile_points', 128)
+        self._halo_params = DEFAULT_HALO_PARAMS.copy()
+        self._halo_params.update(data.get('halo_params', {}))
+        self.s_tol = data.get('s_tol', 1e-6)
+        self._is_ring_setting = data.get('is_ring', 'auto')
+        self._pipe_positions_unbuilt = positions
+        self._pipe_position_name_to_index = position_indices
 
         return self
-
-    @doc_group("Loading and Serialization")
-    def to_json(self, filename):
-        """Serialize the aperture model and halo parameters to JSON."""
-        json_dump(self.to_dict(), filename)
-
-    @doc_group("Loading and Serialization")
-    @classmethod
-    def from_json(cls, filename, line, with_progress=True, **kwargs):
-        """Load an aperture from JSON and bind it to ``line``."""
-        context = kwargs.pop('context', None)
-        if context is None:
-            context = line.aperture.context
-        json = json_load(filename)
-        line.env.aperture.from_dict(json['environment'], context=context)
-        aperture = line.aperture
-        aperture._clear_model()
-        aperture.context = context or aperture.context
-        aperture.from_dict(json['aperture'], context=context)
-        if 'ring' in kwargs:
-            aperture._is_ring_setting = kwargs.pop('ring')
-        for key, value in kwargs.items():
-            setattr(aperture, key, value)
-        aperture._with_progress = with_progress
-        return aperture.build_model()
 
     def _clear_model(self):
         """Reset all model state before loading or importing replacements."""

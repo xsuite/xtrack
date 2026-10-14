@@ -172,6 +172,7 @@ ldb_model = layout.Machine.from_pickle("SPS.pickle")
 
 # Load the SPS with its nominal curved survey
 sps = xt.load('sps.json')
+sps.env.lines['sps'] = sps
 
 # Check that they can twiss
 sps.twiss_default['method'] = '4d'
@@ -395,4 +396,4 @@ plt.show()
 aperture.plot_extents(s_positions=aperture.get_s_around_transitions(resolution=0.1))
 plt.show()
 
-aperture.to_json('sps_aperture.json')
+sps.env.aperture.to_json('sps_aperture.json')

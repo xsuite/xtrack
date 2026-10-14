@@ -869,7 +869,7 @@ class Line:
         out["metadata"] = copy.deepcopy(self.metadata)
 
         if include_aperture and not self.aperture.empty:
-            out['aperture'] = self.aperture._to_dict()
+            out['aperture'] = self.aperture.to_dict()
 
         return out
 
@@ -1331,7 +1331,7 @@ class Line:
         out.metadata.update(self.metadata)
 
         if not self.aperture.empty:
-            out.aperture.from_dict(self.aperture._to_dict())
+            out.aperture.from_dict(self.aperture.to_dict())
 
         if out.energy_program is not None:
             out.energy_program.line = out
