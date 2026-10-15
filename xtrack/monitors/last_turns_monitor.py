@@ -82,21 +82,22 @@ class LastTurnsMonitor(BeamElement):
         else:
 
             if num_particles is not None and particle_id_range is None:
-                particle_id_start = 0
+                particle_id_start = kwargs.pop('particle_id_start', 0)
             elif particle_id_range is not None and num_particles is None:
                 particle_id_start = particle_id_range[0]
                 num_particles = particle_id_range[1] - particle_id_range[0]
             else:
                 raise ValueError("Exactly one of `num_particles` or `particle_id_range` parameters must be specified")
 
-            # explicitly init with zeros (instead of size only) to have consistent default values for untouched arrays
-            # see also https://github.com/xsuite/xsuite/issues/294
-            size = num_particles*n_last_turns
-            data = {prop: np.zeros(size) if size > 0 else [] for prop in self.properties} # particle data
-            data['lost_at_offset'] = np.zeros(num_particles) if num_particles > 0 else [] # meta data (rolling buffer offset per particle)
+            if 'data' not in kwargs:
+                # Initialize new records, but preserve data when deserializing.
+                size = num_particles*n_last_turns
+                data = {prop: np.zeros(size) if size > 0 else [] for prop in self.properties}
+                data['lost_at_offset'] = np.zeros(num_particles) if num_particles > 0 else []
+                kwargs['data'] = data
 
             super().__init__(n_last_turns=n_last_turns, particle_id_start=particle_id_start,
-                             num_particles=num_particles, every_n_turns=every_n_turns, data=data, **kwargs)
+                             num_particles=num_particles, every_n_turns=every_n_turns, **kwargs)
 
     def __repr__(self):
         return (

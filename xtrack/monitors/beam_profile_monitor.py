@@ -139,8 +139,9 @@ class BeamProfileMonitor(BeamElement):
                 x_range = range
             if np.isscalar(x_range):
                 x_range = (-x_range/2, x_range/2)
-            x_min = x_range[0]
-            dx = (x_range[1]-x_range[0])/nx
+            # Preserve serialized bin origins and widths exactly on reload.
+            x_min = kwargs.pop('x_min', x_range[0])
+            dx = kwargs.pop('dx', (x_range[1]-x_range[0])/nx)
 
             if ny is None:
                 ny = n or 128
@@ -150,8 +151,8 @@ class BeamProfileMonitor(BeamElement):
                 y_range = range
             if np.isscalar(y_range):
                 y_range = (-y_range/2, y_range/2)
-            y_min = y_range[0]
-            dy = (y_range[1]-y_range[0])/ny
+            y_min = kwargs.pop('y_min', y_range[0])
+            dy = kwargs.pop('dy', (y_range[1]-y_range[0])/ny)
 
             sample_size = int(round(( stop_at_turn - start_at_turn ) * sampling_frequency / frev))
 
@@ -169,6 +170,19 @@ class BeamProfileMonitor(BeamElement):
                              ny=ny, y_min=y_min,
                              dy=dy, sample_size=sample_size, **kwargs)
 
+
+    @classmethod
+    def from_dict(cls, dct, **kwargs):
+        dct = dct.copy()
+        # Serialized profiles store bin origins and widths instead of ranges.
+        for plane in ('x', 'y'):
+            if f'{plane}_range' not in dct and 'range' not in dct:
+                origin = dct.get(f'{plane}_min', 0.)
+                width = dct.get(f'd{plane}', 0.)
+                dct[f'{plane}_range'] = (
+                    origin, origin + dct[f'n{plane}'] * width)
+        dct.pop('sample_size', None)  # Recomputed from the sampling settings.
+        return super().from_dict(dct, **kwargs)
 
     def __repr__(self):
         return (
