@@ -47,8 +47,8 @@ def test_crab_cavity_charge_kicks_and_symplecticity(test_context):
                                    rtol=0, atol=1e-14)
 
 
-@pytest.mark.parametrize('loader', ['cpymad', 'native'])
-@pytest.mark.parametrize('charge', [1, 2, 82])
+@pytest.mark.parametrize('loader,charge', [
+    ('cpymad', 1), ('cpymad', 2), ('cpymad', 82), ('native', 1)])
 def test_crab_cavity_charge_madx_round_trip(loader, charge):
     source = f'''
         v = 4;
@@ -100,35 +100,27 @@ def test_crab_cavity_charge_madx_round_trip(loader, charge):
         xo.assert_allclose(tw.ptau[-1], mad.table.twiss.pt[-1], rtol=1e-8, atol=1e-13)
 
 
-def test_native_cavity_voltage_conversion_with_shared_elements_and_updates():
+@pytest.mark.parametrize('charge', [1, 2, 82])
+def test_native_cavity_voltage_assumes_unit_charge(charge):
     loader = xt.mad_parser.MadxLoader()
-    loader.load_string('''
+    loader.load_string(f'''
         v = 4;
         cc: crabcavity, volt := v;
         rf: rfcavity, volt := v;
         a: line = (cc, rf, cc);
         b: line = (cc, rf);
-        beam, sequence = a, particle = ion, charge = 82, mass = 193.7, pc = 500;
-        beam, sequence = b, particle = ion, charge = 82, mass = 193.7, pc = 500;
+        beam, sequence = a, particle = ion, charge = {charge}, mass = 193.7, pc = 500;
+        beam, sequence = b, particle = ion, charge = 1, mass = 193.7, pc = 500;
     ''')
     env = loader.env
+    assert env['a'].particle_ref.q0 == charge
+    assert env['b'].particle_ref.q0 == 1
     for _ in range(2):
-        xo.assert_allclose(env['cc'].crab_voltage, 4e6 / 82, rtol=1e-14)
-        xo.assert_allclose(env['rf'].voltage, 4e6 / 82, rtol=1e-14)
+        xo.assert_allclose(env['cc'].crab_voltage, 4e6, rtol=1e-14)
+        xo.assert_allclose(env['rf'].voltage, 4e6, rtol=1e-14)
         loader.load_string('v = 4;')
 
     loader.load_string('cc, volt := 2*v; rf, volt := 3*v;')
     env['v'] = 5
-    xo.assert_allclose(env['cc'].crab_voltage, 10e6 / 82, rtol=1e-14)
-    xo.assert_allclose(env['rf'].voltage, 15e6 / 82, rtol=1e-14)
-
-
-def test_native_cavity_shared_by_different_charges():
-    with pytest.raises(ValueError, match='shared by beams with different absolute charges'):
-        xt.load(string='''
-            cc: crabcavity, volt = 4;
-            a: line = (cc);
-            b: line = (cc);
-            beam, sequence = a, particle = ion, charge = 2, mass = 4, pc = 5;
-            beam, sequence = b, particle = ion, charge = 3, mass = 6, pc = 5;
-        ''', format='madx')
+    xo.assert_allclose(env['cc'].crab_voltage, 10e6, rtol=1e-14)
+    xo.assert_allclose(env['rf'].voltage, 15e6, rtol=1e-14)

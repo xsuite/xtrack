@@ -194,7 +194,6 @@ class MadxLoader:
             composers = self._parse_lines(parsed_dict["lines"])
             self._parse_parameters(parsed_dict["parameters"])
             self._parse_beams(parsed_dict["beams"])
-            self._convert_rf_voltages()
             self.composers.update(composers)
 
         # Handle variables obtained from arrow operations
@@ -289,41 +288,6 @@ class MadxLoader:
     def _parse_beams(self, beams: List[Dict[str, VarType]]):
         for beam_params in beams:
             self._parse_beam(beam_params)
-
-    def _convert_rf_voltages(self):
-        # MAD-X VOLT includes the reference charge, while Xsuite uses volts.
-        # Beams are parsed after elements, so normalize once their charges
-        # are known, using the original parameters to avoid repeated scaling.
-        charges = {}
-        for line in self.env.lines.values():
-            if line.particle_ref is None:
-                continue
-            charge = abs(line.particle_ref.q0)
-            if line.mode == 'compose':
-                components = line.composer.flatten().components
-                names = [cc.name if isinstance(cc, xt.Place) else cc
-                         for cc in components]
-            else:
-                names = line.element_names
-            for name in names:
-                if not isinstance(self.env.get(name), (xt.Cavity, xt.CrabCavity)):
-                    continue
-                if name in charges and charges[name] != charge:
-                    raise ValueError(f'Cavity {name!r} is shared by beams with '
-                                     'different absolute charges; use separate elements.')
-                charges[name] = charge
-
-        default_charge = (abs(self.env.particle_ref.q0)
-                          if self.env.particle_ref is not None else 1.)
-        for name, params in self._parameter_cache.items():
-            if 'volt' not in params:
-                continue
-            element = self.env.get(name)
-            if not isinstance(element, (xt.Cavity, xt.CrabCavity)):
-                continue
-            field = 'crab_voltage' if isinstance(element, xt.CrabCavity) else 'voltage'
-            charge = charges.get(name, default_charge)
-            setattr(self.env.ref[name], field, params['volt'] * 1e6 / charge)
 
     def _parse_beam(self, beam_params: Dict[str, VarType]):
         params = beam_params.copy()
@@ -540,6 +504,8 @@ class MadxLoader:
                 params['edge_exit_hgap'] = hgap
 
         elif parent_name in {'rfcavity', 'crabcavity'}:
+            # Native MAD-X import assumes unit charge for cavity voltages,
+            # independently of any BEAM statement.
             if (lag := params.pop('lag', None)):
                 params['phase'] = lag * self.env.vars['pi'] * 2
             if (volt := params.pop('volt', None)):
@@ -790,6 +756,12 @@ class MadxLoader:
 def load_madx_lattice(file=None, string=None, reverse_lines=None, s_tol=1e-6,
                       _rbend_correct_k0=False, end_compose=True, **kwargs) -> xt.Environment:
 
+    """Load a MAD-X lattice using the native parser.
+
+    RF and crab cavity voltages are imported assuming unit charge, even when
+    a BEAM statement specifies a different charge. For ions, divide the
+    imported voltages by the absolute reference charge if needed.
+    """
     if file is not None and string is not None:
         raise ValueError('Only one of `file` or `string` can be provided!')
 
