@@ -1955,7 +1955,7 @@ def test_convergence_mat_kick_mat_exact(test_context):
 
     m_ref = magnet.copy()
     m_ref.model = 'mat-kick-mat-exact'
-    m_ref.integrator = 'yoshida4'
+    m_ref.integrator = 'yoshida-6'
     m_ref.num_multipole_kicks = num_slices * n_kicks_yoshida
 
     p_ref = p0.copy()
@@ -1963,7 +1963,7 @@ def test_convergence_mat_kick_mat_exact(test_context):
 
     m_yoshida = magnet.copy()
     m_yoshida.model = 'drift-kick-drift-exact'
-    m_yoshida.integrator = 'yoshida4'
+    m_yoshida.integrator = 'yoshida-6'
     m_yoshida.num_multipole_kicks = 500
 
     p_yoshida = p0.copy()
