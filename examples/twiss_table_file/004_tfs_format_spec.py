@@ -51,10 +51,7 @@ tw.to_tfs('custom_from_json.tfs', format_spec='custom_format.json')
 # end-tfs-json
 
 # start-tfs-toml
-# TOML is convenient for hand-maintained specifications with comments.
-toml_spec = Path('tfs_format_spec.toml')
-toml_spec = Path(__file__).with_name(toml_spec.name)  #!skip-doc
-tw.to_tfs('custom_from_toml.tfs', format_spec=toml_spec)
+tw.to_tfs('custom_from_toml.tfs', format_spec='tfs_format_spec.toml')
 # end-tfs-toml
 
 # start-tfs-customize
