@@ -7,6 +7,7 @@ import numpy as np
 import pytest
 
 import xtrack as xt
+from xtrack.survey import SurveyTable
 
 
 def sample_table(cls=xt.Table):
@@ -43,7 +44,7 @@ def render(table, spec, **kwargs):
     return target.getvalue()
 
 
-@pytest.mark.parametrize('cls', [xt.Table, xt.TwissTable])
+@pytest.mark.parametrize('cls', [xt.Table, xt.TwissTable, SurveyTable])
 def test_exact_output_and_independence_from_table_storage(cls, tmp_path):
     table, spec = sample_table(cls), sample_spec()
     original = copy.deepcopy(spec)
@@ -212,7 +213,7 @@ scalars = [
     assert render(sample_table(), path) == expected
 
 
-@pytest.mark.parametrize('cls', [xt.Table, xt.TwissTable])
+@pytest.mark.parametrize('cls', [xt.Table, xt.TwissTable, SurveyTable])
 @pytest.mark.parametrize('kwargs', [
     {'include': None}, {'exclude': None}, {'missing': 'error'},
     {'include_meta': True}, {'default_column_width': None},
@@ -435,7 +436,7 @@ def test_madx_example_optics_conventions(tmp_path):
     mad.quit()
 
 
-@pytest.mark.parametrize('cls', [xt.Table, xt.TwissTable])
+@pytest.mark.parametrize('cls', [xt.Table, xt.TwissTable, SurveyTable])
 def test_legacy_defaults_and_options(cls):
     table = sample_table(cls)
     if cls is xt.TwissTable:
