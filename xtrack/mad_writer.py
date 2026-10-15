@@ -166,7 +166,8 @@ def _handle_transforms(tokens, el_ref, mad_type=MadType.MADX, substituted_vars=N
         if misalign_flag:
             tokens.append(misalign_token[:-2] + '}')
 
-def cavity_to_mad_str(eref, mad_type=MadType.MADX, substituted_vars=None):
+def cavity_to_mad_str(eref, mad_type=MadType.MADX, substituted_vars=None,
+                      voltage_scale=1.):
     """
     Convert a cavity element to a MADX/MAD-NG string representation.
 
@@ -188,13 +189,14 @@ def cavity_to_mad_str(eref, mad_type=MadType.MADX, substituted_vars=None):
     tokens.append('rfcavity')
     tokens.append(mad_assignment('freq', _ge(eref.frequency) * 1e-6, mad_type, substituted_vars=substituted_vars))
     tokens.append(mad_assignment('harmon', _ge(eref.harmonic), mad_type, substituted_vars=substituted_vars))
-    tokens.append(mad_assignment('volt', _ge(eref.voltage) * 1e-6, mad_type, substituted_vars=substituted_vars))
+    tokens.append(mad_assignment('volt', _ge(eref.voltage) * (1e-6 * voltage_scale), mad_type, substituted_vars=substituted_vars))
     tokens.append(mad_assignment('lag', _ge(eref.lag) / 360. + _ge(eref.phase) / (2 * np.pi), mad_type, substituted_vars=substituted_vars))
     tokens.append(mad_assignment('l', _ge(eref.length) * weight, mad_type, substituted_vars=substituted_vars))
 
     return tokens
 
-def crabcavity_to_mad_str(eref, mad_type=MadType.MADX, substituted_vars=None):
+def crabcavity_to_mad_str(eref, mad_type=MadType.MADX, substituted_vars=None,
+                          voltage_scale=1.):
     """
     Convert a crab cavity element to a MADX/MAD-NG string representation.
 
@@ -210,8 +212,8 @@ def crabcavity_to_mad_str(eref, mad_type=MadType.MADX, substituted_vars=None):
     tokens = []
     tokens.append('crabcavity')
     tokens.append(mad_assignment('freq', _ge(eref.frequency) * 1e-6, mad_type, substituted_vars=substituted_vars))
-    tokens.append(mad_assignment('volt', _ge(eref.crab_voltage) * 1e-6, mad_type, substituted_vars=substituted_vars))
-    tokens.append(mad_assignment('lag', _ge(eref.lag) / 360., mad_type, substituted_vars=substituted_vars))
+    tokens.append(mad_assignment('volt', _ge(eref.crab_voltage) * (1e-6 * voltage_scale), mad_type, substituted_vars=substituted_vars))
+    tokens.append(mad_assignment('lag', _ge(eref.lag) / 360. + _ge(eref.phase) / (2 * np.pi), mad_type, substituted_vars=substituted_vars))
     tokens.append(mad_assignment('l', _ge(eref.length), mad_type, substituted_vars=substituted_vars))
 
     return tokens
@@ -656,6 +658,11 @@ def element_to_mad_str(
         el = line._element_dict[el.parent_name]
 
     parent_flag = hasattr(el, '_parent')
+    converter_kwargs = dict(mad_type=mad_type, substituted_vars=substituted_vars)
+    if (mad_type == MadType.MADX and line.particle_ref is not None
+            and isinstance(el._parent if parent_flag else el,
+                           (xt.Cavity, xt.CrabCavity))):
+        converter_kwargs['voltage_scale'] = abs(line.particle_ref.q0)
     if (el.__class__ == xt.Marker or el.__class__ in element_types_converted_to_markers
         or parent_flag and el._parent.__class__ == xt.Marker):
         return marker_to_mad_str(name, line, mad_type=mad_type, substituted_vars=substituted_vars)
@@ -664,13 +671,13 @@ def element_to_mad_str(
         if isinstance(el, xt.beam_elements.slice_elements_drift._DriftSliceElementBase):
             tokens = drift_slice_to_mad_str(eref, mad_type=mad_type, substituted_vars=substituted_vars)
         elif parent_flag and el._parent.__class__ in xsuite_to_mad_converters:
-            tokens = xsuite_to_mad_converters[el._parent.__class__](eref, mad_type=mad_type, substituted_vars=substituted_vars)
+            tokens = xsuite_to_mad_converters[el._parent.__class__](eref, **converter_kwargs)
             if isinstance(el, xt.beam_elements.slice_elements_edge._ThinSliceEdgeBase):
                 tokens.append(mad_assignment('kill_body', True, mad_type, substituted_vars=substituted_vars))
         else:
             raise NotImplementedError(f"Element of type {el.__class__} not supported yet in MAD writer")
     else:
-        tokens = xsuite_to_mad_converters[el.__class__](eref, mad_type=mad_type, substituted_vars=substituted_vars)
+        tokens = xsuite_to_mad_converters[el.__class__](eref, **converter_kwargs)
 
     if el.__class__ not in [xt.Drift, xt.DriftSlice]:
         transform_ref = (_get_eref(line, el.parent_name)
