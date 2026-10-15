@@ -296,6 +296,9 @@ class TrackerData:
 
     def __getstate__(self):
         out = self.__dict__.copy()
+        # LineAttr contains local lambdas and is rebuilt lazily by Line.attr.
+        out['cache'] = self.cache.copy()
+        out['cache'].pop('attr', None)
         out['_element_ref_data'] = (
             self._element_ref_data._buffer, self._element_ref_data._offset)
         out['kernel_element_classes'] = [cc._DressingClass for cc in self.kernel_element_classes]
