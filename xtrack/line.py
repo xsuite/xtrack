@@ -2434,6 +2434,12 @@ class Line:
         Create a Particles object from arrays containing physical or
         normalized coordinates.
 
+        When using normalized coordinates, each plane independently defaults
+        to unit geometric emittance if both its `nemitt_*` and `gemitt_*`
+        arguments are omitted or `None`. In that plane, no emittance scaling
+        is applied before transforming the normalized coordinates to physical
+        coordinates. This also applies to the longitudinal (`zeta`) plane.
+
         In ``set`` and ``shift`` modes, species overrides can be scalars or
         per-particle arrays. Single-element species arrays are broadcast; other
         species arrays must match the coordinate arrays and ``num_particles``
