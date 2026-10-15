@@ -364,6 +364,29 @@ class TwissInit:
 
     def get_normalized_coordinates(self, particles, nemitt_x=None, nemitt_y=None,
                                    nemitt_zeta=None):
+        """Convert particle coordinates using this initial condition's optics.
+
+        Parameters
+        ----------
+        particles : xtrack.Particles or xtrack.ParticlesMonitor
+            Particles or recorded coordinates to convert.
+        nemitt_x, nemitt_y, nemitt_zeta : float, optional
+            Normalized emittances for the three planes. In each plane, the
+            coordinates transformed by the inverse W matrix are divided by
+            ``sqrt(nemitt / (beta0 * gamma0))``, using the closed-orbit reference
+            particle's ``beta0`` and ``gamma0``. If omitted or ``None``, no
+            emittance scaling is applied (equivalent to unit geometric
+            emittance, not unit normalized emittance). Emittances used to
+            build the particles are not inferred.
+
+        Returns
+        -------
+        xtrack.Table
+            Normalized coordinates indexed by ``particle_id``, with
+            ``at_element`` and ``at_turn`` columns. The supplied ``nemitt_x``,
+            ``nemitt_y``, and ``nemitt_zeta`` are stored as table attributes;
+            ``None`` records that no emittance scaling was applied in a plane.
+        """
 
         ctx2np = particles._context.nparray_from_context_array
 
@@ -408,10 +431,13 @@ class TwissInit:
             at_element = at_element.flatten()
             at_turn = at_turn.flatten()
 
-        return Table({'particle_id': part_id, 'at_element': at_element,'at_turn':at_turn,
+        out = Table({'particle_id': part_id, 'at_element': at_element,'at_turn':at_turn,
                       'x_norm': x_norm, 'px_norm': px_norm, 'y_norm': y_norm,
                       'py_norm': py_norm, 'zeta_norm': zeta_norm,
                       'pzeta_norm': pzeta_norm}, index='particle_id')
+        out._data.update(nemitt_x=nemitt_x, nemitt_y=nemitt_y,
+                         nemitt_zeta=nemitt_zeta)
+        return out
 
     @property
     def betx(self):
