@@ -288,8 +288,10 @@ class SurveyTable(Table):
             for kk, vv in self._data.items()
         }
 
-        # Removing the count for repeated elements
-        out_sv_table._data['name'] = np.array([nn.split('::')[0] for nn in out_sv_table._data['name']])
+        # Remove repetition counts while keeping the object dtype expected by xplt.
+        out_sv_table._data['name'] = np.array(
+            [nn.split('::')[0] for nn in out_sv_table._data['name']],
+            dtype=object)
         out_sv_table._index_cache = None
         out_sv_table._count_cache = None
         out_sv_table._names_cache = None
