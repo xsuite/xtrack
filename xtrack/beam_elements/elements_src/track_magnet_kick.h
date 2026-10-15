@@ -171,7 +171,7 @@ void track_magnet_kick_single_particle(
     if (order_rel >= 0 && knl_rel != NULL) {
         k0l_mult += knl_rel[0] * factor_knl_ksl * rel_ref_strength;
     }
-    dpx += -chi * (k0_h_correction  *length + k0l_mult) * kick_weight * htot * x;
+    dpx += -chi * (k0_h_correction * length + k0l_mult) * kick_weight * htot * x;
 
     // k1h correction can be computed from this term in the hamiltonian
     // H = 1/3 hk1 x^3 - 1/2 hk1 xy^2
