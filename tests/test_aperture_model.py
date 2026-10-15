@@ -1,8 +1,10 @@
 import itertools
 import gc
+import gzip
 
 import json
 from pathlib import Path
+from unittest.mock import Mock
 
 import numpy as np
 import pytest
@@ -1244,6 +1246,34 @@ def test_aperture_json_roundtrip_preserves_explicit_ring_flag(test_context, tmp_
     loaded.build_model()
 
     assert loaded.is_ring is False
+
+
+@pytest.mark.parametrize('scheme', ['http', 'https'])
+@pytest.mark.parametrize('compressed', [False, True])
+def test_aperture_from_json_url(monkeypatch, scheme, compressed):
+    env = xt.Environment()
+    env.new_line(name='line', components=[env.new('drift', xt.Drift, length=3.0)])
+    profile = env.aperture.new_profile('round', Circle, radius=0.02)
+    pipe = env.aperture.new_pipe('tube', positions=[profile.place()])
+    env.lines['line'].aperture.place_pipe('installed', pipe, at='drift')
+    data = env.aperture.to_dict()
+    payload = json.dumps(data, cls=xo.JEncoder)
+    response = Mock(text=payload)
+    response.content = gzip.compress(payload.encode()) if compressed else payload.encode()
+    get = Mock(return_value=response)
+    monkeypatch.setattr('xtrack.general.requests.get', get)
+    url = f'{scheme}://example.com/aperture.json' + ('.gz' if compressed else '')
+    context = xo.ContextCpu()
+    env.aperture.clear()
+
+    result = env.aperture.from_json(url, context=context, timeout=12.0)
+
+    assert result is env.aperture
+    assert env.aperture.to_dict() == data
+    assert env.aperture._struct._context is context
+    assert env.lines['line'].aperture._model is None
+    get.assert_called_once_with(url, timeout=12.0)
+    response.raise_for_status.assert_called_once_with()
 
 
 @for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
