@@ -16,6 +16,57 @@ from xtrack.mad_parser.parse import MadxParser
 test_data_folder = (Path(__file__).parent / '../test_data').absolute()
 
 
+@pytest.mark.parametrize('prefix', ['const', 'const real', 'const int'])
+@pytest.mark.parametrize('uppercase', [False, True])
+def test_const_declarations(prefix, uppercase):
+    source = f"""
+    base = 2;
+    {prefix} fixed = base;
+    {prefix} deferred := base;
+    base = 3;
+    q: quadrupole, l=1, k1:=fixed + deferred;
+    seq: sequence, l=1;
+        q, at=0.5;
+    endsequence;
+    """
+    if uppercase:
+        source = source.upper()
+    env = xt.load(string=source, format='madx')
+
+    assert env['fixed'] == 2
+    assert env['deferred'] == 3
+    assert env.seq['q'].k1 == 5
+    env['base'] = 4
+    assert env['fixed'] == 2
+    assert env['deferred'] == 4
+    assert env.seq['q'].k1 == 6
+    # Qualifiers do not introduce immutable variables in Xsuite.
+    env['fixed'] = 10
+    assert env.seq['q'].k1 == 14
+
+
+@pytest.mark.parametrize('prefix', ['const', 'const real'])
+def test_const_deferred_literal(prefix):
+    env = xt.load(string=f'{prefix} var := 1.0;', format='madx')
+    assert env['var'] == 1.0
+
+
+def test_const_type_names_and_comments():
+    env = xt.load(string='''
+        const real = 2;
+        const int := real + 1;
+        const real /* numeric type */ value := int + real;
+    ''', format='madx')
+    assert env['real'] == 2
+    assert env['int'] == 3
+    assert env['value'] == 5
+
+
+def test_const_unsupported_type():
+    with pytest.raises(ValueError, match='Unsupported MAD-X scalar type'):
+        xt.load(string='const nonsense var = 1;', format='madx')
+
+
 def test_madx_constants_match_cpymad():
     mad_src = """
     dummy: marker;
