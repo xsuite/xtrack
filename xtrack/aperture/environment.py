@@ -5,6 +5,7 @@ from weakref import ref
 
 import xobjects as xo
 from xtrack.api_categorization import GroupedAPICollector, doc_group, property_with_doc_group
+from xtrack.general import read_url
 from xtrack.json import dump as json_dump
 from xtrack.json import load as json_load
 
@@ -537,13 +538,26 @@ class EnvAperture:
         return self
 
     @doc_group("Loading and Serialization")
-    def from_json(self, filename, context=None):
+    def from_json(self, filename, context=None, *, timeout=5.0):
         """Load an environment aperture export into a clean aperture container.
 
         Call ``env.aperture.clear()`` first if it already contains aperture data.
         Lattice lines must already exist. Models are left unbuilt; return self.
+
+        Parameters
+        ----------
+        filename : str, pathlib.Path, or readable file object
+            JSON file or HTTP/HTTPS URL. Files ending in ``.gz`` are decompressed.
+        context : xobjects.ContextCpu, optional
+            Context for definitions and placements.
+        timeout : float, optional
+            Timeout in seconds for URL requests. Defaults to 5 seconds.
         """
-        return self.from_dict(json_load(filename), context=context)
+        if isinstance(filename, str) and filename.startswith(('http://', 'https://')):
+            data = json_load(string=read_url(filename, timeout=timeout))
+        else:
+            data = json_load(filename)
+        return self.from_dict(data, context=context)
 
 
 EnvAperture.__doc_groups__ = _env_aperture_doc_groups.collect(EnvAperture)
