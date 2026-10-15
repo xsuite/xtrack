@@ -11,6 +11,7 @@ import numpy as np
 from ..general import DEPRECATION_INFO_PREP_1_0
 from .. import linear_normal_form as lnf
 from ..table import Table
+from .._tfs_format import _UNSET as _TFS_UNSET
 from .twissplot import TwissPlot
 from .beam_covariance import _build_sigma_table
 from .twiss_init import TwissInit, _W_phys2norm
@@ -241,11 +242,12 @@ class TwissTable(Table):
             group=group,
         )
 
-    def to_tfs(self, file, *, include=None, exclude=None,
-               missing='error', include_meta=True,
-               default_column_width=None, float_precision=8,
-               numeric_column_width=16, column_formats=None,
-               column_widths=None):
+    def to_tfs(self, file, *, format_spec=None,
+               include=_TFS_UNSET, exclude=_TFS_UNSET,
+               missing=_TFS_UNSET, include_meta=_TFS_UNSET,
+               default_column_width=_TFS_UNSET, float_precision=_TFS_UNSET,
+               numeric_column_width=_TFS_UNSET, column_formats=_TFS_UNSET,
+               column_widths=_TFS_UNSET):
         """
         Write the Twiss table to a TFS file.
 
@@ -253,6 +255,9 @@ class TwissTable(Table):
         ----------
         file : str or pathlib.Path or file-like object
             Output TFS file path or writable file-like object.
+        format_spec : mapping or path-like, optional
+            Versioned specification or JSON/TOML file. See :meth:`Table.to_tfs`.
+            Cannot be combined with any legacy selection or formatting options.
         include : sequence of str, optional
             Columns or metadata fields to include. If not provided, all supported
             fields are included unless excluded.
@@ -275,14 +280,19 @@ class TwissTable(Table):
             Per-column TFS column widths.
         """
 
-        if exclude is None:
-            exclude = []
-
-        if 'completed_init' in self.keys():
-            exclude.append('completed_init')
+        if format_spec is None:
+            if exclude is _TFS_UNSET or exclude is None:
+                exclude = []
+            elif isinstance(exclude, str):
+                exclude = [exclude]
+            else:
+                exclude = list(exclude)
+            if 'completed_init' in self.keys():
+                exclude.append('completed_init')
 
         super().to_tfs(
             file,
+            format_spec=format_spec,
             include=include,
             exclude=exclude,
             missing=missing,

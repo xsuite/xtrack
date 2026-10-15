@@ -58,5 +58,6 @@ from .multiline import Multiline
 
 from xdeps import FunctionPieceWiseLinear
 from .table import Table
+from . import format_spec
 
 from ._version import __version__

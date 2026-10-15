@@ -1949,7 +1949,7 @@ class LineAperture:
         nemitt_x, nemitt_y = self.halo_params['nemitt_x'], self.halo_params['nemitt_y']
         fig.suptitle(
             fr"Extents and beam envelope at ${sigma_label} = {sigmas:.3g}$ and "
-            fr"$s \in [{np.min(plot_s_positions):.3g}, {np.max(plot_s_positions):.3g}]$\n"
+            fr"$s \in [{np.min(plot_s_positions):.3g}, {np.max(plot_s_positions):.3g}]$" + "\n"
             fr"$\varepsilon_{{n,x}}$ = {nemitt_x:.3e}, $\varepsilon_{{n,y}}$ = {nemitt_y:.3e}"
         )
 
@@ -2099,7 +2099,7 @@ class LineAperture:
         ax.set_aspect('equal')
         ax.set_title(
             fr"Transverse aperture at {title_location}, "
-            fr"s $\in$ [{s_positions[0]:.2f}, {s_positions[-1]:.2f}], {title_sigma},\n"
+            fr"s $\in$ [{s_positions[0]:.2f}, {s_positions[-1]:.2f}], {title_sigma}," + "\n"
             fr"$\varepsilon_{{n,x}}$ = {nemitt_x:.3e}, $\varepsilon_{{n,y}}$ = {nemitt_y:.3e}"
         )
         ax.legend()
