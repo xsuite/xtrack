@@ -323,6 +323,7 @@ void track_rf_particles(
         xt_float_or_tpsa k0_h_correction=0., k1_h_correction=0.;
         int8_t kick_rot_frame;
         int8_t drift_model;
+        uint8_t do_drift_correction;
         configure_tracking_model(
             model,
             0, // k0
@@ -339,7 +340,8 @@ void track_rf_particles(
             &k0_h_correction,
             &k1_h_correction,
             &kick_rot_frame,
-            &drift_model
+            &drift_model,
+            &do_drift_correction
         );
 
 

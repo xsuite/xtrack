@@ -32,6 +32,27 @@ void kick_simple_single_particle(
 
 
 GPUFUN
+void track_magnet_kick_path_correction_single_particle_h0(
+    LocalParticle* part, double length
+) {
+    if (length == 0.0) return;
+    xt_float_or_tpsa const px = LocalParticle_get_px(part);
+    xt_float_or_tpsa const py = LocalParticle_get_py(part);
+    xt_float_or_tpsa const one_plus_delta = 1.0 + LocalParticle_get_delta(part);
+    xt_float_or_tpsa const inv_p = LocalParticle_get_rpp(part);  // == 1/(1 + delta)
+    xt_float_or_tpsa const rv0v = 1.0 / LocalParticle_get_rvv(part);
+    xt_float_or_tpsa const p_perp2 = px * px + py * py;
+    xt_float_or_tpsa const one_over_pz = 1.0 / sqrt(one_plus_delta * one_plus_delta - p_perp2);
+    xt_float_or_tpsa const d_length = length * (one_over_pz - inv_p);
+
+    LocalParticle_add_to_x(part, px * d_length);
+    LocalParticle_add_to_y(part, py * d_length);
+    LocalParticle_add_to_zeta(part, rv0v * (
+        0.5 * p_perp2 * length * inv_p * inv_p - one_plus_delta * d_length));
+}
+
+
+GPUFUN
 void track_magnet_kick_single_particle(
     LocalParticle* part,
     double length,
@@ -58,12 +79,31 @@ void track_magnet_kick_single_particle(
     double hxl,
     xt_float_or_tpsa_arg k0_h_correction,
     xt_float_or_tpsa_arg k1_h_correction,
-    uint8_t rot_frame
+    uint8_t rot_frame,
+    uint8_t do_drift_correction,
+    uint8_t kick_is_empty
 ){
+
+    double const length_of_this_kick = length * kick_weight;
+
+    if (kick_is_empty) {
+        // Nothing to apply: skip the kick. For mat-kick-mat-exact the two
+        // half path corrections depend only on the momenta, so they merge.
+        if (do_drift_correction) {
+            track_magnet_kick_path_correction_single_particle_h0(
+                part, length_of_this_kick);
+        }
+        return;
+    }
 
     double const chi = LocalParticle_get_chi(part);
     xt_float_or_tpsa const x = LocalParticle_get_x(part);
     xt_float_or_tpsa const y = LocalParticle_get_y(part);
+
+    if (do_drift_correction) {
+        track_magnet_kick_path_correction_single_particle_h0(
+            part, 0.5 * length_of_this_kick);
+    }
 
     // Staging arrays scaled by length; brace-init avoids default-constructing
     // the non-default-constructible xt_float_or_tpsa (tpsa) elements.
@@ -149,6 +189,11 @@ void track_magnet_kick_single_particle(
     LocalParticle_add_to_px(part, dpx);
     LocalParticle_add_to_py(part, dpy);
     LocalParticle_add_to_zeta(part, dzeta);
+
+    if (do_drift_correction) {
+        track_magnet_kick_path_correction_single_particle_h0(
+            part, 0.5 * length_of_this_kick);
+    }
 
 }
 

@@ -40,6 +40,8 @@ void track_magnet_body_single_particle(
     const int64_t num_multipole_kicks,
     const int8_t kick_rot_frame,
     const int8_t drift_model,
+    const uint8_t do_drift_correction,
+    const uint8_t kick_is_empty,
     const int8_t integrator,
     xt_float_or_tpsa_arg k0_drift,
     xt_float_or_tpsa_arg k1_drift,
@@ -75,7 +77,8 @@ void track_magnet_body_single_particle(
             order_rel, inv_factorial_order_rel, knl_rel, ksl_rel, rel_ref_strength,\
             factor_knl_ksl, (weight),\
             k0_kick, k1_kick, k2, k3, k0s, k1s, k2s, k3s, h_kick,\
-            hxl, k0_h_correction, k1_h_correction, kick_rot_frame\
+            hxl, k0_h_correction, k1_h_correction, kick_rot_frame,\
+            do_drift_correction, kick_is_empty\
         )
 
     #define MAGNET_DRIFT(part, dlength) \
@@ -464,24 +467,6 @@ void track_magnet_particles(
             num_multipole_kicks = (int64_t) ceil(num_multipole_kicks * weight);
         }
 
-        // Compute the number of kicks for auto mode
-        if (num_multipole_kicks == 0) { // num_multipole_kicks = 0 means auto mode
-            // If there are active kicks the number of kicks is guessed. Otherwise,
-            // only the drift is performed.
-            if (!kick_is_inactive(order, knl, ksl, k0, k1, k2, k3, k0s, k1s, k2s, k3s, h)){
-                if (fabs(h) < 1e-8){
-                    num_multipole_kicks = 1; // straight magnet, one multipole kick in the middle
-                }
-                else{
-                    double b_circum = 2 * 3.14159 / fabs(h);
-                    num_multipole_kicks = fabs(core_length) / b_circum / 0.5e-3; // 0.5 mrad per kick (on average)
-                    if (num_multipole_kicks < 1){
-                        num_multipole_kicks = 1;
-                    }
-                }
-            }
-        }
-
         xt_float_or_tpsa k0_drift=0., k1_drift=0., ks_drift=0.;
         double h_drift=0;
         xt_float_or_tpsa k0_kick=0., k1_kick=0.;
@@ -489,6 +474,7 @@ void track_magnet_particles(
         xt_float_or_tpsa k0_h_correction=0., k1_h_correction=0.;
         int8_t kick_rot_frame=0;
         int8_t drift_model=0;
+        uint8_t do_drift_correction=0;
         configure_tracking_model(
             model,
             k0,
@@ -505,8 +491,39 @@ void track_magnet_particles(
             &k0_h_correction,
             &k1_h_correction,
             &kick_rot_frame,
-            &drift_model
+            &drift_model,
+            &do_drift_correction
         );
+
+        // Compute the number of kicks for auto mode
+        if (num_multipole_kicks == 0) { // num_multipole_kicks = 0 means auto mode
+            uint8_t const kick_inactive = kick_is_inactive(
+                order, knl, ksl, k0, k1, k2, k3, k0s, k1s, k2s, k3s, h);
+
+            // The exact matrix model needs a path-correction kick even at zero field.
+            // Otherwise, guess the number of active kicks or perform only the drift.
+            if (do_drift_correction || !kick_inactive){
+                if (fabs(h) < 1e-8){
+                    num_multipole_kicks = 1; // straight magnet, one multipole kick in the middle
+                }
+                else{
+                    double b_circum = 2 * 3.14159 / fabs(h);
+                    num_multipole_kicks = fabs(core_length) / b_circum / 0.5e-3; // 0.5 mrad per kick (on average)
+                    if (num_multipole_kicks < 1){
+                        num_multipole_kicks = 1;
+                    }
+                }
+            }
+        }
+
+        // The kick is empty if all its multipole and curvature terms vanish
+        uint8_t const kick_is_empty = (hxl == 0.0)
+            && kick_is_inactive(
+                order, knl, ksl,
+                k0_kick, k1_kick, k2, k3, k0s, k1s, k2s, k3s, h_kick)
+            && kick_is_inactive(
+                order_rel, knl_rel, ksl_rel,
+                0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
 
         double dp_record_exit, dpx_record_exit, dpy_record_exit;
 
@@ -516,7 +533,8 @@ void track_magnet_particles(
                 knl, ksl,
                 order_rel, inv_factorial_order_rel, knl_rel, ksl_rel, rel_ref_strength,
                 factor_knl_ksl_body,
-                num_multipole_kicks, kick_rot_frame, drift_model, integrator,
+                num_multipole_kicks, kick_rot_frame, drift_model,
+                do_drift_correction, kick_is_empty, integrator,
                 k0_drift, k1_drift, ks_drift, h_drift,
                 k0_kick, k1_kick, h_kick, hxl,
                 k0_h_correction, k1_h_correction,

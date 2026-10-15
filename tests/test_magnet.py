@@ -1936,6 +1936,48 @@ def test_convergence_mat_kick_mat():
     xo.assert_allclose(p_ref.zeta, p_yoshida.zeta, rtol=0, atol=1e-13)
     xo.assert_allclose(p_ref.delta, p_yoshida.delta, rtol=0, atol=1e-13)
 
+
+@for_all_test_contexts
+def test_convergence_mat_kick_mat_exact(test_context):
+    n_kicks_yoshida = 7
+    num_slices = 50
+
+    magnet = xt.Quadrupole(
+        k1=0.01,
+        k1s=0.01,
+        length=2.0,
+        knl=[0.003, 0.001, 0.01, 0.02, 4.0, 6e2, 7e6],
+        ksl=[-0.005, 0.002, -0.02, 0.03, -2, 700.0, 4e6],
+        _context=test_context,
+    )
+
+    p0 = xt.Particles(x=1e-2, y=2e-2, py=1e-3, delta=3e-2, _context=test_context)
+
+    m_ref = magnet.copy()
+    m_ref.model = 'mat-kick-mat-exact'
+    m_ref.integrator = 'yoshida4'
+    m_ref.num_multipole_kicks = num_slices * n_kicks_yoshida
+
+    p_ref = p0.copy()
+    m_ref.track(p_ref)
+
+    m_yoshida = magnet.copy()
+    m_yoshida.model = 'drift-kick-drift-exact'
+    m_yoshida.integrator = 'yoshida4'
+    m_yoshida.num_multipole_kicks = 500
+
+    p_yoshida = p0.copy()
+
+    m_yoshida.track(p_yoshida)
+
+    xo.assert_allclose(p_ref.x, p_yoshida.x, rtol=0, atol=1e-14)
+    xo.assert_allclose(p_ref.px, p_yoshida.px, rtol=0, atol=1e-14)
+    xo.assert_allclose(p_ref.y, p_yoshida.y, rtol=0, atol=1e-14)
+    xo.assert_allclose(p_ref.py, p_yoshida.py, rtol=0, atol=1e-14)
+    xo.assert_allclose(p_ref.zeta, p_yoshida.zeta, rtol=0, atol=1e-14)
+    xo.assert_allclose(p_ref.delta, p_yoshida.delta, rtol=0, atol=1e-10)
+
+
 @pytest.mark.parametrize('model_to_test', ['rot-kick-rot', 'rot-kick-rot-low-order'])
 def test_convergence_rot_kick_rot(model_to_test):
 
