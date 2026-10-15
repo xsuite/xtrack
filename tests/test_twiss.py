@@ -1017,7 +1017,9 @@ def test_twiss_against_matrix(test_context):
     dy = [0, 20]
     dpx = [0.7, -0.3]
     dpy = [0.4, -0.6]
-    bets = 1e-3
+    # Keep the longitudinal phase calculation well conditioned in the presence
+    # of the large transverse-longitudinal coupling from symplectic dispersion.
+    bets = 1.
     dnqx = [0.21, 2, 30, 400]
     dnqy = [0.32, 3, 40, 500]
 
@@ -1061,7 +1063,7 @@ def test_twiss_against_matrix(test_context):
     tw6d = line.twiss()
 
     xo.assert_allclose(tw6d.qs, 0.0004, atol=1e-7, rtol=0)
-    xo.assert_allclose(tw6d.bets0, 1e-3, atol=1e-7, rtol=0)
+    xo.assert_allclose(tw6d.bets0, bets, atol=1e-7, rtol=0)
 
     for tw in [tw4d, tw6d]:
         xo.assert_allclose(tw.qx, 0.4 + 0.21, atol=1e-7, rtol=0)

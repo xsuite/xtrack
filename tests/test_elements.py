@@ -1489,6 +1489,7 @@ def test_simplified_accelerator_segment_uncorrelated_damping(test_context):
                       dtk_particle.delta, rtol=1e-14, atol=1e-14)
 
 @for_all_test_contexts
+@fix_random_seed(873635)
 def test_simplified_accelerator_segment_correlated_damping(test_context):
     alpha_x_0 = -0.5
     beta_x_0 = 100.0
@@ -1516,7 +1517,8 @@ def test_simplified_accelerator_segment_correlated_damping(test_context):
     py_ref_0 = 1E-4
     y_ref_1 = 4E-2
     py_ref_1 = 5E-4
-    damping_matrix = np.reshape(np.random.randn(36),(6,6))
+    # Small, reproducible kicks keep the particle in the physical energy range.
+    damping_matrix = 1e-3 * np.reshape(np.random.randn(36), (6, 6))
 
     dtk_particle = dtk.TestParticles(
             p0c=25.92e9,

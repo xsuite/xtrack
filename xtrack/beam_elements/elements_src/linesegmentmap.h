@@ -37,6 +37,9 @@ void add_closed_orbit(
     END_PER_PARTICLE_BLOCK;
 }
 
+// Symplectic dispersion transformations (including the zeta corrections):
+// Y. Cai, "Symplectic maps and chromatic optics in particle accelerators",
+// Nuclear Instruments and Methods in Physics Research A 797 (2015), 172-181.
 GPUFUN
 void remove_dispersion(
     LocalParticle* part0, double const dx_0, double const dpx_0,
@@ -44,13 +47,12 @@ void remove_dispersion(
 
     START_PER_PARTICLE_BLOCK(part0, part);
         // Remove dispersion
-        // Symplecticity correction (not working, to be investigated)
-        // LocalParticle_add_to_zeta(part, (
-        //     dpx_0 * LocalParticle_get_x(part)
-        //     - dx_0 * LocalParticle_get_px(part)
-        //     + dpy_0 * LocalParticle_get_y(part)
-        //     - dy_0 * LocalParticle_get_py(part)
-        //     )/LocalParticle_get_rvv(part));
+         LocalParticle_add_to_zeta(part, (
+             dpx_0 * LocalParticle_get_x(part)
+             - dx_0 * LocalParticle_get_px(part)
+             + dpy_0 * LocalParticle_get_y(part)
+             - dy_0 * LocalParticle_get_py(part)
+             )/LocalParticle_get_rvv(part));
         double const delta = LocalParticle_get_delta(part);
         LocalParticle_add_to_x(part, -dx_0 * delta);
         LocalParticle_add_to_px(part, -dpx_0 * delta);
@@ -65,14 +67,13 @@ void add_dispersion(
     double const dy_1, double const dpy_1){
 
     START_PER_PARTICLE_BLOCK(part0, part);
-        // Add dispersion
-        // Symplecticity correction (not working, to be investigated)
-        // LocalParticle_add_to_zeta(part, (
-        //     dpx_1 * LocalParticle_get_x(part)
-        //     - dx_1 * LocalParticle_get_px(part)
-        //     + dpy_1 * LocalParticle_get_y(part)
-        //     - dy_1 * LocalParticle_get_py(part)
-        //     )/LocalParticle_get_rvv(part));
+        // Inverse symplectic transformation; see the reference above remove_dispersion.
+         LocalParticle_add_to_zeta(part, (
+             -dpx_1 * LocalParticle_get_x(part)
+             + dx_1 * LocalParticle_get_px(part)
+             - dpy_1 * LocalParticle_get_y(part)
+             + dy_1 * LocalParticle_get_py(part)
+             )/LocalParticle_get_rvv(part));
         double const delta = LocalParticle_get_delta(part);
         LocalParticle_add_to_x(part, dx_1 * delta);
         LocalParticle_add_to_px(part, dpx_1 * delta);
