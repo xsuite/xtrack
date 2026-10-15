@@ -555,13 +555,9 @@ class SurveyData(xo.Struct):
             poses[idx, :, 3] = np.hstack([row.X[0], row.Y[0], row.Z[0], 1])
             lengths[idx] = row.length[0]
 
-        # Avoid constructing MultiSetter objects for every element attribute.
-        # They are unnecessary here and retain buffers for the lifetime of the
-        # line, which is especially costly for large imported machines.
-        angles[:-1] = [getattr(element, 'angle', 0.0)
-                       for element in line._elements]
-        tilts[:-1] = [getattr(element, 'rot_s_rad', 0.0)
-                      for element in line._elements]
+        # Resolve slice weights and attributes inherited from parent elements.
+        angles[:-1] = line.attr['angle']
+        tilts[:-1] = line.attr['rot_s_rad']
 
         # Straight-body RBends use an internal reference line that differs from
         # the element entrance frame stored in the survey table.
@@ -689,6 +685,7 @@ class LineApertureModel(xo.Struct):
                 xo.Arg(FloatType, pointer=True, name='ray_angles'),
                 xo.Arg(xo.UInt32, name='num_ray_angles'),
                 xo.Arg(FloatType, pointer=True, name='sigmas'),
+                xo.Arg(FloatType, pointer=True, name='out_contact_points'),
             ],
         ),
         'get_max_aperture_sigma_exact': xo.Kernel(
@@ -856,11 +853,13 @@ class LineApertureModel(xo.Struct):
         self._context.kernels.get_max_aperture_sigma_bisection(
             model=self, aperture_env=aperture_env, **kwargs)
 
-    def get_max_aperture_sigma_rays(self, aperture_env=None, **kwargs) -> None:
+    def get_max_aperture_sigma_rays(
+            self, aperture_env=None, out_contact_points=None, **kwargs) -> None:
         aperture_env = aperture_env or self._aperture_env
         self.compile_kernels(only_if_needed=True)
         self._context.kernels.get_max_aperture_sigma_rays(
-            model=self, aperture_env=aperture_env, **kwargs)
+            model=self, aperture_env=aperture_env,
+            out_contact_points=out_contact_points, **kwargs)
 
     def get_max_aperture_sigma_exact(self, aperture_env=None, **kwargs) -> None:
         aperture_env = aperture_env or self._aperture_env

@@ -14,7 +14,7 @@ lhc_length = b1.get_length()
 aperture_model = b1.aperture.from_madx_metadata(
     num_profile_points=100, include_offsets=True, context=context,
 )
-aperture_model.to_json('lhc_aperture_model.json')
+lhc_with_metadata.aperture.to_json('lhc_aperture_model.json')
 
 emittance_norm = 2.5e-6
 apbbeat = 1.1

@@ -59,12 +59,12 @@ CONSTANTS = {
     "pmass": 0.93827208816,  # GeV
     "nmass": 0.93956542052,  # GeV
     "umass": 0.93149410242,  # GeV
-    "mumass": 0.1056583715,  # GeV
+    "mumass": 0.1056583755,  # GeV
     "clight": 299792458.0,  # m/s
     "qelect": 1.602176634e-19,  # A * s
     "hbar": 6.582119569e-25,  # MeV * s
     "erad": 2.8179403262e-15,  # m
-    "prad": 'erad / emass * pmass',
+    "prad": 'erad * emass / pmass',
 }
 
 _APERTURE_TYPES = {

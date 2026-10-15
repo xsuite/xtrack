@@ -6,6 +6,7 @@ from weakref import ref
 import xobjects as xo
 from xtrack.api_categorization import GroupedAPICollector, doc_group, property_with_doc_group
 from xtrack.json import dump as json_dump
+from xtrack.json import load as json_load
 
 from xtrack.aperture.structures import (
     ApertureEnvStruct,
@@ -57,8 +58,9 @@ class EnvAperture:
     time; the name-based views resolve against whichever representation exists.
 
     Access this container through ``env.aperture``. Profiles and pipes can be
-    shared by multiple lines in the environment. They cannot be removed, and
-    new definitions can only be added while the environment aperture is unbuilt.
+    shared by multiple lines in the environment. Individual definitions cannot
+    be removed; :meth:`clear` removes all aperture data and dependent models.
+    New definitions can only be added while the environment aperture is unbuilt.
 
     Examples
     --------
@@ -390,27 +392,45 @@ class EnvAperture:
 
         return self
 
+    @doc_group("Model Lifecycle")
+    def clear(self):
+        """Remove all aperture definitions, placements, and built line models.
+
+        Also clear unnamed lines belonging to this environment. Lattice elements
+        and line aperture computation settings are retained. Return this container.
+        """
+        for line in list(self.env._lines_weakrefs):
+            line.aperture._clear_model()
+        self._struct = None
+        self._profile_name_to_index = {}
+        self._pipe_name_to_index = {}
+        self._profiles_unbuilt = []
+        self._pipes_unbuilt = []
+        return self
+
     @doc_group("Loading and Serialization")
     def to_dict(self, include_line_models=True):
-        """Serialize shared aperture definitions, optionally including line models.
+        """Serialise shared aperture definitions, optionally including line models.
 
         Parameters
         ----------
         include_line_models : bool, optional
-            If True (default), include all named lines' aperture data. If
-            False, return only the shared profile and pipe definitions.
+            Include named lines' placements and settings. If False, export only
+            shared definitions. Unnamed lines are always omitted.
 
         Returns
         -------
         dict
-            Shared definitions under ``environment`` and per-line aperture
-            data under ``lines`` when ``include_line_models=True``. Otherwise,
-            return the shared definitions directly, without those wrapper keys.
+            Shared definitions under ``environment`` and line data under
+            ``lines``. With ``include_line_models=False``, return the shared
+            definitions directly.
 
         Notes
         -----
-        Ordinary ``Environment.to_dict()`` omits aperture data unless
-        ``include_aperture=True`` is supplied.
+        Works with built and unbuilt containers without changing their state.
+        Lattice data and derived geometry are excluded. Register lines in
+        ``env.lines`` to include their aperture data. Either output form can be
+        loaded with :meth:`from_dict`.
         """
         if self._struct is not None:
             definitions = self._struct.to_dict()
@@ -428,7 +448,7 @@ class EnvAperture:
         return {
             'environment': definitions,
             'lines': {
-                name: line.aperture._to_dict()
+                name: line.aperture.to_dict()
                 for name, line in self.env.lines.items()
             },
         }
@@ -449,41 +469,81 @@ class EnvAperture:
 
     @doc_group("Loading and Serialization")
     def from_dict(self, data, context=None):
-        """Replace shared definitions with a packed representation.
-
-        Dependent line aperture models are discarded before replacing the
-        definitions. This method does not load their placements or settings.
+        """Load aperture definitions and line data into a clean container.
 
         Parameters
         ----------
         data : dict
-            Shared definitions returned by
-            ``to_dict(include_line_models=False)``, or the ``environment``
-            entry of a complete export.
+            Either form returned by :meth:`to_dict`: shared definitions alone,
+            or a complete export with named lines' placements and settings.
+            Referenced lines must already exist in ``env.lines``.
         context : xobjects.ContextCpu, optional
-            Context used for the replacement packed structure.
+            Context for definitions and placements. If omitted, definitions use
+            the default context and lines retain their aperture contexts.
 
         Returns
         -------
         EnvAperture
-            This container, in the built state.
-        """
-        for line in list(self.env._lines_weakrefs):
-            line.aperture.discard_model()
+            This container, with shared definitions loaded and line models
+            left unbuilt.
 
-        self._struct = ApertureEnvStruct(**data, _context=context)
+        Raises
+        ------
+        ValueError
+            If aperture data or built line models already exist, including on
+            unnamed lines. Also raised for unknown lines, duplicate names,
+            or mismatched definition/name counts.
+        KeyError
+            If required data is missing or a placement references an unknown pipe.
+        TypeError
+            If definition or placement data is invalid.
+
+        Notes
+        -----
+        Existing lattice elements and lines are allowed. Call :meth:`clear`
+        before replacing aperture data or retrying a failed load: a failure
+        while loading line data may leave a partial result. Call each restored
+        line aperture's ``build_model()`` before computations.
+        """
+        if (self._profile_name_to_index or self._pipe_name_to_index
+                or any(not line.aperture.empty or line.aperture._model is not None
+                       for line in self.env._lines_weakrefs)):
+            raise ValueError(
+                "Cannot load into a non-empty aperture environment. "
+                "Call `env.aperture.clear()` first.")
+
+        lines = data.get('lines', {})
+        for name in lines:
+            if name not in self.env.lines:
+                raise ValueError(f"Cannot load aperture for unknown line `{name}`.")
+
+        definitions = data.get('environment', data)
+        for kind in ('profile', 'pipe'):
+            names = definitions[f'{kind}_names']
+            if len(names) != len(set(names)):
+                raise ValueError(f"Duplicate {kind} names in aperture data.")
+        struct = ApertureEnvStruct(**definitions, _context=context)
+        self._struct = struct
         self._profile_name_to_index = {
-            name: index
-            for index, name in enumerate(self._struct.profile_names)
+            name: index for index, name in enumerate(struct.profile_names)
         }
         self._pipe_name_to_index = {
-            name: index
-            for index, name in enumerate(self._struct.pipe_names)
+            name: index for index, name in enumerate(struct.pipe_names)
         }
         self._profiles_unbuilt = None
         self._pipes_unbuilt = None
-
+        for name, aperture in lines.items():
+            self.env.lines[name].aperture.from_dict(aperture, context=context)
         return self
+
+    @doc_group("Loading and Serialization")
+    def from_json(self, filename, context=None):
+        """Load an environment aperture export into a clean aperture container.
+
+        Call ``env.aperture.clear()`` first if it already contains aperture data.
+        Lattice lines must already exist. Models are left unbuilt; return self.
+        """
+        return self.from_dict(json_load(filename), context=context)
 
 
 EnvAperture.__doc_groups__ = _env_aperture_doc_groups.collect(EnvAperture)

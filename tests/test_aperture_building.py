@@ -12,6 +12,112 @@ from xtrack.aperture.transform import transform_matrix
 from xtrack.slicing import Strategy, Uniform
 
 
+def _make_aperture_export_env():
+    env = xt.Environment()
+    line = env.new_line(name='line', components=[
+        env.new('drift', xt.Drift, length=1.0),
+    ])
+    other = env.new_line(name='other', components=['drift'])
+    profile = env.aperture.new_profile('profile', Circle, radius=0.1)
+    pipe = env.aperture.new_pipe('pipe', positions=[profile.place(), profile.place(at=1)])
+    line.aperture.place_pipe('installed', pipe, at='drift')
+    other.aperture.place_pipe('other_installed', pipe, at='drift')
+    line.aperture.num_profile_points = 32
+    line.aperture._is_ring_setting = False
+    line.aperture.build_model()
+    return env
+
+
+@pytest.mark.parametrize('format', ['dict', 'json'])
+def test_aperture_load_roundtrip(tmp_path, format):
+    source = _make_aperture_export_env()
+    target = xt.Environment.from_dict(source.to_dict(), with_progress=False)
+    exported = source.aperture
+    restored = target.aperture
+
+    if format == 'dict':
+        result = restored.from_dict(exported.to_dict())
+    else:
+        path = tmp_path / 'aperture.json'
+        exported.to_json(path)
+        result = restored.from_json(path)
+    assert result is restored
+    assert target.lines['line'].aperture._model is None
+    assert target.lines['line'].aperture.num_profile_points == 32
+    assert target.lines['line'].aperture._is_ring_setting is False
+    assert target.lines['line'].aperture.pipe_positions.keys() == ['installed']
+    assert target.lines['other'].aperture.pipe_positions.keys() == ['other_installed']
+    assert target.lines['other'].aperture._model is None
+    assert not hasattr(target.lines['line'].aperture, 'to_json')
+    assert not hasattr(target.lines['line'].aperture, 'from_json')
+    line = target.lines['line']
+    line.aperture.build_model()
+    xo.assert_allclose(line.aperture.get_cross_sections_at_s([0.5]).cross_section[0, 0],
+                       [0.1, 0], atol=1e-12, rtol=0)
+
+
+@pytest.mark.parametrize('built', [False, True])
+@pytest.mark.parametrize('format', ['dict', 'json'])
+def test_environment_aperture_load_requires_clear(tmp_path, built, format):
+    source_env = _make_aperture_export_env()
+    target = xt.Environment.from_dict(source_env.to_dict(), with_progress=False)
+    line = target.lines['line']
+    other = target.lines['other']
+    unnamed = line.copy(shallow=True)
+    profile = target.aperture.new_profile('different_profile', Circle, radius=0.2)
+    pipe = target.aperture.new_pipe('different_pipe', positions=[profile.place()])
+    for ll in (line, other, unnamed):
+        ll.aperture.place_pipe('existing', pipe, at='drift')
+        if built:
+            ll.aperture.build_model()
+    model = line.aperture._model
+    struct = target.aperture._struct
+    path = tmp_path / 'aperture.json'
+    source_env.aperture.to_json(path)
+
+    with pytest.raises(ValueError, match=r'non-empty.*env.aperture.clear'):
+        if format == 'dict':
+            target.aperture.from_dict(source_env.aperture.to_dict())
+        else:
+            target.aperture.from_json(path)
+
+    assert line.aperture._model is model
+    assert target.aperture._struct is struct
+    assert line.aperture.pipe_positions.keys() == ['existing']
+    assert target.aperture.profiles['different_profile'].shape.radius == 0.2
+
+    assert target.aperture.clear() is target.aperture
+    assert not target.aperture.is_built
+    assert target.aperture.profiles.keys() == []
+    assert target.aperture.pipes.keys() == []
+    for ll in (line, other, unnamed):
+        assert ll.aperture.empty
+        for attr in ('_model', 'survey', '_survey_data', '_aperture_bounds', '_profile_polygons'):
+            assert getattr(ll.aperture, attr) is None
+        assert list(ll.element_names) == ['drift']
+    target.aperture.clear()  # Clearing an empty container is also supported.
+    target.aperture.from_json(path)
+    assert line.aperture.pipe_positions.keys() == ['installed']
+    assert other.aperture.pipe_positions.keys() == ['other_installed']
+    assert unnamed.aperture.empty
+    line.aperture.build_model()
+    xo.assert_allclose(line.aperture.get_cross_sections_at_s([0.5]).cross_section[0, 0],
+                       [0.1, 0], atol=1e-12, rtol=0)
+
+
+def test_line_aperture_dict_replaces_only_line_data():
+    env = _make_aperture_export_env()
+    line = env.lines['line']
+    struct = env.aperture._struct
+    data = line.aperture.to_dict()
+    data['pipe_positions'][0]['name'] = 'replacement'
+    line.aperture.from_dict(data)
+    assert line.aperture.pipe_positions.keys() == ['replacement']
+    assert line.aperture._model is None
+    assert env.aperture._struct is struct
+    assert env.lines['other'].aperture.pipe_positions.keys() == ['other_installed']
+
+
 def test_build_model_can_explicitly_skip_overlap_checks():
     env = xt.Environment()
     line = env.new_line(components=[env.new('drift', xt.Drift, length=2.0)])
@@ -333,18 +439,15 @@ def test_line_and_environment_aperture_json_data_roundtrip(tmp_path):
     assert env.aperture.to_dict(include_line_models=False) == data['aperture']
 
     line_aperture_data = line.aperture.to_dict()
-    assert line_aperture_data['aperture'] == data['lines']['line']['aperture']
-    assert line_aperture_data['environment'] == data['aperture']
+    assert line_aperture_data == data['lines']['line']['aperture']
     assert 'lines' not in line_aperture_data
 
     env_file = tmp_path / 'environment.json'
     line_file = tmp_path / 'line.json'
     aperture_file = tmp_path / 'aperture.json'
-    line_aperture_file = tmp_path / 'line_aperture.json'
     env.to_json(env_file)
     line.to_json(line_file)
     env.aperture.to_json(aperture_file)
-    line.aperture.to_json(line_aperture_file)
     assert 'aperture' not in xt.json.load(env_file)
     assert 'aperture' not in xt.json.load(line_file)
     loaded_aperture_data = xt.json.load(aperture_file)
@@ -353,8 +456,6 @@ def test_line_and_environment_aperture_json_data_roundtrip(tmp_path):
     assert loaded_aperture_data['lines']['line']['pipe_positions'][0]['pipe'] == 'pipe'
     env.aperture.to_json(aperture_file, include_line_models=False)
     assert xt.json.load(aperture_file) == loaded_aperture_data['environment']
-    assert 'lines' not in xt.json.load(line_aperture_file)
-    assert xt.json.load(line_aperture_file)['aperture']['pipe_positions'][0]['pipe'] == 'pipe'
 
     env.to_json(env_file, include_aperture=True)
     assert 'aperture' in xt.json.load(env_file)

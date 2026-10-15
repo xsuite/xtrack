@@ -21,8 +21,6 @@ from xtrack.aperture.structures import (
     LineApertureModel, Pipe, PipePosition, Profile, ProfilePolygons, ProfilePosition,
     Rectangle, RectEllipse, ShapeTypes, SurveyData, TwissData,
 )
-from xtrack.json import dump as json_dump
-from xtrack.json import load as json_load
 from xtrack.line import Line
 from xtrack.progress_indicator import progress
 from xtrack.survey import survey_relative_transform
@@ -477,8 +475,23 @@ class LineAperture:
         """Whether the line has no pipe placements."""
         return not self._pipe_position_name_to_index
 
-    def _to_dict(self):
-        """Serialize line-owned pipe placements without changing build state."""
+    @doc_group("Loading and Serialization")
+    def to_dict(self):
+        """Serialise this line's pipe placements and settings.
+
+        Accepts built and unbuilt models without changing their state.
+
+        Returns
+        -------
+        dict
+            Placements referencing pipes by name, plus computation settings.
+
+        Notes
+        -----
+        Shared definitions are excluded. They must exist in the destination
+        environment before calling :meth:`from_dict`. For JSON serialisation,
+        use ``env.aperture.to_json(...)``.
+        """
         if self._model is not None:
             positions_source = self._model.pipe_positions
             position_names = self._model.pipe_position_names
@@ -506,64 +519,72 @@ class LineAperture:
             'is_ring': is_ring,
         }
 
-    def to_dict(self):
-        """Serialize this line's aperture and its environment aperture data."""
-        return {
-            'environment': self.line.env.aperture.to_dict(include_line_models=False),
-            'aperture': self._to_dict(),
-        }
-
     @doc_group("Loading and Serialization")
     def from_dict(self, data, context=None):
-        """Load unbuilt pipe placements from their name-based form."""
-        if self._model is not None:
-            raise RuntimeError("Cannot load into a built line aperture.")
+        """Replace placements and settings, leaving the line model unbuilt.
 
+        Parameters
+        ----------
+        data : dict
+            Line data returned by :meth:`to_dict`. Referenced pipes must already
+            exist in the environment. Missing settings use their defaults.
+        context : xobjects.ContextCpu, optional
+            Context for placements and computations. Defaults to the current
+            line aperture context.
+
+        Returns
+        -------
+        LineAperture
+            This container, with the line model left unbuilt.
+
+        Raises
+        ------
+        ValueError
+            If placement names are duplicated.
+        KeyError
+            If required placement data is missing or a pipe name is unknown.
+        TypeError
+            If placement data is invalid.
+
+        Notes
+        -----
+        Replaces existing placements and settings on built or unbuilt models.
+        Shared definitions and other lines are unchanged. Call :meth:`build_model`
+        to validate geometry and enable computations. For JSON loading, use
+        ``env.aperture.from_json(...)``.
+        """
         context = context or self.context
-        self.num_profile_points = data.get('num_profile_points', 128)
-        self._halo_params.update(data.get('halo_params', {}))
-        self.s_tol = data.get('s_tol', 1e-6)
-        self._is_ring_setting = data.get('is_ring', 'auto')
+        environment = self.line.env.aperture
+        pipe_names = list(environment._pipe_name_to_index)
+        pipe_indices = {name: index for index, name in enumerate(pipe_names)}
+        positions = []
+        position_indices = {}
         for item in data.get('pipe_positions', []):
             item = dict(item)
             name = item.pop('name')
             pipe_name = item.pop('pipe')
+            if name in position_indices:
+                raise ValueError(f"Duplicate pipe position `{name}`.")
             position = PipePosition(
-                pipe_index=self.line.env.aperture.pipe_index(pipe_name),
+                pipe_index=pipe_indices[pipe_name],
                 survey_index=-1,
                 _context=context,
                 **item,
             )
-            index = len(self._pipe_position_name_to_index)
-            self._pipe_positions_unbuilt.append(position)
-            self._pipe_position_name_to_index[name] = index
+            position_indices[name] = len(positions)
+            positions.append(position)
+
+        self._clear_model()
+        self.context = context
+        self.num_profile_points = data.get('num_profile_points', 128)
+        self._halo_params = DEFAULT_HALO_PARAMS.copy()
+        self._halo_params.update(data.get('halo_params', {}))
+        self.s_tol = data.get('s_tol', 1e-6)
+        self._is_ring_setting = data.get('is_ring', 'auto')
+        self._pipe_positions_unbuilt = positions
+        self._pipe_position_name_to_index = position_indices
 
         return self
-
-    @doc_group("Loading and Serialization")
-    def to_json(self, filename):
-        """Serialize the aperture model and halo parameters to JSON."""
-        json_dump(self.to_dict(), filename)
-
-    @doc_group("Loading and Serialization")
-    @classmethod
-    def from_json(cls, filename, line, with_progress=True, **kwargs):
-        """Load an aperture from JSON and bind it to ``line``."""
-        context = kwargs.pop('context', None)
-        if context is None:
-            context = line.aperture.context
-        json = json_load(filename)
-        line.env.aperture.from_dict(json['environment'], context=context)
-        aperture = line.aperture
-        aperture._clear_model()
-        aperture.context = context or aperture.context
-        aperture.from_dict(json['aperture'], context=context)
-        if 'ring' in kwargs:
-            aperture._is_ring_setting = kwargs.pop('ring')
-        for key, value in kwargs.items():
-            setattr(aperture, key, value)
-        aperture._with_progress = with_progress
-        return aperture.build_model()
 
     def _clear_model(self):
         """Reset all model state before loading or importing replacements."""
@@ -1075,6 +1096,7 @@ class LineAperture:
             output_max_envelopes: bool = False,
             output_cross_sections: bool = False,
             with_progress: bool = True,
+            output_contact_points: bool = False,
     ) -> tuple[Table, TwissTable]:
         """Compute the maximum number of sigmas at which the beam fits in the aperture at the given ``s_positions``.
 
@@ -1086,6 +1108,7 @@ class LineAperture:
             Optionally provided initial twiss conditions.
         method
             A method to use for the computation:
+
             - 'rays' - the aperture sigma is estimated from sampled rays and the minimum over the sampled directions
               is returned (faster method, O(R) where R is the number of rays)
             - 'exact' - the aperture sigma is estimated from sampled points on the halo racetrack, at which new sample
@@ -1106,15 +1129,26 @@ class LineAperture:
         with_progress:
             Whether to show progress while slicing the line. Defaults to
             ``True``.
+        output_contact_points:
+            For ``method='rays'``, include ``x`` and ``y`` (metres) at the
+            aperture hit of the ray determining ``n1``, including its
+            dispersive orbit offset. Coordinates use the native transverse
+            survey frame, not offsets from the closed orbit or pipe centre.
+            If several rays tie, return the first sampled direction.
+            Nonfinite ``n1`` has NaN coordinates.
 
         Returns
         -------
         A two-tuple ``(table, sliced_twiss)``, where:
+
         - ``table`` is an :class:`xdeps.table.Table` with columns ``s`` and ``n1``.
         - if ``output_cross_sections`` is true, ``table`` also contains ``cross_section``.
         - if ``output_max_envelopes`` is true, ``table`` also contains ``envelope``.
+        - if ``output_contact_points`` is true, ``table`` contains ``x`` and ``y``.
         - ``sliced_twiss`` is the twiss table computed as part of the calculation.
         """
+        if output_contact_points and method != 'rays':
+            raise ValueError("Contact points are supported only for method='rays'")
         sliced_twiss = self._get_sliced_twiss_at_s(
             s_positions=s_positions, twiss_init=twiss_init,
             with_progress=with_progress)
@@ -1125,6 +1159,7 @@ class LineAperture:
             num_rays=num_rays,
             output_max_envelopes=output_max_envelopes,
             output_cross_sections=output_cross_sections,
+            output_contact_points=output_contact_points,
         )
         return table, sliced_twiss
 
@@ -1137,6 +1172,7 @@ class LineAperture:
         num_rays: int = 32,
         output_max_envelopes: bool = False,
         output_cross_sections: bool = False,
+        output_contact_points: bool = False,
     ) -> Table:
         """Compute the maximum aperture sigmas from an already sampled Twiss table.
 
@@ -1166,6 +1202,12 @@ class LineAperture:
             Whether to include beam-envelope polygons at the computed sigma.
         output_cross_sections
             Whether to include the interpolated aperture cross-sections.
+        output_contact_points
+            For ``method='rays'``, return the limiting aperture hit as ``x``
+            and ``y`` in metres in the native transverse survey frame.
+            Include the limiting dispersive orbit offset; ties use the first
+            sampled ray. Nonfinite ``n1`` has NaN coordinates. Requires a
+            Twiss table in the same native frame as the aperture geometry.
 
         Returns
         -------
@@ -1176,11 +1218,15 @@ class LineAperture:
             - ``index``: row index.
             - ``s``: longitudinal position.
             - ``n1``: maximum number of beam sigmas that fit in the aperture.
+            - ``x``, ``y``: limiting aperture contact, included when
+              ``output_contact_points`` is true.
             - ``cross_section``: aperture polygon, included when
               ``output_cross_sections`` is true.
             - ``envelope``: beam-envelope polygon at ``n1``, included when
               ``output_max_envelopes`` is true.
         """
+        if output_contact_points and method != 'rays':
+            raise ValueError("Contact points are supported only for method='rays'")
         if not self.is_built:
             self.build_model()
 
@@ -1198,6 +1244,11 @@ class LineAperture:
             envelope_at_max_sigma = np.zeros(shape=(num_slices, envelopes_num_points, 2), dtype=FloatType._dtype)
         else:
             envelope_at_max_sigma = None
+
+        contact_points = (
+            np.full((num_slices, 2), np.nan, dtype=FloatType._dtype)
+            if output_contact_points else None
+        )
 
         if method == 'bisection':
             sigmas = np.zeros(num_slices, dtype=FloatType._dtype)
@@ -1232,6 +1283,7 @@ class LineAperture:
                 ray_angles=ray_angles,
                 num_ray_angles=num_rays,
                 sigmas=ray_sigmas,
+                out_contact_points=contact_points,
 
             )
             n1s = np.min(ray_sigmas, axis=1)
@@ -1262,6 +1314,10 @@ class LineAperture:
             's': sliced_twiss.s,
             'n1': n1s,
         }
+        if output_contact_points:
+            contact_points[~np.isfinite(n1s)] = np.nan
+            table_data['x'] = contact_points[:, 0]
+            table_data['y'] = contact_points[:, 1]
         if output_cross_sections:
             table_data['cross_section'] = interpolated_points
         if output_max_envelopes:
@@ -1322,11 +1378,11 @@ class LineAperture:
 
         Returns
         -------
-        A two-tuple ``(table, sliced_twiss)``:
-        - ``table`` is an :class:`xdeps.table.Table` with columns ``s``,
-          ``n1_horizontal``, ``n1_vertical``, ``n1_diagonal``, and
-          ``cross_section``.
-        - ``sliced_twiss`` is the twiss table computed as part of the calculation.
+        table : xdeps.table.Table
+            Table with columns ``s``, ``n1_horizontal``, ``n1_vertical``,
+            ``n1_diagonal``, and ``cross_section``.
+        sliced_twiss : xtrack.TwissTable
+            Twiss table sampled at the requested positions.
         """
         if not self.is_built:
             self.build_model()
@@ -2241,6 +2297,7 @@ class LineAperture:
         -------
         bounds_table
             Table with the following columns:
+
             - ``name``: name of the aperture bound, formed from the pipe-position
               name and, when needed, a ``::i`` suffix identifying the profile
               order within the pipe
@@ -2420,6 +2477,7 @@ class LineAperture:
         -------
         pipe_table
             Table with the following columns:
+
             - ``name``: pipe-position name
             - ``pipe_name``: underlying pipe (type) name
             - ``survey_reference``: survey element used as the placement reference

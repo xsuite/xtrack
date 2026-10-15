@@ -438,6 +438,28 @@ def _transition_test_twiss_init(aperture):
 
 
 @for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
+@pytest.mark.parametrize('roll', [0.0, 0.3])
+def test_survey_interpolation_thick_sliced_bend(test_context, roll):
+    line = xt.Line(
+        elements=[xt.Bend(length=4.0, angle=0.2, rot_s_rad=roll)],
+        element_names=['bend'],
+    )
+    reference = line.copy()
+    reference.cut_at_s([0.7])
+    expected = reference.survey().rows[0.7:0.7:'s']
+    assert len(expected) == 1
+
+    line.slice_thick_elements(
+        slicing_strategies=[xt.Strategy(slicing=xt.Uniform(2, mode='thick'))],
+    )
+    data = SurveyData.from_survey_table(line.survey(), line, context=test_context)
+    pose = data.resample([0.7]).pose.to_nplike()[0]
+
+    xo.assert_allclose(pose[:3, 3], expected.XYZ[0], atol=1e-12, rtol=0)
+    xo.assert_allclose(pose[:3, :3], expected.E_matrix[0], atol=1e-12, rtol=0)
+
+
+@for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
 def test_aperture_does_not_add_columns_to_survey(test_context):
     aperture = _make_transition_test_aperture(test_context)
 
@@ -1204,32 +1226,23 @@ def test_aperture_json_roundtrip_preserves_explicit_ring_flag(test_context, tmp_
     env = xt.Environment()
     drift = env.new('drift', xt.Drift, length=3.0)
     line = env.new_line(name='line', components=[drift])
-    sv = line.survey()
-
-    model = ApertureModel(
-        pipe_positions=[
-            PipePosition(
-                pipe_index=0,
-                survey_reference_name='drift',
-                survey_index=sv.name.tolist().index('drift'),
-                transformation=transform_matrix(),
-            ),
-        ],
-        pipes=[Pipe(curvature=0.0, positions=[ProfilePosition(profile_index=0)])],
-        profiles=[Profile(shape=Circle(radius=1.0))],
-        pipe_names=['pipe0'],
-        pipe_position_names=['pipe0'],
-        profile_names=['circ0'],
-        _context=test_context,
-    )
-
-    ap = Aperture(line, model, context=test_context, is_ring=False)
+    profile = env.aperture.new_profile('circ0', Circle, radius=1.0)
+    pipe = env.aperture.new_pipe('pipe0', positions=[profile.place()])
+    ap = line.aperture
+    ap.context = test_context
+    ap._is_ring_setting = False
+    ap.place_pipe('pipe0', pipe, at='drift')
+    ap.build_model()
     path = tmp_path / 'aperture.json'
 
-    ap.to_json(path)
-    loaded = Aperture.from_json(path, line=line, context=test_context)
-
+    env.aperture.to_json(path)
     assert ap.is_ring is False
+    env.aperture.clear()
+    env.aperture.from_json(path, context=test_context)
+    loaded = line.aperture
+    assert loaded._model is None
+    loaded.build_model()
+
     assert loaded.is_ring is False
 
 
@@ -1701,6 +1714,7 @@ def test_get_aperture_sigmas_for_twiss_matches_at_s(method, context):
         envelopes_num_points=144,
         output_cross_sections=True,
         output_max_envelopes=True,
+        output_contact_points=(method == 'rays'),
     )
     from_twiss_table = aperture_model.get_aperture_sigmas_for_twiss(
         sliced_twiss=sliced_twiss,
@@ -1708,9 +1722,13 @@ def test_get_aperture_sigmas_for_twiss_matches_at_s(method, context):
         envelopes_num_points=144,
         output_cross_sections=True,
         output_max_envelopes=True,
+        output_contact_points=(method == 'rays'),
     )
 
-    for column in ('s', 'n1', 'cross_section', 'envelope'):
+    columns = ('s', 'n1', 'cross_section', 'envelope')
+    if method == 'rays':
+        columns += ('x', 'y')
+    for column in columns:
         xo.assert_allclose(
             from_twiss_table[column],
             at_s_table[column],
@@ -3390,8 +3408,12 @@ def hllhc19_end_to_end_model(tmp_path_factory):
         )
 
         aperture_path = tmp_path / f'aperture_model_{beam}.json'
-        aperture.to_json(aperture_path)
-        aperture = Aperture.from_json(aperture_path, line)
+        line.env.lines[beam] = line
+        line.env.aperture.to_json(aperture_path)
+        line.env.aperture.clear()
+        line.env.aperture.from_json(aperture_path, context=local_context)
+        aperture = line.aperture
+        aperture.build_model()
 
         out[beam] = (line, aperture)
 
@@ -3434,3 +3456,94 @@ def test_hllhc19_end_to_end(ir, method, hllhc19_end_to_end_model):
         rtol=0.01,
         max_outliers=int(len(n1_madx) / 100),
     ), ref_file.name
+
+
+@pytest.mark.parametrize('axis', ['x', 'y'])
+@pytest.mark.parametrize('orbit_sign', [-1, 1])
+@pytest.mark.parametrize('disp_sign', [-1, 1])
+def test_ray_contact_matches_analytic_limit(axis, orbit_sign, disp_sign, context):
+    # The limiting wall is farther away geometrically but the beam is wider
+    # in that plane. The contact must follow the limiting n1, not distance.
+    primary = 0 if axis == 'x' else 1
+    secondary = 1 - primary
+    half_sizes = np.array([0.01, 0.01])
+    half_sizes[primary] = 0.02
+    shift = np.array([0.004, -0.006])
+    orbit = shift + 0.002
+    orbit[primary] = shift[primary] + orbit_sign * 0.003
+    dispersion = np.ones(2)
+    dispersion[primary] = disp_sign * 2
+    betas = np.ones(2)
+    betas[primary] = 16
+    tolerances = np.array([0.0003, 0.0004])
+
+    env = xt.Environment()
+    line = env.new_line(components=[
+        env.new('origin', 'Marker'),
+        env.new('drift', 'Drift', length=10),
+    ])
+    line.particle_ref = xt.Particles(gamma0=np.sqrt(101))
+    builder = env.aperture
+    builder.new_profile('rect', 'Rectangle',
+                        max_x=half_sizes[0], max_y=half_sizes[1])
+    builder.new_pipe('pipe', positions=[
+        builder.place_profile('rect', at=s,
+                              tol_r=0.0002, tol_x=tolerances[0],
+                              tol_y=tolerances[1]) for s in (0, 10)
+    ])
+    line.aperture = LineAperture(line, context=context, is_ring=False,
+                                with_progress=False)
+    line.aperture.place_pipe('pipe', 'pipe', at='origin',
+                             shift_x=shift[0], shift_y=shift[1])
+    line.aperture.build_model()
+    line.aperture.halo_params.update(
+        nemitt_x=1e-5, nemitt_y=1e-5, delta_rms=0.001,
+        tol_co=0.0001, tol_disp=0, tol_beta_beating=1,
+        halo_primary=1, halo_x=1, halo_y=1, halo_r=1,
+    )
+    twiss = xt.TwissTable(dict(
+        name=np.array(['a', 'b']), s=np.array([2., 4.]),
+        x=np.full(2, orbit[0]), y=np.full(2, orbit[1]),
+        dx=np.full(2, dispersion[0]), dy=np.full(2, dispersion[1]),
+        betx=np.full(2, betas[0]), bety=np.full(2, betas[1]),
+        delta=np.zeros(2),
+    ))
+    aperture = line.aperture
+    plain = aperture.get_aperture_sigmas_for_twiss(twiss, num_rays=4)
+    result = aperture.get_aperture_sigmas_for_twiss(
+        twiss, num_rays=4, output_contact_points=True)
+    assert 'x' not in plain._col_names and 'y' not in plain._col_names
+    np.testing.assert_array_equal(result.n1, plain.n1)
+    expected_n1 = (0.02 - 0.003 - 0.002 - 0.0002 - 0.0001
+                   - tolerances[primary]) / 0.004
+    xo.assert_allclose(result.n1, expected_n1, rtol=1e-10, atol=1e-10)
+    expected = shift.copy()
+    expected[primary] += orbit_sign * half_sizes[primary]
+    expected[secondary] += 0.002 + orbit_sign * disp_sign * 0.001
+    xo.assert_allclose(result.x, expected[0], rtol=0, atol=1e-10)
+    xo.assert_allclose(result.y, expected[1], rtol=0, atol=1e-10)
+
+    # Invalid optics must not expose a contact from an unrelated valid ray.
+    twiss.betx[1] = np.nan
+    invalid = aperture.get_aperture_sigmas_for_twiss(
+        twiss, num_rays=4, output_contact_points=True)
+    assert np.isfinite(invalid.n1[0])
+    assert np.isnan(invalid.n1[1])
+    assert np.isnan(invalid.x[1]) and np.isnan(invalid.y[1])
+
+
+@pytest.mark.parametrize('method', ['exact', 'bisection'])
+def test_contact_points_reject_unsupported_methods_before_twiss(
+        method, context, monkeypatch):
+    aperture, twiss = _build_single_marker_aperture_model(context)
+
+    def unexpected(*args, **kwargs):
+        raise AssertionError('Unsupported contact option must not run Twiss')
+
+    monkeypatch.setattr(aperture, '_get_sliced_twiss_at_s', unexpected)
+    with pytest.raises(ValueError, match="only for method='rays'"):
+        aperture.get_aperture_sigmas_at_s(
+            twiss.s, method=method, output_contact_points=True)
+    with pytest.raises(ValueError, match="only for method='rays'"):
+        aperture.get_aperture_sigmas_for_twiss(
+            twiss, method=method, output_contact_points=True)
