@@ -11,6 +11,7 @@ columns = [
 ]
 
 scalars = [
+    { name = "TYPE", value = "TWISS" },
     { name = "Q1", source_name = "qx", type = "float", format = ".12f" },
     { name = "Q2", source_name = "qy", type = "float", format = ".12f" },
 ]
