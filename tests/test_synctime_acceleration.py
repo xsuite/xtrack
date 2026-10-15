@@ -384,14 +384,13 @@ def test_coasting_time_centers_follow_energy_program():
     assert np.diff(actual[-1]).mean() < np.diff(actual[0]).mean()
 
 
-@pytest.mark.parametrize('num_threads', [0, 6])
-def test_clock_partial_turns_losses_and_empty_ensemble(num_threads):
-    context = xo.ContextCpu(omp_num_threads=num_threads)
+@for_all_test_contexts
+def test_clock_partial_turns_losses_and_empty_ensemble(test_context):
     line = xt.Line(elements=[xt.Drift(length=40),
                             xt.LimitRect(min_x=-.1, max_x=.1),
                             xt.Drift(length=60)])
-    line.build_tracker(_context=context)
-    p = xt.Particles(_context=context, p0c=1e9, time_s=3e-6,
+    line.build_tracker(_context=test_context)
+    p = xt.Particles(_context=test_context, p0c=1e9, time_s=3e-6,
                      x=[.2, 0., .3, 0.], at_turn=[7, 7, 7, 7])
     period = 100 / (float(p._xobject.beta0[0]) * clight)
     line.track(p, ele_stop=1)
@@ -400,7 +399,7 @@ def test_clock_partial_turns_losses_and_empty_ensemble(num_threads):
     xo.assert_allclose(initial_turns, 3e-6 / period, rtol=1e-15)
     line.track(p, ele_start=1)
     xo.assert_allclose(p.time_s, 3e-6 + period, rtol=1e-15)
-    assert np.count_nonzero(p.state > 0) == 2
+    assert np.count_nonzero(test_context.nparray_from_context_array(p.state) > 0) == 2
     line.track(p, num_turns=19)
     xo.assert_allclose(p.time_s, 3e-6 + 20*period, rtol=1e-15)
     p.state[:] = -1
@@ -663,23 +662,24 @@ def test_energy_program_clock_preserves_physical_flight_time(test_context, reset
     xo.assert_allclose(p.time_s, before + period, rtol=1e-15)
 
 
-@pytest.mark.parametrize('num_threads', [0, 6])
-def test_sync_time_clock_advances_while_all_particles_wait(num_threads):
-    context = xo.ContextCpu(omp_num_threads=num_threads)
+@for_all_test_contexts
+def test_sync_time_clock_advances_while_all_particles_wait(test_context):
     line = xt.Line(elements=[xt.Drift(length=100)])
     st.install_sync_time_at_collective_elements(line, frame_relative_length=.5)
-    line.build_tracker(_context=context)
-    p = xt.Particles(_context=context, p0c=1e9, zeta=[-200., -220.])
+    line.build_tracker(_context=test_context)
+    p = xt.Particles(_context=test_context, p0c=1e9, zeta=[-200., -220.])
     period = 100 / (float(p._xobject.beta0[0]) * clight)
-    arrival = -p.zeta / (p.beta0 * clight)
+    before = p.copy(_context=xo.ContextCpu())
+    arrival = -before.zeta / (before.beta0 * clight)
     line.track(p, num_turns=2)
     xo.assert_allclose(p.time_s, period, rtol=1e-15)
     assert p.reference_turns == 1.
-    assert np.all(p.state < -st.COAST_STATE_RANGE_START)
-    xo.assert_allclose(p.time_s + (p.s-p.zeta)/(p.beta0*clight),
-                       arrival[p.particle_id], rtol=2e-15)
+    after = p.copy(_context=xo.ContextCpu())
+    assert np.all(after.state < -st.COAST_STATE_RANGE_START)
+    xo.assert_allclose(after.time_s + (after.s-after.zeta)/(after.beta0*clight),
+                       arrival[after.particle_id], rtol=2e-15)
     line.track(p, num_turns=5)
-    assert np.any(p.at_turn > 0)
+    assert np.any(test_context.nparray_from_context_array(p.at_turn) > 0)
     xo.assert_allclose(p.time_s, 3.5*period, rtol=2e-15)
     assert p.reference_turns == 3.5
 
