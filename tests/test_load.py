@@ -7,6 +7,7 @@ import xtrack as xt
 import json
 import textwrap
 import gzip
+from contextlib import nullcontext
 import numpy as np
 
 
@@ -26,7 +27,12 @@ import numpy as np
                               particle_id_range=(1, 3))),
 ])
 def test_load_lattice_with_monitor(tmp_path, container, monitor_name, kwargs):
-    monitor = getattr(xt, monitor_name)(**kwargs)
+    deprecated = monitor_name in (
+        'BeamPositionMonitor', 'BeamSizeMonitor', 'BeamProfileMonitor')
+    warning_match = rf'^{monitor_name} is deprecated'
+    with (pytest.warns(DeprecationWarning, match=warning_match)
+          if deprecated else nullcontext()):
+        monitor = getattr(xt, monitor_name)(**kwargs)
     if monitor_name == 'LastTurnsMonitor':
         monitor.data.x.to_nparray()[:] = np.arange(6) + 0.5
         monitor.data.lost_at_offset.to_nparray()[:] = [1, 2]
@@ -41,7 +47,9 @@ def test_load_lattice_with_monitor(tmp_path, container, monitor_name, kwargs):
     path = tmp_path / 'lattice.json'
     lattice.to_json(path)
 
-    loaded = xt.load(path)
+    with (pytest.warns(DeprecationWarning, match=warning_match)
+          if deprecated else nullcontext()):
+        loaded = xt.load(path)
     loaded_line = loaded if container == 'line' else loaded.seq
     assert loaded_line.element_names == line.element_names
     restored = loaded_line.get('monitor')

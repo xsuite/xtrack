@@ -31,13 +31,16 @@ def test_survey_to_tfs(tmp_path, exclude):
     for name in survey._col_names:
         if name in excluded:
             continue
+        # Compare stored columns, including legacy aliases, without invoking
+        # the deprecated public accessors for p0 and W.
+        expected = survey._data[name]
         values = loaded[name.upper()].to_numpy()
-        if survey[name].ndim > 1:
+        if expected.ndim > 1:
             values = np.array([json.loads(value) for value in values])
-        if survey[name].dtype.kind in 'biufc':
-            np.testing.assert_allclose(values, survey[name], atol=1e-15)
+        if expected.dtype.kind in 'biufc':
+            np.testing.assert_allclose(values, expected, atol=1e-15)
         elif name in ('name', 'element_type'):
-            np.testing.assert_array_equal(values, survey[name])
+            np.testing.assert_array_equal(values, expected)
     if isinstance(exclude, list):
         assert exclude == ['length']
 
