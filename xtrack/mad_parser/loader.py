@@ -755,6 +755,14 @@ class MadxLoader:
 
 def load_madx_lattice(file=None, string=None, reverse_lines=None, s_tol=1e-6,
                       _rbend_correct_k0=False, end_compose=True, **kwargs) -> xt.Environment:
+    """Load a MAD-X lattice using the native parser.
+
+    Scalar declarations accept ``const``, optionally followed by ``real`` or
+    ``int``. These qualifiers are ignored: imported variables remain mutable,
+    no numeric type conversion is enforced, and ``=`` and ``:=`` retain their
+    usual immediate and deferred assignment behavior. MAD-X protection against
+    reassignment of constants is not enforced.
+    """
 
     """Load a MAD-X lattice using the native parser.
 
