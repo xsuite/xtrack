@@ -2426,12 +2426,19 @@ class Line:
         _capacity=None,
         mode=None,
         *, chi=None, charge_ratio=None, mass_ratio=None, pdg_id=None,
+        nemitt_zeta=None, gemitt_x=None, gemitt_y=None, gemitt_zeta=None,
         **kwargs, # They are passed to the twiss
     ):
 
         """
         Create a Particles object from arrays containing physical or
         normalized coordinates.
+
+        When using normalized coordinates, each plane independently defaults
+        to unit geometric emittance if both its `nemitt_*` and `gemitt_*`
+        arguments are omitted or `None`. In that plane, no emittance scaling
+        is applied before transforming the normalized coordinates to physical
+        coordinates. This also applies to the longitudinal (`zeta`) plane.
 
         In ``set`` and ``shift`` modes, species overrides can be scalars or
         per-particle arrays. Single-element species arrays are broadcast; other
@@ -2494,7 +2501,7 @@ class Line:
         x_norm : float or array
             transverse normalized coordinate x (in sigmas) used in combination with
             the one turn matrix and with the transverse emittances provided
-            in the argument `scale_with_transverse_norm_emitt` to generate x, px,
+            through `nemitt_x`/`gemitt_x` and `nemitt_y`/`gemitt_y` to generate x, px,
             y, py (x, px, y, py cannot be provided if x_norm, px_norm, y_norm,
             py_norm are provided).
         px_norm : float or array
@@ -2508,14 +2515,21 @@ class Line:
             with the one turn matrix and with the transverse emittances (as above).
         zeta_norm : float or array
             longitudinal normalized coordinate zeta (in sigmas) used in combination
-            with the one turn matrix.
+            with the one turn matrix and `nemitt_zeta` or `gemitt_zeta`.
         pzeta_norm : float or array
             longitudinal normalized coordinate pzeta (in sigmas) used in combination
-            with the one turn matrix.
-        nemitt_x : float
-            Transverse normalized emittance in the `x` plane.
-        nemitt_y : float
-            Transverse normalized emittance in the `y` plane.
+            with the one turn matrix and `nemitt_zeta` or `gemitt_zeta`.
+        nemitt_x, nemitt_y : float, optional
+            Transverse normalized emittances in the `x` and `y` planes.
+        nemitt_zeta : float, optional
+            Longitudinal normalized emittance used to scale `zeta_norm` and
+            `pzeta_norm`.
+        gemitt_x, gemitt_y, gemitt_zeta : float, optional
+            Geometric emittances in the three planes. For each plane, provide
+            either `gemitt` or `nemitt`, not both. Normalized emittances are
+            converted using `gemitt = nemitt / (beta0 * gamma0)` for the reference
+            particle. If neither is supplied in a plane, its geometric emittance
+            defaults to 1, so no emittance scaling is applied there.
         at_element : str or int
             Location within the line at which particles are generated. It can be an
             index or an element name.
@@ -2548,7 +2562,8 @@ class Line:
                     to the provided input `x_norm`, `px_norm`, `y_norm`, `py_norm`
                     (zero is assumed as default for these variables). The
                     transverse coordinates are normalized according to the
-                    transverse emittance provided in `nemitt_x` and `nemitt_y`.
+                    transverse emittances provided in `nemitt_x`/`gemitt_x` and
+                    `nemitt_y`/`gemitt_y`.
                     The transverse coordinates are then transformed into physical
                     space using the linearized one-turn matrix.
         _capacity : int
@@ -2565,6 +2580,12 @@ class Line:
         if not self._has_valid_tracker():
             self.build_tracker()
 
+        # Keep calls without geometric emittances compatible with older Xpart.
+        kwargs.update({key: value for key, value in {
+            'gemitt_x': gemitt_x, 'gemitt_y': gemitt_y,
+            'gemitt_zeta': gemitt_zeta,
+        }.items() if value is not None})
+
         import xpart
         return xpart.build_particles(
             line=self,
@@ -2574,7 +2595,7 @@ class Line:
             x_norm=x_norm, px_norm=px_norm, y_norm=y_norm, py_norm=py_norm,
             zeta_norm=zeta_norm, pzeta_norm=pzeta_norm,
             at_element=at_element, match_at_s=match_at_s,
-            nemitt_x=nemitt_x, nemitt_y=nemitt_y,
+            nemitt_x=nemitt_x, nemitt_y=nemitt_y, nemitt_zeta=nemitt_zeta,
             weight=weight,
             particle_on_co=particle_on_co,
             R_matrix=R_matrix,
