@@ -997,6 +997,54 @@ def test_pickle():
     xo.assert_allclose(coll['lhcb1'].twiss(method='4d')['px', 'ip1'], 321e-6, atol=1e-9, rtol=0)
 
 
+@pytest.mark.parametrize('access', ['attr', 'survey'])
+@pytest.mark.parametrize('pickle_environment', [False, True])
+def test_pickle_after_line_attr(access, pickle_environment):
+    line = xt.Line(elements={
+        'drift': xt.Drift(length=1.),
+        'bend': xt.Bend(length=2., angle=0.1, k0_from_h=True),
+        'quad': xt.Quadrupole(length=0.5, k1=0.2),
+    })
+    line.vars['kq'] = 0.2
+    line['quad'].k1 = line.vars['kq']
+    env = xt.Environment(lines={'line': line})
+    line = env['line']
+    line.build_tracker()
+
+    if access == 'attr':
+        xo.assert_allclose(line.attr['length'], [1., 2., 0.5])
+        xo.assert_allclose(line.attr['k1l'], [0., 0., 0.1])
+    else:
+        line.survey()
+    cached_attr = line.tracker._tracker_data_base.cache['attr']
+
+    particles = xt.Particles(p0c=7e12, x=1e-3, px=2e-4, y=-1e-3)
+    expected = particles.copy()
+    line.track(expected)
+
+    restored = pickle.loads(pickle.dumps(env if pickle_environment else line))
+    if pickle_environment:
+        restored = restored['line']
+
+    # Serializing must not invalidate the original line's attribute accessor.
+    assert line.attr is cached_attr
+    assert restored.attr.line is restored
+    xo.assert_allclose(restored.attr['length'], [1., 2., 0.5])
+    xo.assert_allclose(restored.attr['k1l'], [0., 0., 0.1])
+    xo.assert_allclose(restored.survey().Z, line.survey().Z, rtol=0, atol=1e-14)
+    restored.track(particles)
+    for field in ['x', 'px', 'y', 'py', 'zeta', 'delta']:
+        xo.assert_allclose(getattr(particles, field), getattr(expected, field),
+                           rtol=0, atol=1e-14)
+
+    # Rebuilt attribute accessors must follow changes to the restored elements.
+    restored.vars['kq'] = 0.4
+    xo.assert_allclose(restored.attr['k1l'], [0., 0., 0.2])
+    xo.assert_allclose(line.attr['k1l'], [0., 0., 0.1])
+    restored_again = pickle.loads(pickle.dumps(restored))
+    xo.assert_allclose(restored_again.attr['k1l'], [0., 0., 0.2])
+
+
 def test_line_attr():
     line = xt.Line(
         elements=[
