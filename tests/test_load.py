@@ -7,6 +7,46 @@ import xtrack as xt
 import json
 import textwrap
 import gzip
+import numpy as np
+
+
+@pytest.mark.parametrize('container', ['line', 'environment'])
+@pytest.mark.parametrize('monitor_name,kwargs', [
+    ('ParticlesMonitor', dict(start_at_turn=2, stop_at_turn=5, num_particles=2)),
+    ('LastTurnsMonitor', dict(n_last_turns=3, particle_id_range=(1, 3), every_n_turns=2)),
+    ('BeamPositionMonitor', dict(start_at_turn=2, stop_at_turn=5,
+                                 frev=1., sampling_frequency=2.)),
+    ('BeamSizeMonitor', dict(start_at_turn=2, stop_at_turn=5,
+                             frev=1., sampling_frequency=2.)),
+    ('BeamProfileMonitor', dict(start_at_turn=2, stop_at_turn=5,
+                                nx=7, ny=5, x_range=(0.003, 0.013),
+                                y_range=(-0.007, 0.02))),
+    ('BeamStatsMonitor', dict(start_at_turn=2, stop_at_turn=5,
+                              stats=['num_particles', 'mean_x'],
+                              particle_id_range=(1, 3))),
+])
+def test_load_lattice_with_monitor(tmp_path, container, monitor_name, kwargs):
+    monitor = getattr(xt, monitor_name)(**kwargs)
+    if monitor_name == 'LastTurnsMonitor':
+        monitor.data.x.to_nparray()[:] = np.arange(6) + 0.5
+        monitor.data.lost_at_offset.to_nparray()[:] = [1, 2]
+    elif monitor_name == 'BeamProfileMonitor':
+        monitor.data.counts_x.to_nparray()[:] = np.arange(21)
+        monitor.data.counts_y.to_nparray()[:] = np.arange(15)[::-1]
+    env = xt.Environment()
+    env.elements['monitor'] = monitor
+    env.new('drift', xt.Drift, length=1)
+    line = env.new_line(name='seq', components=['monitor', 'drift'])
+    lattice = line if container == 'line' else env
+    path = tmp_path / 'lattice.json'
+    lattice.to_json(path)
+
+    loaded = xt.load(path)
+    loaded_line = loaded if container == 'line' else loaded.seq
+    assert loaded_line.element_names == line.element_names
+    restored = loaded_line.get('monitor')
+    assert type(restored) is type(monitor)
+    np.testing.assert_equal(restored.to_dict(), monitor.to_dict())
 
 
 @pytest.fixture
