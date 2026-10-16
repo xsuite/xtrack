@@ -54,6 +54,38 @@ def test_twiss_table_row_slice_drops_periodic():
     assert 'periodic' not in tw_slice
 
 
+@pytest.mark.parametrize('names', [['a', 'b'], []])
+def test_get_twiss_init_missing_element(names):
+    tw = xt.TwissTable(
+        {'name': np.array(names, dtype=object), 'values_at': 'entry'},
+        col_names=['name'],
+    )
+    with pytest.raises(
+            ValueError, match="Element 'aaaa' not found in the Twiss table"):
+        tw.get_twiss_init('aaaa')
+
+
+def test_get_twiss_init_element_selection():
+    line = xt.Line(
+        elements=[xt.Drift(length=1), xt.Drift(length=2)],
+        element_names=['d0', 'd1'],
+    )
+    line.particle_ref = xt.Particles(p0c=1e9)
+    tw = line.twiss4d(betx=1, bety=2)
+
+    for name, index in [('d0', 0), ('d1', 1), ('_end_point', -1)]:
+        by_name = tw.get_twiss_init(name)
+        by_index = tw.get_twiss_init(index)
+        assert by_name.element_name == by_index.element_name == name
+        np.testing.assert_array_equal(by_name.W_matrix, by_index.W_matrix)
+        np.testing.assert_array_equal(by_name.particle_on_co.s, tw.s[index])
+
+    # An element in the line can still be absent from a selected Twiss range.
+    with pytest.raises(
+            ValueError, match="Element 'd0' not found in the Twiss table"):
+        tw.rows['d1':].get_twiss_init('d0')
+
+
 def test_twiss_with_different_particle_species():
     line = xt.Line(elements=[
         xt.Drift(length=1),

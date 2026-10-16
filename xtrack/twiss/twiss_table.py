@@ -341,12 +341,21 @@ class TwissTable(Table):
         -------
         xtrack.TwissInit
             Initial conditions for a Twiss calculation at the selected element.
+
+        Raises
+        ------
+        ValueError
+            If the requested element name is not present in the table.
         """
 
         assert self.values_at == 'entry', 'Not yet implemented for exit'
 
         if isinstance(at_element, str):
-            at_element = np.where(self.name == at_element)[0][0]
+            indices = np.where(self.name == at_element)[0]
+            if len(indices) == 0:
+                raise ValueError(
+                    f'Element {at_element!r} not found in the Twiss table.')
+            at_element = indices[0]
         part = self.particle_on_co.copy()
         part.x[:] = self.x[at_element]
         part.px[:] = self.px[at_element]
