@@ -1225,6 +1225,45 @@ def test_line_syntax_inserts_apertures():
     assert isinstance(l1['m1_aper'], xt.LimitEllipse)
 
 
+@pytest.mark.parametrize('refer, positions', [
+    ('', (5, 7)),  # Default centre reference: the reproducer from issue #902.
+    (', refer=entry', (4, 6)),
+    (', refer=exit', (6, 8)),
+])
+@pytest.mark.parametrize('install_limits', [True, False])
+def test_sequence_repeated_element_apertures(refer, positions, install_limits):
+    sequence = f"""
+    b: sbend, l=2.0, angle=0.01, aperture={{0.01}};
+    m: marker;
+
+    seq: sequence, l=10{refer};
+        b, at={positions[0]};
+        m, at=6.0;
+        b, at={positions[1]};
+    endsequence;
+    """
+    env = xt.load(string=sequence, format='madx', install_limits=install_limits)
+    line = env.seq
+    table = line.get_table()
+    bend_indices = [ii for ii, name in enumerate(line.element_names) if name == 'b']
+
+    assert len(bend_indices) == 2
+    np.testing.assert_allclose(table.s[bend_indices], [4., 6.], atol=1e-14, rtol=0)
+    assert table['s', 'm'] == 6
+    assert line.get_length() == 10
+    assert line['b'].name_associated_aperture == 'b_aper'
+    assert isinstance(line['b_aper'], xt.LimitEllipse)
+    assert line['b_aper'].a == line['b_aper'].b == 0.01
+
+    if install_limits:
+        assert line.element_names.count('b_aper') == 2
+        for ii in bend_indices:
+            assert line.element_names[ii - 1] == 'b_aper'
+            assert table.s[ii - 1] == table.s[ii]
+    else:
+        assert 'b_aper' not in line.element_names
+
+
 def test_refer_and_thin_elements():
     sequence = """
     mb: sbend, l = 3;
