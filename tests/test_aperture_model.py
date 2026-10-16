@@ -3127,6 +3127,79 @@ def test_cross_sections_at_s_compare_straight_curved(test_context):
 
 
 @for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
+def test_aperture_tolerances_disabled_in_gaps_between_pipes(test_context):
+    """Mechanical tolerances apply only where the hardware defines them.
+
+    Between consecutive profiles of one installed pipe the tolerances are
+    interpolated. In the gap between two installed pipes, and beyond the
+    first and last profiles, no hardware defines a tolerance, so the
+    tolerances are disabled (zero) instead of being taken from a nearby
+    profile.
+
+    Two straight pipes, each with two profiles, are installed back to back:
+    pipe `A` (tol_r = 0.01) at s = 0.5 and 3.5, pipe `B` (tol_r = 0.03) at
+    s = 4.5 and 7.5, leaving a gap between s = 3.5 and 4.5.
+    """
+    env = xt.Environment()
+    d1 = env.new('d1', xt.Drift, length=4.0)
+    d2 = env.new('d2', xt.Drift, length=4.0)
+    line = env.new_line(name='line', components=[d1, d2])
+
+    circ = env.aperture.new_profile('circ', 'Circle', radius=0.5)
+    pipe_a = env.aperture.new_pipe('pipeA', positions=[
+        circ.place(at=0.5, tol_r=0.01), circ.place(at=3.5, tol_r=0.01)])
+    pipe_b = env.aperture.new_pipe('pipeB', positions=[
+        circ.place(at=0.5, tol_r=0.03), circ.place(at=3.5, tol_r=0.03)])
+    ap = line.aperture
+    ap.place_pipe('A', pipe_a, at='d1@start')
+    ap.place_pipe('B', pipe_b, at='d2@start')
+    ap.build_model()
+
+    def tol_r_at(s):
+        table = ap.get_cross_sections_at_s([s])
+        return float(np.asarray(table.tol_r[0]).reshape(-1)[0])
+
+    # Within pipe A: interpolated between its two profiles.
+    xo.assert_allclose(tol_r_at(0.5), 0.01, atol=1e-9, rtol=0)
+    xo.assert_allclose(tol_r_at(2.0), 0.01, atol=1e-9, rtol=0)
+    xo.assert_allclose(tol_r_at(3.5), 0.01, atol=1e-9, rtol=0)
+
+    # In the gap between the pipes: no hardware defines a tolerance.
+    xo.assert_allclose(tol_r_at(3.9), 0.0, atol=1e-9, rtol=0)
+    xo.assert_allclose(tol_r_at(4.1), 0.0, atol=1e-9, rtol=0)
+
+    # Within pipe B: interpolated between its two profiles.
+    xo.assert_allclose(tol_r_at(4.5), 0.03, atol=1e-9, rtol=0)
+    xo.assert_allclose(tol_r_at(5.5), 0.03, atol=1e-9, rtol=0)
+    xo.assert_allclose(tol_r_at(7.5), 0.03, atol=1e-9, rtol=0)
+
+    # Beyond the last profile: no hardware defines a tolerance.
+    xo.assert_allclose(tol_r_at(8.0), 0.0, atol=1e-9, rtol=0)
+
+
+@for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
+def test_aperture_tolerances_interpolate_between_profiles(test_context):
+    """Tolerances interpolate linearly between profiles of one installed pipe."""
+    env = xt.Environment()
+    drift = env.new('drift', xt.Drift, length=4.0)
+    line = env.new_line(name='line', components=[drift])
+    circ = env.aperture.new_profile('circ', 'Circle', radius=0.5)
+    pipe = env.aperture.new_pipe('pipe', positions=[
+        circ.place(at=0.5, tol_r=0.01), circ.place(at=3.5, tol_r=0.05)])
+    ap = line.aperture
+    ap.place_pipe('p', pipe, at='drift@start')
+    ap.build_model()
+
+    def tol_r_at(s):
+        table = ap.get_cross_sections_at_s([s])
+        return float(np.asarray(table.tol_r[0]).reshape(-1)[0])
+
+    xo.assert_allclose(tol_r_at(0.5), 0.01, atol=1e-9, rtol=0)
+    xo.assert_allclose(tol_r_at(2.0), 0.03, atol=1e-9, rtol=0)  # midpoint
+    xo.assert_allclose(tol_r_at(3.5), 0.05, atol=1e-9, rtol=0)
+
+
+@for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
 def test_cross_sections_at_s_interpolated_sections_stay_closed(test_context):
     env = xt.Environment()
     angle = np.deg2rad(35.0)

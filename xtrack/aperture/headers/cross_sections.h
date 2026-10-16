@@ -779,6 +779,17 @@ uint32_t interpolate_aperture_tolerances_at_s(
     float_type* out_tol_x,
     float_type* out_tol_y
 )
+/*
+    Tolerances of the installed aperture at `target_s`.
+
+    The active profile's tolerance (pipe plus profile contribution) applies
+    within its footprint [s_start, s_end], and is interpolated linearly
+    between consecutive profiles of one installed pipe. Everywhere else - in
+    gaps between pipes, or beyond the first and last profile - no hardware
+    defines a tolerance, so it is disabled (zero) rather than extrapolated.
+
+    Returns the index of the active bound (num_bounds when none is found).
+*/
 {
     const float_type eps = APER_PRECISION;
     const int8_t is_ring = LineApertureModel_get_is_ring(model);
@@ -786,10 +797,11 @@ uint32_t interpolate_aperture_tolerances_at_s(
     const uint32_t num_bounds = ApertureBounds_get_count(bounds);
     const uint32_t bound_idx = find_active_profile_for_s(bounds, target_s, lower_bound, is_ring);
 
+    if (out_tol_r) *out_tol_r = 0.f;
+    if (out_tol_x) *out_tol_x = 0.f;
+    if (out_tol_y) *out_tol_y = 0.f;
+
     if (bound_idx >= num_bounds) {
-        if (out_tol_r) *out_tol_r = NAN;
-        if (out_tol_x) *out_tol_x = NAN;
-        if (out_tol_y) *out_tol_y = NAN;
         return bound_idx;
     }
 
@@ -820,31 +832,33 @@ uint32_t interpolate_aperture_tolerances_at_s(
     const float_type target_s_unwrapped = is_ring
         ? normalize_s_near_reference(target_s, s_center, survey_length)
         : target_s;
+
+    /* Within the profile's footprint its hardware is present. */
+    const float_type s_start = ApertureBounds_get_s_start(bounds, bound_idx);
+    const float_type s_end = ApertureBounds_get_s_end(bounds, bound_idx);
+    if ((s_start - eps) <= target_s_unwrapped && target_s_unwrapped <= (s_end + eps)) {
+        if (out_tol_r) *out_tol_r = tol_r_center;
+        if (out_tol_x) *out_tol_x = tol_x_center;
+        if (out_tol_y) *out_tol_y = tol_y_center;
+        return bound_idx;
+    }
+
+    /* Interpolate between consecutive profiles of the same installed pipe. */
     const char prefer_right = (target_s_unwrapped >= s_center);
     const char has_side = is_ring || (prefer_right ? bound_idx + 1 < num_bounds : bound_idx > 0);
     const uint32_t side_idx = prefer_right
         ? (bound_idx + 1 < num_bounds ? bound_idx + 1 : 0)
         : (bound_idx > 0 ? bound_idx - 1 : num_bounds - 1);
 
-    if (!has_side) {
-        if (out_tol_r) *out_tol_r = tol_r_center;
-        if (out_tol_x) *out_tol_x = tol_x_center;
-        if (out_tol_y) *out_tol_y = tol_y_center;
-        return bound_idx;
-    }
-
-    const uint32_t pipe_pos_idx_side = ApertureBounds_get_pipe_position_indices(bounds, side_idx);
-    if (pipe_pos_idx_side != pipe_pos_idx) {
-        // Interpolating between pipes is explicitly not a feature
-        if (out_tol_r) *out_tol_r = tol_r_center;
-        if (out_tol_x) *out_tol_x = tol_x_center;
-        if (out_tol_y) *out_tol_y = tol_y_center;
+    const uint32_t pipe_pos_idx_side = has_side
+        ? ApertureBounds_get_pipe_position_indices(bounds, side_idx)
+        : pipe_pos_idx;
+    if (!has_side || pipe_pos_idx_side != pipe_pos_idx) {
+        /* Gap between pipes, or beyond the ends: no tolerance. */
         return bound_idx;
     }
 
     const uint32_t profile_pos_idx_side = ApertureBounds_get_profile_position_indices(bounds, side_idx);
-    const PipePosition pipe_pos_side = LineApertureModel_getp1_pipe_positions(model, pipe_pos_idx_side);
-    const uint32_t pipe_idx_side = PipePosition_get_pipe_index(pipe_pos_side);
     float_type s_side = ApertureBounds_get_s_positions(bounds, side_idx);
     if (is_ring)
         s_side = normalize_s_near_reference(s_side, s_center, survey_length);
@@ -862,19 +876,19 @@ uint32_t interpolate_aperture_tolerances_at_s(
 
     if (out_tol_r) {
         const double profile_tol_r = ApertureEnvStruct_get_pipes_positions_tol_r(
-            aperture_env, pipe_idx_side, profile_pos_idx_side);
+            aperture_env, pipe_idx, profile_pos_idx_side);
         *out_tol_r = tol_r_pipe + w_center * (tol_r_center - tol_r_pipe) + w_side * profile_tol_r;
     }
 
     if (out_tol_x) {
         const double profile_tol_x = ApertureEnvStruct_get_pipes_positions_tol_x(
-            aperture_env, pipe_idx_side, profile_pos_idx_side);
+            aperture_env, pipe_idx, profile_pos_idx_side);
         *out_tol_x = tol_x_pipe + w_center * (tol_x_center - tol_x_pipe) + w_side * profile_tol_x;
     }
 
     if (out_tol_y) {
         const double profile_tol_y = ApertureEnvStruct_get_pipes_positions_tol_y(
-            aperture_env, pipe_idx_side, profile_pos_idx_side);
+            aperture_env, pipe_idx, profile_pos_idx_side);
         *out_tol_y = tol_y_pipe + w_center * (tol_y_center - tol_y_pipe) + w_side * profile_tol_y;
     }
 
