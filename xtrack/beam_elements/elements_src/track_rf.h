@@ -107,10 +107,13 @@ void track_rf_kick_single_particle(
             zim = zim * x + zre * y;
             zre = zret;
 
-            dptr += sn * (bal_n_kk * zre) - ss * (bal_s_kk * zim);
+            // Integrate the transverse multipole: the potential has (kk+1)!.
+            dptr += (sn * (bal_n_kk * zre) - ss * (bal_s_kk * zim)) / (kk + 1);
         }
 
-        rfmultipole_energy_kick = - q * ( (frequency * ( 2.0 * PI / C_LIGHT) * p0c) * dptr );
+        // knl/ksl already include the reference charge through the rigidity.
+        rfmultipole_energy_kick = - LocalParticle_get_charge_ratio(part)
+            * (frequency * (2.0 * PI / C_LIGHT) * p0c) * dptr;
         double const chi    = LocalParticle_get_chi(part);
 
         double const px_kick = - chi * dpx;
