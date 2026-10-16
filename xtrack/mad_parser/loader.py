@@ -504,6 +504,8 @@ class MadxLoader:
                 params['edge_exit_hgap'] = hgap
 
         elif parent_name in {'rfcavity', 'crabcavity'}:
+            # Native MAD-X import assumes unit charge for cavity voltages,
+            # independently of any BEAM statement.
             if (lag := params.pop('lag', None)):
                 params['phase'] = lag * self.env.vars['pi'] * 2
             if (volt := params.pop('volt', None)):
@@ -754,6 +756,12 @@ class MadxLoader:
 def load_madx_lattice(file=None, string=None, reverse_lines=None, s_tol=1e-6,
                       _rbend_correct_k0=False, end_compose=True, **kwargs) -> xt.Environment:
 
+    """Load a MAD-X lattice using the native parser.
+
+    RF and crab cavity voltages are imported assuming unit charge, even when
+    a BEAM statement specifies a different charge. For ions, divide the
+    imported voltages by the absolute reference charge if needed.
+    """
     if file is not None and string is not None:
         raise ValueError('Only one of `file` or `string` can be provided!')
 

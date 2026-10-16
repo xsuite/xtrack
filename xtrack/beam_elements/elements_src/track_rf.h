@@ -138,7 +138,7 @@ void track_rf_kick_single_particle(
         double const pn_kk = phase0 + DEG2RAD * (transverse_lag + 90.)
                            + transverse_phase
                            - (2.0 * PI) / C_LIGHT * frequency * tau;
-        double const k0l = transverse_voltage / p0c;
+        double const k0l = fabs(LocalParticle_get_q0(part)) * transverse_voltage / p0c;
 
         double bal_n_kk = k0l;
 
@@ -154,7 +154,9 @@ void track_rf_kick_single_particle(
 
         dptr += sn * (bal_n_kk * zre);
 
-        rfmultipole_energy_kick += - q * ( (frequency * ( 2.0 * PI / C_LIGHT) * p0c) * dptr );
+        // The reference charge is already included in k0l.
+        rfmultipole_energy_kick += - LocalParticle_get_charge_ratio(part)
+            * (frequency * (2.0 * PI / C_LIGHT) * p0c) * dptr;
         double const chi    = LocalParticle_get_chi(part);
 
         double const px_kick = - chi * dpx;
