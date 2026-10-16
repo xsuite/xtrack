@@ -887,8 +887,13 @@ class TwissTable(Table):
 
         Particle physical coordinates are transformed using the closed orbit and
         W matrix stored in this Twiss table at each particle's ``at_element``.
-        If normalized emittances are provided, the normalized coordinates are
-        scaled by the square root of the corresponding emittance.
+        For each plane with a supplied normalized emittance, the transformed
+        coordinates are divided by ``sqrt(nemitt / (beta0 * gamma0))``, using
+        the closed-orbit reference particle's ``beta0`` and ``gamma0``.
+        If an emittance is omitted or ``None``, no emittance scaling is applied
+        in that plane (equivalent to unit geometric emittance, not unit
+        normalized emittance). Emittances used to build the particles are not
+        inferred; pass the same emittances here to recover those coordinates.
 
         Parameters
         ----------
@@ -896,20 +901,22 @@ class TwissTable(Table):
             Particles whose coordinates are converted.
         nemitt_x : float, optional
             Horizontal normalized emittance used to scale ``x_norm`` and
-            ``px_norm``.
+            ``px_norm``. ``None`` leaves this plane without emittance scaling.
         nemitt_y : float, optional
             Vertical normalized emittance used to scale ``y_norm`` and
-            ``py_norm``.
+            ``py_norm``. ``None`` leaves this plane without emittance scaling.
         nemitt_zeta : float, optional
             Longitudinal normalized emittance used to scale ``zeta_norm`` and
-            ``pzeta_norm``.
+            ``pzeta_norm``. ``None`` leaves this plane without emittance scaling.
 
         Returns
         -------
         xtrack.Table
             Table indexed by ``particle_id`` with columns ``particle_id``,
             ``at_element``, ``x_norm``, ``px_norm``, ``y_norm``, ``py_norm``,
-            ``zeta_norm``, and ``pzeta_norm``.
+            ``zeta_norm``, and ``pzeta_norm``. The supplied ``nemitt_x``,
+            ``nemitt_y``, and ``nemitt_zeta`` are stored as table attributes;
+            ``None`` records that no emittance scaling was applied in a plane.
         """
 
         ctx2np = particles._context.nparray_from_context_array
@@ -964,10 +971,13 @@ class TwissTable(Table):
             pzeta_norm[mask_at_ele] = XX_norm[5, :]
             at_element[mask_at_ele] = at_ele
 
-        return Table({'particle_id': part_id, 'at_element': at_element,
+        out = Table({'particle_id': part_id, 'at_element': at_element,
                       'x_norm': x_norm, 'px_norm': px_norm, 'y_norm': y_norm,
                       'py_norm': py_norm, 'zeta_norm': zeta_norm,
                       'pzeta_norm': pzeta_norm}, index='particle_id')
+        out._data.update(nemitt_x=nemitt_x, nemitt_y=nemitt_y,
+                         nemitt_zeta=nemitt_zeta)
+        return out
 
     def reverse(self):
         """
