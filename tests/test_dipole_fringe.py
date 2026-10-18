@@ -9,7 +9,19 @@ from scipy.integrate import solve_ivp
 
 import xobjects as xo
 import xtrack as xt
-from xobjects.test_helpers import allow_kernel_compilation, for_all_test_contexts
+from xobjects.test_helpers import for_all_test_contexts, skip_if_forbid_compile
+
+
+@pytest.fixture
+def fringe_kernel_compilation(from_ptc):
+    # Only the optional debugging configuration lacks prebuilt kernels.
+    # Default-map tests use the normal kernel-selection policy unchanged.
+    if from_ptc:
+        skip_if_forbid_compile()
+        with xo.settings.override(allow_kernel_compilation=True):
+            yield
+    else:
+        yield
 
 
 def _integrated_fringe_correction(k0, length, angle, delta):
@@ -39,14 +51,14 @@ def _integrated_fringe_correction(k0, length, angle, delta):
 
 @pytest.mark.parametrize('from_ptc', [False, True])
 @for_all_test_contexts
-@allow_kernel_compilation
-def test_dipole_fringe_against_field_integration(test_context, from_ptc):
+def test_dipole_fringe_against_field_integration(
+        test_context, from_ptc, fringe_kernel_compilation):
     """Test the finite-gap correction, rather than the much larger total kick."""
     angles, deltas = np.meshgrid(np.deg2rad([-42., 0., 42.]), [-.05, 0., .05])
     angles, deltas = angles.ravel(), deltas.ravel()
     line = xt.Line(elements=[xt.DipoleEdge(k=.1, model='full', hgap=.02)])
     line.config.XTRACK_FRINGE_FROM_PTC = from_ptc
-    line.build_tracker(_context=test_context, use_prebuilt_kernels=False)
+    line.build_tracker(_context=test_context)
     y0 = 1e-7
 
     for k0 in [.1, -.1]:
@@ -83,14 +95,14 @@ def _fringe_psi(px, py, ptau, beta0, k0, hgap, fint):
 
 @pytest.mark.parametrize('from_ptc', [False, True])
 @for_all_test_contexts
-@allow_kernel_compilation
-def test_dipole_fringe_generating_function(test_context, from_ptc):
+def test_dipole_fringe_generating_function(
+        test_context, from_ptc, fringe_kernel_compilation):
     """Check all derivatives, including nonzero py and the longitudinal map."""
     beta0, hgap = .5, .025
     line = xt.Line(elements=[xt.DipoleEdge(k=.12, model='full', hgap=hgap)])
     line.particle_ref = xt.Particles(beta0=beta0)
     line.config.XTRACK_FRINGE_FROM_PTC = from_ptc
-    line.build_tracker(_context=test_context, use_prebuilt_kernels=False)
+    line.build_tracker(_context=test_context)
 
     for k0, fint in [(.12, .9), (-.12, .9), (.12, 0.)]:
         line[0].k, line[0].fint = k0, fint
@@ -140,8 +152,8 @@ def test_dipole_fringe_generating_function(test_context, from_ptc):
 
 @pytest.mark.parametrize('from_ptc', [False, True])
 @for_all_test_contexts
-@allow_kernel_compilation
-def test_dipole_fringe_tilted_ring(test_context, from_ptc):
+def test_dipole_fringe_tilted_ring(
+        test_context, from_ptc, fringe_kernel_compilation):
     """Four 90-degree bends with 42-degree pole faces: reported regression."""
     elements = []
     for k1 in [0.8581336301, 0.8582382342] * 2:
@@ -158,7 +170,7 @@ def test_dipole_fringe_tilted_ring(test_context, from_ptc):
     line.configure_bend_model(core='full', edge='full')
     line.configure_drift_model('exact')
     line.config.XTRACK_FRINGE_FROM_PTC = from_ptc
-    line.build_tracker(_context=test_context, use_prebuilt_kernels=False)
+    line.build_tracker(_context=test_context)
     tw = line.twiss(method='4d')
     xo.assert_allclose([tw.qx, tw.qy], [.683381030912, 1.423022189857],
                        rtol=0, atol=2e-9)
@@ -169,7 +181,6 @@ def test_dipole_fringe_tilted_ring(test_context, from_ptc):
 
 
 @for_all_test_contexts
-@allow_kernel_compilation
 def test_dipole_fringe_on_momentum_against_ptc(test_context, sandbox_cwd):
     """Compare the reported ring with external, unmodified MAD-X/PTC.
 
@@ -210,7 +221,7 @@ def test_dipole_fringe_on_momentum_against_ptc(test_context, sandbox_cwd):
     # Test the default implementation against external PTC, not the optional
     # PTC-derived Xtrack branch (which already contains our correction).
     line.config.XTRACK_FRINGE_FROM_PTC = False
-    line.build_tracker(_context=test_context, use_prebuilt_kernels=False)
+    line.build_tracker(_context=test_context)
     tw = line.twiss(method='4d', delta0=0)
     xo.assert_allclose([tw.qx, tw.qy], ptc_tunes, rtol=0, atol=2e-9)
 
@@ -220,7 +231,6 @@ def test_dipole_fringe_on_momentum_against_ptc(test_context, sandbox_cwd):
     (-.3, -.3, .1, -.003),
     (.15, .1, -.05, .001),
 ])
-@allow_kernel_compilation
 def test_dipole_fringe_tpsa(px, py, delta, y):
     """Check TPSA derivatives and symplecticity with the cubic fringe term."""
     from xtrack.tpsa import ParticlesTpsa
@@ -229,7 +239,7 @@ def test_dipole_fringe_tpsa(px, py, delta, y):
         length=0, k0=.12, edge_entry_model='full',
         edge_entry_angle=.3, edge_entry_hgap=.025, edge_entry_fint=.9,
         edge_exit_active=False)])
-    line.build_tracker(use_prebuilt_kernels=False)
+    line.build_tracker()
     names = ('x', 'px', 'y', 'py', 'zeta', 'delta')
     seed = np.array([.01, px, y, py, .01, delta])
     tpsa = ParticlesTpsa(order=2, p0c=1e9, **dict(zip(names, seed)))
