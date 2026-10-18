@@ -168,6 +168,53 @@ def test_dipole_fringe_tilted_ring(test_context, from_ptc):
                        rtol=0, atol=5e-6)
 
 
+@for_all_test_contexts
+@allow_kernel_compilation
+def test_dipole_fringe_on_momentum_against_ptc(test_context, sandbox_cwd):
+    """Compare the reported ring with external, unmodified MAD-X/PTC.
+
+    On the mid-plane at delta=0 the corrected fringe factor equals the
+    original PTC factor. This agreement is expected for transverse linear
+    optics, not for chromaticities or the general nonlinear map.
+    """
+    from cpymad.madx import Madx
+
+    beta0 = .5863443683017825
+    with Madx(stdout=False) as mad:
+        mad.input(f'''
+            beam, particle=proton, beta={beta0};
+            d1: drift, l=.1;
+            d2: drift, l=1.;
+            d3: drift, l=.9;
+            b: sbend, l=2.2, angle=1.570796327,
+                e1=42*pi/180, e2=42*pi/180,
+                hgap=.025, fint=.9, fintx=.9;
+            q1: quadrupole, l=.2, k1=.8581336301;
+            q2: quadrupole, l=.2, k1=.8582382342;
+            ring: line=(d1,b,d2,q1,d3, d1,b,d2,q2,d3,
+                        d1,b,d2,q1,d3, d1,b,d2,q2,d3);
+            use, period=ring;
+            ptc_create_universe;
+            ptc_create_layout, time=false, model=1, exact=true,
+                               method=6, nst=100;
+            ptc_twiss, closed_orbit, icase=56, no=1, deltap=0;
+        ''')
+        ptc_tunes = np.array([mad.table.ptc_twiss.mu1[-1],
+                              mad.table.ptc_twiss.mu2[-1]])
+        line = xt.Line.from_madx_sequence(mad.sequence.ring, allow_thick=True)
+        mad.input('ptc_end;')
+
+    line.particle_ref = xt.Particles(beta0=beta0)
+    line.configure_bend_model(core='full', edge='full')
+    line.configure_drift_model('exact')
+    # Test the default implementation against external PTC, not the optional
+    # PTC-derived Xtrack branch (which already contains our correction).
+    line.config.XTRACK_FRINGE_FROM_PTC = False
+    line.build_tracker(_context=test_context, use_prebuilt_kernels=False)
+    tw = line.twiss(method='4d', delta0=0)
+    xo.assert_allclose([tw.qx, tw.qy], ptc_tunes, rtol=0, atol=2e-9)
+
+
 @pytest.mark.parametrize('px, py, delta, y', [
     (.3, .2, .05, .002),
     (-.3, -.3, .1, -.003),
