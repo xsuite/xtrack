@@ -168,9 +168,14 @@ def test_dipole_fringe_tilted_ring(test_context, from_ptc):
                        rtol=0, atol=5e-6)
 
 
+@pytest.mark.parametrize('px, py, delta, y', [
+    (.3, .2, .05, .002),
+    (-.3, -.3, .1, -.003),
+    (.15, .1, -.05, .001),
+])
 @allow_kernel_compilation
-def test_dipole_fringe_tpsa():
-    """The corrected coefficients also compile and differentiate in TPSA mode."""
+def test_dipole_fringe_tpsa(px, py, delta, y):
+    """Check TPSA derivatives and symplecticity with the cubic fringe term."""
     from xtrack.tpsa import ParticlesTpsa
 
     line = xt.Line(elements=[xt.Bend(
@@ -179,7 +184,7 @@ def test_dipole_fringe_tpsa():
         edge_exit_active=False)])
     line.build_tracker(use_prebuilt_kernels=False)
     names = ('x', 'px', 'y', 'py', 'zeta', 'delta')
-    seed = np.array([.01, .3, .002, .2, .01, .05])
+    seed = np.array([.01, px, y, py, .01, delta])
     tpsa = ParticlesTpsa(order=2, p0c=1e9, **dict(zip(names, seed)))
     line.track(tpsa)
 
@@ -193,3 +198,16 @@ def test_dipole_fringe_tpsa():
     jacobian = (tracked[:, 1:7] - tracked[:, 7:13]) / (2*step)
     xo.assert_allclose(tpsa.const_part, tracked[:, 0], rtol=0, atol=2e-14)
     xo.assert_allclose(tpsa.jacobian(), jacobian, rtol=0, atol=2e-8)
+
+    # TPSA uses delta, whereas the canonical momentum conjugate to zeta is
+    # p_zeta = ptau/beta0. Its derivative is dp_zeta/ddelta = beta/beta0
+    # = rvv. Energy is conserved by this map, so the input/output factors
+    # coincide. Transform both the output row and the input column.
+    canonical_jacobian = tpsa.jacobian().copy()
+    rvv = particles.rvv[0]
+    canonical_jacobian[5, :] *= rvv
+    canonical_jacobian[:, 5] /= rvv
+    symplectic = np.kron(np.eye(3), [[0., 1.], [-1., 0.]])
+    xo.assert_allclose(
+        canonical_jacobian.T @ symplectic @ canonical_jacobian,
+        symplectic, rtol=0, atol=1e-13)
