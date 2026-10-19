@@ -3245,6 +3245,215 @@ def test_cross_sections_at_s_interpolated_sections_stay_closed(test_context):
     xo.assert_allclose(sections[:, 0, :], sections[:, -1, :], atol=1e-12, rtol=0)
 
 
+def _point_polyline_distance(points, polygon):
+    """Distance from each point to the closed polyline through `polygon`."""
+    points = np.asarray(points, dtype=float)
+    closed = np.vstack([polygon, polygon[:1]])
+    start, end = closed[:-1], closed[1:]
+    segment = end - start
+    segment_norm_sq = np.sum(segment**2, axis=1)
+    segment_norm_sq[segment_norm_sq == 0] = 1  # guard degenerate segments
+    t = np.clip(
+        np.sum((points[:, None, :] - start[None, :, :]) * segment[None, :, :], axis=2)
+        / segment_norm_sq[None, :],
+        0, 1,
+    )
+    projections = start[None, :, :] + t[..., None] * segment[None, :, :]
+    return np.linalg.norm(points[:, None, :] - projections, axis=2).min(axis=1)
+
+
+@for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
+def test_cross_sections_at_s_plane_intersecting_multiple_profiles(test_context):
+    """Cross-sections for planes cutting several installed profiles at once.
+
+    A straight pipe carries large circular profiles, all rotated about the
+    vertical axis, installed closer together than their longitudinal
+    footprint (``2 * radius * sin(rot_y)``). A plane orthogonal to the survey
+    then cuts several profiles at once, and the interpolated cross-section
+    must combine all of them - not only the active profile and its immediate
+    neighbours.
+    """
+    radius = 1.0
+    rot_y = np.deg2rad(45.0)
+    spacing = 0.28
+    num_profiles = 8
+    s_first = 2.5
+    s_installed = s_first + spacing * np.arange(num_profiles)
+
+    def exact_intersections_at(s_query, installed, rot_y_used):
+        """Exact intersections of installed profiles with the plane at s_query."""
+        out = []
+        for s_center in installed:
+            ds = s_query - s_center
+            if rot_y_used == 0:
+                if abs(ds) > 0:
+                    continue
+                out.extend([[0.0, radius], [0.0, -radius]])
+                continue
+            x_local = -ds / np.sin(rot_y_used)
+            if abs(x_local) > radius:
+                continue
+            y = np.sqrt(radius**2 - x_local**2)
+            out.extend([
+                [-ds / np.tan(rot_y_used), y],
+                [-ds / np.tan(rot_y_used), -y],
+            ])
+        return np.array(out)
+
+    def assert_section_through(plane_s, aperture, installed, rot_y_used):
+        table = aperture.get_cross_sections_at_s([plane_s])
+        section = table.cross_section[0]
+
+        # Closed polygon
+        xo.assert_allclose(section[0], section[-1], atol=1e-12, rtol=0)
+        section = section[:-1]
+
+        # No missing points: all profiles cut by the plane must contribute to
+        # the cross-section.
+        assert np.isfinite(section).all()
+
+        # The section must pass through the exact intersections of every cut
+        # profile with the plane (when the plane does cut profiles; between
+        # untilted profiles it cuts the ruled wall instead, and the circle
+        # check below covers the geometry).
+        expected = exact_intersections_at(plane_s, installed, rot_y_used)
+        if len(expected) >= 2:
+            distances = _point_polyline_distance(expected, section)
+            xo.assert_allclose(distances, 0.0, atol=1e-3, rtol=0)
+
+        return section
+
+    def build_aperture(installed, rot_y_rad=rot_y):
+        env = xt.Environment()
+        drift = env.new('drift', xt.Drift, length=5.2)
+        line = env.new_line(name='line', components=[drift])
+        profile = env.aperture.new_profile('circ', 'Circle', radius=radius)
+        pipe = env.aperture.new_pipe('tilted_pipe', curvature=0.0, positions=[
+            profile.place(at=s, rot_y_rad=rot_y_rad) for s in installed
+        ])
+        ap = line.aperture
+        ap.num_profile_points = 128
+        ap.place_pipe('tp', pipe, at='drift@start')
+        ap.build_model()
+        return ap, rot_y_rad
+
+    # Tightly-spaced pipe: a plane in the middle of the stack cuts all
+    # profiles except the first and the last one.
+    ap, rot_y_used = build_aperture(s_installed)
+
+    s_mid = 0.5 * (s_installed[0] + s_installed[-1])
+    assert_section_through(s_mid, ap, s_installed, rot_y_used)
+
+    # Same plane shifted towards lower s: the active profile changes and the
+    # plane approaches from its left.
+    assert_section_through(s_mid - 0.1, ap, s_installed, rot_y_used)
+
+    # Widely-spaced, untilted pipe: between profiles the section combines the
+    # two neighbouring profiles and is exactly the cylinder of radius R.
+    s_wide = 2.0 + 2.0 * np.arange(4)
+    ap_wide, rot_y_used = build_aperture(s_wide, rot_y_rad=0.0)
+    section = assert_section_through(s_wide[1] + 0.5, ap_wide, s_wide, rot_y_used)
+    xo.assert_allclose(
+        np.linalg.norm(section, axis=1), radius, atol=1e-6, rtol=0)
+
+    # At an installed profile the section is exactly that profile's circle.
+    section = assert_section_through(s_wide[1], ap_wide, s_wide, rot_y_used)
+    xo.assert_allclose(
+        np.linalg.norm(section, axis=1), radius, atol=1e-6, rtol=0)
+
+
+@for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
+def test_cross_sections_at_s_cone_sections_wrapped(test_context):
+    """Oblique cone profiles wrap across the seam of a closed racetrack.
+
+    The survey is straight on both sides of the seam. Its transverse cuts
+    must reproduce exact cone circles, even where several tilted profiles
+    overlap and the interpolation walk crosses the seam.
+    """
+    tan_alpha = np.tan(np.deg2rad(15.0))
+    gamma = np.deg2rad(20.0)
+    h = 3.2 + 0.2 * np.arange(12)
+
+    def cone_cut_parameters(h0, gamma0):
+        """Ellipse parameters and mounting pose of a cone cut at height h0.
+
+        The cut plane ``z + x tan(gamma) = h0`` intersects the cone in the
+        ellipse ``D u^2 + 2 B u + v^2 = h0^2 tan^2(alpha)`` with
+        ``D = cos^2(gamma) - tan^2(alpha) sin^2(gamma)`` and
+        ``B = h0 tan^2(alpha) sin(gamma)``, in coordinates u along the
+        plane's steepest direction and v along y. Completing the square
+        gives the semi-axes and the centre; the mounting pose follows from
+        the in-plane-to-world map.
+        """
+        d = np.cos(gamma0)**2 - tan_alpha**2 * np.sin(gamma0)**2
+        b_coef = h0 * tan_alpha**2 * np.sin(gamma0)
+        u_c = -b_coef / d
+        radius = np.sqrt(h0**2 * tan_alpha**2 + b_coef**2 / d)
+        return {
+            'a': radius / np.sqrt(d),          # semi-axis along u
+            'b': radius,                       # semi-axis along y
+            'shift_x': u_c * np.cos(gamma0),
+            'shift_s': h0 - u_c * np.sin(gamma0),
+            'rot_y': gamma0,
+        }
+
+    cuts = [cone_cut_parameters(h0, gamma) for h0 in h]
+
+    env = xt.Environment()
+    bend = env.new('bend', xt.Bend, length=3.0, angle=np.pi / 2, k0=0)
+    dA2b = env.new('dA2b', xt.Drift, length=4.5)
+    dA2a = env.new('dA2a', xt.Drift, length=4.5)
+    dB = env.new('dB', xt.Drift, length=6.0)
+    dC = env.new('dC', xt.Drift, length=9.0)
+    dD = env.new('dD', xt.Drift, length=6.0)
+    line = env.new_line(components=[dA2b, bend, dB, bend, dC, bend, dD, bend, dA2a])
+    line_length = line.get_length()
+    pipe_origin_s = line._get_s_position('dA2a') + 0.3
+
+    for ii, cut in enumerate(cuts):
+        env.aperture.new_profile(f'cut{ii}', 'Ellipse', a=cut['a'], b=cut['b'])
+
+    pipe = env.aperture.new_pipe('cone', curvature=0.0, positions=[
+        env.aperture.profiles[f'cut{ii}'].place(
+            at=cut['shift_s'], shift_x=cut['shift_x'], rot_y_rad=cut['rot_y'])
+        for ii, cut in enumerate(cuts)
+    ])
+    ap = LineAperture(line, context=test_context, num_profile_points=128, with_progress=False)
+    ap.place_pipe('cone_at', pipe, at='dA2a', transformation=transform_matrix(shift_z=0.3))
+
+    filler = env.aperture.new_profile('filler', 'Circle', radius=0.3)
+    for name, at, shift_s in [
+        ('f_pre', 'dA2a', 2.8),
+        ('f_post', 'dA2b', 2.2),
+        ('f_b', 'dB', 3.0),
+        ('f_c', 'dC', 4.5),
+        ('f_d', 'dD', 3.0),
+    ]:
+        filler_pipe = env.aperture.new_pipe(name, positions=[filler.place(at=shift_s)])
+        ap.place_pipe(name, filler_pipe, at=at)
+    ap.build_model()
+    assert ap.is_ring
+
+    # The seam plane (s=0 or s=line_length) cuts several installed profiles.
+    bounds = ap.get_bounds_table()
+    num_cut = np.sum((bounds.s_start <= 0) & (0 <= bounds.s_end))
+    num_cut += np.sum((bounds.s_start <= line_length) & (line_length <= bounds.s_end))
+    assert num_cut >= 4
+
+    # Query across the first anchor in one batch, and include an installed profile.
+    s_samples = np.sort([
+        0.0, 0.05, 0.4, line_length - 0.05,
+        (pipe_origin_s + cuts[6]['shift_s']) % line_length,
+    ])
+    sections = ap.get_cross_sections_at_s(s_samples)
+    for plane_s, section in zip(s_samples, sections.cross_section):
+        section = np.asarray(section)[:-1]
+        assert np.isfinite(section).all()
+        expected_radius = ((plane_s - pipe_origin_s) % line_length) * tan_alpha
+        xo.assert_allclose(
+            np.linalg.norm(section, axis=1), expected_radius, atol=1e-3, rtol=0)
+
+
 @for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
 def test_open_line_aperture_bounds_do_not_wrap_search(test_context):
     env = xt.Environment()
