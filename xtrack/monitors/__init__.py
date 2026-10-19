@@ -5,6 +5,7 @@ from .beam_size_monitor import BeamSizeMonitor
 from .beam_profile_monitor import BeamProfileMonitor
 from .multi_element_monitor import MultiElementMonitor
 from .beam_stats_monitor import BeamStatsMonitor
+from .schottky_monitor import SchottkyMonitor
 
 
 monitor_classes = (
