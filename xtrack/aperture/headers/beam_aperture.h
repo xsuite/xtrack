@@ -290,7 +290,7 @@ void get_max_aperture_sigma_bisection(
     #endif
 
     // TODO: Make this also compatible with GPUs
-    uint32_t cross_section_bound_index = 0;
+    int64_t cross_section_bound_index = -1;
     IF_OMP_PRAGMA("omp parallel for firstprivate(cross_section_bound_index)")
     for (uint32_t idx_slice = 0; idx_slice < num_slices; idx_slice++)
     {
@@ -380,7 +380,7 @@ void compute_beam_envelopes_at_sigma(
     #endif
 
     // TODO: Make this also compatible with GPUs
-    uint32_t bound_index = 0;
+    int64_t bound_index = -1;
     IF_OMP_PRAGMA("omp parallel for firstprivate(bound_index)")
     for (uint32_t idx_slice = 0; idx_slice < num_slices; idx_slice++)
     {
@@ -392,7 +392,9 @@ void compute_beam_envelopes_at_sigma(
         };
 
         if (include_aper_tols) {
-            bound_index = interpolate_aperture_tolerances_at_s(
+            bound_index = find_active_profile_for_s(
+                aperture_bounds, s, bound_index);
+            interpolate_aperture_tolerances_at_s(
                 model, aperture_env, aperture_bounds, s, bound_index,
                 &s_aperture_data.tol_r, &s_aperture_data.tol_x, &s_aperture_data.tol_y);
         }
@@ -535,7 +537,7 @@ void get_max_aperture_sigma_rays(
     #endif
 
     // TODO: Make this also compatible with GPUs
-    uint32_t cross_section_bound_index = 0;
+    int64_t cross_section_bound_index = -1;
     IF_OMP_PRAGMA("omp parallel for firstprivate(cross_section_bound_index)")
     for (uint32_t idx_slice = 0; idx_slice < num_slices; idx_slice++)
     {
@@ -677,7 +679,7 @@ void get_max_aperture_sigma_exact(
         int reported_percent = -1;
     #endif
 
-    uint32_t cross_section_bound_index = 0;
+    int64_t cross_section_bound_index = -1;
     IF_OMP_PRAGMA("omp parallel for firstprivate(cross_section_bound_index)")
     for (uint32_t idx_slice = 0; idx_slice < num_slices; idx_slice++)
     {

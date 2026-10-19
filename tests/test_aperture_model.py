@@ -3164,7 +3164,9 @@ def test_aperture_tolerances_disabled_in_gaps_between_pipes(test_context):
     xo.assert_allclose(tol_r_at(2.0), 0.01, atol=1e-9, rtol=0)
     xo.assert_allclose(tol_r_at(3.5), 0.01, atol=1e-9, rtol=0)
 
-    # In the gap between the pipes: no hardware defines a tolerance.
+    # Between the footprints: no hardware defines a tolerance. (These
+    # profiles are untilted, so their footprints are the centre planes and
+    # the whole stretch between the pipes is hardware-free.)
     xo.assert_allclose(tol_r_at(3.9), 0.0, atol=1e-9, rtol=0)
     xo.assert_allclose(tol_r_at(4.1), 0.0, atol=1e-9, rtol=0)
 
@@ -3175,6 +3177,58 @@ def test_aperture_tolerances_disabled_in_gaps_between_pipes(test_context):
 
     # Beyond the last profile: no hardware defines a tolerance.
     xo.assert_allclose(tol_r_at(8.0), 0.0, atol=1e-9, rtol=0)
+
+
+@for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
+def test_aperture_tolerances_hold_within_footprints_across_pipes(test_context):
+    """A profile's tolerance applies over its whole [s_start, s_end] footprint.
+
+    Tilted profiles have footprints wider than their centre planes: pipe `A`
+    (tol_r = 0.01) ends with a tilted profile whose footprint reaches past
+    its centre, pipe `B` (tol_r = 0.03) starts with one reaching back before
+    its centre. Each tolerance holds over its profile's footprint; only the
+    stretch between the footprints is hardware-free.
+    """
+    env = xt.Environment()
+    d1 = env.new('d1', xt.Drift, length=4.0)
+    d2 = env.new('d2', xt.Drift, length=4.0)
+    line = env.new_line(name='line', components=[d1, d2])
+
+    tilt = 0.1  # rad, rot_y tilts the profile plane; footprint ~ tan(tilt) * r
+    circ = env.aperture.new_profile('circ', 'Circle', radius=0.5)
+    pipe_a = env.aperture.new_pipe('pipeA', positions=[
+        circ.place(at=0.5, tol_r=0.01),
+        circ.place(at=3.5, tol_r=0.01, rot_y_rad=tilt)])
+    pipe_b = env.aperture.new_pipe('pipeB', positions=[
+        circ.place(at=0.2, tol_r=0.03, rot_y_rad=-tilt),
+        circ.place(at=3.5, tol_r=0.03)])
+    ap = line.aperture
+    ap.place_pipe('A', pipe_a, at='d1@start')
+    ap.place_pipe('B', pipe_b, at='d2@start')
+    ap.build_model()
+
+    b = ap._aperture_bounds
+    s_end_last_a = float(b.s_end[1])
+    s_start_first_b = float(b.s_start[2])
+    assert 3.5 < s_end_last_a < s_start_first_b < 4.2  # a hardware-free gap
+
+    def tol_r_at(s):
+        table = ap.get_cross_sections_at_s([s])
+        return float(np.asarray(table.tol_r[0]).reshape(-1)[0])
+
+    # Pipe A's tolerance holds up to its last profile's s_end...
+    xo.assert_allclose(tol_r_at(s_end_last_a - 1e-4), 0.01, atol=1e-9, rtol=0)
+    # ...and not beyond it.
+    xo.assert_allclose(tol_r_at(s_end_last_a + 1e-3), 0.0, atol=1e-9, rtol=0)
+
+    # The stretch between the footprints is hardware-free.
+    mid = 0.5 * (s_end_last_a + s_start_first_b)
+    xo.assert_allclose(tol_r_at(mid), 0.0, atol=1e-9, rtol=0)
+
+    # Pipe B's tolerance applies from its first profile's s_start...
+    xo.assert_allclose(tol_r_at(s_start_first_b + 1e-4), 0.03, atol=1e-9, rtol=0)
+    # ...and not before it.
+    xo.assert_allclose(tol_r_at(s_start_first_b - 1e-3), 0.0, atol=1e-9, rtol=0)
 
 
 @for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
@@ -3197,6 +3251,29 @@ def test_aperture_tolerances_interpolate_between_profiles(test_context):
     xo.assert_allclose(tol_r_at(0.5), 0.01, atol=1e-9, rtol=0)
     xo.assert_allclose(tol_r_at(2.0), 0.03, atol=1e-9, rtol=0)  # midpoint
     xo.assert_allclose(tol_r_at(3.5), 0.05, atol=1e-9, rtol=0)
+
+
+@for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
+def test_aperture_tolerances_interpolate_within_profile_footprints(test_context):
+    env = xt.Environment()
+    drift = env.new('drift', xt.Drift, length=4.0)
+    line = env.new_line(components=[drift])
+    circ = env.aperture.new_profile('circ', 'Circle', radius=0.5)
+    pipe = env.aperture.new_pipe('pipe', positions=[
+        circ.place(at=1.0, tol_r=0.01, rot_y_rad=0.2),
+        circ.place(at=2.0, tol_r=0.03, rot_y_rad=0.2),
+        circ.place(at=3.0, tol_r=0.05, rot_y_rad=0.2),
+    ])
+    ap = LineAperture(line, context=test_context, with_progress=False)
+    ap.place_pipe('p', pipe, at='drift@start')
+    ap.build_model()
+
+    # Tilted footprints extend about 0.1 m on either side of each anchor.
+    sections = ap.get_cross_sections_at_s([0.8, 0.95, 1.05, 2.05, 2.95, 3.05, 3.2])
+    xo.assert_allclose(
+        sections.tol_r, [0.0, 0.01, 0.011, 0.031, 0.049, 0.05, 0.0],
+        atol=1e-12, rtol=0,
+    )
 
 
 @for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
