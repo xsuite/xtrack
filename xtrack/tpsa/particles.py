@@ -2,8 +2,12 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING, Any, Iterable, Sequence, Self
+if TYPE_CHECKING:
+    from .optics import TpsaOptics
+    from madng_tpsa._typing import TpsaSeriesT
+
 import numpy as np
-from typing import TYPE_CHECKING, Any, Iterable, Sequence
 
 import xtrack as xt
 import xobjects as xo
@@ -81,9 +85,6 @@ class TpsaParticleData(xo.Struct):
     _rng_s4 = xo.UInt32
     track_flags = xo.UInt64
 
-if TYPE_CHECKING:
-    from .optics import TpsaOptics
-
 
 class ParticlesTpsa(TpsaMap[Tpsa]):
     """6 coordinates as TPSA around a reference orbit.  Identity map in -> element map out.
@@ -102,7 +103,7 @@ class ParticlesTpsa(TpsaMap[Tpsa]):
 
     def __init__(
         self,
-        order: int = 1,
+        truncation_order: int = 1,
         descriptor: Descriptor | None = None,
         **kwargs: Any,
     ) -> None:
@@ -116,16 +117,16 @@ class ParticlesTpsa(TpsaMap[Tpsa]):
                 raise ValueError(
                     f"ParticlesTpsa descriptor must have 6 variables, got {desc.num_vars}"
                 )
+            if desc.order != truncation_order:
+                raise ValueError(
+                    f"descriptor is order {desc.order}, map asks for {truncation_order}"
+                )
             if desc.variables != COORDS:
                 raise ValueError(
                     f"ParticlesTpsa descriptor must have variables {COORDS}, got {desc.variables}"
                 )
-            if desc.order != order:
-                raise ValueError(
-                    f"descriptor is order {desc.order}, map asks for {order}"
-                )
         else:
-            desc = Descriptor(variables=COORDS, order=order)
+            desc = Descriptor(variables=COORDS, order=truncation_order)
         coords = [
             desc.var(i + 1, self._ref(c))
             for i, c in enumerate(COORDS)
@@ -188,6 +189,11 @@ class ParticlesTpsa(TpsaMap[Tpsa]):
         obj._xobject = None
         obj._local_series = None
         return obj
+
+    def _new_like(self, values: Sequence[TpsaSeriesT]) -> Self:
+        """Create a new instance like this one, but with different coordinate values."""
+        ref_particle = self._ref_particle
+        return type(self)._from_coords(values, ref_particle=ref_particle)
 
     @property
     def delta(self) -> Tpsa:
@@ -259,3 +265,10 @@ class ParticlesTpsa(TpsaMap[Tpsa]):
         from .optics import TpsaOptics
 
         return TpsaOptics(self)
+
+    def sensitivity(self, coord: str | int, knob: str | int) -> float:
+        """First-order d coord / d parameter (0-based parameter index)."""
+        if isinstance(knob, str):
+            raise TypeError("ParticlesTpsa does not store parameter names")
+        ip = knob
+        return self.coordinates[coord].param_grad()[ip]

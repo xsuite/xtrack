@@ -128,7 +128,7 @@ class TpsaOptics:
     def _need_parameters(self) -> None:
         if self._num_params == 0:
             raise ValueError("no parameters: use a descriptor with num_params > 0")
-        if self._map.order < 2:
+        if self._map.truncation_order < 2:
             raise ValueError("parameter gradient needs a map of order >= 2 "
                              "(the mixed d A/d parameter is an order-2 term)")
 
