@@ -731,7 +731,7 @@ def _fodo_knob_line():
 def test_fresh_map_is_identity():
     m = _offaxis_map(truncation_order=3)
     xo.assert_allclose(m.const_part, [X0[c] for c in COORDS], rtol=0, atol=0)
-    xo.assert_allclose(m.jacobian(), np.eye(6), rtol=0, atol=0)
+    xo.assert_allclose(m.evaluate_jacobian(), np.eye(6), rtol=0, atol=0)
     assert (m.truncation_order, m.num_vars, m.num_params) == (3, 6, 0)
 
 
@@ -826,7 +826,7 @@ def test_track_line_const_part_and_jacobian_vs_native():
     m = _offaxis_map(truncation_order=2)
     line.track(m)
     xo.assert_allclose(m.const_part, _native_orbit(line), rtol=0, atol=1e-14)
-    xo.assert_allclose(m.jacobian(), _fd_jacobian(line), rtol=0, atol=1e-7)
+    xo.assert_allclose(m.evaluate_jacobian(), _fd_jacobian(line), rtol=0, atol=1e-7)
 
 
 def test_track_line_partial_range():
@@ -873,7 +873,7 @@ def test_track_partial_range_multiturn_matches_scalar_semantics():
     scalar_line.track(scalar_particle, ele_start=1, ele_stop=3, num_turns=3)
 
     xo.assert_allclose(multi_turn.const_part, expected.const_part, rtol=0, atol=0)
-    xo.assert_allclose(multi_turn.jacobian(), expected.jacobian(), rtol=0, atol=0)
+    xo.assert_allclose(multi_turn.evaluate_jacobian(), expected.evaluate_jacobian(), rtol=0, atol=0)
     xo.assert_allclose(
         multi_turn.const_part,
         [float(getattr(scalar_particle, cc)[0]) for cc in COORDS],
@@ -930,8 +930,8 @@ def test_set_jacobian_from_w_matrix():
                      dx=1.2, dpx=0.03, dy=-0.4, dpy=0.01)
     m = _offaxis_map(truncation_order=2)
     m.set_jacobian(W)
-    xo.assert_allclose(m.jacobian(), W, rtol=0, atol=0)
-    xo.assert_allclose(m.jacobian()[0, 0], np.sqrt(12.0), rtol=1e-14, atol=0)
+    xo.assert_allclose(m.evaluate_jacobian(), W, rtol=0, atol=0)
+    xo.assert_allclose(m.evaluate_jacobian()[0, 0], np.sqrt(12.0), rtol=1e-14, atol=0)
 
 
 # MultiElementMonitor recording full maps in the single TPSA track pass
@@ -953,7 +953,7 @@ def test_multi_element_monitor_records_maps():
         line.track(up_to, ele_stop=name)
         recorded = mon.map_at(name)
         xo.assert_allclose(recorded.const_part, up_to.const_part, rtol=0, atol=0)
-        xo.assert_allclose(recorded.jacobian(), up_to.jacobian(), rtol=0, atol=0)
+        xo.assert_allclose(recorded.evaluate_jacobian(), up_to.evaluate_jacobian(), rtol=0, atol=0)
         for c in COORDS:                       # the whole polynomial, not just truncation_order 1
             recorded_c = getattr(recorded, c)
             up_to_c = getattr(up_to, c)
@@ -1022,13 +1022,13 @@ def test_multi_element_monitor_records_parameters():
     line.track(m, multi_element_monitor_at=["sx", "d3"])
     mon = line.tracker.record_multi_element_last_track
 
-    assert mon.map_at("sx").param_jacobian().shape == (6, 3)
+    assert mon.map_at("sx").evaluate_jacobian(wrt='parameters').shape == (6, 3)
     # 'd3' is the last element: its slot is the map at the end of the line minus d3
     up_to = _offaxis_map(truncation_order=2, descriptor=descriptor)
     line.track(up_to, ele_stop="d3")
-    xo.assert_allclose(mon.map_at("d3").param_jacobian(), up_to.param_jacobian(),
+    xo.assert_allclose(mon.map_at("d3").evaluate_jacobian(wrt='parameters'), up_to.evaluate_jacobian(wrt='parameters'),
                        rtol=0, atol=0)
-    assert np.abs(mon.map_at("sx").param_jacobian()).max() > 1e-6
+    assert np.abs(mon.map_at("sx").evaluate_jacobian(wrt='parameters')).max() > 1e-6
     knobs.teardown()
 
 
@@ -1453,7 +1453,7 @@ def test_parametric_track_matches_finite_differences():
 
     m = _offaxis_map(truncation_order=2, descriptor=descriptor)
     line.track(m)
-    param_jacobian = m.param_jacobian()
+    param_jacobian = m.evaluate_jacobian(wrt='parameters')
     assert np.abs(param_jacobian).max() > 1e-6      # knob dependence is really there
     knobs.teardown()
 

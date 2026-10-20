@@ -282,7 +282,7 @@ class ActionTpsaTrack(Action):
             else:
                 _, qty, loc = meta
                 if qty in _ORBIT_QTYS:
-                    jac[i, :] = self._views[loc].param_jacobian()[_ORBIT_QTYS.index(qty)]
+                    jac[i, :] = self._views[loc].evaluate_jacobian(wrt='parameters')[_ORBIT_QTYS.index(qty)]
                 else:
                     jac[i, :] = self._optics[loc].gradient(qty)
         return jac

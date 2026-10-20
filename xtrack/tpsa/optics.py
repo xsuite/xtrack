@@ -38,7 +38,7 @@ class TpsaOptics:
     def __init__(self, map: ParticlesTpsa) -> None:
         self._num_params = map.num_params
         self.param_names = [f"p{ii + 1}" for ii in range(self._num_params)]
-        self._jacobian = np.asarray(map.jacobian(), dtype=float)  # 6x6 A-matrix (const parts)
+        self._jacobian = np.asarray(map.evaluate_jacobian(), dtype=float)  # 6x6 A-matrix (const parts)
         self._map = map
         self._num_vars = map.num_vars
         # dJ[i, j] = d A(i,j) / d parameter (length-np). Built lazily per (i,j) on first use

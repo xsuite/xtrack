@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, Iterable, Sequence, Self
 if TYPE_CHECKING:
     from .optics import TpsaOptics
-    from madng_tpsa._typing import TpsaSeriesT
+    from madng_tpsa._typing import Scalar, TpsaSeriesT
 
 import numpy as np
 
@@ -260,6 +260,9 @@ class ParticlesTpsa(TpsaMap[Tpsa]):
         else:
             self._ref_particle.reference_turns = value
 
+    # Convenience methods for optics and matching
+    # ===========================================
+
     def optics(self) -> TpsaOptics:
         """Uncoupled optics (betx, alfx, mux, dx, ...) + parameter gradients."""
         from .optics import TpsaOptics
@@ -272,3 +275,35 @@ class ParticlesTpsa(TpsaMap[Tpsa]):
             raise TypeError("ParticlesTpsa does not store parameter names")
         ip = knob
         return self.coordinates[coord].param_grad()[ip]
+
+    def set_jacobian(self, jacobian: Sequence[Sequence[Scalar]] | np.ndarray) -> None:
+        """Replace all first-order coefficients for descriptor variables."""
+        matrix = np.asarray(jacobian)
+        expected_shape = (len(self), self.num_vars)
+        if matrix.shape != expected_shape:
+            err_mess = f'Jacobian must have shape {expected_shape}, got {matrix.shape}'
+            raise ValueError(err_mess)
+        if not self.is_complex and np.any(np.imag(matrix) != 0):
+            err_mess = 'Cannot assign complex coefficients to a real map'
+            raise TypeError(err_mess)
+        for row_idx, row in enumerate(matrix):
+            for variable, value in enumerate(row):
+                mono = [0] * self.descriptor.monomial_length
+                mono[variable] = 1
+                self.set_coefficient(row_idx, mono, value)
+
+    def set_param_jacobian(self, jacobian: Sequence[Sequence[Scalar]] | np.ndarray) -> None:
+        """Replace all first-order coefficients for descriptor parameters."""
+        matrix = np.asarray(jacobian)
+        expected_shape = (len(self), self.num_params)
+        if matrix.shape != expected_shape:
+            err_mess = f'Parameter Jacobian must have shape {expected_shape}, got {matrix.shape}'
+            raise ValueError(err_mess)
+        if not self.is_complex and np.any(np.imag(matrix) != 0):
+            err_mess = 'Cannot assign complex coefficients to a real map'
+            raise TypeError(err_mess)
+        for row_idx, row in enumerate(matrix):
+            for parameter, value in enumerate(row):
+                mono = [0] * self.descriptor.monomial_length
+                mono[self.num_vars + parameter] = 1
+                self.set_coefficient(row_idx, mono, value)
