@@ -116,6 +116,10 @@ class ParticlesTpsa(TpsaMap[Tpsa]):
                 raise ValueError(
                     f"ParticlesTpsa descriptor must have 6 variables, got {desc.num_vars}"
                 )
+            if desc.variables != COORDS:
+                raise ValueError(
+                    f"ParticlesTpsa descriptor must have variables {COORDS}, got {desc.variables}"
+                )
             if desc.order != order:
                 raise ValueError(
                     f"descriptor is order {desc.order}, map asks for {order}"
@@ -126,7 +130,7 @@ class ParticlesTpsa(TpsaMap[Tpsa]):
             desc.var(i + 1, self._ref(c))
             for i, c in enumerate(COORDS)
         ]
-        super().__init__(coords, coord_names=COORDS)
+        super().__init__(coords)
         pzeta = self.pzeta
         beta0 = self._ref("beta0")
         ptau = beta0 * pzeta
@@ -179,7 +183,7 @@ class ParticlesTpsa(TpsaMap[Tpsa]):
         not copied. Not trackable.
         """
         obj = object.__new__(cls)
-        TpsaMap.__init__(obj, list(coords), coord_names=COORDS)
+        TpsaMap.__init__(obj, list(coords))
         obj._ref_particle = ref_particle
         obj._xobject = None
         obj._local_series = None
