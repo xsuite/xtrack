@@ -1,7 +1,10 @@
 import itertools
+import gc
+import gzip
 
 import json
 from pathlib import Path
+from unittest.mock import Mock
 
 import numpy as np
 import pytest
@@ -13,15 +16,131 @@ from cpymad.madx import Madx
 from xobjects.general import allclose_with_outliers
 from xobjects.test_helpers import (
     allow_kernel_compilation, for_all_test_contexts, requires_context)
-from xtrack.aperture.aperture import Aperture, ProfilesView, _split_wrapped_s_interval
-from xtrack.aperture.builder import ApertureBuilder
-from xtrack.aperture.views import PipePositionsView, PipesView
+from xtrack.aperture.aperture import (
+    LineAperture, _split_wrapped_s_interval, _survey_is_closed,
+)
 from xtrack.aperture.structures import (
-    ApertureModel, Pipe, Circle, FloatType, Polygon, Profile,
-    ProfilePosition, Rectangle, SurveyData, PipePosition
+    ApertureEnvStruct, LineApertureModel, Pipe, Circle, FloatType, Polygon,
+    Profile, ProfilePosition, Rectangle, SurveyData, PipePosition,
 )
 from xtrack.aperture.transform import matrix_to_transform, transform_matrix
 from xdeps.table import Table
+
+
+class ApertureModel:
+    """Test fixture translating legacy model literals to the split structs."""
+
+    def __new__(
+            cls, pipe_positions, pipes, profiles, pipe_names, profile_names,
+            pipe_position_names, is_ring=False, survey_length=np.nan,
+            _context=None, line=None, **kwargs):
+        aperture_env = ApertureEnvStruct(
+            pipes=pipes,
+            profiles=profiles,
+            pipe_names=pipe_names,
+            profile_names=profile_names,
+            _context=_context,
+        )
+        return LineApertureModel(
+            pipe_positions=pipe_positions,
+            pipe_position_names=pipe_position_names,
+            is_ring=is_ring,
+            survey_length=survey_length,
+            _context=_context,
+        ).bind_environment(aperture_env)
+
+    @classmethod
+    def compile_class_kernels(cls, context, **kwargs):
+        LineApertureModel.compile_class_kernels(context, **kwargs)
+
+
+class Aperture(LineAperture):
+    """Test fixture binding split low-level structures to a line."""
+
+    def __init__(self, line, model, **kwargs):
+        skip_check = kwargs.pop('_skip_validity_check', False)
+        super().__init__(line, **kwargs)
+        line.env.aperture._struct = model._aperture_env
+        line.env.aperture._pipe_name_to_index = {
+            name: index
+            for index, name in enumerate(model.pipe_names)
+        }
+        line.env.aperture._profile_name_to_index = {
+            name: index
+            for index, name in enumerate(model.profile_names)
+        }
+        line.env.aperture._pipes_unbuilt = None
+        line.env.aperture._profiles_unbuilt = None
+        self._model = model
+        self._pipe_positions_unbuilt = None
+        self._pipe_position_name_to_index = {
+            name: index
+            for index, name in enumerate(model.pipe_position_names)
+        }
+        self.survey = line.survey()
+        ring_setting = kwargs.get('is_ring', 'auto')
+        self.is_ring = (_survey_is_closed(self.survey)
+                        if ring_setting == 'auto' else bool(ring_setting))
+        model.is_ring = int(self.is_ring)
+        model.survey_length = line.get_length()
+        self._survey_data = SurveyData.from_survey_table(
+            self.survey, line, context=self.context)
+        if not skip_check:
+            self._check_model_validity()
+        self._build_aperture_bounds(
+            check_validity=not skip_check,
+            with_progress=kwargs.get('with_progress', True),
+        )
+
+    @classmethod
+    def from_line_with_madx_metadata(cls, line, **kwargs):
+        kwargs.pop('_skip_validity_check', None)
+        return line.aperture.from_madx_metadata(**kwargs)
+
+    @classmethod
+    def from_line_with_associated_apertures(cls, line, **kwargs):
+        kwargs.pop('_skip_validity_check', None)
+        return line.aperture.from_associated_apertures(**kwargs)
+
+    @classmethod
+    def from_line_with_limits(cls, line, **kwargs):
+        kwargs.pop('_skip_validity_check', None)
+        return line.aperture.from_limits(**kwargs)
+
+
+class ApertureBuilder:
+    """Test helper mapping former builder fixtures onto the container API."""
+
+    def __init__(self, line):
+        self.line = line
+
+    @property
+    def profiles(self):
+        return self.line.env.aperture.profiles
+
+    @property
+    def pipes(self):
+        return self.line.env.aperture.pipes
+
+    @property
+    def pipe_positions(self):
+        return self.line.aperture._pipe_positions_unbuilt
+
+    def new_profile(self, name, shape, **kwargs):
+        return self.line.aperture.new_profile(name, shape, **kwargs)
+
+    def place_profile(self, profile, shift_s=0.0, **kwargs):
+        return self.line.env.aperture.place_profile(profile, at=shift_s, **kwargs)
+
+    def new_pipe(self, name, **kwargs):
+        return self.line.aperture.new_pipe(name, **kwargs)
+
+    def place_pipe(self, name, pipe_name, at, **kwargs):
+        return self.line.aperture.place_pipe(name, pipe_name, at, **kwargs)
+
+    def build(self, context=None):
+        self.line.aperture.context = context or self.line.aperture.context
+        return self.line.aperture.build_model()._model
 
 TOY_RING_SEQUENCE = """
     ! Toy Ring, 4 arcs
@@ -219,7 +338,7 @@ def _make_pipe_table_test_ring(test_context, *, extra_pipe_positions=None):
     line = env.new_line(name='ring', components=[bend] * num_bends)
     sv = line.survey()
 
-    profiles = [Profile(shape=Circle(radius=0.03), tol_r=0, tol_x=0, tol_y=0)]
+    profiles = [Profile(shape=Circle(radius=0.03))]
     pipes = [
         Pipe(curvature=bend_angle / bend_length, positions=[
             ProfilePosition(profile_index=0, shift_s=0.0),
@@ -297,7 +416,7 @@ def _make_transition_test_aperture(test_context):
             ProfilePosition(profile_index=0, shift_s=3.0),
             ProfilePosition(profile_index=0, shift_s=7.0),
         ])],
-        profiles=[Profile(shape=Circle(radius=1.0), tol_r=0, tol_x=0, tol_y=0)],
+        profiles=[Profile(shape=Circle(radius=1.0))],
         pipe_names=['pipe0'],
         pipe_position_names=['pipe0'],
         profile_names=['profile0'],
@@ -318,6 +437,28 @@ def _transition_test_twiss_init(aperture):
         dy=0.0,
         dpy=0.0,
     )
+
+
+@for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
+@pytest.mark.parametrize('roll', [0.0, 0.3])
+def test_survey_interpolation_thick_sliced_bend(test_context, roll):
+    line = xt.Line(
+        elements=[xt.Bend(length=4.0, angle=0.2, rot_s_rad=roll)],
+        element_names=['bend'],
+    )
+    reference = line.copy()
+    reference.cut_at_s([0.7])
+    expected = reference.survey().rows[0.7:0.7:'s']
+    assert len(expected) == 1
+
+    line.slice_thick_elements(
+        slicing_strategies=[xt.Strategy(slicing=xt.Uniform(2, mode='thick'))],
+    )
+    data = SurveyData.from_survey_table(line.survey(), line, context=test_context)
+    pose = data.resample([0.7]).pose.to_nplike()[0]
+
+    xo.assert_allclose(pose[:3, 3], expected.XYZ[0], atol=1e-12, rtol=0)
+    xo.assert_allclose(pose[:3, :3], expected.E_matrix[0], atol=1e-12, rtol=0)
 
 
 @for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
@@ -495,7 +636,7 @@ def test_from_line_with_limits_preserves_limit_polygon_geometry(test_context):
         context=test_context,
         _skip_validity_check=True,
     )
-    section = aperture_model.cross_sections_at_s([0.0]).cross_section[0]
+    section = aperture_model.get_cross_sections_at_s([0.0]).cross_section[0]
 
     xo.assert_allclose(section[0], [x_vertices[0], y_vertices[0]], atol=1e-15, rtol=0)
     assert np.min(section[:, 0]) < -0.02
@@ -524,8 +665,8 @@ def test_bounds_table_for_perfect_overlap_interval(test_context):
     xo.assert_allclose(rows.s, [1.0, 1.3], atol=1e-12)
     assert list(rows.profile_name) == ['mqf_aper', 'mqf_aper']
     assert list(rows.shape) == ['Rectangle', 'Rectangle']
-    assert all(sp['half_width'] == 0.08 for sp in rows.shape_param)
-    assert all(sp['half_height'] == 0.04 for sp in rows.shape_param)
+    assert all(sp['max_x'] == 0.08 for sp in rows.shape_param)
+    assert all(sp['max_y'] == 0.04 for sp in rows.shape_param)
 
 
 @for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
@@ -541,11 +682,13 @@ def test_aperture_model_views(test_context):
         ],
         pipes=[Pipe(curvature=0.5, positions=[
             ProfilePosition(profile_index=0, shift_s=0.1, shift_x=0.2, shift_y=-0.3, rot_x_rad=0.4, rot_y_rad=-0.5, rot_s_rad=0.6),
-            ProfilePosition(profile_index=1, shift_s=0.7),
+            ProfilePosition(
+                profile_index=1, shift_s=0.7, tol_r=0.1, tol_x=0.2, tol_y=0.3,
+            ),
         ])],
         profiles=[
-            Profile(shape=Circle(radius=1.0), tol_r=0, tol_x=0, tol_y=0),
-            Profile(shape=Rectangle(half_width=2.0, half_height=3.0), tol_r=0.1, tol_x=0.2, tol_y=0.3),
+            Profile(shape=Circle(radius=1.0)),
+            Profile(shape=Rectangle(max_x=2.0, max_y=3.0)),
         ],
         pipe_names=['pipe0'],
         pipe_position_names=['pipe0_at_drift'],
@@ -553,9 +696,30 @@ def test_aperture_model_views(test_context):
         _context=test_context,
     )
 
-    profiles = ProfilesView(model)
-    pipes = PipesView(model)
-    pipe_positions = PipePositionsView(model)
+    env = xt.Environment()
+    line = env.new_line(
+        components=[env.new('drift', xt.Drift, length=1.0)])
+    env.aperture._struct = model._aperture_env
+    env.aperture._profile_name_to_index = {
+        name: index
+        for index, name in enumerate(model.profile_names)
+    }
+    env.aperture._pipe_name_to_index = {
+        name: index
+        for index, name in enumerate(model.pipe_names)
+    }
+    env.aperture._profiles_unbuilt = None
+    env.aperture._pipes_unbuilt = None
+    line.aperture._model = model
+    line.aperture._pipe_positions_unbuilt = None
+    line.aperture._pipe_position_name_to_index = {
+        name: index
+        for index, name in enumerate(model.pipe_position_names)
+    }
+
+    profiles = env.aperture.profiles
+    pipes = env.aperture.pipes
+    pipe_positions = line.aperture.pipe_positions
     pipe0 = pipes[0]
     positions = pipe0
 
@@ -579,15 +743,15 @@ def test_aperture_model_views(test_context):
     assert [profile.name for profile in profiles.values()] == ['circ0', 'rect0']
     assert [type(profile.shape).__name__ for profile in profiles.values()] == ['Circle', 'Rectangle']
 
-    xo.assert_allclose(profiles['rect0'].tol_r, 0.1, atol=1e-15, rtol=0)
-    xo.assert_allclose(profiles['rect0'].tol_x, 0.2, atol=1e-15, rtol=0)
-    xo.assert_allclose(profiles['rect0'].tol_y, 0.3, atol=1e-15, rtol=0)
-    profiles['rect0'].tol_r = 0.4
-    profiles['rect0'].tol_x = 0.5
-    profiles['rect0'].tol_y = 0.6
-    xo.assert_allclose(model.profiles[1].tol_r, 0.4, atol=1e-15, rtol=0)
-    xo.assert_allclose(model.profiles[1].tol_x, 0.5, atol=1e-15, rtol=0)
-    xo.assert_allclose(model.profiles[1].tol_y, 0.6, atol=1e-15, rtol=0)
+    xo.assert_allclose(positions[1].tol_r, 0.1, atol=1e-15, rtol=0)
+    xo.assert_allclose(positions[1].tol_x, 0.2, atol=1e-15, rtol=0)
+    xo.assert_allclose(positions[1].tol_y, 0.3, atol=1e-15, rtol=0)
+    positions[1].tol_r = 0.4
+    positions[1].tol_x = 0.5
+    positions[1].tol_y = 0.6
+    xo.assert_allclose(model.pipes[0].positions[1].tol_r, 0.4, atol=1e-15, rtol=0)
+    xo.assert_allclose(model.pipes[0].positions[1].tol_x, 0.5, atol=1e-15, rtol=0)
+    xo.assert_allclose(model.pipes[0].positions[1].tol_y, 0.6, atol=1e-15, rtol=0)
 
     assert pipes[0].name == 'pipe0'
     assert pipes['pipe0'].name == 'pipe0'
@@ -604,6 +768,14 @@ def test_aperture_model_views(test_context):
     assert pipe_positions[0].pipe.name == 'pipe0'
     assert pipe_positions[0].survey_reference_name == 'drift'
     assert pipe_positions[0].survey_index == 0
+    pipe_positions[0].tol_r = 0.01
+    pipe_positions[0].tol_x = 0.02
+    pipe_positions[0].tol_y = 0.03
+    xo.assert_allclose(
+        [model.pipe_positions[0].tol_r, model.pipe_positions[0].tol_x,
+         model.pipe_positions[0].tol_y],
+        [0.01, 0.02, 0.03], atol=0, rtol=0,
+    )
     xo.assert_allclose(pipe_positions[0].shift_x, 0.0, atol=1e-15, rtol=0)
     xo.assert_allclose(pipe_positions[0].shift_y, 0.0, atol=1e-15, rtol=0)
     xo.assert_allclose(pipe_positions[0].shift_z, 0.0, atol=1e-15, rtol=0)
@@ -613,7 +785,7 @@ def test_aperture_model_views(test_context):
     assert list(name for name, _ in pipe_positions.items()) == ['pipe0_at_drift']
     assert [pipe_pos.name for pipe_pos in pipe_positions.values()] == ['pipe0_at_drift']
     assert [pipe_pos.pipe_index for pipe_pos in pipe_positions.values()] == [0]
-    pipe_positions[0].survey_reference_name = 'drift_entry'
+    pipe_positions[0].survey_reference_name = 'entry'
     pipe_positions[0].survey_index = 3
     pipe_positions[0].pipe_index = 0
     pipe_positions[0].shift_x = 0.1
@@ -622,7 +794,7 @@ def test_aperture_model_views(test_context):
     pipe_positions[0].rot_x_rad = 0.4
     pipe_positions[0].rot_y_rad = -0.5
     pipe_positions[0].rot_z_rad = 0.6
-    assert model.pipe_positions[0].survey_reference_name == 'drift_entry'
+    assert model.pipe_positions[0].survey_reference_name == 'entry'
     assert model.pipe_positions[0].survey_index == 3
     updated_transform = matrix_to_transform(model.pipe_positions[0].transformation.to_nplike())
     xo.assert_allclose(updated_transform.shift_x, 0.1, atol=1e-15, rtol=0)
@@ -684,9 +856,9 @@ def test_get_limit_elements(monkeypatch):
         },
         index='index',
     )
-    monkeypatch.setattr(ap, 'cross_sections_at_s', lambda s_positions: table)
+    monkeypatch.setattr(ap, 'get_cross_sections_at_s', lambda s_positions: table)
 
-    out = ap.get_limit_elements([1.5, 3.5])
+    out = ap.get_limit_elements_at_s([1.5, 3.5])
 
     assert list(out) == [1.5, 3.5]
     assert all(isinstance(value, xt.LimitPolygon) for value in out.values())
@@ -718,7 +890,7 @@ def test_bounds_table_uses_pipe_position_name_in_installed_profile_name(test_con
             ),
         ],
         pipes=[Pipe(curvature=0.0, positions=[ProfilePosition(profile_index=0)])],
-        profiles=[Profile(shape=Circle(radius=1.0), tol_r=0, tol_x=0, tol_y=0)],
+        profiles=[Profile(shape=Circle(radius=1.0))],
         pipe_names=['shared_type'],
         pipe_position_names=['entry_ap', 'middle_ap'],
         profile_names=['circ0'],
@@ -751,20 +923,20 @@ def test_bounds_table_for_interval_spanning_multiple_types(test_context):
     assert list(rows.shape) == ['Ellipse', 'RectEllipse', 'RectEllipse', 'Rectangle']
 
     mb_shape = rows.shape_param[0]
-    assert mb_shape['half_major'] == 0.1
-    assert mb_shape['half_minor'] == 0.1
+    assert mb_shape['a'] == 0.1
+    assert mb_shape['b'] == 0.1
 
     ap_ds_shape_0 = rows.shape_param[1]
     ap_ds_shape_1 = rows.shape_param[2]
     for ap_ds_shape in (ap_ds_shape_0, ap_ds_shape_1):
-        assert ap_ds_shape['half_major'] == 0.022
-        assert ap_ds_shape['half_minor'] == 0.022
-        assert ap_ds_shape['half_width'] == 0.022
-        assert ap_ds_shape['half_height'] == 0.01715
+        assert ap_ds_shape['a'] == 0.022
+        assert ap_ds_shape['b'] == 0.022
+        assert ap_ds_shape['max_x'] == 0.022
+        assert ap_ds_shape['max_y'] == 0.01715
 
     mqf_shape = rows.shape_param[3]
-    assert mqf_shape['half_width'] == 0.08
-    assert mqf_shape['half_height'] == 0.04
+    assert mqf_shape['max_x'] == 0.08
+    assert mqf_shape['max_y'] == 0.04
 
 
 @for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
@@ -864,8 +1036,8 @@ def test_cross_sections_do_not_interpolate_between_pipes_overlapping_within_tole
             ]),
         ],
         profiles=[
-            Profile(shape=Circle(radius=0.1), tol_r=0, tol_x=0, tol_y=0),
-            Profile(shape=Circle(radius=1.0), tol_r=0, tol_x=0, tol_y=0),
+            Profile(shape=Circle(radius=0.1)),
+            Profile(shape=Circle(radius=1.0)),
         ],
         pipe_names=['small_pipe', 'large_pipe'],
         pipe_position_names=['small_pipe', 'large_pipe', 'small_pipe_again'],
@@ -925,7 +1097,7 @@ def test_cross_sections_do_not_interpolate_between_pipes_overlapping_within_tole
 
     # These points are away from the overlap and lie in exactly one pipe.
     # Each cylindrical pipe must retain its constant circular cross-section.
-    sections = aperture.cross_sections_at_s([0.5, 1.5, 3.5]).cross_section
+    sections = aperture.get_cross_sections_at_s([0.5, 1.5, 3.5]).cross_section
     radii = np.linalg.norm(sections, axis=2)
     xo.assert_allclose(np.mean(radii, axis=1), [0.1, 1.0, 0.1], atol=1e-12, rtol=0)
 
@@ -967,8 +1139,8 @@ def test_aperture_bounds_preserve_overlap_larger_than_tolerance(test_context):
             ]),
         ],
         profiles=[
-            Profile(shape=Circle(radius=0.1), tol_r=0, tol_x=0, tol_y=0),
-            Profile(shape=Circle(radius=1.0), tol_r=0, tol_x=0, tol_y=0),
+            Profile(shape=Circle(radius=0.1)),
+            Profile(shape=Circle(radius=1.0)),
         ],
         pipe_names=['small_pipe', 'large_pipe'],
         pipe_position_names=['small_pipe', 'large_pipe'],
@@ -1024,10 +1196,10 @@ def test_split_wrapped_s_interval_drops_zero_length_segment_at_ring_boundary():
 def test_s_around_transitions_basic_pattern_and_resolution(test_context):
     ap = _make_transition_test_aperture(test_context)
 
-    s_positions = ap.s_around_transitions(tol=0.5)
+    s_positions = ap.get_s_around_transitions(tol=0.5)
     xo.assert_allclose(s_positions, [2.5, 3.5, 6.5, 7.5], atol=1e-12, rtol=0)
 
-    s_positions_with_grid = ap.s_around_transitions(tol=0.5, resolution=2.0, s_range=(2.0, 8.0))
+    s_positions_with_grid = ap.get_s_around_transitions(tol=0.5, resolution=2.0, s_range=(2.0, 8.0))
     xo.assert_allclose(s_positions_with_grid, [2.0, 2.5, 3.5, 4.0, 6.0, 6.5, 7.5, 8.0], atol=1e-12, rtol=0)
 
 
@@ -1045,7 +1217,7 @@ def test_s_around_transitions_wrapped_ring_range(test_context):
         line.get_length(),
     ))
 
-    s_positions = ap.s_around_transitions(tol=0.1, s_range=(74.0, 4.0))
+    s_positions = ap.get_s_around_transitions(tol=0.1, s_range=(74.0, 4.0))
 
     xo.assert_allclose(s_positions, expected, atol=1e-12, rtol=0)
     assert np.all((s_positions >= 74.0) | (s_positions <= 4.0))
@@ -1056,33 +1228,52 @@ def test_aperture_json_roundtrip_preserves_explicit_ring_flag(test_context, tmp_
     env = xt.Environment()
     drift = env.new('drift', xt.Drift, length=3.0)
     line = env.new_line(name='line', components=[drift])
-    sv = line.survey()
-
-    model = ApertureModel(
-        pipe_positions=[
-            PipePosition(
-                pipe_index=0,
-                survey_reference_name='drift',
-                survey_index=sv.name.tolist().index('drift'),
-                transformation=transform_matrix(),
-            ),
-        ],
-        pipes=[Pipe(curvature=0.0, positions=[ProfilePosition(profile_index=0)])],
-        profiles=[Profile(shape=Circle(radius=1.0), tol_r=0, tol_x=0, tol_y=0)],
-        pipe_names=['pipe0'],
-        pipe_position_names=['pipe0'],
-        profile_names=['circ0'],
-        _context=test_context,
-    )
-
-    ap = Aperture(line, model, context=test_context, is_ring=False)
+    profile = env.aperture.new_profile('circ0', Circle, radius=1.0)
+    pipe = env.aperture.new_pipe('pipe0', positions=[profile.place()])
+    ap = line.aperture
+    ap.context = test_context
+    ap._is_ring_setting = False
+    ap.place_pipe('pipe0', pipe, at='drift')
+    ap.build_model()
     path = tmp_path / 'aperture.json'
 
-    ap.to_json(path)
-    loaded = Aperture.from_json(path, line=line, context=test_context)
-
+    env.aperture.to_json(path)
     assert ap.is_ring is False
+    env.aperture.clear()
+    env.aperture.from_json(path, context=test_context)
+    loaded = line.aperture
+    assert loaded._model is None
+    loaded.build_model()
+
     assert loaded.is_ring is False
+
+
+@pytest.mark.parametrize('scheme', ['http', 'https'])
+@pytest.mark.parametrize('compressed', [False, True])
+def test_aperture_from_json_url(monkeypatch, scheme, compressed):
+    env = xt.Environment()
+    env.new_line(name='line', components=[env.new('drift', xt.Drift, length=3.0)])
+    profile = env.aperture.new_profile('round', Circle, radius=0.02)
+    pipe = env.aperture.new_pipe('tube', positions=[profile.place()])
+    env.lines['line'].aperture.place_pipe('installed', pipe, at='drift')
+    data = env.aperture.to_dict()
+    payload = json.dumps(data, cls=xo.JEncoder)
+    response = Mock(text=payload)
+    response.content = gzip.compress(payload.encode()) if compressed else payload.encode()
+    get = Mock(return_value=response)
+    monkeypatch.setattr('xtrack.general.requests.get', get)
+    url = f'{scheme}://example.com/aperture.json' + ('.gz' if compressed else '')
+    context = xo.ContextCpu()
+    env.aperture.clear()
+
+    result = env.aperture.from_json(url, context=context, timeout=12.0)
+
+    assert result is env.aperture
+    assert env.aperture.to_dict() == data
+    assert env.aperture._struct._context is context
+    assert env.lines['line'].aperture._model is None
+    get.assert_called_once_with(url, timeout=12.0)
+    response.raise_for_status.assert_called_once_with()
 
 
 @for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
@@ -1316,7 +1507,7 @@ def test_points_inside_polygon_simpler(kernels):
             #   tol_x + tol_r + tol_co + tol_dx = 0.006 + 0.002 + 0.002 + 0.03 = 0.04
             #
             # One-sigma beam horizontal half-size:
-            #   (halo_x / halo_primary) * sqrt((emitx_norm / gamma) * betx) * tol_beta_beating
+            #   (halo_x / halo_primary) * sqrt((nemitt_x / gamma) * betx) * tol_beta_beating
             #   = 0.05 * sqrt((4e-3 / 10) * 9) * 0.8 = 0.0024
             #
             # Dispersive orbit shift:
@@ -1369,8 +1560,8 @@ def test_get_aperture_sigmas_at_element_analytic(method, shape, aper_params, ape
         return '{' + ', '.join([str(v) for v in values]) + '}'
 
     halo_params_for_test = {
-        'emitx_norm': beam_params['exn'],
-        'emity_norm': beam_params['eyn'],
+        'nemitt_x': beam_params['exn'],
+        'nemitt_y': beam_params['eyn'],
         'tol_beta_beating': 1,
         'tol_disp': 0,
         'tol_disp_ref_beta': 1,
@@ -1410,9 +1601,9 @@ def test_get_aperture_sigmas_at_element_analytic(method, shape, aper_params, ape
     aperture_model.halo_params.update(halo_params)
 
     # Needed as these quantities are not imported by the native madloader
-    aperture_model._model.profiles[0].tol_r = aper_tol[0]
-    aperture_model._model.profiles[0].tol_x = aper_tol[1]
-    aperture_model._model.profiles[0].tol_y = aper_tol[2]
+    aperture_model._model.pipe_positions[0].tol_r = aper_tol[0]
+    aperture_model._model.pipe_positions[0].tol_x = aper_tol[1]
+    aperture_model._model.pipe_positions[0].tol_y = aper_tol[2]
 
     # Compute n1 with Xsuite
     n1_table, tw = aperture_model.get_aperture_sigmas_at_element(
@@ -1439,8 +1630,8 @@ def test_get_aperture_sigmas_at_element_analytic_rays(context):
     gamma = np.sqrt(101)
 
     beam_data = {
-        'emitx_norm': 4e-3,
-        'emity_norm': 4e-3,
+        'nemitt_x': 4e-3,
+        'nemitt_y': 4e-3,
         'delta_rms': 0.001,
         'tol_co': 0.002,
         'tol_disp': 1.25,
@@ -1480,9 +1671,9 @@ def test_get_aperture_sigmas_at_element_analytic_rays(context):
     aperture_model.halo_params.update(beam_data)
 
     # Needed as these quantities are not imported by the native madloader
-    aperture_model._model.profiles[0].tol_r = tol_r
-    aperture_model._model.profiles[0].tol_x = tol_x
-    aperture_model._model.profiles[0].tol_y = tol_y
+    aperture_model._model.pipe_positions[0].tol_r = tol_r
+    aperture_model._model.pipe_positions[0].tol_x = tol_x
+    aperture_model._model.pipe_positions[0].tol_y = tol_y
 
     n1_table, tw = (
         aperture_model.get_aperture_sigmas_at_element(
@@ -1521,8 +1712,8 @@ def _build_single_marker_aperture_model(context):
 
     aperture_model = Aperture.from_line_with_associated_apertures(seq, context=context)
     aperture_model.halo_params.update({
-        'emitx_norm': 4e-3,
-        'emity_norm': 4e-3,
+        'nemitt_x': 4e-3,
+        'nemitt_y': 4e-3,
         'delta_rms': 0.001,
         'tol_co': 0.002,
         'tol_disp': 1.25,
@@ -1535,9 +1726,9 @@ def _build_single_marker_aperture_model(context):
         'halo_primary': 10,
     })
 
-    aperture_model._model.profiles[0].tol_r = 0.002
-    aperture_model._model.profiles[0].tol_x = 0.006
-    aperture_model._model.profiles[0].tol_y = 0.002
+    aperture_model._model.pipe_positions[0].tol_r = 0.002
+    aperture_model._model.pipe_positions[0].tol_x = 0.006
+    aperture_model._model.pipe_positions[0].tol_y = 0.002
 
     return aperture_model, tw
 
@@ -1553,6 +1744,7 @@ def test_get_aperture_sigmas_for_twiss_matches_at_s(method, context):
         envelopes_num_points=144,
         output_cross_sections=True,
         output_max_envelopes=True,
+        output_contact_points=(method == 'rays'),
     )
     from_twiss_table = aperture_model.get_aperture_sigmas_for_twiss(
         sliced_twiss=sliced_twiss,
@@ -1560,9 +1752,13 @@ def test_get_aperture_sigmas_for_twiss_matches_at_s(method, context):
         envelopes_num_points=144,
         output_cross_sections=True,
         output_max_envelopes=True,
+        output_contact_points=(method == 'rays'),
     )
 
-    for column in ('s', 'n1', 'cross_section', 'envelope'):
+    columns = ('s', 'n1', 'cross_section', 'envelope')
+    if method == 'rays':
+        columns += ('x', 'y')
+    for column in columns:
         xo.assert_allclose(
             from_twiss_table[column],
             at_s_table[column],
@@ -1587,9 +1783,9 @@ def test_get_aperture_sigmas_at_element_output_cross_sections_match_cross_sectio
     sigmas = n1_table.n1
     aperture_points = n1_table.cross_section
 
-    ref = aperture_model.cross_sections_at_element('m1', resolution=None).cross_section
+    ref = aperture_model.get_cross_sections_at_element('m1', resolution=None).cross_section
     xo.assert_allclose(aperture_points, ref, atol=1e-12, rtol=0)
-    assert sigmas.shape == (2,)
+    assert sigmas.shape == (1,)
 
 
 @pytest.mark.parametrize('method', ['bisection', 'rays'])
@@ -1749,8 +1945,8 @@ def test_get_aperture_sigmas_at_element_vs_madx(
         return '{' + ', '.join([str(v) for v in values]) + '}'
 
     halo_params_for_test = {
-        'emitx_norm': exn,
-        'emity_norm': eyn,
+        'nemitt_x': exn,
+        'nemitt_y': eyn,
         'tol_beta_beating': 1,
         'tol_disp': 0,
         'tol_disp_ref_beta': 1,
@@ -1815,8 +2011,8 @@ def test_get_aperture_sigmas_at_element_vs_madx(
     xo.assert_allclose(aperture_model.halo_params['halo_r'], aper_summ.halo_r, atol=3e-6, rtol=0)
     xo.assert_allclose(aperture_model.halo_params['halo_x'], aper_summ.halo_h, atol=1e-8, rtol=0)
     xo.assert_allclose(aperture_model.halo_params['halo_y'], aper_summ.halo_v, atol=1e-8, rtol=0)
-    xo.assert_allclose(aperture_model.halo_params['emitx_norm'], mad.beam.exn, atol=1e-8, rtol=0)
-    xo.assert_allclose(aperture_model.halo_params['emity_norm'], mad.beam.eyn, atol=1e-8, rtol=0)
+    xo.assert_allclose(aperture_model.halo_params['nemitt_x'], mad.beam.exn, atol=1e-8, rtol=0)
+    xo.assert_allclose(aperture_model.halo_params['nemitt_y'], mad.beam.eyn, atol=1e-8, rtol=0)
 
     # Compute n1 with Xsuite
     n1_table, tw = aperture_model.get_aperture_sigmas_at_element(
@@ -1985,11 +2181,11 @@ def test_aperture_bounds_straight_survey(rot_x_rad, rot_y_rad, dx, dy, ds1, ds2,
     sv = line.survey()
 
     circle = Circle(radius=1)
-    rectangle = Rectangle(half_width=0.6, half_height=0.4)
+    rectangle = Rectangle(max_x=0.6, max_y=0.4)
 
     profiles = [
-        Profile(shape=circle, tol_r=0, tol_x=0, tol_y=0),
-        Profile(shape=rectangle, tol_r=0, tol_x=0, tol_y=0),
+        Profile(shape=circle),
+        Profile(shape=rectangle),
     ]
 
     profile_positions = [
@@ -2061,7 +2257,7 @@ def test_aperture_bounds_and_cross_sections_curved_survey_follows_pipe(test_cont
 
     shape = Circle(radius=radius)
     profiles = [
-        Profile(shape=shape, tol_r=0, tol_x=0, tol_y=0),
+        Profile(shape=shape),
     ]
     profile_positions = [
         ProfilePosition(profile_index=0, shift_s=0.0),
@@ -2112,7 +2308,7 @@ def test_aperture_bounds_and_cross_sections_curved_survey_follows_pipe(test_cont
     assert all(bounds_table.profile_name == ['circ0'])
 
     s_samples = np.linspace(0, 3 * length, 51, dtype=FloatType._dtype)
-    sections_table = ap.cross_sections_at_s(s_samples)
+    sections_table = ap.get_cross_sections_at_s(s_samples)
     sections = sections_table.cross_section
 
     for ii in range(1, len(sections)):
@@ -2237,7 +2433,7 @@ def test_aperture_bounds_and_cross_sections_large_curved_ring_follows_pipe(test_
     sv = line.survey()
 
     shape = Circle(radius=aperture_radius)
-    profiles = [Profile(shape=shape, tol_r=0, tol_x=0, tol_y=0)]
+    profiles = [Profile(shape=shape)]
     profile_positions = [
         ProfilePosition(profile_index=0, shift_s=0.0),
         ProfilePosition(profile_index=0, shift_s=bend_length),
@@ -2286,7 +2482,7 @@ def test_aperture_bounds_and_cross_sections_large_curved_ring_follows_pipe(test_
     assert np.all(np.isfinite(bounds_table.s_end))
 
     s_samples = np.linspace(0, ring_length, 101, dtype=FloatType._dtype)
-    sections = ap.cross_sections_at_s(s_samples).cross_section
+    sections = ap.get_cross_sections_at_s(s_samples).cross_section
     radii = np.linalg.norm(sections, axis=2)
     xo.assert_allclose(radii, aperture_radius, atol=1e-6, rtol=0)
 
@@ -2365,7 +2561,7 @@ def test_aperture_bounds_large_curved_ring_with_shifted_survey_references(test_c
     assert np.all(np.isfinite(bounds_table.s_end))
 
     s_samples = np.linspace(0, ring_length, 101, dtype=FloatType._dtype)
-    sections = ap.cross_sections_at_s(s_samples).cross_section
+    sections = ap.get_cross_sections_at_s(s_samples).cross_section
     radii = np.linalg.norm(sections, axis=2)
     xo.assert_allclose(radii, aperture_radius, atol=1e-6, rtol=0)
 
@@ -2445,8 +2641,8 @@ def test_cross_sections_at_s_interpolate_circles_to_cone(test_context):
     r0, r1 = 0.8, 2.0
 
     profiles = [
-        Profile(shape=Circle(radius=r0), tol_r=0, tol_x=0, tol_y=0),
-        Profile(shape=Circle(radius=r1), tol_r=0, tol_x=0, tol_y=0),
+        Profile(shape=Circle(radius=r0)),
+        Profile(shape=Circle(radius=r1)),
     ]
     profile_positions = [
         ProfilePosition(profile_index=0, shift_s=s0),
@@ -2473,7 +2669,7 @@ def test_cross_sections_at_s_interpolate_circles_to_cone(test_context):
     ap = Aperture(line=line, model=model, context=test_context)
 
     s_samples = np.linspace(1.0, 11.0, 21, dtype=FloatType._dtype)
-    sections_table = ap.cross_sections_at_s(s_samples)
+    sections_table = ap.get_cross_sections_at_s(s_samples)
     sections = sections_table.cross_section
     poses = sections_table.pose
 
@@ -2515,12 +2711,12 @@ def test_cross_sections_at_s_interpolates_tolerances(test_context):
     sv = line.survey()
 
     profiles = [
-        Profile(shape=Circle(radius=1.0), tol_r=0.1, tol_x=0.2, tol_y=0.3),
-        Profile(shape=Circle(radius=1.0), tol_r=0.5, tol_x=0.6, tol_y=0.7),
+        Profile(shape=Circle(radius=1.0)),
+        Profile(shape=Circle(radius=1.0)),
     ]
     profile_positions = [
-        ProfilePosition(profile_index=0, shift_s=0.0),
-        ProfilePosition(profile_index=1, shift_s=10.0),
+        ProfilePosition(profile_index=0, shift_s=0.0, tol_r=0.1, tol_x=0.2, tol_y=0.3),
+        ProfilePosition(profile_index=1, shift_s=10.0, tol_r=0.5, tol_x=0.6, tol_y=0.7),
     ]
 
     model = ApertureModel(
@@ -2531,6 +2727,9 @@ def test_cross_sections_at_s_interpolates_tolerances(test_context):
                 survey_reference_name=sv.name[0],
                 survey_index=0,
                 transformation=transform_matrix(),
+                tol_r=0.05,
+                tol_x=0.06,
+                tol_y=0.07,
             ),
         ],
         pipes=[Pipe(curvature=0.0, positions=profile_positions)],
@@ -2543,11 +2742,130 @@ def test_cross_sections_at_s_interpolates_tolerances(test_context):
     ap = Aperture(line=line, model=model, context=test_context)
 
     s_samples = np.array([0.0, 2.5, 5.0, 7.5, 10.0], dtype=FloatType._dtype)
-    sections_table = ap.cross_sections_at_s(s_samples)
+    sections_table = ap.get_cross_sections_at_s(s_samples)
 
-    xo.assert_allclose(sections_table.tol_r, [0.1, 0.2, 0.3, 0.4, 0.5], atol=1e-12, rtol=0)
-    xo.assert_allclose(sections_table.tol_x, [0.2, 0.3, 0.4, 0.5, 0.6], atol=1e-12, rtol=0)
-    xo.assert_allclose(sections_table.tol_y, [0.3, 0.4, 0.5, 0.6, 0.7], atol=1e-12, rtol=0)
+    xo.assert_allclose(sections_table.tol_r, [0.15, 0.25, 0.35, 0.45, 0.55], atol=1e-12, rtol=0)
+    xo.assert_allclose(sections_table.tol_x, [0.26, 0.36, 0.46, 0.56, 0.66], atol=1e-12, rtol=0)
+    xo.assert_allclose(sections_table.tol_y, [0.37, 0.47, 0.57, 0.67, 0.77], atol=1e-12, rtol=0)
+
+
+@for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
+def test_reorder_bounds_for_reversed_pipe_on_ring(test_context):
+    env = xt.Environment()
+    length = 10.0
+    angle = np.pi / 4
+    bend = env.new('bend', xt.Bend, length=length, angle=angle, k0=0)
+    line = env.new_line(name='ring', components=[bend] * 8)
+    survey = line.survey()
+
+    model = ApertureModel(
+        line=line,
+        pipe_positions=[
+            PipePosition(pipe_index=1, survey_reference_name=survey.name[2],
+                         survey_index=2, transformation=transform_matrix()),
+            PipePosition(pipe_index=0, survey_reference_name=survey.name[1],
+                         survey_index=1, transformation=transform_matrix()),
+        ],
+        pipes=[
+            Pipe(curvature=angle / length, positions=[
+                ProfilePosition(profile_index=0, shift_s=length),
+                ProfilePosition(profile_index=0, shift_s=0.0),
+            ]),
+            Pipe(curvature=angle / length, positions=[
+                ProfilePosition(profile_index=1, shift_s=0.0),
+                ProfilePosition(profile_index=1, shift_s=length),
+            ]),
+        ],
+        profiles=[
+            Profile(shape=Circle(radius=0.03)),
+            Profile(shape=Circle(radius=0.04)),
+        ],
+        pipe_names=['first', 'second'],
+        pipe_position_names=['second', 'first'],
+        profile_names=['small', 'large'],
+        _context=test_context,
+    )
+    aperture = Aperture(line, model, context=test_context, num_profile_points=64)
+    assert aperture.is_ring
+
+    bounds = aperture._aperture_bounds
+    np.testing.assert_array_equal(bounds.pipe_position_indices.to_nparray(), [1, 1, 0, 0])
+    np.testing.assert_array_equal(bounds.profile_position_indices.to_nparray(), [1, 0, 0, 1])
+
+    sections = aperture.get_cross_sections_at_s([15.0, 25.0]).cross_section
+    radii = np.linalg.norm(sections, axis=2)
+    np.testing.assert_allclose(np.mean(radii, axis=1), [0.03, 0.04], atol=1e-6, rtol=0)
+
+
+def test_survey_resample_rbend_exit_uses_left_hand_frame():
+    env = xt.Environment()
+    env.new('bend', xt.RBend, length_straight=1.0, angle=0.1,
+            rbend_model='straight-body')
+    env.new('drift', xt.Drift, length=1.0)
+    line = env.new_line(name='line', components=['bend', 'drift'])
+    line.particle_ref = xt.Particles(p0c=7e12)
+    line.twiss_default['method'] = '4d'
+    s_exit = line['bend'].length
+
+    survey = SurveyData.from_survey_table(line.survey(), line=line, context=xo.ContextCpu())
+    exit_poses = survey.resample([s_exit, s_exit + 1e-9]).pose.to_nparray()
+
+    sliced_line = line.copy()
+    sliced_line.cut_at_s([0.5, s_exit], with_progress=False)
+    sliced_survey = sliced_line.survey()
+    exit_map_idx = np.flatnonzero(sliced_survey.name == 'bend..exit_map').item()
+
+    for exit_pose in exit_poses:
+        xo.assert_allclose(exit_pose[:3, 3], sliced_survey.XYZ[exit_map_idx],
+                           atol=1e-12, rtol=0)
+        xo.assert_allclose(exit_pose[:3, :3], sliced_survey.E_matrix[exit_map_idx],
+                           atol=1e-12, rtol=0)
+        assert abs(exit_pose[0, 3] - line.survey().XYZ[-2, 0]) > 1e-3
+
+    twiss = line.aperture._get_sliced_twiss_at_s(
+        [0.5, s_exit],
+        twiss_init=xt.TwissInit(betx=1.0, bety=1.0),
+        with_progress=False,
+    )
+    assert twiss.name[-1] == 'bend..exit_map'
+    twiss_exit_pose = survey.resample(twiss.s[-1:]).pose.to_nparray()[0]
+    xo.assert_allclose(twiss_exit_pose, exit_poses[0], atol=1e-12, rtol=0)
+
+
+def test_element_samples_avoid_boundary_frames():
+    env = xt.Environment()
+    env.new('drift', xt.Drift, length=1.0)
+    env.new('shift', xt.Translation, shift_x=0.1)
+    env.new('bend', xt.RBend, length_straight=1.0, angle=0.1)
+    env.new('short', xt.Drift, length=1e-6)
+    line = env.new_line(name='line', components=['drift', 'shift', 'bend', 'short'])
+    line.particle_ref = xt.Particles(p0c=7e12)
+    line.twiss_default['method'] = '4d'
+
+    aperture = line.aperture
+    aperture.s_tol = 1e-6
+    aperture._survey_data = SurveyData.from_survey_table(
+        line.survey(), line=line, context=xo.ContextCpu(),
+    )
+
+    s_positions = aperture._get_cuts_inside_element('bend', resolution=0.5)
+    s_entry = line._get_s_position('bend')
+    s_exit = s_entry + line['bend'].length
+    assert s_positions[0] > s_entry + aperture.s_tol
+    assert s_positions[-1] < s_exit - aperture.s_tol
+
+    twiss = aperture._get_sliced_twiss_at_s(
+        s_positions,
+        twiss_init=xt.TwissInit(betx=1.0, bety=1.0),
+        with_progress=False,
+    )
+    xo.assert_allclose(twiss.s, s_positions, atol=1e-12, rtol=0)
+    xo.assert_allclose(aperture._survey_data.resample(twiss.s).pose[0, 0, 3], 0.1,
+                       atol=1e-12, rtol=0)
+
+    short_start = line._get_s_position('short')
+    short_cuts = aperture._get_cuts_inside_element('short', resolution=0.5)
+    xo.assert_allclose(short_cuts, [short_start + 0.5e-6], atol=1e-12, rtol=0)
 
 
 @for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
@@ -2563,7 +2881,7 @@ def test_cross_sections_at_s_curved_type_preserves_profile_shape(test_context):
 
     shape = Circle(radius=radius)
     profiles = [
-        Profile(shape=shape, tol_r=0, tol_x=0, tol_y=0),
+        Profile(shape=shape),
     ]
     profile_positions = [
         ProfilePosition(profile_index=0, shift_s=0.0),
@@ -2590,7 +2908,7 @@ def test_cross_sections_at_s_curved_type_preserves_profile_shape(test_context):
     ap = Aperture(line=line, model=model, context=test_context, num_profile_points=256)
 
     s_samples = np.linspace(0.0, length, 33, dtype=FloatType._dtype)
-    sections = ap.cross_sections_at_s(s_samples).cross_section
+    sections = ap.get_cross_sections_at_s(s_samples).cross_section
 
     for ii in range(1, len(sections)):
         xo.assert_allclose(np.linalg.norm(sections[ii], axis=1), radius, atol=1e-6, rtol=0)
@@ -2621,15 +2939,15 @@ def test_cross_sections_at_s_returns_axis_extents(test_context):
                 ],
             ),
         ],
-        profiles=[Profile(shape=Rectangle(half_width=2.0, half_height=1.5), tol_r=0, tol_x=0, tol_y=0)],
+        profiles=[Profile(shape=Rectangle(max_x=2.0, max_y=1.5))],
         pipe_names=['pipe0'],
         pipe_position_names=['pipe0'],
         profile_names=['profile0'],
     )
 
     ap = Aperture(line=line, model=model, context=test_context)
-    sections_table = ap.cross_sections_at_s([0.0, 0.5], extents=True, polygons=False)
-    sections_with_polygons = ap.cross_sections_at_s([0.0, 0.5], extents=True)
+    sections_table = ap.get_cross_sections_at_s([0.0, 0.5], extents=True, polygons=False)
+    sections_with_polygons = ap.get_cross_sections_at_s([0.0, 0.5], extents=True)
 
     xo.assert_allclose(sections_table.min_x, [-2.0, -2.0], atol=1e-12, rtol=0)
     xo.assert_allclose(sections_table.max_x, [2.0, 2.0], atol=1e-12, rtol=0)
@@ -2671,14 +2989,14 @@ def test_cross_sections_at_s_invalid_section_has_nan_polygon_and_extents(test_co
                 ],
             ),
         ],
-        profiles=[Profile(shape=Circle(radius=0.1), tol_r=0, tol_x=0, tol_y=0)],
+        profiles=[Profile(shape=Circle(radius=0.1))],
         pipe_names=['pipe0'],
         pipe_position_names=['pipe0'],
         profile_names=['profile0'],
     )
 
     ap = Aperture(line=line, model=model, context=test_context)
-    sections = ap.cross_sections_at_s([0.0], extents=True)
+    sections = ap.get_cross_sections_at_s([0.0], extents=True)
 
     assert np.all(np.isnan(sections.cross_section))
     assert np.isnan(sections.min_x[0])
@@ -2716,7 +3034,7 @@ def test_cross_sections_at_s_wraps_profile_neighbours_on_ring(test_context):
                 positions=[ProfilePosition(profile_index=0, shift_s=0.5)],
             ),
         ],
-        profiles=[Profile(shape=Circle(radius=0.01), tol_r=0, tol_x=0, tol_y=0)],
+        profiles=[Profile(shape=Circle(radius=0.01))],
         pipe_names=['pipe0'],
         pipe_position_names=['after_seam', 'before_seam'],
         profile_names=['profile0'],
@@ -2726,7 +3044,7 @@ def test_cross_sections_at_s_wraps_profile_neighbours_on_ring(test_context):
     bounds = aperture.get_bounds_table()
     xo.assert_allclose(bounds.s, [0.5, 3.5], atol=1e-12, rtol=0)
 
-    sections = aperture.cross_sections_at_s([0.1])
+    sections = aperture.get_cross_sections_at_s([0.1])
 
     assert np.all(np.isfinite(sections.cross_section))
     # TODO: This only asserts that there is a cross section. We should assert on the shape, but since this is
@@ -2746,10 +3064,10 @@ def test_cross_sections_at_s_compare_straight_curved(test_context):
     sv = line.survey()
 
     circle = Circle(radius=1.4)
-    rectangle = Rectangle(half_width=0.4, half_height=1.9)
+    rectangle = Rectangle(max_x=0.4, max_y=1.9)
     profiles = [
-        Profile(shape=rectangle, tol_r=0, tol_x=0, tol_y=0),
-        Profile(shape=circle, tol_r=0, tol_x=0, tol_y=0),
+        Profile(shape=rectangle),
+        Profile(shape=circle),
     ]
     profile_positions = [
         ProfilePosition(profile_index=0, shift_s=0.0),
@@ -2787,8 +3105,8 @@ def test_cross_sections_at_s_compare_straight_curved(test_context):
     s_samples0 = np.linspace(0.1, length - 0.1, 33, dtype=FloatType._dtype)
     s_samples1 = s_samples0 + length
 
-    sections_straight = ap.cross_sections_at_s(s_samples0).cross_section
-    sections_curv = ap.cross_sections_at_s(s_samples1).cross_section
+    sections_straight = ap.get_cross_sections_at_s(s_samples0).cross_section
+    sections_curv = ap.get_cross_sections_at_s(s_samples1).cross_section
 
     # Compare up to cyclic polygon indexing: point ordering can differ by a
     # rotation along the closed contour while representing the same shape.
@@ -2809,6 +3127,79 @@ def test_cross_sections_at_s_compare_straight_curved(test_context):
 
 
 @for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
+def test_aperture_tolerances_disabled_in_gaps_between_pipes(test_context):
+    """Mechanical tolerances apply only where the hardware defines them.
+
+    Between consecutive profiles of one installed pipe the tolerances are
+    interpolated. In the gap between two installed pipes, and beyond the
+    first and last profiles, no hardware defines a tolerance, so the
+    tolerances are disabled (zero) instead of being taken from a nearby
+    profile.
+
+    Two straight pipes, each with two profiles, are installed back to back:
+    pipe `A` (tol_r = 0.01) at s = 0.5 and 3.5, pipe `B` (tol_r = 0.03) at
+    s = 4.5 and 7.5, leaving a gap between s = 3.5 and 4.5.
+    """
+    env = xt.Environment()
+    d1 = env.new('d1', xt.Drift, length=4.0)
+    d2 = env.new('d2', xt.Drift, length=4.0)
+    line = env.new_line(name='line', components=[d1, d2])
+
+    circ = env.aperture.new_profile('circ', 'Circle', radius=0.5)
+    pipe_a = env.aperture.new_pipe('pipeA', positions=[
+        circ.place(at=0.5, tol_r=0.01), circ.place(at=3.5, tol_r=0.01)])
+    pipe_b = env.aperture.new_pipe('pipeB', positions=[
+        circ.place(at=0.5, tol_r=0.03), circ.place(at=3.5, tol_r=0.03)])
+    ap = line.aperture
+    ap.place_pipe('A', pipe_a, at='d1@start')
+    ap.place_pipe('B', pipe_b, at='d2@start')
+    ap.build_model()
+
+    def tol_r_at(s):
+        table = ap.get_cross_sections_at_s([s])
+        return float(np.asarray(table.tol_r[0]).reshape(-1)[0])
+
+    # Within pipe A: interpolated between its two profiles.
+    xo.assert_allclose(tol_r_at(0.5), 0.01, atol=1e-9, rtol=0)
+    xo.assert_allclose(tol_r_at(2.0), 0.01, atol=1e-9, rtol=0)
+    xo.assert_allclose(tol_r_at(3.5), 0.01, atol=1e-9, rtol=0)
+
+    # In the gap between the pipes: no hardware defines a tolerance.
+    xo.assert_allclose(tol_r_at(3.9), 0.0, atol=1e-9, rtol=0)
+    xo.assert_allclose(tol_r_at(4.1), 0.0, atol=1e-9, rtol=0)
+
+    # Within pipe B: interpolated between its two profiles.
+    xo.assert_allclose(tol_r_at(4.5), 0.03, atol=1e-9, rtol=0)
+    xo.assert_allclose(tol_r_at(5.5), 0.03, atol=1e-9, rtol=0)
+    xo.assert_allclose(tol_r_at(7.5), 0.03, atol=1e-9, rtol=0)
+
+    # Beyond the last profile: no hardware defines a tolerance.
+    xo.assert_allclose(tol_r_at(8.0), 0.0, atol=1e-9, rtol=0)
+
+
+@for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
+def test_aperture_tolerances_interpolate_between_profiles(test_context):
+    """Tolerances interpolate linearly between profiles of one installed pipe."""
+    env = xt.Environment()
+    drift = env.new('drift', xt.Drift, length=4.0)
+    line = env.new_line(name='line', components=[drift])
+    circ = env.aperture.new_profile('circ', 'Circle', radius=0.5)
+    pipe = env.aperture.new_pipe('pipe', positions=[
+        circ.place(at=0.5, tol_r=0.01), circ.place(at=3.5, tol_r=0.05)])
+    ap = line.aperture
+    ap.place_pipe('p', pipe, at='drift@start')
+    ap.build_model()
+
+    def tol_r_at(s):
+        table = ap.get_cross_sections_at_s([s])
+        return float(np.asarray(table.tol_r[0]).reshape(-1)[0])
+
+    xo.assert_allclose(tol_r_at(0.5), 0.01, atol=1e-9, rtol=0)
+    xo.assert_allclose(tol_r_at(2.0), 0.03, atol=1e-9, rtol=0)  # midpoint
+    xo.assert_allclose(tol_r_at(3.5), 0.05, atol=1e-9, rtol=0)
+
+
+@for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
 def test_cross_sections_at_s_interpolated_sections_stay_closed(test_context):
     env = xt.Environment()
     angle = np.deg2rad(35.0)
@@ -2818,11 +3209,11 @@ def test_cross_sections_at_s_interpolated_sections_stay_closed(test_context):
     line = env.new_line(name='line', components=[bend])
     sv = line.survey()
 
-    rectangle = Rectangle(half_width=0.4, half_height=1.9)
+    rectangle = Rectangle(max_x=0.4, max_y=1.9)
     circle = Circle(radius=1.4)
     profiles = [
-        Profile(shape=rectangle, tol_r=0, tol_x=0, tol_y=0),
-        Profile(shape=circle, tol_r=0, tol_x=0, tol_y=0),
+        Profile(shape=rectangle),
+        Profile(shape=circle),
     ]
     profile_positions = [
         ProfilePosition(profile_index=0, shift_s=0.0),
@@ -2849,7 +3240,7 @@ def test_cross_sections_at_s_interpolated_sections_stay_closed(test_context):
     ap = Aperture(line=line, model=model, context=test_context, num_profile_points=256)
 
     s_samples = np.linspace(0.1, length - 0.1, 33, dtype=FloatType._dtype)
-    sections = ap.cross_sections_at_s(s_samples).cross_section
+    sections = ap.get_cross_sections_at_s(s_samples).cross_section
 
     xo.assert_allclose(sections[:, 0, :], sections[:, -1, :], atol=1e-12, rtol=0)
 
@@ -2872,10 +3263,10 @@ def test_open_line_aperture_bounds_do_not_wrap_search(test_context):
     sv = line.survey()
 
     circle = Circle(radius=2.0)
-    rectangle = Rectangle(half_width=2.0, half_height=1.0)
+    rectangle = Rectangle(max_x=2.0, max_y=1.0)
     profiles = [
-        Profile(shape=circle, tol_r=0, tol_x=0, tol_y=0),
-        Profile(shape=rectangle, tol_r=0, tol_x=0, tol_y=0),
+        Profile(shape=circle),
+        Profile(shape=rectangle),
     ]
     pipes = [
         Pipe(curvature=0.0, positions=[
@@ -2926,7 +3317,7 @@ def test_aperture_bounds_do_not_depend_on_profile_position_order(test_context):
     line = env.new_line(name='line', components=[bend, drift, anti_bend])
     sv = line.survey()
 
-    profiles = [Profile(shape=Circle(radius=radius), tol_r=0, tol_x=0, tol_y=0)]
+    profiles = [Profile(shape=Circle(radius=radius))]
 
     def make_position(shift_s):
         return ProfilePosition(
@@ -3001,7 +3392,7 @@ def test_aperture_bounds_rot_x_minus_pi_matches_reversed_profiles_with_shift(tes
     line = env.new_line(name='line', components=10 * [drift])
     sv = line.survey()
 
-    profiles = [Profile(shape=Circle(radius=radius), tol_r=0, tol_x=0, tol_y=0)]
+    profiles = [Profile(shape=Circle(radius=radius))]
 
     positions = [
         ProfilePosition(profile_index=0, shift_s=0.2 * length, shift_y=-0.2 * length * np.tan(rot_x_rad)),
@@ -3086,7 +3477,7 @@ def test_aperture_bounds_upstream_of_reference_across_marker(test_context):
             ),
         ],
         pipes=[Pipe(curvature=0.0, positions=[ProfilePosition(profile_index=0)])],
-        profiles=[Profile(shape=Circle(radius=0.01), tol_r=0, tol_x=0, tol_y=0)],
+        profiles=[Profile(shape=Circle(radius=0.01))],
         pipe_names=['pipe0'],
         pipe_position_names=['pipe0'],
         profile_names=['circle'],
@@ -3105,7 +3496,10 @@ def hllhc19_end_to_end_model(tmp_path_factory):
     local_context = xo.ContextCpu()
     tmp_path = tmp_path_factory.mktemp('hllhc19_end_to_end_model')
 
-    lhc = xt.load(TEST_DATA_DIR / 'hllhc19_apertures/lhc_aperture.json')
+    lhc = xt.load(
+        TEST_DATA_DIR / 'hllhc19_apertures/lhc_aperture.json',
+        _context=local_context,
+    )
     out = {}
     for beam in ('b1', 'b2'):
         line = getattr(lhc, beam).copy(_context=local_context)
@@ -3117,11 +3511,17 @@ def hllhc19_end_to_end_model(tmp_path_factory):
         )
 
         aperture_path = tmp_path / f'aperture_model_{beam}.json'
-        aperture.to_json(aperture_path)
-        aperture = Aperture.from_json(aperture_path, line)
+        line.env.lines[beam] = line
+        line.env.aperture.to_json(aperture_path)
+        line.env.aperture.clear()
+        line.env.aperture.from_json(aperture_path, context=local_context)
+        aperture = line.aperture
+        aperture.build_model()
 
         out[beam] = (line, aperture)
 
+    del lhc
+    gc.collect()
     return out
 
 
@@ -3159,3 +3559,94 @@ def test_hllhc19_end_to_end(ir, method, hllhc19_end_to_end_model):
         rtol=0.01,
         max_outliers=int(len(n1_madx) / 100),
     ), ref_file.name
+
+
+@pytest.mark.parametrize('axis', ['x', 'y'])
+@pytest.mark.parametrize('orbit_sign', [-1, 1])
+@pytest.mark.parametrize('disp_sign', [-1, 1])
+def test_ray_contact_matches_analytic_limit(axis, orbit_sign, disp_sign, context):
+    # The limiting wall is farther away geometrically but the beam is wider
+    # in that plane. The contact must follow the limiting n1, not distance.
+    primary = 0 if axis == 'x' else 1
+    secondary = 1 - primary
+    half_sizes = np.array([0.01, 0.01])
+    half_sizes[primary] = 0.02
+    shift = np.array([0.004, -0.006])
+    orbit = shift + 0.002
+    orbit[primary] = shift[primary] + orbit_sign * 0.003
+    dispersion = np.ones(2)
+    dispersion[primary] = disp_sign * 2
+    betas = np.ones(2)
+    betas[primary] = 16
+    tolerances = np.array([0.0003, 0.0004])
+
+    env = xt.Environment()
+    line = env.new_line(components=[
+        env.new('origin', 'Marker'),
+        env.new('drift', 'Drift', length=10),
+    ])
+    line.particle_ref = xt.Particles(gamma0=np.sqrt(101))
+    builder = env.aperture
+    builder.new_profile('rect', 'Rectangle',
+                        max_x=half_sizes[0], max_y=half_sizes[1])
+    builder.new_pipe('pipe', positions=[
+        builder.place_profile('rect', at=s,
+                              tol_r=0.0002, tol_x=tolerances[0],
+                              tol_y=tolerances[1]) for s in (0, 10)
+    ])
+    line.aperture = LineAperture(line, context=context, is_ring=False,
+                                with_progress=False)
+    line.aperture.place_pipe('pipe', 'pipe', at='origin',
+                             shift_x=shift[0], shift_y=shift[1])
+    line.aperture.build_model()
+    line.aperture.halo_params.update(
+        nemitt_x=1e-5, nemitt_y=1e-5, delta_rms=0.001,
+        tol_co=0.0001, tol_disp=0, tol_beta_beating=1,
+        halo_primary=1, halo_x=1, halo_y=1, halo_r=1,
+    )
+    twiss = xt.TwissTable(dict(
+        name=np.array(['a', 'b']), s=np.array([2., 4.]),
+        x=np.full(2, orbit[0]), y=np.full(2, orbit[1]),
+        dx=np.full(2, dispersion[0]), dy=np.full(2, dispersion[1]),
+        betx=np.full(2, betas[0]), bety=np.full(2, betas[1]),
+        delta=np.zeros(2),
+    ))
+    aperture = line.aperture
+    plain = aperture.get_aperture_sigmas_for_twiss(twiss, num_rays=4)
+    result = aperture.get_aperture_sigmas_for_twiss(
+        twiss, num_rays=4, output_contact_points=True)
+    assert 'x' not in plain._col_names and 'y' not in plain._col_names
+    np.testing.assert_array_equal(result.n1, plain.n1)
+    expected_n1 = (0.02 - 0.003 - 0.002 - 0.0002 - 0.0001
+                   - tolerances[primary]) / 0.004
+    xo.assert_allclose(result.n1, expected_n1, rtol=1e-10, atol=1e-10)
+    expected = shift.copy()
+    expected[primary] += orbit_sign * half_sizes[primary]
+    expected[secondary] += 0.002 + orbit_sign * disp_sign * 0.001
+    xo.assert_allclose(result.x, expected[0], rtol=0, atol=1e-10)
+    xo.assert_allclose(result.y, expected[1], rtol=0, atol=1e-10)
+
+    # Invalid optics must not expose a contact from an unrelated valid ray.
+    twiss.betx[1] = np.nan
+    invalid = aperture.get_aperture_sigmas_for_twiss(
+        twiss, num_rays=4, output_contact_points=True)
+    assert np.isfinite(invalid.n1[0])
+    assert np.isnan(invalid.n1[1])
+    assert np.isnan(invalid.x[1]) and np.isnan(invalid.y[1])
+
+
+@pytest.mark.parametrize('method', ['exact', 'bisection'])
+def test_contact_points_reject_unsupported_methods_before_twiss(
+        method, context, monkeypatch):
+    aperture, twiss = _build_single_marker_aperture_model(context)
+
+    def unexpected(*args, **kwargs):
+        raise AssertionError('Unsupported contact option must not run Twiss')
+
+    monkeypatch.setattr(aperture, '_get_sliced_twiss_at_s', unexpected)
+    with pytest.raises(ValueError, match="only for method='rays'"):
+        aperture.get_aperture_sigmas_at_s(
+            twiss.s, method=method, output_contact_points=True)
+    with pytest.raises(ValueError, match="only for method='rays'"):
+        aperture.get_aperture_sigmas_for_twiss(
+            twiss, method=method, output_contact_points=True)

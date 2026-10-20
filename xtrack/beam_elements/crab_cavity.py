@@ -26,6 +26,8 @@ class CrabCavity(_HasModelRF, _HasIntegrator, BeamElement):
         Length of the RF cavity in meters. Default is ``0``.
     crab_voltage : float
         Voltage associated to the horizontal RF deflection in Volts. Default is ``0``.
+        As for `Cavity.voltage`, this is the voltage per unit charge; the
+        reference-particle kick includes the absolute reference charge `abs(q0)`.
     frequency : float
         Frequency of the cavity in Hertz. It can be set only if harmonic is zero.
         Default is ``0``.

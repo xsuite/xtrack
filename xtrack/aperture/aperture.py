@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 from collections.abc import Collection, Iterable
 from typing import Literal, cast, get_args
+from weakref import ref
 
 import numpy as np
 
@@ -16,15 +17,14 @@ from xtrack.aperture.profile_converters import (
     LimitElement, profile_from_limit_element, profile_from_madx_aperture
 )
 from xtrack.aperture.structures import (
-    ApertureBounds, ApertureModel, BeamData, Circle, FloatType, Pipe,
-    PipePosition, Profile, ProfilePolygons, ProfilePosition,
+    ApertureBounds, BeamData, Circle, FloatType,
+    LineApertureModel, Pipe, PipePosition, Profile, ProfilePolygons, ProfilePosition,
     Rectangle, RectEllipse, ShapeTypes, SurveyData, TwissData,
 )
-from xtrack.json import dump as json_dump
-from xtrack.json import load as json_load
 from xtrack.line import Line
 from xtrack.progress_indicator import progress
 from xtrack.survey import survey_relative_transform
+from xtrack.general import parse_anchor_spec
 from xtrack.aperture.views import (
     PipePositionsView, PipesView, ProfilesView,
 )
@@ -39,7 +39,11 @@ HomogeneousMatrices = np.ndarray[tuple[int, Literal[4], Literal[4]], DTypeFloat]
 SigmasCalculationEnum = Literal['bisection', 'rays', 'exact']
 
 def _survey_is_closed(survey: Table, tol: float = 1e-6) -> bool:
+    """Return whether the survey forms a closed path of non-zero length."""
     if len(survey.Z) < 2:
+        return False
+
+    if survey.s[-1] - survey.s[0] <= tol:
         return False
 
     dx = survey.X[-1] - survey.X[0]
@@ -105,67 +109,78 @@ def _split_wrapped_s_interval(
 
 _aperture_doc_groups = GroupedAPICollector([
     "Loading and Serialization",
-    "Aperture Computations",
+    "Aperture Computation",
     "Introspection",
     "Visualization",
 ])
 
 DEFAULT_HALO_PARAMS = {
-    "emitx_norm": 3.5e-6,
-    "emity_norm": 3.5e-6,
+    "nemitt_x": 1e-6,
+    "nemitt_y": 1e-6,
     "delta_rms": 0.0,
     "tol_co": 0.0,
     "tol_disp": 0.0,
-    "tol_disp_ref": 1.8,
-    "tol_disp_ref_beta": 170,
+    "tol_disp_ref": 1.0,
+    "tol_disp_ref_beta": 1.0,
     "tol_beta_beating": 1.0,
-    "halo_x": 6.0,
-    "halo_y": 6.0,
-    "halo_r": 6.0,
-    "halo_primary": 6.0,
+    "halo_x": 1.0,
+    "halo_y": 1.0,
+    "halo_r": 1.0,
+    "halo_primary": 1.0,
 }
 
 
-class Aperture:
+class LineAperture:
+    """Aperture placements, survey snapshot, and computations for one line.
+
+    Pipe placements are dynamic until :meth:`build_model` freezes them into a
+    model suitable for computations. Call :meth:`discard_model` to restore the
+    dynamic representation and allow edits again.
+    """
+
     def __init__(
         self,
         line: Line,
-        model: ApertureModel,
         num_profile_points: int = 128,
         halo_params: dict | None = None,
         context: XContext | None = None,
         s_tol=1e-6,
         is_ring: bool | Literal['auto'] = 'auto',
-        _skip_validity_check=False,
         with_progress=True,
     ):
-        """Bind an aperture model to a line and precompute the derived geometry."""
-        self.line = line
-        self._model = model  # positioning of pipes in line frame
+        """Manage the aperture model owned by a line."""
+        self._line_ref = ref(line)
+        self._model = None
+        self._pipe_positions_unbuilt = []
+        self._pipe_position_name_to_index = {}
         self._halo_params = DEFAULT_HALO_PARAMS.copy()
         self.context = context or xo.ContextCpu()
         self.s_tol = s_tol
-
-        self.survey = line.survey()
-        self.is_ring = _survey_is_closed(self.survey) if is_ring == 'auto' else bool(is_ring)
-        self._model.is_ring = int(self.is_ring)
-        self._model.survey_length = self.line.get_length()
-
-        if not _skip_validity_check:
-            self._check_model_validity()
-
-        self._survey_data = SurveyData.from_survey_table(self.survey, line, context=self.context)
+        self._is_ring_setting = is_ring
+        self.survey = None
+        self.is_ring = None
+        self._survey_data = None
         self.num_profile_points = num_profile_points
-
         self._aperture_bounds: ApertureBounds | None = None
         self._profile_polygons: ProfilePolygons | None = None
-        self._build_aperture_bounds(
-            check_validity=not _skip_validity_check,
-            with_progress=with_progress,
-        )
+        self._with_progress = with_progress
 
         if halo_params is not None:
             self.halo_params.update(halo_params)
+
+    def __repr__(self):
+        return f'<LineAperture: {len(self.pipe_positions)} pipe positions>'
+
+    @property
+    def line(self):
+        """Line owning this aperture container."""
+        return self._line_ref()
+
+    def __getstate__(self):
+        """Leave the owner reference to be restored by the line after unpickling."""
+        state = self.__dict__.copy()
+        state.pop('_line_ref')
+        return state
 
     @classmethod
     def _generate_doc_rst(cls, *, include_summary_table=True):
@@ -183,18 +198,18 @@ class Aperture:
         ========================  =======  =====================================================
         Key                       Default  Description
         ========================  =======  =====================================================
-        ``emitx_norm``            3.5e-6   Normalised horizontal emittance [m·rad]
-        ``emity_norm``            3.5e-6   Normalised vertical emittance [m·rad]
+        ``nemitt_x``              1e-6     Normalised horizontal emittance [m·rad]
+        ``nemitt_y``              1e-6     Normalised vertical emittance [m·rad]
         ``delta_rms``             0.0      RMS momentum spread
         ``tol_co``                0.0      Closed-orbit tolerance [m]
         ``tol_disp``              0.0      Normalised dispersion tolerance [m]
-        ``tol_disp_ref``          1.8      Reference dispersion derivative tolerance [m]
-        ``tol_disp_ref_beta``     170      Reference dispersion beta-function [m]
+        ``tol_disp_ref``          1.0      Reference dispersion derivative tolerance [m]
+        ``tol_disp_ref_beta``     1.0      Reference dispersion beta-function [m]
         ``tol_beta_beating``      1.0      Beta-beating tolerance [sigma]
-        ``halo_x``                6.0      Horizontal halo size [sigma]
-        ``halo_y``                6.0      Vertical halo size [sigma]
-        ``halo_r``                6.0      45° halo size [sigma]
-        ``halo_primary``          6.0      Primary halo size [sigma]
+        ``halo_x``                1.0      Horizontal halo size [sigma]
+        ``halo_y``                1.0      Vertical halo size [sigma]
+        ``halo_r``                1.0      45° halo size [sigma]
+        ``halo_primary``          1.0      Primary halo size [sigma]
         ========================  =======  =====================================================
 
         The dictionary is mutable; individual entries can be changed with
@@ -210,54 +225,386 @@ class Aperture:
     @property_with_doc_group("Introspection")
     def profiles(self) -> ProfilesView:
         """Return the profile collection view."""
-        return ProfilesView(self._model)
+        return self.line.env.aperture.profiles
 
     @property_with_doc_group("Introspection")
     def pipe_positions(self) -> PipePositionsView:
         """Return the pipe-position collection view."""
-        return PipePositionsView(self._model)
+        return PipePositionsView(self)
 
     @property_with_doc_group("Introspection")
     def pipes(self) -> PipesView:
         """Return the pipe collection view."""
-        return PipesView(self._model)
+        return self.line.env.aperture.pipes
 
-    @doc_group("Loading and Serialization")
-    def to_json(self, filename):
-        """Serialize the aperture model and halo parameters to JSON."""
-        json = {
-            'model': self._model.to_dict(),
-            'halo_params': self.halo_params,
-        }
-        json_dump(json, filename)
+    def new_profile(self, name, shape, **shape_params):
+        """Create a profile in the line's aperture environment."""
+        return self.line.env.aperture.new_profile(name, shape, **shape_params)
 
-    @doc_group("Loading and Serialization")
-    @classmethod
-    def from_json(cls, filename, line, with_progress=True, **kwargs):
-        """Load an aperture from JSON and bind it to ``line``."""
-        context = kwargs.pop('context', None)
-        if context is None:
-            context = getattr(line, '_context', None)
-        json = json_load(filename)
-        model = ApertureModel(**json['model'], _context=context)
-        halo_params = json['halo_params']
-        ring = kwargs.pop('ring', bool(model.is_ring))
-        return cls(
-            line=line,
-            model=model,
-            halo_params=halo_params,
-            is_ring=ring,
-            context=context,
-            with_progress=with_progress,
-            **kwargs,
+    def new_pipe(self, name, curvature=0.0, positions=None):
+        """Create a pipe in the line's aperture environment."""
+        return self.line.env.aperture.new_pipe(
+            name, curvature=curvature, positions=positions,
         )
 
+    @property
+    def is_built(self):
+        """Whether pipe placements are stored in a packed line model."""
+        return self._model is not None
+
+    def _resolve_pipe_position(self, name):
+        index = self._pipe_position_name_to_index[name]
+        if self._model is not None:
+            return self._model.pipe_positions[index]
+
+        return self._pipe_positions_unbuilt[index]
+
+    def _get_anchor_transform(self, survey_reference, anchor):
+        """Return the transform from an element entrance to an anchor."""
+        if anchor in (None, 'start'):
+            return np.identity(4)
+
+        if anchor not in ('center', 'centre', 'end'):
+            raise ValueError(f"Invalid anchor `{anchor}`.")
+
+        table = self.line.get_table()
+        element_name = table.env_name[table.rows.get_index(survey_reference)]
+
+        # Build a small anonymous line for a local survey
+        tmp_line = self.line.env.new_line(components=[element_name])
+        survey = tmp_line.survey()
+
+        sv_length = float(survey.s[-1])
+        anchor_s = sv_length if anchor == 'end' else sv_length / 2
+
+        survey_data = SurveyData.from_survey_table(survey, tmp_line)
+        interpolated = survey_data.resample([anchor_s]).pose.to_nplike()
+        return interpolated[0]
+
+    def place_pipe(
+        self,
+        name,
+        pipe,
+        at,
+        transformation=None,
+        shift_x=None,
+        shift_y=None,
+        shift_z=None,
+        rot_y_rad=None,
+        rot_x_rad=None,
+        rot_z_rad=None,
+        tol_r=0.0,
+        tol_x=0.0,
+        tol_y=0.0,
+    ):
+        """Place pipes relative to survey references.
+
+        Tolerances apply to each installed pipe in addition to those on its
+        profile positions.
+        """
+        if self._model is not None:
+            raise RuntimeError("Cannot place pipes after the line aperture is built.")
+
+        # Place in bulk if multiple anchor points given
+        if not isinstance(at, str):
+            at_values = list(at)
+
+            if isinstance(name, str):
+                names = [f"{name}.{ii}" for ii in range(len(at_values))]
+            else:
+                if len(name) != len(at_values):
+                    raise ValueError("Expected `name` and `at` to have the same length.")
+                names = list(name)
+
+            return [
+                self.place_pipe(
+                    position_name,
+                    pipe,
+                    at_value,
+                    transformation=transformation,
+                    shift_x=shift_x,
+                    shift_y=shift_y,
+                    shift_z=shift_z,
+                    rot_y_rad=rot_y_rad,
+                    rot_x_rad=rot_x_rad,
+                    rot_z_rad=rot_z_rad,
+                    tol_r=tol_r,
+                    tol_x=tol_x,
+                    tol_y=tol_y,
+                )
+                for position_name, at_value in zip(names, at_values)
+            ]
+
+        if name in self._pipe_position_name_to_index:
+            raise ValueError(f"Pipe position `{name}` already exists.")
+
+        survey_reference, anchor = parse_anchor_spec(at, default_anchor="start")
+        transform_fields = {
+            'shift_x': shift_x,
+            'shift_y': shift_y,
+            'shift_z': shift_z,
+            'rot_y_rad': rot_y_rad,
+            'rot_x_rad': rot_x_rad,
+            'rot_z_rad': rot_z_rad,
+        }
+        transform_fields_given = any(value is not None for value in transform_fields.values())
+        if transformation is not None and transform_fields_given:
+            raise ValueError("Provide either `transformation` or transform components, not both.")
+
+        if transformation is None:
+            transformation = transform_matrix(**{
+                key: 0.0 if value is None else value
+                for key, value in transform_fields.items()
+            })
+        else:
+            transformation = np.array(transformation, dtype=float, copy=True)
+
+        transformation = self._get_anchor_transform(survey_reference, anchor) @ transformation
+
+        position = PipePosition(
+            pipe_index=self.line.env.aperture.pipe_index(pipe),
+            survey_reference_name=survey_reference,
+            survey_index=-1,
+            transformation=transformation,
+            tol_r=tol_r,
+            tol_x=tol_x,
+            tol_y=tol_y,
+        )
+        index = len(self._pipe_position_name_to_index)
+        self._pipe_positions_unbuilt.append(position)
+        self._pipe_position_name_to_index[name] = index
+
+        return position
+
+    def build_model(self, _skip_validity_check=False):
+        """Build the packed model and its derived geometry.
+
+        The first call freezes the current pipe placements and survey. Later
+        calls keep that model and survey, but rebuild profile polygons and
+        aperture bounds from the current packed Xobjects.
+
+        Parameters
+        ----------
+        _skip_validity_check : bool, optional
+            Skip model-consistency and pipe-overlap checks for this build only.
+            Intended for inspecting inconsistent imported geometry. It does
+            not repair that geometry or guarantee meaningful computations.
+        """
+        if self._model is not None:
+            aperture_env = self.line.env.aperture.build_model(
+                context=self.context)
+            self._model.bind_environment(aperture_env)
+
+            survey_name_to_index = {
+                name: index for index, name in enumerate(self.survey.name)}
+            for position in self._model.pipe_positions:
+                reference = position.survey_reference_name
+                if reference not in survey_name_to_index:
+                    raise ValueError(f"Unknown survey reference `{reference}`.")
+
+                position.survey_index = survey_name_to_index[reference]
+
+            if not _skip_validity_check:
+                self._check_model_validity()
+
+            self._build_aperture_bounds(
+                check_validity=not _skip_validity_check, with_progress=self._with_progress)
+
+            return self
+
+        aperture_env = self.line.env.aperture.build_model(context=self.context)
+        self.survey = self.line.survey()
+        self.is_ring = (_survey_is_closed(self.survey)
+                        if self._is_ring_setting == 'auto'
+                        else bool(self._is_ring_setting))
+
+        survey_name_to_index = {
+            name: index for index, name in enumerate(self.survey.name)}
+        position_data = []
+        for position in self._pipe_positions_unbuilt:
+            data = position._to_dict()
+            reference = data['survey_reference_name']
+            if reference not in survey_name_to_index:
+                raise ValueError(f"Unknown survey reference `{reference}`.")
+
+            data['survey_index'] = survey_name_to_index[reference]
+            position_data.append(data)
+
+        self._model = LineApertureModel(
+            pipe_positions=position_data,
+            pipe_position_names=list(self._pipe_position_name_to_index),
+            is_ring=self.is_ring,
+            survey_length=self.line.get_length(),
+            _context=self.context,
+        ).bind_environment(aperture_env)
+        self._pipe_positions_unbuilt = None
+
+        self._survey_data = SurveyData.from_survey_table(
+            self.survey, self.line, context=self.context)
+        if not _skip_validity_check:
+            self._check_model_validity()
+
+        self._build_aperture_bounds(
+            check_validity=not _skip_validity_check, with_progress=self._with_progress)
+
+        return self
+
+    def discard_model(self):
+        """Restore standalone pipe placements and discard derived geometry."""
+        if self._model is None:
+            return self
+
+        self._pipe_positions_unbuilt = []
+        for position in self._model.pipe_positions:
+            position_data = position._to_dict()
+            position_data['survey_index'] = -1
+            self._pipe_positions_unbuilt.append(
+                PipePosition(**position_data))
+
+        self._model = None
+        self.survey = None
+        self.is_ring = None
+        self._survey_data = None
+        self._aperture_bounds = None
+        self._profile_polygons = None
+
+        return self
+
+    @property
+    def empty(self):
+        """Whether the line has no pipe placements."""
+        return not self._pipe_position_name_to_index
+
     @doc_group("Loading and Serialization")
-    @classmethod
-    def from_line_with_madx_metadata(
-            cls, line, include_offsets=True, context=None,
+    def to_dict(self):
+        """Serialise this line's pipe placements and settings.
+
+        Accepts built and unbuilt models without changing their state.
+
+        Returns
+        -------
+        dict
+            Placements referencing pipes by name, plus computation settings.
+
+        Notes
+        -----
+        Shared definitions are excluded. They must exist in the destination
+        environment before calling :meth:`from_dict`. For JSON serialisation,
+        use ``env.aperture.to_json(...)``.
+        """
+        if self._model is not None:
+            positions_source = self._model.pipe_positions
+            position_names = self._model.pipe_position_names
+            is_ring = bool(self._model.is_ring)
+        else:
+            positions_source = self._pipe_positions_unbuilt
+            position_names = self._pipe_position_name_to_index
+            is_ring = self._is_ring_setting
+
+        pipe_names = list(self.line.env.aperture._pipe_name_to_index)
+        positions = []
+        for name, position in zip(position_names, positions_source):
+            data = position._to_dict()
+            data.pop('pipe_index')
+            data.pop('survey_index')
+            data['name'] = name
+            data['pipe'] = pipe_names[position.pipe_index]
+            positions.append(data)
+
+        return {
+            'pipe_positions': positions,
+            'num_profile_points': self.num_profile_points,
+            'halo_params': dict(self.halo_params),
+            's_tol': self.s_tol,
+            'is_ring': is_ring,
+        }
+
+    @doc_group("Loading and Serialization")
+    def from_dict(self, data, context=None):
+        """Replace placements and settings, leaving the line model unbuilt.
+
+        Parameters
+        ----------
+        data : dict
+            Line data returned by :meth:`to_dict`. Referenced pipes must already
+            exist in the environment. Missing settings use their defaults.
+        context : xobjects.ContextCpu, optional
+            Context for placements and computations. Defaults to the current
+            line aperture context.
+
+        Returns
+        -------
+        LineAperture
+            This container, with the line model left unbuilt.
+
+        Raises
+        ------
+        ValueError
+            If placement names are duplicated.
+        KeyError
+            If required placement data is missing or a pipe name is unknown.
+        TypeError
+            If placement data is invalid.
+
+        Notes
+        -----
+        Replaces existing placements and settings on built or unbuilt models.
+        Shared definitions and other lines are unchanged. Call :meth:`build_model`
+        to validate geometry and enable computations. For JSON loading, use
+        ``env.aperture.from_json(...)``.
+        """
+        context = context or self.context
+        environment = self.line.env.aperture
+        pipe_names = list(environment._pipe_name_to_index)
+        pipe_indices = {name: index for index, name in enumerate(pipe_names)}
+        positions = []
+        position_indices = {}
+        for item in data.get('pipe_positions', []):
+            item = dict(item)
+            name = item.pop('name')
+            pipe_name = item.pop('pipe')
+            if name in position_indices:
+                raise ValueError(f"Duplicate pipe position `{name}`.")
+            position = PipePosition(
+                pipe_index=pipe_indices[pipe_name],
+                survey_index=-1,
+                _context=context,
+                **item,
+            )
+            position_indices[name] = len(positions)
+            positions.append(position)
+
+        self._clear_model()
+        self.context = context
+        self.num_profile_points = data.get('num_profile_points', 128)
+        self._halo_params = DEFAULT_HALO_PARAMS.copy()
+        self._halo_params.update(data.get('halo_params', {}))
+        self.s_tol = data.get('s_tol', 1e-6)
+        self._is_ring_setting = data.get('is_ring', 'auto')
+        self._pipe_positions_unbuilt = positions
+        self._pipe_position_name_to_index = position_indices
+
+        return self
+
+    def _clear_model(self):
+        """Reset all model state before loading or importing replacements."""
+        self._model = None
+        self._pipe_positions_unbuilt = []
+        self._pipe_position_name_to_index = {}
+        self.survey = None
+        self.is_ring = None
+        self._survey_data = None
+        self._aperture_bounds = None
+        self._profile_polygons = None
+
+    @doc_group("Loading and Serialization")
+    def from_madx_metadata(
+            self, include_offsets=True, context=None,
             with_progress=True, **kwargs):
         """Build an aperture from MAD-X layout metadata attached to a line."""
+        cls = type(self)
+        line = self.line
+        context = context or self.context
         survey = line.survey()
         survey_names = survey.name[:-1]  # _end_point is not an element
         name_to_sv_index = dict(zip(survey.name, range(len(survey))))
@@ -330,7 +677,7 @@ class Aperture:
                 if 'aperture' not in element_metadata:
                     continue
 
-                shape_name, params, tols = element_metadata['aperture']
+                shape_name, params, _ = element_metadata['aperture']
                 shape = profile_from_madx_aperture(shape_name, params)
 
                 if not shape:
@@ -340,8 +687,9 @@ class Aperture:
                 if cls._is_broken_madx_aperture(shape):
                     continue
 
-                tol_r, tol_x, tol_y = tols
-                profile = Profile(shape=shape, tol_r=tol_r, tol_x=tol_x, tol_y=tol_y)
+                shape = type(shape)(**shape._to_dict(), _context=context)
+
+                profile = Profile(shape=shape, _context=context)
 
                 assert len(pipes) == len(profiles)  # in MAD-X we will have just one pipe per profile
 
@@ -349,8 +697,11 @@ class Aperture:
 
                 if element.isthick and not offset_data:
                     # Place two profiles on either side of the element
-                    position_entry = ProfilePosition(profile_index=aper_idx)
-                    position_exit = ProfilePosition(profile_index=aper_idx, shift_s=element.length)
+                    position_entry = ProfilePosition(
+                        profile_index=aper_idx, _context=context)
+                    position_exit = ProfilePosition(
+                        profile_index=aper_idx, shift_s=element.length,
+                        _context=context)
                     positions = [position_entry, position_exit]
                     # If no MAD-X offset data is present, the curvature follows
                     # the element
@@ -362,7 +713,8 @@ class Aperture:
 
                     for s in np.linspace(0, offset_frame_length, max(2, int(offset_frame_length / 0.1))):
                         s_local = s
-                        position = ProfilePosition(profile_index=aper_idx)
+                        position = ProfilePosition(
+                            profile_index=aper_idx, _context=context)
                         position.shift_s = s * z_dir
                         position.shift_x = (s_local * offset_data['dx'] + s_local**2 * offset_data['ddx']) * x_dir
                         position.shift_y = s_local * offset_data['dy'] + s_local**2 * offset_data['ddy']
@@ -374,25 +726,32 @@ class Aperture:
                     curvature = 0
                 else:
                     # Place a single profile for a thin element
-                    positions = [ProfilePosition(profile_index=aper_idx)]
+                    positions = [ProfilePosition(
+                        profile_index=aper_idx, _context=context)]
                     curvature = 0
 
                 aperture_indices[aper_name] = aper_idx
 
-                pipe = Pipe(curvature=curvature, positions=positions)
+                pipe = Pipe(
+                    curvature=curvature, positions=positions, _context=context)
                 pipes.append(pipe)
                 profiles.append(profile)
 
+            tols = layout_data[aper_name]['aperture'][2]
             pipe_position = PipePosition(
                 pipe_index=aperture_indices[aper_name],
                 survey_reference_name=survey_reference_name,
                 survey_index=name_to_sv_index[survey_reference_name],
                 transformation=pipe_transform,
+                tol_r=tols[0],
+                tol_x=tols[1],
+                tol_y=tols[2],
+                _context=context,
             )
             pipe_positions_list.append(pipe_position)
             pipe_position_names.append(aper_name)
 
-        aperture = cls._build_aperture_model(
+        aperture = cls._commit_imported_model(
             line=line,
             pipe_indices=aperture_indices,
             pipe_list=pipes,
@@ -407,10 +766,12 @@ class Aperture:
         return aperture
 
     @doc_group("Loading and Serialization")
-    @classmethod
-    def from_line_with_associated_apertures(
-            cls, line, context=None, with_progress=True, **kwargs):
+    def from_associated_apertures(
+            self, context=None, with_progress=True, **kwargs):
         """Build an aperture from Xsuite elements that reference associated apertures."""
+        cls = type(self)
+        line = self.line
+        context = context or self.context
         survey = line.survey()
         survey_names = survey.name[:-1]  # _end_point is not an element
         name_to_sv_index = dict(zip(survey.name, range(len(survey_names))))
@@ -438,13 +799,16 @@ class Aperture:
 
             if aper_name not in aperture_indices:
                 profile, offset_x, offset_y = profile_from_limit_element(aper_element)
+                profile = type(profile)(
+                    **profile._to_dict(), _context=context)
 
                 assert len(pipes) == len(profiles)  # in Xsuite with associated apertures we will have just one pipe per profile
 
                 aper_idx = len(pipes)
                 aperture_indices[aper_name] = aper_idx
 
-                profile_position = ProfilePosition(profile_index=aper_idx)
+                profile_position = ProfilePosition(
+                    profile_index=aper_idx, _context=context)
                 profile_position.shift_x = offset_x
                 profile_position.shift_y = offset_y
 
@@ -470,10 +834,11 @@ class Aperture:
                     positions = [profile_position]
                     curvature = 0
 
-                pipe = Pipe(curvature=curvature, positions=positions)
+                pipe = Pipe(
+                    curvature=curvature, positions=positions, _context=context)
                 pipes.append(pipe)
 
-                profiles.append(Profile(shape=profile))
+                profiles.append(Profile(shape=profile, _context=context))
 
             # Apply element transformations to pipe position
             if element.transformations_active:
@@ -487,11 +852,12 @@ class Aperture:
                 survey_reference_name=survey_name,
                 survey_index=name_to_sv_index[survey_name],
                 transformation=np.identity(4),
+                _context=context,
             )
             pipe_positions_list.append(pipe_position)
             pipe_position_names.append(aper_name)
 
-        aperture = cls._build_aperture_model(
+        aperture = cls._commit_imported_model(
             line=line,
             pipe_indices=aperture_indices,
             pipe_list=pipes,
@@ -506,10 +872,11 @@ class Aperture:
         return aperture
 
     @doc_group("Loading and Serialization")
-    @classmethod
-    def from_line_with_limits(
-            cls, line, context=None, with_progress=True, **kwargs):
+    def from_limits(self, context=None, with_progress=True, **kwargs):
         """Build an aperture from limit elements installed in the line."""
+        cls = type(self)
+        line = self.line
+        context = context or self.context
         survey = line.survey()
         survey_names = survey.name[:-1]  # _end_point is not a limit
         name_to_sv_index = dict(zip(survey.name, range(len(survey_names))))
@@ -536,9 +903,11 @@ class Aperture:
 
             indices[name] = aper_idx
             profile, center_x, center_y = profile_from_limit_element(element)
-            profiles.append(Profile(shape=profile))
+            profile = type(profile)(**profile._to_dict(), _context=context)
+            profiles.append(Profile(shape=profile, _context=context))
 
-            profile_position = ProfilePosition(profile_index=aper_idx)
+            profile_position = ProfilePosition(
+                profile_index=aper_idx, _context=context)
             profile_position.shift_x = center_x
             profile_position.shift_y = center_y
             if element.transformations_active:
@@ -550,7 +919,8 @@ class Aperture:
                 profile_position.rot_x_rad = element.rot_x_rad
                 profile_position.rot_y_rad = element.rot_y_rad
 
-            pipe = Pipe(curvature=0, positions=[profile_position])
+            pipe = Pipe(
+                curvature=0, positions=[profile_position], _context=context)
             pipe_list.append(pipe)
 
             pipe_position = PipePosition(
@@ -558,13 +928,14 @@ class Aperture:
                 survey_reference_name=name,
                 survey_index=name_to_sv_index[name],
                 transformation=np.identity(4),
+                _context=context,
             )
             pipe_positions_list.append(pipe_position)
             pipe_position_names.append(name)
 
             aper_idx += 1
 
-        aperture = cls._build_aperture_model(
+        aperture = cls._commit_imported_model(
             line=line,
             pipe_indices=indices,
             pipe_list=pipe_list,
@@ -579,7 +950,7 @@ class Aperture:
         return aperture
 
     @classmethod
-    def _build_aperture_model(
+    def _commit_imported_model(
             cls,
             line: Line,
             pipe_indices: dict[str, int],
@@ -589,31 +960,14 @@ class Aperture:
             profile_indices: dict[str, int],
             profile_list: list[ShapeTypes],
             context: XContext,
+            with_progress: bool = True,
             **kwargs,
-    ) -> Aperture:
-        """Build the Aperture object and its constituent xobjects.
+    ) -> 'LineAperture':
+        """Commit prepared importer output through the public container API.
 
-        Parameters
-        ----------
-        line
-            The line for which the aperture model is built.
-        pipe_indices
-            A mapping between the name of an aperture pipe and its index in ``pipe_list``.
-        pipe_list
-            List of aperture pipes featured in the model.
-        pipe_position_list
-            List of aperture pipe positions that define the model.
-        pipe_position_names
-            Names of all aperture pipe positions in ``pipe_position_list`` order.
-        profile_indices
-            A mapping between the name of an aperture profile and its index in ``profile_list``.
-        profile_list
-            List of all profiles featured in the model. The order must be consistent with the indices used inside
-            each of the pipe definitions in ``pipe_list``.
-        context
-            Context in which the model xobjects are allocated.
-        kwargs
-            Further parameters to be passed to the initialiser of `Aperture`.
+        Importers prepare all objects before entering this method. This keeps
+        failures during parsing from leaving append-only environment containers
+        half populated.
         """
         if list(pipe_indices.values()) != list(range(len(pipe_list))):
             raise ValueError('Expected pipe_indices to be ordered by index')
@@ -623,26 +977,85 @@ class Aperture:
 
         context = context or xo.ContextCpu()
 
-        model = ApertureModel(
-            pipe_positions=pipe_position_list,
-            pipes=pipe_list,
-            profiles=profile_list,
-            pipe_names=list(pipe_indices.keys()),
-            pipe_position_names=pipe_position_names,
-            profile_names=list(profile_indices.keys()),
-            _context=context,
-        )
+        aperture_environment = line.env.aperture
+        aperture_environment.discard_model()
 
-        aperture = cls(
-            line=line,
-            model=model,
-            context=context,
-            **kwargs,
-        )
+        profile_names = cls._disambiguate_names(
+            profile_indices, aperture_environment.profiles.keys())
+        pipe_names = cls._disambiguate_names(
+            pipe_indices, aperture_environment.pipes.keys())
 
-        return aperture
+        for name, profile in zip(profile_names, profile_list):
+            aperture_environment.new_profile(
+                name,
+                profile.shape,
+            )
 
-    @doc_group("Aperture Computations")
+        for name, pipe in zip(pipe_names, pipe_list):
+            positions = []
+            for position in pipe.positions:
+                positions.append(aperture_environment.place_profile(
+                    profile_names[position.profile_index],
+                    at=position.shift_s,
+                    shift_x=position.shift_x,
+                    shift_y=position.shift_y,
+                    rot_y_rad=position.rot_y_rad,
+                    rot_x_rad=position.rot_x_rad,
+                    rot_s_rad=position.rot_s_rad,
+                    tol_r=position.tol_r,
+                    tol_x=position.tol_x,
+                    tol_y=position.tol_y,
+                ))
+
+            aperture_environment.new_pipe(
+                name, curvature=pipe.curvature, positions=positions)
+
+        aperture = line.aperture
+        aperture._clear_model()
+        aperture.context = context
+        aperture._with_progress = with_progress
+        position_names = cls._disambiguate_names(
+            pipe_position_names, aperture._pipe_position_name_to_index)
+
+        for name, position in zip(position_names, pipe_position_list):
+            aperture.place_pipe(
+                name,
+                pipe_names[position.pipe_index],
+                at=position.survey_reference_name,
+                transformation=position.transformation.to_nplike(),
+                tol_r=position.tol_r,
+                tol_x=position.tol_x,
+                tol_y=position.tol_y,
+            )
+
+        for key, value in kwargs.items():
+            if not hasattr(aperture, key):
+                raise TypeError(f"Unexpected aperture option `{key}`.")
+
+            setattr(aperture, key, value)
+
+        return aperture.build_model()
+
+    @staticmethod
+    def _disambiguate_names(names, existing=()):
+        """Add ``::n`` suffixes until all imported names are unique."""
+        used = set(existing)
+        result = []
+
+        for name in names:
+            candidate = name
+            suffix = 1
+
+            while candidate in used:
+                candidate = f'{name}::{suffix}'
+                suffix += 1
+
+            used.add(candidate)
+            result.append(candidate)
+
+        return result
+
+    @doc_group("Aperture Computation")
     def get_aperture_sigmas_at_element(
             self,
             element_name: str,
@@ -668,11 +1081,11 @@ class Aperture:
         -------
         See :meth:`get_aperture_sigmas_at_s`.
         """
-        s_positions = self._get_cuts_at_element(element_name, resolution)
+        s_positions = self._get_cuts_inside_element(element_name, resolution)
         twiss_init = twiss.get_twiss_init(at_element=element_name) if twiss else None
         return self.get_aperture_sigmas_at_s(s_positions, twiss_init, **kwargs)
 
-    @doc_group("Aperture Computations")
+    @doc_group("Aperture Computation")
     def get_aperture_sigmas_at_s(
             self,
             s_positions: Iterable[float],
@@ -683,6 +1096,7 @@ class Aperture:
             output_max_envelopes: bool = False,
             output_cross_sections: bool = False,
             with_progress: bool = True,
+            output_contact_points: bool = False,
     ) -> tuple[Table, TwissTable]:
         """Compute the maximum number of sigmas at which the beam fits in the aperture at the given ``s_positions``.
 
@@ -694,6 +1108,7 @@ class Aperture:
             Optionally provided initial twiss conditions.
         method
             A method to use for the computation:
+
             - 'rays' - the aperture sigma is estimated from sampled rays and the minimum over the sampled directions
               is returned (faster method, O(R) where R is the number of rays)
             - 'exact' - the aperture sigma is estimated from sampled points on the halo racetrack, at which new sample
@@ -714,16 +1129,27 @@ class Aperture:
         with_progress:
             Whether to show progress while slicing the line. Defaults to
             ``True``.
+        output_contact_points:
+            For ``method='rays'``, include ``x`` and ``y`` (metres) at the
+            aperture hit of the ray determining ``n1``, including its
+            dispersive orbit offset. Coordinates use the native transverse
+            survey frame, not offsets from the closed orbit or pipe centre.
+            If several rays tie, return the first sampled direction.
+            Nonfinite ``n1`` has NaN coordinates.
 
         Returns
         -------
         A two-tuple ``(table, sliced_twiss)``, where:
+
         - ``table`` is an :class:`xdeps.table.Table` with columns ``s`` and ``n1``.
         - if ``output_cross_sections`` is true, ``table`` also contains ``cross_section``.
         - if ``output_max_envelopes`` is true, ``table`` also contains ``envelope``.
+        - if ``output_contact_points`` is true, ``table`` contains ``x`` and ``y``.
         - ``sliced_twiss`` is the twiss table computed as part of the calculation.
         """
-        sliced_twiss = self._sliced_twiss_at_s(
+        if output_contact_points and method != 'rays':
+            raise ValueError("Contact points are supported only for method='rays'")
+        sliced_twiss = self._get_sliced_twiss_at_s(
             s_positions=s_positions, twiss_init=twiss_init,
             with_progress=with_progress)
         table = self.get_aperture_sigmas_for_twiss(
@@ -733,10 +1159,11 @@ class Aperture:
             num_rays=num_rays,
             output_max_envelopes=output_max_envelopes,
             output_cross_sections=output_cross_sections,
+            output_contact_points=output_contact_points,
         )
         return table, sliced_twiss
 
-    @doc_group("Aperture Computations")
+    @doc_group("Aperture Computation")
     def get_aperture_sigmas_for_twiss(
         self,
         sliced_twiss: TwissTable,
@@ -745,6 +1172,7 @@ class Aperture:
         num_rays: int = 32,
         output_max_envelopes: bool = False,
         output_cross_sections: bool = False,
+        output_contact_points: bool = False,
     ) -> Table:
         """Compute the maximum aperture sigmas from an already sampled Twiss table.
 
@@ -774,6 +1202,12 @@ class Aperture:
             Whether to include beam-envelope polygons at the computed sigma.
         output_cross_sections
             Whether to include the interpolated aperture cross-sections.
+        output_contact_points
+            For ``method='rays'``, return the limiting aperture hit as ``x``
+            and ``y`` in metres in the native transverse survey frame.
+            Include the limiting dispersive orbit offset; ties use the first
+            sampled ray. Nonfinite ``n1`` has NaN coordinates. Requires a
+            Twiss table in the same native frame as the aperture geometry.
 
         Returns
         -------
@@ -784,11 +1218,18 @@ class Aperture:
             - ``index``: row index.
             - ``s``: longitudinal position.
             - ``n1``: maximum number of beam sigmas that fit in the aperture.
+            - ``x``, ``y``: limiting aperture contact, included when
+              ``output_contact_points`` is true.
             - ``cross_section``: aperture polygon, included when
               ``output_cross_sections`` is true.
             - ``envelope``: beam-envelope polygon at ``n1``, included when
               ``output_max_envelopes`` is true.
         """
+        if output_contact_points and method != 'rays':
+            raise ValueError("Contact points are supported only for method='rays'")
+        if not self.is_built:
+            self.build_model()
+
         num_slices = len(sliced_twiss.s)
         twiss_at_s = TwissData.from_twiss_table(self.line.particle_ref, sliced_twiss)
         survey_at_s = self._survey_data.resample(twiss_at_s.s)
@@ -803,6 +1244,11 @@ class Aperture:
             envelope_at_max_sigma = np.zeros(shape=(num_slices, envelopes_num_points, 2), dtype=FloatType._dtype)
         else:
             envelope_at_max_sigma = None
+
+        contact_points = (
+            np.full((num_slices, 2), np.nan, dtype=FloatType._dtype)
+            if output_contact_points else None
+        )
 
         if method == 'bisection':
             sigmas = np.zeros(num_slices, dtype=FloatType._dtype)
@@ -837,6 +1283,7 @@ class Aperture:
                 ray_angles=ray_angles,
                 num_ray_angles=num_rays,
                 sigmas=ray_sigmas,
+                out_contact_points=contact_points,
 
             )
             n1s = np.min(ray_sigmas, axis=1)
@@ -867,13 +1314,17 @@ class Aperture:
             's': sliced_twiss.s,
             'n1': n1s,
         }
+        if output_contact_points:
+            contact_points[~np.isfinite(n1s)] = np.nan
+            table_data['x'] = contact_points[:, 0]
+            table_data['y'] = contact_points[:, 1]
         if output_cross_sections:
             table_data['cross_section'] = interpolated_points
         if output_max_envelopes:
             table_data['envelope'] = envelope_at_max_sigma
         return Table(table_data, index='index')
 
-    @doc_group("Aperture Computations")
+    @doc_group("Aperture Computation")
     def get_hvd_aperture_sigmas_at_element(
             self,
             element_name: str,
@@ -900,13 +1351,13 @@ class Aperture:
         -------
         See :meth:`get_hvd_aperture_sigmas_at_s`.
         """
-        s_positions = self._get_cuts_at_element(element_name, resolution)
+        s_positions = self._get_cuts_inside_element(element_name, resolution)
         twiss_init = twiss.get_twiss_init(at_element=element_name) if twiss else None
         return self.get_hvd_aperture_sigmas_at_s(
             s_positions=s_positions, twiss_init=twiss_init,
             with_progress=with_progress)
 
-    @doc_group("Aperture Computations")
+    @doc_group("Aperture Computation")
     def get_hvd_aperture_sigmas_at_s(
             self,
             s_positions: Iterable[float],
@@ -927,13 +1378,16 @@ class Aperture:
 
         Returns
         -------
-        A two-tuple ``(table, sliced_twiss)``:
-        - ``table`` is an :class:`xdeps.table.Table` with columns ``s``,
-          ``n1_horizontal``, ``n1_vertical``, ``n1_diagonal``, and
-          ``cross_section``.
-        - ``sliced_twiss`` is the twiss table computed as part of the calculation.
+        table : xdeps.table.Table
+            Table with columns ``s``, ``n1_horizontal``, ``n1_vertical``,
+            ``n1_diagonal``, and ``cross_section``.
+        sliced_twiss : xtrack.TwissTable
+            Twiss table sampled at the requested positions.
         """
-        sliced_twiss = self._sliced_twiss_at_s(
+        if not self.is_built:
+            self.build_model()
+
+        sliced_twiss = self._get_sliced_twiss_at_s(
             s_positions=s_positions, twiss_init=twiss_init,
             with_progress=with_progress)
         num_slices = len(sliced_twiss.s)
@@ -980,7 +1434,7 @@ class Aperture:
 
         return table, sliced_twiss
 
-    @doc_group("Aperture Computations")
+    @doc_group("Aperture Computation")
     def get_envelope_at_element(
             self,
             element_name: str,
@@ -1003,19 +1457,17 @@ class Aperture:
         twiss
             Optionally provided twiss table from which to derive the initial beam parameters at the element.
         **kwargs
-            Other parameters to be forwarded to ``Aperture.get_envelope_at_s``.
+            Other parameters to be forwarded to :meth:`get_envelope_at_s`.
 
         Returns
         -------
-        A two-tuple ``(envelopes, sliced_twiss)``, where:
-        - ``envelopes`` is the table returned by :meth:`get_envelope_at_s`.
-        - ``sliced_twiss`` is the twiss table computed as part of the calculation.
+        See :meth:`get_envelope_at_s`.
         """
-        s_positions = self._get_cuts_at_element(element_name, resolution)
+        s_positions = self._get_cuts_inside_element(element_name, resolution)
         twiss_init = twiss.get_twiss_init(at_element=element_name) if twiss else None
         return self.get_envelope_at_s(s_positions, sigmas, twiss_init, **kwargs)
 
-    @doc_group("Aperture Computations")
+    @doc_group("Aperture Computation")
     def get_envelope_at_s(
             self,
             s_positions: Iterable[float],
@@ -1056,7 +1508,7 @@ class Aperture:
           the requested polygon and extent outputs.
         - ``sliced_twiss`` is the twiss table computed as part of the calculation.
         """
-        sliced_twiss = self._sliced_twiss_at_s(
+        sliced_twiss = self._get_sliced_twiss_at_s(
             s_positions=s_positions, twiss_init=twiss_init,
             with_progress=with_progress)
         envelope_table = self.get_envelope_for_twiss(
@@ -1069,7 +1521,7 @@ class Aperture:
         )
         return envelope_table, sliced_twiss
 
-    @doc_group("Aperture Computations")
+    @doc_group("Aperture Computation")
     def get_envelope_for_twiss(
         self,
         sliced_twiss: TwissTable,
@@ -1118,6 +1570,9 @@ class Aperture:
             - ``min_y`` and ``max_y``: vertical extents, included when
               ``extents`` is true.
         """
+        if not self.is_built:
+            self.build_model()
+
         num_slices = len(sliced_twiss.s)
         twiss_at_s = TwissData.from_twiss_table(self.line.particle_ref, sliced_twiss)
         beam_data = BeamData(**self.halo_params)
@@ -1156,31 +1611,54 @@ class Aperture:
 
         return Table(table_data, index='index')
 
-    @doc_group("Aperture Computations")
-    def poses_at_s(self, s_positions: Collection[float]) -> HomogeneousMatrices:
-        """Return a local coordinate system (each represented by a homogeneous matrix) at all ``s_positions``."""
+    @doc_group("Aperture Computation")
+    def get_poses_at_s(self, s_positions: Collection[float]) -> HomogeneousMatrices:
+        """Return local coordinate systems as homogeneous matrices at ``s_positions``."""
+        if not self.is_built:
+            self.build_model()
+
         sv_resampled = self._survey_data.resample(s_positions)
         return sv_resampled.pose.to_nparray()
 
-    @doc_group("Aperture Computations")
-    def cross_sections_at_element(
+    @doc_group("Aperture Computation")
+    def get_cross_sections_at_element(
         self,
         element_name: str,
         resolution: float | None,
         extents: bool = False,
+        polygons: bool = True,
     ) -> Table:
-        """Return aperture cross-sections sampled across an element."""
-        s_positions = self._get_cuts_at_element(element_name, resolution)
-        return self.cross_sections_at_s(s_positions, extents=extents)
+        """Return aperture cross-sections sampled across an element.
 
-    @doc_group("Aperture Computations")
-    def cross_sections_at_s(
+        Parameters
+        ----------
+        element_name
+            Name of the element to sample.
+        resolution
+            Longitudinal sampling step [m]. If None, sample just inside the
+            element entry and exit to avoid boundary-frame discontinuities.
+        extents
+            Whether to include the aperture intersections with the transverse
+            coordinate axes. Defaults to False.
+        polygons
+            Whether to include the interpolated cross-section polygons.
+            Defaults to True.
+
+        Returns
+        -------
+        See :meth:`get_cross_sections_at_s`.
+        """
+        s_positions = self._get_cuts_inside_element(element_name, resolution)
+        return self.get_cross_sections_at_s(s_positions, extents=extents, polygons=polygons)
+
+    @doc_group("Aperture Computation")
+    def get_cross_sections_at_s(
         self,
         s_positions: Collection[float],
         extents: bool = False,
         polygons: bool = True,
     ) -> Table:
-        """Return aperture cross-sections at the requested `s` positions.
+        """Return aperture cross-sections at the requested ``s`` positions.
 
         Parameters
         ----------
@@ -1191,7 +1669,30 @@ class Aperture:
             coordinate axes.
         polygons
             Whether to include the interpolated cross-section polygons.
+
+        Returns
+        -------
+        table : xtrack.Table
+            Table with one row per requested position, preserving the input
+            order, and the following columns:
+
+            - ``index``: row index.
+            - ``s``: longitudinal position [m].
+            - ``cross_section``: polygon of shape ``(num_profile_points, 2)``
+              in the local survey frame [m], included when ``polygons`` is True.
+            - ``min_x`` and ``max_x``: intersections with the horizontal axis
+              [m], included when ``extents`` is True.
+            - ``min_y`` and ``max_y``: intersections with the vertical axis
+              [m], included when ``extents`` is True.
+            - ``tol_r``, ``tol_x``, and ``tol_y``: radial, horizontal, and
+              vertical mechanical tolerances [m], returned separately from
+              the aperture geometry.
+            - ``pose``: 4-by-4 homogeneous matrix transforming the local survey
+              frame to the global survey frame.
         """
+        if not self.is_built:
+            self.build_model()
+
         s_positions = np.array(s_positions, dtype=FloatType._dtype)
         sv_resampled = self._survey_data.resample(s_positions)
 
@@ -1235,12 +1736,68 @@ class Aperture:
             table_data['cross_section'] = cross_sections
         if extents:
             table_data.update(min_x=min_x, max_x=max_x, min_y=min_y, max_y=max_y)
-        return Table(table_data, index='index')
 
-    @doc_group("Aperture Computations")
-    def get_limit_elements(self, s_positions: list[float]) -> dict[float, LimitElement]:
+        column_order = [
+            'index', 's', 'cross_section', 'min_x', 'max_x', 'min_y', 'max_y',
+            'tol_r', 'tol_x', 'tol_y', 'pose',
+
+        ]
+        return Table(
+            table_data,
+            index='index',
+            col_names=[name for name in column_order if name in table_data],
+        )
+
+    @doc_group("Aperture Computation")
+    def get_extents_at_element(
+        self,
+        element_name: str,
+        resolution: float | None = None,
+    ) -> Table:
+        """Return aperture limits along the transverse axes across an element.
+
+        Parameters
+        ----------
+        element_name
+            Name of the element to sample.
+        resolution
+            Longitudinal sampling step [m]. If omitted, sample just inside
+            the element entry and exit to avoid boundary-frame discontinuities.
+
+        Returns
+        -------
+        See :meth:`get_extents_at_s`.
+        """
+        s_positions = self._get_cuts_inside_element(element_name, resolution)
+        return self.get_extents_at_s(s_positions)
+
+    @doc_group("Aperture Computation")
+    def get_extents_at_s(self, s_positions: Collection[float]) -> Table:
+        """Return aperture limits along the transverse axes at ``s_positions``.
+
+        This is a convenience function for :meth:`get_cross_sections_at_s` with
+        ``extents=True`` and ``polygons=False``.
+
+        Parameters
+        ----------
+        s_positions
+            Longitudinal positions [m] at which to evaluate the aperture.
+
+        Returns
+        -------
+        table : xtrack.Table
+            One row per requested position, preserving the input order, with
+            columns ``index``, ``s``, ``min_x``, ``max_x``, ``min_y``, ``max_y``,
+            ``tol_r``, ``tol_x``, ``tol_y``, and ``pose``. The limits are the
+            aperture's intersections with the transverse coordinate axes in
+            the local survey frame, rather than a polygon bounding box.
+        """
+        return self.get_cross_sections_at_s(s_positions, extents=True, polygons=False)
+
+    @doc_group("Aperture Computation")
+    def get_limit_elements_at_s(self, s_positions: list[float]) -> dict[float, LimitElement]:
         """Obtain interpolated cross-sections as limit beam elements."""
-        cross_sections_table = self.cross_sections_at_s(s_positions)
+        cross_sections_table = self.get_cross_sections_at_s(s_positions)
         limit_elements = {}
         for s, row in zip(s_positions, cross_sections_table.rows):
             cross_section = row.cross_section
@@ -1265,7 +1822,17 @@ class Aperture:
         axs=None,
         with_progress: bool = True,
     ):
-        """Plot beam-envelope and aperture extents along the beam line.
+        """Plot aperture limits and beam-envelope extents along the line.
+
+        The aperture limits are those returned by :meth:`get_extents_at_s`. Solid
+        curves show the geometric limits; dashed curves show those limits
+        reduced by the mechanical tolerances.
+
+        If ``sigmas`` is given, the beam envelope is as calculated with
+        :meth:`get_envelope_at_s` at that sigma level. Otherwise, the local
+        aperture sigmas are calculated using ``method``, as with
+        :meth:`get_aperture_sigmas_at_s`, and their minimum ``n1`` is used as
+        the common sigma level for the plotted envelope.
 
         Parameters
         ----------
@@ -1280,12 +1847,14 @@ class Aperture:
             Twiss initial conditions forwarded to the envelope and aperture-sigma
             computations.
         method
-            Method used to compute the maximum aperture sigmas when ``sigmas`` is not given.
+            Method used to compute the local aperture sigmas when ``sigmas``
+            is not given.
         envelopes_num_points
             Number of points used to discretise each transverse beam envelope.
         include_aper_tols
-            Whether aperture tolerances should be included in the beam-envelope
-            computation.
+            Whether to enlarge the beam envelope by aperture tolerances.
+            Defaults to False. The dashed aperture limits always include
+            these tolerances, independently of this setting.
         plot_s_positions
             Coordinates to be used on the horizontal axis. If omitted, ``s_positions``
             are used directly. This is useful when the data are evaluated at one
@@ -1316,7 +1885,7 @@ class Aperture:
         undo_order[order] = np.arange(len(order))
         s_sorted = s_positions[order]
 
-        sliced_twiss = self._sliced_twiss_at_s(
+        sliced_twiss = self._get_sliced_twiss_at_s(
             s_positions=s_sorted,
             twiss_init=twiss_init,
             with_progress=with_progress,
@@ -1337,7 +1906,7 @@ class Aperture:
             polygons=False,
             extents=True,
         )
-        sections_table = self.cross_sections_at_s(s_sorted, extents=True, polygons=False)
+        sections_table = self.get_cross_sections_at_s(s_sorted, extents=True, polygons=False)
 
         min_envel_x = np.asarray(envelopes_table.min_x, dtype=FloatType._dtype)[undo_order]
         max_envel_x = np.asarray(envelopes_table.max_x, dtype=FloatType._dtype)[undo_order]
@@ -1377,9 +1946,11 @@ class Aperture:
         ax_y.set_xlabel('s [m]')
 
         sigma_label = 'n_1' if sigmas_was_computed else 'n'
+        nemitt_x, nemitt_y = self.halo_params['nemitt_x'], self.halo_params['nemitt_y']
         fig.suptitle(
             fr"Extents and beam envelope at ${sigma_label} = {sigmas:.3g}$ and "
-            fr"$s \in [{np.min(plot_s_positions):.3g}, {np.max(plot_s_positions):.3g}]$"
+            fr"$s \in [{np.min(plot_s_positions):.3g}, {np.max(plot_s_positions):.3g}]$" + "\n"
+            fr"$\varepsilon_{{n,x}}$ = {nemitt_x:.3e}, $\varepsilon_{{n,y}}$ = {nemitt_y:.3e}"
         )
 
         return fig, axs
@@ -1398,6 +1969,14 @@ class Aperture:
             with_progress: bool = True,
     ):
         """Display transverse aperture cross-sections and beam envelopes.
+
+        If ``sigmas`` is given, plots the interpolated aperture cross-sections
+        obtained with :meth:`get_cross_sections_at_s`, and the beam envelope
+        as calculated with :meth:`get_envelope_at_s`. If ``sigmas`` is not given,
+        the plot visualises the cross-sections and the envelope at the maximum
+        value of ``sigmas`` for the specified locations, obtained with
+        :meth:`get_aperture_sigmas_at_s`, which also outputs the cross-sections
+        and beam envelope polygons.
 
         Parameters
         ----------
@@ -1419,7 +1998,8 @@ class Aperture:
             Optional initial Twiss conditions forwarded to the envelope and
             aperture-sigma calculations.
         middle
-            Whether the plot should be centred around the ``aperture`` middle, or ``beam`` reference.
+            Whether the plot should be centred around the ``aperture`` middle,
+            or ``beam`` reference.
         ax
             Axes object to plot on. If not given, the current axes are used.
         with_progress
@@ -1438,7 +2018,7 @@ class Aperture:
             raise ValueError("Provide exactly one of `name` or `s_positions`.")
 
         if name is not None:
-            s_positions = self._get_cuts_at_element(name, resolution)
+            s_positions = self._get_cuts_inside_element(name, resolution)
             title_location = name
         else:
             s_positions = np.asarray(s_positions, dtype=FloatType._dtype)
@@ -1461,7 +2041,7 @@ class Aperture:
             beam_label = f'envelope ({method}, min($n_1$) = {sigmas:.3f})'
             title_sigma = fr"min($n_1$) = {sigmas:.3f}"
         else:
-            sliced_twiss = self._sliced_twiss_at_s(
+            sliced_twiss = self._get_sliced_twiss_at_s(
                 s_positions=s_positions,
                 twiss_init=twiss_init,
                 with_progress=with_progress,
@@ -1484,7 +2064,7 @@ class Aperture:
             )
             beam_tols = beam_tols.cross_section
             beam_no_tols = beam_no_tols.cross_section
-            profiles = self.cross_sections_at_s(s_positions=s_positions)
+            profiles = self.get_cross_sections_at_s(s_positions=s_positions)
             polygons = profiles.cross_section
             beam_label = 'envelope (with tolerances)'
             title_sigma = fr"$n$ = {sigmas:.3f}"
@@ -1515,10 +2095,12 @@ class Aperture:
                 ax.plot(pt[:, 0] - mid[0], pt[:, 1] - mid[1], c='skyblue', linestyle=':', label=label)
                 seen = True
 
+        nemitt_x, nemitt_y = self.halo_params['nemitt_x'], self.halo_params['nemitt_y']
         ax.set_aspect('equal')
         ax.set_title(
             fr"Transverse aperture at {title_location}, "
-            fr"s $\in$ [{s_positions[0]:.2f}, {s_positions[-1]:.2f}], {title_sigma}"
+            fr"s $\in$ [{s_positions[0]:.2f}, {s_positions[-1]:.2f}], {title_sigma}," + "\n"
+            fr"$\varepsilon_{{n,x}}$ = {nemitt_x:.3e}, $\varepsilon_{{n,y}}$ = {nemitt_y:.3e}"
         )
         ax.legend()
         return ax
@@ -1528,28 +2110,36 @@ class Aperture:
         self,
         ax=None,
         max_curve_angle_rad: float = np.deg2rad(1),
-        origin: str | None = None,
+        origin: str | float | None = None,
         s_range: tuple[float, float] | None = None,
         aspect: Literal['auto', 'equal'] = 'auto',
+        show_survey: bool = True,
     ):
-        """Plot installed pipe segments projected onto the floor plane.
+        """Plot the projection of the aperture model onto the Z-X plane.
+
+        An interactive visualisation of the data contained in the model.
+        Plots the installed pipes in the survey frame.
 
         Parameters
         ----------
         ax
             Axes object to plot on. If not given, use the current axes.
-        max_curve_angle_rad
-            Maximum angular step used to draw curved pipe boundaries and axes.
-        origin
-            Name of a pipe position to use as the plotting origin. When given,
-            the floor projection is expressed in the local frame of that pipe
-            position.
-        s_range
+        max_curve_angle_rad: float, optional
+            Maximum angular step (resolution in radians) used to draw curved
+            pipe boundaries and axes.
+        origin: str or float, optional
+            Plotting origin. If a string a pipe position of that name will be
+            taken as the origin. If a float, the survey frame at the ``s`` [m]
+            of that value will be taken as the origin. If omitted, the survey's
+            global frame will be used.
+        s_range: tuple[float, float], optional
             Longitudinal window, relative to ``origin`` when provided, used to
             restrict which pipe segments are plotted. On rings, wrapped ranges
             are handled across the end of the line.
-        aspect
-            Aspect ratio applied to the axes after plotting.
+        aspect: 'auto' or 'equal'
+            Aspect ratio applied to the axes after plotting, defaults to 'auto'.
+        show_survey: bool
+            Overlay the interpolated survey trajectory on the pipe projection.
 
         Returns
         -------
@@ -1565,22 +2155,35 @@ class Aperture:
             origin=origin,
             s_range=s_range,
             aspect=aspect,
+            show_survey=show_survey,
         )
 
-    def _get_cuts_at_element(self, element_name: str, resolution: float | None) -> list[float]:
-        """Get list of s positions so that the element ``element_name`` is cut with a ``resolution``."""
+    def _get_cuts_inside_element(
+        self, element_name: str, resolution: float | None,
+    ) -> np.ndarray:
+        """Sample within an element, away from boundary-frame discontinuities."""
         element = self.line[element_name]
         s_start = self.line._get_s_position(element_name)
         element_length = getattr(element, 'length', 0)
         s_end = s_start + element_length
 
-        if resolution is not None:
-            num_cuts = int(element_length / resolution)
+        if resolution is not None and resolution <= 0:
+            raise ValueError('`resolution` must be positive.')
+
+        s_tol = max(self.s_tol, 1e-6)
+        s_middle = s_start + element_length / 2
+        s_start = np.nextafter(s_start + s_tol, s_end)
+        s_end = np.nextafter(s_end - s_tol, s_start)
+
+        if s_start >= s_end:
+            s_positions = [s_middle]
+        elif resolution is not None:
+            num_cuts = max(2, int(element_length / resolution))
             s_positions = np.linspace(s_start, s_end, num_cuts)
         else:
             s_positions = [s_start, s_end]
 
-        return s_positions
+        return np.asarray(s_positions, dtype=FloatType._dtype)
 
     def _build_aperture_bounds(self, check_validity=True, with_progress=True):
         # Pre-allocate the cross-sections with the correct sizes
@@ -1628,6 +2231,7 @@ class Aperture:
         self._aperture_bounds.reorder_for_tolerated_pipe_overlaps(
             s_tol=self.s_tol,
             is_ring=self.is_ring,
+            line_length=self.line.get_length(),
         )
 
         if check_validity:
@@ -1693,6 +2297,7 @@ class Aperture:
         -------
         bounds_table
             Table with the following columns:
+
             - ``name``: name of the aperture bound, formed from the pipe-position
               name and, when needed, a ``::i`` suffix identifying the profile
               order within the pipe
@@ -1705,6 +2310,9 @@ class Aperture:
             - ``shape``: profile shape name
             - ``shape_param``: dictionary of profile shape parameters
         """
+        if not self.is_built:
+            self.build_model()
+
         ap_bounds = self._aperture_bounds
         table_size = ap_bounds.count
 
@@ -1755,7 +2363,7 @@ class Aperture:
         return bounds_table
 
     @doc_group("Introspection")
-    def s_around_transitions(
+    def get_s_around_transitions(
         self,
         tol: float | None = None,
         resolution: float | None = None,
@@ -1785,6 +2393,9 @@ class Aperture:
         np.ndarray
             Sorted, unique ``s`` positions clipped to the line extent.
         """
+        if not self.is_built:
+            self.build_model()
+
         line_length = float(self.line.get_length())
         tol = self.s_tol if tol is None else float(tol)
 
@@ -1847,6 +2458,9 @@ class Aperture:
         result contains two non-wrapping segments. For non-ring apertures, the
         interval is returned unchanged.
         """
+        if not self.is_built:
+            self.build_model()
+
         return _split_wrapped_s_interval(
             start,
             end,
@@ -1863,6 +2477,7 @@ class Aperture:
         -------
         pipe_table
             Table with the following columns:
+
             - ``name``: pipe-position name
             - ``pipe_name``: underlying pipe (type) name
             - ``survey_reference``: survey element used as the placement reference
@@ -1876,6 +2491,9 @@ class Aperture:
             For rings, wrapped intervals are represented with ``s_start > s_end``
             and likewise for ``s_span_start > s_span_end``.
         """
+        if not self.is_built:
+            self.build_model()
+
         table_size = len(self._model.pipe_positions)
 
         pipe_position_names = np.array(self._model.pipe_position_names, dtype=object)
@@ -1956,7 +2574,7 @@ class Aperture:
         order = np.argsort(s_start, kind='stable')
         return table.rows[order]
 
-    def _sliced_twiss_at_s(
+    def _get_sliced_twiss_at_s(
             self,
             s_positions: Iterable[float],
             twiss_init: TwissInit | None = None,
@@ -1993,8 +2611,21 @@ class Aperture:
         dist_left = np.abs(tw_s[idx_left] - s_positions)
         dist_right = np.abs(tw_s[idx_right] - s_positions)
 
-        # Keep the nearest row; on ties prefer the rightmost candidate.
+        # Keep the nearest row. At sliced element boundaries, several rows
+        # share the same s but can use different local reference frames.
         tw_indices = np.where(dist_right <= dist_left, idx_right, idx_left)
+
+        group_start = np.searchsorted(tw_s, tw_s[tw_indices], side='left')
+        group_end = np.searchsorted(tw_s, tw_s[tw_indices], side='right')
+        for ii in np.flatnonzero(group_end - group_start > 1):
+            names = full_twiss.name[group_start[ii]:group_end[ii]]
+            # The survey pose at a boundary is after the preceding exit map
+            # and before the following entry map.
+            for suffix in ('..exit_map', '_exit', '_entry'):
+                matches = [jj for jj, name in enumerate(names) if name.endswith(suffix)]
+                if matches:
+                    tw_indices[ii] = group_start[ii] + matches[0]
+                    break
 
         sliced_twiss = full_twiss.rows[tw_indices]
         return sliced_twiss
@@ -2054,17 +2685,17 @@ class Aperture:
             return shape.radius < 1e-6 or shape.radius > 9.98
 
         if isinstance(shape, Rectangle):
-            return (shape.half_width < 1e-6 or shape.half_width > 9.98) and (shape.half_height < 1e-6 or shape.half_height > 9.98)
+            return (shape.max_x < 1e-6 or shape.max_x > 9.98) and (shape.max_y < 1e-6 or shape.max_y > 9.98)
 
         if isinstance(shape, RectEllipse):
             return (
-                (shape.half_width < 1e-6 or shape.half_width > 9.98) and
-                (shape.half_height < 1e-6 or shape.half_height > 9.98) and
-                (shape.half_major < 1e-6 or shape.half_major > 9.98) and
-                (shape.half_minor < 1e-6 or shape.half_minor > 9.98)
+                (shape.max_x < 1e-6 or shape.max_x > 9.98) and
+                (shape.max_y < 1e-6 or shape.max_y > 9.98) and
+                (shape.a < 1e-6 or shape.a > 9.98) and
+                (shape.b < 1e-6 or shape.b > 9.98)
             )
 
         return False
 
 
-Aperture.__doc_groups__ = _aperture_doc_groups.collect(Aperture)
+LineAperture.__doc_groups__ = _aperture_doc_groups.collect(LineAperture)

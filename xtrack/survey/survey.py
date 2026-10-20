@@ -11,6 +11,7 @@ import numpy as np
 
 from .frame import Frame, _angles_from_E_matrix
 from ..table import Table
+from .._tfs_format import _UNSET as _TFS_UNSET
 from ..general import DEPRECATION_INFO_PREP_1_0
 
 
@@ -288,8 +289,10 @@ class SurveyTable(Table):
             for kk, vv in self._data.items()
         }
 
-        # Removing the count for repeated elements
-        out_sv_table._data['name'] = np.array([nn.split('::')[0] for nn in out_sv_table._data['name']])
+        # Remove repetition counts while keeping the object dtype expected by xplt.
+        out_sv_table._data['name'] = np.array(
+            [nn.split('::')[0] for nn in out_sv_table._data['name']],
+            dtype=object)
         out_sv_table._index_cache = None
         out_sv_table._count_cache = None
         out_sv_table._names_cache = None
@@ -310,6 +313,42 @@ class SurveyTable(Table):
         if legend:
             import matplotlib.pyplot as plt
             plt.legend()
+
+    def to_tfs(self, file, *, format_spec=None,
+               include=_TFS_UNSET, exclude=_TFS_UNSET,
+               missing=_TFS_UNSET, include_meta=_TFS_UNSET,
+               default_column_width=_TFS_UNSET, float_precision=_TFS_UNSET,
+               numeric_column_width=_TFS_UNSET, column_formats=_TFS_UNSET,
+               column_widths=_TFS_UNSET):
+        """Write the survey table to a TFS file.
+
+        The attached ``line`` reference is excluded from the default export.
+        All parameters follow :meth:`Table.to_tfs`. When ``format_spec`` is
+        provided, only the fields selected by the specification are written.
+        """
+        if format_spec is None:
+            if exclude is _TFS_UNSET or exclude is None:
+                exclude = []
+            elif isinstance(exclude, str):
+                exclude = [exclude]
+            else:
+                exclude = list(exclude)
+            if 'line' in self.keys():
+                exclude.append('line')
+
+        super().to_tfs(
+            file,
+            format_spec=format_spec,
+            include=include,
+            exclude=exclude,
+            missing=missing,
+            include_meta=include_meta,
+            default_column_width=default_column_width,
+            float_precision=float_precision,
+            numeric_column_width=numeric_column_width,
+            column_formats=column_formats,
+            column_widths=column_widths,
+        )
 
     def to_pandas(self, index=None, columns=None):
         """

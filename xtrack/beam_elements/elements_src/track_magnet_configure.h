@@ -20,7 +20,8 @@ void configure_tracking_model(
     xt_float_or_tpsa* k0_h_correction,
     xt_float_or_tpsa* k1_h_correction,
     int8_t* kick_rot_frame,
-    int8_t* out_drift_model
+    int8_t* out_drift_model,
+    uint8_t* do_drift_correction
 ){
 
     // model = 0 or 1 : adaptive
@@ -31,6 +32,8 @@ void configure_tracking_model(
     // model = 6: drift-kick-drift-expanded
     // model = 7: rot-kick-rot-low-order
     // model = 8: rot-kick-rot-high-order
+    // model = 9: mat-kick-mat-exact (mat-kick-mat plus an exact path
+    //            correction in the kick; straight elements only, h == 0)
     // model = -1: kick only (not exposed in python)
     // model = -2: sol-kick-sol (not exposed in python)
 
@@ -40,6 +43,7 @@ void configure_tracking_model(
 
     int8_t h_is_zero = (fabs(h) < H_TOLERANCE);
     int64_t drift_model = 0;
+    *do_drift_correction = 0;
 
     if (model == 2){ // bend-kick-bend
         if (h_is_zero){
@@ -59,6 +63,10 @@ void configure_tracking_model(
     }
     else if(model == 4){ // mat-kick-mat
         drift_model = 3; // expanded
+    }
+    else if(model == 9){ // mat-kick-mat-exact
+        drift_model = 3; // expanded dipole-quadrupole
+        *do_drift_correction = 1;
     }
     else if(model == 5){ // drift-kick-drift-exact
         drift_model = 1; // drift exact

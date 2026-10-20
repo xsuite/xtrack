@@ -54,6 +54,38 @@ def test_twiss_table_row_slice_drops_periodic():
     assert 'periodic' not in tw_slice
 
 
+@pytest.mark.parametrize('names', [['a', 'b'], []])
+def test_get_twiss_init_missing_element(names):
+    tw = xt.TwissTable(
+        {'name': np.array(names, dtype=object), 'values_at': 'entry'},
+        col_names=['name'],
+    )
+    with pytest.raises(
+            ValueError, match="Element 'aaaa' not found in the Twiss table"):
+        tw.get_twiss_init('aaaa')
+
+
+def test_get_twiss_init_element_selection():
+    line = xt.Line(
+        elements=[xt.Drift(length=1), xt.Drift(length=2)],
+        element_names=['d0', 'd1'],
+    )
+    line.particle_ref = xt.Particles(p0c=1e9)
+    tw = line.twiss4d(betx=1, bety=2)
+
+    for name, index in [('d0', 0), ('d1', 1), ('_end_point', -1)]:
+        by_name = tw.get_twiss_init(name)
+        by_index = tw.get_twiss_init(index)
+        assert by_name.element_name == by_index.element_name == name
+        np.testing.assert_array_equal(by_name.W_matrix, by_index.W_matrix)
+        np.testing.assert_array_equal(by_name.particle_on_co.s, tw.s[index])
+
+    # An element in the line can still be absent from a selected Twiss range.
+    with pytest.raises(
+            ValueError, match="Element 'd0' not found in the Twiss table"):
+        tw.rows['d1':].get_twiss_init('d0')
+
+
 def test_twiss_with_different_particle_species():
     line = xt.Line(elements=[
         xt.Drift(length=1),
@@ -1017,7 +1049,9 @@ def test_twiss_against_matrix(test_context):
     dy = [0, 20]
     dpx = [0.7, -0.3]
     dpy = [0.4, -0.6]
-    bets = 1e-3
+    # Keep the longitudinal phase calculation well conditioned in the presence
+    # of the large transverse-longitudinal coupling from symplectic dispersion.
+    bets = 1.
     dnqx = [0.21, 2, 30, 400]
     dnqy = [0.32, 3, 40, 500]
 
@@ -1061,7 +1095,7 @@ def test_twiss_against_matrix(test_context):
     tw6d = line.twiss()
 
     xo.assert_allclose(tw6d.qs, 0.0004, atol=1e-7, rtol=0)
-    xo.assert_allclose(tw6d.bets0, 1e-3, atol=1e-7, rtol=0)
+    xo.assert_allclose(tw6d.bets0, bets, atol=1e-7, rtol=0)
 
     for tw in [tw4d, tw6d]:
         xo.assert_allclose(tw.qx, 0.4 + 0.21, atol=1e-7, rtol=0)

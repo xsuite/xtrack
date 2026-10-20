@@ -14,7 +14,9 @@
 
 // MAD-NG implementation
 // https://github.com/MethodicalAcceleratorDesign/MAD/blob/d3cabd9cdebde62ebedb51bab61ac033b9159489/src/madl_dynmap.mad#L1864
-// Generating function changed to contain 1/pz instead of pz
+// The finite-gap angle includes 1/(pz*(1+u*u)), u=xp/(1+yp*yp).
+// Expanding the outer tan then reproduces the second-order field term
+// in Forest et al., Eq. (34). See the physics manual, "Dipole fringe field".
 
 // Coefficients of the fringe generating function, at the given momenta.
 GPUFUN
@@ -33,14 +35,24 @@ void DipoleFringe_coefficients(
     const xt_float_or_tpsa xp2 = POW2(xp);
     const xt_float_or_tpsa _yp2 = 1./yp2;
 
-    const xt_float_or_tpsa fi0 = atan((xp*_yp2)) - c2*(1 + xp2*(1+yp2))*_pz;
-    const xt_float_or_tpsa co2 = b0/POW2(cos(fi0));
-    const xt_float_or_tpsa co1 = co2/(1 + POW2(xp*_yp2))*_yp2;
-    const xt_float_or_tpsa co3 = co2*c2;
+    const xt_float_or_tpsa u = xp*_yp2;
+    const xt_float_or_tpsa du_dxp = _yp2;
+    const xt_float_or_tpsa du_dyp = -2*xyp*POW2(_yp2);
+    const xt_float_or_tpsa inv_den = 1./(1 + POW2(u));
+    const xt_float_or_tpsa fringe_term = (1 + xp2*(1+yp2))*inv_den;
+    const xt_float_or_tpsa dfringe_dxp =
+        (2*xp*(1+yp2) - 2*u*du_dxp*fringe_term)*inv_den;
+    const xt_float_or_tpsa dfringe_dyp =
+        (2*xp2*yp - 2*u*du_dyp*fringe_term)*inv_den;
 
-    const xt_float_or_tpsa fi1 =    co1          - co3*2*xp*(1+yp2)*_pz;
-    const xt_float_or_tpsa fi2 = -2*co1*xyp*_yp2 - co3*2*xp*xyp    *_pz;
-    const xt_float_or_tpsa fi3 =                 + co3*(1 + xp2*(1+yp2))*POW2(_pz);
+    const xt_float_or_tpsa fi0 = atan(u) - c2*fringe_term*_pz;
+    const xt_float_or_tpsa co2 = b0/POW2(cos(fi0));
+
+    // Derivatives of b0*tan(fi0) with respect to xp, yp and pz,
+    // treating these three intermediate variables as independent.
+    const xt_float_or_tpsa fi1 = co2*(du_dxp*inv_den - c2*dfringe_dxp*_pz);
+    const xt_float_or_tpsa fi2 = co2*(du_dyp*inv_den - c2*dfringe_dyp*_pz);
+    const xt_float_or_tpsa fi3 = co2*c2*fringe_term*POW2(_pz);
 
     *fi0_out = fi0;
     *kx = fi1*(1+xp2)*_pz   + fi2*xyp*_pz       - fi3*xp;
@@ -140,7 +152,7 @@ void DipoleFringe_track_single_particle(
 #ifdef XTRACK_FRINGE_FROM_PTC
 // The following is ported from PTC:
 //https://github.com/MethodicalAcceleratorDesign/MAD-X/blob/master/libs/ptc/src/Sh_def_kind.f90#L4936
-// Generating function changed to contain 1/pz instead of pz
+// Uses the same corrected finite-gap angle and derivatives as the default map.
 
 GPUFUN
 void DipoleFringe_single_particle(
@@ -187,13 +199,24 @@ void DipoleFringe_single_particle(
     const double D_2_3 = -time_fac * yp / (pz * pz);
     const double D_3_3 =  time_fac / pz;
 
-    double fi0 = atan((xp / (1.0 + yp * yp)))-b * fint * hgap * 2.0 * ( 1.0 + xp * xp *(2.0 + yp * yp)) / pz;
-    const double co2 = b / cos(fi0) / cos(fi0);
-    const double co1 = co2 / (1.0 + POW2(xp / POW2(1.0 + yp * yp)));
+    const double yp2 = 1.0 + yp*yp;
+    const double u = xp / yp2;
+    const double du_dxp = 1.0 / yp2;
+    const double du_dyp = -2.0*xp*yp / POW2(yp2);
+    const double inv_den = 1.0 / (1.0 + u*u);
+    const double fringe_term = (1.0 + xp*xp*(1.0 + yp2))*inv_den;
+    const double dfringe_dxp =
+        (2.0*xp*(1.0 + yp2) - 2.0*u*du_dxp*fringe_term)*inv_den;
+    const double dfringe_dyp =
+        (2.0*xp*xp*yp - 2.0*u*du_dyp*fringe_term)*inv_den;
+    const double c2 = b * fint * hgap * 2.0;
 
-    const double fi_1 = co1 / (1.0 + yp*yp) - co2 * b * fint * hgap * 2.0*(2.0 * xp * (2.0 + yp * yp) / pz);
-    const double fi_2 = -co1 * 2.0 * xp * yp / POW2(1.0 + yp * yp) - co2 * b * fint * hgap * 2.0 * (2.0 * xp* xp * yp) / pz;
-    const double fi_3 = co2 * b * fint * hgap * 2.0 * (1.0 + xp * xp * (2.0 + yp*yp)) / POW2(pz);
+    double fi0 = atan(u) - c2*fringe_term / pz;
+    const double co2 = b / cos(fi0) / cos(fi0);
+
+    const double fi_1 = co2*(du_dxp*inv_den - c2*dfringe_dxp / pz);
+    const double fi_2 = co2*(du_dyp*inv_den - c2*dfringe_dyp / pz);
+    const double fi_3 = co2*c2*fringe_term / POW2(pz);
 
     fi0 = b * tan(fi0);
 

@@ -662,14 +662,15 @@ class TrajectoryCorrection:
 
         tw_orbit = a_correction._get_tw_orbit(delta0=delta0)
 
-        if self.x_correction is not None:
-            relative_limits_x = self.x_correction.corrector_limits
-        if self.y_correction is not None:
-            relative_limits_y = self.y_correction.corrector_limits
-
         while True:
 
+            # Bound the total kicks, including corrections from previous calls.
             if self.x_correction is not None and 'x' in planes:
+                relative_limits_x = self.x_correction.corrector_limits
+                if relative_limits_x is not None:
+                    kicks_x = self.x_correction.get_kick_values()
+                    relative_limits_x = (relative_limits_x[0] - kicks_x,
+                                         relative_limits_x[1] - kicks_x)
                 self.x_correction.correct(n_micado=n_micado_x,
                             n_singular_values=n_singular_values_x,
                             rcond=rcond_x, verbose=False, n_iter=1,
@@ -677,6 +678,11 @@ class TrajectoryCorrection:
                             corrector_limits=relative_limits_x)
 
             if self.y_correction is not None and 'y' in planes:
+                relative_limits_y = self.y_correction.corrector_limits
+                if relative_limits_y is not None:
+                    kicks_y = self.y_correction.get_kick_values()
+                    relative_limits_y = (relative_limits_y[0] - kicks_y,
+                                         relative_limits_y[1] - kicks_y)
                 self.y_correction.correct(n_micado=n_micado_y,
                             n_singular_values=n_singular_values_y,
                             rcond=rcond_y, verbose=False, n_iter=1,
@@ -705,19 +711,11 @@ class TrajectoryCorrection:
                     old_position = self.x_correction._measure_position(tw_orbit_prev)
                     str_2print += (f'x_rms: {old_position.std():.2e}'
                         f' -> {new_position.std():.2e}, ')
-                    if self.x_correction.corrector_limits is not None:
-                        correction_kicks_x = self.x_correction.get_kick_values()
-                        relative_limits_x = (self.x_correction.corrector_limits[0] - correction_kicks_x,
-                                             self.x_correction.corrector_limits[1] - correction_kicks_x)
                 if self.y_correction is not None and 'y' in planes:
                     new_position = self.y_correction._measure_position(tw_orbit)
                     old_position = self.y_correction._measure_position(tw_orbit_prev)
                     str_2print += (f'y_rms: {old_position.std():.2e}'
                         f' -> {new_position.std():.2e}')
-                    if self.y_correction.corrector_limits is not None:
-                        correction_kicks_y = self.y_correction.get_kick_values()
-                        relative_limits_y = (self.y_correction.corrector_limits[0] - correction_kicks_y,
-                                             self.y_correction.corrector_limits[1] - correction_kicks_y)
                 _print(str_2print)
             if stop_x and stop_y:
                 break

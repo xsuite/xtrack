@@ -217,6 +217,10 @@ class LineSegmentMap(BeamElement):
             Energy increment of the segment in eV.
         energy_ref_increment : float
             Increment of the reference energy in eV.
+            This element-driven ramp retains conventional longitudinal updates;
+            the particle clock is approximate and can depend on tracking-call
+            boundaries. Use the line's EnergyProgram for a coordinated clock
+            and reference-energy ramp.
         damping_rate_x : float
             Damping rate of the horizontal position
             x_n+1 = (1-damping_rate_x)*x_n. Optional, default is ``0``.

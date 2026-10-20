@@ -49,12 +49,11 @@ void track_rf_kick_single_particle(
     }
 
 #ifndef XTRACK_TPSA_TRACK
-    // t_sim / at_turn are turn-bookkeeping vars, excluded from non-scalar tracking
     // Absolute-time cavities are native-only.
     if (absolute_time == 1) {
-        double const t_sim = LocalParticle_get_t_sim(part);
-        int64_t const at_turn = LocalParticle_get_at_turn(part);
-        phase0 += 2 * PI * at_turn * frequency * t_sim;
+        double const time_s = LocalParticle_get_time_s(part);
+        double const s = LocalParticle_get_s(part);
+        phase0 += 2 * PI * frequency * (time_s + s / (beta0 * C_LIGHT));
     }
 #endif
 
@@ -108,10 +107,13 @@ void track_rf_kick_single_particle(
             zim = zim * x + zre * y;
             zre = zret;
 
-            dptr += sn * (bal_n_kk * zre) - ss * (bal_s_kk * zim);
+            // Integrate the transverse multipole: the potential has (kk+1)!.
+            dptr += (sn * (bal_n_kk * zre) - ss * (bal_s_kk * zim)) / (kk + 1);
         }
 
-        rfmultipole_energy_kick = - q * ( (frequency * ( 2.0 * PI / C_LIGHT) * p0c) * dptr );
+        // knl/ksl already include the reference charge through the rigidity.
+        rfmultipole_energy_kick = - LocalParticle_get_charge_ratio(part)
+            * (frequency * (2.0 * PI / C_LIGHT) * p0c) * dptr;
         double const chi    = LocalParticle_get_chi(part);
 
         double const px_kick = - chi * dpx;
@@ -136,7 +138,7 @@ void track_rf_kick_single_particle(
         double const pn_kk = phase0 + DEG2RAD * (transverse_lag + 90.)
                            + transverse_phase
                            - (2.0 * PI) / C_LIGHT * frequency * tau;
-        double const k0l = transverse_voltage / p0c;
+        double const k0l = fabs(LocalParticle_get_q0(part)) * transverse_voltage / p0c;
 
         double bal_n_kk = k0l;
 
@@ -152,7 +154,9 @@ void track_rf_kick_single_particle(
 
         dptr += sn * (bal_n_kk * zre);
 
-        rfmultipole_energy_kick += - q * ( (frequency * ( 2.0 * PI / C_LIGHT) * p0c) * dptr );
+        // The reference charge is already included in k0l.
+        rfmultipole_energy_kick += - LocalParticle_get_charge_ratio(part)
+            * (frequency * (2.0 * PI / C_LIGHT) * p0c) * dptr;
         double const chi    = LocalParticle_get_chi(part);
 
         double const px_kick = - chi * dpx;
@@ -324,6 +328,7 @@ void track_rf_particles(
         xt_float_or_tpsa k0_h_correction=0., k1_h_correction=0.;
         int8_t kick_rot_frame;
         int8_t drift_model;
+        uint8_t do_drift_correction;
         configure_tracking_model(
             model,
             0, // k0
@@ -340,7 +345,8 @@ void track_rf_particles(
             &k0_h_correction,
             &k1_h_correction,
             &kick_rot_frame,
-            &drift_model
+            &drift_model,
+            &do_drift_correction
         );
 
 

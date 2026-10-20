@@ -51,7 +51,8 @@ void KERNEL_NAME(
         LocalParticle_set_state(&lpart, XT_LOST_ON_TPSA_ERROR);
     }
 
-    LocalParticle_to_Particles(&lpart, particles, 0, 1);
+    LocalParticle_to_Particles(&lpart, particles, 0,
+        1); // set_scalar
 }
 
 #undef ELEMENT_DATA

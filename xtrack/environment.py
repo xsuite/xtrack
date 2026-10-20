@@ -9,7 +9,7 @@ from copy import deepcopy
 from pathlib import Path
 from typing import Literal
 from warnings import warn
-from weakref import WeakKeyDictionary, WeakSet
+from weakref import WeakKeyDictionary, WeakSet, ref
 
 import numpy as np
 import pandas as pd
@@ -129,6 +129,8 @@ class Environment:
         self._enable_name_clash_check = True
         self._last_context = None
         self._drift_cache = {}
+        from xtrack.aperture.environment import EnvAperture
+        self.aperture = EnvAperture(self)
 
         for nn, ee in self._element_dict.items():
             if nn.startswith('||drift_') and isinstance(ee, xt.Drift):
@@ -196,6 +198,7 @@ class Environment:
         self.__dict__.update(state)
         self._lines_weakrefs = WeakSet()
         self._line_composers = WeakKeyDictionary()
+        self.aperture._env_ref = ref(self)
 
     @classmethod
     def _generate_doc_rst(
@@ -865,7 +868,7 @@ class Environment:
             particles, variables, expressions and metadata.
         """
         return self.__class__.from_dict(
-            self.to_dict(), with_progress=with_progress)
+            self.to_dict(include_aperture=True), with_progress=with_progress)
 
     def _copy_element_from(self, name, source, new_name=None):
         """Copy an element from another environment.
@@ -1085,7 +1088,8 @@ class Environment:
             raise ValueError('Only lines, scalars or references are allowed')
 
     @doc_group("Constructors and Serialization")
-    def to_dict(self, include_var_management=True, include_version=True):
+    def to_dict(self, include_var_management=True, include_version=True,
+                include_aperture=False):
         """
         Serialize the environment to a JSON-compatible dictionary.
 
@@ -1097,6 +1101,9 @@ class Environment:
         include_version : bool, optional
             If True, include the xtrack version that generated the dictionary.
             Default is ``True``.
+        include_aperture : bool, optional
+            If True, include environment and line aperture data. Default is
+            ``False``.
 
         Returns
         -------
@@ -1142,13 +1149,17 @@ class Environment:
 
         out["metadata"] = deepcopy(self.metadata)
 
+        if include_aperture and (len(self.aperture.profiles) or len(self.aperture.pipes)):
+            out['aperture'] = self.aperture.to_dict(include_line_models=False)
+
         out['xsuite_data_type'] = 'Environment'
 
         out['lines'] = {}
         for nn, ll in self.lines.items():
             if isinstance(ll, xt.Line):
                 out['lines'][nn] = ll.to_dict(include_element_dict=False,
-                                            include_var_management=False)
+                                            include_var_management=False,
+                                            include_aperture=include_aperture)
             else:
                 raise ValueError(f'Unknown line type {type(ll)}')
 
@@ -1202,7 +1213,8 @@ class Environment:
         particles = {}
         if 'particles' in dct:
             for nn, ppd in dct['particles'].items():
-               particles[nn] = xt.Particles.from_dict(ppd)
+               particles[nn] = xt.Particles.from_dict(
+                   ppd, _context=_context, _buffer=_buffer)
 
         particle_ref = None
         if 'particle_ref' in dct.keys():
@@ -1218,6 +1230,9 @@ class Environment:
 
         out = cls(element_dict=elements, particle_ref=particle_ref,
                 _var_management_dct=_var_management_dct, particles=particles)
+
+        if 'aperture' in dct:
+            out.aperture.from_dict(dct['aperture'], context=_context)
 
         dct_lines = dct.copy()
         dct_lines.pop('elements', None)
@@ -1281,7 +1296,8 @@ class Environment:
         indent : int, optional
             Indentation level used for the JSON output. Default is 1.
         **kwargs
-            Additional keyword arguments passed to ``Environment.to_dict``.
+            Additional keyword arguments passed to ``Environment.to_dict``,
+            including ``include_aperture``.
 
         Returns
         -------

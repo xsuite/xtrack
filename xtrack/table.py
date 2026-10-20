@@ -22,6 +22,7 @@ import xtrack as xt
 from .general import DEPRECATION_INFO_PREP_1_0
 
 from . import json as json_utils
+from ._tfs_format import _UNSET as _TFS_UNSET, write_tfs as _write_tfs_spec
 
 _PARTICLES_CLS: Optional[type] = None
 
@@ -1430,17 +1431,33 @@ class Table(_XdepsTable):
         })
         return instance
 
-    def to_tfs(self, file, *, include=None, exclude=None,
-               missing='error', include_meta=True,
-               default_column_width=None, float_precision=8,
-               numeric_column_width=16, column_formats=None,
-               column_widths=None):
+    def to_tfs(self, file, *, format_spec=None,
+               include=_TFS_UNSET, exclude=_TFS_UNSET,
+               missing=_TFS_UNSET, include_meta=_TFS_UNSET,
+               default_column_width=_TFS_UNSET, float_precision=_TFS_UNSET,
+               numeric_column_width=_TFS_UNSET, column_formats=_TFS_UNSET,
+               column_widths=_TFS_UNSET):
         """Write the table in TFS format.
 
         Parameters
         ----------
         file : path-like or file-like
             Output target.
+        format_spec : mapping or path-like, optional
+            Versioned output specification, or path to a JSON/TOML specification.
+            Requires ``version`` (``"1"`` or a supported preset identifier such
+            as ``"optics_orbit_strengths_v1"``), ordered ``columns`` and
+            ``scalars`` lists. Each entry requires ``name`` (output name), with
+            optional ``source_name`` (defaults to ``name``), ``type`` and
+            ``format``. Scalars can instead supply a constant ``value``;
+            columns also accept a minimum ``width``. Top-level
+            ``float_format`` defaults to ``".16e"`` for columns and scalars;
+            ``case`` defaults to ``"preserve"`` and also accepts ``"upper"`` or
+            ``"lower"`` for output names and string values. Only selected fields
+            are written, in the specified order, without automatic metadata.
+            Cannot be combined with any of the legacy options below. Presets
+            are available under ``xt.format_spec``. Without a specification,
+            the legacy defaults and behavior are unchanged.
         include, exclude, missing, include_meta
             See :meth:`Table.to_dict` for details.
         default_column_width : int, optional
@@ -1464,6 +1481,30 @@ class Table(_XdepsTable):
         None
             The table is written to ``file``.
         """
+
+        options = {
+            'include': include, 'exclude': exclude, 'missing': missing,
+            'include_meta': include_meta,
+            'default_column_width': default_column_width,
+            'float_precision': float_precision,
+            'numeric_column_width': numeric_column_width,
+            'column_formats': column_formats, 'column_widths': column_widths,
+        }
+        if format_spec is not None:
+            conflicts = [key for key, value in options.items() if value is not _TFS_UNSET]
+            if conflicts:
+                raise TypeError('format_spec cannot be combined with: ' + ', '.join(conflicts))
+            return _write_tfs_spec(self, file, format_spec)
+
+        include = None if include is _TFS_UNSET else include
+        exclude = None if exclude is _TFS_UNSET else exclude
+        missing = 'error' if missing is _TFS_UNSET else missing
+        include_meta = True if include_meta is _TFS_UNSET else include_meta
+        default_column_width = None if default_column_width is _TFS_UNSET else default_column_width
+        float_precision = 8 if float_precision is _TFS_UNSET else float_precision
+        numeric_column_width = 16 if numeric_column_width is _TFS_UNSET else numeric_column_width
+        column_formats = None if column_formats is _TFS_UNSET else column_formats
+        column_widths = None if column_widths is _TFS_UNSET else column_widths
 
         if float_precision <= 0:
             raise ValueError('float_precision must be a positive integer')

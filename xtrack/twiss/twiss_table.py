@@ -11,6 +11,7 @@ import numpy as np
 from ..general import DEPRECATION_INFO_PREP_1_0
 from .. import linear_normal_form as lnf
 from ..table import Table
+from .._tfs_format import _UNSET as _TFS_UNSET
 from .twissplot import TwissPlot
 from .beam_covariance import _build_sigma_table
 from .twiss_init import TwissInit, _W_phys2norm
@@ -241,11 +242,12 @@ class TwissTable(Table):
             group=group,
         )
 
-    def to_tfs(self, file, *, include=None, exclude=None,
-               missing='error', include_meta=True,
-               default_column_width=None, float_precision=8,
-               numeric_column_width=16, column_formats=None,
-               column_widths=None):
+    def to_tfs(self, file, *, format_spec=None,
+               include=_TFS_UNSET, exclude=_TFS_UNSET,
+               missing=_TFS_UNSET, include_meta=_TFS_UNSET,
+               default_column_width=_TFS_UNSET, float_precision=_TFS_UNSET,
+               numeric_column_width=_TFS_UNSET, column_formats=_TFS_UNSET,
+               column_widths=_TFS_UNSET):
         """
         Write the Twiss table to a TFS file.
 
@@ -253,6 +255,9 @@ class TwissTable(Table):
         ----------
         file : str or pathlib.Path or file-like object
             Output TFS file path or writable file-like object.
+        format_spec : mapping or path-like, optional
+            Versioned specification or JSON/TOML file. See :meth:`Table.to_tfs`.
+            Cannot be combined with any legacy selection or formatting options.
         include : sequence of str, optional
             Columns or metadata fields to include. If not provided, all supported
             fields are included unless excluded.
@@ -275,14 +280,19 @@ class TwissTable(Table):
             Per-column TFS column widths.
         """
 
-        if exclude is None:
-            exclude = []
-
-        if 'completed_init' in self.keys():
-            exclude.append('completed_init')
+        if format_spec is None:
+            if exclude is _TFS_UNSET or exclude is None:
+                exclude = []
+            elif isinstance(exclude, str):
+                exclude = [exclude]
+            else:
+                exclude = list(exclude)
+            if 'completed_init' in self.keys():
+                exclude.append('completed_init')
 
         super().to_tfs(
             file,
+            format_spec=format_spec,
             include=include,
             exclude=exclude,
             missing=missing,
@@ -331,12 +341,21 @@ class TwissTable(Table):
         -------
         xtrack.TwissInit
             Initial conditions for a Twiss calculation at the selected element.
+
+        Raises
+        ------
+        ValueError
+            If the requested element name is not present in the table.
         """
 
         assert self.values_at == 'entry', 'Not yet implemented for exit'
 
         if isinstance(at_element, str):
-            at_element = np.where(self.name == at_element)[0][0]
+            indices = np.where(self.name == at_element)[0]
+            if len(indices) == 0:
+                raise ValueError(
+                    f'Element {at_element!r} not found in the Twiss table.')
+            at_element = indices[0]
         part = self.particle_on_co.copy()
         part.x[:] = self.x[at_element]
         part.px[:] = self.px[at_element]
@@ -868,8 +887,13 @@ class TwissTable(Table):
 
         Particle physical coordinates are transformed using the closed orbit and
         W matrix stored in this Twiss table at each particle's ``at_element``.
-        If normalized emittances are provided, the normalized coordinates are
-        scaled by the square root of the corresponding emittance.
+        For each plane with a supplied normalized emittance, the transformed
+        coordinates are divided by ``sqrt(nemitt / (beta0 * gamma0))``, using
+        the closed-orbit reference particle's ``beta0`` and ``gamma0``.
+        If an emittance is omitted or ``None``, no emittance scaling is applied
+        in that plane (equivalent to unit geometric emittance, not unit
+        normalized emittance). Emittances used to build the particles are not
+        inferred; pass the same emittances here to recover those coordinates.
 
         Parameters
         ----------
@@ -877,20 +901,22 @@ class TwissTable(Table):
             Particles whose coordinates are converted.
         nemitt_x : float, optional
             Horizontal normalized emittance used to scale ``x_norm`` and
-            ``px_norm``.
+            ``px_norm``. ``None`` leaves this plane without emittance scaling.
         nemitt_y : float, optional
             Vertical normalized emittance used to scale ``y_norm`` and
-            ``py_norm``.
+            ``py_norm``. ``None`` leaves this plane without emittance scaling.
         nemitt_zeta : float, optional
             Longitudinal normalized emittance used to scale ``zeta_norm`` and
-            ``pzeta_norm``.
+            ``pzeta_norm``. ``None`` leaves this plane without emittance scaling.
 
         Returns
         -------
         xtrack.Table
             Table indexed by ``particle_id`` with columns ``particle_id``,
             ``at_element``, ``x_norm``, ``px_norm``, ``y_norm``, ``py_norm``,
-            ``zeta_norm``, and ``pzeta_norm``.
+            ``zeta_norm``, and ``pzeta_norm``. The supplied ``nemitt_x``,
+            ``nemitt_y``, and ``nemitt_zeta`` are stored as table attributes;
+            ``None`` records that no emittance scaling was applied in a plane.
         """
 
         ctx2np = particles._context.nparray_from_context_array
@@ -945,10 +971,13 @@ class TwissTable(Table):
             pzeta_norm[mask_at_ele] = XX_norm[5, :]
             at_element[mask_at_ele] = at_ele
 
-        return Table({'particle_id': part_id, 'at_element': at_element,
+        out = Table({'particle_id': part_id, 'at_element': at_element,
                       'x_norm': x_norm, 'px_norm': px_norm, 'y_norm': y_norm,
                       'py_norm': py_norm, 'zeta_norm': zeta_norm,
                       'pzeta_norm': pzeta_norm}, index='particle_id')
+        out._data.update(nemitt_x=nemitt_x, nemitt_y=nemitt_y,
+                         nemitt_zeta=nemitt_zeta)
+        return out
 
     def reverse(self):
         """

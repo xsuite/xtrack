@@ -4,21 +4,22 @@ import xtrack as xt
 S_TOL = 3.1e-2
 
 sps = xt.load('sps.json')
+sps.env.lines['sps'] = sps
 env = xt.load('sps_env.json')
 sps_with_limits = env.lines['sps_with_limits']
 
-aperture = xt.Aperture.from_json(
-    'sps_aperture.json',
-    line=sps,
-    s_tol=S_TOL,
-    _skip_validity_check=True,
-)
+sps.env.aperture.from_json('sps_aperture.json')
+aperture = sps.aperture
+aperture.s_tol = S_TOL
+# Preserve the known overlaps in the original LDB model for this comparison.
+aperture.build_model(_skip_validity_check=True)
 
-aperture_from_limits = xt.Aperture.from_line_with_limits(sps_with_limits, s_tol=S_TOL)
+aperture_from_limits = sps_with_limits.aperture.from_limits(s_tol=S_TOL)
 
-s_positions = aperture.s_around_transitions(resolution=0.1)
-sections_original = aperture.cross_sections_at_s(s_positions, extents=True, polygons=False)
-sections_recovered = aperture_from_limits.cross_sections_at_s(s_positions, extents=True, polygons=False)
+s_positions = aperture.get_s_around_transitions(resolution=0.1)
+sections_original = aperture.get_cross_sections_at_s(s_positions, extents=True, polygons=False)
+sections_recovered = aperture_from_limits.get_cross_sections_at_s(
+    s_positions, extents=True, polygons=False)
 
 fig, (ax_x, ax_y) = plt.subplots(2, 1, sharex=True)
 

@@ -1149,9 +1149,8 @@ class MadLoader:
             freq_harm_kwargs['harmonic'] = ee.harmon
         else:
             freq_harm_kwargs['frequency'] = ee.freq * 1e6
-        if (hasattr(self.sequence, 'beam')
-                and self.sequence.beam.particle == 'ion'):
-            scale_voltage = 1./self.sequence.beam.charge
+        if hasattr(self.sequence, 'beam'):
+            scale_voltage = 1./abs(self.sequence.beam.charge)
         else:
             scale_voltage = 1.
         if self.bv == -1:
@@ -1230,12 +1229,17 @@ class MadLoader:
         else:
             lll_rad = ee.lag * 2 * PI
 
+        # MAD-X VOLT is the reference-particle kick, as for an RF cavity.
+        scale_voltage = 1.
+        if hasattr(self.sequence, 'beam'):
+            scale_voltage = 1./abs(self.sequence.beam.charge)
+
         el = self.Assembler(
                 ee.name,
                 self.classes.CrabCavity,
                 length=ee.l,
                 frequency=ee.freq * 1e6,
-                crab_voltage=ee.volt * 1e6 * self.bv,
+                crab_voltage=scale_voltage * ee.volt * 1e6 * self.bv,
                 phase=lll_rad,
             )
         return self.make_composite_element([el], ee)

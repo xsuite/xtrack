@@ -19,6 +19,7 @@ from .masses import PROTON_MASS_EV
 from .pdg import get_pdg_id_from_name, get_properties_from_pdg_id, \
                  get_mass_from_pdg_id
 from ..general import _print, DEPRECATION_INFO_PREP_1_0
+from ..track_flags import c_header_flag_mapping
 
 LAST_INVALID_STATE = -999999999
 
@@ -36,6 +37,8 @@ scalar_vars = (
     (xo.Float64, 'q0'),
     (xo.Float64, 'mass0'),
     (xo.Float64, 't_sim'),
+    (xo.Float64, 'time_s'),
+    (xo.Float64, 'reference_turns'),
 )
 
 part_energy_vars = (
@@ -99,6 +102,7 @@ class Particles(xo.HybridClass):
                     if (not vv[1].startswith('_') and vv[1] != 't_sim')] + ['t_sim']
 
     _extra_c_sources = [
+        c_header_flag_mapping,
         '#include "xtrack/particles/headers/local_particle.h"'
     ]
 
@@ -110,6 +114,7 @@ class Particles(xo.HybridClass):
         'p0c': '_p0c',
         'gamma0': '_gamma0',
         'beta0': '_beta0',
+        'time_s': '_time_s',
     }
 
     _noexpr_fields = ['pdg_id_0', 'pdg_id']
@@ -239,6 +244,18 @@ class Particles(xo.HybridClass):
             Identifier of the parent particle (secondary production processes)
         t_sim : float, optional
             Simulation frame time (typically one revolution period)
+        time_s : float, optional
+            Shared simulation clock [s], advanced at every completed turn or
+            SyncTime frame. Particle arrival time is
+            time_s + (s - zeta) / (beta0 * c). Defaults to zero.
+            Assigning time_s resets reference_turns to NaN, so the tracker
+            initializes the counter from the new time on the next call.
+        reference_turns : float, optional
+            Accumulated reference revolutions at time_s, including fractional
+            turns. Advanced by one per turn, or by frame_relative_length per
+            SyncTime frame. Defaults to NaN, which initializes it from time_s
+            on the next tracking call. Reset to NaN after changing the
+            reference-turn map (line length / energy program).
         name : str, optional
             Optional label attached to this Particles object as ``name``.
             It does not affect particle identifiers or tracking.
@@ -364,6 +381,11 @@ class Particles(xo.HybridClass):
         self.q0 = kwargs.get('q0', 1.0)
         self.mass0 = kwargs.get('mass0', PROTON_MASS_EV)
         self.t_sim = kwargs.get('t_sim', 0)
+        self.time_s = kwargs.get('time_s', 0)
+        # Persistent accumulated reference revolutions at time_s. NAN asks the
+        # tracker to initialize from time_s. Assign this after time_s, whose
+        # setter invalidates the counter, to preserve an explicitly supplied pair.
+        self.reference_turns = kwargs.get('reference_turns', np.nan)
         self.start_tracking_at_element = kwargs.get(
                             'start_tracking_at_element', -1)
 
@@ -745,7 +767,7 @@ class Particles(xo.HybridClass):
         for tt, nn in cls.scalar_vars:
             vals = [getattr(pp, nn) for pp in cpu_lst]
             assert np.allclose(vals, getattr(cpu_lst[0], nn),
-                               rtol=0, atol=1e-14)
+                               rtol=0, atol=1e-14, equal_nan=(nn == 'reference_turns'))
 
         # Make new particle on CPU
         capacity = np.sum([pp._capacity for pp in cpu_lst])
@@ -999,6 +1021,11 @@ class Particles(xo.HybridClass):
         """
         Add particles to the particles object.
 
+        Incoming coordinates are interpreted in this object's current reference
+        frame and copied without a time-coordinate transformation. This object's
+        ``time_s``, ``reference_turns`` and ``t_sim`` are retained; the incoming
+        values of these fields are ignored.
+
         Parameters
         ----------
         part : Particles
@@ -1025,7 +1052,8 @@ class Particles(xo.HybridClass):
             raise NotImplementedError("Out of space, need to regenerate xobject")
 
         for tt, nn in self.scalar_vars:
-            if nn == 't_sim':
+            if nn in ('t_sim', 'time_s', 'reference_turns'):
+                # Added particles use the receiving collection's clock.
                 continue
             assert np.isclose(getattr(self, nn), getattr(part, nn),
                               rtol=1e-14, atol=1e-14)
@@ -1170,6 +1198,17 @@ class Particles(xo.HybridClass):
             delta=new_delta_value,
             mask=mask
         )
+
+    @property
+    def time_s(self):
+        return self._time_s
+
+    @time_s.setter
+    def time_s(self, value):
+        # A new clock origin invalidates the accumulated reference turns.
+        # Normal tracking updates both underlying fields together instead.
+        self._time_s = value
+        self.reference_turns = np.nan
 
     @property
     def delta(self):
@@ -1799,12 +1838,15 @@ class Particles(xo.HybridClass):
                                     computed_value=_charge_ratio,
                                     mask=mask)
 
-    def update_p0c_and_energy_deviations(self, p0c, update_pxpy=False):
+    def update_p0c_and_energy_deviations(self, p0c, update_pxpy=False,
+                                        _mask=None):
 
         assert np.isscalar(p0c), 'p0c must be a scalar'
 
-        # Assign with a mask
-        mask = self.state > 0
+        # If _mask is provided, use it to select the particles for the update.
+        # Note that mask might include lost particles (for the case of SyncTime,
+        # where particles are disabled only temporarily).
+        mask = self.state > 0 if _mask is None else _mask
 
         old_p0c = self.p0c.copy()
         old_beta0 = self.beta0.copy()
@@ -1817,7 +1859,11 @@ class Particles(xo.HybridClass):
 
         self._update_refs(p0c=new_p0c, mask=mask)
         self._update_energy_deviations(mask=mask, delta=new_delta)
-        self._update_zeta(mask=mask, zeta=self.zeta * self.beta0 / old_beta0)
+        # Preserve t = time_s + (s - zeta) / (beta0 * c).
+        # Waiting particles can be at s != 0 when the reference changes.
+        s_origin = self.s
+        self._update_zeta(mask=mask, zeta=s_origin
+                         + (self.zeta - s_origin) * self.beta0 / old_beta0)
 
         if update_pxpy:
             if isinstance(self._context, xo.ContextPyopencl):

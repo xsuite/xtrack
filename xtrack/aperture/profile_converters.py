@@ -42,11 +42,11 @@ def profile_from_limit_element(element: LimitElement) -> Tuple[ShapeTypes, float
 
 @profile_from_limit_element.register
 def _profile_from_limit_rect(element: LimitRect) -> Tuple[ShapeTypes, float, float]:
-    half_width = (element.max_x - element.min_x) / 2
-    half_height = (element.max_y - element.min_y) / 2
+    max_x = (element.max_x - element.min_x) / 2
+    max_y = (element.max_y - element.min_y) / 2
     x = (element.min_x + element.max_x) / 2
     y = (element.min_y + element.max_y) / 2
-    rectangle = Rectangle(half_width=half_width, half_height=half_height)
+    rectangle = Rectangle(max_x=max_x, max_y=max_y)
     return rectangle, x, y
 
 
@@ -54,7 +54,7 @@ def _profile_from_limit_rect(element: LimitRect) -> Tuple[ShapeTypes, float, flo
 def _profile_from_limit_ellipse(element: LimitEllipse) -> Tuple[ShapeTypes, float, float]:
     rx = element.a
     ry = element.b
-    ellipse = Ellipse(half_major=rx, half_minor=ry)
+    ellipse = Ellipse(a=rx, b=ry)
     return ellipse, 0, 0
 
 
@@ -64,23 +64,23 @@ def _profile_from_limit_rect_ellipse(element: LimitRectEllipse) -> Tuple[ShapeTy
     max_y = element.max_y
     rx = element.a
     ry = element.b
-    rect_ellipse = RectEllipse(half_width=max_x, half_height=max_y, half_major=rx, half_minor=ry)
+    rect_ellipse = RectEllipse(max_x=max_x, max_y=max_y, a=rx, b=ry)
     return rect_ellipse, 0, 0
 
 
 @profile_from_limit_element.register
 def _profile_from_limit_racetrack(element: LimitRacetrack) -> Tuple[ShapeTypes, float, float]:
-    half_width = (element.max_x - element.min_x) / 2
-    half_height = (element.max_y - element.min_y) / 2
+    max_x = (element.max_x - element.min_x) / 2
+    max_y = (element.max_y - element.min_y) / 2
     x = (element.min_x + element.max_x) / 2
     y = (element.min_y + element.max_y) / 2
     rx = element.a
     ry = element.b
     racetrack = Racetrack(
-        half_width=half_width,
-        half_height=half_height,
-        half_major=rx,
-        half_minor=ry,
+        max_x=max_x,
+        max_y=max_y,
+        a=rx,
+        b=ry,
     )
     return racetrack, x, y
 
@@ -124,34 +124,34 @@ def _profile_from_madx_circle(radius) -> Circle:
     return Circle(radius=radius)
 
 
-def _profile_from_madx_rectangle(half_width, half_height) -> Rectangle:
-    return Rectangle(half_width=half_width, half_height=half_height)
+def _profile_from_madx_rectangle(max_x, max_y) -> Rectangle:
+    return Rectangle(max_x=max_x, max_y=max_y)
 
 
-def _profile_from_madx_ellipse(half_major, half_minor) -> Ellipse:
-    return Ellipse(half_major=half_major, half_minor=half_minor)
+def _profile_from_madx_ellipse(a, b) -> Ellipse:
+    return Ellipse(a=a, b=b)
 
 
-def _profile_from_madx_rectellipse(half_width, half_height, half_major, half_minor) -> RectEllipse:
+def _profile_from_madx_rectellipse(max_x, max_y, a, b) -> RectEllipse:
     return RectEllipse(
-        half_width=half_width,
-        half_height=half_height,
-        half_major=half_major,
-        half_minor=half_minor,
+        max_x=max_x,
+        max_y=max_y,
+        a=a,
+        b=b,
     )
 
 
-def _profile_from_madx_racetrack(half_width, half_height, half_major, half_minor) -> Racetrack:
+def _profile_from_madx_racetrack(max_x, max_y, a, b) -> Racetrack:
     return Racetrack(
-        half_width=half_width,
-        half_height=half_height,
-        half_major=half_major,
-        half_minor=half_minor,
+        max_x=max_x,
+        max_y=max_y,
+        a=a,
+        b=b,
     )
 
 
-def _profile_from_madx_octagon(half_width, half_height, angle_0, angle_1) -> Octagon:
+def _profile_from_madx_octagon(max_x, max_y, angle_0, angle_1) -> Octagon:
     # TODO: Handle inconsistencies coming from angle_1
-    x = 0.5 * half_width * (np.tan(angle_0) + 1)
+    x = 0.5 * max_x * (np.tan(angle_0) + 1)
     diag = np.sqrt(2) * x
-    return Octagon(half_width=half_width, half_height=half_height, half_diagonal=diag)
+    return Octagon(max_x=max_x, max_y=max_y, max_diagonal=diag)

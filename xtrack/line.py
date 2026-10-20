@@ -11,6 +11,7 @@ from contextlib import contextmanager
 from pprint import pformat
 from typing import Container, Dict, List, Literal, Optional
 from warnings import warn
+from weakref import ref
 
 import numpy as np
 import xdeps as xd
@@ -354,6 +355,12 @@ class Line:
 
         self.env = env
 
+        from xtrack.aperture.aperture import LineAperture
+        aperture_struct = env.aperture._struct
+        aperture_context = (
+            aperture_struct._context if aperture_struct is not None else None)
+        self.aperture = LineAperture(self, context=aperture_context)
+
         self.env._lines_weakrefs.add(self)
 
         if particle_ref is None:
@@ -468,6 +475,10 @@ class Line:
                 element_dict=elements,
                 _var_management_dct=var_management_dict)
 
+            if 'aperture_environment' in dct:
+                env.aperture.from_dict(
+                    dct['aperture_environment'], context=_context)
+
             if 'env_particles' in dct:
                 for nn, ppd in dct['env_particles'].items():
                    env._particles[nn] = xt.Particles.from_dict(ppd, _context=_context)
@@ -500,6 +511,9 @@ class Line:
 
         if 'composer' in dct.keys() and dct['composer'] is not None:
             self.composer = xt.Composer.from_dict(dct['composer'], env=self.env)
+
+        if 'aperture' in dct:
+            self.aperture.from_dict(dct['aperture'], context=_context)
 
         if ('energy_program' in self._element_dict
              and self._element_dict['energy_program'] is not None):
@@ -787,7 +801,7 @@ class Line:
 
     @doc_group("Constructors and Serialization")
     def to_dict(self, include_var_management=True, include_element_dict=True,
-                include_version=False):
+                include_version=False, include_aperture=False):
 
         '''
         Returns a dictionary representation of the line.
@@ -803,6 +817,9 @@ class Line:
         include_version : bool, optional
             If True, the xtrack version is stored in the dictionary. Default
             is False.
+        include_aperture : bool, optional
+            If True, include this line's aperture and, when element definitions
+            are included, its environment aperture data. Default is False.
 
         Returns
         -------
@@ -818,6 +835,10 @@ class Line:
 
         if include_element_dict:
             out["elements"] = {k: el.to_dict() for k, el in self._element_dict.items()}
+            if include_aperture and (
+                len(self.env.aperture.profiles) or len(self.env.aperture.pipes)
+            ):
+                out['aperture_environment'] = self.env.aperture.to_dict(include_line_models=False)
         out["element_names"] = self.element_names[:]
         out['config'] = self.config.data.copy()
         out['_extra_config'] = self._extra_config.copy()
@@ -846,6 +867,9 @@ class Line:
         out['env_particles'] = {k: pp.to_dict() for k, pp in self.env._particles.items()}
 
         out["metadata"] = copy.deepcopy(self.metadata)
+
+        if include_aperture and not self.aperture.empty:
+            out['aperture'] = self.aperture.to_dict()
 
         return out
 
@@ -895,10 +919,6 @@ class Line:
 
 
     def __repr__(self):
-        if hasattr(self, '_name'):
-            name = self._name
-        else:
-            name = ''
         tokens = []
         if hasattr(self, '_name') and self._name:
             tokens.append(f'name={self._name}')
@@ -917,6 +937,7 @@ class Line:
 
     def __setstate__(self, state):
         self.__dict__.update(state)
+        self.aperture._line_ref = ref(self)
 
     @doc_group("Constructors and Serialization")
     def to_json(self, file, indent=1, **kwargs):
@@ -928,11 +949,12 @@ class Line:
             The file to save to. If a string is provided, a file is opened and
             closed. If a file-like object is provided, it is used directly.
         **kwargs:
-            Additional keyword arguments are passed to the `Line.to_dict` method.
+            Additional keyword arguments, including ``include_aperture``, are
+            passed to the `Line.to_dict` method.
 
         '''
 
-        if 'inlude_version' not in kwargs:
+        if 'include_version' not in kwargs:
             kwargs['include_version'] = True
 
         json_utils.dump(self.to_dict(**kwargs), file, indent=indent)
@@ -1285,6 +1307,9 @@ class Line:
 
             env = xt.Environment(element_dict=elements,
                                   _var_management_dct=var_management_dict)
+            if len(self.env.aperture.profiles) or len(self.env.aperture.pipes):
+                env.aperture.from_dict(
+                    self.env.aperture.to_dict(include_line_models=False), context=_context)
 
             if isinstance(self._particle_ref, str):
                 env.particles[self._particle_ref] = self.particle_ref.copy()
@@ -1304,6 +1329,9 @@ class Line:
         out._extra_config.update(self._extra_config.copy())
         out.metadata.clear()
         out.metadata.update(self.metadata)
+
+        if not self.aperture.empty:
+            out.aperture.from_dict(self.aperture.to_dict())
 
         if out.energy_program is not None:
             out.energy_program.line = out
@@ -2398,12 +2426,35 @@ class Line:
         _capacity=None,
         mode=None,
         *, chi=None, charge_ratio=None, mass_ratio=None, pdg_id=None,
+        nemitt_zeta=None, gemitt_x=None, gemitt_y=None, gemitt_zeta=None,
         **kwargs, # They are passed to the twiss
     ):
 
         """
         Create a Particles object from arrays containing physical or
         normalized coordinates.
+
+        When using normalized coordinates, each plane independently defaults
+        to unit geometric emittance if both its `nemitt_*` and `gemitt_*`
+        arguments are omitted or `None`. In that plane, no emittance scaling
+        is applied before transforming the normalized coordinates to physical
+        coordinates. This also applies to the longitudinal (`zeta`) plane.
+
+        In ``set`` and ``shift`` modes, species overrides can be scalars or
+        per-particle arrays. Single-element species arrays are broadcast; other
+        species arrays must match the coordinate arrays and ``num_particles``
+        if provided. Normalized coordinates require a single species per call,
+        including when ``W_matrix`` or ``R_matrix`` is supplied. Arrays with
+        identical species values are accepted in this case.
+
+        Species overrides must describe charged particles with nonzero ``chi``
+        and ``charge_ratio``. If all three ratios are provided, they must satisfy
+        ``chi * mass_ratio = charge_ratio`` for every particle.
+
+        To generate a mixed beam from normalized coordinates, call
+        ``build_particles`` separately for each species, then combine the
+        results with ``xt.Particles.merge([particles_a, particles_b])``. This
+        allows the optics to be computed separately for each species.
 
         Parameters
         ----------
@@ -2416,18 +2467,18 @@ class Line:
         num_particles : int
             Number of particles to be generated (used if provided coordinates are
             all scalar).
-        chi : float, optional
+        chi : float or array, optional
             Override the charge-to-mass ratio relative to the reference species.
             If provided alone, the reference charge ratio is preserved.
-        charge_ratio : float, optional
+        charge_ratio : float or array, optional
             Override the relative charge q/q0. If provided alone, the reference
             mass ratio is preserved.
-        mass_ratio : float, optional
+        mass_ratio : float or array, optional
             Override the relative mass m/mass0. If provided alone, the reference
             charge ratio is preserved. Species overrides do not modify the
             supplied reference particle and cannot be combined with
             `particle_on_co` or `co_guess`; set ratios on those particles directly.
-        pdg_id : int or str, optional
+        pdg_id : int, str or array, optional
             PDG ID or name of the species to generate. Its mass and charge define
             `mass_ratio` and `charge_ratio` relative to `mass0` and `q0` of the
             reference particle. Any explicitly supplied species ratios (including
@@ -2450,7 +2501,7 @@ class Line:
         x_norm : float or array
             transverse normalized coordinate x (in sigmas) used in combination with
             the one turn matrix and with the transverse emittances provided
-            in the argument `scale_with_transverse_norm_emitt` to generate x, px,
+            through `nemitt_x`/`gemitt_x` and `nemitt_y`/`gemitt_y` to generate x, px,
             y, py (x, px, y, py cannot be provided if x_norm, px_norm, y_norm,
             py_norm are provided).
         px_norm : float or array
@@ -2464,14 +2515,21 @@ class Line:
             with the one turn matrix and with the transverse emittances (as above).
         zeta_norm : float or array
             longitudinal normalized coordinate zeta (in sigmas) used in combination
-            with the one turn matrix.
+            with the one turn matrix and `nemitt_zeta` or `gemitt_zeta`.
         pzeta_norm : float or array
             longitudinal normalized coordinate pzeta (in sigmas) used in combination
-            with the one turn matrix.
-        nemitt_x : float
-            Transverse normalized emittance in the `x` plane.
-        nemitt_y : float
-            Transverse normalized emittance in the `y` plane.
+            with the one turn matrix and `nemitt_zeta` or `gemitt_zeta`.
+        nemitt_x, nemitt_y : float, optional
+            Transverse normalized emittances in the `x` and `y` planes.
+        nemitt_zeta : float, optional
+            Longitudinal normalized emittance used to scale `zeta_norm` and
+            `pzeta_norm`.
+        gemitt_x, gemitt_y, gemitt_zeta : float, optional
+            Geometric emittances in the three planes. For each plane, provide
+            either `gemitt` or `nemitt`, not both. Normalized emittances are
+            converted using `gemitt = nemitt / (beta0 * gamma0)` for the reference
+            particle. If neither is supplied in a plane, its geometric emittance
+            defaults to 1, so no emittance scaling is applied there.
         at_element : str or int
             Location within the line at which particles are generated. It can be an
             index or an element name.
@@ -2504,7 +2562,8 @@ class Line:
                     to the provided input `x_norm`, `px_norm`, `y_norm`, `py_norm`
                     (zero is assumed as default for these variables). The
                     transverse coordinates are normalized according to the
-                    transverse emittance provided in `nemitt_x` and `nemitt_y`.
+                    transverse emittances provided in `nemitt_x`/`gemitt_x` and
+                    `nemitt_y`/`gemitt_y`.
                     The transverse coordinates are then transformed into physical
                     space using the linearized one-turn matrix.
         _capacity : int
@@ -2521,6 +2580,12 @@ class Line:
         if not self._has_valid_tracker():
             self.build_tracker()
 
+        # Keep calls without geometric emittances compatible with older Xpart.
+        kwargs.update({key: value for key, value in {
+            'gemitt_x': gemitt_x, 'gemitt_y': gemitt_y,
+            'gemitt_zeta': gemitt_zeta,
+        }.items() if value is not None})
+
         import xpart
         return xpart.build_particles(
             line=self,
@@ -2530,7 +2595,7 @@ class Line:
             x_norm=x_norm, px_norm=px_norm, y_norm=y_norm, py_norm=py_norm,
             zeta_norm=zeta_norm, pzeta_norm=pzeta_norm,
             at_element=at_element, match_at_s=match_at_s,
-            nemitt_x=nemitt_x, nemitt_y=nemitt_y,
+            nemitt_x=nemitt_x, nemitt_y=nemitt_y, nemitt_zeta=nemitt_zeta,
             weight=weight,
             particle_on_co=particle_on_co,
             R_matrix=R_matrix,
@@ -7142,6 +7207,11 @@ class Line:
         """
         Flag controlling updates of time-dependent variables during tracking.
 
+        When True, ``particles.time_s`` drives ``line.vars['t_turn_s']`` and
+        the dependent machine settings (including an EnergyProgram). When
+        False, the two clocks are independent: tracking still advances the
+        particle clock and leaves ``t_turn_s`` at the user-selected value.
+
         Returns
         -------
         enabled : bool
@@ -8444,6 +8514,7 @@ class EnergyProgram:
         self.p0c = p0c
         self.kinetic_energy0 = kinetic_energy0
         self.t_s = t_s
+        self._line = None
         self.needs_complete = True
 
     def complete_init(self, line):
@@ -8460,8 +8531,6 @@ class EnergyProgram:
             'line must have a valid particle_ref')
 
         mass0 = line.particle_ref.mass0
-        circumference = line.get_length()
-
         if p0c is not None:
             assert hasattr (p0c, '__len__'), 'p0c must be a list or an array'
             assert len(t_s) == len(p0c), 't_s and p0c must have same length'
@@ -8476,37 +8545,126 @@ class EnergyProgram:
             energy0 = kinetic_energy0 + mass0
             enevars['energy0'] = energy0
 
-        # I use a particle to make the conversions
-        p = xt.Particles(**enevars, mass0=mass0)
-        beta0_program = p.beta0
-        bet0_mid = 0.5*(beta0_program[1:] + beta0_program[:-1])
-
-        dt_s = np.diff(t_s)
-
-        i_turn_at_t_samples = np.zeros_like(t_s)
-        i_turn_at_t_samples[1:] = (
-            beta0_program[0] * clight / circumference * t_s[0] +
-            np.cumsum(bet0_mid * clight / circumference * dt_s))
-        # In this way i_turn = 0 corresponds to t_s[0]
-
-        self.t_at_turn_interpolator = xd.FunctionPieceWiseLinear(
-                                x=i_turn_at_t_samples, y=t_s)
+        if kinetic_energy0 is None:
+            momentum = np.asarray(p0c, dtype=float)
+        else:
+            p = xt.Particles(**enevars, mass0=mass0)
+            momentum = np.asarray(p.p0c)
         self.p0c_interpolator = xd.FunctionPieceWiseLinear(
-                                x=t_s, y=np.array(p.p0c))
-        self.line = line
-
+                                x=np.asarray(t_s, dtype=float), y=momentum)
         self.needs_complete = False
+        self.line = line
         del self.p0c
         del self.kinetic_energy0
 
-    def get_t_s_at_turn(self, i_turn):
+    @property
+    def line(self):
+        return self._line
+
+    @line.setter
+    def line(self, line):
+        # Attach the program to a line and build its analytical turn/time map.
+        # The momentum ramp alone is insufficient: converting momentum to
+        # revolution frequency also needs the line's reference mass and length.
+        # Validate the ramp and recompute accumulated turns at its time knots
+        # on attachment, including after loading or copying a saved program.
+        # Assigning None leaves the program unattached and skips this setup.
+        self._line = line
+        if line is None:
+            return
+        times = np.asarray(self.p0c_interpolator.x)
+        momentum = np.asarray(self.p0c_interpolator.y)
+        if (times.ndim != 1 or len(times) < 2
+                or not np.all(np.isfinite(times)) or np.any(np.diff(times) <= 0)):
+            raise ValueError('EnergyProgram times must be finite and strictly increasing')
+        if not np.all(np.isfinite(momentum)) or np.any(momentum < 0):
+            raise ValueError('EnergyProgram momentum must be finite and nonnegative')
+        self._mass0 = float(line.particle_ref.mass0)
+        self._circumference = line.get_length()
+        if self._circumference <= 0:
+            raise ValueError('EnergyProgram requires a positive circumference')
+        energy = np.hypot(momentum, self._mass0)
+
+        # P = p0*c is linear within each supplied interval. With M = m*c**2,
+        # E = sqrt(P**2+M**2).
+        # With a = dP/dt, dE/dt = a*beta, hence integral(beta dt) = (E1-E0)/a.
+        # Using (E1-E0)*(E1+E0) = (P1-P0)*(P1+P0) and P1-P0 = a*dt gives
+        # (E1-E0)/a = dt*(P0+P1)/(E0+E1). This is exact, avoids
+        # subtracting nearly equal energies, and also holds for constant P or
+        # acceleration from rest. Only the original knots need to be stored.
+        delta_turns = (clight / self._circumference * np.diff(times)
+                       * (momentum[:-1] + momentum[1:]) / (energy[:-1] + energy[1:]))
+        self._i_turn_at_t_s = np.concatenate(([0.], np.cumsum(delta_turns)))
+
+    def get_turn_at_t_s(self, t_s):
+        """Accumulated reference turns, integrating the linear momentum ramp.
+
+        Before the first sample, extend the injection velocity as a constant.
+        Times beyond the last sample are rejected. Scalars and arrays are accepted.
+        """
         assert not self.needs_complete, 'EnergyProgram not complete'
         assert self.line is not None, 'EnergyProgram not associated to a line'
-        if (i_turn > self.t_at_turn_interpolator.x[-1]).any():
-            raise ValueError('`i_turn` outside program range not yet supported')
-        out = self.t_at_turn_interpolator(i_turn)
+        t = np.asarray(t_s, dtype=float)
+        times, momentum = self.p0c_interpolator.x, self.p0c_interpolator.y
+        if not np.all(np.isfinite(t)) or np.any(t > times[-1]):
+            raise ValueError('`t_s` outside program range')
+        i = np.clip(np.searchsorted(times, t, side='right') - 1, 0, len(times) - 2)
+        dt = np.maximum(t - times[i], 0.)
+        p0 = momentum[i]
+        p = p0 + (momentum[i+1] - p0) * dt / (times[i+1] - times[i])
+        out = (self._i_turn_at_t_s[i] + clight / self._circumference * dt
+               * (p0 + p) / (np.hypot(p0, self._mass0) + np.hypot(p, self._mass0)))
+        injection_beta = momentum[0] / np.hypot(momentum[0], self._mass0)
+        out = np.where(t < times[0], (t - times[0])*clight/self._circumference
+                       * injection_beta, out)
+        return out.item() if out.ndim == 0 else out
 
-        return out
+    def get_t_s_at_turn(self, i_turn):
+        """Time at a given accumulated reference turn, using the analytical inverse.
+
+        For an interval spent at rest, return the earliest time at that turn.
+        Negative turns extend the injection velocity, which must be nonzero.
+        Turns beyond the last sample are rejected. Scalars and arrays are accepted.
+        """
+        assert not self.needs_complete, 'EnergyProgram not complete'
+        assert self.line is not None, 'EnergyProgram not associated to a line'
+        turns = np.asarray(i_turn, dtype=float)
+        knots = self._i_turn_at_t_s
+        times, momentum = self.p0c_interpolator.x, self.p0c_interpolator.y
+        if not np.all(np.isfinite(turns)) or np.any(turns > knots[-1]):
+            raise ValueError('`i_turn` outside program range')
+        if momentum[0] == 0 and np.any(turns < 0):
+            raise ValueError('Cannot extrapolate negative turns from rest')
+        # side='left' selects the earliest endpoint when turn knots coincide.
+        n = np.maximum(turns, 0.)
+        i = np.clip(np.searchsorted(knots, n, side='left') - 1, 0, len(knots) - 2)
+        slope = (momentum[i+1] - momentum[i]) / (times[i+1] - times[i])
+        # Integrate from the lower-momentum endpoint, backwards for deceleration,
+        # so that the square root below only adds nonnegative terms.
+        anchor = i + (slope < 0)
+        direction = np.where(slope < 0, -1., 1.)
+        distance_over_c = direction * (n - knots[anchor]) * self._circumference / clight
+        p0 = momentum[anchor]
+        e0 = np.hypot(p0, self._mass0)
+        gain = np.abs(slope) * distance_over_c
+        p = np.sqrt(p0**2 + gain * (2*e0 + gain))
+        # Write D = distance_over_c and a = dP/dt, with P = p*c and
+        # E = sqrt(P**2 + (m*c**2)**2). Starting from the lower-momentum
+        # endpoint gives E-E0 = |a|*D = gain and dt = (P-P0)/|a|.
+        # Using (P-P0)*(P+P0) = E**2-E0**2 = gain*(2*E0+gain),
+        # substitute gain = |a|*D and cancel |a| to obtain
+        # dt = D*(2*E0+gain)/(P+P0), avoiding subtraction of nearby momenta.
+        # For constant nonzero P, gain=0 and this gives dt = D*E0/P0 = D/beta.
+        dt = np.divide(distance_over_c * (2*e0 + gain), p + p0,
+                       out=np.zeros_like(n), where=(p + p0) != 0)
+        out = times[anchor] + direction * dt
+        out = np.where(n == knots[i+1], times[i+1], out)
+        out = np.where(n == 0, times[0], out)
+        if np.any(turns < 0):
+            injection_period = (self._circumference / clight
+                                * np.hypot(momentum[0], self._mass0) / momentum[0])
+            out = np.where(turns < 0, times[0] + turns*injection_period, out)
+        return out.item() if out.ndim == 0 else out
 
     def get_p0c_at_t_s(self, t_s):
         assert not self.needs_complete, 'EnergyProgram not complete'
@@ -8583,16 +8741,22 @@ class EnergyProgram:
         assert not self.needs_complete, 'EnergyProgram not completed'
         return {
             '__class__': self.__class__.__name__,
-            't_at_turn_interpolator': self.t_at_turn_interpolator.to_dict(),
             'p0c_interpolator': self.p0c_interpolator.to_dict()}
     @classmethod
     def from_dict(cls, dct):
         self = cls.__new__(cls)
-        self.t_at_turn_interpolator = xd.FunctionPieceWiseLinear.from_dict(
-                                        dct['t_at_turn_interpolator'])
         self.p0c_interpolator = xd.FunctionPieceWiseLinear.from_dict(
                                         dct['p0c_interpolator'])
+        # Old files may also contain an approximate t_at_turn_interpolator;
+        # ignore it and reconstruct the analytical turn/time map from the
+        # saved momentum ramp. The ramp is already constructed, so no input
+        # energy-to-momentum conversion is needed (needs_complete=False).
+        # The program is not yet attached to a machine: leave line=None until
+        # attachment supplies the circumference and reference mass. The line
+        # setter then rebuilds the exact accumulated turn counts at the ramp
+        # time knots, which are needed for turn/time queries.
         self.needs_complete = False
+        self.line = None
         return self
     def copy(self, _context=None, _buffer=None, _offeset=None):
         return self.from_dict(self.to_dict())

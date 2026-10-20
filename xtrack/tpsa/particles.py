@@ -15,6 +15,8 @@ _REF_VARS: tuple[str, ...] = (
     "q0",
     "mass0",
     "t_sim",
+    "time_s",
+    "reference_turns",
     "beta0",
     "gamma0",
     "p0c",
@@ -57,6 +59,8 @@ class TpsaParticleData(xo.Struct):
     q0 = xo.Float64
     mass0 = xo.Float64
     t_sim = xo.Float64
+    time_s = xo.Float64
+    reference_turns = xo.Float64
     beta0 = xo.Float64
     gamma0 = xo.Float64
     p0c = xo.Float64
@@ -200,6 +204,9 @@ class ParticlesTpsa(TpsaMap[Tpsa]):
     def to_particles(self) -> xt.Particles:
         """A fresh single ``xt.Particles`` at the current const part (validation use)."""
         p = self._ref_particle.copy()
+        p.time_s = self.time_s
+        p.t_sim = self.t_sim
+        p.reference_turns = self.reference_turns
         for c, v in zip(COORDS, self.const_part):
             setattr(p, c, [v])
         return p
@@ -214,6 +221,34 @@ class ParticlesTpsa(TpsaMap[Tpsa]):
                 return float(getattr(xobject, name))
             return self._ref(name)
         return super().__getattr__(name)
+
+    @property
+    def time_s(self) -> float:
+        if self._xobject is not None:
+            return float(self._xobject.time_s)
+        return self._ref('time_s')
+
+    @time_s.setter
+    def time_s(self, value):
+        # Match Particles: changing the clock origin invalidates its turn counter.
+        if self._xobject is not None:
+            self._xobject.time_s = value
+            self._xobject.reference_turns = np.nan
+        else:
+            self._ref_particle.time_s = value
+
+    @property
+    def reference_turns(self) -> float:
+        if self._xobject is not None:
+            return float(self._xobject.reference_turns)
+        return self._ref('reference_turns')
+
+    @reference_turns.setter
+    def reference_turns(self, value):
+        if self._xobject is not None:
+            self._xobject.reference_turns = value
+        else:
+            self._ref_particle.reference_turns = value
 
     def optics(self) -> TpsaOptics:
         """Uncoupled optics (betx, alfx, mux, dx, ...) + parameter gradients."""

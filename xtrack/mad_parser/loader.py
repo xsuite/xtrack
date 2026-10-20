@@ -59,12 +59,12 @@ CONSTANTS = {
     "pmass": 0.93827208816,  # GeV
     "nmass": 0.93956542052,  # GeV
     "umass": 0.93149410242,  # GeV
-    "mumass": 0.1056583715,  # GeV
+    "mumass": 0.1056583755,  # GeV
     "clight": 299792458.0,  # m/s
     "qelect": 1.602176634e-19,  # A * s
     "hbar": 6.582119569e-25,  # MeV * s
     "erad": 2.8179403262e-15,  # m
-    "prad": 'erad / emass * pmass',
+    "prad": 'erad * emass / pmass',
 }
 
 _APERTURE_TYPES = {
@@ -504,6 +504,8 @@ class MadxLoader:
                 params['edge_exit_hgap'] = hgap
 
         elif parent_name in {'rfcavity', 'crabcavity'}:
+            # Native MAD-X import assumes unit charge for cavity voltages,
+            # independently of any BEAM statement.
             if (lag := params.pop('lag', None)):
                 params['phase'] = lag * self.env.vars['pi'] * 2
             if (volt := params.pop('volt', None)):
@@ -753,7 +755,21 @@ class MadxLoader:
 
 def load_madx_lattice(file=None, string=None, reverse_lines=None, s_tol=1e-6,
                       _rbend_correct_k0=False, end_compose=True, **kwargs) -> xt.Environment:
+    """Load a MAD-X lattice using the native parser.
 
+    Scalar declarations accept ``const``, optionally followed by ``real`` or
+    ``int``. These qualifiers are ignored: imported variables remain mutable,
+    no numeric type conversion is enforced, and ``=`` and ``:=`` retain their
+    usual immediate and deferred assignment behavior. MAD-X protection against
+    reassignment of constants is not enforced.
+    """
+
+    """Load a MAD-X lattice using the native parser.
+
+    RF and crab cavity voltages are imported assuming unit charge, even when
+    a BEAM statement specifies a different charge. For ions, divide the
+    imported voltages by the absolute reference charge if needed.
+    """
     if file is not None and string is not None:
         raise ValueError('Only one of `file` or `string` can be provided!')
 

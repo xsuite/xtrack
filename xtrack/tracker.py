@@ -25,6 +25,7 @@ from .progress_indicator import progress
 from .tpsa import ParticlesTpsa
 from .tracker_data import TrackerData, _expand_element_classes_with_slice_classes
 from .track_flags import TrackFlags
+from .synctime import _SyncTimeController
 
 logger = logging.getLogger(__name__)
 
@@ -113,6 +114,10 @@ class Tracker:
         tracker_data_base._line_table = tt
         tracker_data_base._element_names_unique = tuple(
                 tracker_data_base._line_table.name[:-1]) # remove _endpoint
+        if 'SyncTime' in tracker_data_base._line_table.element_type:
+            self._sync_time_controller = _SyncTimeController(line, tracker_data_base)
+        else:
+            self._sync_time_controller = None
         line._freeze()
 
         if np.any([hasattr(ee, 'needs_rng') and ee.needs_rng for ee in line._elements]):
@@ -299,6 +304,14 @@ class Tracker:
     def _track_with_current_config(
             self, particles, *args, with_progress: Union[bool, int] = False,
             time=False, multi_element_monitor_at=None, monitor_monomials=None, **kwargs):
+
+        # Re-evaluate on each call: time-dependent variables can be toggled
+        # after tracker construction. Element-driven reference ramps retain
+        # conventional zeta updates even when their clock is approximate.
+        self.track_flags.XS_FLAG_USE_TIME_BASED_ZETA_UPDATE = (
+            self._sync_time_controller is not None
+            or (self.line.energy_program is not None
+                and self.line.enable_time_dependent_vars))
 
         # if not self.config.get('XTRACK_MULTIPOLE_NO_SYNRAD', False):
         #     # Radiation and spin share a compile flag. BFieldExpansion may
@@ -526,6 +539,12 @@ class Tracker:
                 num_elements_first_turn + ele_start == self.num_elements)
             flag_end_middle_turn_actions = True
 
+        # t_sim is the clock advance (seconds) per completed turn, here equal
+        # to the reference revolution period. It also sets the end-turn zeta shift.
+        p.t_sim = tracker_data.line_length / (p.beta0 * clight)
+        if np.isnan(p.reference_turns):
+            p.reference_turns = p.time_s / p.t_sim if p.t_sim else 0.
+
         def run_track_kernel(num_turns, ele_start, num_ele_track, flag_end_turn_actions):
             track_kernel(
                 buffer=tracker_data._buffer.buffer,
@@ -546,6 +565,8 @@ class Tracker:
                 io_buffer=self.io_buffer.buffer,
                 track_flags=p.track_flags,
             )
+            self._advance_particle_time_s_and_reference_turns(
+                particles, int(num_turns)*flag_end_turn_actions)
 
         run_track_kernel(
             num_turns=1,
@@ -845,13 +866,17 @@ class Tracker:
                         Particles_to_LocalParticle(particles, &lpart, 0, capacity);
                         check_is_active(&lpart);
                         count_reorganized_particles(&lpart);
-                        LocalParticle_to_Particles(&lpart, particles, 0, capacity);
+                        LocalParticle_to_Particles(&lpart, particles, 0,
+                            1); // set_scalar
                     }
                 #else // When we skip reorganize, we cannot just batch active particles
                     const int64_t num_particles_to_track = capacity;
                 #endif
 
-                const int64_t chunk_size = (num_particles_to_track + num_threads - 1)/num_threads; // ceil division
+                int64_t chunk_size = (num_particles_to_track + num_threads - 1)/num_threads; // ceil division
+                if (chunk_size == 0) {
+                    chunk_size = 1;
+                }
             #endif // CONTEXT_OPENMP
 
             #pragma omp parallel for                                                           //only_for_context cpu_openmp
@@ -925,8 +950,9 @@ class Tracker:
                     elem_idx = ele_stop - 1;
                     increm = -1;
                     if (flag_end_turn_actions>0){
-                        increment_at_turn_backtrack(&lpart, flag_reset_s_at_end_turn,
-                                                    line_length, num_ele_line);
+                        increment_at_turn(&lpart, flag_reset_s_at_end_turn,
+                                          line_length, num_ele_line,
+                                          -1); // direction
                     }
                 }
                 else{
@@ -1036,19 +1062,24 @@ class Tracker:
                 }
                 else if (flag_end_turn_actions>0){
                     if (isactive){
-                        increment_at_turn(&lpart, flag_reset_s_at_end_turn);
+                        increment_at_turn(&lpart, flag_reset_s_at_end_turn,
+                                          line_length, num_ele_line,
+                                          1); // direction
                     }
                 }
 #else
                 if (flag_end_turn_actions>0
                         && LocalParticle_get_state(&lpart) > 0){
-                    increment_at_turn(&lpart, flag_reset_s_at_end_turn);
+                    increment_at_turn(&lpart, flag_reset_s_at_end_turn,
+                                      line_length, num_ele_line,
+                                      1); // direction
                 }
 #endif
             } // for turns
 
 #ifndef XTRACK_TPSA_TRACK
-            LocalParticle_to_Particles(&lpart, particles, part_id, 1);
+            LocalParticle_to_Particles(&lpart, particles, part_id,
+                part_id == 0); // set_scalar
 
             }// if partid
             } //only_for_context cpu_openmp
@@ -1061,13 +1092,15 @@ class Tracker:
             Particles_to_LocalParticle(particles, &lpart, 0, capacity);//only_for_context cpu_openmp
             check_is_active(&lpart);                                   //only_for_context cpu_openmp
             count_reorganized_particles(&lpart);                       //only_for_context cpu_openmp
-            LocalParticle_to_Particles(&lpart, particles, 0, capacity);//only_for_context cpu_openmp
+            LocalParticle_to_Particles(&lpart, particles, 0, //only_for_context cpu_openmp
+                1); // set_scalar //only_for_context cpu_openmp
             #endif                                                     //only_for_context cpu_openmp
 #else
             } catch (const xt_tpsa::tracking_error&) {
                 LocalParticle_set_state(&lpart, XT_LOST_ON_TPSA_ERROR);
             }
-            LocalParticle_to_Particles(&lpart, particles, 0, 1);
+            LocalParticle_to_Particles(&lpart, particles, 0,
+                1); // set_scalar
 #endif
         }//kernel
         """
@@ -1393,6 +1426,14 @@ class Tracker:
         if ele_start is None:
             ele_start = 0
 
+        if self._sync_time_controller is not None:
+            if (ele_start != 0 or ele_stop is not None or num_elements is not None
+                    or _session_to_resume is not None or self._enable_pipeline_hold
+                    or self.skip_end_turn_actions or not self.reset_s_at_end_turn
+                    or particles.start_tracking_at_element >= 0):
+                raise NotImplementedError(
+                    'Frame-clock SyncTime currently requires complete frames')
+
         if freeze_longitudinal:
             raise NotImplementedError('freeze_longitudinal not implemented yet'
                                       ' for collective tracking')
@@ -1460,6 +1501,9 @@ class Tracker:
             # Time dependent vars and energy ramping
             if self.line.enable_time_dependent_vars:
                 self._handle_time_dependent_vars(particles=particles)
+
+            if particles is not None and not _is_resume_within_turn(tt, tt_resume):
+                self._prepare_particle_time_s_and_reference_turns(particles)
 
             if log is not None and not _is_resume_within_turn(tt, tt_resume):
                 self._handle_log(_session_to_resume=_session_to_resume,
@@ -1689,6 +1733,8 @@ class Tracker:
         if self.line._needs_rng and not particles._has_valid_rng_state():
             particles._init_random_number_generator()
 
+        self._prepare_particle_time_s_and_reference_turns(particles)
+
         track_kernel, tracker_data = self.get_track_kernel_and_data_for_present_config()
         track_kernel.description.n_threads = particles._capacity
 
@@ -1714,6 +1760,9 @@ class Tracker:
             track_flags=track_flags
         )
 
+        self._advance_particle_time_s_and_reference_turns(
+            particles, flag_end_first_turn_actions)
+
         # Middle turns
         if num_middle_turns > 0:
             assert self.num_elements > 0
@@ -1736,6 +1785,9 @@ class Tracker:
                 io_buffer=self.io_buffer.buffer,
                 track_flags=track_flags
             )
+
+            self._advance_particle_time_s_and_reference_turns(
+                particles, num_middle_turns*flag_end_middle_turn_actions)
 
         # Last turn, only if incomplete
         if num_elements_last_turn > 0:
@@ -1999,32 +2051,50 @@ class Tracker:
             verbose=True
         )
 
+    def _prepare_particle_time_s_and_reference_turns(self, particles):
+        if np.isnan(particles.reference_turns):
+            particles.reference_turns = self._get_reference_turns(particles)
+        if self._sync_time_controller is not None:
+            return  # The first SyncTime supplies the fractional-turn duration.
+        program = self.line.energy_program
+        if program is not None and self.line.enable_time_dependent_vars:
+            turn = particles.reference_turns
+            particles.t_sim = program.get_t_s_at_turn(turn + 1) - particles.time_s
+        else:
+            length = self._tracker_data_base.line_length
+            beta0 = particles._xobject.beta0[0]
+            particles.t_sim = length / (beta0 * clight)
+
+    def _advance_particle_time_s_and_reference_turns(self, particles, num_turns):
+        if num_turns:
+            # Bypass the public time_s setter: both values advance together,
+            # so this is not a change of clock origin requiring reinitialization.
+            p = particles._xobject
+            direction = -1 if self.track_flags.XS_FLAG_BACKTRACK else 1
+            p.time_s += direction * num_turns * p.t_sim
+            turn_step = (self._sync_time_controller.fraction
+                         if self._sync_time_controller is not None else 1.)
+            p.reference_turns += direction * num_turns * turn_step
+
+    def _get_reference_turns(self, particles):
+        program = self.line.energy_program
+        if program is not None and self.line.enable_time_dependent_vars:
+            return program.get_turn_at_t_s(particles.time_s)
+        length = self._tracker_data_base.line_length
+        beta_c = particles._xobject.beta0[0] * clight
+        return particles.time_s * beta_c / length if length else 0.
+
     def _handle_time_dependent_vars(self, particles):
 
-        # Find first active particle
-        state = particles.state
-        if isinstance(particles._context, xo.ContextPyopencl):
-            state = state.get()
-        ii_first_active = int((state > 0).argmax())
-        if ii_first_active == 0 and particles._xobject.state[0] <= 0:
-            # No active particles
-            at_turn = 0 # convenient for multi-turn injection
-        else:
-            at_turn = particles._xobject.at_turn[ii_first_active]
-
-        if self.line.energy_program is not None:
-            t_turn = self.line.energy_program.get_t_s_at_turn(at_turn)
-        else:
-            beta0 = particles._xobject.beta0[ii_first_active]
-            t_turn = (at_turn * self._tracker_data_base.line_length
-                    / (beta0 * clight))
+        t_turn = particles.time_s
 
         # Clean leftover from previous trackings
         if (self.line._t_last_update_time_dependent_vars and
             t_turn < self.line._t_last_update_time_dependent_vars):
             self.line._t_last_update_time_dependent_vars = None
 
-        if (self.line._t_last_update_time_dependent_vars is None
+        if (self._sync_time_controller is not None
+            or self.line._t_last_update_time_dependent_vars is None
             or self.line.dt_update_time_dependent_vars is None
             or t_turn > self.line._t_last_update_time_dependent_vars
                         + self.line.dt_update_time_dependent_vars):
@@ -2033,7 +2103,17 @@ class Tracker:
 
             if self.line.energy_program is not None:
                 p0c = self.line.particle_ref._xobject.p0c[0]
-                particles.update_p0c_and_energy_deviations(p0c, update_pxpy=True)
+                if self._sync_time_controller is not None:
+                    # Include particles temporarily paused by SyncTime: they
+                    # must follow the reference-momentum change while waiting,
+                    # preserving their physical energy and arrival time.
+                    # The controller excludes particles that are actually lost.
+                    mask = self._sync_time_controller.surviving_mask(particles)
+                else:
+                    # Use the default mask: only active particles (state > 0).
+                    mask = None
+                particles.update_p0c_and_energy_deviations(
+                    p0c, update_pxpy=True, _mask=mask)
 
     def _handle_log(self, _session_to_resume, particles, log):
         if _session_to_resume is not None:

@@ -52,7 +52,8 @@ GPUKERN void KERNEL_NAME(
                 Particles_to_LocalParticle(particles, &lpart, 0, capacity);
                 check_is_active(&lpart);
                 count_reorganized_particles(&lpart);
-                LocalParticle_to_Particles(&lpart, particles, 0, capacity);
+                LocalParticle_to_Particles(&lpart, particles, 0,
+                    1); // set_scalar
             }
         #else
             const int64_t num_particles_to_track = capacity;
