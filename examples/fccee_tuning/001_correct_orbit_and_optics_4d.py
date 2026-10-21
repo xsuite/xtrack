@@ -1,8 +1,8 @@
 """Interleaved 4D orbit/optics correction of the model produced by 000.
 
 Adapted from networkSeeds/tools/005_correct_orbit_and_optics_4d.py.
-Ramp all installed errors with sextupoles off, then restore sextupoles, keeping
-all error knobs and their expressions. Use real BPM locations and the existing
+Ramp installed errors with magnetic nonlinear terms off, then restore those
+terms, keeping all error knobs and their expressions. Use real BPM locations and the existing
 horizontal/vertical correctors. Monitor offsets/rolls come from error_recipe.
 
 Complete the H/V corrector layout at quadrupoles as in the presentation.
@@ -23,9 +23,10 @@ emittance estimate; this is not a coupled radiation-equilibrium calculation.
 BPM offsets and rolls are included; measurement noise is not sampled.
 
 Run: python 001_correct_orbit_and_optics_4d.py [--resume] [--stop-at 0.1]
-Progress runs from 0 to 1 for errors, then 1 to 2 for sextupoles. Accepted steps
-write variable checkpoints. Use loose coupling/dispersion acceptance during
-the ramp, then refine at full errors and sextupole strengths. Full lattices are
+Progress runs from 0 to 1 for errors, then 1 to 2 for all magnetic nonlinear
+terms. The nonlinear ramp starts with 2.5% steps and grows to at most 5%.
+Accepted steps write variable checkpoints. Use loose coupling/dispersion acceptance during
+the ramp, then refine at full errors and nonlinear strengths. Full lattices are
 saved at endpoints or an early stop; only a ramp with successful final
 refinement writes fccee_z_lcc_corrected.json.
 """
@@ -97,9 +98,11 @@ MAX_CYCLES = 40
 INITIAL_INCREMENT = 0.0125
 MIN_INCREMENT = 1e-5
 MAX_INCREMENT = 0.10
+NONLINEAR_INITIAL_INCREMENT = 0.025
+NONLINEAR_MAX_INCREMENT = 0.05
 CHECKPOINT=HERE/'orbit_optics_4d_checkpoint_vars.json'
 HISTORY=HERE/'orbit_optics_4d_history.csv'
-HISTORY_COLUMNS='progress,orbit_rms_x_m,orbit_rms_y_m,beta_rms_x,beta_rms_y,beta_max_x,beta_max_y,qx,qy,delta0,error_fraction,sextupole_fraction,c_minus,f1001_rms,f1010_rms,dy_rms_m,dy_ip_max_m'
+HISTORY_COLUMNS='progress,orbit_rms_x_m,orbit_rms_y_m,beta_rms_x,beta_rms_y,beta_max_x,beta_max_y,qx,qy,delta0,error_fraction,nonlinear_fraction,c_minus,f1001_rms,f1010_rms,dy_rms_m,dy_ip_max_m'
 
 TUNE_KNOBS=['kqf2','kqd1']
 
@@ -163,21 +166,48 @@ for plane, names, field, sign in zip('xy', corrector_names, ('knl', 'ksl'), (-1,
 line.steering_monitors_x = line.steering_monitors_y = monitor_names
 line.steering_correctors_x, line.steering_correctors_y = corrector_names
 print('BPMs:', len(monitor_names), 'H/V correctors:', [len(n) for n in corrector_names])
-# Preserve each magnet's existing expressions, including family and crab knobs.
-line['on_sextupoles']=1.0
-sextupole_names=[]
-for name in dict.fromkeys(line.element_names):
-    element=line.element_dict[name]
-    if isinstance(element,xt.Sextupole):
-        line.ref[name].k2 *= line.ref['on_sextupoles']
-        line.ref[name].k2s *= line.ref['on_sextupoles']
-        sextupole_names.append(name)
-    # Include any sextupole components stored as integrated multipoles.
-    for field in ('knl','ksl'):
-        if hasattr(element,field) and len(getattr(element,field))>2:
-            if getattr(element,field)[2] != 0:
-                getattr(line.ref[name],field)[2] *= line.ref['on_sextupoles']
-print(f'Sextupole ramp controls {len(sextupole_names)} sextupoles',flush=True)
+def install_nonlinear_ramp(line):
+    """Scale all magnetic sextupole-and-higher terms exactly once."""
+    line['on_nonlinear'] = 1.0
+    controlled = []
+    magnet_types = (xt.Bend, xt.RBend, xt.Quadrupole, xt.Sextupole,
+                    xt.Octupole, xt.Multipole)
+    for name in dict.fromkeys(line.element_names):
+        element = line.element_dict[name]
+        if not isinstance(element, magnet_types):
+            continue
+        main_is_nonlinear = (isinstance(element, (xt.Sextupole, xt.Octupole))
+                            or (isinstance(element, xt.Multipole)
+                                and element.main_order >= 2))
+        changed = False
+        # Preserve existing family expressions, including currently zero ones.
+        for field in ('k2', 'k2s', 'k3', 'k3s'):
+            if hasattr(element, field):
+                strength = getattr(line.ref[name], field)
+                strength *= line.ref['on_nonlinear']
+                setattr(line.ref[name], field, strength)
+                changed = True
+        fields = ['knl', 'ksl']
+        # Relative errors in sextupoles/octupoles/etc. already follow their
+        # ramped main strength. Multiplying these again would give a squared
+        # ramp. Relative nonlinear errors in dipoles/quads need the knob here.
+        if not main_is_nonlinear:
+            fields += ['knl_rel', 'ksl_rel']
+        for field in fields:
+            if not hasattr(element, field):
+                continue
+            for order in range(2, len(getattr(element, field))):
+                ref = getattr(line.ref[name], field)[order]
+                if getattr(element, field)[order] != 0 or ref._expr is not None:
+                    getattr(line.ref[name], field)[order] *= line.ref['on_nonlinear']
+                    changed = True
+        if changed:
+            controlled.append(name)
+    return controlled
+
+
+nonlinear_magnets = install_nonlinear_ramp(line)
+print('Common nonlinear ramp controls', len(nonlinear_magnets), 'magnets')
 # Independent skew-quadrupole circuits in sextupoles (one per physical magnet).
 # ksl[1] is absolute integrated strength [1/m], and is deliberately not ramped
 # with k2. Main sextupoles can be off while the skew trims remain powered.
@@ -233,14 +263,14 @@ for name in TUNE_KNOBS:
     line[name]=original[name]
 line.twiss_default['co_guess']=dict(x=0,px=0,y=0,py=0,zeta=0,delta=0)
 # Verify that one nominal response is suitable for both stages.
-tw_sext_on=full_twiss()
-line['on_sextupoles']=0.
+tw_nonlinear_on=full_twiss()
+line['on_nonlinear']=0.
 tw_ref=full_twiss()
-nominal_beta_change=max(np.max(np.abs(tw_sext_on['bet'+p]/tw_ref['bet'+p]-1)) for p in 'xy')
-print('Aligned sextupoles on/off: tunes',tw_sext_on.qx,tw_sext_on.qy,tw_ref.qx,tw_ref.qy,
+nominal_beta_change=max(np.max(np.abs(tw_nonlinear_on['bet'+p]/tw_ref['bet'+p]-1)) for p in 'xy')
+print('Aligned nonlinear magnets on/off: tunes',tw_nonlinear_on.qx,tw_nonlinear_on.qy,tw_ref.qx,tw_ref.qy,
       'max relative beta change',nominal_beta_change,flush=True)
 if nominal_beta_change>1e-4:
-    raise RuntimeError('Aligned optics depend on sextupole setting; rebuild responses per stage')
+    raise RuntimeError('Aligned optics depend on nonlinear setting; rebuild responses per stage')
 
 tt=line.get_table()
 quad_names=list(tt.rows[tt.element_type=='Quadrupole'].name)
@@ -697,7 +727,7 @@ def coupling_step(tw):
 
 def interleaved_stage(progress,seed):
     fraction=min(progress,1.)
-    sextupoles=max(0.,progress-1.)
+    nonlinear=max(0.,progress-1.)
     previous=float(line['on_errors'])
     guess=orbit_guess(seed)
     if previous>0 and fraction!=previous:
@@ -710,7 +740,7 @@ def interleaved_stage(progress,seed):
         reference_guess=orbit_guess(tw_ref)
         guess={key:reference_guess[key]+ratio*(value-reference_guess[key]) for key,value in guess.items()}
     line['on_errors']=fraction
-    line['on_sextupoles']=sextupoles
+    line['on_nonlinear']=nonlinear
     # Steer before tune cleanup: a large uncorrected orbit can shift the tunes.
     tw=full_twiss(co_guess=guess)
     orbit_tolerance=max(0.002e-6,fraction*ORBIT_TOL)
@@ -720,7 +750,7 @@ def interleaved_stage(progress,seed):
         coupling_ok = coupling_goal(tw)
         if orbit_ok and optics_ok and coupling_ok:
             return tw,cycle
-        print(' cycle',cycle+1,'errors',fraction,'sextupoles',sextupoles,'orbit_ok',orbit_ok,'optics_ok',optics_ok,'coupling_ok',coupling_ok,flush=True)
+        print(' cycle',cycle+1,'errors',fraction,'nonlinear',nonlinear,'orbit_ok',orbit_ok,'optics_ok',optics_ok,'coupling_ok',coupling_ok,flush=True)
         if not orbit_ok or not optics_ok:
             try:
                 candidate=orbit_step(tw,fraction)
@@ -744,7 +774,7 @@ def save_variable_checkpoint():
                    in line.vars.get_table().to_dict().items()
                    if not isinstance(value, str)}
     checkpoint={
-        'format':'fccee_tuning_correction_v4',
+        'format':'fccee_tuning_correction_v5',
         'error_seed':env.metadata['tuning_errors']['seed'],
         'base_lattice':INPUT.name,
         'variables':independent,
@@ -765,7 +795,9 @@ def run_interleaved(stop_fraction=2.0):
     global ramp_tw,ramp_fraction,ramp_history
     increment = (max(INITIAL_INCREMENT, min(MAX_INCREMENT, ramp_history[-1][0]-ramp_history[-2][0]))
                  if len(ramp_history)>1 else INITIAL_INCREMENT)
-    control_names=orbit_knobs+quad_knobs+skew_knobs+TUNE_KNOBS+['on_errors','on_sextupoles']
+    if ramp_fraction >= 1.:
+        increment = min(increment, NONLINEAR_INITIAL_INCREMENT)
+    control_names=orbit_knobs+quad_knobs+skew_knobs+TUNE_KNOBS+['on_errors','on_nonlinear']
     # Refit an accepted checkpoint if targets changed (e.g. adding Dy), even
     # if it already reached the requested ramp endpoint. Never silently reuse
     # an endpoint that fails the current goals.
@@ -798,23 +830,26 @@ def run_interleaved(stop_fraction=2.0):
         beta=beta_errors(ramp_tw)
         row=[fraction,*rms_arrays(orbit_errors(ramp_tw,min(fraction,1.))),*rms_arrays(beta),
              *[np.max(np.abs(e)) for e in beta],ramp_tw.qx,ramp_tw.qy,ramp_tw.delta[0],
-             float(line['on_errors']),float(line['on_sextupoles']),ramp_tw.c_minus,*coupling_rms(ramp_tw),
+             float(line['on_errors']),float(line['on_nonlinear']),ramp_tw.c_minus,*coupling_rms(ramp_tw),
              dispersion_rms(ramp_tw),dispersion_ip_max(ramp_tw)]
         if refine:
             ramp_history[-1] = row
         else:
             ramp_history.append(row)
         refine = False
-        print('ACCEPT progress',fraction,'errors',line['on_errors'],'sextupoles',line['on_sextupoles'],'orbit_um',np.array(row[1:3])*1e6,'beta_rms',row[3:5],'beta_max',row[5:7],'tunes',row[7:9],'c_minus',ramp_tw.c_minus,'RDT RMS',coupling_rms(ramp_tw),'Dy RMS/IP max [mm]',1e3*dispersion_rms(ramp_tw),1e3*dispersion_ip_max(ramp_tw),flush=True)
+        print('ACCEPT progress',fraction,'errors',line['on_errors'],'nonlinear',line['on_nonlinear'],'orbit_um',np.array(row[1:3])*1e6,'beta_rms',row[3:5],'beta_max',row[5:7],'tunes',row[7:9],'c_minus',ramp_tw.c_minus,'RDT RMS',coupling_rms(ramp_tw),'Dy RMS/IP max [mm]',1e3*dispersion_rms(ramp_tw),1e3*dispersion_ip_max(ramp_tw),flush=True)
         checkpoint_started=perf_counter()
         line.twiss_default['co_guess']=orbit_guess(ramp_tw)
         save_variable_checkpoint()
         if fraction == 1.:
-            env.to_json(HERE/'fccee_z_lcc_sextupoles_off.json',indent=None)
-            print('  Saved full lattice at the end of the sextupoles-off stage')
+            env.to_json(HERE/'fccee_z_lcc_nonlinear_off.json',indent=None)
+            print('  Saved full lattice at the end of the nonlinear-off stage')
         print(f'  Checkpoint and history save: {perf_counter()-checkpoint_started:.3f} s')
-        if cycles<=5:
-            increment=min(MAX_INCREMENT,increment*1.25)
+        if fraction == 1.:
+            increment = NONLINEAR_INITIAL_INCREMENT
+        elif cycles <= (3 if fraction > 1. else 5):
+            limit = NONLINEAR_MAX_INCREMENT if fraction > 1. else MAX_INCREMENT
+            increment=min(limit,increment*1.25)
     return True
 
 set_values(orbit_knobs,np.zeros(len(orbit_knobs)))
@@ -827,11 +862,11 @@ ramp_fraction=0.
 ramp_history=[]
 if RESUME:
     checkpoint=json.loads(CHECKPOINT.read_text())
-    if checkpoint['format'] not in ('fccee_tuning_correction_v2', 'fccee_tuning_correction_v3', 'fccee_tuning_correction_v4'):
-        raise ValueError('Unsupported checkpoint format')
+    if checkpoint['format'] != 'fccee_tuning_correction_v5':
+        raise ValueError('Checkpoint predates the common nonlinear ramp; restart without --resume')
     if checkpoint['error_seed'] != env.metadata['tuning_errors']['seed']:
         raise ValueError('Checkpoint belongs to a different error seed')
-    # Accept older checkpoints, but keep the original deferred expressions.
+    # Keep the original deferred expressions loaded from the input model.
     line.vars.update({name: value for name, value in checkpoint['variables'].items()
                       if not isinstance(value, str)})
     line.twiss_default['co_guess']=checkpoint['co_guess']
@@ -846,13 +881,13 @@ if RESUME:
                                rtol=0, atol=1e-7,
                                err_msg='Checkpoint tunes were not restored')
     report('RESUMED', ramp_tw)
-    assert abs(ramp_fraction-line['on_errors']-line['on_sextupoles'])<1e-12
+    assert abs(ramp_fraction-line['on_errors']-line['on_nonlinear'])<1e-12
     if args.stop_at < ramp_fraction:
         raise ValueError('--stop-at precedes the checkpoint')
 reached_stop=run_interleaved(stop_fraction=args.stop_at)
 if reached_stop and abs(ramp_fraction-2.)<1e-12:
     FINAL_REFINEMENT = True
-    print('FINAL REFINEMENT at full errors and sextupole strengths')
+    print('FINAL REFINEMENT at full errors and nonlinear strengths')
     reached_stop=run_interleaved(stop_fraction=2.0)
 ramp_completed=reached_stop and abs(ramp_fraction-2.)<1e-12
 
@@ -863,14 +898,19 @@ if ramp_completed:
     assert optical_goal(tw_after) and coupling_goal(tw_after)
 line.twiss_default['co_guess']=orbit_guess(tw_after)
 line.twiss_default['steps_R_matrix']=R_STEPS.copy()
-print('Ramp completed:',ramp_completed,'errors:',line['on_errors'],'sextupoles:',line['on_sextupoles'])
+print('Ramp completed:',ramp_completed,'errors:',line['on_errors'],'nonlinear:',line['on_nonlinear'])
 report('AFTER',tw_after,min(ramp_fraction,1.))
 if not ramp_completed:
     OUTPUT=HERE/'fccee_z_lcc_correction_partial.json'
 env.metadata['orbit_optics_correction']={
     'error_fraction':float(line['on_errors']),
-    'sextupole_fraction':float(line['on_sextupoles']),
+    'nonlinear_fraction':float(line['on_nonlinear']),
     'method':'4d', 'delta0':0.,
+    'nonlinear_ramp_knob':'on_nonlinear',
+    'nonlinear_ramp_min_order':2,
+    'nonlinear_ramp_magnets':nonlinear_magnets,
+    'nonlinear_initial_increment':NONLINEAR_INITIAL_INCREMENT,
+    'nonlinear_max_increment':NONLINEAR_MAX_INCREMENT,
     'completed':bool(ramp_completed),
     'target_tunes':[float(tw_ref.qx),float(tw_ref.qy)],
     'nominal_reference':'input model with on_errors=0',
@@ -956,7 +996,7 @@ for j,plane in enumerate('xy'):
     axes[2,j].set_xlabel('Nominal s [km]')
 for axis in axes.flat:
     axis.grid(alpha=0.25)
-fig.suptitle(f'4D correction: errors={line["on_errors"]:.3f}, sextupoles={line["on_sextupoles"]:.3f}')
+fig.suptitle(f'4D correction: errors={line["on_errors"]:.3f}, nonlinear={line["on_nonlinear"]:.3f}')
 fig.savefig(PLOT,dpi=180)
 print('Saved',PLOT)
 history=np.asarray(ramp_history,dtype=float)
@@ -973,7 +1013,7 @@ if len(history):
     history_axes[3].plot(100*history[:,0],history[:,15]*1e3,'.-',label='BPMs + IPs RMS')
     history_axes[3].plot(100*history[:,0],history[:,16]*1e3,'.-',label='IP max')
     history_axes[3].set_ylabel('Vertical dispersion error [mm]')
-    history_axes[3].set_xlabel('Ramp progress [%]: 0–100 errors, 100–200 sextupoles')
+    history_axes[3].set_xlabel('Ramp progress [%]: 0–100 errors, 100–200 nonlinear terms')
     for ax in history_axes:
         ax.legend()
         ax.grid(alpha=0.25)
