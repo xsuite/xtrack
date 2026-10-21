@@ -739,7 +739,7 @@ def test_maps_of_the_same_order_share_a_descriptor():
     a, b, c = _offaxis_map(truncation_order=2), _offaxis_map(truncation_order=2), _offaxis_map(truncation_order=3)
     assert a.descriptor is b.descriptor
     assert a.descriptor is not c.descriptor
-    assert all(s.descriptor is a.descriptor for s in a.coords)
+    assert all(s.descriptor is a.descriptor for s in a.components)
 
 
 def test_getattr_and_to_particles():
@@ -770,8 +770,8 @@ def test_reference_algebra_matches_particles(kwargs):
 
 def test_from_coords_view_shares_series():
     m = _offaxis_map(truncation_order=2)
-    view = xtpsa.ParticlesTpsa._from_coords(m.coords)
-    assert view.coords[0] is m.coords[0]     # shared series, not copies
+    view = xtpsa.ParticlesTpsa._from_coords(m.components)
+    assert view.components[0] is m.components[0]     # shared series, not copies
     assert view.truncation_order == 2
     xo.assert_allclose(view.const_part, m.const_part, rtol=0, atol=0)
     with pytest.raises(AttributeError, match="no reference particle"):
@@ -807,7 +807,7 @@ def test_order_truncation_integrity():
 def test_longitudinal_coordinate_is_canonical():
     m = xtpsa.ParticlesTpsa(truncation_order=3, p0c=P0C, mass0=MASS0, delta=2e-3)
     p = xt.Particles(p0c=P0C, mass0=MASS0, delta=2e-3)
-    assert m.coord_names[-2:] == ("zeta", "pzeta")
+    assert m.component_names[-2:] == ("zeta", "pzeta")
     assert isinstance(m.pzeta, Tpsa)
     xo.assert_allclose(m.pzeta.const_part, p.pzeta[0], rtol=0, atol=0)
     xo.assert_allclose(m.delta.const_part, p.delta[0], rtol=0, atol=1e-15)
@@ -1561,7 +1561,7 @@ def test_particles_tpsa_is_tpsa_map():
         mass0=MASS0,
     )
     assert isinstance(particles, TpsaMap)
-    assert particles.coord_names == COORDS
+    assert particles.component_names == COORDS
 
 
 def test_particles_tpsa_inherits_map_operations():
@@ -1571,7 +1571,7 @@ def test_particles_tpsa_inherits_map_operations():
         mass0=MASS0,
     )
     identity = TpsaMap(particles.descriptor)
-    result = particles @ identity
+    result = particles << identity
     assert isinstance(result, TpsaMap)
     for c in COORDS:
         result_c = getattr(result, c)

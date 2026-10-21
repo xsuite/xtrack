@@ -160,7 +160,7 @@ class ParticlesTpsa(TpsaMap[Tpsa]):
         this data into an unrolled ``LocalParticle`` and synchronizes tracking state back.
         """
         bp = TpsaParticleData()
-        for c, t in zip(COORDS, self.coords):
+        for c, t in zip(COORDS, self.components):
             setattr(bp, c, int(ffi.cast("uintptr_t", t.ptr)))
         for c in _DERIVED_COORDS + _LOCAL_COORDS + _SPIN_COORDS:
             setattr(bp, c, int(ffi.cast("uintptr_t", self._local_series[c].ptr)))
@@ -274,7 +274,7 @@ class ParticlesTpsa(TpsaMap[Tpsa]):
         if isinstance(knob, str):
             raise TypeError("ParticlesTpsa does not store parameter names")
         ip = knob
-        return self.coordinates[coord].param_grad()[ip]
+        return self.named_components[coord].param_grad()[ip]
 
     def set_jacobian(self, jacobian: Sequence[Sequence[Scalar]] | np.ndarray) -> None:
         """Replace all first-order coefficients for descriptor variables."""
