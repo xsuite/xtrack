@@ -7,3 +7,4 @@ orbit_optics_4d_*.csv
 orbit_optics_4d_*.png
 001_run.log
 __pycache__/
+fccee_z_lcc_before_dispersion.json
