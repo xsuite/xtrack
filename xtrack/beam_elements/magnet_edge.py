@@ -11,11 +11,17 @@ from ..random import (
     RandomUniformAccurate,
 )
 from ._common import (
-    _EDGE_MODEL_TO_INDEX,
     _HasKnlKsl,
-    _INDEX_TO_EDGE_MODEL,
     _NOEXPR_FIELDS,
 )
+from ._edge import (
+    EDGE_ACTIVE,
+    EDGE_LINEAR,
+    MAGNET_EDGE_MODELS,
+    edge_bits_to_model,
+    edge_model_to_bits,
+)
+
 
 class MagnetEdge(_HasKnlKsl, BeamElement):
     """Beam element modeling a magnet edge. Mostly used for testing purposes.
@@ -23,8 +29,7 @@ class MagnetEdge(_HasKnlKsl, BeamElement):
     Parameters
     ----------
     model : str
-        Model to be used for the edge. See ``Magnet.edge_entry_model`` and
-        ``Magnet.edge_exit_model`` for the options.
+        "linear", "full", "dipole-only", "soft-only" or "suppressed".
     is_exit : bool
         If False, the edge is the entrance edge. If True, the edge is an exit edge.
     kn : list of floats
@@ -57,12 +62,16 @@ class MagnetEdge(_HasKnlKsl, BeamElement):
         entering the fringe field (feed down effect).
     fringe_integral : float
         Fringe integral.
+    qint1, qint2 : float
+        SAD soft quadrupole fringe integrals f1 (m), f2 (m^2), used by the
+        models "full" and "soft-only".
     """
     isthick = True
     has_backtrack = True
 
     _xofields = {
-        'model': xo.Int64,
+        # Fringe mask of the face (edge_flags.h)
+        '_flags': xo.Field(xo.Int64, default=EDGE_ACTIVE | EDGE_LINEAR),
         'is_exit': xo.Int64,
         'kn': xo.Float64[:],
         'ks': xo.Float64[:],
@@ -75,10 +84,8 @@ class MagnetEdge(_HasKnlKsl, BeamElement):
         'face_angle': xo.Float64,
         'face_angle_feed_down': xo.Float64,
         'fringe_integral': xo.Float64,
-    }
-
-    _rename = {
-        'model': '_model',
+        'qint1': xo.Float64,
+        'qint2': xo.Float64,
     }
 
     _extra_c_sources = [
@@ -90,7 +97,7 @@ class MagnetEdge(_HasKnlKsl, BeamElement):
     _repr_fields = [
         'model', 'is_exit', 'kn', 'ks', 'k_order', 'knl', 'ksl', 'kl_order',
         'length', 'half_gap', 'face_angle', 'face_angle_feed_down',
-        'fringe_integral', 'delta_taper',
+        'fringe_integral', 'qint1', 'qint2', 'delta_taper',
     ]
 
     _noexpr_fields = _NOEXPR_FIELDS
@@ -107,6 +114,10 @@ class MagnetEdge(_HasKnlKsl, BeamElement):
         k_multipolar_kwargs = self._prepare_multipolar_params(
             k_order, skip_factorial=True, order_name='k_order', kn=kn, ks=ks)
         kwargs.update(k_multipolar_kwargs)
+        if len(kwargs.get('kn', [])) > 4:
+            raise ValueError(
+                'MagnetEdge supports kn and ks up to k_order=3, like the magnets'
+            )
 
         kl_order = kwargs.pop('kl_order', -1)
         knl, ksl = kwargs.pop('knl', []), kwargs.pop('ksl', [])
@@ -121,21 +132,19 @@ class MagnetEdge(_HasKnlKsl, BeamElement):
 
     @property
     def model(self):
-        return _INDEX_TO_EDGE_MODEL[self._model]
+        return edge_bits_to_model(MAGNET_EDGE_MODELS, int(self._flags))
 
     @model.setter
     def model(self, value):
-        try:
-            self._model = _EDGE_MODEL_TO_INDEX[value]
-        except KeyError:
-            raise ValueError(f'Invalid edge model: {value}')
+        self._flags = EDGE_ACTIVE | edge_model_to_bits(
+            MAGNET_EDGE_MODELS, value, 'MagnetEdge'
+        )
 
     def to_dict(self, copy_to_cpu=True):
         # _HasKnlKsl.to_dict assumes a single `order`; this element has two.
         out = BeamElement.to_dict(self, copy_to_cpu=copy_to_cpu)
 
-        if f'_model' in out:
-            out.pop(f'_model')
+        out.pop('_flags', None)
         out['model'] = getattr(self, 'model')
 
         # See the comment in Multipole.to_dict about knl/ksl/order dumping

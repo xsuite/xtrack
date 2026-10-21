@@ -58,7 +58,9 @@ public:
         return data;
     }
 
-private:
+    value_t* mutable_ptr() { return data; }
+
+  private:
     using storage_t = std::aligned_storage_t<sizeof(value_t), alignof(value_t)>;
 
     storage_t* storage = nullptr;

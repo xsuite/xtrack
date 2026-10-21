@@ -7,18 +7,6 @@
 
 #include "xtrack/headers/track.h"
 
-#ifdef XTRACK_TPSA_TRACK
-#define XT_KICK_SIMPLE(pt, ord, invf, KN, KS, fac, kw) do { \
-        xt_tpsa_lifted_array _kn((KN), (ord)+1); \
-        xt_tpsa_lifted_array _ks((KS), (ord)+1); \
-        kick_simple_single_particle((pt),(ord),(invf),_kn.ptr(),_ks.ptr(),(fac),(kw)); \
-    } while(0)
-#else
-#define XT_KICK_SIMPLE(pt, ord, invf, KN, KS, fac, kw) \
-        kick_simple_single_particle((pt),(ord),(invf),(KN),(KS),(fac),(kw))
-#endif
-
-
 GPUFUN
 void kick_simple_single_particle(
     LocalParticle* part,
@@ -58,13 +46,8 @@ void track_magnet_kick_single_particle(
     double length,
     int64_t order,
     double inv_factorial_order,
-    GPUGLMEM const double* knl,
-    GPUGLMEM const double* ksl,
-    int64_t order_rel,
-    double inv_factorial_order_rel,
-    GPUGLMEM const double* knl_rel,
-    GPUGLMEM const double* ksl_rel,
-    xt_float_or_tpsa_arg rel_ref_strength,
+    const xt_float_or_tpsa* knl,  // knl + rel_ref_strength * knl_rel
+    const xt_float_or_tpsa* ksl,
     double const factor_knl_ksl,
     double kick_weight,
     xt_float_or_tpsa_arg k0,
@@ -82,7 +65,7 @@ void track_magnet_kick_single_particle(
     uint8_t rot_frame,
     uint8_t do_drift_correction,
     uint8_t kick_is_empty
-){
+) {
 
     double const length_of_this_kick = length * kick_weight;
 
@@ -110,26 +93,9 @@ void track_magnet_kick_single_particle(
     xt_float_or_tpsa knl_main[4] = {k0 * length, k1 * length, k2 * length, k3 * length};
     xt_float_or_tpsa ksl_main[4] = {k0s * length, k1s * length, k2s * length, k3s * length};
 
-    // multipolar kick (element knl/ksl are doubles; lifted to const tpsa in TPSA tracking)
-    XT_KICK_SIMPLE(
-        part,
-        order,
-        inv_factorial_order,
-        knl,
-        ksl,
-        factor_knl_ksl,
-        kick_weight
-    );
-
     // multipolar kick
-    XT_KICK_SIMPLE(
-        part,
-        order_rel,
-        inv_factorial_order_rel,
-        knl_rel,
-        ksl_rel,
-        factor_knl_ksl * rel_ref_strength,
-        kick_weight
+    kick_simple_single_particle(
+        part, order, inv_factorial_order, knl, ksl, factor_knl_ksl, kick_weight
     );
 
     // main kick: knl_main/ksl_main are already xt_float_or_tpsa (tpsa in TPSA tracking)
@@ -168,9 +134,6 @@ void track_magnet_kick_single_particle(
     if (order >= 0) {
         k0l_mult = knl[0] * factor_knl_ksl;
     }
-    if (order_rel >= 0 && knl_rel != NULL) {
-        k0l_mult += knl_rel[0] * factor_knl_ksl * rel_ref_strength;
-    }
     dpx += -chi * (k0_h_correction * length + k0l_mult) * kick_weight * htot * x;
 
     // k1h correction can be computed from this term in the hamiltonian
@@ -179,9 +142,6 @@ void track_magnet_kick_single_particle(
     xt_float_or_tpsa k1l_mult = 0.0;
     if (order >= 1) {
         k1l_mult = knl[1] * factor_knl_ksl;
-    }
-    if (order_rel >= 1 && knl_rel != NULL) {
-        k1l_mult += knl_rel[1] * factor_knl_ksl * rel_ref_strength;
     }
     dpx += htot * chi * (k1_h_correction * length + k1l_mult) * kick_weight * (-x * x + 0.5 * y * y);
     dpy += htot * chi * (k1_h_correction * length  + k1l_mult) * kick_weight * x * y;
@@ -194,16 +154,14 @@ void track_magnet_kick_single_particle(
         track_magnet_kick_path_correction_single_particle_h0(
             part, 0.5 * length_of_this_kick);
     }
-
 }
-
 
 
 GPUFUN
 uint8_t kick_is_inactive(
     int64_t order,
-    GPUGLMEM const double* knl,
-    GPUGLMEM const double* ksl,
+    const xt_float_or_tpsa* knl,
+    const xt_float_or_tpsa* ksl,
     xt_float_or_tpsa_arg k0,
     xt_float_or_tpsa_arg k1,
     xt_float_or_tpsa_arg k2,
@@ -213,7 +171,7 @@ uint8_t kick_is_inactive(
     xt_float_or_tpsa_arg k2s,
     xt_float_or_tpsa_arg k3s,
     double h
-){
+) {
     if (h != 0) return 0;
     if (!xt_float_or_tpsa_is_zero(k0)) return 0;
     if (!xt_float_or_tpsa_is_zero(k1)) return 0;
@@ -225,12 +183,11 @@ uint8_t kick_is_inactive(
     if (!xt_float_or_tpsa_is_zero(k3s)) return 0;
 
     for (int index = order; index >= 0; index--) {
-        if (knl[index] != 0) return 0;
-        if (ksl[index] != 0) return 0;
+        if (!xt_float_or_tpsa_is_zero(knl[index])) return 0;
+        if (!xt_float_or_tpsa_is_zero(ksl[index])) return 0;
     }
 
     return 1;
-
 }
 
 GPUFUN
@@ -329,13 +286,8 @@ void evaluate_field_from_strengths(
     double length,
     int64_t order,
     double inv_factorial_order,
-    GPUGLMEM const double* knl,
-    GPUGLMEM const double* ksl,
-    int64_t order_rel,
-    double inv_factorial_order_rel,
-    GPUGLMEM const double* knl_rel,
-    GPUGLMEM const double* ksl_rel,
-    xt_float_or_tpsa_arg rel_ref_strength,
+    const xt_float_or_tpsa* knl,  // knl + rel_ref_strength * knl_rel
+    const xt_float_or_tpsa* ksl,
     double const factor_knl_ksl,
     double k0,
     double k1,
@@ -349,10 +301,10 @@ void evaluate_field_from_strengths(
     double dks_ds,
     double x0_solenoid,
     double y0_solenoid,
-    double *Bx_T,
-    double *By_T,
-    double *Bz_T
-){
+    double* Bx_T,
+    double* By_T,
+    double* Bz_T
+) {
     if (length == 0.0) {
         *Bx_T = 0.0;
         *By_T = 0.0;
@@ -384,22 +336,6 @@ void evaluate_field_from_strengths(
         &dpx_mul,
         &dpy_mul);
 
-    // multipolar kick relevant for the field evaluation
-    double dpx_mul_rel = 0.;
-    double dpy_mul_rel = 0.;
-    kick_simple_single_coordinates(
-        x,
-        y,
-        1., // chi
-        order_rel,
-        inv_factorial_order_rel,
-        knl_rel,
-        ksl_rel,
-        factor_knl_ksl * rel_ref_strength,
-        1., // kick_weight
-        &dpx_mul_rel,
-        &dpy_mul_rel);
-
 
     // main kick
     double dpx_main=0.;
@@ -417,15 +353,14 @@ void evaluate_field_from_strengths(
         &dpx_main,
         &dpy_main);
 
-    double const dpx = dpx_mul + dpx_main + dpx_mul_rel;
-    double const dpy = dpy_mul + dpy_main + dpy_mul_rel;
+    double const dpx = dpx_mul + dpx_main;
+    double const dpy = dpy_mul + dpy_main;
 
     double const brho_0 = p0c / C_LIGHT / q0; // [T m]
 
     *Bx_T = dpy * brho_0 / length - 0.5 * dks_ds * brho_0 * (x - x0_solenoid); // [T]
     *By_T = -dpx * brho_0 / length - 0.5 * dks_ds * brho_0 * (y - y0_solenoid); // [T]
     *Bz_T = ks * brho_0; // [T]
-
 }
 #endif // XTRACK_TPSA_TRACK (evaluate_field_from_strengths)
 

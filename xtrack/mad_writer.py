@@ -1,11 +1,12 @@
-import numpy as np
-import xtrack as xt
 from enum import Enum
 
+import numpy as np
 from xdeps.refs import is_ref
-from xtrack.functions import Functions
-from .beam_elements._common import _get_expr as _ge
 
+import xtrack as xt
+from xtrack.functions import Functions
+
+from .beam_elements._common import _get_expr as _ge
 
 LUA_VARS_PER_CHUNK = 200
 

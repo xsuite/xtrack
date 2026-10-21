@@ -43,61 +43,36 @@ void VariableSolenoid_track_local_particle(
         LocalParticle_set_ay(part, new_ay);
     END_PER_PARTICLE_BLOCK;
 
-    track_magnet_particles(
-        /*weight*/                1.,
-        /*part0*/                 part0,
-        /*length*/                length,
-        /*order*/                 VariableSolenoidData_get_order(el),
-        /*inv_factorial_order*/   VariableSolenoidData_get_inv_factorial_order(el),
-        /*knl*/                   VariableSolenoidData_getp1_knl(el, 0),
-        /*ksl*/                   VariableSolenoidData_getp1_ksl(el, 0),
-        /*order_rel*/             -1,
-      /*inv_factorial_order_rel*/ 0,
-        /*knl_rel*/               NULL,
-        /*ksl_rel*/               NULL,
-        /*rel_ref_strength*/      0.,
-        /*num_multipole_kicks*/   VariableSolenoidData_get_num_multipole_kicks(el),
-        /*model*/                 -2, // sol-kick-sol
-        /*default_model*/         0, // unused
-        /*integrator*/            VariableSolenoidData_get_integrator(el),
-        /*default_integrator*/    SOLENOID_DEFAULT_INTEGRATOR,
-        /*radiation_flag*/        VariableSolenoidData_get_radiation_flag(el),
-        /*radiation_flag_parent*/ 0, // not used here
-        /*radiation_record*/      NULL,
-        /*delta_taper*/           VariableSolenoidData_get_delta_taper(el),
-        /*h*/                     0.,
-        /*hxl*/                   0.,
-        /*k0*/                    0.,
-        /*k1*/                    0.,
-        /*k2*/                    0.,
-        /*k3*/                    0.,
-        /*k0s*/                   0.,
-        /*k1s*/                   0.,
-        /*k2s*/                   0.,
-        /*k3s*/                   0.,
-        /*ks*/                    ks,
-        /*dks_ds*/                dks_ds,
-        /*x0_solenoid*/           x0,
-        /*y0_solenoid*/           y0,
-        /*rbend_model*/           -1, // not rbend
-     /*rbend_compensate_sagitta*/ 0,  // not rbend
-        /*rbend_shift*/           0., // not rbend
-        /*rbend_angle_diff*/      0., // not rbend
-        /*length_straight*/       0., // not rbend
-        /*body_active*/           1,
-        /*edge_entry_active*/     0,
-        /*edge_exit_active*/      0,
-        /*edge_entry_model*/      1,
-        /*edge_exit_model*/       1,
-        /*edge_entry_angle*/      0.,
-        /*edge_exit_angle*/       0.,
-        /*edge_entry_angle_fdown*/0.,
-        /*edge_exit_angle_fdown*/ 0.,
-        /*edge_entry_fint*/       0.,
-        /*edge_exit_fint*/        0.,
-        /*edge_entry_hgap*/       0.,
-        /*edge_exit_hgap*/        0.
-    );
+    MagnetFace entry_face = MagnetFace_empty(0);
+    MagnetFace exit_face = MagnetFace_empty(1);
+
+    // Settings aligned by hand: not formatted
+    // clang-format off
+    MagnetSettings magnet;
+    MagnetSettings_init_default(&magnet);
+    magnet.length                   = length;
+    magnet.order                    = VariableSolenoidData_get_order(el);
+    magnet.inv_factorial_order      = VariableSolenoidData_get_inv_factorial_order(el);
+    magnet.knl                      = VariableSolenoidData_getp1_knl(el, 0);
+    magnet.ksl                      = VariableSolenoidData_getp1_ksl(el, 0);
+    magnet.num_multipole_kicks      = VariableSolenoidData_get_num_multipole_kicks(el);
+    magnet.model                    = -2;  // sol-kick-sol
+    magnet.integrator               = VariableSolenoidData_get_integrator(el);
+    magnet.default_integrator       = SOLENOID_DEFAULT_INTEGRATOR;
+    magnet.radiation_flag           = VariableSolenoidData_get_radiation_flag(el);
+    magnet.delta_taper              = VariableSolenoidData_get_delta_taper(el);
+    magnet.ks                       = ks;
+    magnet.dks_ds                   = dks_ds;
+    magnet.x0_solenoid              = x0;
+    magnet.y0_solenoid              = y0;
+    // Kept at default (MagnetSettings_init_default):
+    //     weight, order_rel, knl_rel, ksl_rel, rel_ref_strength,
+    //     default_model, radiation_flag_parent, radiation_record, h, hxl, k0,
+    //     k1, k2, k3, k0s, k1s, k2s, k3s, rbend_model,
+    //     rbend_compensate_sagitta, rbend_shift, rbend_angle_diff,
+    //     length_straight, body_active
+    // clang-format on
+    track_magnet_particles(part0, &magnet, &entry_face, &exit_face);
 
     START_PER_PARTICLE_BLOCK(part0, part);
         // Update ax and ay (Wolsky Eq. 3.114 and Eq. 2.74)

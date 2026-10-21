@@ -1948,6 +1948,9 @@ def test_solenoid_with_mult_kicks(test_context, backtrack):
         num_multipole_kicks=num_kicks,
         knl=knl,
         ksl=ksl,
+        # The reference has thin multipoles, without fringes
+        edge_entry_model='suppressed',
+        edge_exit_model='suppressed',
     )
 
     line_ref = xt.Line(
@@ -2202,6 +2205,9 @@ def test_solenoid_multipole_rotations():
             ks=0,
             knl=[K0 * (L_SOL / N_SLICES), 0, 0],
             num_multipole_kicks=1,
+            # Compared with thin multipoles, without fringes
+            edge_entry_model='suppressed',
+            edge_exit_model='suppressed',
         )
         for i in range(N_SLICES)
     ]
@@ -2356,7 +2362,15 @@ def test_drift_like_solenoid_with_kicks_radiation(radiation_mode, config):
 
     line_ref = xt.Line(
         elements=[
-            xt.UniformSolenoid(ks=0, length=1, knl=knl, ksl=ksl, num_multipole_kicks=1)
+            xt.UniformSolenoid(
+                ks=0,
+                length=1,
+                knl=knl,
+                ksl=ksl,
+                num_multipole_kicks=1,
+                edge_entry_model='suppressed',
+                edge_exit_model='suppressed',
+            )
         ]
     )
 

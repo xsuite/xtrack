@@ -758,6 +758,9 @@ class BFieldExpansion(_BFieldExpansionGeometry, BeamElement):
         '_eval_mmax': xo.Int64,
 
         "_c": xo.Float64[:],
+        "_n_nz": xo.Int64,
+        "_nz_i": xo.Int64[:],
+        "_nz_m": xo.Int64[:],
         "_V": xo.Float64[:],
         "_D1": xo.Float64[:],
 
@@ -770,7 +773,7 @@ class BFieldExpansion(_BFieldExpansionGeometry, BeamElement):
     _skip_in_to_dict = [
         'angle', 'straight', 'na', 'nb', 'deg', 'ksoll',
         '_ncoef', '_mmax', '_mmin', '_moff', '_nm', '_qemin', '_nq',
-        '_c', '_V', '_D1', '_D2', '_Q',
+        '_c', '_n_nz', '_nz_i', '_nz_m', '_V', '_D1', '_D2', '_Q',
         '_potential_degree', '_eval_degree', '_eval_num_phi',
         '_eval_mmin', '_eval_mmax',
     ]
@@ -881,6 +884,9 @@ class BFieldExpansion(_BFieldExpansionGeometry, BeamElement):
         # evaluator visits only the populated bounds recomputed on each update.
         kwargs['_c'] = np.zeros(kwargs['_ncoef'] * kwargs['_nm']
                                 * (kwargs['_potential_degree'] + 1))
+        # The (i, m) of the nonzero c[i,m], filled by the construction kernel
+        kwargs['_nz_i'] = np.zeros(kwargs['_ncoef'] * kwargs['_nm'], dtype=np.int64)
+        kwargs['_nz_m'] = np.zeros(kwargs['_ncoef'] * kwargs['_nm'], dtype=np.int64)
         # Serial construction uses only factorials and (for bends) powers of h.
         kwargs['_V'] = np.zeros(max(4, na, nb) + 1)
         kwargs['_D1'] = np.zeros(0 if straight else max(4, na, nb) + 1)
