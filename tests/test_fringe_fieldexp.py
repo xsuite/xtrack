@@ -149,8 +149,10 @@ def test_bend_fringe_gap_vs_field_expansion():
             k0=k0,
             angle=0,
             **face,
-            integrator='yoshida-6',
-            num_multipole_kicks=200,
+            # Exact dipole map: no kicks needed for a pure dipole
+            model='bend-kick-bend',
+            integrator='uniform',
+            num_multipole_kicks=1,
         )
         return _hard_edge(bend, ell)
 
