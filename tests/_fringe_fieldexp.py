@@ -1,18 +1,13 @@
-"""Comparison of hard-edge fringe maps with a field of smooth ramps.
+"""Hard-edge fringe maps against a field of smooth ramps.
 
-The reference is a magnet whose strength rises from 0 over a ramp of length
-ell (a C2 smoothstep), integrated through its field expansion; the model is
-the hard-edge magnet with its faces at the ramp midpoints (same integrated
-strength) and the fringe map under test. Only the nonlinear part of the maps
-is compared: the linear part of a fringe of width ell differs by O(ell) for
-any hard-edge model.
+Reference: a magnet whose strength rises from 0 over a ramp of length ell (C2
+smoothstep), integrated through its field expansion. Model: the hard-edge
+magnet, faces at the ramp midpoints, with the fringe map under test.
 
-A fringe map is accepted when, at every ell of a scan,
-  - the reference is converged (step refinement) well below the error,
-  - err(with fringe) < ratio * err(without fringe),
-  - err(with fringe) < cap * |nonlinear part of the reference|,
-and err(with fringe) falls with ell at least at the expected rate.
-The fringe parameters are mapped from the ramp analytically, never fitted.
+Maps are TPSA maps around the zero orbit (exact Taylor coefficients, no fit).
+Compared: the coefficients of one degree and one order in the strength, the
+term the fringe map models. Accepted when the fringe removes the error and the
+residual falls with ell at the expected rate.
 """
 from math import factorial
 
@@ -20,13 +15,11 @@ import numpy as np
 from numpy.polynomial import Polynomial
 
 import xtrack as xt
+import xtrack.tpsa as xtpsa
 
 SMOOTHSTEP = Polynomial([0, 0, 0, 10, -15, 6])
-
-# Starting amplitudes (x, px, y, py); scaled by 1, 2, ... in the fit
-AMPLITUDES = 0.1 * np.array([[4e-3, 1e-5, 2e-3, -3e-5],
-                             [3e-3, 1e-4, -3e-3, -2e-4],
-                             [-2e-3, 2e-4, 4e-3, 1e-4]])
+COORDS = ('x', 'px', 'y', 'py')
+P0C = 1e9
 
 
 def ramp(ell, up=True):
@@ -57,81 +50,43 @@ def pure_multipole_rows(order, profile, skew=False):
     return [rows.get(jj, [0.]) for jj in range(max(rows) + 1)]
 
 
-def multipole_ramp(order, k, ell, up=True, skew=False, steps=400):
-    """BFieldExpansion of a pure normal (skew) 2(order+1)-pole ramp of
-    strength k, s in [0, ell]."""
-    field = pure_multipole_rows(order, k * ramp(ell, up), skew)
-    kw = dict(ksc=field) if skew else dict(knc=field)
-    return xt.BFieldExpansion(length=ell, num_integration_steps=steps, **kw)
-
-
-def make_tracker(elements, p0c=1e9):
+def make_line(elements):
     line = xt.Line(elements=elements)
-    line.set_particle_ref('proton', p0c=p0c)
+    line.set_particle_ref('proton', p0c=P0C)
     line.build_tracker()
-
-    def track(aa):
-        p = line.build_particles(x=aa[:, 0], px=aa[:, 1],
-                                 y=aa[:, 2], py=aa[:, 3])
-        line.track(p)
-        assert np.all(p.state == 1)
-        return np.array([p.x, p.px, p.y, p.py]).T
-    return track
+    return line
 
 
-def nonlinear_part(track, amplitudes=AMPLITUDES, orders=(1, 3, 5), keep=None):
-    """Fitted terms of f(k a) = sum_n c_n k^n a^n at k = 1. Returns the sum of
-    the orders in ``keep``; by default all except the linear one and the
-    highest one (which takes the truncation error)."""
-    kk = np.arange(1, len(orders) + 1, dtype=float)
-    out = [track(k * amplitudes) for k in kk]
-    mat = np.array([[k**n for n in orders] for k in kk])
-    coef = np.linalg.solve(mat, np.array([oo.ravel() for oo in out]))
-    if keep is None:
-        keep = [n for n in orders if n != 1][:-1]
-    idx = [orders.index(n) for n in keep]
-    return coef[idx].sum(axis=0).reshape(out[0].shape)
+def tpsa_map(line, degree):
+    """Coefficients of ``degree`` of the transverse map at delta = 0, as
+    {(coordinate, exponents of x, px, y, py): value}."""
+    m = xtpsa.ParticlesTpsa(order=degree, p0c=P0C, mass0=xt.PROTON_MASS_EV,
+                            x=0., px=0., y=0., py=0., zeta=0., delta=0.)
+    line.track(m)
+    return {(c, mono[:4]): val
+            for c in COORDS
+            for mono, val in getattr(m, c).monomial_coeffs(tol=0.).items()
+            if sum(mono[:4]) == degree and not any(mono[4:])}
 
 
-def scan(reference, model, ells, orders=(1, 3, 5), keep=None):
-    """reference(ell, steps) and model(ell, fringe: bool) return a track
-    function; steps is a refinement factor. Returns one row per ell."""
-    def part(track):
-        return nonlinear_part(track, orders=orders, keep=keep)
-    rows = []
-    for ell in ells:
-        ref = part(reference(ell, 1))
-        ref2 = part(reference(ell, 2))
-        with_f = part(model(ell, True))
-        without = part(model(ell, False))
-        rows.append(dict(
-            ell=ell, scale=np.max(np.abs(ref)),
-            conv=np.max(np.abs(ref2 - ref)),
-            err_fringe=np.max(np.abs(with_f - ref)),
-            err_none=np.max(np.abs(without - ref))))
-    return rows
+def strength_part(build, power, degree, h=1e-2):
+    """Coefficients of ``degree`` at order ``power`` (1 or 2) in the strength;
+    4th-order central differences of ``build(k)``, error O(h^4)."""
+    weights = {1: (1, -8, 0, 8, -1), 2: (-1 / 2, 8, -15, 8, -1 / 2)}[power]
+    out = {}
+    for k, weight in zip((-2 * h, -h, 0., h, 2 * h), weights):
+        if weight == 0:
+            continue
+        for kk, vv in tpsa_map(build(k), degree).items():
+            out[kk] = out.get(kk, 0.) + weight * vv / (12 * h**power)
+    return out
 
 
-def report(name, rows):
-    print(f'\n{name}')
-    print(f'{"ell":>8} {"|ref|":>10} {"conv":>10} {"fringe":>10} {"none":>10}')
-    for r in rows:
-        print(f'{r["ell"]:8.4f} {r["scale"]:10.3e} {r["conv"]:10.1e} '
-              f'{r["err_fringe"]:10.3e} {r["err_none"]:10.3e}')
-    if len(rows) > 1:
-        print(f'slope of err(fringe) in ell: {slope(rows):.2f}')
+def rel_diff(coeffs, reference):
+    keys = set(coeffs) | set(reference)
+    diff = max(abs(coeffs.get(kk, 0.) - reference.get(kk, 0.)) for kk in keys)
+    return diff / max(abs(vv) for vv in reference.values())
 
 
-def slope(rows):
-    ell = np.log([r['ell'] for r in rows])
-    err = np.log([r['err_fringe'] for r in rows])
-    return np.polyfit(ell, err, 1)[0]
-
-
-def check(rows, ratio, cap, min_slope=None, conv_factor=0.1):
-    for r in rows:
-        assert r['conv'] < conv_factor * r['err_fringe'], r
-        assert r['err_fringe'] < ratio * r['err_none'], r
-        assert r['err_fringe'] < cap * r['scale'], r
-    if min_slope is not None:
-        assert slope(rows) > min_slope, slope(rows)
+def slope(ells, errs):
+    return np.polyfit(np.log(ells), np.log(errs), 1)[0]
