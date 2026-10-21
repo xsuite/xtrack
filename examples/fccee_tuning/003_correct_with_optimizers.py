@@ -355,7 +355,8 @@ coupling_optimizer = line.match(
 coupling_optimizer.set_response(skew_response)
 del skew_response
 
-# Tune families use the same optimizer with a numerical response builder.
+# Build the tune response once on the unperturbed machine (errors and nonlinear
+# magnets are still off), and keep it fixed throughout correction.
 tune_optimizer = line.match(
     solve=False,
     name='tunes',
@@ -621,8 +622,6 @@ while progress < STOP_AT or (STOP_AT == 1.0 and not final_refinement):
                         break
                 if not accepted:
                     env.vars.update(before)
-                    if optimizer is tune_optimizer:
-                        tune_optimizer.set_response(tune_optimizer.build_response())
 
             tw = line.twiss(**twiss_kwargs)
             if not made_progress:
