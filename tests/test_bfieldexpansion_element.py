@@ -1375,3 +1375,40 @@ def test_straighttocurved(ksolc_st):
     assert np.isclose(curved_to_straight(p1, h)["x"], p0.x)
     assert np.isclose(curved_to_straight(p1, h)["s"], p0.s)
     assert np.isclose(curved_to_straight(p1, h)["y"], p0.y)
+
+
+TPSA_COORDS = ('x', 'px', 'y', 'py', 'zeta', 'delta')
+
+
+@pytest.mark.parametrize('h', [0., 0.3])
+@pytest.mark.parametrize('pkin_const', [False, True])
+def test_bfieldexpansion_tpsa(h, pkin_const):
+    import xtrack.tpsa as xtpsa
+    element = xt.BFieldExpansion(
+        length=0.3, h=h, num_phi=5, num_integration_steps=12,
+        pkin_const=pkin_const, ksc=[[0.04, 0.2, 0.], [0.03, 0., 0.]],
+        knc=[[0.05, 0.1, 0.], [0.02, 0., 0.], [0.5, 0., -2.]],
+        ksolc=[0.1, 0.02, 0.])
+    line = xt.Line(elements=[element])
+    line.particle_ref = xt.Particles(p0c=1e9, mass0=xt.PROTON_MASS_EV)
+    line.build_tracker()
+    x0 = dict(x=3e-3, px=1e-3, y=-2e-3, py=5e-4, zeta=1e-3, delta=1e-2)
+
+    def orbit(coords):
+        p = line.build_particles(**coords)
+        line.track(p)
+        assert p.state[0] == 1
+        return np.array([getattr(p, cc)[0] for cc in TPSA_COORDS])
+
+    m = xtpsa.ParticlesTpsa(order=2, p0c=1e9, mass0=xt.PROTON_MASS_EV, **x0)
+    line.track(m)
+    xo.assert_allclose(m.const_part, orbit(x0), rtol=0, atol=1e-15)
+
+    step = 1e-7
+    jac = np.zeros((6, 6))
+    for jj, cc in enumerate(TPSA_COORDS):
+        plus, minus = dict(x0), dict(x0)
+        plus[cc] += step
+        minus[cc] -= step
+        jac[:, jj] = (orbit(plus) - orbit(minus)) / (2 * step)
+    xo.assert_allclose(m.jacobian(), jac, rtol=0, atol=1e-7)

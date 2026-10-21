@@ -2,30 +2,30 @@
 # This file is part of the Xtrack Package.  #
 # Copyright (c) CERN, 2021.                 #
 # ######################################### #
+import logging
+from collections import UserDict, defaultdict
 from time import perf_counter
 from typing import Literal, Union
-import logging
 from warnings import warn
-from collections import UserDict, defaultdict
-
-from scipy.constants import c as clight
 
 import numpy as np
 import xobjects as xo
+from scipy.constants import c as clight
+
 import xtrack as xt
 
 from .base_element import _handle_per_particle_blocks
 from .beam_elements import Drift
-from .general import _pkg_root, DEPRECATION_INFO_PREP_1_0
+from .general import DEPRECATION_INFO_PREP_1_0, _pkg_root
 from .internal_record import new_io_buffer
-from .line import Line, _is_thick, _is_collective
+from .line import Line, _is_collective, _is_thick
 from .line import freeze_longitudinal as _freeze_longitudinal
 from .pipeline import PipelineStatus
 from .progress_indicator import progress
-from .tpsa import ParticlesTpsa
-from .tracker_data import TrackerData, _expand_element_classes_with_slice_classes
-from .track_flags import TrackFlags
 from .synctime import _SyncTimeController
+from .tpsa import ParticlesTpsa
+from .track_flags import TrackFlags
+from .tracker_data import TrackerData, _expand_element_classes_with_slice_classes
 
 logger = logging.getLogger(__name__)
 
@@ -712,8 +712,8 @@ class Tracker:
         if use_prebuilt_kernels:
             try:
                 from xsuite import (
-                    get_suitable_kernel,
                     PREBUILT_KERNELS_LOCATION,
+                    get_suitable_kernel,
                 )
             except ImportError as err:
                 requested_classes = (
@@ -741,8 +741,9 @@ class Tracker:
                 particle_data_class = None
                 include_auxiliary_kernels = True
                 if self.config.XTRACK_TPSA_TRACK:
-                    from xtrack.tpsa.particles import TpsaParticleData
                     from madng_tpsa.paths import core_library
+
+                    from xtrack.tpsa.particles import TpsaParticleData
 
                     particle_data_class = TpsaParticleData
                     include_auxiliary_kernels = False
@@ -1007,11 +1008,9 @@ class Tracker:
             if vars(cc._DressingClass).get('_isthick') is True:
                 src_lines.append(
                     """
-#ifndef XTRACK_TPSA_TRACK
                             #ifdef XTRACK_GLOBAL_XY_LIMIT
                             global_aperture_check(&lpart);
                             #endif
-#endif
 
                             """
                 )

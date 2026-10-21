@@ -3,23 +3,27 @@
 # Copyright (c) CERN, 2025.                 #
 # ######################################### #
 
-from ..base_element import BeamElement, FloatOrTpsa
 import xobjects as xo
+
 import xtrack as xt
+
+from ..base_element import BeamElement, FloatOrTpsa
 from ..random import (
     RandomExponential,
     RandomUniformAccurate,
 )
 from ._common import (
-    SynchrotronRadiationRecord,
-    _HasIntegrator,
-    _HasKnlKsl,
     _NOEXPR_FIELDS,
+    SynchrotronRadiationRecord,
     _docstring_general_notes,
     _for_docstring_alignment,
+    _HasIntegrator,
+    _HasKnlKsl,
 )
+from ._edge import EDGE_ACTIVE, STRAIGHT_EDGE_MODELS, _HasEdges, edge_xofields
 
-class UniformSolenoid(_HasKnlKsl, _HasIntegrator, BeamElement):
+
+class UniformSolenoid(_HasEdges, _HasKnlKsl, _HasIntegrator, BeamElement):
 
     _docstring_start = \
     """
@@ -40,6 +44,10 @@ class UniformSolenoid(_HasKnlKsl, _HasIntegrator, BeamElement):
         Vertical offset of the solenoid center in meters. Defaults to 0.
     edge_entry_active : bool
         Fringe field at the entrance edge is active if True. Default is True.
+        See :ref:`edge_label`.
+    edge_entry_model, edge_exit_model : str
+        "full" (default, fringe of ``knl``, ``ksl``) or "suppressed". There
+        is no fringe for ``ks``.
     edge_exit_active : bool
         Fringe field at the exit edge is active if True. Default is True.
     """.strip()
@@ -52,6 +60,8 @@ class UniformSolenoid(_HasKnlKsl, _HasIntegrator, BeamElement):
     has_backtrack = True
     allow_loss_refinement = True
 
+    _edge_models = STRAIGHT_EDGE_MODELS
+
     _xofields={
         'ks': FloatOrTpsa,
         'length': xo.Float64,
@@ -61,8 +71,8 @@ class UniformSolenoid(_HasKnlKsl, _HasIntegrator, BeamElement):
         'inv_factorial_order': xo.Float64,
         'knl': xo.Float64[:],
         'ksl': xo.Float64[:],
-        'edge_entry_active': xo.Field(xo.UInt64, default=True),
-        'edge_exit_active': xo.Field(xo.UInt64, default=True),
+        # Active, model "full": hard-edge fringe of knl, ksl
+        **edge_xofields(EDGE_ACTIVE | STRAIGHT_EDGE_MODELS['full']),
         'num_multipole_kicks': xo.Int64,
         'integrator': xo.Int64,
         'radiation_flag': xo.Int64,

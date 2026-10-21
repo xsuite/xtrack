@@ -20,17 +20,26 @@ void BFieldExpansionData_init_expansion(BFieldExpansionData el, Expansion *f) {
     f->h        = BFieldExpansionData_get_h(el);
     f->straight = BFieldExpansionData_get_straight(el);
     f->c        = BFieldExpansionData_getp1__c(el, 0);
+    f->n_nz = BFieldExpansionData_get__n_nz(el);
+    f->nz_i = BFieldExpansionData_getp1__nz_i(el, 0);
+    f->nz_m = BFieldExpansionData_getp1__nz_m(el, 0);
 }
 
 GPUFUN
-int evaluate_bfield_expansion(Expansion *f, double x, double y, double s,
-                             FieldValue *out) {
+int evaluate_bfield_expansion(
+    Expansion* f,
+    xt_float_or_tpsa_arg x,
+    xt_float_or_tpsa_arg y,
+    double s,
+    FieldValue* out
+) {
     if (f->straight) {
         return evaluate_expansion_straight(f, x, y, s, out);
     }
     return evaluate_expansion_bent(f, x, y, s, out);
 }
 
+#ifndef XTRACK_TPSA_TRACK
 GPUKERN
 void BFieldExpansion_get_field(
     BFieldExpansionData el,
@@ -70,6 +79,7 @@ void BFieldExpansion_get_field(
         }
     END_VECTORIZE;
 }
+#endif
 
 
 #define TRACK_EXPANSION BFieldExpansion_track_straight

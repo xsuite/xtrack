@@ -1,5 +1,128 @@
 
 import os
+import re
+
+
+def _is_setting(line, name):
+    """Line setting `name`: a labelled argument (/*name*/ value,) or a
+    MagnetSettings field (magnet.name = value;)."""
+    return f"/*{name}*/" in line or f"magnet.{name} " in line
+
+
+def _end(line):
+    """End of a setting line: ';' for a MagnetSettings field, else ','."""
+    return ';' if 'magnet.' in line else ','
+
+
+# MagnetSettings (magnets): the struct is filled by MagnetSettings_init_default
+# and an element sets only the other fields; the fields it leaves are listed
+# in a comment below the settings, kept up to date here for the slices.
+_INIT_DEFAULT = 'MagnetSettings_init_default(&magnet);'
+_KEPT_HEAD = '// Kept at default (MagnetSettings_init_default):'
+_KEPT_ORDER = [
+    'weight', 'length', 'order', 'inv_factorial_order', 'knl', 'ksl',
+    'order_rel', 'knl_rel', 'ksl_rel', 'rel_ref_strength',
+    'num_multipole_kicks', 'model', 'default_model', 'integrator',
+    'default_integrator', 'radiation_flag', 'radiation_flag_parent',
+    'radiation_record', 'delta_taper', 'h', 'hxl', 'k0', 'k1', 'k2', 'k3',
+    'k0s', 'k1s', 'k2s', 'k3s', 'ks', 'dks_ds', 'x0_solenoid', 'y0_solenoid',
+    'rbend_model', 'rbend_compensate_sagitta', 'rbend_shift',
+    'rbend_angle_diff', 'length_straight', 'body_active']
+
+
+def _kept_comment(names, indent):
+    """Comment lines listing the fields kept at their default."""
+    names = [nn for nn in _KEPT_ORDER if nn in names]
+    out, cur = [indent + _KEPT_HEAD], indent + '//    '
+    for nn in names:
+        if len(cur) + len(nn) + 2 > 79:
+            out.append(cur.rstrip())
+            cur = indent + '//    '
+        cur += ' ' + nn + ','
+    out.append(cur.rstrip(','))
+    return out
+
+
+def _field_statement(lines, name):
+    """Lines [i0, i1) of the statement setting a field (it may span several
+    lines), or None."""
+    for i0, line in enumerate(lines):
+        if re.match(rf'\s*magnet\.{name}\s*=', line):
+            i1 = i0
+            while not re.sub(r'//.*', '', lines[i1]).rstrip().endswith(';'):
+                i1 += 1
+            return i0, i1 + 1
+    return None
+
+
+def _set_field(lines, name, value, comment=None):
+    """Set a MagnetSettings field: replace its statement, or add one after
+    the init (the field then leaves the "Kept at default" list)."""
+    text = f'magnet.{name:<24} = {value};' + (f'  // {comment}' if comment else '')
+    span = _field_statement(lines, name)
+    if span is not None:
+        i0, i1 = span
+        lines[i0:i1] = [lines[i0][:len(lines[i0]) - len(lines[i0].lstrip())] + text]
+        return
+    i = next(i for i, l in enumerate(lines) if l.strip() == _INIT_DEFAULT)
+    indent = lines[i][:len(lines[i]) - len(lines[i].lstrip())]
+    lines.insert(i + 1, indent + text)
+    _update_kept(lines)
+
+
+def _unset_field(lines, name):
+    """Remove the line setting a field: it keeps its default."""
+    span = _field_statement(lines, name)
+    if span is not None:
+        del lines[span[0]:span[1]]
+    _update_kept(lines)
+
+
+def _update_kept(lines):
+    """Rewrite the "Kept at default" comment from the fields set."""
+    i0 = next(i for i, l in enumerate(lines) if l.strip() == _KEPT_HEAD)
+    i1 = i0 + 1
+    while lines[i1].strip().startswith('//    '):
+        i1 += 1
+    set_names = {re.match(r'\s*magnet\.(\w+)', l).group(1) for l in lines
+                 if re.match(r'\s*magnet\.\w+\s*=', l)}
+    indent = lines[i0][:len(lines[i0]) - len(lines[i0].lstrip())]
+    lines[i0:i1] = _kept_comment(
+        [nn for nn in _KEPT_ORDER if nn not in set_names], indent)
+
+
+def slice_settings(lines, generated_class, generating):
+    """MagnetSettings of a slice, from those of its parent: the slice reads
+    the radiation flag of the parent (radiation_flag_parent), a thick or thin
+    slice tracks its weight of the body, a thin slice one kick, an entry or
+    exit slice only its face."""
+    data = generated_class + 'Data'
+    for i, line in enumerate(lines):
+        lines[i] = line.replace('_get__parent_radiation_flag(el)',
+                                '_get_radiation_flag(el)')
+    _set_field(lines, 'radiation_flag_parent',
+               f'{data}_get__parent_radiation_flag(el)')
+    # Not supported in slices: kept at the default (NULL). The parent sets it
+    # in an #ifdef XTRACK_TPSA_TRACK block, removed whole
+    for k, line in enumerate(lines):
+        if line.strip() == '#ifdef XTRACK_TPSA_TRACK' and re.match(
+                r'\s*magnet\.radiation_record\s*=', lines[k + 1]):
+            k1 = next(j for j in range(k, len(lines))
+                      if lines[j].strip() == '#endif')
+            del lines[k:k1 + 1]
+            break
+    _unset_field(lines, 'radiation_record')
+    if generating in ('thick_slice', 'thin_slice'):
+        _set_field(lines, 'weight', f'{data}_get_weight(el)')
+    if generating == 'thin_slice':
+        _set_field(lines, 'num_multipole_kicks', '1', 'kick only')
+        _set_field(lines, 'model', '-1', 'kick only')
+        _set_field(lines, 'integrator', '3', 'uniform')
+    if generating in ('entry_slice', 'exit_slice'):
+        for name in ('num_multipole_kicks', 'model', 'integrator'):
+            _unset_field(lines, name)
+        _set_field(lines, 'body_active', '0', 'faces only')
+
 
 current_directory = os.path.dirname(__file__)
 
@@ -90,165 +213,160 @@ for td in to_do:
             assert "_get__parent_delta_taper" in out_content
         out_content = out_content.replace("_get__parent_delta_taper", "_get_delta_taper")
 
-        # Handle "radiation_flag" and "radiation_flag_parent"
         out_lines = out_content.splitlines()
 
-        if parent_class not in ['Cavity', 'CrabCavity']:
-            # Identify the line with "/*radiation_flag*/"
-            i_radiation_flag_line = None
-            for i, line in enumerate(out_lines):
-                if "/*radiation_flag*/" in line:
-                    i_radiation_flag_line = i
-                    break
-            assert i_radiation_flag_line is not None, "Could not find radiation_flag line"
-            i_parent_line = i_radiation_flag_line + 1
+        # Disable the faces a slice does not have: their MagnetFace keeps
+        # MagnetFace_empty, so the face does nothing
+        keep_entry = generating == 'entry_slice'
+        keep_exit = generating == 'exit_slice'
+        new_lines = []
+        for line in out_lines:
+            stripped = line.strip()
+            if ((stripped.startswith('EDGE_LOAD_') and '(entry_face,' in stripped
+                    and not keep_entry)
+                    or (stripped.startswith('EDGE_LOAD_') and '(exit_face,' in stripped
+                    and not keep_exit)):
+                continue
+            new_lines.append(line)
+        out_lines = new_lines
 
-            assert "get__parent_radiation_flag" in out_lines[i_radiation_flag_line]
-            out_lines[i_radiation_flag_line] = out_lines[i_radiation_flag_line].replace(
-                "get__parent_radiation_flag", "get_radiation_flag")
-
-            ln_parent_radiation_flag = out_lines[i_parent_line]
-            assert "0" in ln_parent_radiation_flag, "Expected '0' in radiation_flag line"
-            ln_parent_radiation_flag = ln_parent_radiation_flag.split('0')[0]
-            out_lines[i_parent_line] = ln_parent_radiation_flag + generated_data_class + "_get__parent_radiation_flag(el),"
-
-        # Disable edges where needed
-        for i, line in enumerate(out_lines):
-            if "edge_entry" in line or "edge_exit" in line:
-                if generating == 'entry_slice' and 'edge_entry' in line:
-                    continue # leave untouched
-                if generating == 'exit_slice' and 'edge_exit' in line:
-                    continue
-                if '0' not in line:
-                    if generated_data_class + '_get_' in line:
-                        ll = line
-                        ll = ll.split(generated_data_class + '_get_')[0]
-                        ll += '0,'  # Disable edges by setting to 0
-                    elif '1' in line:
-                        ll = line.split('1')[0] + '0,'
-                    elif '0' in line:
-                        ll = line.split('0')[0] + '0,'
-                    elif '3' in line:
-                        ll = line.split('3')[0] + '0,'
-                    else:
-                        raise ValueError(f"Unexpected line format: {line}")
-                    if 'edge_exit_hgap' in ll:
-                        # last argument, need to strip the comma
-                        ll = ll.split(',')[0]
-                    out_lines[i] = ll
-
-        # pass weight
-        done_weight = False
-        for i, line in enumerate(out_lines):
-            if "weight" in line:
-                assert '1' in line, "Expected '1' in weight line"
-                ll = line
-                ll = ll.split('1')[0]
-                if generating == "thick_slice" or generating == "thin_slice":
-                    ll += generated_data_class + "_get_weight(el),"
-                else:
-                    ll += '0., // unused'
-                out_lines[i] = ll
-                done_weight = True
-        assert done_weight, "Did not find weight line to modify"
-
-        found_integrator = False
-        found_model = False
-        found_num_multipole_kicks = False
-        found_enable_body = False
-        found_radiation_record = False
-        for i, line in enumerate(out_lines):
-            if "/*integrator*/" in line:
-                found_integrator = True
-                ll = line
-                assert generated_data_class + '_get_' in ll
-                ll = ll.split(generated_data_class + '_get_')[0]
-                if generating == "thick_slice":
-                    continue
-                elif generating == "thin_slice":
-                    ll += "3, // uniform"
-                elif generating == "entry_slice" or generating == "exit_slice":
-                    ll += "0, // unused"
-                else:
-                    raise ValueError(f"Unknown generating type: {generating}")
-                out_lines[i] = ll
-            if "/*model*/" in line:
-                found_model = True
-                ll = line
-                if generating == "thick_slice":
-                    continue
-                assert generated_data_class + '_get_' in ll or '-2' in ll # -2 used for solenoid
-                if '((' in ll: #case of multipole that has some logic there
-                    ll = ll.split('((')[0]
-                elif generated_data_class + '_get_' in ll:
-                    ll = ll.split(generated_data_class + '_get_')[0]
-                elif '-2' in ll:
-                    ll = ll.split('-2')[0]
-                else:
-                    raise ValueError
-                if generating == "thin_slice":
-                    ll += "-1, // kick only"
-                elif generating == "entry_slice" or generating == "exit_slice":
-                    ll += "0, // unused"
-                else:
-                    raise ValueError(f"Unknown generating type: {generating}")
-                out_lines[i] = ll
-            if "/*num_multipole_kicks*/" in line:
-                found_num_multipole_kicks = True
-                ll = line
-                assert generated_data_class + '_get_' in ll
-                if generating == "thick_slice":
-                    continue
-                elif generating == "thin_slice":
-                    ll = ll.split(generated_data_class + '_get_')[0]
-                    ll += "1, // kick only"
-                elif generating == "entry_slice" or generating == "exit_slice":
-                    ll = ll.split(generated_data_class + '_get_')[0]
-                    ll += "0, // unused"
-                else:
-                    raise ValueError(f"Unknown generating type: {generating}")
-                out_lines[i] = ll
-            if "/*num_kicks*/" in line:
-                found_num_kicks = True
-                ll = line
-                assert generated_data_class + '_get_' in ll
-                if generating == "thick_slice":
-                    continue
-                elif generating == "thin_slice":
-                    ll = ll.split(generated_data_class + '_get_')[0]
-                    ll += "1, // kick only"
-                elif generating == "entry_slice" or generating == "exit_slice":
-                    ll = ll.split(generated_data_class + '_get_')[0]
-                    ll += "0, // unused"
-                else:
-                    raise ValueError(f"Unknown generating type: {generating}")
-                out_lines[i] = ll
-            if "/*body_active*/" in line:
-                found_enable_body = True
-                ll = line
-                assert '1' in ll
-                if generating == "thick_slice" or generating == "thin_slice":
-                    continue
-                elif generating == "entry_slice" or generating == "exit_slice":
-                    ll = ll.split('1')[0]
-                    ll += "0, // disabled"
-                out_lines[i] = ll
-            if "/*radiation_record*/" in line:
-                found_radiation_record = True
-                ll = line
-                if '_getp_' in ll:
-                    assert '(SynchrotronRadiationRecordData)' in ll
-                    ll = ll.split('(SynchrotronRadiationRecordData)')[0]
-                    ll += 'NULL,' # Not yet supported in slices
-                out_lines[i] = ll
-        assert found_integrator, "Did not find integrator line to modify"
-        assert found_model, "Did not find model line to modify"
-        if parent_class in ["Cavity", "CrabCavity"]:
-            assert found_num_kicks, "Did not find num_kicks line to modify"
+        if _INIT_DEFAULT in out_content:
+            # Magnets: set or reset the fields a slice changes
+            slice_settings(out_lines, generated_class, generating)
         else:
-            assert found_num_multipole_kicks, "Did not find num_multipole_kicks line to modify"
-            assert found_radiation_record, "Did not find radiation_record line to modify"
-        assert found_enable_body, "Did not find enable_body line to modify"
+            # Handle "radiation_flag" and "radiation_flag_parent"
+    
+            if parent_class not in ['Cavity', 'CrabCavity']:
+                # Identify the line setting radiation_flag
+                i_radiation_flag_line = None
+                for i, line in enumerate(out_lines):
+                    if _is_setting(line, "radiation_flag"):
+                        i_radiation_flag_line = i
+                        break
+                assert i_radiation_flag_line is not None, "Could not find radiation_flag line"
+                i_parent_line = i_radiation_flag_line + 1
+
+                assert "get__parent_radiation_flag" in out_lines[i_radiation_flag_line]
+                out_lines[i_radiation_flag_line] = out_lines[i_radiation_flag_line].replace(
+                    "get__parent_radiation_flag", "get_radiation_flag")
+
+                ln_parent_radiation_flag = out_lines[i_parent_line]
+                assert "0" in ln_parent_radiation_flag, "Expected '0' in radiation_flag line"
+                ln_parent_radiation_flag = ln_parent_radiation_flag.split('0')[0]
+                out_lines[i_parent_line] = ln_parent_radiation_flag + generated_data_class + "_get__parent_radiation_flag(el)" + _end(ln_parent_radiation_flag)
+
+            # pass weight
+            done_weight = False
+            for i, line in enumerate(out_lines):
+                if "weight" in line:
+                    assert '1' in line, "Expected '1' in weight line"
+                    ll = line
+                    ll = ll.split('1')[0]
+                    if generating == "thick_slice" or generating == "thin_slice":
+                        ll += generated_data_class + "_get_weight(el)" + _end(line)
+                    else:
+                        ll += '0.' + _end(line) + ' // unused'
+                    out_lines[i] = ll
+                    done_weight = True
+            assert done_weight, "Did not find weight line to modify"
+
+            found_integrator = False
+            found_model = False
+            found_num_multipole_kicks = False
+            found_enable_body = False
+            found_radiation_record = False
+            for i, line in enumerate(out_lines):
+                if _is_setting(line, "integrator"):
+                    found_integrator = True
+                    ll = line
+                    assert generated_data_class + '_get_' in ll
+                    ll = ll.split(generated_data_class + '_get_')[0]
+                    if generating == "thick_slice":
+                        continue
+                    elif generating == "thin_slice":
+                        ll += "3" + _end(line) + " // uniform"
+                    elif generating == "entry_slice" or generating == "exit_slice":
+                        ll += "0" + _end(line) + " // unused"
+                    else:
+                        raise ValueError(f"Unknown generating type: {generating}")
+                    out_lines[i] = ll
+                if _is_setting(line, "model"):
+                    found_model = True
+                    ll = line
+                    if generating == "thick_slice":
+                        continue
+                    assert generated_data_class + '_get_' in ll or '-2' in ll # -2 used for solenoid
+                    if '((' in ll: #case of multipole that has some logic there
+                        ll = ll.split('((')[0]
+                    elif generated_data_class + '_get_' in ll:
+                        ll = ll.split(generated_data_class + '_get_')[0]
+                    elif '-2' in ll:
+                        ll = ll.split('-2')[0]
+                    else:
+                        raise ValueError
+                    if generating == "thin_slice":
+                        ll += "-1" + _end(line) + " // kick only"
+                    elif generating == "entry_slice" or generating == "exit_slice":
+                        ll += "0" + _end(line) + " // unused"
+                    else:
+                        raise ValueError(f"Unknown generating type: {generating}")
+                    out_lines[i] = ll
+                if _is_setting(line, "num_multipole_kicks"):
+                    found_num_multipole_kicks = True
+                    ll = line
+                    assert generated_data_class + '_get_' in ll
+                    if generating == "thick_slice":
+                        continue
+                    elif generating == "thin_slice":
+                        ll = ll.split(generated_data_class + '_get_')[0]
+                        ll += "1" + _end(line) + " // kick only"
+                    elif generating == "entry_slice" or generating == "exit_slice":
+                        ll = ll.split(generated_data_class + '_get_')[0]
+                        ll += "0" + _end(line) + " // unused"
+                    else:
+                        raise ValueError(f"Unknown generating type: {generating}")
+                    out_lines[i] = ll
+                if _is_setting(line, "num_kicks"):
+                    found_num_kicks = True
+                    ll = line
+                    assert generated_data_class + '_get_' in ll
+                    if generating == "thick_slice":
+                        continue
+                    elif generating == "thin_slice":
+                        ll = ll.split(generated_data_class + '_get_')[0]
+                        ll += "1" + _end(line) + " // kick only"
+                    elif generating == "entry_slice" or generating == "exit_slice":
+                        ll = ll.split(generated_data_class + '_get_')[0]
+                        ll += "0" + _end(line) + " // unused"
+                    else:
+                        raise ValueError(f"Unknown generating type: {generating}")
+                    out_lines[i] = ll
+                if _is_setting(line, "body_active"):
+                    found_enable_body = True
+                    ll = line
+                    assert '1' in ll
+                    if generating == "thick_slice" or generating == "thin_slice":
+                        continue
+                    elif generating == "entry_slice" or generating == "exit_slice":
+                        ll = ll.split('1')[0]
+                        ll += "0" + _end(line) + " // disabled"
+                    out_lines[i] = ll
+                if _is_setting(line, "radiation_record"):
+                    found_radiation_record = True
+                    ll = line
+                    if '_getp_' in ll:
+                        assert '(SynchrotronRadiationRecordData)' in ll
+                        ll = ll.split('(SynchrotronRadiationRecordData)')[0]
+                        ll += 'NULL' + _end(line) # Not yet supported in slices
+                    out_lines[i] = ll
+            assert found_integrator, "Did not find integrator line to modify"
+            assert found_model, "Did not find model line to modify"
+            if parent_class in ["Cavity", "CrabCavity"]:
+                assert found_num_kicks, "Did not find num_kicks line to modify"
+            else:
+                assert found_num_multipole_kicks, "Did not find num_multipole_kicks line to modify"
+                assert found_radiation_record, "Did not find radiation_record line to modify"
+            assert found_enable_body, "Did not find enable_body line to modify"
 
         # generated_class from camel case to snake case
         generated_class_snake = ''.join(['_' + c.lower() if c.isupper() else c for c in generated_class]).lstrip('_')
@@ -256,7 +374,7 @@ for td in to_do:
         # special case
         generated_class_snake = generated_class_snake.replace("_r_bend", "_rbend")
 
-        out_content = "\n".join(out_lines)
+        out_content = "\n".join(out_lines) + "\n"
 
         # Save
         out_file = os.path.join(current_directory, f"{generated_class_snake}.h")
@@ -327,7 +445,6 @@ for td in to_do:
 
             double weight = DriftSliceRBendData_get_weight(el);
             int64_t rbend_model = DriftSliceRBendData_get__parent_rbend_model(el);
-            double full_length;
             double length_drift;
             double ds_corr = 0;
             double full_length_curved = DriftSliceRBendData_get__parent_length(el);
@@ -364,7 +481,8 @@ for td in to_do:
         }
 
         #endif
-        '''
+        
+'''
 
     parent_class_snake = ''.join(['_' + c.lower() if c.isupper() else c for c in parent_class]).lstrip('_')
     parent_class_snake = parent_class_snake.replace("r_bend", "rbend")

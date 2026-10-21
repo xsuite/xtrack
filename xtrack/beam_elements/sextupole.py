@@ -20,8 +20,10 @@ from ._common import (
     _for_docstring_alignment,
     _for_docstring_edge_straight,
 )
+from ._edge import STRAIGHT_EDGE_MODELS, _HasEdges, edge_xofields
 
-class Sextupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
+
+class Sextupole(_HasEdges, _HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
 
     _docstring_start = \
     """
@@ -61,6 +63,8 @@ class Sextupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
     has_backtrack = True
     allow_loss_refinement = True
 
+    _edge_models = STRAIGHT_EDGE_MODELS
+
     _xofields={
         'k2': FloatOrTpsa,
         'k2s': FloatOrTpsa,
@@ -72,8 +76,8 @@ class Sextupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
         'knl_rel': xo.Float64[:],
         'ksl_rel': xo.Float64[:],
         'main_is_skew': xo.Int32,
-        'edge_entry_active': xo.Field(xo.UInt64, default=False),
-        'edge_exit_active': xo.Field(xo.UInt64, default=False),
+        # Model "full", not active
+        **edge_xofields(STRAIGHT_EDGE_MODELS['full']),
         'num_multipole_kicks': xo.Int64,
         'model': xo.Int64,
         'integrator': xo.Int64,

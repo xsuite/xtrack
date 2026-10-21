@@ -132,8 +132,7 @@ class RBend(_BendCommon, BeamElement):
                              "Set `length_straight` instead.")
 
         to_be_set_with_properties = []
-        for nn in ['length_straight', 'angle', 'k0_from_h', 'edge_entry_model',
-                   'edge_exit_model', 'rbend_angle_diff', 'rbend_model', 'k0']:
+        for nn in ['length_straight', 'angle', 'k0_from_h', 'rbend_angle_diff', 'rbend_model', 'k0']:
             if nn in kwargs:
                 to_be_set_with_properties.append((nn, kwargs.pop(nn)))
 

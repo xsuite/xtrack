@@ -18,10 +18,12 @@ from ._common import (
     _NOEXPR_FIELDS,
     _docstring_general_notes,
     _for_docstring_alignment,
-    _for_docstring_edge_straight,
+    _for_docstring_edge_quadrupole,
 )
+from ._edge import QUADRUPOLE_EDGE_MODELS, _HasEdges, edge_xofields
 
-class Quadrupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
+
+class Quadrupole(_HasEdges, _HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
 
     _docstring_start = \
     """
@@ -55,12 +57,14 @@ class Quadrupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
     __doc__ = '\n    '.join([_docstring_start, _HasKnlKsl._for_docstring,
                _docstring_knl_rel_ksl_rel,
                _HasModelStraight._for_docstring, _HasIntegrator._for_docstring,
-               _for_docstring_edge_straight, _for_docstring_alignment, '\n',
+               _for_docstring_edge_quadrupole, _for_docstring_alignment, '\n',
                _docstring_general_notes, '\n\n'])
 
     isthick = True
     has_backtrack = True
     allow_loss_refinement = True
+
+    _edge_models = QUADRUPOLE_EDGE_MODELS
 
     _xofields = {
         'k1': FloatOrTpsa,
@@ -74,8 +78,8 @@ class Quadrupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
         'knl_rel': xo.Float64[:],
         'ksl_rel': xo.Float64[:],
         'main_is_skew': xo.Int32,
-        'edge_entry_active': xo.Field(xo.UInt64, default=False),
-        'edge_exit_active': xo.Field(xo.UInt64, default=False),
+        # Model "full", not active
+        **edge_xofields(QUADRUPOLE_EDGE_MODELS['full'], ('qint1', 'qint2')),
         'model': xo.Int64,
         'integrator': xo.Int64,
         'radiation_flag': xo.Int64,

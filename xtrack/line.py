@@ -36,10 +36,10 @@ from . import json as json_utils
 from .api_categorization import GroupedAPICollector, doc_group, property_with_doc_group
 from .beam_elements import BeamElement, Drift, Marker, Multipole, element_classes
 from .beam_elements._common import (
-    _EDGE_MODEL_TO_INDEX,
     _MODEL_TO_INDEX_CURVED,
     _MODEL_TO_INDEX_DRIFT,
 )
+from .beam_elements._edge import BEND_EDGE_MODELS
 from .beam_elements.slice_base import ID_RADIATION_FROM_PARENT
 from .composer.composer import (
     _all_places,
@@ -4833,7 +4833,7 @@ class Line:
         if core is not None and core not in _MODEL_TO_INDEX_CURVED:
             raise ValueError(f'Unknown bend model {core}')
 
-        if edge is not None and edge not in _EDGE_MODEL_TO_INDEX:
+        if edge is not None and edge not in BEND_EDGE_MODELS:
             raise ValueError(f'Unknown bend edge model {edge}')
 
         for ee in self._element_dict.values():

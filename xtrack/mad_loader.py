@@ -28,16 +28,16 @@ Loader.add_<name>(mad_elem,line,buffer) to add a new element to the line
 if they want to control how the xobject is created
 """
 import math
-from typing import List, Union
+from typing import List, Union  # Deprecated - should be removed in future versions
 
 import numpy as np
-
 import xobjects
+
 import xtrack
+
+from .functions import Functions
 from .general import _print
 from .progress_indicator import progress
-from .functions import Functions
-
 
 _default_functions = Functions()
 
