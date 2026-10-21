@@ -1,2 +1,9 @@
 fccee_z_lcc_errors.json
+fccee_z_lcc_corrected.json
+fccee_z_lcc_sextupoles_off.json
+fccee_z_lcc_correction_partial.json
+orbit_optics_4d_*.json
+orbit_optics_4d_*.csv
+orbit_optics_4d_*.png
+001_run.log
 __pycache__/
