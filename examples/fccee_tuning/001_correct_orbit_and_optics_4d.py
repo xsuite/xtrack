@@ -14,6 +14,8 @@ Skew-quadrupole trims in sextupoles correct the tracked Edwards-Teng
 f1001/f1010 and vertical dispersion at BPMs and IPs. Apply fractional skew
 steps and re-steer before assessing each trial; the analytical response is
 built once on the clean line.
+Intermediate steering uses orbit-only Twiss; full optics and a fresh closed-
+orbit search are evaluated before tune, optics or coupling decisions.
 Normal-quadrupole trims jointly fit beta, alpha, tunes and horizontal dispersion
 relative to the clean machine. Both dispersion fits use BPMs and collision IPs.
 The joint dispersion/optics fits follow the LCC optics comparison report,
@@ -252,22 +254,46 @@ print('Independent skew-quadrupole trims:', len(skew_knobs))
 R_STEPS = dict(dx=1e-8,dpx=1e-9,dy=1e-8,dpy=1e-9,dzeta=1e-7,ddelta=1e-8)
 TWISS_CALLS=0
 TWISS_SECONDS=0.
+ORBIT_ONLY_CALLS=0
+ORBIT_ONLY_SECONDS=0.
 
 def orbit_guess(tw):
     return dict(x=float(tw.x[0]),px=float(tw.px[0]),y=float(tw.y[0]),py=float(tw.py[0]),zeta=0.,delta=0.)
 
-def full_twiss(seed=None,co_guess=None, radiation_integrals=False):
-    global TWISS_CALLS,TWISS_SECONDS
+def compute_twiss(seed=None,co_guess=None, radiation_integrals=False,only_orbit=False):
+    global TWISS_CALLS,TWISS_SECONDS,ORBIT_ONLY_CALLS,ORBIT_ONLY_SECONDS
     kwargs = {} if seed is None else dict(co_guess=orbit_guess(seed))
     if co_guess is not None:
         kwargs['co_guess']=co_guess
     started=perf_counter()
     TWISS_CALLS+=1
+    if only_orbit:
+        ORBIT_ONLY_CALLS+=1
     try:
         return line.twiss(chrom=False, steps_R_matrix=R_STEPS.copy(),
-                          radiation_integrals=radiation_integrals, **kwargs)
+                          radiation_integrals=radiation_integrals,
+                          only_orbit=only_orbit, **kwargs)
     finally:
-        TWISS_SECONDS+=perf_counter()-started
+        elapsed=perf_counter()-started
+        TWISS_SECONDS+=elapsed
+        if only_orbit:
+            ORBIT_ONLY_SECONDS+=elapsed
+
+
+def full_twiss(seed=None,co_guess=None,radiation_integrals=False):
+    return compute_twiss(seed,co_guess,radiation_integrals)
+
+
+def orbit_twiss(seed=None,co_guess=None):
+    return compute_twiss(seed,co_guess,only_orbit=True)
+
+
+def ensure_full_twiss(tw):
+    # Call only while the line still has the settings used to compute tw.
+    # Use the tracked orbit as a guess; keep the ordinary closed-orbit search.
+    if 'betx' in tw._col_names:
+        return tw
+    return full_twiss(tw)
 
 def values(names):
     return np.array([line[name] for name in names])
@@ -671,6 +697,7 @@ def build_tune_response(tw):
 def tune_cleanup(tw):
     """Use a cached 2x2 response; refresh only after poor convergence."""
     global tune_response
+    tw=ensure_full_twiss(tw)
     target=np.array([tw_ref.qx,tw_ref.qy])
     refreshed=False
     for it in range(7):
@@ -726,7 +753,7 @@ def steering_direction(tw,fraction):
                            for error,(u,s,vt) in zip(lab_orbit_errors(tw),orbit_svd)])
 
 
-def orbit_step(tw,fraction,max_backtracks=13):
+def orbit_step(tw,fraction,max_backtracks=13,only_orbit=False):
     baseline=values(orbit_knobs)
     direction=steering_direction(tw,fraction)
     before=np.linalg.norm(np.concatenate(orbit_errors(tw,fraction)))
@@ -734,7 +761,7 @@ def orbit_step(tw,fraction,max_backtracks=13):
         step=0.5**backtrack
         set_values(orbit_knobs,baseline+step*direction)
         try:
-            trial=full_twiss(tw)
+            trial=orbit_twiss(tw) if only_orbit else full_twiss(tw)
         except (ValueError,xt.twiss.ClosedOrbitSearchError):
             continue
         if np.linalg.norm(np.concatenate(orbit_errors(trial,fraction)))<before*(1-1e-6):
@@ -760,7 +787,7 @@ def optics_step(tw):
         set_values(TUNE_KNOBS,families)
         set_values(orbit_knobs,steering)
         try:
-            trial=full_twiss(tw)
+            trial=orbit_twiss(tw)
             try:
                 trial=orbit_step(trial,fraction)
             except RuntimeError:
@@ -782,11 +809,12 @@ def settle_coupling_orbit(tw):
     # Small remaining orbit changes feed down in the sextupoles and can obscure
     # the improvement of a skew trial. Compare baseline and trials after the
     # same settling procedure; exclude the nominal response's discarded modes.
-    for _ in range(3):
+    for iteration in range(3):
         if np.max(rms_arrays(correctable_orbit_errors(tw))) < COUPLING_ORBIT_TOL:
             break
         try:
-            tw = orbit_step(tw, float(line['on_errors']), max_backtracks=4)
+            tw = orbit_step(tw, float(line['on_errors']), max_backtracks=4,
+                            only_orbit=iteration<2)
         except RuntimeError:
             break
     return tune_cleanup(tw)
@@ -807,7 +835,7 @@ def coupling_step(tw):
         set_values(orbit_knobs, steering)
         set_values(TUNE_KNOBS, families)
         try:
-            trial = full_twiss(tw)
+            trial = orbit_twiss(tw)
             # Re-steer after the fractional skew update before comparing RDTs.
             trial = settle_coupling_orbit(trial)
         except (ValueError, RuntimeError, xt.twiss.ClosedOrbitSearchError):
@@ -1025,6 +1053,7 @@ env.metadata['orbit_optics_correction']={
     'orbit_response':'aligned 4D optics at delta=0',
     'optics_response':'aligned thick-quadrupole beta/alpha/Dx/tune response',
     'tune_response':'cached aligned 2x2 response, refreshed on poor convergence',
+    'orbit_trials':'only_orbit for intermediate steering; ordinary full Twiss before optics/coupling checks',
     'fitted_optics':['betx','bety','alfx','alfy','dx','qx','qy','f1001','f1010','dy'],
     'horizontal_dispersion_rms_tolerance_m':HORIZONTAL_DISPERSION_RMS_TOL,
     'horizontal_dispersion_ip_tolerance_m':HORIZONTAL_DISPERSION_IP_TOL,
@@ -1145,3 +1174,5 @@ if not reached_stop:
     raise RuntimeError(f"Ramp stopped at {ramp_fraction:g}; last accepted machine saved in {CHECKPOINT}")
 
 print(f"Finished; {TWISS_CALLS} Twiss calls, {TWISS_SECONDS:.1f} s in Twiss, {perf_counter()-START_TIME:.1f} s total")
+print(f"  Full optics: {TWISS_CALLS-ORBIT_ONLY_CALLS} calls, {TWISS_SECONDS-ORBIT_ONLY_SECONDS:.1f} s; "
+      f"orbit only: {ORBIT_ONLY_CALLS} calls, {ORBIT_ONLY_SECONDS:.1f} s")
