@@ -54,7 +54,7 @@ def _check(name, reference, model, power, degree, rate=None):
     print(f'{name}: without {none:.1e}, with', ', '.join(f'{ee:.1e}' for ee in errs))
     assert errs[-1] < 1e-4 * none
     if rate is None:
-        assert max(errs) < 5e-12
+        assert max(errs) < 1e-13
     else:
         assert abs(fe.slope(ELLS, errs) - rate) < 0.1
 
@@ -119,8 +119,9 @@ def test_qsad_fringe_vs_field_expansion():
                 edge_exit_active=True,
                 edge_entry_qint1=qint1,
                 edge_exit_qint1=qint1,
+                model='mat-kick-mat-exact',
                 integrator='yoshida-6',
-                num_multipole_kicks=200,
+                num_multipole_kicks=1,
             )
             return _hard_edge(quad, ell)
 

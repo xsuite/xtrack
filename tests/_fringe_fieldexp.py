@@ -69,7 +69,7 @@ def tpsa_map(line, degree):
             if sum(mono[:4]) == degree and not any(mono[4:])}
 
 
-def strength_part(build, power, degree, h=1e-2):
+def strength_part(build, power, degree, h=0.1):
     """Coefficients of ``degree`` at order ``power`` (1 or 2) in the strength;
     4th-order central differences of ``build(k)``, error O(h^4)."""
     weights = {1: (1, -8, 0, 8, -1), 2: (-1 / 2, 8, -15, 8, -1 / 2)}[power]
