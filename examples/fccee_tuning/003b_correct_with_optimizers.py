@@ -1,10 +1,13 @@
 """Apply the correction algorithm from 001 using Optimize response matrices.
 
 Input: the line saved by 003a_install_correction_knobs.py. Settings are below.
-Read the `Correction loop` cell for the workflow. Optimizer construction and
+Read the `Correction loop` cell for the workflow. The optimizer construction and
 stopping criteria are explicit above it; trial mechanics, observables and I/O
 live in correction_steps.py, correction_observables.py and correction_io.py.
 Run 003c_analyze_correction.py afterwards for plots and radiation integrals.
+
+A single optimizer shares one Twiss action across all target groups. Activation
+selects the response block; repeated selections reuse their cached SVD.
 
 The original correction helpers retain their ordering, trial evaluation,
 acceptance, rollback and stopping rules. get_correction(residuals=...) reuses
@@ -226,7 +229,7 @@ set_values(orbit_knobs, np.zeros(len(orbit_knobs)))
 line['on_errors'] = 0.0
 for name in TUNE_KNOBS:
     line[name] = original[name]
-# %% Explicit optimizers and fixed nominal responses
+# %% Fixed nominal responses and target weights
 print(f'Using {len(quad_knobs)} installed quadrupole trims', flush=True)
 print('Preparing nominal optics SVD', flush=True)
 response_started = perf_counter()
@@ -270,70 +273,14 @@ steps.check_optics_response(
     n_dispersion=len(dispersion_names),
     log=print,
 )
-# All corrections use the same OptimizeLine API. Labels make response rows
-# inspectable; weights and knob scales are ordinary Target/Vary settings.
+# Labels make response rows inspectable; weights and knob scales become
+# ordinary Target/Vary settings in the optimizer below.
 optics_labels = (
     [f'log_beta_{p}@{n}' for p in 'xy' for n in obs_names]
     + [f'normalized_alpha_{p}@{n}' for p in 'xy' for n in tw_ref.name[alpha_indices]]
     + [f'dx@{n}' for n in dispersion_names]
     + ['qx', 'qy']
 )
-optics_action = xt.Action(lambda: optics_vector(full_twiss()))
-optics_optimizer = line.match(
-    solve=False,
-    name='normal optics and horizontal dispersion',
-    vary=[
-        xt.Vary(knob, step=1e-7, weight=scale) for knob, scale in zip(quad_knobs, strength_scale)
-    ],
-    targets=[
-        optics_action.target(i, value=0.0, tol=1e-15, weight=weight, tag=label)
-        for i, (label, weight) in enumerate(zip(optics_labels, optics_weights))
-    ],
-    assert_within_tol=False,
-    show_call_counter=False,
-)
-optics_optimizer.set_response(nominal_response)
-opt_s = optics_optimizer.response.svd.s
-print('Optics SVD range', opt_s[[0, -1]], 'retained', np.sum(opt_s > OPTICS_RCOND * opt_s[0]))
-del nominal_response
-print('Preparing nominal 4D orbit SVDs', flush=True)
-orbit_action_x = xt.Action(lambda: full_twiss()['x'][monitor_indices] - monitor_alignment()[0])
-orbit_optimizer_x = line.match(
-    solve=False,
-    name='orbit x',
-    vary=[xt.Vary(knob, step=1e-7) for knob in circuits['orbit']['x']['knobs']],
-    targets=[
-        orbit_action_x.target(i, value=0.0, tol=1e-15, tag=f'x@{name}')
-        for i, name in enumerate(monitor_names)
-    ],
-    assert_within_tol=False,
-    show_call_counter=False,
-)
-orbit_optimizer_x.set_response(orbit_response(tw_ref, monitor_names, corrector_names[0], 'x'))
-orbit_action_y = xt.Action(lambda: full_twiss()['y'][monitor_indices] - monitor_alignment()[1])
-orbit_optimizer_y = line.match(
-    solve=False,
-    name='orbit y',
-    vary=[xt.Vary(knob, step=1e-7) for knob in circuits['orbit']['y']['knobs']],
-    targets=[
-        orbit_action_y.target(i, value=0.0, tol=1e-15, tag=f'y@{name}')
-        for i, name in enumerate(monitor_names)
-    ],
-    assert_within_tol=False,
-    show_call_counter=False,
-)
-orbit_optimizer_y.set_response(orbit_response(tw_ref, monitor_names, corrector_names[1], 'y'))
-orbit_optimizers = [orbit_optimizer_x, orbit_optimizer_y]
-for optimizer in orbit_optimizers:
-    singular_values = optimizer.response.svd.s
-    print(
-        'Orbit SVD ready',
-        optimizer.name,
-        'shape',
-        optimizer.response.matrix.shape,
-        'retained',
-        np.sum(singular_values > ORBIT_RCOND * singular_values[0]),
-    )
 coupling_names = dispersion_names
 coupling_indices = dispersion_indices
 coupling_response, skew_scale = skew_quadrupole_response(line, tw_ref, skew_groups, coupling_names)
@@ -365,59 +312,134 @@ coupling_labels = [
     for part in ('real', 'imag')
     for n in coupling_names
 ] + [f'dy@{n}' for n in coupling_names]
-coupling_action = xt.Action(lambda: coupling_vector(full_twiss()))
-coupling_optimizer = line.match(
-    solve=False,
-    name='coupling and vertical dispersion',
-    vary=[xt.Vary(knob, step=1e-7, weight=scale) for knob, scale in zip(skew_knobs, skew_scale)],
-    targets=[
-        coupling_action.target(i, value=0.0, tol=1e-15, weight=weight, tag=label)
-        for i, (label, weight) in enumerate(zip(coupling_labels, coupling_weights))
-    ],
-    assert_within_tol=False,
-    show_call_counter=False,
-)
-coupling_optimizer.set_response(coupling_response)
-coupling_s = coupling_optimizer.response.svd.s
-print(
-    'Coupling SVD retained',
-    np.sum(coupling_s > COUPLING_RCOND * coupling_s[0]),
-    'modes',
-)
-del coupling_response
-
-
-print('INTERLEAVED SETUP READY', flush=True)
-print(
-    f'Response construction and SVDs: {perf_counter() - response_started:.1f} s',
-    flush=True,
-)
-
-
 print('Preparing aligned 2x2 tune response (two Twiss probes)')
 tune_response = steps.build_tune_response(
     tw_ref, line=line, tune_knobs=TUNE_KNOBS, full_twiss=full_twiss
 )
 
+# %% One optimizer, one action, independently selectable response blocks
+# The optics block keeps its own qx/qy rows and quadrupole-to-tune response.
+# The tune block fits those same physical observables with the arc-family knobs.
+# Separate target rows preserve the original weights and independent solves.
+responses = dict(
+    orbit_x=orbit_response(tw_ref, monitor_names, corrector_names[0], 'x'),
+    orbit_y=orbit_response(tw_ref, monitor_names, corrector_names[1], 'y'),
+    tunes=tune_response,
+    coupling=coupling_response,
+    optics=nominal_response,
+)
+knobs = dict(
+    orbit_x=circuits['orbit']['x']['knobs'],
+    orbit_y=circuits['orbit']['y']['knobs'],
+    tunes=TUNE_KNOBS,
+    coupling=skew_knobs,
+    optics=quad_knobs,
+)
+scales = dict(
+    orbit_x=np.ones(len(knobs['orbit_x'])),
+    orbit_y=np.ones(len(knobs['orbit_y'])),
+    tunes=np.ones(2),
+    coupling=skew_scale,
+    optics=strength_scale,
+)
+weights = dict(
+    orbit_x=np.ones(len(monitor_names)),
+    orbit_y=np.ones(len(monitor_names)),
+    tunes=np.ones(2),
+    coupling=coupling_weights,
+    optics=optics_weights,
+)
+labels = dict(
+    orbit_x=[f'x@{n}' for n in monitor_names],
+    orbit_y=[f'y@{n}' for n in monitor_names],
+    tunes=['qx', 'qy'],
+    coupling=coupling_labels,
+    optics=optics_labels,
+)
+cutoffs = dict(
+    orbit_x=ORBIT_RCOND,
+    orbit_y=ORBIT_RCOND,
+    tunes=0.0,
+    coupling=COUPLING_RCOND,
+    optics=OPTICS_RCOND,
+)
 
-def tune_residuals():
-    tw = full_twiss()
-    return np.array([tw.qx - tw_ref.qx, tw.qy - tw_ref.qy])
+# Every block occupies a known slice of the full target and knob vectors.
+rows, columns = {}, {}
+n_rows = n_columns = 0
+for group, response in responses.items():
+    rows[group] = slice(n_rows, n_rows + response.shape[0])
+    columns[group] = slice(n_columns, n_columns + response.shape[1])
+    n_rows += response.shape[0]
+    n_columns += response.shape[1]
 
 
-tune_action = xt.Action(tune_residuals)
-tune_optimizer = line.match(
+def residuals_from_twiss(tw):
+    # One Twiss supplies all groups, including the two copies of the tune residuals.
+    x, y = lab_orbit_errors(tw)
+    return np.r_[x, y, tw.qx - tw_ref.qx, tw.qy - tw_ref.qy, coupling_vector(tw), optics_vector(tw)]
+
+
+measurement = xt.Action(lambda: residuals_from_twiss(full_twiss()))
+opt = line.match(
     solve=False,
-    name='tunes',
-    vary=[xt.Vary(knob, step=1e-7) for knob in TUNE_KNOBS],
+    name='FCC-ee correction',
+    vary=[
+        xt.Vary(knob, step=1e-7, weight=scale, tag=group)
+        for group in responses
+        for knob, scale in zip(knobs[group], scales[group])
+    ],
     targets=[
-        tune_action.target(i, value=0.0, tol=TUNE_TOL / 2, tag=q)
-        for i, q in enumerate(('qx', 'qy'))
+        measurement.target(
+            rows[group].start + i,
+            value=0.0,
+            tol=TUNE_TOL / 2 if group == 'tunes' else 1e-15,
+            weight=weight,
+            tag=f'{group}@{label}',
+        )
+        for group in responses
+        for i, (label, weight) in enumerate(zip(labels[group], weights[group]))
     ],
     assert_within_tol=False,
     show_call_counter=False,
 )
-tune_optimizer.set_response(tune_response)
+# One logical block diagonal response. Blocks retain separate SVDs and cutoffs;
+# the zero cross terms are not allocated, even when several groups are active.
+opt.set_response(
+    blocks={
+        group: dict(matrix=response, targets=rows[group], vary=columns[group], rcond=cutoffs[group])
+        for group, response in responses.items()
+    }
+)
+
+
+def select_group(group):
+    opt.disable(target=True, vary=True)
+    opt.enable(target=f'{group}@.*', vary=group)
+
+
+def correction(group, residuals, rcond=None):
+    # Reuse an existing measurement, including orbit-only Twiss tables.
+    select_group(group)
+    all_residuals = np.zeros(n_rows)
+    all_residuals[rows[group]] = residuals
+    return opt.get_correction(all_residuals, rcond=rcond)[columns[group]]
+
+
+svds = {}
+for group in responses:
+    select_group(group)
+    svds[group] = opt.response.svd
+    singular_values = svds[group].s
+    print(
+        group,
+        'SVD range',
+        singular_values[[0, -1]],
+        'retained',
+        np.sum(singular_values > cutoffs[group] * singular_values[0]),
+    )
+opt_s = svds['optics'].s
+print(f'Response construction and SVDs: {perf_counter() - response_started:.1f} s')
 
 
 # %% Stopping criteria and trial steps
@@ -473,14 +495,14 @@ def optical_direction(tw):
     cutoff = BOOTSTRAP_RCOND if line['on_errors'] <= BOOTSTRAP_FRACTION else OPTICS_RCOND
     keep = opt_s > cutoff * opt_s[0]
     print('  optics SVD cutoff', cutoff, 'modes', np.sum(keep), flush=True)
-    return optics_optimizer.get_correction(optics_vector(tw), rcond=cutoff)
+    return correction('optics', optics_vector(tw), rcond=cutoff)
 
 
 def steering_direction(tw, fraction):
     return np.concatenate(
         [
-            opt.get_correction(error, rcond=ORBIT_RCOND)
-            for error, opt in zip(lab_orbit_errors(tw), orbit_optimizers)
+            correction(group, error, rcond=ORBIT_RCOND)
+            for group, error in zip(('orbit_x', 'orbit_y'), lab_orbit_errors(tw))
         ]
     )
 
@@ -489,7 +511,7 @@ def steering_direction(tw, fraction):
 correctable_orbit_errors = partial(
     obs.correctable_orbit_errors,
     lab_orbit_errors=lab_orbit_errors,
-    orbit_optimizers=orbit_optimizers,
+    orbit_svds=[svds['orbit_x'], svds['orbit_y']],
     rcond=ORBIT_RCOND,
 )
 tune_cleanup = partial(
@@ -498,7 +520,7 @@ tune_cleanup = partial(
     tune_knobs=TUNE_KNOBS,
     tw_ref=tw_ref,
     tune_tol=TUNE_TOL,
-    tune_optimizer=tune_optimizer,
+    tune_direction=partial(correction, 'tunes', rcond=0.0),
     ensure_full_twiss=ensure_full_twiss,
     full_twiss=full_twiss,
     log=print,
@@ -542,9 +564,7 @@ coupling_step = partial(
     skew_knobs=skew_knobs,
     orbit_knobs=orbit_knobs,
     tune_knobs=TUNE_KNOBS,
-    coupling_optimizer=coupling_optimizer,
-    coupling_vector=coupling_vector,
-    coupling_rcond=COUPLING_RCOND,
+    coupling_direction=lambda tw: correction('coupling', coupling_vector(tw), rcond=COUPLING_RCOND),
     step_fraction=COUPLING_STEP,
     coupling_cost=coupling_cost,
     coupling_goal=coupling_goal,
@@ -568,7 +588,16 @@ if RESUME:
     ramp_fraction, ramp_history, tune_response = load_checkpoint(
         line, CHECKPOINT, BOOTSTRAP_FRACTION
     )
-    tune_optimizer.set_response(tune_response)
+    if not np.array_equal(tune_response, responses['tunes']):
+        responses['tunes'] = tune_response
+        opt.set_response(
+            blocks={
+                group: dict(
+                    matrix=response, targets=rows[group], vary=columns[group], rcond=cutoffs[group]
+                )
+                for group, response in responses.items()
+            }
+        )
     ramp_tw = full_twiss()
     np.testing.assert_allclose(
         rms_arrays(orbit_errors(ramp_tw)),

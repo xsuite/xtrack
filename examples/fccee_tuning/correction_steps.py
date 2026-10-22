@@ -80,7 +80,7 @@ def build_tune_response(tw, *, line, tune_knobs, full_twiss):
 
 
 def tune_cleanup(
-    tw, *, line, tune_knobs, tw_ref, tune_tol, tune_optimizer, ensure_full_twiss, full_twiss, log
+    tw, *, line, tune_knobs, tw_ref, tune_tol, tune_direction, ensure_full_twiss, full_twiss, log
 ):
     """Use the fixed nominal 2x2 response with the original trial acceptance."""
     tw = ensure_full_twiss(tw)
@@ -90,7 +90,7 @@ def tune_cleanup(
         if max(abs(error)) < tune_tol / 2:
             return tw
         baseline = values(line, tune_knobs)
-        change = tune_optimizer.get_correction(error, rcond=0.0)
+        change = tune_direction(error)
         for bt in range(4):
             set_values(line, tune_knobs, baseline + change * 0.5**bt)
             try:
@@ -234,9 +234,7 @@ def coupling_step(
     skew_knobs,
     orbit_knobs,
     tune_knobs,
-    coupling_optimizer,
-    coupling_vector,
-    coupling_rcond,
+    coupling_direction,
     step_fraction,
     coupling_cost,
     coupling_goal,
@@ -250,7 +248,7 @@ def coupling_step(
         return tw
     baseline = values(line, skew_knobs)
     steering, families = values(line, orbit_knobs), values(line, tune_knobs)
-    direction = coupling_optimizer.get_correction(coupling_vector(tw), rcond=coupling_rcond)
+    direction = coupling_direction(tw)
     before = coupling_cost(tw)
     for backtrack in range(10):
         step = step_fraction * 0.5**backtrack

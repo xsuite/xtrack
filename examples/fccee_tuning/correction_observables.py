@@ -75,12 +75,11 @@ def lab_orbit_errors(tw, *, monitor_indices, monitor_alignment):
     return [tw.x[monitor_indices] - dx, tw.y[monitor_indices] - dy]
 
 
-def correctable_orbit_errors(tw, *, lab_orbit_errors, orbit_optimizers, rcond):
+def correctable_orbit_errors(tw, *, lab_orbit_errors, orbit_svds, rcond):
     # Discarded SVD modes and the rectangular response's left null space
     # cannot be removed by the available correctors in the nominal model.
     residuals = []
-    for error, optimizer in zip(lab_orbit_errors(tw), orbit_optimizers):
-        svd = optimizer.response.svd
+    for error, svd in zip(lab_orbit_errors(tw), orbit_svds):
         u = svd.U[:, svd.s > rcond * svd.s[0]]
         residuals.append(u @ (u.T @ error))
     return residuals
