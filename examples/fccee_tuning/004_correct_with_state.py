@@ -90,7 +90,7 @@ if not correction_failed:
     if not correction.goals_met(correction.accepted_twiss):
         before = correction.snapshot()
         try:
-            tw = correction.twiss()
+            tw = correction.accepted_twiss
             tw, iterations = correction.correct_at_fixed_strengths(tw)
             correction.record(tw, iterations=iterations)
         except correction.correction_errors as err:

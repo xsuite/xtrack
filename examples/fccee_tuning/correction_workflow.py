@@ -10,7 +10,6 @@ from copy import deepcopy
 from dataclasses import dataclass, asdict
 from pathlib import Path
 from types import SimpleNamespace
-import pickle
 
 import numpy as np
 import xtrack as xt
@@ -93,7 +92,6 @@ class MachineSnapshot:
     accepted_twiss: object
     final_refinement: bool
     history_length: int
-    twiss_cache: dict
 
 
 class FCCeeCorrection:
@@ -112,13 +110,14 @@ class FCCeeCorrection:
 
     def __init__(self, line, *, settings=None, log=print):
         self.line = line
+        # This workflow uses 4D optics at the reference momentum, as in 000.
+        self.line.twiss_default.update(method='4d', delta0=0.0)
         self.settings = settings if settings is not None else CorrectionSettings()
         self.log = log
         self.final_refinement = False
         self.history = []
         self.accepted_twiss = None
         self.optimizers = SimpleNamespace()
-        self._twiss_cache = {}
         self.stats = dict(calls=0, seconds=0.0, orbit_calls=0, orbit_seconds=0.0)
         self.steps_r_matrix = dict(dx=1e-8, dpx=1e-9, dy=1e-8, dpy=1e-9, dzeta=1e-7, ddelta=1e-8)
         self.log('Preparing nominal reference and correction responses')
@@ -138,17 +137,9 @@ class FCCeeCorrection:
         """Live error fraction, including an unaccepted trial until restore/record."""
         return float(self.line['on_errors'])
 
-    def twiss(self, *, force=False):
-        """Return full optics for current variables; reuse a valid cached table.
-
-        Call invalidate_twiss() after direct element/lattice edits. Variable and
-        Twiss-default changes are detected automatically, including optimizer
-        writes. force=True bypasses the cache for independent verification.
-        """
-        return self._cached_twiss(seed=self.accepted_twiss, force=force)
-
-    def invalidate_twiss(self):
-        self._twiss_cache.clear()
+    def twiss(self):
+        """Compute full optics; callers explicitly retain and supply the result."""
+        return self._full_twiss(seed=self.accepted_twiss)
 
     def scale_corrections(self, next_error_fraction):
         """Extrapolate deviations from nominal settings, without changing errors."""
@@ -177,7 +168,6 @@ class FCCeeCorrection:
             accepted_twiss=self.accepted_twiss,
             final_refinement=self.final_refinement,
             history_length=len(self.history),
-            twiss_cache=self._twiss_cache.copy(),
         )
 
     def restore(self, snapshot):
@@ -191,7 +181,6 @@ class FCCeeCorrection:
         self.accepted_twiss = snapshot.accepted_twiss
         self.final_refinement = snapshot.final_refinement
         del self.history[snapshot.history_length :]
-        self._twiss_cache = snapshot.twiss_cache.copy()
 
     def correct_at_fixed_strengths(self, tw):
         """Return the accepted Twiss and completed iteration count, or raise.
@@ -292,7 +281,7 @@ class FCCeeCorrection:
 
     def save_result(self, path, *, completed, ramp_settings=None):
         """Save the accepted line and history for independent analysis with 003c."""
-        tw = self.twiss(force=True)
+        tw = self.twiss()
         if completed:
             assert self.goals_met(tw)
         self.line.twiss_default['co_guess'] = orbit_guess(tw)
@@ -326,29 +315,14 @@ class FCCeeCorrection:
         steps.set_values(self.line, names, values)
 
     def _full_twiss(self, seed=None, co_guess=None, radiation_integrals=False):
-        return self._cached_twiss(seed, co_guess, radiation_integrals)
+        return steps.compute_twiss(
+            seed, co_guess, radiation_integrals,
+            line=self.line, stats=self.stats, steps=self.steps_r_matrix)
 
     def orbit_twiss(self, seed=None, co_guess=None):
-        return self._cached_twiss(seed, co_guess, only_orbit=True)
-
-    def _cached_twiss(self, seed=None, co_guess=None, radiation_integrals=False,
-                      only_orbit=False, force=False):
-        # Read live values, including dependent variables, without formatting
-        # expression strings. Closed-orbit seeds are search hints only.
-        values = self.line.vars.val
-        variables = tuple((name, values[name]) for name in self.line.vars.keys()
-                          if name != '__vary_default')
-        defaults = {k: v for k, v in self.line.twiss_default.items() if k != 'co_guess'}
-        key = (variables, pickle.dumps((defaults, self.steps_r_matrix)))
-        mode = (only_orbit, radiation_integrals)
-        cached = self._twiss_cache.get(mode)
-        if not force and cached is not None and cached[0] == key:
-            return cached[1]
-        tw = steps.compute_twiss(
-            seed, co_guess, radiation_integrals, only_orbit=only_orbit,
+        return steps.compute_twiss(
+            seed, co_guess, only_orbit=True,
             line=self.line, stats=self.stats, steps=self.steps_r_matrix)
-        self._twiss_cache[mode] = (key, tw)
-        return tw
 
     def ensure_full_twiss(self, tw):
         return steps.ensure_full_twiss(tw, full_twiss=self._full_twiss)

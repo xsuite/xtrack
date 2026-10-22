@@ -36,7 +36,6 @@ def correction(monkeypatch):
     state.settings = module.CorrectionSettings()
     state.log = lambda *args, **kwargs: None
     state.history = []
-    state._twiss_cache = {}
     state.final_refinement = False
     state.accepted_twiss = SimpleNamespace(
         x=[1.0], px=[2.0], y=[3.0], py=[4.0], qx=1.2, qy=2.3, delta=[0.0], c_minus=1e-4
@@ -112,53 +111,31 @@ def test_history_is_independent_and_keeps_refinement(correction):
     assert correction.history[0] == first
 
 
-def test_twiss_cache_tracks_variables_settings_and_snapshot(correction, monkeypatch):
+def test_twiss_evaluation_is_explicit(correction, monkeypatch):
     module = importlib.import_module('correction_workflow')
     correction.steps_r_matrix = dict(dx=1e-8)
     correction.stats = {}
     calls = []
 
     def compute(*args, **kwargs):
-        calls.append(kwargs)
+        calls.append((args, kwargs))
         return object()
 
     monkeypatch.setattr(module.steps, 'compute_twiss', compute)
     first = correction.twiss()
-    assert correction.twiss() is first
-    before = correction.snapshot()
-    correction.line['quad'] += 1  # Direct writes, as made by an optimizer.
-    assert correction.twiss() is not first
-    correction.restore(before)
-    assert correction.twiss() is first
-    assert len(calls) == 2
-    correction.line['another_variable'] = 3.
     second = correction.twiss()
     assert second is not first
-    correction.line.twiss_default['method'] = '4d'
-    assert correction.twiss() is not second
-    full = correction.twiss()
-    orbit = correction.orbit_twiss()
-    assert orbit is not full
-    assert correction.orbit_twiss() is orbit
-    assert correction.twiss() is full
-    assert correction.twiss(force=True) is not full
-    fresh = correction.twiss()
-    correction.invalidate_twiss()
-    assert correction.twiss() is not fresh
+    assert len(calls) == 2
+    assert calls[0][0][0] is correction.accepted_twiss
+    correction.orbit_twiss(second)
+    assert calls[-1][0][0] is second
+    assert calls[-1][1]['only_orbit']
 
-
-def test_failed_twiss_is_not_cached(correction, monkeypatch):
-    module = importlib.import_module('correction_workflow')
-    correction.steps_r_matrix = {}
-    correction.stats = {}
-
-    def fail(*args, **kwargs):
-        raise ValueError('unstable trial')
-
-    monkeypatch.setattr(module.steps, 'compute_twiss', fail)
-    with pytest.raises(ValueError, match='unstable trial'):
-        correction.twiss()
-    assert correction._twiss_cache == {}
+    # A supplied point satisfying the goals requires no further Twiss.
+    correction.orbit_goal = correction.optical_goal = correction.coupling_goal = lambda tw: True
+    tw, iterations = correction.correct_at_fixed_strengths(second)
+    assert tw is second and iterations == 0
+    assert len(calls) == 3
 
 
 def test_aggregate_goal_targets_preserve_thresholds(correction):

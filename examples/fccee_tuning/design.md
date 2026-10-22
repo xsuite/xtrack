@@ -4,7 +4,7 @@
 
 `Optimize` owns targets, tolerances, weights, varies, response matrices, the
 least-squares solve, and application of a requested change to its knobs.
-`FCCeeCorrection` owns Twiss computation and caching, the sequence of corrections,
+`FCCeeCorrection` owns Twiss computation, the sequence of corrections,
 acceptance decisions, retries, and whole-machine snapshots. The user script owns
 the error/nonlinear ramp and the separate final refinement at the requested error
 fraction (including fractions below one).
@@ -97,20 +97,20 @@ ordering. In particular:
   Optimizer diagnostics describe evaluations, whereas correction history contains
   accepted ramp/refinement points only.
 
-## Twiss cache
+## Explicit Twiss lifetime
 
-`correction.twiss()` returns data for the current machine, not necessarily the
-last accepted ramp point. Cache a successful result together with the tracked
-machine-variable values and Twiss options. Direct optimizer knob writes must be
-detected, including writes followed by rollback. Never reuse an orbit-only table
-where full optics is required. Seeds are search hints; they must not make a stale
-machine table valid. Failed evaluations must not be cached.
+`correction.twiss()` always computes the current machine. The orchestration
+retains the returned table and supplies it to target checks and least-squares
+steps. After changing knobs, compute a new table before checking the candidate.
+For retries, restore the baseline machine and reuse its original table. Final
+refinement starts from `accepted_twiss`; final saving independently recomputes
+Twiss. There is no variable tracking, cache, invalidation API, or force flag.
+Orbit-only tables are promoted to full optics when required.
 
-Track all live variable values (including dependent variables) and Twiss settings.
-Read numeric values directly rather than formatting the whole expression table.
-Explicit invalidation is required
-after direct element/lattice edits that do not pass through variables. Provide a
-forced fresh evaluation for final verification and numerical comparisons.
+Construction explicitly sets `method='4d', delta0=0.0`, matching the intended
+configuration in `000_install_errors.py`. Do not rely on these defaults being
+present in the serialized input: without them Twiss defaults to 6D, changing
+both the correction problem and its convergence.
 
 ## Validation
 
@@ -118,14 +118,14 @@ Use `/Users/giadarol/miniforge3/envs/py313`. Test supplied-results calls with ac
 that fail if invoked; compare weighted/scaled/masked solves to an independent
 linear solution. Cover temporary Jacobians, limits, retries, missing results,
 target transformations, and unchanged default evaluation. Check real Twiss
-targets, state rollback, cache invalidation, and new trial decisions against the
+targets, state rollback, explicit evaluations, and new trial decisions against the
 unchanged reference helpers. Report separately whether a full FCC-ee lattice run
 was possible; small state tests are not a full-machine physics validation.
 
 ### Implementation checks (2026-10-22)
 
 - xdeps suite: 107 passed, 2 expected failures.
-- Focused Xtrack response/action/state tests: 12 passed, including with
+- Focused Xtrack response/action/state tests after cache removal: 11 passed, with
   FutureWarning promoted to an error.
 - A real FCC-ee lattice comparison against the pre-refactor workflow (which
   delegates numerical trials to the unchanged 003b helpers) rejected the same
@@ -134,11 +134,24 @@ was possible; small state tests are not a full-machine physics validation.
 - After preparing the SVDs before timing, a representative accepted 0.00625 trial
   took approximately 7.2 seconds with this workflow and 6.0 seconds with the
   reference. This is a single-point comparison, not a full-ramp benchmark.
-  All variable values are checked for cache validity, and inner trials retain
-  whole-machine snapshots; this trades some overhead for inspectable state.
-- The full ramp to one and its final refinement have not been validated by an
-  end-to-end run in this change. The original script and numerical helper files
-  are unchanged.
+  This measurement predates removal of the Twiss cache and its variable checks.
+- The first full run hit its 250-second cap near error fraction 0.021. Its
+  regenerated input had empty Twiss defaults, unlike the earlier successful
+  input with `method='4d', delta0=0.0`. The lattice and variable data matched;
+  the missing defaults selected 6D optics. The earlier single-point comparison
+  above also used that input and did not establish parity with the intended 4D run.
+- With 4D configured explicitly and the cache removed, the full ramp to one,
+  final refinement, fresh final Twiss goal checks, and output saving completed
+  successfully in 217.9 seconds wall time (211.5 seconds inside the script).
+  There were 19 accepted history entries and 254 Twiss calls, including 91
+  orbit-only calls. Twiss accounted for 75.8 seconds. This was below the
+  250-second cap. The original script and numerical helper files are unchanged.
+- The 18 saved ramp fractions exactly match the earlier verified reference run;
+  all history diagnostics agree with atol=1e-8 and rtol=1e-3.
+
+Full-run log: `/tmp/fccee_explicit_4d_zb5z1o5t/run.log`; timing and verification
+are in `timing.json` and `verification.json` in the same directory. The saved
+machine is `response_api_class/machine.json` there.
 
 Local comparison output: `/tmp/check_fccee_lstsq.log`; the earlier comparison
 including the rejected 0.0125 trial is `/tmp/check_fccee_lstsq_initial.log`.
