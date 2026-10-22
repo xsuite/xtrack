@@ -51,7 +51,7 @@ line = xt.load(INPUT)
 correction = FCCeeCorrection(line, settings=settings, log=log)
 
 # %% Ramp the errors and nonlinear strengths
-reached_stop = True
+correction_failed = False
 increment = INITIAL_INCREMENT
 while correction.error_fraction < STOP_AT - 1e-12:
     next_error_fraction = min(correction.error_fraction + increment, STOP_AT)
@@ -69,7 +69,7 @@ while correction.error_fraction < STOP_AT - 1e-12:
         increment /= 2
         log(f'Rejected: {err}')
         if increment < MIN_INCREMENT:
-            reached_stop = False
+            correction_failed = True
             break
         continue
 
@@ -78,7 +78,7 @@ while correction.error_fraction < STOP_AT - 1e-12:
         increment = min(1.25 * increment, MAX_INCREMENT)
 
 # %% Refine the full-strength machine with the tighter final goals
-if reached_stop and abs(correction.error_fraction - 1.0) < 1e-12:
+if not correction_failed and abs(correction.error_fraction - 1.0) < 1e-12:
     correction.final_refinement = True
     log('Final refinement')
     if not correction.goals_met(correction.accepted_twiss):
@@ -88,13 +88,13 @@ if reached_stop and abs(correction.error_fraction - 1.0) < 1e-12:
             tw, iterations = correction.correct_at_fixed_strengths(tw)
         except correction.correction_errors as err:
             correction.restore(before)
-            reached_stop = False
+            correction_failed = True
             log(f'Refinement failed: {err}')
         else:
             correction.record(tw, iterations=iterations)
 
 # %% Save the accepted machine for independent analysis
-completed = reached_stop and abs(correction.error_fraction - 1.0) < 1e-12
+completed = not correction_failed and abs(correction.error_fraction - 1.0) < 1e-12
 output = OUTPUT_DIR / ('machine.json' if completed else 'partial.json')
 correction.save_result(
     output,
@@ -106,7 +106,7 @@ correction.save_result(
     ),
 )
 log(f'Finished in {perf_counter() - START_TIME:.1f} s')
-if not reached_stop:
+if correction_failed:
     raise RuntimeError(
         f'Correction stopped at {correction.error_fraction:g}; accepted machine saved in {output}'
     )
