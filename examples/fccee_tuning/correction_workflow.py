@@ -1,17 +1,20 @@
 """Inspectable FCC-ee correction workflow used by 004.
 
 This is an example-local API prototype. The ramp remains in the user script;
-the class owns optimizers, machine snapshots and accepted history. Numerical
-trial steps are shared with the unchanged 003b reference.
+the class owns Twiss evaluation, trial acceptance, snapshots and history.
+Optimizers consume supplied Twiss tables and apply least-squares changes.
+003b and its shared trial helpers remain the numerical reference.
 """
 
 from copy import deepcopy
 from dataclasses import dataclass, asdict
 from pathlib import Path
 from types import SimpleNamespace
+import pickle
 
 import numpy as np
 import xtrack as xt
+import xdeps as xd
 
 import correction_observables as obs
 import correction_steps as steps
@@ -90,6 +93,7 @@ class MachineSnapshot:
     accepted_twiss: object
     final_refinement: bool
     history_length: int
+    twiss_cache: dict
 
 
 class FCCeeCorrection:
@@ -114,11 +118,13 @@ class FCCeeCorrection:
         self.history = []
         self.accepted_twiss = None
         self.optimizers = SimpleNamespace()
+        self._twiss_cache = {}
         self.stats = dict(calls=0, seconds=0.0, orbit_calls=0, orbit_seconds=0.0)
         self.steps_r_matrix = dict(dx=1e-8, dpx=1e-9, dy=1e-8, dpy=1e-9, dzeta=1e-7, ddelta=1e-8)
         self.log('Preparing nominal reference and correction responses')
         self._prepare_reference()
         self._build_optimizers()
+        self._build_goal_optimizers()
         self._set_values(self.orbit_knobs, np.zeros(len(self.orbit_knobs)))
         self._set_values(self.quad_knobs, np.zeros(len(self.quad_knobs)))
         self.set_error_fraction(0.0)
@@ -132,9 +138,17 @@ class FCCeeCorrection:
         """Live error fraction, including an unaccepted trial until restore/record."""
         return float(self.line['on_errors'])
 
-    def twiss(self):
-        """Evaluate the current machine, starting from its last accepted orbit."""
-        return self._full_twiss(co_guess=orbit_guess(self.accepted_twiss))
+    def twiss(self, *, force=False):
+        """Return full optics for current variables; reuse a valid cached table.
+
+        Call invalidate_twiss() after direct element/lattice edits. Variable and
+        Twiss-default changes are detected automatically, including optimizer
+        writes. force=True bypasses the cache for independent verification.
+        """
+        return self._cached_twiss(seed=self.accepted_twiss, force=force)
+
+    def invalidate_twiss(self):
+        self._twiss_cache.clear()
 
     def scale_corrections(self, next_error_fraction):
         """Extrapolate deviations from nominal settings, without changing errors."""
@@ -156,21 +170,28 @@ class FCCeeCorrection:
 
     def snapshot(self):
         """Capture every control that a ramp trial can change, without tracking."""
+        values = self.line.vars.val
         return MachineSnapshot(
-            knob_values={name: float(self.line[name]) for name in self.control_names},
+            knob_values={name: float(values[name]) for name in self.control_names},
             co_guess=deepcopy(self.line.twiss_default.get('co_guess')),
             accepted_twiss=self.accepted_twiss,
             final_refinement=self.final_refinement,
             history_length=len(self.history),
+            twiss_cache=self._twiss_cache.copy(),
         )
 
     def restore(self, snapshot):
         """Undo a trial, including error strength and accepted-orbit bookkeeping."""
-        self.line.vars.update(snapshot.knob_values)
+        values = self.line.vars.val
+        self.line.vars.update({
+            name: value for name, value in snapshot.knob_values.items()
+            if values[name] != value
+        })
         self.line.twiss_default['co_guess'] = deepcopy(snapshot.co_guess)
         self.accepted_twiss = snapshot.accepted_twiss
         self.final_refinement = snapshot.final_refinement
         del self.history[snapshot.history_length :]
+        self._twiss_cache = snapshot.twiss_cache.copy()
 
     def correct_at_fixed_strengths(self, tw):
         """Return the accepted Twiss and completed iteration count, or raise.
@@ -225,7 +246,9 @@ class FCCeeCorrection:
 
     def orbit_goal(self, tw):
         tolerance = max(0.002e-6, self.error_fraction * self.settings.orbit_tol)
-        return bool(np.all(obs.rms_arrays(self.orbit_errors(tw)) <= tolerance))
+        metrics = dict(orbit_rms=obs.rms_arrays(self.orbit_errors(tw)))
+        # Target tolerance checks are strict; preserve 003b's inclusive orbit goal.
+        return self._goals_met('orbit', metrics, [np.nextafter(tolerance, np.inf)] * 2)
 
     def goals_met(self, tw):
         return self.orbit_goal(tw) and self.optical_goal(tw) and self.coupling_goal(tw)
@@ -269,7 +292,7 @@ class FCCeeCorrection:
 
     def save_result(self, path, *, completed, ramp_settings=None):
         """Save the accepted line and history for independent analysis with 003c."""
-        tw = self._full_twiss(self.accepted_twiss)
+        tw = self.twiss(force=True)
         if completed:
             assert self.goals_met(tw)
         self.line.twiss_default['co_guess'] = orbit_guess(tw)
@@ -303,24 +326,29 @@ class FCCeeCorrection:
         steps.set_values(self.line, names, values)
 
     def _full_twiss(self, seed=None, co_guess=None, radiation_integrals=False):
-        return steps.compute_twiss(
-            seed,
-            co_guess,
-            radiation_integrals,
-            line=self.line,
-            stats=self.stats,
-            steps=self.steps_r_matrix,
-        )
+        return self._cached_twiss(seed, co_guess, radiation_integrals)
 
     def orbit_twiss(self, seed=None, co_guess=None):
-        return steps.compute_twiss(
-            seed,
-            co_guess,
-            only_orbit=True,
-            line=self.line,
-            stats=self.stats,
-            steps=self.steps_r_matrix,
-        )
+        return self._cached_twiss(seed, co_guess, only_orbit=True)
+
+    def _cached_twiss(self, seed=None, co_guess=None, radiation_integrals=False,
+                      only_orbit=False, force=False):
+        # Read live values, including dependent variables, without formatting
+        # expression strings. Closed-orbit seeds are search hints only.
+        values = self.line.vars.val
+        variables = tuple((name, values[name]) for name in self.line.vars.keys()
+                          if name != '__vary_default')
+        defaults = {k: v for k, v in self.line.twiss_default.items() if k != 'co_guess'}
+        key = (variables, pickle.dumps((defaults, self.steps_r_matrix)))
+        mode = (only_orbit, radiation_integrals)
+        cached = self._twiss_cache.get(mode)
+        if not force and cached is not None and cached[0] == key:
+            return cached[1]
+        tw = steps.compute_twiss(
+            seed, co_guess, radiation_integrals, only_orbit=only_orbit,
+            line=self.line, stats=self.stats, steps=self.steps_r_matrix)
+        self._twiss_cache[mode] = (key, tw)
+        return tw
 
     def ensure_full_twiss(self, tw):
         return steps.ensure_full_twiss(tw, full_twiss=self._full_twiss)
@@ -393,13 +421,8 @@ class FCCeeCorrection:
                 self.settings.ramp_dispersion_ip_tol,
             )
         )
-        return (
-            np.all(m['coupling_rms'] < rdt_rms)
-            and m['coupling_ip'] < rdt_ip
-            and (m['c_minus'] < c_minus)
-            and (m['dy_rms'] < dy_rms)
-            and (m['dy_ip'] < dy_ip)
-        )
+        return self._goals_met('coupling', m,
+                               [rdt_rms, rdt_rms, rdt_ip, c_minus, dy_rms, dy_ip])
 
     def optical_goal(self, tw):
         m = self.measure(tw, orbit_errors=None)
@@ -414,34 +437,57 @@ class FCCeeCorrection:
                 self.settings.ramp_horizontal_dispersion_ip_tol,
             )
         )
-        return (
-            np.all(m['beta_rms'] < self.settings.beta_rms_tol)
-            and max(m['beta_max']) < self.settings.beta_max_tol
-            and (m['dx_rms'] < dx_rms)
-            and (m['dx_ip'] < dx_ip)
-            and (max(abs(m['tune_error'])) < self.settings.tune_tol)
+        return self._goals_met('optics', m,
+                               [self.settings.beta_rms_tol] * 2
+                               + [self.settings.beta_max_tol] * 2
+                               + [dx_rms, dx_ip] + [self.settings.tune_tol] * 2)
+
+    def _build_goal_optimizers(self):
+        # Aggregate RMS/max goals are distinct from the response rows. These
+        # inspection-only optimizers do not calculate or apply a direction.
+        self.metrics_action = xt.Action(lambda: self.measure(self.twiss()))
+        groups = dict(
+            orbit=[('orbit_rms', i) for i in range(2)],
+            optics=[('beta_rms', i) for i in range(2)]
+                   + [('beta_max', i) for i in range(2)]
+                   + [('dx_rms', None), ('dx_ip', None)]
+                   + [('tune_error', i) for i in range(2)],
+            coupling=[('coupling_rms', i) for i in range(2)]
+                     + [(key, None) for key in ('coupling_ip', 'c_minus', 'dy_rms', 'dy_ip')],
         )
+        self.goal_optimizers = SimpleNamespace()
+        metrics = self.measure(self.reference)
+        for name, quantities in groups.items():
+            targets = [
+                self.metrics_action.target(
+                    lambda data, key=key, i=i: data[key] if i is None else data[key][i],
+                    value=0.0, tol=1e-15, tag=key if i is None else f'{key}_{i}')
+                for key, i in quantities
+            ]
+            setattr(self.goal_optimizers, name, xd.Optimize(
+                vary=[], targets=targets, name=f'{name} goals',
+                action_results={self.metrics_action: metrics}, show_call_counter=False))
+        # Populate the live tolerances immediately for interactive inspection.
+        self.orbit_goal(self.reference)
+        self.optical_goal(self.reference)
+        self.coupling_goal(self.reference)
+
+    def _goals_met(self, name, metrics, tolerances):
+        optimizer = getattr(self.goal_optimizers, name)
+        for target, tolerance in zip(optimizer.targets, tolerances):
+            target.tol = tolerance
+        status = optimizer.target_status(ret=True, action_results={self.metrics_action: metrics})
+        return bool(np.all(status.tol_met))
 
     def optical_cost(self, tw):
-        return np.linalg.norm((self.optics_weights * self.optics_vector(tw))[:-2])
+        status = self.optimizers.optics.target_status(
+            ret=True, action_results={self.twiss_action: tw})
+        return np.linalg.norm((self.optics_weights * status.residue)[:-2])
 
     def coupling_cost(self, tw):
-        return np.linalg.norm(self.coupling_weights * self.coupling_vector(tw))
-
-    def optical_direction(self, tw):
-        return self.optimizers.optics.get_correction(
-            self.optics_vector(tw), rcond=self.settings.optics_rcond
-        )
-
-    def steering_direction(self, tw, fraction):
-        return np.concatenate(
-            [
-                opt.get_correction(error, rcond=self.settings.orbit_rcond)
-                for error, opt in zip(
-                    self.lab_orbit_errors(tw), [self.optimizers.orbit_x, self.optimizers.orbit_y]
-                )
-            ]
-        )
+        status = self.optimizers.coupling.target_status(
+            ret=True, action_results={self.twiss_action: tw})
+        return np.linalg.norm(self.coupling_weights * status.residue)
 
     def correctable_orbit_errors(self, tw):
         return obs.correctable_orbit_errors(
@@ -452,51 +498,77 @@ class FCCeeCorrection:
         )
 
     def tune_cleanup(self, tw):
-        return steps.tune_cleanup(
-            tw,
-            line=self.line,
-            tune_knobs=self.tune_knobs,
-            tw_ref=self.reference,
-            tune_tol=self.settings.tune_tol,
-            tune_optimizer=self.optimizers.tunes,
-            ensure_full_twiss=self.ensure_full_twiss,
-            full_twiss=self._full_twiss,
-            log=_silent_log,
-        )
+        opt = self.optimizers.tunes
+        for target in opt.targets:
+            target.tol = self.settings.tune_tol / 2
+        tw = self.ensure_full_twiss(tw)
+        for iteration in range(7):
+            status = opt.target_status(ret=True, action_results={self.twiss_action: tw})
+            if np.all(status.tol_met):
+                return tw
+            before = self.snapshot()
+            for backtrack in range(4):
+                self.restore(before)
+                opt.run_lstsq(action_results={self.twiss_action: tw},
+                              rcond=0.0, step_scale=0.5**backtrack,
+                              tag_outcome=False)
+                try:
+                    trial = self._full_twiss(tw)
+                except (ValueError, xt.twiss.ClosedOrbitSearchError):
+                    continue
+                trial_status = opt.target_status(
+                    ret=True, action_results={self.twiss_action: trial})
+                if np.linalg.norm(trial_status.residue) < np.linalg.norm(status.residue):
+                    tw = trial
+                    break
+            else:
+                self.restore(before)
+                raise RuntimeError('Tune cleanup failed with the fixed nominal response')
+        status = opt.target_status(ret=True, action_results={self.twiss_action: tw})
+        if np.all(status.tol_met):
+            return tw
+        raise RuntimeError('Tune cleanup iteration limit')
 
     def orbit_step(self, tw, fraction=None, max_backtracks=13, only_orbit=False):
-        if fraction is None:
-            fraction = self.error_fraction
-        return steps.orbit_step(
-            tw,
-            fraction,
-            max_backtracks,
-            only_orbit,
-            line=self.line,
-            orbit_knobs=self.orbit_knobs,
-            steering_direction=self.steering_direction,
-            orbit_errors=self.orbit_errors,
-            orbit_twiss=self.orbit_twiss,
-            full_twiss=self._full_twiss,
-            log=_silent_log,
-        )
+        before = self.snapshot()
+        cost = np.linalg.norm(np.concatenate(self.orbit_errors(tw)))
+        for backtrack in range(max_backtracks):
+            self.restore(before)
+            for opt in (self.optimizers.orbit_x, self.optimizers.orbit_y):
+                opt.run_lstsq(action_results={self.twiss_action: tw},
+                              rcond=self.settings.orbit_rcond, step_scale=0.5**backtrack,
+                              tag_outcome=False)
+            try:
+                trial = self.orbit_twiss(tw) if only_orbit else self._full_twiss(tw)
+            except (ValueError, xt.twiss.ClosedOrbitSearchError):
+                continue
+            if np.linalg.norm(np.concatenate(self.orbit_errors(trial))) < cost * (1 - 1e-6):
+                return trial
+        self.restore(before)
+        raise RuntimeError('No stable improving orbit step')
 
     def optics_step(self, tw):
-        return steps.optics_step(
-            tw,
-            line=self.line,
-            quad_knobs=self.quad_knobs,
-            tune_knobs=self.tune_knobs,
-            orbit_knobs=self.orbit_knobs,
-            optical_direction=self.optical_direction,
-            optical_cost=self.optical_cost,
-            strength_scale=self.strength_scale,
-            orbit_twiss=self.orbit_twiss,
-            orbit_step=self.orbit_step,
-            tune_cleanup=self.tune_cleanup,
-            measure=self.measure,
-            log=_silent_log,
-        )
+        before = self.snapshot()
+        cost = self.optical_cost(tw)
+        for backtrack in range(10):
+            self.restore(before)
+            self.optimizers.optics.run_lstsq(
+                action_results={self.twiss_action: tw},
+                rcond=self.settings.optics_rcond, step_scale=0.5**backtrack,
+                tag_outcome=False)
+            try:
+                trial = self.orbit_twiss(tw)
+                try:
+                    trial = self.orbit_step(trial)
+                except RuntimeError:
+                    pass
+                trial = self.tune_cleanup(trial)
+            except (ValueError, RuntimeError):
+                continue
+            if self.optical_cost(trial) < cost * (1 - 1e-6):
+                return trial
+        self.restore(before)
+        raise RuntimeError('No stable improving joint step')
 
     def settle_coupling_orbit(self, tw):
         return steps.settle_coupling_orbit(
@@ -509,23 +581,27 @@ class FCCeeCorrection:
         )
 
     def coupling_step(self, tw):
-        return steps.coupling_step(
-            tw,
-            line=self.line,
-            skew_knobs=self.skew_knobs,
-            orbit_knobs=self.orbit_knobs,
-            tune_knobs=self.tune_knobs,
-            coupling_optimizer=self.optimizers.coupling,
-            coupling_vector=self.coupling_vector,
-            coupling_rcond=self.settings.coupling_rcond,
-            step_fraction=self.settings.coupling_step,
-            coupling_cost=self.coupling_cost,
-            coupling_goal=self.coupling_goal,
-            settle_coupling_orbit=self.settle_coupling_orbit,
-            orbit_twiss=self.orbit_twiss,
-            measure=self.measure,
-            log=_silent_log,
-        )
+        tw = self.settle_coupling_orbit(tw)
+        if self.coupling_goal(tw):
+            return tw
+        before = self.snapshot()
+        cost = self.coupling_cost(tw)
+        for backtrack in range(10):
+            self.restore(before)
+            self.optimizers.coupling.run_lstsq(
+                action_results={self.twiss_action: tw},
+                rcond=self.settings.coupling_rcond,
+                step_scale=self.settings.coupling_step * 0.5**backtrack,
+                tag_outcome=False)
+            try:
+                trial = self.orbit_twiss(tw)
+                trial = self.settle_coupling_orbit(trial)
+            except self.correction_errors:
+                continue
+            if self.coupling_cost(trial) < cost * (1 - 1e-6):
+                return trial
+        self.restore(before)
+        raise RuntimeError('No stable improving coupling step')
 
     def _prepare_reference(self):
         self.env = self.line.env
@@ -567,6 +643,9 @@ class FCCeeCorrection:
             self.line[name] = self.original[name]
 
     def _build_optimizers(self):
+        # One action supplies a Twiss table. Targets extract scalar observables;
+        # all correction calls pass action_results explicitly.
+        self.twiss_action = xt.Action(self.twiss)
         nominal_response, self.strength_scale, self.optics_weights, self.optics_labels = (
             setup.prepare_optics_response(
                 self.line,
@@ -587,52 +666,66 @@ class FCCeeCorrection:
                 log=_silent_log,
             )
         )
-        optics_action = xt.Action(lambda: self.optics_vector(self._full_twiss()))
+        optics_observables = (
+            [lambda tw, p=p, i=i: np.log(tw['bet' + p][i] / self.reference['bet' + p][i])
+             for p in 'xy' for i in self.obs_indices]
+            + [lambda tw, p=p, i=i: (
+                tw['alf' + p][i] * self.reference['bet' + p][i] / tw['bet' + p][i]
+                - self.reference['alf' + p][i])
+               for p in 'xy' for i in self.alpha_indices]
+            + [lambda tw, i=i: tw.dx[i] - self.reference.dx[i]
+               for i in self.dispersion_indices]
+            + [lambda tw, q=q: tw[q] - self.reference[q] for q in ('qx', 'qy')]
+        )
         self.optimizers.optics = self.line.match(
             solve=False,
             name='normal optics and horizontal dispersion',
             vary=[
-                xt.Vary(knob, step=1e-07, weight=scale)
+                xt.Vary(knob, step=1e-07, weight=scale, max_step=0.5)
                 for knob, scale in zip(self.quad_knobs, self.strength_scale)
             ],
             targets=[
-                optics_action.target(i, value=0.0, tol=1e-15, weight=weight, tag=label)
-                for i, (label, weight) in enumerate(zip(self.optics_labels, self.optics_weights))
+                self.twiss_action.target(observable, value=0.0, tol=1e-15,
+                                         weight=weight, tag=label)
+                for observable, label, weight in zip(
+                    optics_observables, self.optics_labels, self.optics_weights)
             ],
+            action_results={self.twiss_action: self.reference},
             assert_within_tol=False,
             show_call_counter=False,
         )
         self.optimizers.optics.set_response(nominal_response)
         self.opt_s = self.optimizers.optics.response.svd.s
         del nominal_response
-        orbit_action_x = xt.Action(
-            lambda: self._full_twiss()['x'][self.monitor_indices] - self.monitor_alignment()[0]
-        )
+        alignment = self.line.metadata['tuning_errors']['bpm_alignment_variables']
         self.optimizers.orbit_x = self.line.match(
             solve=False,
             name='orbit x',
             vary=[xt.Vary(knob, step=1e-07) for knob in self.circuits['orbit']['x']['knobs']],
             targets=[
-                orbit_action_x.target(i, value=0.0, tol=1e-15, tag=f'x@{name}')
-                for i, name in enumerate(self.monitor_names)
+                self.twiss_action.target(
+                    lambda tw, i=i, offset=alignment[name]['shift_x']: tw.x[i] - self.env[offset],
+                    value=0.0, tol=1e-15, tag=f'x@{name}')
+                for i, name in zip(self.monitor_indices, self.monitor_names)
             ],
+            action_results={self.twiss_action: self.reference},
             assert_within_tol=False,
             show_call_counter=False,
         )
         self.optimizers.orbit_x.set_response(
             orbit_response(self.reference, self.monitor_names, self.corrector_names[0], 'x')
         )
-        orbit_action_y = xt.Action(
-            lambda: self._full_twiss()['y'][self.monitor_indices] - self.monitor_alignment()[1]
-        )
         self.optimizers.orbit_y = self.line.match(
             solve=False,
             name='orbit y',
             vary=[xt.Vary(knob, step=1e-07) for knob in self.circuits['orbit']['y']['knobs']],
             targets=[
-                orbit_action_y.target(i, value=0.0, tol=1e-15, tag=f'y@{name}')
-                for i, name in enumerate(self.monitor_names)
+                self.twiss_action.target(
+                    lambda tw, i=i, offset=alignment[name]['shift_y']: tw.y[i] - self.env[offset],
+                    value=0.0, tol=1e-15, tag=f'y@{name}')
+                for i, name in zip(self.monitor_indices, self.monitor_names)
             ],
+            action_results={self.twiss_action: self.reference},
             assert_within_tol=False,
             show_call_counter=False,
         )
@@ -656,7 +749,14 @@ class FCCeeCorrection:
                 log=_silent_log,
             )
         )
-        coupling_action = xt.Action(lambda: self.coupling_vector(self._full_twiss()))
+        coupling_observables = (
+            [lambda tw, key=key, part=part, i=i:
+                getattr(tw[key][i] - self.reference[key][i], part)
+             for key in ('f1001', 'f1010') for part in ('real', 'imag')
+             for i in self.dispersion_indices]
+            + [lambda tw, i=i: tw.dy[i] - self.reference.dy[i]
+               for i in self.dispersion_indices]
+        )
         self.optimizers.coupling = self.line.match(
             solve=False,
             name='coupling and vertical dispersion',
@@ -665,11 +765,12 @@ class FCCeeCorrection:
                 for knob, scale in zip(self.skew_knobs, self.skew_scale)
             ],
             targets=[
-                coupling_action.target(i, value=0.0, tol=1e-15, weight=weight, tag=label)
-                for i, (label, weight) in enumerate(
-                    zip(self.coupling_labels, self.coupling_weights)
-                )
+                self.twiss_action.target(observable, value=0.0, tol=1e-15,
+                                         weight=weight, tag=label)
+                for observable, label, weight in zip(
+                    coupling_observables, self.coupling_labels, self.coupling_weights)
             ],
+            action_results={self.twiss_action: self.reference},
             assert_within_tol=False,
             show_call_counter=False,
         )
@@ -679,20 +780,21 @@ class FCCeeCorrection:
             self.reference, line=self.line, tune_knobs=self.tune_knobs, full_twiss=self._full_twiss
         )
 
-        def tune_residuals():
-            tw = self._full_twiss()
-            return np.array([tw.qx - self.reference.qx, tw.qy - self.reference.qy])
-
-        tune_action = xt.Action(tune_residuals)
         self.optimizers.tunes = self.line.match(
             solve=False,
             name='tunes',
             vary=[xt.Vary(knob, step=1e-07) for knob in self.tune_knobs],
             targets=[
-                tune_action.target(i, value=0.0, tol=self.settings.tune_tol / 2, tag=q)
-                for i, q in enumerate(('qx', 'qy'))
+                self.twiss_action.target(q, value=self.reference[q],
+                                         tol=self.settings.tune_tol / 2, tag=q)
+                for q in ('qx', 'qy')
             ],
+            action_results={self.twiss_action: self.reference},
             assert_within_tol=False,
             show_call_counter=False,
         )
         self.optimizers.tunes.set_response(self.tune_response)
+        # As in 003b, pay the SVD construction cost during preparation, not in
+        # the first trial. Retries then reuse these decompositions.
+        for optimizer in vars(self.optimizers).values():
+            _ = optimizer.response.svd

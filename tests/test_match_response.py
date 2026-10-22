@@ -74,3 +74,40 @@ def test_match_jacobian_report_and_env_snapshot():
     info = opt.run_jacobian(take_best=False)
     assert info.improved and info.within_tol
     assert line['a'] == pytest.approx(1.)
+
+
+def test_external_twiss_lstsq_and_status(monkeypatch):
+    line = xt.Line(elements={'ring': xt.LineSegmentMap(qx=0.31, qy=0.32)})
+    line.particle_ref = xt.Particles(p0c=1e9)
+    line['qx'], line['qy'] = 0.31, 0.32
+    line.ref['ring'].qx = line.ref['qx']
+    line.ref['ring'].qy = line.ref['qy']
+    tw = line.twiss(method='4d')
+
+    def no_tracking():
+        raise AssertionError('Unexpected Twiss')
+
+    action = xt.Action(no_tracking)
+    opt = line.match(
+        solve=False, vary=[xt.Vary('qx'), xt.Vary('qy')],
+        targets=[action.target('qx', value=0.33, tol=1e-9),
+                 action.target('qy', value=0.34, tol=1e-9)],
+        action_results={action: tw})
+    opt.set_response(np.eye(2))
+    # Even constructor target evaluation used the supplied table.
+    original_twiss = line.twiss
+    monkeypatch.setattr(line, 'twiss', no_tracking)
+    status = opt.target_status(ret=True, action_results={action: tw})
+    np.testing.assert_allclose(status.residue, [-0.02, -0.02], atol=1e-12)
+    opt.tag('baseline', action_results={action: tw})
+    opt.run_lstsq(tag_outcome=False, action_results={action: tw}, step_scale=0.5)
+    np.testing.assert_allclose([line['qx'], line['qy']], [0.32, 0.33], atol=1e-12)
+    monkeypatch.setattr(line, 'twiss', original_twiss)
+    trial = line.twiss(method='4d')
+    status = opt.target_status(ret=True, action_results={action: trial})
+    assert not np.any(status.tol_met)
+    opt.reload(tag='baseline', action_results={action: tw})
+    opt.run_lstsq(tag_outcome=False, action_results={action: tw})
+    trial = line.twiss(method='4d')
+    status = opt.target_status(ret=True, action_results={action: trial})
+    assert np.all(status.tol_met)

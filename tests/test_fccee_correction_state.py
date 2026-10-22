@@ -36,6 +36,7 @@ def correction(monkeypatch):
     state.settings = module.CorrectionSettings()
     state.log = lambda *args, **kwargs: None
     state.history = []
+    state._twiss_cache = {}
     state.final_refinement = False
     state.accepted_twiss = SimpleNamespace(
         x=[1.0], px=[2.0], y=[3.0], py=[4.0], qx=1.2, qy=2.3, delta=[0.0], c_minus=1e-4
@@ -55,7 +56,7 @@ def correction(monkeypatch):
         coupling_ip=0.001,
         c_minus=0.0001,
     )
-    state.measure = lambda tw: metrics
+    state.measure = lambda tw, **kwargs: metrics
     yield state
     state.__dict__.clear()
 
@@ -109,3 +110,74 @@ def test_history_is_independent_and_keeps_refinement(correction):
     rows = correction.history_rows
     rows[0][0] = 999
     assert correction.history[0] == first
+
+
+def test_twiss_cache_tracks_variables_settings_and_snapshot(correction, monkeypatch):
+    module = importlib.import_module('correction_workflow')
+    correction.steps_r_matrix = dict(dx=1e-8)
+    correction.stats = {}
+    calls = []
+
+    def compute(*args, **kwargs):
+        calls.append(kwargs)
+        return object()
+
+    monkeypatch.setattr(module.steps, 'compute_twiss', compute)
+    first = correction.twiss()
+    assert correction.twiss() is first
+    before = correction.snapshot()
+    correction.line['quad'] += 1  # Direct writes, as made by an optimizer.
+    assert correction.twiss() is not first
+    correction.restore(before)
+    assert correction.twiss() is first
+    assert len(calls) == 2
+    correction.line['another_variable'] = 3.
+    second = correction.twiss()
+    assert second is not first
+    correction.line.twiss_default['method'] = '4d'
+    assert correction.twiss() is not second
+    full = correction.twiss()
+    orbit = correction.orbit_twiss()
+    assert orbit is not full
+    assert correction.orbit_twiss() is orbit
+    assert correction.twiss() is full
+    assert correction.twiss(force=True) is not full
+    fresh = correction.twiss()
+    correction.invalidate_twiss()
+    assert correction.twiss() is not fresh
+
+
+def test_failed_twiss_is_not_cached(correction, monkeypatch):
+    module = importlib.import_module('correction_workflow')
+    correction.steps_r_matrix = {}
+    correction.stats = {}
+
+    def fail(*args, **kwargs):
+        raise ValueError('unstable trial')
+
+    monkeypatch.setattr(module.steps, 'compute_twiss', fail)
+    with pytest.raises(ValueError, match='unstable trial'):
+        correction.twiss()
+    assert correction._twiss_cache == {}
+
+
+def test_aggregate_goal_targets_preserve_thresholds(correction):
+    correction.reference = correction.accepted_twiss
+    metrics = correction.measure(None)
+    correction.orbit_errors = lambda tw: [np.array([value]) for value in metrics['orbit_rms']]
+    correction._build_goal_optimizers()
+    assert correction.optical_goal(None)
+    assert correction.coupling_goal(None)
+    metrics['orbit_rms'][:] = correction.error_fraction * correction.settings.orbit_tol
+    assert correction.orbit_goal(None)  # Inclusive orbit limit.
+    metrics['orbit_rms'][0] = np.nextafter(metrics['orbit_rms'][0], np.inf)
+    assert not correction.orbit_goal(None)
+    metrics['beta_rms'][0] = correction.settings.beta_rms_tol
+    assert not correction.optical_goal(None)  # Strict optics limit.
+    metrics['beta_rms'][0] = 0.01
+    metrics['dy_ip'] = 0.00005
+    assert correction.coupling_goal(None)
+    correction.final_refinement = True
+    assert not correction.coupling_goal(None)
+    correction.settings.dispersion_ip_tol = 0.00006
+    assert correction.coupling_goal(None)  # Settings remain live.

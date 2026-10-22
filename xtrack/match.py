@@ -917,6 +917,8 @@ class OptimizeLine(xd.Optimize):
                     solver=None, check_limits=True,
                     action_twiss=None, action_twiss_tpsa=None,
                     use_tpsa=False, tpsa_backend='madng', name="",
+                    action_results=None,
+                    show_call_counter=True,
                     **kwargs):
 
         if hasattr(targets, 'values'): # dict like
@@ -1068,6 +1070,8 @@ class OptimizeLine(xd.Optimize):
                         restore_if_fail=restore_if_fail,
                         check_limits=check_limits,
                         name=name,
+                        action_results=action_results,
+                        show_call_counter=show_call_counter,
                         _printer=_print)
 
         _err = MeritFunctionLine(self._err, use_tpsa=use_tpsa)
@@ -1147,9 +1151,11 @@ class OptimizeLine(xd.Optimize):
         verbose=None,
         broyden=False,
         cleanup_madng_tpsa=False,
+        action_results=None,
     ):
         super().step(n_steps, take_best, enable_target, enable_vary, enable_vary_name, disable_target,
-                     disable_vary, disable_vary_name, rcond, sing_val_cutoff, verbose, broyden)
+                     disable_vary, disable_vary_name, rcond, sing_val_cutoff, verbose, broyden,
+                     action_results=action_results)
 
         if cleanup_madng_tpsa and self._err.use_tpsa:
             for a in self.actions:
@@ -1157,8 +1163,10 @@ class OptimizeLine(xd.Optimize):
                     a.cleanup()
                     break
 
-    def solve(self, n_steps=None, verbose=None, take_best=True, rcond=None, sing_val_cutoff=None, broyden=False, cleanup_madng_tpsa=True):
-        super().solve(n_steps, verbose, take_best, rcond, sing_val_cutoff, broyden)
+    def solve(self, n_steps=None, verbose=None, take_best=True, rcond=None, sing_val_cutoff=None,
+              broyden=False, cleanup_madng_tpsa=True, action_results=None):
+        super().solve(n_steps, verbose, take_best, rcond, sing_val_cutoff, broyden,
+                      action_results=action_results)
 
         if cleanup_madng_tpsa and self._err.use_tpsa:
             for a in self.actions:
