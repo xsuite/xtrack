@@ -25,22 +25,19 @@ def correct(tw, *, optimizer, action, tolerance, full_twiss, snapshot, restore):
         if np.all(status.tol_met):
             return tw
         before = snapshot()
-        for backtrack in range(4):
-            restore(before)
+        try:
             optimizer.run_lstsq(action_results={action: tw},
-                                rcond=0.0, step_scale=0.5**backtrack,
-                                tag_outcome=False)
-            try:
-                trial = full_twiss(tw)
-            except (ValueError, xt.twiss.ClosedOrbitSearchError):
-                continue
+                                rcond=0.0, tag_outcome=False)
+            trial = full_twiss(tw)
             trial_status = optimizer.target_status(ret=True, action_results={action: trial})
             if trial_status.penalty < status.penalty:
                 tw = trial
-                break
-        else:
+                continue
+        except (ValueError, RuntimeError, xt.twiss.ClosedOrbitSearchError) as err:
             restore(before)
-            raise RuntimeError('Tune correction failed with the fixed nominal response')
+            raise RuntimeError('Tune correction failed') from err
+        restore(before)
+        raise RuntimeError('No improving tune step')
     status = optimizer.target_status(ret=True, action_results={action: tw})
     if np.all(status.tol_met):
         return tw

@@ -169,10 +169,11 @@ The new workflow uses `run_lstsq`, not manual direction application.
 ## External retries and acceptance
 
 Capture the baseline, supply its Twiss, and call `run_lstsq(tag_outcome=False)`.
-Compute the new Twiss, then inspect target data. On rejection,
-restore the entire baseline and call `run_lstsq` again with the original Twiss
-and a smaller step_scale. Recompute the inexpensive linear solve while reusing
-the SVD; no separate public proposal/reapplication object is needed.
+Each correction step tries one candidate and evaluates its penalty. On failure
+or insufficient improvement, restore the baseline and raise; there are no
+inner retries with smaller steps. The outer ramp still restores its snapshot
+and halves the error-fraction increment on correction failure. Orbit settling
+retains its existing behavior of stopping when an orbit step fails.
 
 Use the scalar `target_status(...).penalty` for inner-trial acceptance. This is
 the optimizer's weighted residual norm, with transformations and active masks
@@ -189,9 +190,10 @@ steps. It promotes orbit-only results to full Twiss before checking coupling.
 No stage calls tune correction internally; tune correction follows each stage
 explicitly. Optics trials no longer include orbit settling.
 
-`tune_corr.correct()` owns the tune correction iterations and backtracking,
+`tune_corr.correct()` owns the tune correction iterations,
 using the optimizer and the workflow's Twiss, snapshot and restore callbacks.
-It retains the half-tune-tolerance goal, seven iterations and four step sizes.
+It retains the half-tune-tolerance goal and up to seven improving iterations,
+with one candidate per iteration.
 The optics optimizer also retains its qx/qy targets.
 
 The individual stage acceptance rules are:
@@ -201,8 +203,9 @@ The individual stage acceptance rules are:
   preserve the combined norm.
 - Optics acceptance includes tune rows, like the optimizer's least-squares
   objective. Previously it excluded tune rows.
-  The initial direction is limited to 0.5 in the
-  normalized quadrupole coordinates, followed by ten halving trials.
+  The direction retains the optimizer's knob limits and maximum-step handling.
+- Orbit, optics and tune correction use step_scale=1; coupling retains its
+  configured step scale (0.5 by default). These scales are not halved internally.
 - Optics evaluates full Twiss directly for each candidate. Coupling compares
   penalties after orbit settling, but before the subsequent tune stage.
 - Orbit/optics/coupling use the existing relative improvement threshold; tune
@@ -369,6 +372,17 @@ tests pass, including stage ordering, tune rollback and orbit settling without
 nested tune correction. Log and verification:
 `/tmp/fccee_explicit_tunes_coupled_orbit_fmhwnxdm/run.log` and `verification.json`
 in the same directory. The 003b reference and its shared helpers are unchanged.
+
+Removing all inner step-halving retries passed the full ramp, refinement, fresh
+final goal checks and saving in 210.5 seconds wall time, below the 250-second
+cap (previous run: 215.5 seconds). The accepted history matches the preceding
+combined orbit/coupling run within atol=1e-8, rtol=1e-3, with the same 20 entries
+and 240 Twiss calls (83 orbit-only). The 23 focused tests pass, including a
+single improving candidate and rollback of a rejected candidate without retry.
+Only the outer ramp still halves its increment. This validates the tested
+machine/error realization; it does not establish equivalence for other errors.
+Log and verification: `/tmp/fccee_no_backtracking_s7fp5vnb/run.log` and
+`verification.json` in the same directory. The 003b reference is unchanged.
 
 Local comparison output: `/tmp/check_fccee_lstsq.log`; the earlier comparison
 including the rejected 0.0125 trial is `/tmp/check_fccee_lstsq_initial.log`.

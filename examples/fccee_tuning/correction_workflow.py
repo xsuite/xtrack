@@ -104,7 +104,7 @@ class FCCeeCorrection:
 
     Snapshot before a trial; record only after accepting it. History stores
     accepted ramp points, including separate final-refinement entries, rather
-    than the intermediate backtracking evaluations inside each correction step.
+    than the intermediate evaluations inside each correction step.
     """
 
     correction_errors = (ValueError, RuntimeError, xt.twiss.ClosedOrbitSearchError)
@@ -415,41 +415,37 @@ class FCCeeCorrection:
             tolerance=self.settings.tune_tol / 2, full_twiss=self._full_twiss,
             snapshot=self.snapshot, restore=self.restore)
 
-    def orbit_step(self, tw, fraction=None, max_backtracks=13, only_orbit=False):
+    def orbit_step(self, tw, fraction=None, only_orbit=False):
         before = self.snapshot()
         penalty = self.orbit_penalty(tw)
-        for backtrack in range(max_backtracks):
-            self.restore(before)
+        try:
             for opt in (self.optimizers.orbit_x, self.optimizers.orbit_y):
                 opt.run_lstsq(action_results={self.twiss_action: tw},
-                              rcond=self.settings.orbit_rcond, step_scale=0.5**backtrack,
-                              tag_outcome=False)
-            try:
-                trial = self.orbit_twiss(tw) if only_orbit else self._full_twiss(tw)
-            except (ValueError, xt.twiss.ClosedOrbitSearchError):
-                continue
+                              rcond=self.settings.orbit_rcond, tag_outcome=False)
+            trial = self.orbit_twiss(tw) if only_orbit else self._full_twiss(tw)
             if self.orbit_penalty(trial) < penalty * (1 - 1e-6):
                 return trial
+        except self.correction_errors as err:
+            self.restore(before)
+            raise RuntimeError('Orbit step failed') from err
         self.restore(before)
         raise RuntimeError('No stable improving orbit step')
 
     def optics_step(self, tw):
         before = self.snapshot()
         penalty = self.optical_penalty(tw)
-        for backtrack in range(10):
-            self.restore(before)
+        try:
             self.optimizers.optics.run_lstsq(
                 action_results={self.twiss_action: tw},
-                rcond=self.settings.optics_rcond, step_scale=0.5**backtrack,
-                tag_outcome=False)
-            try:
-                trial = self._full_twiss(tw)
-            except (ValueError, RuntimeError):
-                continue
+                rcond=self.settings.optics_rcond, tag_outcome=False)
+            trial = self._full_twiss(tw)
             if self.optical_penalty(trial) < penalty * (1 - 1e-6):
                 return trial
+        except self.correction_errors as err:
+            self.restore(before)
+            raise RuntimeError('Optics step failed') from err
         self.restore(before)
-        raise RuntimeError('No stable improving joint step')
+        raise RuntimeError('No stable improving optics step')
 
     def settle_coupling_orbit(self, tw):
         # Settle both the baseline and trials so orbit feed-down does not mask
@@ -460,7 +456,7 @@ class FCCeeCorrection:
             if max(rms) < self.settings.coupling_orbit_tol:
                 break
             try:
-                tw = self.orbit_step(tw, max_backtracks=4, only_orbit=iteration < 2)
+                tw = self.orbit_step(tw, only_orbit=iteration < 2)
             except RuntimeError:
                 break
         return self.ensure_full_twiss(tw)
@@ -471,20 +467,18 @@ class FCCeeCorrection:
             return tw
         before = self.snapshot()
         penalty = self.coupling_penalty(tw)
-        for backtrack in range(10):
-            self.restore(before)
+        try:
             self.optimizers.coupling.run_lstsq(
                 action_results={self.twiss_action: tw},
                 rcond=self.settings.coupling_rcond,
-                step_scale=self.settings.coupling_step * 0.5**backtrack,
-                tag_outcome=False)
-            try:
-                trial = self.orbit_twiss(tw)
-                trial = self.settle_coupling_orbit(trial)
-            except self.correction_errors:
-                continue
+                step_scale=self.settings.coupling_step, tag_outcome=False)
+            trial = self.orbit_twiss(tw)
+            trial = self.settle_coupling_orbit(trial)
             if self.coupling_penalty(trial) < penalty * (1 - 1e-6):
                 return trial
+        except self.correction_errors as err:
+            self.restore(before)
+            raise RuntimeError('Coupling step failed') from err
         self.restore(before)
         raise RuntimeError('No stable improving coupling step')
 

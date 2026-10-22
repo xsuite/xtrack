@@ -268,7 +268,8 @@ def test_optics_targets_use_relative_beta_and_physical_alpha(correction, monkeyp
         np.linalg.norm(weights * relative_residuals))
 
 
-def test_optics_retry_restores_baseline_and_halves_step(correction, monkeypatch):
+@pytest.mark.parametrize('response, accepted', [(0.1, False), (1., True)])
+def test_optics_single_candidate_accepts_or_restores(correction, monkeypatch, response, accepted):
     import xdeps as xd
 
     correction.line['quad'] = 1.
@@ -283,7 +284,7 @@ def test_optics_retry_restores_baseline_and_halves_step(correction, monkeypatch)
                  action.target('inactive', value=0., tol=1e-12)],
         action_results={action: baseline}, show_call_counter=False)
     opt.targets[1].active = False
-    opt.set_response(np.array([[0.1], [0.]]))
+    opt.set_response(np.array([[response], [0.]]))
     correction.optimizers = SimpleNamespace(optics=opt)
     correction.twiss_action = action
     trials = []
@@ -296,12 +297,18 @@ def test_optics_retry_restores_baseline_and_halves_step(correction, monkeypatch)
     monkeypatch.setattr(correction, '_full_twiss', evaluate_trial)
     monkeypatch.setattr(correction, 'orbit_step', lambda tw: pytest.fail('Nested orbit correction'))
     monkeypatch.setattr(correction, 'correct_tunes', lambda tw: pytest.fail('Nested tune correction'))
-    result = correction.optics_step(baseline)
-    # The inaccurate response overshoots: full and half steps worsen the
-    # objective, while a quarter step improves it. Inactive errors are ignored.
-    np.testing.assert_allclose(trials, [-6.5, -2.75, -0.875])
-    assert correction.line['quad'] == pytest.approx(-0.875)
-    assert result['error'] == pytest.approx(0.515625)
+    if accepted:
+        result = correction.optics_step(baseline)
+        np.testing.assert_allclose(trials, [0.25])
+        assert correction.line['quad'] == pytest.approx(0.25)
+        assert result['error'] == pytest.approx(-0.1875)
+    else:
+        # An inaccurate response overshoots. Restore rather than retrying a
+        # smaller step. Inactive errors do not affect candidate acceptance.
+        with pytest.raises(RuntimeError, match='No stable improving optics step'):
+            correction.optics_step(baseline)
+        np.testing.assert_allclose(trials, [-6.5])
+        assert correction.line['quad'] == 1.
     assert len(opt.log()) == 1
 
 
@@ -353,7 +360,7 @@ def test_standalone_tune_correction(correction, monkeypatch, twiss_fails):
     if twiss_fails:
         with pytest.raises(RuntimeError, match='Tune correction failed'):
             correction.correct_tunes(baseline)
-        assert len(trials) == 4
+        assert len(trials) == 1
         np.testing.assert_allclose([correction.line[name] for name in ('tune', 'quad')], baseline)
     else:
         result = correction.correct_tunes(baseline)
@@ -366,8 +373,8 @@ def test_standalone_tune_correction(correction, monkeypatch, twiss_fails):
 
 def test_coupling_orbit_settling_leaves_tunes_to_explicit_stage(correction, monkeypatch):
     calls = []
-    def orbit(tw, *, max_backtracks, only_orbit):
-        calls.append((tw, max_backtracks, only_orbit))
+    def orbit(tw, *, only_orbit):
+        calls.append((tw, only_orbit))
         return tw + 1
 
     monkeypatch.setattr(correction, 'correctable_orbit_errors',
@@ -376,7 +383,7 @@ def test_coupling_orbit_settling_leaves_tunes_to_explicit_stage(correction, monk
     monkeypatch.setattr(correction, 'ensure_full_twiss', lambda tw: ('full', tw))
     monkeypatch.setattr(correction, 'correct_tunes', lambda tw: pytest.fail('Nested tune correction'))
     assert correction.settle_coupling_orbit(0) == ('full', 3)
-    assert calls == [(0, 4, True), (1, 4, True), (2, 4, False)]
+    assert calls == [(0, True), (1, True), (2, False)]
 
     calls.clear()
     monkeypatch.setattr(correction, 'correctable_orbit_errors',
