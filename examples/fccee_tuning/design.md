@@ -166,55 +166,41 @@ calculation must not leave finite-difference probes installed.
 The existing `get_correction` API remains available for the unchanged reference.
 The new workflow uses `run_lstsq`, not manual direction application.
 
-## External retries and acceptance
+## Goal checks and iteration limits
 
-Capture the baseline, supply its Twiss, and call `run_lstsq(tag_outcome=False)`.
-Each correction step tries one candidate and evaluates its penalty. On failure
-or insufficient improvement, restore the baseline and raise; there are no
-inner retries with smaller steps. The outer ramp still restores its snapshot
-and halves the error-fraction increment on correction failure. Orbit settling
-retains its existing behavior of stopping when an orbit step fails.
+The fixed-strength loop runs **orbit, tune, optics, tune, coupling, tune**.
+Orbit, optics and coupling are skipped when their goals are already met; tune
+correction checks its own tolerance and returns immediately when satisfied.
+Candidate application and Twiss evaluation are explicit in
+`correct_at_fixed_strengths()`. There are no penalty comparisons, penalty helper
+methods or inner step-halving retries. Intermediate errors may increase.
 
-Use the scalar `target_status(...).penalty` for inner-trial acceptance. This is
-the optimizer's weighted residual norm, with transformations and active masks
-already applied. It is computed during the same target evaluation, without an
-extra action call or log entry. As table metadata, it describes the entire
-evaluation even if the returned table is subsequently filtered.
+`ramp_max_iterations=5` limits complete cycles at each ramp fraction;
+`final_max_iterations=40` applies to final refinement. The loop checks all goals
+before any work and after every completed cycle, including the last allowed
+cycle. If goals remain unmet at the limit, it raises. The ramp/refinement caller
+owns rollback; a rejected ramp step also halves the error-fraction increment.
+Twiss failures propagate immediately, except during orbit settling as below.
 
-The fixed-strength loop runs the explicit sequence **orbit, tune, optics, tune,
-coupling, tune**. Orbit, optics and coupling are skipped when their goals are
-already met; tune correction checks its own tolerance and returns immediately
-when satisfied. The coupling stage includes orbit settling before its baseline
-and each trial, using the correctable-orbit tolerance and up to three orbit
-steps. It promotes orbit-only results to full Twiss before checking coupling.
-No stage calls tune correction internally; tune correction follows each stage
-explicitly. Optics trials no longer include orbit settling.
+The coupling stage includes orbit settling before its baseline and after each
+skew correction. Settling checks the correctable-orbit tolerance and performs
+up to three orbit steps, retaining results even when errors increase. It keeps
+a local snapshot solely to restore a failed evaluation, then stops settling
+and promotes its last valid orbit to full Twiss. Tune correction remains
+explicit after the coupling stage. Optics does not nest orbit correction.
 
-`tune_corr.correct()` owns the tune correction iterations,
-using the optimizer and the workflow's Twiss, snapshot and restore callbacks.
-It retains the half-tune-tolerance goal and up to seven improving iterations,
-with one candidate per iteration.
-The optics optimizer also retains its qx/qy targets.
+`tune_corr.correct()` uses its tune tolerance and up to seven iterations,
+without comparing penalties. If the tune goal is still unmet, it raises to the
+ramp/refinement caller; it performs no local rollback. The optics optimizer also
+retains its qx/qy targets. Orbit, optics and tune use step_scale=1; coupling
+retains its configured scale (0.5 by default). Optimizer knob limits and
+maximum-step handling are unchanged.
 
-The individual stage acceptance rules are:
-
-- Orbit acceptance combines the x/y optimizer penalties with `hypot`. For the
-  current unweighted targets this equals the BPM-frame norm, since BPM rotations
-  preserve the combined norm.
-- Optics acceptance includes tune rows, like the optimizer's least-squares
-  objective. Previously it excluded tune rows.
-  The direction retains the optimizer's knob limits and maximum-step handling.
-- Orbit, optics and tune correction use step_scale=1; coupling retains its
-  configured step scale (0.5 by default). These scales are not halved internally.
-- Optics evaluates full Twiss directly for each candidate. Coupling compares
-  penalties after orbit settling, but before the subsequent tune stage.
-- Orbit/optics/coupling use the existing relative improvement threshold; tune
-  correction uses strict penalty improvement.
-- RMS/max global goals remain direct checks in the correction modules, preserving
-  their strict versus inclusive comparisons and ramp/final tolerances.
-- Ramp rollback includes all knobs changed by preceding stages and orbit guesses.
-  Optimizer diagnostics describe evaluations, whereas correction history contains
-  accepted ramp/refinement points only.
+The RMS/max goals remain in the correction modules, with their strict versus
+inclusive comparisons and ramp/final tolerances unchanged. Only accepted
+ramp/refinement points enter correction history. The optimizer's scalar
+`target_status().penalty` remains available for inspection, but the workflow
+no longer uses it to decide whether to retain a candidate.
 
 ## Explicit Twiss lifetime
 
@@ -383,6 +369,25 @@ Only the outer ramp still halves its increment. This validates the tested
 machine/error realization; it does not establish equivalence for other errors.
 Log and verification: `/tmp/fccee_no_backtracking_s7fp5vnb/run.log` and
 `verification.json` in the same directory. The 003b reference is unchanged.
+
+Moving candidate application and acceptance into the fixed-strength loop,
+and leaving rollback to the ramp/refinement caller except during orbit settling,
+passed all 26 focused tests. The full correction passed all final goals in
+212.5 seconds wall time, below the 250-second cap. History matches the preceding
+run within atol=1e-8, rtol=1e-3, with the same 20 accepted entries and 240 Twiss
+calls (83 orbit-only). Penalty-improvement criteria and the 40-iteration budget
+are unchanged. Log and verification: `/tmp/fccee_inline_acceptance_7f98intj/run.log`
+and `verification.json` in the same directory.
+
+Removing penalty-based acceptance and using five ramp cycles / forty final
+refinement cycles passed the full ramp, refinement, fresh final goal checks
+and saving in 197.4 seconds wall time (previous run: 212.5 seconds). Accepted
+history agrees within atol=1e-8, rtol=1e-3, with the same 20 entries and 240 Twiss
+calls (83 orbit-only). All 30 focused tests pass, including convergence on the
+last allowed cycle, exhaustion of each budget, retention of worsening valid
+steps, tune iteration exhaustion, and local restoration after a settling
+evaluation fails. Log and verification: `/tmp/fccee_goals_only__91z7mem/run.log`
+and `verification.json` in the same directory. The 003b reference is unchanged.
 
 Local comparison output: `/tmp/check_fccee_lstsq.log`; the earlier comparison
 including the rejected 0.0125 trial is `/tmp/check_fccee_lstsq_initial.log`.

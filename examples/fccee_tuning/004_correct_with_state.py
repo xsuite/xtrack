@@ -45,7 +45,8 @@ settings = CorrectionSettings(
     optics_rcond=1e-5,
     orbit_rcond=1e-6,
     coupling_rcond=1e-6,
-    max_iterations=40,
+    ramp_max_iterations=5,
+    final_max_iterations=40,
 )
 
 # %% Construct the correction object

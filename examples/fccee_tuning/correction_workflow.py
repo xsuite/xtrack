@@ -61,7 +61,8 @@ class CorrectionSettings:
     dispersion_weight: float = 1.0
     coupling_orbit_tol: float = 5e-08
     coupling_step: float = 0.5
-    max_iterations: int = 40
+    ramp_max_iterations: int = 5
+    final_max_iterations: int = 40
 
     @property
     def horizontal_dispersion_weight(self):
@@ -186,27 +187,46 @@ class FCCeeCorrection:
         """Return the accepted Twiss and completed iteration count, or raise.
 
         The caller owns rollback of the entire ramp trial. Tune correction is
-        explicit; coupling trials include orbit settling before acceptance.
+        explicit; coupling correction includes orbit settling. Only goals and
+        iteration limits decide success; intermediate errors may increase.
         """
+        if self.final_refinement:
+            max_iterations = self.settings.final_max_iterations
+        else:
+            max_iterations = self.settings.ramp_max_iterations
         self.log_iteration(0, tw)
-        for iteration in range(self.settings.max_iterations):
-            if self.goals_met(tw):
-                return tw, iteration
-
+        if self.goals_met(tw):
+            return tw, 0
+        for iteration in range(1, max_iterations + 1):
             if not self.orbit_goal(tw):
-                tw = self.orbit_step(tw)
+                for opt in (self.optimizers.orbit_x, self.optimizers.orbit_y):
+                    opt.run_lstsq(action_results={self.twiss_action: tw},
+                                  rcond=self.settings.orbit_rcond, tag_outcome=False)
+                tw = self._full_twiss(tw)
             tw = self.correct_tunes(tw)
 
             if not self.optical_goal(tw):
-                tw = self.optics_step(tw)
+                self.optimizers.optics.run_lstsq(
+                    action_results={self.twiss_action: tw},
+                    rcond=self.settings.optics_rcond, tag_outcome=False)
+                tw = self._full_twiss(tw)
             tw = self.correct_tunes(tw)
 
             if not self.coupling_goal(tw):
-                tw = self.coupling_step(tw)
+                tw = self.settle_coupling_orbit(tw)
+                if not self.coupling_goal(tw):
+                    self.optimizers.coupling.run_lstsq(
+                        action_results={self.twiss_action: tw},
+                        rcond=self.settings.coupling_rcond,
+                        step_scale=self.settings.coupling_step, tag_outcome=False)
+                    tw = self.orbit_twiss(tw)
+                    tw = self.settle_coupling_orbit(tw)
             tw = self.correct_tunes(tw)
 
-            self.log_iteration(iteration + 1, tw)
-        raise RuntimeError('Interleaved stage iteration limit')
+            self.log_iteration(iteration, tw)
+            if self.goals_met(tw):
+                return tw, iteration
+        raise RuntimeError(f'Correction goals not met after {max_iterations} iterations')
 
     def log_iteration(self, iteration, tw):
         """Summarize existing Twiss residuals without an extra model evaluation.
@@ -385,22 +405,6 @@ class FCCeeCorrection:
             ip_indices=self.ip_indices, settings=self.settings,
             final_refinement=self.final_refinement)
 
-    def orbit_penalty(self, tw):
-        results = {self.twiss_action: tw}
-        x = self.optimizers.orbit_x.target_status(ret=True, action_results=results)
-        y = self.optimizers.orbit_y.target_status(ret=True, action_results=results)
-        return np.hypot(x.penalty, y.penalty)
-
-    def optical_penalty(self, tw):
-        status = self.optimizers.optics.target_status(
-            ret=True, action_results={self.twiss_action: tw})
-        return status.penalty
-
-    def coupling_penalty(self, tw):
-        status = self.optimizers.coupling.target_status(
-            ret=True, action_results={self.twiss_action: tw})
-        return status.penalty
-
     def correctable_orbit_errors(self, tw):
         return orbit_corr.correctable_orbit_errors(
             tw,
@@ -412,40 +416,7 @@ class FCCeeCorrection:
     def correct_tunes(self, tw):
         return tune_corr.correct(
             tw, optimizer=self.optimizers.tunes, action=self.twiss_action,
-            tolerance=self.settings.tune_tol / 2, full_twiss=self._full_twiss,
-            snapshot=self.snapshot, restore=self.restore)
-
-    def orbit_step(self, tw, fraction=None, only_orbit=False):
-        before = self.snapshot()
-        penalty = self.orbit_penalty(tw)
-        try:
-            for opt in (self.optimizers.orbit_x, self.optimizers.orbit_y):
-                opt.run_lstsq(action_results={self.twiss_action: tw},
-                              rcond=self.settings.orbit_rcond, tag_outcome=False)
-            trial = self.orbit_twiss(tw) if only_orbit else self._full_twiss(tw)
-            if self.orbit_penalty(trial) < penalty * (1 - 1e-6):
-                return trial
-        except self.correction_errors as err:
-            self.restore(before)
-            raise RuntimeError('Orbit step failed') from err
-        self.restore(before)
-        raise RuntimeError('No stable improving orbit step')
-
-    def optics_step(self, tw):
-        before = self.snapshot()
-        penalty = self.optical_penalty(tw)
-        try:
-            self.optimizers.optics.run_lstsq(
-                action_results={self.twiss_action: tw},
-                rcond=self.settings.optics_rcond, tag_outcome=False)
-            trial = self._full_twiss(tw)
-            if self.optical_penalty(trial) < penalty * (1 - 1e-6):
-                return trial
-        except self.correction_errors as err:
-            self.restore(before)
-            raise RuntimeError('Optics step failed') from err
-        self.restore(before)
-        raise RuntimeError('No stable improving optics step')
+            tolerance=self.settings.tune_tol / 2, full_twiss=self._full_twiss)
 
     def settle_coupling_orbit(self, tw):
         # Settle both the baseline and trials so orbit feed-down does not mask
@@ -455,32 +426,19 @@ class FCCeeCorrection:
             rms = [np.sqrt(np.mean(error**2)) for error in errors]
             if max(rms) < self.settings.coupling_orbit_tol:
                 break
+            before = self.snapshot()
             try:
-                tw = self.orbit_step(tw, only_orbit=iteration < 2)
-            except RuntimeError:
+                for opt in (self.optimizers.orbit_x, self.optimizers.orbit_y):
+                    opt.run_lstsq(action_results={self.twiss_action: tw},
+                                  rcond=self.settings.orbit_rcond, tag_outcome=False)
+                trial = self.orbit_twiss(tw) if iteration < 2 else self._full_twiss(tw)
+            except self.correction_errors:
+                # Settling continues from its last accepted orbit; unlike the
+                # main stages, a failed trial does not reject the ramp step.
+                self.restore(before)
                 break
+            tw = trial
         return self.ensure_full_twiss(tw)
-
-    def coupling_step(self, tw):
-        tw = self.settle_coupling_orbit(tw)
-        if self.coupling_goal(tw):
-            return tw
-        before = self.snapshot()
-        penalty = self.coupling_penalty(tw)
-        try:
-            self.optimizers.coupling.run_lstsq(
-                action_results={self.twiss_action: tw},
-                rcond=self.settings.coupling_rcond,
-                step_scale=self.settings.coupling_step, tag_outcome=False)
-            trial = self.orbit_twiss(tw)
-            trial = self.settle_coupling_orbit(trial)
-            if self.coupling_penalty(trial) < penalty * (1 - 1e-6):
-                return trial
-        except self.correction_errors as err:
-            self.restore(before)
-            raise RuntimeError('Coupling step failed') from err
-        self.restore(before)
-        raise RuntimeError('No stable improving coupling step')
 
     def _prepare_reference(self):
         self.env = self.line.env

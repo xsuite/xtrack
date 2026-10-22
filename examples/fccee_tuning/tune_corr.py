@@ -16,28 +16,16 @@ def tune_goal(tw, reference, *, tolerance):
     return bool(np.all(np.abs(metrics['tune_error']) < tolerance))
 
 
-def correct(tw, *, optimizer, action, tolerance, full_twiss, snapshot, restore):
-    """Correct tunes using supplied Twiss and caller-owned evaluation/rollback."""
+def correct(tw, *, optimizer, action, tolerance, full_twiss):
+    """Correct tunes using supplied Twiss; the caller restores on failure."""
     for target in optimizer.targets:
         target.tol = tolerance
     for iteration in range(7):
         status = optimizer.target_status(ret=True, action_results={action: tw})
         if np.all(status.tol_met):
             return tw
-        before = snapshot()
-        try:
-            optimizer.run_lstsq(action_results={action: tw},
-                                rcond=0.0, tag_outcome=False)
-            trial = full_twiss(tw)
-            trial_status = optimizer.target_status(ret=True, action_results={action: trial})
-            if trial_status.penalty < status.penalty:
-                tw = trial
-                continue
-        except (ValueError, RuntimeError, xt.twiss.ClosedOrbitSearchError) as err:
-            restore(before)
-            raise RuntimeError('Tune correction failed') from err
-        restore(before)
-        raise RuntimeError('No improving tune step')
+        optimizer.run_lstsq(action_results={action: tw}, rcond=0.0, tag_outcome=False)
+        tw = full_twiss(tw)
     status = optimizer.target_status(ret=True, action_results={action: tw})
     if np.all(status.tol_met):
         return tw
