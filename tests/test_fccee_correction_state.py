@@ -293,9 +293,9 @@ def test_optics_retry_restores_baseline_and_halves_step(correction, monkeypatch)
         trials.append(knob)
         return {'error': knob**2 - 0.25, 'inactive': 1000.}
 
-    monkeypatch.setattr(correction, 'orbit_twiss', evaluate_trial)
-    monkeypatch.setattr(correction, 'orbit_step', lambda tw: tw)
-    monkeypatch.setattr(correction, 'tune_cleanup', lambda tw: tw)
+    monkeypatch.setattr(correction, '_full_twiss', evaluate_trial)
+    monkeypatch.setattr(correction, 'orbit_step', lambda tw: pytest.fail('Nested orbit correction'))
+    monkeypatch.setattr(correction, 'correct_tunes', lambda tw: pytest.fail('Nested tune correction'))
     result = correction.optics_step(baseline)
     # The inaccurate response overshoots: full and half steps worsen the
     # objective, while a quarter step improves it. Inactive errors are ignored.
@@ -303,6 +303,86 @@ def test_optics_retry_restores_baseline_and_halves_step(correction, monkeypatch)
     assert correction.line['quad'] == pytest.approx(-0.875)
     assert result['error'] == pytest.approx(0.515625)
     assert len(opt.log()) == 1
+
+
+def test_explicit_stage_order_passes_latest_twiss(correction, monkeypatch):
+    calls = []
+    def stage(name):
+        def run(tw):
+            assert tw == len(calls)
+            calls.append(name)
+            return tw + 1
+        return run
+
+    monkeypatch.setattr(correction, 'log_iteration', lambda *args: None)
+    monkeypatch.setattr(correction, 'goals_met', lambda tw: tw == 6)
+    for name in ('orbit_goal', 'optical_goal', 'coupling_goal'):
+        monkeypatch.setattr(correction, name, lambda tw: False)
+    for method, name in [('orbit_step', 'orbit'), ('optics_step', 'optics'),
+                         ('coupling_step', 'coupling'), ('correct_tunes', 'tune')]:
+        monkeypatch.setattr(correction, method, stage(name))
+    assert correction.correct_at_fixed_strengths(0) == (6, 1)
+    assert calls == ['orbit', 'tune', 'optics', 'tune', 'coupling', 'tune']
+    assert correction.correct_at_fixed_strengths(6) == (6, 0)
+    assert len(calls) == 6  # No work at an already accepted point.
+
+
+@pytest.mark.parametrize('twiss_fails', [False, True])
+def test_standalone_tune_correction(correction, monkeypatch, twiss_fails):
+    import xdeps as xd
+
+    action = xt.Action(lambda: pytest.fail('Unexpected optimizer evaluation'))
+    baseline = np.array([12., 3.])
+    opt = xd.Optimize(
+        vary=[xd.Vary(name, correction.line.vars, step=1e-6) for name in ('tune', 'quad')],
+        targets=[action.target(i, value=value, tol=1e-15)
+                 for i, value in enumerate([1., 2.])],
+        action_results={action: baseline}, show_call_counter=False)
+    opt.set_response(np.eye(2))
+    correction.optimizers = SimpleNamespace(tunes=opt)
+    correction.twiss_action = action
+    trials = []
+    def evaluate(tw):
+        values = np.array([float(correction.line[name]) for name in ('tune', 'quad')])
+        trials.append(values)
+        if twiss_fails:
+            raise ValueError('Invalid trial optics')
+        return values
+
+    monkeypatch.setattr(correction, '_full_twiss', evaluate)
+    if twiss_fails:
+        with pytest.raises(RuntimeError, match='Tune correction failed'):
+            correction.correct_tunes(baseline)
+        assert len(trials) == 4
+        np.testing.assert_allclose([correction.line[name] for name in ('tune', 'quad')], baseline)
+    else:
+        result = correction.correct_tunes(baseline)
+        np.testing.assert_allclose(result, [1., 2.])
+        assert len(trials) == 1
+        assert correction.correct_tunes(result) is result
+        assert len(trials) == 1  # Goal check does not run Twiss again.
+    assert len(opt.log()) == 1
+
+
+def test_coupling_orbit_settling_leaves_tunes_to_explicit_stage(correction, monkeypatch):
+    calls = []
+    def orbit(tw, *, max_backtracks, only_orbit):
+        calls.append((tw, max_backtracks, only_orbit))
+        return tw + 1
+
+    monkeypatch.setattr(correction, 'correctable_orbit_errors',
+                        lambda tw: [np.array([1.]), np.array([2.])])
+    monkeypatch.setattr(correction, 'orbit_step', orbit)
+    monkeypatch.setattr(correction, 'ensure_full_twiss', lambda tw: ('full', tw))
+    monkeypatch.setattr(correction, 'correct_tunes', lambda tw: pytest.fail('Nested tune correction'))
+    assert correction.settle_coupling_orbit(0) == ('full', 3)
+    assert calls == [(0, 4, True), (1, 4, True), (2, 4, False)]
+
+    calls.clear()
+    monkeypatch.setattr(correction, 'correctable_orbit_errors',
+                        lambda tw: [np.array([0.]), np.array([0.])])
+    assert correction.settle_coupling_orbit(0) == ('full', 0)
+    assert calls == []
 
 
 def test_module_metrics_match_reference_helpers(correction, monkeypatch):

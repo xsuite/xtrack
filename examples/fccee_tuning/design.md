@@ -20,7 +20,8 @@ minimal and settings, optimizers, accepted state, and history inspectable.
 - `orbit_corr.py`: horizontal and vertical orbit targets and response matrices.
 - `coupling_corr.py`: coupling and vertical-dispersion targets, scales, weights,
   and response construction.
-- `tune_corr.py`: nominal tune targets and the two-knob finite-difference response.
+- `tune_corr.py`: nominal tune targets, the two-knob finite-difference response,
+  metrics and the standalone tune correction stage.
 
 Each correction module exposes `compute_metrics()` for its own quantities:
 orbit RMS in the BPM frame; whole-ring beta RMS/max and horizontal dispersion;
@@ -168,7 +169,7 @@ The new workflow uses `run_lstsq`, not manual direction application.
 ## External retries and acceptance
 
 Capture the baseline, supply its Twiss, and call `run_lstsq(tag_outcome=False)`.
-Compute the new Twiss and run auxiliary corrections, then inspect target data. On rejection,
+Compute the new Twiss, then inspect target data. On rejection,
 restore the entire baseline and call `run_lstsq` again with the original Twiss
 and a smaller step_scale. Recompute the inexpensive linear solve while reusing
 the SVD; no separate public proposal/reapplication object is needed.
@@ -179,21 +180,36 @@ already applied. It is computed during the same target evaluation, without an
 extra action call or log entry. As table metadata, it describes the entire
 evaluation even if the returned table is subsequently filtered.
 
-Keep the iteration budgets, goal checks and correction ordering. In particular:
+The fixed-strength loop runs the explicit sequence **orbit, tune, optics, tune,
+coupling, tune**. Orbit, optics and coupling are skipped when their goals are
+already met; tune correction checks its own tolerance and returns immediately
+when satisfied. The coupling stage includes orbit settling before its baseline
+and each trial, using the correctable-orbit tolerance and up to three orbit
+steps. It promotes orbit-only results to full Twiss before checking coupling.
+No stage calls tune correction internally; tune correction follows each stage
+explicitly. Optics trials no longer include orbit settling.
+
+`tune_corr.correct()` owns the tune correction iterations and backtracking,
+using the optimizer and the workflow's Twiss, snapshot and restore callbacks.
+It retains the half-tune-tolerance goal, seven iterations and four step sizes.
+The optics optimizer also retains its qx/qy targets.
+
+The individual stage acceptance rules are:
 
 - Orbit acceptance combines the x/y optimizer penalties with `hypot`. For the
   current unweighted targets this equals the BPM-frame norm, since BPM rotations
   preserve the combined norm.
 - Optics acceptance includes tune rows, like the optimizer's least-squares
-  objective, after orbit/tune cleanup. Previously it excluded tune rows.
+  objective. Previously it excluded tune rows.
   The initial direction is limited to 0.5 in the
   normalized quadrupole coordinates, followed by ten halving trials.
-- Coupling settles the baseline and each candidate before comparing penalties.
+- Optics evaluates full Twiss directly for each candidate. Coupling compares
+  penalties after orbit settling, but before the subsequent tune stage.
 - Orbit/optics/coupling use the existing relative improvement threshold; tune
-  cleanup uses strict penalty improvement.
+  correction uses strict penalty improvement.
 - RMS/max global goals remain direct checks in the correction modules, preserving
   their strict versus inclusive comparisons and ramp/final tolerances.
-- Rollback includes all knobs changed by auxiliary corrections and orbit guesses.
+- Ramp rollback includes all knobs changed by preceding stages and orbit guesses.
   Optimizer diagnostics describe evaluations, whereas correction history contains
   accepted ramp/refinement points only.
 
@@ -337,6 +353,22 @@ The full run passed all final goals in 233.7 seconds wall time, within the
 run within atol=1e-8, rtol=1e-3, with the same 19 accepted entries and 256 Twiss
 calls (93 orbit-only). Log and verification:
 `/tmp/fccee_status_penalty_29fjkqk3/run.log` and `verification.json` there.
+
+The fully separate orbit/tune/optics/tune/coupling/tune trial hit the 250-second
+cap at an accepted error fraction of 0.243853, with 11 rejected ramp trials.
+Repeated coupling-step failures motivated restoring orbit settling inside the
+coupling stage. Log: `/tmp/fccee_explicit_stages_zmp60_s7/run.log`.
+
+With combined orbit/coupling correction restored and tune correction kept
+explicit, the full ramp, refinement, final goal checks and saving passed in
+215.5 seconds wall time (previous penalty-based workflow: 233.7 seconds).
+There were 20 accepted entries and 240 Twiss calls, including 83 orbit-only
+calls, versus 19 entries and 256 calls previously. The numerical history changes
+with the new ordering; all final goals pass. The 22 focused correction/response
+tests pass, including stage ordering, tune rollback and orbit settling without
+nested tune correction. Log and verification:
+`/tmp/fccee_explicit_tunes_coupled_orbit_fmhwnxdm/run.log` and `verification.json`
+in the same directory. The 003b reference and its shared helpers are unchanged.
 
 Local comparison output: `/tmp/check_fccee_lstsq.log`; the earlier comparison
 including the rejected 0.0125 trial is `/tmp/check_fccee_lstsq_initial.log`.

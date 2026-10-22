@@ -185,28 +185,26 @@ class FCCeeCorrection:
     def correct_at_fixed_strengths(self, tw):
         """Return the accepted Twiss and completed iteration count, or raise.
 
-        The caller owns rollback of the entire ramp trial. Each numerical step
-        retains 003b's own backtracking and orbit/tune settling procedure.
+        The caller owns rollback of the entire ramp trial. Tune correction is
+        explicit; coupling trials include orbit settling before acceptance.
         """
         self.log_iteration(0, tw)
         for iteration in range(self.settings.max_iterations):
-            orbit_ok = self.orbit_goal(tw)
-            optics_ok = self.optical_goal(tw)
-            coupling_ok = self.coupling_goal(tw)
-            if orbit_ok and optics_ok and coupling_ok:
+            if self.goals_met(tw):
                 return tw, iteration
-            if not orbit_ok or not optics_ok:
-                try:
-                    candidate = self.orbit_step(tw)
-                except RuntimeError:
-                    if not orbit_ok:
-                        raise
-                else:
-                    tw = self.tune_cleanup(candidate)
-            if not self.coupling_goal(tw):
-                tw = self.coupling_step(tw)
+
+            if not self.orbit_goal(tw):
+                tw = self.orbit_step(tw)
+            tw = self.correct_tunes(tw)
+
             if not self.optical_goal(tw):
                 tw = self.optics_step(tw)
+            tw = self.correct_tunes(tw)
+
+            if not self.coupling_goal(tw):
+                tw = self.coupling_step(tw)
+            tw = self.correct_tunes(tw)
+
             self.log_iteration(iteration + 1, tw)
         raise RuntimeError('Interleaved stage iteration limit')
 
@@ -411,37 +409,11 @@ class FCCeeCorrection:
             rcond=self.settings.orbit_rcond,
         )
 
-    def tune_cleanup(self, tw):
-        opt = self.optimizers.tunes
-        for target in opt.targets:
-            target.tol = self.settings.tune_tol / 2
-        tw = self.ensure_full_twiss(tw)
-        for iteration in range(7):
-            status = opt.target_status(ret=True, action_results={self.twiss_action: tw})
-            if np.all(status.tol_met):
-                return tw
-            before = self.snapshot()
-            for backtrack in range(4):
-                self.restore(before)
-                opt.run_lstsq(action_results={self.twiss_action: tw},
-                              rcond=0.0, step_scale=0.5**backtrack,
-                              tag_outcome=False)
-                try:
-                    trial = self._full_twiss(tw)
-                except (ValueError, xt.twiss.ClosedOrbitSearchError):
-                    continue
-                trial_status = opt.target_status(
-                    ret=True, action_results={self.twiss_action: trial})
-                if trial_status.penalty < status.penalty:
-                    tw = trial
-                    break
-            else:
-                self.restore(before)
-                raise RuntimeError('Tune cleanup failed with the fixed nominal response')
-        status = opt.target_status(ret=True, action_results={self.twiss_action: tw})
-        if np.all(status.tol_met):
-            return tw
-        raise RuntimeError('Tune cleanup iteration limit')
+    def correct_tunes(self, tw):
+        return tune_corr.correct(
+            tw, optimizer=self.optimizers.tunes, action=self.twiss_action,
+            tolerance=self.settings.tune_tol / 2, full_twiss=self._full_twiss,
+            snapshot=self.snapshot, restore=self.restore)
 
     def orbit_step(self, tw, fraction=None, max_backtracks=13, only_orbit=False):
         before = self.snapshot()
@@ -471,12 +443,7 @@ class FCCeeCorrection:
                 rcond=self.settings.optics_rcond, step_scale=0.5**backtrack,
                 tag_outcome=False)
             try:
-                trial = self.orbit_twiss(tw)
-                try:
-                    trial = self.orbit_step(trial)
-                except RuntimeError:
-                    pass
-                trial = self.tune_cleanup(trial)
+                trial = self._full_twiss(tw)
             except (ValueError, RuntimeError):
                 continue
             if self.optical_penalty(trial) < penalty * (1 - 1e-6):
@@ -485,14 +452,18 @@ class FCCeeCorrection:
         raise RuntimeError('No stable improving joint step')
 
     def settle_coupling_orbit(self, tw):
-        return steps.settle_coupling_orbit(
-            tw,
-            line=self.line,
-            correctable_orbit_errors=self.correctable_orbit_errors,
-            coupling_orbit_tol=self.settings.coupling_orbit_tol,
-            orbit_step=self.orbit_step,
-            tune_cleanup=self.tune_cleanup,
-        )
+        # Settle both the baseline and trials so orbit feed-down does not mask
+        # the effect of the skew correction. Tune correction remains explicit.
+        for iteration in range(3):
+            errors = self.correctable_orbit_errors(tw)
+            rms = [np.sqrt(np.mean(error**2)) for error in errors]
+            if max(rms) < self.settings.coupling_orbit_tol:
+                break
+            try:
+                tw = self.orbit_step(tw, max_backtracks=4, only_orbit=iteration < 2)
+            except RuntimeError:
+                break
+        return self.ensure_full_twiss(tw)
 
     def coupling_step(self, tw):
         tw = self.settle_coupling_orbit(tw)

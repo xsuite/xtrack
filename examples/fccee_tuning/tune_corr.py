@@ -1,4 +1,4 @@
-"""Build the tune optimizer and its two-knob finite-difference response."""
+"""Tune targets, response, metrics and standalone correction stage."""
 
 import numpy as np
 import xtrack as xt
@@ -14,6 +14,37 @@ def compute_metrics(tw, reference):
 def tune_goal(tw, reference, *, tolerance):
     metrics = compute_metrics(tw, reference)
     return bool(np.all(np.abs(metrics['tune_error']) < tolerance))
+
+
+def correct(tw, *, optimizer, action, tolerance, full_twiss, snapshot, restore):
+    """Correct tunes using supplied Twiss and caller-owned evaluation/rollback."""
+    for target in optimizer.targets:
+        target.tol = tolerance
+    for iteration in range(7):
+        status = optimizer.target_status(ret=True, action_results={action: tw})
+        if np.all(status.tol_met):
+            return tw
+        before = snapshot()
+        for backtrack in range(4):
+            restore(before)
+            optimizer.run_lstsq(action_results={action: tw},
+                                rcond=0.0, step_scale=0.5**backtrack,
+                                tag_outcome=False)
+            try:
+                trial = full_twiss(tw)
+            except (ValueError, xt.twiss.ClosedOrbitSearchError):
+                continue
+            trial_status = optimizer.target_status(ret=True, action_results={action: trial})
+            if trial_status.penalty < status.penalty:
+                tw = trial
+                break
+        else:
+            restore(before)
+            raise RuntimeError('Tune correction failed with the fixed nominal response')
+    status = optimizer.target_status(ret=True, action_results={action: tw})
+    if np.all(status.tol_met):
+        return tw
+    raise RuntimeError('Tune correction iteration limit')
 
 
 def build_optimizer(line, reference, action, *, tune_tol, full_twiss):
