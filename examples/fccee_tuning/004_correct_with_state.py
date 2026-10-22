@@ -90,12 +90,11 @@ if not correction_failed:
         try:
             tw = correction.twiss()
             tw, iterations = correction.correct_at_fixed_strengths(tw)
+            correction.record(tw, iterations=iterations)
         except correction.correction_errors as err:
             correction.restore(before)
             correction_failed = True
             log(f'Refinement failed: {err}')
-        else:
-            correction.record(tw, iterations=iterations)
 
 # %% Save the accepted machine for independent analysis
 completed = not correction_failed and abs(correction.error_fraction - 1.0) < 1e-12
