@@ -25,12 +25,12 @@ def log(*args, **kwargs):
 HERE = Path(__file__).resolve().parent
 INPUT = HERE / 'fccee_z_lcc_correction_knobs.json'
 OUTPUT_DIR = HERE / 'response_api_class'
-STOP_AT = 1.0
+TARGET_ERROR_FRACTION = 1.0
 INITIAL_INCREMENT = 0.0125
 MIN_INCREMENT = 1e-5
 MAX_INCREMENT = 0.10
-if not 0 < STOP_AT <= 1:
-    raise ValueError('STOP_AT must be in (0, 1]')
+if not 0 < TARGET_ERROR_FRACTION <= 1:
+    raise ValueError('TARGET_ERROR_FRACTION must be in (0, 1]')
 
 # All correction settings are inspectable on correction.settings. These are
 # the main goals and solve cutoffs; the remaining defaults match 003b.
@@ -53,8 +53,10 @@ correction = FCCeeCorrection(line, settings=settings, log=log)
 # %% Ramp the errors and nonlinear strengths
 correction_failed = False
 increment = INITIAL_INCREMENT
-while correction.error_fraction < STOP_AT - 1e-12:
-    next_error_fraction = min(correction.error_fraction + increment, STOP_AT)
+while correction.error_fraction < TARGET_ERROR_FRACTION - 1e-12:
+    next_error_fraction = correction.error_fraction + increment
+    if next_error_fraction > TARGET_ERROR_FRACTION:
+        next_error_fraction = TARGET_ERROR_FRACTION
     before = correction.snapshot()
     log(f'Ramp: error fraction {next_error_fraction:g}')
 
@@ -75,10 +77,12 @@ while correction.error_fraction < STOP_AT - 1e-12:
 
     correction.record(tw, iterations=iterations)
     if iterations <= 3:
-        increment = min(1.25 * increment, MAX_INCREMENT)
+        increment *= 1.25
+        if increment > MAX_INCREMENT:
+            increment = MAX_INCREMENT
 
-# %% Refine the full-strength machine with the tighter final goals
-if not correction_failed and abs(correction.error_fraction - 1.0) < 1e-12:
+# %% Refine at the target error fraction with the tighter final goals
+if not correction_failed:
     correction.final_refinement = True
     log('Final refinement')
     if not correction.goals_met(correction.accepted_twiss):
