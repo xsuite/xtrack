@@ -161,22 +161,8 @@ if placements:
     line.insert(placements)
 print('Added',len(added_correctors),'H/V correctors to complete the quadrupole layout')
 line.configure_radiation(model=None)
-line.configure_drift_model(model='exact')
 line.twiss_default.update(method='4d', delta0=0.)
-# Same tracking models as the preparation step used by the original 005.
-for name in dict.fromkeys(line.element_names):
-    element = line.get(name)
-    if isinstance(element, (xt.Bend, xt.RBend)):
-        element.model = 'rot-kick-rot'
-        element.edge_entry_model = element.edge_exit_model = 'full'
-    elif isinstance(element, (xt.Quadrupole, xt.Sextupole, xt.Octupole,
-                              xt.Multipole, xt.Cavity)):
-        element.model = 'drift-kick-drift-exact'
-    else:
-        continue
-    element.integrator = 'yoshida-6'
-    if hasattr(element, 'num_multipole_kicks'):
-        element.num_multipole_kicks = max(element.num_multipole_kicks, 21)
+# Keep the input lattice's tracking models and integration settings.
 
 monitor_names = list(get_bpm_alignment(env))
 corrector_names = [[n for n in line.element_names if n.startswith(prefix)]

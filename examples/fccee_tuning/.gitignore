@@ -12,3 +12,4 @@ __pycache__/
 analysis/
 fccee_z_lcc_before_dispersion.json
 response_api/
+fccee_z_lcc_correction_knobs.json

@@ -17,6 +17,9 @@ SEED = 12345
 
 env = xt.load(INPUT)
 line = env.fccee_p_ring
+# Keep the input lattice's tracking models and integration settings.
+line.configure_radiation(model=None)
+line.twiss_default.update(method='4d', delta0=0.0)
 install_errors(line, seed=SEED)
 env.to_json(OUTPUT)
 print(f'Saved {OUTPUT}')
