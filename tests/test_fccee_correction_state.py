@@ -264,8 +264,45 @@ def test_optics_targets_use_relative_beta_and_physical_alpha(correction, monkeyp
     correction.optimizers = SimpleNamespace(optics=opt)
     correction.twiss_action = action
     correction.optics_weights = target_weights
-    assert correction.optical_cost(trial) == pytest.approx(
-        np.linalg.norm((weights * relative_residuals)[:-2]))
+    assert correction.optical_penalty(trial) == pytest.approx(
+        np.linalg.norm(weights * relative_residuals))
+
+
+def test_optics_retry_restores_baseline_and_halves_step(correction, monkeypatch):
+    import xdeps as xd
+
+    correction.line['quad'] = 1.
+    def no_tracking():
+        raise AssertionError('Optimizer must use supplied results')
+
+    action = xt.Action(no_tracking)
+    baseline = {'error': 0.75, 'inactive': 0.}
+    opt = xd.Optimize(
+        vary=[xd.Vary('quad', correction.line.vars, step=1e-6)],
+        targets=[action.target('error', value=0., tol=1e-12, weight=2.),
+                 action.target('inactive', value=0., tol=1e-12)],
+        action_results={action: baseline}, show_call_counter=False)
+    opt.targets[1].active = False
+    opt.set_response(np.array([[0.1], [0.]]))
+    correction.optimizers = SimpleNamespace(optics=opt)
+    correction.twiss_action = action
+    trials = []
+
+    def evaluate_trial(tw):
+        knob = float(correction.line['quad'])
+        trials.append(knob)
+        return {'error': knob**2 - 0.25, 'inactive': 1000.}
+
+    monkeypatch.setattr(correction, 'orbit_twiss', evaluate_trial)
+    monkeypatch.setattr(correction, 'orbit_step', lambda tw: tw)
+    monkeypatch.setattr(correction, 'tune_cleanup', lambda tw: tw)
+    result = correction.optics_step(baseline)
+    # The inaccurate response overshoots: full and half steps worsen the
+    # objective, while a quarter step improves it. Inactive errors are ignored.
+    np.testing.assert_allclose(trials, [-6.5, -2.75, -0.875])
+    assert correction.line['quad'] == pytest.approx(-0.875)
+    assert result['error'] == pytest.approx(0.515625)
+    assert len(opt.log()) == 1
 
 
 def test_module_metrics_match_reference_helpers(correction, monkeypatch):

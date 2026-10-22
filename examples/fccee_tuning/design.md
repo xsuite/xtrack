@@ -173,19 +173,26 @@ restore the entire baseline and call `run_lstsq` again with the original Twiss
 and a smaller step_scale. Recompute the inexpensive linear solve while reusing
 the SVD; no separate public proposal/reapplication object is needed.
 
-Preserve the current numerical acceptance decisions, iteration budgets, and
-ordering. In particular:
+Use the scalar `target_status(...).penalty` for inner-trial acceptance. This is
+the optimizer's weighted residual norm, with transformations and active masks
+already applied. It is computed during the same target evaluation, without an
+extra action call or log entry. As table metadata, it describes the entire
+evaluation even if the returned table is subsequently filtered.
 
-- Orbit directions use laboratory residuals; acceptance uses the BPM-frame orbit.
-- Optics directions include tunes, but the acceptance cost excludes tune rows
-  after orbit/tune cleanup. The initial direction is limited to 0.5 in the
+Keep the iteration budgets, goal checks and correction ordering. In particular:
+
+- Orbit acceptance combines the x/y optimizer penalties with `hypot`. For the
+  current unweighted targets this equals the BPM-frame norm, since BPM rotations
+  preserve the combined norm.
+- Optics acceptance includes tune rows, like the optimizer's least-squares
+  objective, after orbit/tune cleanup. Previously it excluded tune rows.
+  The initial direction is limited to 0.5 in the
   normalized quadrupole coordinates, followed by ten halving trials.
-- Coupling settles the baseline and each candidate before comparing cost.
+- Coupling settles the baseline and each candidate before comparing penalties.
 - Orbit/optics/coupling use the existing relative improvement threshold; tune
-  cleanup uses strict norm improvement.
-- RMS/max global goals are not replaced by per-response-row tolerances. Express
-  aggregate goals as targets where useful, while preserving their strict versus
-  inclusive comparisons and ramp/final tolerances.
+  cleanup uses strict penalty improvement.
+- RMS/max global goals remain direct checks in the correction modules, preserving
+  their strict versus inclusive comparisons and ramp/final tolerances.
 - Rollback includes all knobs changed by auxiliary corrections and orbit guesses.
   Optimizer diagnostics describe evaluations, whereas correction history contains
   accepted ramp/refinement points only.
@@ -319,6 +326,17 @@ passed, with 19 accepted entries and 256 Twiss calls (93 orbit-only). Saved
 history agrees with the preceding shared-BPM/IP run within atol=1e-8, rtol=1e-3.
 Log and verification: `/tmp/fccee_module_metrics_t28ffb3m/run.log` and
 `verification.json` in the same directory. The 003b reference is unchanged.
+
+Using `target_status().penalty` for inner-trial acceptance passed 32 xdeps
+optimizer/action/response tests and 18 xtrack correction/response tests. These
+include weighted, transformed, logarithmic and inactive targets, no extra model
+evaluation or log entry, and an external retry that restores the baseline and
+halves an overshooting step twice before accepting it.
+The full run passed all final goals in 233.7 seconds wall time, within the
+250-second cap (previous run: 211.5 seconds). History agrees with the preceding
+run within atol=1e-8, rtol=1e-3, with the same 19 accepted entries and 256 Twiss
+calls (93 orbit-only). Log and verification:
+`/tmp/fccee_status_penalty_29fjkqk3/run.log` and `verification.json` there.
 
 Local comparison output: `/tmp/check_fccee_lstsq.log`; the earlier comparison
 including the rejected 0.0125 trial is `/tmp/check_fccee_lstsq_initial.log`.

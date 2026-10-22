@@ -387,13 +387,21 @@ class FCCeeCorrection:
             ip_indices=self.ip_indices, settings=self.settings,
             final_refinement=self.final_refinement)
 
-    def optical_cost(self, tw):
-        return np.linalg.norm((self.optics_weights * self.optics_vector(tw))[:-2])
+    def orbit_penalty(self, tw):
+        results = {self.twiss_action: tw}
+        x = self.optimizers.orbit_x.target_status(ret=True, action_results=results)
+        y = self.optimizers.orbit_y.target_status(ret=True, action_results=results)
+        return np.hypot(x.penalty, y.penalty)
 
-    def coupling_cost(self, tw):
+    def optical_penalty(self, tw):
+        status = self.optimizers.optics.target_status(
+            ret=True, action_results={self.twiss_action: tw})
+        return status.penalty
+
+    def coupling_penalty(self, tw):
         status = self.optimizers.coupling.target_status(
             ret=True, action_results={self.twiss_action: tw})
-        return np.linalg.norm(self.coupling_weights * status.residue)
+        return status.penalty
 
     def correctable_orbit_errors(self, tw):
         return orbit_corr.correctable_orbit_errors(
@@ -424,7 +432,7 @@ class FCCeeCorrection:
                     continue
                 trial_status = opt.target_status(
                     ret=True, action_results={self.twiss_action: trial})
-                if np.linalg.norm(trial_status.residue) < np.linalg.norm(status.residue):
+                if trial_status.penalty < status.penalty:
                     tw = trial
                     break
             else:
@@ -437,7 +445,7 @@ class FCCeeCorrection:
 
     def orbit_step(self, tw, fraction=None, max_backtracks=13, only_orbit=False):
         before = self.snapshot()
-        cost = np.linalg.norm(np.concatenate(self.orbit_errors(tw)))
+        penalty = self.orbit_penalty(tw)
         for backtrack in range(max_backtracks):
             self.restore(before)
             for opt in (self.optimizers.orbit_x, self.optimizers.orbit_y):
@@ -448,14 +456,14 @@ class FCCeeCorrection:
                 trial = self.orbit_twiss(tw) if only_orbit else self._full_twiss(tw)
             except (ValueError, xt.twiss.ClosedOrbitSearchError):
                 continue
-            if np.linalg.norm(np.concatenate(self.orbit_errors(trial))) < cost * (1 - 1e-6):
+            if self.orbit_penalty(trial) < penalty * (1 - 1e-6):
                 return trial
         self.restore(before)
         raise RuntimeError('No stable improving orbit step')
 
     def optics_step(self, tw):
         before = self.snapshot()
-        cost = self.optical_cost(tw)
+        penalty = self.optical_penalty(tw)
         for backtrack in range(10):
             self.restore(before)
             self.optimizers.optics.run_lstsq(
@@ -471,7 +479,7 @@ class FCCeeCorrection:
                 trial = self.tune_cleanup(trial)
             except (ValueError, RuntimeError):
                 continue
-            if self.optical_cost(trial) < cost * (1 - 1e-6):
+            if self.optical_penalty(trial) < penalty * (1 - 1e-6):
                 return trial
         self.restore(before)
         raise RuntimeError('No stable improving joint step')
@@ -491,7 +499,7 @@ class FCCeeCorrection:
         if self.coupling_goal(tw):
             return tw
         before = self.snapshot()
-        cost = self.coupling_cost(tw)
+        penalty = self.coupling_penalty(tw)
         for backtrack in range(10):
             self.restore(before)
             self.optimizers.coupling.run_lstsq(
@@ -504,7 +512,7 @@ class FCCeeCorrection:
                 trial = self.settle_coupling_orbit(trial)
             except self.correction_errors:
                 continue
-            if self.coupling_cost(trial) < cost * (1 - 1e-6):
+            if self.coupling_penalty(trial) < penalty * (1 - 1e-6):
                 return trial
         self.restore(before)
         raise RuntimeError('No stable improving coupling step')
