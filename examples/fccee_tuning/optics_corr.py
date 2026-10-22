@@ -1,15 +1,9 @@
 """Build the normal-optics/horizontal-dispersion optimizer and its response."""
 
-from functools import partial
-
 import numpy as np
 import xtrack as xt
 
 import correction_setup as setup
-
-
-def _normalized_alpha(tw, *, plane, at, beta_ref):
-    return tw['alf' + plane, at] * beta_ref / tw['bet' + plane, at]
 
 
 def build_optimizer(line, reference, action, *, beta_at, alpha_at, dispersion_at,
@@ -35,17 +29,26 @@ def build_optimizer(line, reference, action, *, beta_at, alpha_at, dispersion_at
     targets = (
         [xt.Target('bet' + p, at=name, value=reference['bet' + p, name], action=action)
          for p in 'xy' for name in beta_at]
-        + [xt.Target(
-            partial(_normalized_alpha, plane=p, at=name, beta_ref=reference['bet' + p, name]),
-            value=reference['alf' + p, name], action=action)
+        + [xt.Target('alf' + p, at=name, value=reference['alf' + p, name], action=action)
            for p in 'xy' for name in alpha_at]
         + [xt.Target('dx', at=name, value=reference['dx', name], action=action)
            for name in dispersion_at]
         + [xt.Target(q, value=reference[q], action=action) for q in ('qx', 'qy')]
     )
+    n_beta = 2 * len(beta_at)
+    # At the reference, d(alpha) = d(alpha * beta_ref / beta)
+    #                            + alpha_ref * d(log(beta)).
+    # Alpha observation locations are included in the beta observations.
+    beta_rows = {name: i for i, name in enumerate(beta_at)}
+    for plane_index, plane in enumerate('xy'):
+        for i, name in enumerate(alpha_at):
+            alpha_row = n_beta + plane_index * len(alpha_at) + i
+            beta_row = plane_index * len(beta_at) + beta_rows[name]
+            response[alpha_row] += reference['alf' + plane, name] * response[beta_row]
+    labels[n_beta:n_beta + 2 * len(alpha_at)] = [
+        f'alf{p}@{name}' for p in 'xy' for name in alpha_at]
     # Targets expose physical beta values. Convert the nominal relative-beta
     # response to d(beta)/d(knob), and normalize the cost by beta_ref.
-    n_beta = 2 * len(beta_at)
     beta_ref = np.array([target.value for target in targets[:n_beta]])
     response[:n_beta] *= beta_ref[:, None]
     weights[:n_beta] /= beta_ref

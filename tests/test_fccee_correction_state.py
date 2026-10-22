@@ -160,7 +160,7 @@ def test_aggregate_goal_targets_preserve_thresholds(correction):
     assert correction.coupling_goal(None)  # Settings remain live.
 
 
-def test_optics_targets_preserve_relative_beta_objective(correction, monkeypatch):
+def test_optics_targets_use_relative_beta_and_physical_alpha(correction, monkeypatch):
     import xdeps as xd
 
     module = importlib.import_module('optics_corr')
@@ -193,15 +193,27 @@ def test_optics_targets_preserve_relative_beta_objective(correction, monkeypatch
     supplied = {action: trial}
     status = opt.target_status(ret=True, action_results=supplied)
     # Physical values in status; normalized relative-beta objective in the solve.
-    np.testing.assert_allclose(status.current_val, [12., 16., 1.25, -1.25, 0.15, 0.32, 0.29])
+    np.testing.assert_allclose(status.current_val, [12., 16., 1.5, -1., 0.15, 0.32, 0.29])
     np.testing.assert_allclose(status.target_val, [10., 20., 1., -2., 0.1, 0.31, 0.32])
-    relative_residuals = np.array([0.2, -0.2, 0.25, 0.75, 0.05, 0.01, -0.03])
+    relative_residuals = np.array([0.2, -0.2, 0.5, 1., 0.05, 0.01, -0.03])
     target_weights = np.array([target.weight for target in opt.targets])
     np.testing.assert_allclose(target_weights * status.residue, weights * relative_residuals)
+    # Recover alpha from a model linear in relative beta and normalized alpha,
+    # then finite-difference the physical observable to check the row conversion.
+    def model(knobs):
+        changes = response @ knobs
+        changes[2:4] = (np.array([1., -2.]) + changes[2:4]) * (1 + changes[:2])
+        return changes
+
+    probe = 1e-6 * np.eye(2)
+    physical_response = np.column_stack([
+        (model(direction) - model(-direction)) / (2e-6) for direction in probe])
     np.testing.assert_allclose(
-        target_weights[:, None] * opt.response.matrix, weights[:, None] * response)
+        target_weights[:, None] * opt.response.matrix, weights[:, None] * physical_response,
+        atol=1e-8)
     expected = scales * np.linalg.lstsq(
-        weights[:, None] * response * scales, -weights * relative_residuals, rcond=1e-12)[0]
+        weights[:, None] * physical_response * scales,
+        -weights * relative_residuals, rcond=1e-12)[0]
     np.testing.assert_allclose(opt.get_correction(action_results=supplied, rcond=1e-12), expected)
     correction.optimizers = SimpleNamespace(optics=opt)
     correction.twiss_action = action

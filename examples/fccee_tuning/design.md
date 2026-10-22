@@ -38,9 +38,13 @@ by beta_ref and divide their target weights by beta_ref; scale their tolerances
 by beta_ref as well. This preserves the weighted linear system and acceptance
 cost of the relative-beta objective.
 
-Dispersion and tunes also use ordinary parameter/at targets. Normalized alpha
-uses a named helper with bound plane, location, and reference beta, and targets
-the reference alpha. No lambdas remain in optics optimizer setup. The workflow's
+Alpha, dispersion, and tunes also use ordinary parameter/at targets. Alpha now
+targets `alpha_ref` directly, without the `beta_ref / beta` factor. Convert the
+shared helper's nominal normalized-alpha response using
+`d(alpha) = d(alpha * beta_ref / beta) + alpha_ref * d(log(beta))` at the reference.
+All alpha observation locations occur among the beta observations, so their
+existing beta rows provide the additional derivatives. Alpha weights are unchanged.
+No callable targets remain in optics optimizer setup. The workflow's
 `optics_vector` returns the optimizer's unweighted physical target residuals;
 `optics_weights` supplies the matching weights. Other settings are unchanged;
 the shared 003b helpers retain their logarithmic convention.
@@ -204,6 +208,14 @@ accepted fractions as the relative-beta run. History agrees within atol=1e-8,
 rtol=1e-3. The 12 focused tests include an independent check of the weighted
 linear system, correction, and acceptance cost. Log and verification:
 `/tmp/fccee_physical_targets_7bvco2p8/run.log` and `verification.json` there.
+
+Dropping alpha normalization, with the corresponding response conversion, passed
+all final goals in a 220.0-second full run. A central-difference tracking probe
+checked the physical-alpha response to 9.1e-6 relative error. The 260 Twiss calls
+include those two additional validation probes; refinement took three iterations.
+The 12 focused tests pass, including finite-difference validation of the alpha
+row conversion. Log and verification:
+`/tmp/fccee_plain_alpha_v19jmngm/run.log` and `verification.json` there.
 
 Local comparison output: `/tmp/check_fccee_lstsq.log`; the earlier comparison
 including the rejected 0.0125 trial is `/tmp/check_fccee_lstsq_initial.log`.
