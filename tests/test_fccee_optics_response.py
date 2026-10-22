@@ -1,6 +1,7 @@
 """Analytical response assembly from actual targets and compound knobs."""
 from pathlib import Path
 import importlib
+from types import SimpleNamespace
 
 import numpy as np
 import pytest
@@ -114,3 +115,30 @@ def test_optics_response_with_only_tunes(optics_problem):
     np.testing.assert_allclose(
         module.build_normal_quad_optics_response_matrix(tunes, reference),
         response[[1, 5]], rtol=1e-13)
+
+
+def test_optics_targets_are_built_per_location(optics_problem):
+    module, line, reference, opt, keys = optics_problem
+    settings = SimpleNamespace(alpha_weight=0.1, ir_beta_weight=5., ir_half_length=0.1,
+                               horizontal_dispersion_weight=30.,
+                               horizontal_dispersion_ip_weight=50.)
+    built = module.build_optimizer(
+        line, reference, opt.targets[0].action, knobs=['trim', 'family'],
+        observation_names=['qf1', 'qd6'], interaction_points=['qf1'],
+        ip_names=['qd6'], settings=settings)
+    expected_keys = [
+        ('betx', 'qf1'), ('bety', 'qf1'), ('alfx', 'qf1'), ('alfy', 'qf1'), ('dx', 'qf1'),
+        ('betx', 'qd6'), ('bety', 'qd6'), ('alfx', 'qd6'), ('alfy', 'qd6'), ('dx', 'qd6'),
+        'qx', 'qy',
+    ]
+    assert [target.tar for target in built.targets] == expected_keys
+    expected_weights = np.r_[np.array([5., 5., .1, .1, 30., 1., 1., .1, .1, 1500.])
+                             / np.sqrt(2), 1000., 1000.]
+    for target, key, weight in zip(built.targets, expected_keys, expected_weights):
+        assert target.value == reference[key]
+        if isinstance(key, tuple) and key[0] in ('betx', 'bety'):
+            assert target.weight == pytest.approx(weight / reference[key])
+            assert target.tol == pytest.approx(1e-15 * reference[key], rel=1e-14, abs=0)
+        else:
+            assert target.weight == pytest.approx(weight)
+            assert target.tol == 1e-15

@@ -598,15 +598,14 @@ class FCCeeCorrection:
             self.line, full_twiss=self._full_twiss, log=_silent_log
         )
         self.interaction_points = list(self.line.get_table().rows['ip.*'].name)
-        self.obs_names, self.alpha_names = setup.optics_observation_names(
-            self.reference, self.quad_names, self.interaction_points, phase_step=1 / 16
-        )
+        self.ip_names = ['ipa', 'ipd', 'ipg', 'ipj']
+        self.obs_names = list(dict.fromkeys(self.monitor_names + self.ip_names))
+        self.alpha_names = self.obs_names
+        self.dispersion_names = self.obs_names
         self.obs_indices = self.reference.rows.indices[self.obs_names]
         self.alpha_indices = self.reference.rows.indices[self.alpha_names]
         self.monitor_indices = self.reference.rows.indices[self.monitor_names]
-        self.ip_names = ['ipa', 'ipd', 'ipg', 'ipj']
         self.ip_indices = self.reference.rows.indices[self.ip_names]
-        self.dispersion_names = list(dict.fromkeys(self.monitor_names + self.ip_names))
         self.dispersion_indices = self.reference.rows.indices[self.dispersion_names]
         self._set_values(self.orbit_knobs, np.zeros(len(self.orbit_knobs)))
         self.line['on_errors'] = 0.0
@@ -619,8 +618,7 @@ class FCCeeCorrection:
         self.optimizers.optics = optics_corr.build_optimizer(
             self.line, self.reference, self.twiss_action,
             knobs=self.quad_knobs,
-            beta_at=self.obs_names, alpha_at=self.alpha_names,
-            dispersion_at=self.dispersion_names,
+            observation_names=self.obs_names,
             interaction_points=self.interaction_points, ip_names=self.ip_names,
             settings=self.settings,
         )

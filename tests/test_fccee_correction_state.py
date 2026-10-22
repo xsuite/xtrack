@@ -195,8 +195,7 @@ def test_optics_targets_use_relative_beta_and_physical_alpha(correction, monkeyp
     action = xt.Action(no_tracking)
     opt = module.build_optimizer(
         correction.line, reference, action, knobs=['quad', 'skew'],
-        beta_at=['bpm'], alpha_at=['bpm'],
-        dispersion_at=['bpm'], interaction_points=['bpm'], ip_names=['bpm'],
+        observation_names=['bpm'], interaction_points=['bpm'], ip_names=['bpm'],
         settings=correction.settings)
     supplied = {action: trial}
     status = opt.target_status(ret=True, action_results=supplied)

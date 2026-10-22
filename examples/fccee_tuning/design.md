@@ -31,6 +31,13 @@ The existing `correction.optimizers` and inspection attributes remain available.
 
 ## Relative beta objective
 
+Beta, alpha and horizontal dispersion use one observation list: BPMs plus the
+four main IPs. The optics builder takes this list as `observation_names` and
+constructs all five local targets in one loop, assigning each target's value,
+weight, tolerance and tag immediately. Tune targets follow the local targets.
+The workflow still evaluates global beta RMS/max goals across the full Twiss
+table, including locations outside the fit observations.
+
 The beta objective is relative beating, `beta / beta_ref - 1`, rather than
 `ln(beta / beta_ref)`. Ordinary `xt.Target` definitions expose physical beta
 values with their reference values. Multiply nominal relative-beta response rows
@@ -197,6 +204,14 @@ was possible; small state tests are not a full-machine physics validation.
 
 ### Implementation checks (2026-10-22)
 
+- Using BPMs plus the four main IPs for all optics quantities passed the full
+  ramp, final refinement and fresh final Twiss goal check in 222.2 s wall time
+  (250 s limit). The common list has 2643 locations and produces 13217 targets.
+  All IP weights are retained. Final whole-ring beta RMS x/y was 0.72%/0.91%,
+  with maxima 5.32%/25.97%; IP Dx/Dy errors were 88.9/10.3 um, below their
+  100/20 um limits. All other final goals passed. The 15 focused tests pass,
+  including per-location target order, weights and tolerances. Artifacts:
+  `/tmp/fccee_bpm_ip_zvymp8lm/{run.log,verification.json,timing.json}`.
 - Removing the horizontal-dispersion IP weight as well passed the 14 focused
   tests, but the full run hit its 250 s wall-time limit during final refinement.
   The ramp reached full error strength at 193.7 s after two rejected large steps.

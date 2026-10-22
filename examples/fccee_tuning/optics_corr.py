@@ -6,44 +6,63 @@ import xtrack as xt
 from response_builders import normal_quadrupole_response
 
 
-def build_optimizer(line, reference, action, *, knobs, beta_at, alpha_at, dispersion_at,
+def build_optimizer(line, reference, action, *, knobs, observation_names,
                     interaction_points, ip_names, settings):
     """Return an optimizer with weighted targets and a fixed nominal response.
 
     Construction uses the supplied reference table without running Twiss.
     The caller owns subsequent evaluations and trial acceptance.
     """
-    targets = (
-        [xt.Target('bet' + p, at=name, value=reference['bet' + p, name], action=action)
-         for p in 'xy' for name in beta_at]
-        + [xt.Target('alf' + p, at=name, value=reference['alf' + p, name], action=action)
-           for p in 'xy' for name in alpha_at]
-        + [xt.Target('dx', at=name, value=reference['dx', name], action=action)
-           for name in dispersion_at]
-        + [xt.Target(q, value=reference[q], action=action) for q in ('qx', 'qy')]
-    )
-    beta_indices = reference.rows.indices[beta_at]
-    ip_s = reference.s[reference.rows.indices[interaction_points]]
-    distance = np.abs(reference.s[beta_indices, None] - ip_s[None, :])
-    near_ip = np.any(np.minimum(distance, reference.line_length - distance)
-                     < settings.ir_half_length, axis=1)
-    beta_weights = np.where(near_ip, settings.ir_beta_weight, 1.) / np.sqrt(len(beta_at))
-    dx_weights = settings.horizontal_dispersion_weight * np.array([
-        settings.horizontal_dispersion_ip_weight if name in ip_names else 1.
-        for name in dispersion_at]) / np.sqrt(len(dispersion_at))
-    weights = np.r_[
-        beta_weights, beta_weights,
-        np.full(2 * len(alpha_at), settings.alpha_weight / np.sqrt(len(alpha_at))),
-        dx_weights, 1000., 1000.,
-    ]
-    for target, weight in zip(targets, weights):
-        target.tol = 1e-15
-        target.weight = weight
-        target.tag = '@'.join(target.tar) if isinstance(target.tar, tuple) else target.tar
-    # Keep the relative-beta objective while exposing physical target values.
-    for target in targets[:2 * len(beta_at)]:
-        target.weight /= target.value
-        target.tol *= target.value
+    ip_names = set(ip_names)
+    ip_s = reference['s', interaction_points]
+
+    targets = []
+    for name in observation_names:
+        distance = np.abs(reference['s', name] - ip_s)
+        near_ip = np.any(np.minimum(distance, reference.line_length - distance)
+                         < settings.ir_half_length)
+        weight = 1 / np.sqrt(len(observation_names))
+        if near_ip:
+            weight *= settings.ir_beta_weight
+
+        # Normalize by the reference beta for a relative-beta objective.
+        betx = reference['betx', name]
+        target = xt.Target('betx', at=name, value=betx, action=action,
+                           weight=weight / betx, tol=1e-15 * betx,
+                           tag=f'betx@{name}')
+        targets.append(target)
+
+        bety = reference['bety', name]
+        target = xt.Target('bety', at=name, value=bety, action=action,
+                           weight=weight / bety, tol=1e-15 * bety,
+                           tag=f'bety@{name}')
+        targets.append(target)
+
+        weight = settings.alpha_weight / np.sqrt(len(observation_names))
+        target = xt.Target('alfx', at=name, value=reference['alfx', name],
+                           action=action, weight=weight, tol=1e-15,
+                           tag=f'alfx@{name}')
+        targets.append(target)
+
+        target = xt.Target('alfy', at=name, value=reference['alfy', name],
+                           action=action, weight=weight, tol=1e-15,
+                           tag=f'alfy@{name}')
+        targets.append(target)
+
+        weight = settings.horizontal_dispersion_weight / np.sqrt(len(observation_names))
+        if name in ip_names:
+            weight *= settings.horizontal_dispersion_ip_weight
+        target = xt.Target('dx', at=name, value=reference['dx', name],
+                           action=action, weight=weight, tol=1e-15,
+                           tag=f'dx@{name}')
+        targets.append(target)
+
+    target = xt.Target('qx', value=reference.qx, action=action,
+                       weight=1000., tol=1e-15, tag='qx')
+    targets.append(target)
+    target = xt.Target('qy', value=reference.qy, action=action,
+                       weight=1000., tol=1e-15, tag='qy')
+    targets.append(target)
 
     optimizer = line.match(
         solve=False,
