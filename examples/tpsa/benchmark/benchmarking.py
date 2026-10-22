@@ -164,8 +164,8 @@ def bench_line(line, mng, knob_names, knob_values, label, order):
     mass0 = float(np.asarray(line.particle_ref.mass0).reshape(-1)[0])
     kwargs = dict(p0c=p0c, mass0=mass0, **X0)
 
-    plain = Descriptor(6, order)
-    parametric = Descriptor(6, order, params=knob_names, param_order=1)
+    plain = Descriptor(variables=xtpsa.COORDS, order=order)
+    parametric = Descriptor(variables=xtpsa.COORDS, order=order, parameters=knob_names, param_order=1)
     knobs = KnobParameters(line, knob_names, parametric)
     n_driven = len(knob_driven_fields(line, knob_names))
 
@@ -174,7 +174,7 @@ def bench_line(line, mng, knob_names, knob_values, label, order):
 
     def build_param():
         refresh()
-        return xtpsa.ParticlesTpsa(order=order, descriptor=parametric, **kwargs)
+        return xtpsa.ParticlesTpsa(truncation_order=order, descriptor=parametric, **kwargs)
 
     def build_scalar():
         refresh()
@@ -184,7 +184,7 @@ def bench_line(line, mng, knob_names, knob_values, label, order):
     # exercise the scalar kernel's constant-part projection of those strengths.
     xs = {}
     xs["tpsa"] = split_timings_ms(
-        lambda: xtpsa.ParticlesTpsa(order=order, descriptor=plain, **kwargs),
+        lambda: xtpsa.ParticlesTpsa(truncation_order=order, descriptor=plain, **kwargs),
         line.track,
     )
     xs["scalar"] = split_timings_ms(build_scalar, line.track)
