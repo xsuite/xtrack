@@ -2,8 +2,9 @@
 
 Input: the line saved by 003a_install_correction_knobs.py. Settings are below.
 Read the `Correction loop` cell for the workflow. Optimizer construction and
-stopping criteria are explicit above it; trial mechanics, observables and I/O
-live in correction_steps.py, correction_observables.py and correction_io.py.
+stopping criteria are explicit above it. Reference and response calculations
+live in correction_setup.py; trial mechanics, observables and I/O live in
+correction_steps.py, correction_observables.py and correction_io.py.
 Run 003c_analyze_correction.py afterwards for plots and radiation integrals.
 
 The original correction helpers retain their ordering, trial evaluation,
@@ -20,11 +21,8 @@ import builtins
 import numpy as np
 import xtrack as xt
 
-from response_builders import (
-    normal_quadrupole_response,
-    orbit_response,
-    skew_quadrupole_response,
-)
+from response_builders import orbit_response
+import correction_setup as setup
 
 import correction_observables as obs
 import correction_steps as steps
@@ -70,9 +68,6 @@ ORBIT_TOL = 10e-6  # RMS at all BPMs, including modes discarded by the SVD.
 # Small singular modes amplify inaccuracies of the uncoupled analytical model.
 # A directional finite-difference check supports this cutoff.
 OPTICS_RCOND = 1e-5
-BOOTSTRAP_FRACTION = 0.15  # Error fraction reached before nonlinear magnets turn on.
-BOOTSTRAP_RCOND = 1e-7
-BOOTSTRAP_BETA_MAX = 0.10
 ORBIT_RCOND = 1e-6
 COUPLING_RCOND = 1e-6
 COUPLING_IP_WEIGHT = 20.0
@@ -97,24 +92,13 @@ MAX_CYCLES = 40
 INITIAL_INCREMENT = 0.0125
 MIN_INCREMENT = 1e-5
 MAX_INCREMENT = 0.10
-NONLINEAR_INITIAL_INCREMENT = 0.025
-NONLINEAR_MAX_INCREMENT = 0.10
-# Nonlinear increments above are fractions of magnetic strength, not progress.
-COMBINED_INITIAL_INCREMENT = (1 - BOOTSTRAP_FRACTION) * NONLINEAR_INITIAL_INCREMENT
-COMBINED_MAX_INCREMENT = (1 - BOOTSTRAP_FRACTION) * NONLINEAR_MAX_INCREMENT
+RESUME_MAX_INCREMENT = 0.025  # Cap the first increment reconstructed from checkpoint history.
 CHECKPOINT = OUTPUT_DIR / 'checkpoint.json'
 HISTORY = OUTPUT_DIR / 'history.csv'
 
 
-def ramp_settings(progress):
-    """Return error and nonlinear fractions on the combined continuation path."""
-    if not 0 <= progress <= 1:
-        raise ValueError('Ramp progress must be in [0, 1]')
-    return progress, max(0.0, (progress - BOOTSTRAP_FRACTION) / (1 - BOOTSTRAP_FRACTION))
-
-
 print('Starting 4D correction; resume =', RESUME)
-print('Combined ramp: nonlinear magnets turn on at error fraction', BOOTSTRAP_FRACTION)
+print('Ramping errors and nonlinear strengths with the same fraction')
 # %% Nominal reference and observation points
 line = xt.load(INPUT)
 env = line.env
@@ -162,33 +146,13 @@ def monitor_alignment():
     ]
 
 
-set_values(orbit_knobs, np.zeros(len(orbit_knobs)))
-line['on_errors'] = 0.0
-for name in TUNE_KNOBS:
-    line[name] = original[name]
-line.twiss_default['co_guess'] = dict(x=0, px=0, y=0, py=0, zeta=0, delta=0)
-# Verify that one nominal response is suitable for both stages.
-tw_nonlinear_on = full_twiss()
-line['on_nonlinear'] = 0.0
-tw_ref = full_twiss()
-nominal_beta_change = max(
-    np.max(np.abs(tw_nonlinear_on['bet' + p] / tw_ref['bet' + p] - 1)) for p in 'xy'
+tw_ref = setup.nominal_reference(line, full_twiss=full_twiss, log=print)
+interaction_points = list(line.get_table().rows['ip.*'].name)
+obs_names, alpha_names = setup.optics_observation_names(
+    tw_ref, quad_names, interaction_points, phase_step=1 / 16,
 )
-print('Nominal nonlinear on/off: max beta change', nominal_beta_change)
-if nominal_beta_change > 1e-4:
-    raise RuntimeError('Aligned optics depend on nonlinear setting; rebuild responses per stage')
-
-tt = line.get_table()
-quad_indices = tw_ref.rows.indices[quad_names]
-# Add observations at 1/16-turn phase intervals in both planes. Sampling only
-# quadrupole entrances can hide beta beating in the intervening drifts and IPs.
-selected = set(quad_indices) | set(tw_ref.rows.indices[list(tt.rows['ip.*'].name)])
-for plane in 'xy':
-    mu = tw_ref['mu' + plane]
-    selected.update(np.searchsorted(mu, np.arange(mu[0], mu[-1], 1 / 16)).tolist())
-obs_indices = np.array(sorted(selected))
-obs_names = list(tw_ref.name[obs_indices])
-alpha_indices = tw_ref.rows.indices[list(dict.fromkeys(quad_names + list(tt.rows['ip.*'].name)))]
+obs_indices = tw_ref.rows.indices[obs_names]
+alpha_indices = tw_ref.rows.indices[alpha_names]
 monitor_indices = tw_ref.rows.indices[monitor_names]
 ip_names = ['ipa', 'ipd', 'ipg', 'ipj']
 ip_indices = tw_ref.rows.indices[ip_names]
@@ -217,10 +181,6 @@ measure = partial(
     ip_indices=ip_indices,
     orbit_errors=orbit_errors,
 )
-horizontal_dispersion_errors = partial(
-    obs.horizontal_dispersion_errors, tw_ref=tw_ref, dispersion_indices=dispersion_indices
-)
-
 
 set_values(orbit_knobs, np.zeros(len(orbit_knobs)))
 line['on_errors'] = 0.0
@@ -230,54 +190,17 @@ for name in TUNE_KNOBS:
 print(f'Using {len(quad_knobs)} installed quadrupole trims', flush=True)
 print('Preparing nominal optics SVD', flush=True)
 response_started = perf_counter()
-nominal_response, strength_scale = normal_quadrupole_response(
-    line,
-    tw_ref,
-    quad_names,
-    obs_names,
-    list(tw_ref.name[alpha_indices]),
-    dispersion_names,
-)
-dx_weights = HORIZONTAL_DISPERSION_WEIGHT * np.array(
-    [HORIZONTAL_DISPERSION_IP_WEIGHT if n in ip_names else 1.0 for n in dispersion_names]
-)
-dx_weights /= np.sqrt(len(dispersion_names))
-optics_weights = np.r_[
-    np.full(2 * len(obs_indices), 1 / np.sqrt(len(obs_indices))),
-    np.full(2 * len(alpha_indices), ALPHA_WEIGHT / np.sqrt(len(alpha_indices))),
-    dx_weights,
-    1000.0,
-    1000.0,
-]
-ip_s = tw_ref.s[tw_ref.rows.indices[list(tt.rows['ip.*'].name)]]
-ip_distance = np.abs(tw_ref.s[obs_indices, None] - ip_s[None, :])
-near_ip = np.min(np.minimum(ip_distance, tw_ref.line_length - ip_distance), axis=1) < IR_HALF_LENGTH
-for k in range(2):
-    optics_weights[k * len(obs_indices) : (k + 1) * len(obs_indices)] *= np.where(
-        near_ip, IR_BETA_WEIGHT, 1.0
-    )
-print(f'Upweighting beta at {np.sum(near_ip)} interaction-region observations', flush=True)
-steps.check_optics_response(
-    line,
-    quad_knobs=quad_knobs,
-    strength_scale=strength_scale,
-    nominal_response=nominal_response,
-    optics_weights=optics_weights,
-    tw_ref=tw_ref,
-    full_twiss=full_twiss,
-    optics_vector=optics_vector,
-    horizontal_dispersion_errors=horizontal_dispersion_errors,
-    n_dispersion=len(dispersion_names),
-    log=print,
+nominal_response, strength_scale, optics_weights, optics_labels = setup.prepare_optics_response(
+    line, tw_ref, quad_names, obs_names, alpha_names, dispersion_names,
+    interaction_points=interaction_points, dispersion_ips=ip_names,
+    alpha_weight=ALPHA_WEIGHT,
+    ir_beta_weight=IR_BETA_WEIGHT, ir_half_length=IR_HALF_LENGTH,
+    dispersion_weight=HORIZONTAL_DISPERSION_WEIGHT,
+    dispersion_ip_weight=HORIZONTAL_DISPERSION_IP_WEIGHT,
+    knobs=quad_knobs, full_twiss=full_twiss, log=print,
 )
 # All corrections use the same OptimizeLine API. Labels make response rows
 # inspectable; weights and knob scales are ordinary Target/Vary settings.
-optics_labels = (
-    [f'log_beta_{p}@{n}' for p in 'xy' for n in obs_names]
-    + [f'normalized_alpha_{p}@{n}' for p in 'xy' for n in tw_ref.name[alpha_indices]]
-    + [f'dx@{n}' for n in dispersion_names]
-    + ['qx', 'qy']
-)
 optics_action = xt.Action(lambda: optics_vector(full_twiss()))
 optics_optimizer = line.match(
     solve=False,
@@ -336,35 +259,12 @@ for optimizer in orbit_optimizers:
     )
 coupling_names = dispersion_names
 coupling_indices = dispersion_indices
-coupling_response, skew_scale = skew_quadrupole_response(line, tw_ref, skew_groups, coupling_names)
-coupling_weights = np.tile(
-    np.array([COUPLING_IP_WEIGHT if n in ip_names else 1.0 for n in coupling_names]), 4
+coupling_response, skew_scale, coupling_weights, coupling_labels = setup.prepare_coupling_response(
+    line, tw_ref, skew_groups, coupling_names, ip_names=ip_names,
+    coupling_ip_weight=COUPLING_IP_WEIGHT,
+    dispersion_weight=DISPERSION_WEIGHT, dispersion_ip_weight=DISPERSION_IP_WEIGHT,
+    knobs=skew_knobs, full_twiss=full_twiss, log=print,
 )
-coupling_weights = np.r_[
-    coupling_weights,
-    DISPERSION_WEIGHT
-    * np.array([DISPERSION_IP_WEIGHT if n in ip_names else 1.0 for n in coupling_names]),
-]
-coupling_weights /= np.sqrt(len(coupling_names))
-
-
-steps.check_coupling_response(
-    line,
-    skew_knobs=skew_knobs,
-    skew_scale=skew_scale,
-    coupling_response=coupling_response,
-    tw_ref=tw_ref,
-    full_twiss=full_twiss,
-    coupling_vector=coupling_vector,
-    n_observations=len(coupling_names),
-    log=print,
-)
-coupling_labels = [
-    f'{part}_{rdt}@{n}'
-    for rdt in ('f1001', 'f1010')
-    for part in ('real', 'imag')
-    for n in coupling_names
-] + [f'dy@{n}' for n in coupling_names]
 coupling_action = xt.Action(lambda: coupling_vector(full_twiss()))
 coupling_optimizer = line.match(
     solve=False,
@@ -395,7 +295,7 @@ print(
 
 
 print('Preparing aligned 2x2 tune response (two Twiss probes)')
-tune_response = steps.build_tune_response(
+tune_response = setup.build_tune_response(
     tw_ref, line=line, tune_knobs=TUNE_KNOBS, full_twiss=full_twiss
 )
 
@@ -445,7 +345,6 @@ def coupling_goal(tw):
 
 def optical_goal(tw):
     m = measure(tw, orbit_errors=None)
-    peak_limit = BOOTSTRAP_BETA_MAX if line['on_errors'] <= BOOTSTRAP_FRACTION else BETA_MAX_TOL
     dx_rms, dx_ip = (
         (HORIZONTAL_DISPERSION_RMS_TOL, HORIZONTAL_DISPERSION_IP_TOL)
         if FINAL_REFINEMENT
@@ -453,7 +352,7 @@ def optical_goal(tw):
     )
     return (
         np.all(m['beta_rms'] < BETA_RMS_TOL)
-        and max(m['beta_max']) < peak_limit
+        and max(m['beta_max']) < BETA_MAX_TOL
         and m['dx_rms'] < dx_rms
         and m['dx_ip'] < dx_ip
         and max(abs(m['tune_error'])) < TUNE_TOL
@@ -470,10 +369,9 @@ def coupling_cost(tw):
 
 
 def optical_direction(tw):
-    cutoff = BOOTSTRAP_RCOND if line['on_errors'] <= BOOTSTRAP_FRACTION else OPTICS_RCOND
-    keep = opt_s > cutoff * opt_s[0]
-    print('  optics SVD cutoff', cutoff, 'modes', np.sum(keep), flush=True)
-    return optics_optimizer.get_correction(optics_vector(tw), rcond=cutoff)
+    keep = opt_s > OPTICS_RCOND * opt_s[0]
+    print('  optics SVD cutoff', OPTICS_RCOND, 'modes', np.sum(keep), flush=True)
+    return optics_optimizer.get_correction(optics_vector(tw), rcond=OPTICS_RCOND)
 
 
 def steering_direction(tw, fraction):
@@ -565,9 +463,7 @@ ramp_tw = full_twiss(tw_ref)
 ramp_fraction = 0.0
 ramp_history = []
 if RESUME:
-    ramp_fraction, ramp_history, tune_response = load_checkpoint(
-        line, CHECKPOINT, BOOTSTRAP_FRACTION
-    )
+    ramp_fraction, ramp_history, tune_response = load_checkpoint(line, CHECKPOINT)
     tune_optimizer.set_response(tune_response)
     ramp_tw = full_twiss()
     np.testing.assert_allclose(
@@ -587,10 +483,10 @@ if RESUME:
     report(print, 'RESUMED', measure(ramp_tw))
     np.testing.assert_allclose(
         [line['on_errors'], line['on_nonlinear']],
-        ramp_settings(ramp_fraction),
+        [ramp_fraction, ramp_fraction],
         rtol=0,
         atol=1e-12,
-        err_msg='Checkpoint knobs disagree with the combined ramp',
+        err_msg='Checkpoint knobs disagree with the equal-fraction ramp',
     )
     if STOP_AT < ramp_fraction:
         raise ValueError('STOP_AT precedes the checkpoint')
@@ -612,8 +508,7 @@ for final_pass in (False, True):
         if len(ramp_history) > 1
         else INITIAL_INCREMENT
     )
-    if ramp_fraction >= BOOTSTRAP_FRACTION:
-        increment = min(increment, COMBINED_INITIAL_INCREMENT)
+    increment = min(increment, RESUME_MAX_INCREMENT)
     control_names = (
         orbit_knobs + quad_knobs + skew_knobs + TUNE_KNOBS + ['on_errors', 'on_nonlinear']
     )
@@ -628,20 +523,16 @@ for final_pass in (False, True):
         )
     )
     while refine or ramp_fraction < stop_fraction - 1e-12:
-        boundary = (
-            min(BOOTSTRAP_FRACTION, stop_fraction)
-            if ramp_fraction < BOOTSTRAP_FRACTION - 1e-12
-            else stop_fraction
-        )
-        fraction = ramp_fraction if refine else min(boundary, ramp_fraction + increment)
+        if refine:
+            fraction = ramp_fraction
+        else:
+            fraction = min(stop_fraction, ramp_fraction + increment)
         baseline = values(control_names)
         stage_started = perf_counter()
         calls_before, seconds_before = stats['calls'], stats['seconds']
         print('TRY', fraction, 'increment', increment, flush=True)
         try:
-            fraction, nonlinear = ramp_settings(fraction)
             previous = float(line['on_errors'])
-            guess = orbit_guess(ramp_tw)
             # Extrapolate the accepted correction to the proposed error strength.
             if previous > 0 and fraction != previous:
                 ratio = fraction / previous
@@ -650,15 +541,10 @@ for final_pass in (False, True):
                 set_values(skew_knobs, ratio * values(skew_knobs))
                 families = np.array([original[name] for name in TUNE_KNOBS])
                 set_values(TUNE_KNOBS, families + ratio * (values(TUNE_KNOBS) - families))
-                reference_guess = orbit_guess(tw_ref)
-                guess = {
-                    key: reference_guess[key] + ratio * (value - reference_guess[key])
-                    for key, value in guess.items()
-                }
-            line['on_errors'] = fraction
-            line['on_nonlinear'] = nonlinear
+            line['on_errors'] = line['on_nonlinear'] = fraction
             # Steer before tune cleanup: a large uncorrected orbit can shift the tunes.
-            tw = full_twiss(co_guess=guess)
+            # Use the last accepted orbit directly as the closed-orbit search guess.
+            tw = full_twiss(co_guess=orbit_guess(ramp_tw))
             orbit_tolerance = max(0.002e-6, fraction * ORBIT_TOL)
             # Correct at fixed strengths; re-check goals after each accepted step.
             for cycle in range(MAX_CYCLES):
@@ -672,7 +558,7 @@ for final_pass in (False, True):
                     cycle + 1,
                     'errors/nonlinear',
                     fraction,
-                    nonlinear,
+                    fraction,
                     'orbit/optics/coupling OK',
                     orbit_ok,
                     optics_ok,
@@ -695,7 +581,7 @@ for final_pass in (False, True):
             candidate, cycles = tw, cycle
         except (ValueError, RuntimeError, xt.twiss.ClosedOrbitSearchError) as err:
             set_values(control_names, baseline)
-            line['on_errors'], line['on_nonlinear'] = ramp_settings(ramp_fraction)
+            line['on_errors'] = line['on_nonlinear'] = ramp_fraction
             line.twiss_default['co_guess'] = orbit_guess(ramp_tw)
             increment /= 2
             print(
@@ -734,22 +620,15 @@ for final_pass in (False, True):
             path=CHECKPOINT,
             history_path=HISTORY,
             input_path=INPUT,
-            bootstrap_fraction=BOOTSTRAP_FRACTION,
             tw=ramp_tw,
             progress=ramp_fraction,
             final_refinement=FINAL_REFINEMENT,
             tune_response=tune_response,
             history=ramp_history,
         )
-        if fraction == BOOTSTRAP_FRACTION:
-            line.to_json(OUTPUT_DIR / 'bootstrap.json', indent=None)
-            print('  Saved full lattice at the end of the errors-only bootstrap')
         print(f'  Checkpoint and history save: {perf_counter() - checkpoint_started:.3f} s')
-        if fraction == BOOTSTRAP_FRACTION:
-            increment = COMBINED_INITIAL_INCREMENT
-        elif cycles <= (3 if fraction > BOOTSTRAP_FRACTION else 5):
-            limit = COMBINED_MAX_INCREMENT if fraction > BOOTSTRAP_FRACTION else MAX_INCREMENT
-            increment = min(limit, increment * 1.25)
+        if cycles <= 3:
+            increment = min(MAX_INCREMENT, increment * 1.25)
 
 ramp_completed = reached_stop and abs(ramp_fraction - 1.0) < 1e-12
 
@@ -776,8 +655,9 @@ save_result(
     completed=ramp_completed,
     metrics=metrics,
     settings={
-        'nonlinear_initial_increment': NONLINEAR_INITIAL_INCREMENT,
-        'nonlinear_max_increment': NONLINEAR_MAX_INCREMENT,
+        'initial_increment': INITIAL_INCREMENT,
+        'max_increment': MAX_INCREMENT,
+        'resume_max_increment': RESUME_MAX_INCREMENT,
         'horizontal_dispersion_rms_tolerance_m': HORIZONTAL_DISPERSION_RMS_TOL,
         'horizontal_dispersion_ip_tolerance_m': HORIZONTAL_DISPERSION_IP_TOL,
         'horizontal_dispersion_weight_per_m': HORIZONTAL_DISPERSION_WEIGHT,
@@ -800,9 +680,6 @@ save_result(
         },
         'optics_svd_rcond': OPTICS_RCOND,
         'optics_svd_modes': int(np.sum(opt_s > OPTICS_RCOND * opt_s[0])),
-        'bootstrap_fraction': BOOTSTRAP_FRACTION,
-        'bootstrap_svd_rcond': BOOTSTRAP_RCOND,
-        'bootstrap_beta_max': BOOTSTRAP_BETA_MAX,
         'ir_beta_weight': IR_BETA_WEIGHT,
         'ir_half_length_m': IR_HALF_LENGTH,
         'orbit_rms_tolerance_m': ORBIT_TOL,

@@ -14,7 +14,6 @@ def save_checkpoint(
     path,
     history_path,
     input_path,
-    bootstrap_fraction,
     tw,
     progress,
     final_refinement,
@@ -31,8 +30,7 @@ def save_checkpoint(
     }
     checkpoint = {
         'format': 'fccee_tuning_correction_v7',
-        'ramp_schedule': 'combined_after_bootstrap',
-        'bootstrap_fraction': bootstrap_fraction,
+        'ramp_schedule': 'equal_fraction',
         'error_seed': line.metadata['tuning_errors']['seed'],
         'base_lattice': input_path.name,
         'variables': independent,
@@ -54,13 +52,14 @@ def save_checkpoint(
     )
 
 
-def load_checkpoint(line, path, bootstrap_fraction):
+def load_checkpoint(line, path):
     checkpoint = json.loads(path.read_text())
-    if (
-        checkpoint['format'] != 'fccee_tuning_correction_v7'
-        or checkpoint['ramp_schedule'] != 'combined_after_bootstrap'
-        or checkpoint['bootstrap_fraction'] != bootstrap_fraction
-    ):
+    # Accept the earlier equal-fraction experiment, saved with a zero bootstrap.
+    equal_fraction = checkpoint['ramp_schedule'] == 'equal_fraction' or (
+        checkpoint['ramp_schedule'] == 'combined_after_bootstrap'
+        and checkpoint.get('bootstrap_fraction') == 0.0
+    )
+    if checkpoint['format'] != 'fccee_tuning_correction_v7' or not equal_fraction:
         raise ValueError('Checkpoint uses a different ramp schedule; restart without RESUME=True')
     if checkpoint['error_seed'] != line.metadata['tuning_errors']['seed']:
         raise ValueError('Checkpoint belongs to a different error seed')
@@ -132,7 +131,7 @@ def save_result(line, path, *, tw_ref, progress, completed, metrics, settings):
     metadata = {
         'method': '4d',
         'delta0': 0.0,
-        'ramp_schedule': 'combined_after_bootstrap',
+        'ramp_schedule': 'equal_fraction',
         'nonlinear_ramp_knob': 'on_nonlinear',
         'nonlinear_ramp_min_order': 2,
         'nominal_reference': 'input model with on_errors=0',

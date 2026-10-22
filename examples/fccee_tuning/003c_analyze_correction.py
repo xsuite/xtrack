@@ -170,11 +170,10 @@ if len(history):
     history_axes[4].plot(100 * history[:, 0], history[:, 17] * 1e3, '.-', label='BPMs + IPs RMS')
     history_axes[4].plot(100 * history[:, 0], history[:, 18] * 1e3, '.-', label='IP max')
     history_axes[4].set_ylabel('Horizontal dispersion error [mm]')
-    history_axes[4].set_xlabel('Error fraction [%]; nonlinear strengths ramp together after 15%')
+    history_axes[4].set_xlabel('Error fraction [%]')
     for ax in history_axes:
         ax.legend()
         ax.grid(alpha=0.25)
-        ax.axvline(100 * metadata['bootstrap_fraction'], color='grey', ls=':', lw=1)
     history_fig.savefig(OUTPUT_DIR / 'history.png', dpi=180)
 if SHOW_PLOTS:
     plt.show()

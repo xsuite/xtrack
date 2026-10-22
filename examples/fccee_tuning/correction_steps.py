@@ -64,21 +64,6 @@ def ensure_full_twiss(tw, *, full_twiss):
     return full_twiss(tw)
 
 
-def build_tune_response(tw, *, line, tune_knobs, full_twiss):
-    """Numerical two-family tune response, with all probe settings restored."""
-    baseline = values(line, tune_knobs)
-    jac = np.empty((2, 2))
-    try:
-        for j in range(2):
-            line[tune_knobs[j]] = baseline[j] + 1e-7
-            probe = full_twiss(tw)
-            jac[:, j] = (np.array([probe.qx, probe.qy]) - np.array([tw.qx, tw.qy])) / 1e-7
-            set_values(line, tune_knobs, baseline)
-    finally:
-        set_values(line, tune_knobs, baseline)
-    return jac
-
-
 def tune_cleanup(
     tw, *, line, tune_knobs, tw_ref, tune_tol, tune_optimizer, ensure_full_twiss, full_twiss, log
 ):
@@ -283,80 +268,3 @@ def coupling_step(
     set_values(line, orbit_knobs, steering)
     set_values(line, tune_knobs, families)
     raise RuntimeError('No stable improving coupling step')
-
-
-def check_optics_response(
-    line,
-    *,
-    quad_knobs,
-    strength_scale,
-    nominal_response,
-    optics_weights,
-    tw_ref,
-    full_twiss,
-    optics_vector,
-    horizontal_dispersion_errors,
-    n_dispersion,
-    log,
-):
-    # A central distributed probe checks the sign, integration and scaling in two
-    # Twiss calls, without probing every quadrupole. The central difference cancels
-    # quadratic tune shifts, which can dominate the small net first-order shift.
-    probe = 1e-4 * strength_scale * np.sin(np.arange(len(quad_knobs)) + 0.3)
-    set_values(line, quad_knobs, probe)
-    try:
-        probe_plus = full_twiss(tw_ref)
-        set_values(line, quad_knobs, -probe)
-        probe_minus = full_twiss(tw_ref)
-        measured = (optics_vector(probe_plus) - optics_vector(probe_minus)) / 2
-        prediction = nominal_response @ probe
-        discrepancy = np.linalg.norm(optics_weights * (measured - prediction)) / np.linalg.norm(
-            optics_weights * prediction
-        )
-        dx_prediction = nominal_response[-n_dispersion - 2 : -2] @ probe
-        dx_measured = (
-            horizontal_dispersion_errors(probe_plus) - horizontal_dispersion_errors(probe_minus)
-        ) / 2
-        dx_discrepancy = np.linalg.norm(dx_measured - dx_prediction) / np.linalg.norm(dx_prediction)
-        log(
-            'Normal optics/Dx response directional check, relative errors:',
-            discrepancy,
-            dx_discrepancy,
-        )
-        if max(discrepancy, dx_discrepancy) > 0.05:
-            raise RuntimeError('Normal optics/dispersion response disagrees with tracking')
-    finally:
-        set_values(line, quad_knobs, np.zeros(len(quad_knobs)))
-
-
-def check_coupling_response(
-    line,
-    *,
-    skew_knobs,
-    skew_scale,
-    coupling_response,
-    tw_ref,
-    full_twiss,
-    coupling_vector,
-    n_observations,
-    log,
-):
-    # Check the analytical response against tracking for a distributed probe.
-    probe = 1e-5 * skew_scale * np.sin(np.arange(len(skew_knobs)) + 0.3)
-    set_values(line, skew_knobs, probe)
-    try:
-        probe_tw = full_twiss(tw_ref)
-        prediction = coupling_response @ probe
-        discrepancy = np.linalg.norm(coupling_vector(probe_tw) - prediction) / np.linalg.norm(
-            prediction
-        )
-        log('Coupling response directional check, relative error:', discrepancy)
-        n_rdt = 4 * n_observations
-        dy_discrepancy = np.linalg.norm(
-            coupling_vector(probe_tw)[n_rdt:] - prediction[n_rdt:]
-        ) / np.linalg.norm(prediction[n_rdt:])
-        log('Dispersion response directional check, relative error:', dy_discrepancy)
-        if max(discrepancy, dy_discrepancy) > 0.05:
-            raise RuntimeError('Coupling response disagrees with tracking')
-    finally:
-        set_values(line, skew_knobs, np.zeros(len(skew_knobs)))
