@@ -20,7 +20,10 @@ import correction_steps as steps
 import correction_setup as setup
 from correction_io import HISTORY_COLUMNS, history_row, save_result
 from correction_steps import orbit_guess
-from response_builders import orbit_response
+import optics_corr
+import orbit_corr
+import coupling_corr
+import tune_corr
 
 
 def _silent_log(*args, **kwargs):
@@ -617,157 +620,37 @@ class FCCeeCorrection:
             self.line[name] = self.original[name]
 
     def _build_optimizers(self):
-        # One action supplies a Twiss table. Targets extract scalar observables;
-        # all correction calls pass action_results explicitly.
+        # All optimizers consume the same externally supplied Twiss table.
         self.twiss_action = xt.Action(self.twiss)
-        nominal_response, self.strength_scale, self.optics_weights, self.optics_labels = (
-            setup.prepare_optics_response(
-                self.line,
-                self.reference,
-                self.quad_names,
-                self.obs_names,
-                self.alpha_names,
-                self.dispersion_names,
-                interaction_points=self.interaction_points,
-                dispersion_ips=self.ip_names,
-                alpha_weight=self.settings.alpha_weight,
-                ir_beta_weight=self.settings.ir_beta_weight,
-                ir_half_length=self.settings.ir_half_length,
-                dispersion_weight=self.settings.horizontal_dispersion_weight,
-                dispersion_ip_weight=self.settings.horizontal_dispersion_ip_weight,
-                knobs=self.quad_knobs,
-                full_twiss=self._full_twiss,
-                log=_silent_log,
-            )
+        self.optimizers.optics = optics_corr.build_optimizer(
+            self.line, self.reference, self.twiss_action,
+            beta_at=self.obs_names, alpha_at=self.alpha_names,
+            dispersion_at=self.dispersion_names,
+            interaction_points=self.interaction_points, ip_names=self.ip_names,
+            settings=self.settings, full_twiss=self._full_twiss, log=_silent_log,
         )
-        optics_observables = (
-            [lambda tw, p=p, i=i: np.log(tw['bet' + p][i] / self.reference['bet' + p][i])
-             for p in 'xy' for i in self.obs_indices]
-            + [lambda tw, p=p, i=i: (
-                tw['alf' + p][i] * self.reference['bet' + p][i] / tw['bet' + p][i]
-                - self.reference['alf' + p][i])
-               for p in 'xy' for i in self.alpha_indices]
-            + [lambda tw, i=i: tw.dx[i] - self.reference.dx[i]
-               for i in self.dispersion_indices]
-            + [lambda tw, q=q: tw[q] - self.reference[q] for q in ('qx', 'qy')]
-        )
-        self.optimizers.optics = self.line.match(
-            solve=False,
-            name='normal optics and horizontal dispersion',
-            vary=[
-                xt.Vary(knob, step=1e-07, weight=scale, max_step=0.5)
-                for knob, scale in zip(self.quad_knobs, self.strength_scale)
-            ],
-            targets=[
-                self.twiss_action.target(observable, value=0.0, tol=1e-15,
-                                         weight=weight, tag=label)
-                for observable, label, weight in zip(
-                    optics_observables, self.optics_labels, self.optics_weights)
-            ],
-            action_results={self.twiss_action: self.reference},
-            assert_within_tol=False,
-            show_call_counter=False,
-        )
-        self.optimizers.optics.set_response(nominal_response)
         self.opt_s = self.optimizers.optics.response.svd.s
-        del nominal_response
-        alignment = self.line.metadata['tuning_errors']['bpm_alignment_variables']
-        self.optimizers.orbit_x = self.line.match(
-            solve=False,
-            name='orbit x',
-            vary=[xt.Vary(knob, step=1e-07) for knob in self.circuits['orbit']['x']['knobs']],
-            targets=[
-                self.twiss_action.target(
-                    lambda tw, i=i, offset=alignment[name]['shift_x']: tw.x[i] - self.env[offset],
-                    value=0.0, tol=1e-15, tag=f'x@{name}')
-                for i, name in zip(self.monitor_indices, self.monitor_names)
-            ],
-            action_results={self.twiss_action: self.reference},
-            assert_within_tol=False,
-            show_call_counter=False,
-        )
-        self.optimizers.orbit_x.set_response(
-            orbit_response(self.reference, self.monitor_names, self.corrector_names[0], 'x')
-        )
-        self.optimizers.orbit_y = self.line.match(
-            solve=False,
-            name='orbit y',
-            vary=[xt.Vary(knob, step=1e-07) for knob in self.circuits['orbit']['y']['knobs']],
-            targets=[
-                self.twiss_action.target(
-                    lambda tw, i=i, offset=alignment[name]['shift_y']: tw.y[i] - self.env[offset],
-                    value=0.0, tol=1e-15, tag=f'y@{name}')
-                for i, name in zip(self.monitor_indices, self.monitor_names)
-            ],
-            action_results={self.twiss_action: self.reference},
-            assert_within_tol=False,
-            show_call_counter=False,
-        )
-        self.optimizers.orbit_y.set_response(
-            orbit_response(self.reference, self.monitor_names, self.corrector_names[1], 'y')
-        )
+        self.optimizers.orbit_x, self.optimizers.orbit_y = orbit_corr.build_optimizers(
+            self.line, self.reference, self.twiss_action)
         self.coupling_names = self.dispersion_names
         self.coupling_indices = self.dispersion_indices
-        coupling_response, self.skew_scale, self.coupling_weights, self.coupling_labels = (
-            setup.prepare_coupling_response(
-                self.line,
-                self.reference,
-                self.skew_groups,
-                self.coupling_names,
-                ip_names=self.ip_names,
-                coupling_ip_weight=self.settings.coupling_ip_weight,
-                dispersion_weight=self.settings.dispersion_weight,
-                dispersion_ip_weight=self.settings.dispersion_ip_weight,
-                knobs=self.skew_knobs,
-                full_twiss=self._full_twiss,
-                log=_silent_log,
-            )
+        self.optimizers.coupling = coupling_corr.build_optimizer(
+            self.line, self.reference, self.twiss_action,
+            observation_names=self.coupling_names, ip_names=self.ip_names,
+            settings=self.settings, full_twiss=self._full_twiss, log=_silent_log,
         )
-        coupling_observables = (
-            [lambda tw, key=key, part=part, i=i:
-                getattr(tw[key][i] - self.reference[key][i], part)
-             for key in ('f1001', 'f1010') for part in ('real', 'imag')
-             for i in self.dispersion_indices]
-            + [lambda tw, i=i: tw.dy[i] - self.reference.dy[i]
-               for i in self.dispersion_indices]
+        self.optimizers.tunes = tune_corr.build_optimizer(
+            self.line, self.reference, self.twiss_action,
+            tune_tol=self.settings.tune_tol, full_twiss=self._full_twiss,
         )
-        self.optimizers.coupling = self.line.match(
-            solve=False,
-            name='coupling and vertical dispersion',
-            vary=[
-                xt.Vary(knob, step=1e-07, weight=scale)
-                for knob, scale in zip(self.skew_knobs, self.skew_scale)
-            ],
-            targets=[
-                self.twiss_action.target(observable, value=0.0, tol=1e-15,
-                                         weight=weight, tag=label)
-                for observable, label, weight in zip(
-                    coupling_observables, self.coupling_labels, self.coupling_weights)
-            ],
-            action_results={self.twiss_action: self.reference},
-            assert_within_tol=False,
-            show_call_counter=False,
-        )
-        self.optimizers.coupling.set_response(coupling_response)
-        del coupling_response
-        self.tune_response = setup.build_tune_response(
-            self.reference, line=self.line, tune_knobs=self.tune_knobs, full_twiss=self._full_twiss
-        )
-
-        self.optimizers.tunes = self.line.match(
-            solve=False,
-            name='tunes',
-            vary=[xt.Vary(knob, step=1e-07) for knob in self.tune_knobs],
-            targets=[
-                self.twiss_action.target(q, value=self.reference[q],
-                                         tol=self.settings.tune_tol / 2, tag=q)
-                for q in ('qx', 'qy')
-            ],
-            action_results={self.twiss_action: self.reference},
-            assert_within_tol=False,
-            show_call_counter=False,
-        )
-        self.optimizers.tunes.set_response(self.tune_response)
+        # Keep the existing inspection attributes tied to optimizer configuration.
+        self.strength_scale = np.array([vary.weight for vary in self.optimizers.optics.vary])
+        self.optics_weights = np.array([target.weight for target in self.optimizers.optics.targets])
+        self.optics_labels = [target.tag for target in self.optimizers.optics.targets]
+        self.skew_scale = np.array([vary.weight for vary in self.optimizers.coupling.vary])
+        self.coupling_weights = np.array([target.weight for target in self.optimizers.coupling.targets])
+        self.coupling_labels = [target.tag for target in self.optimizers.coupling.targets]
+        self.tune_response = self.optimizers.tunes.response.matrix
         # As in 003b, pay the SVD construction cost during preparation, not in
         # the first trial. Retries then reuse these decompositions.
         for optimizer in vars(self.optimizers).values():

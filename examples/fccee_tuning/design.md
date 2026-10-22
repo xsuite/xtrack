@@ -13,6 +13,22 @@ Do not change `003b_correct_with_optimizers.py` or its shared numerical helpers.
 It remains the reference. Do not reintroduce resume/checkpoints. Keep logging
 minimal and settings, optimizers, accepted state, and history inspectable.
 
+## Optimizer setup modules
+
+- `optics_corr.py`: normal-optics and horizontal-dispersion targets, knob scales,
+  weights, and response construction.
+- `orbit_corr.py`: horizontal and vertical orbit targets and response matrices.
+- `coupling_corr.py`: coupling and vertical-dispersion targets, scales, weights,
+  and response construction.
+- `tune_corr.py`: nominal tune targets and the two-knob finite-difference response.
+
+Each builder takes the line, nominal reference Twiss, and shared action and
+returns a configured optimizer (two for orbit) with its response installed.
+Builders reuse the unchanged numerical preparation helpers. The workflow owns
+the reference and observation locations, precomputes response SVDs, and retains
+the correction sequence, candidate evaluations, acceptance, rollback, and history.
+The existing `correction.optimizers` and inspection attributes remain available.
+
 ## Supplying model results
 
 Add optional `action_results={action: result}` to target-evaluation entry points.
@@ -152,6 +168,12 @@ was possible; small state tests are not a full-machine physics validation.
 Full-run log: `/tmp/fccee_explicit_4d_zb5z1o5t/run.log`; timing and verification
 are in `timing.json` and `verification.json` in the same directory. The saved
 machine is `response_api_class/machine.json` there.
+
+After extracting the four optimizer setup modules, the full run completed in
+214.6 seconds wall time with all final goals met. Its saved history matches the
+pre-extraction run exactly, with the same 19 accepted entries and 254 Twiss calls.
+The 11 focused response/action/state tests pass. Full-run log and verification:
+`/tmp/fccee_corr_modules__i4fb09r/run.log` and `verification.json` in that directory.
 
 Local comparison output: `/tmp/check_fccee_lstsq.log`; the earlier comparison
 including the rejected 0.0125 trial is `/tmp/check_fccee_lstsq_initial.log`.
