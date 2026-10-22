@@ -1131,6 +1131,7 @@ class OptimizeLine(xd.Optimize):
             action_twiss=self.action_twiss,
             name=name,
         )
+        out.rcond = self.rcond
         return out
 
     def plot(self, *args, **kwargs):

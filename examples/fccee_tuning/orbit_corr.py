@@ -33,23 +33,27 @@ def orbit_goal(tw, *, monitor_indices, monitor_alignment, error_fraction, settin
     return bool(np.all(metrics['orbit_rms'] <= tolerance))
 
 
-def correctable_orbit_errors(tw, *, lab_orbit_errors, orbit_optimizers, rcond):
+def correctable_orbit_errors(tw, *, lab_orbit_errors, orbit_optimizers):
     """Project out discarded SVD modes and the response's left null space."""
     residuals = []
     for error, optimizer in zip(lab_orbit_errors(tw), orbit_optimizers):
         svd = optimizer.response.svd
+        rcond = optimizer.rcond
+        if rcond is None:
+            rcond = svd.rcond
         u = svd.U[:, svd.s > rcond * svd.s[0]]
         residuals.append(u @ (u.T @ error))
     return residuals
 
 
-def build_optimizers(line, reference, action):
+def build_optimizers(line, reference, *, settings):
     """Return the x/y optimizers; targets subtract live BPM alignment offsets."""
     circuits = line.metadata['correction_knobs']['orbit']
     alignment = line.metadata['tuning_errors']['bpm_alignment_variables']
     env = line.env
     optimizers = []
     for plane in 'xy':
+        action = xt.Action(line.twiss)
         monitors = circuits[plane]['monitors']
         indices = reference.rows.indices[monitors]
         optimizer = line.match(
@@ -63,10 +67,11 @@ def build_optimizers(line, reference, action):
                     value=0.0, tol=1e-15, tag=f'{plane}@{name}')
                 for i, name in zip(indices, monitors)
             ],
-            action_results={action: reference},
+            action_results=[reference],
             assert_within_tol=False,
             show_call_counter=False,
         )
+        optimizer.rcond = settings.orbit_rcond
         optimizer.set_response(
             orbit_response(reference, monitors, circuits[plane]['correctors'], plane))
         optimizers.append(optimizer)

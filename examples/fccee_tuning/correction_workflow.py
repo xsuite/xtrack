@@ -200,15 +200,13 @@ class FCCeeCorrection:
         for iteration in range(1, max_iterations + 1):
             if not self.orbit_goal(tw):
                 for opt in (self.optimizers.orbit_x, self.optimizers.orbit_y):
-                    opt.run_lstsq(action_results={self.twiss_action: tw},
-                                  rcond=self.settings.orbit_rcond, tag_outcome=False)
+                    opt.run_lstsq(action_results=[tw], tag_outcome=False)
                 tw = self._full_twiss(tw)
             tw = self.correct_tunes(tw)
 
             if not self.optical_goal(tw):
                 self.optimizers.optics.run_lstsq(
-                    action_results={self.twiss_action: tw},
-                    rcond=self.settings.optics_rcond, tag_outcome=False)
+                    action_results=[tw], tag_outcome=False)
                 tw = self._full_twiss(tw)
             tw = self.correct_tunes(tw)
 
@@ -216,8 +214,7 @@ class FCCeeCorrection:
                 tw = self.settle_coupling_orbit(tw)
                 if not self.coupling_goal(tw):
                     self.optimizers.coupling.run_lstsq(
-                        action_results={self.twiss_action: tw},
-                        rcond=self.settings.coupling_rcond,
+                        action_results=[tw],
                         step_scale=self.settings.coupling_step, tag_outcome=False)
                     tw = self.orbit_twiss(tw)
                     tw = self.settle_coupling_orbit(tw)
@@ -360,7 +357,7 @@ class FCCeeCorrection:
     def optics_vector(self, tw):
         """Unweighted target residuals, in the installed response-row order."""
         return self.optimizers.optics.target_status(
-            ret=True, action_results={self.twiss_action: tw}).residue
+            ret=True, action_results=[tw]).residue
 
     def coupling_vector(self, tw):
         return coupling_corr.coupling_vector(
@@ -410,12 +407,11 @@ class FCCeeCorrection:
             tw,
             lab_orbit_errors=self.lab_orbit_errors,
             orbit_optimizers=[self.optimizers.orbit_x, self.optimizers.orbit_y],
-            rcond=self.settings.orbit_rcond,
         )
 
     def correct_tunes(self, tw):
         return tune_corr.correct(
-            tw, optimizer=self.optimizers.tunes, action=self.twiss_action,
+            tw, optimizer=self.optimizers.tunes,
             tolerance=self.settings.tune_tol / 2, full_twiss=self._full_twiss)
 
     def settle_coupling_orbit(self, tw):
@@ -429,8 +425,7 @@ class FCCeeCorrection:
             before = self.snapshot()
             try:
                 for opt in (self.optimizers.orbit_x, self.optimizers.orbit_y):
-                    opt.run_lstsq(action_results={self.twiss_action: tw},
-                                  rcond=self.settings.orbit_rcond, tag_outcome=False)
+                    opt.run_lstsq(action_results=[tw], tag_outcome=False)
                 trial = self.orbit_twiss(tw) if iteration < 2 else self._full_twiss(tw)
             except self.correction_errors:
                 # Settling continues from its last accepted orbit; unlike the
@@ -479,10 +474,8 @@ class FCCeeCorrection:
             self.line[name] = self.original[name]
 
     def _build_optimizers(self):
-        # All optimizers consume the same externally supplied Twiss table.
-        self.twiss_action = xt.Action(self.twiss)
         self.optimizers.optics = optics_corr.build_optimizer(
-            self.line, self.reference, self.twiss_action,
+            self.line, self.reference,
             knobs=self.quad_knobs,
             observation_names=self.obs_names,
             interaction_points=self.interaction_points, ip_names=self.ip_names,
@@ -490,16 +483,16 @@ class FCCeeCorrection:
         )
         self.opt_s = self.optimizers.optics.response.svd.s
         self.optimizers.orbit_x, self.optimizers.orbit_y = orbit_corr.build_optimizers(
-            self.line, self.reference, self.twiss_action)
+            self.line, self.reference, settings=self.settings)
         self.coupling_names = self.dispersion_names
         self.coupling_indices = self.dispersion_indices
         self.optimizers.coupling = coupling_corr.build_optimizer(
-            self.line, self.reference, self.twiss_action,
+            self.line, self.reference,
             observation_names=self.coupling_names, ip_names=self.ip_names,
             settings=self.settings, full_twiss=self._full_twiss, log=_silent_log,
         )
         self.optimizers.tunes = tune_corr.build_optimizer(
-            self.line, self.reference, self.twiss_action,
+            self.line, self.reference,
             tune_tol=self.settings.tune_tol, full_twiss=self._full_twiss,
         )
         # Keep the existing inspection attributes tied to optimizer configuration.

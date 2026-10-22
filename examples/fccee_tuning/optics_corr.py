@@ -41,13 +41,14 @@ def optical_goal(tw, reference, *, dispersion_indices, ip_indices,
     )
 
 
-def build_optimizer(line, reference, action, *, knobs, observation_names,
+def build_optimizer(line, reference, *, knobs, observation_names,
                     interaction_points, ip_names, settings):
     """Return an optimizer with weighted targets and a fixed nominal response.
 
     Construction uses the supplied reference table without running Twiss.
     The caller owns subsequent evaluations and trial acceptance.
     """
+    action = xt.Action(line.twiss)
     ip_names = set(ip_names)
     ip_s = reference['s', interaction_points]
 
@@ -104,7 +105,7 @@ def build_optimizer(line, reference, action, *, knobs, observation_names,
         name='normal optics and horizontal dispersion',
         vary=[xt.Vary(knob, step=1e-7, max_step=0.5) for knob in knobs],
         targets=targets,
-        action_results={action: reference},
+        action_results=[reference],
         assert_within_tol=False,
         show_call_counter=False,
     )
@@ -114,6 +115,7 @@ def build_optimizer(line, reference, action, *, knobs, observation_names,
     scales = 1 / (4 * np.pi * np.max(np.abs(response[-2:]), axis=0))
     for vary, scale in zip(optimizer.vary, scales):
         vary.weight = scale
+    optimizer.rcond = settings.optics_rcond
     optimizer.set_response(response)
     return optimizer
 

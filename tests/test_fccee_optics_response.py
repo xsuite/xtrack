@@ -119,11 +119,11 @@ def test_optics_response_with_only_tunes(optics_problem):
 
 def test_optics_targets_are_built_per_location(optics_problem):
     module, line, reference, opt, keys = optics_problem
-    settings = SimpleNamespace(alpha_weight=0.1, ir_beta_weight=5., ir_half_length=0.1,
+    settings = SimpleNamespace(optics_rcond=1e-5, alpha_weight=0.1, ir_beta_weight=5., ir_half_length=0.1,
                                horizontal_dispersion_weight=30.,
                                horizontal_dispersion_ip_weight=50.)
     built = module.build_optimizer(
-        line, reference, opt.targets[0].action, knobs=['trim', 'family'],
+        line, reference, knobs=['trim', 'family'],
         observation_names=['qf1', 'qd6'], interaction_points=['qf1'],
         ip_names=['qd6'], settings=settings)
     expected_keys = [

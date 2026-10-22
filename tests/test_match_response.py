@@ -20,13 +20,16 @@ def test_match_supplied_response_with_action():
     response = opt.build_response()
     np.testing.assert_allclose(response.matrix, [[2, 1], [1, 3]], atol=1e-10)
     opt.set_response(response)
+    opt.rcond = 1e-10
     svd = response.svd
-    opt.step(rcond=1e-10)
+    opt.step()
     np.testing.assert_allclose([line['a'], line['b']], [0.2, 0.6], atol=1e-10)
     assert response.svd is svd
     assert opt.solver._last_jac_svd is svd
     # A clone's copied targets must not accidentally inherit the old response.
-    assert opt.clone().response is None
+    clone = opt.clone()
+    assert clone.response is None
+    assert clone.rcond == opt.rcond
 
 
 def test_match_twiss_fixed_finite_difference_response():

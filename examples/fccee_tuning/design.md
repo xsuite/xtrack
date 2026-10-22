@@ -36,12 +36,20 @@ optimizers. Orbit comparisons remain inclusive; optics/coupling comparisons
 remain strict, signed errors use absolute values, and dispersion/coupling
 limits switch between ramp and final refinement.
 
-Each builder takes the line, nominal reference Twiss, and shared action and
-returns a configured optimizer (two for orbit) with its response installed.
+Each builder takes the line and nominal reference Twiss, creates its own action,
+and returns a configured optimizer (two for orbit) with its response installed.
 Builders reuse the unchanged analytical response helpers. The workflow owns
 the reference and observation locations, precomputes response SVDs, and retains
 the correction sequence, candidate evaluations, acceptance, rollback, and history.
 The existing `correction.optimizers` and inspection attributes remain available.
+
+Each builder sets `optimizer.rcond` from its correction settings (zero for tune
+correction). `run_lstsq`, `get_correction`, `step`, `solve`, and `run_jacobian`
+use this default when no per-call `rcond` is supplied. The default is `None`,
+which retains the existing SVD cutoff. Explicit per-call values, including zero,
+override it without changing the stored default or rebuilding the response SVD.
+Orbit settling uses the orbit optimizer's cutoff for its correctable-mode check.
+The orchestration no longer passes cutoffs at every correction step.
 
 ## Relative beta objective
 
@@ -109,7 +117,17 @@ helpers remain unchanged.
 
 ## Supplying model results
 
-Add optional `action_results={action: result}` to target-evaluation entry points.
+Accept `action_results={action: result}` or an ordered list/tuple of results at
+all target-evaluation entry points. Sequence entries follow `optimizer.actions`
+(first occurrence across targets, with duplicates removed) and must have exactly
+one result per action. Dictionary input remains supported; `run_actions()` still
+returns a dictionary.
+
+FCC-ee uses `action_results=[tw]` and `[reference]` at construction. Each optimizer
+owns a local action, so builders and tune correction no longer accept a shared
+action and the workflow has no `twiss_action` attribute. Optics/orbit actions
+wrap `line.twiss`; coupling/tune actions wrap the existing full-Twiss callback.
+Supplied results bypass action preparation and execution, including construction.
 Results are the ordinary outputs of actions, e.g. a Twiss table, not externally
 assembled residual vectors. Targets still extract observables and apply their
 transformations, weights, tolerances, and activation masks.
@@ -391,3 +409,14 @@ and `verification.json` in the same directory. The 003b reference is unchanged.
 
 Local comparison output: `/tmp/check_fccee_lstsq.log`; the earlier comparison
 including the rejected 0.0125 trial is `/tmp/check_fccee_lstsq_initial.log`.
+
+Ordered action results, per-optimizer actions, and optimizer-owned `rcond`
+passed 84 focused tests across xdeps and xtrack. Tests cover action ordering and
+length validation, supplied-result evaluation without action calls, default
+cutoffs and explicit overrides for fixed/numerical responses, SVD reuse, and
+clone preservation. The full ramp/refinement passed all final goals in 191.4 s
+wall time under the 250 s cap, with the same 20 accepted entries and 240 Twiss
+calls (83 orbit-only). History agrees with the preceding goal-only run within
+atol=1e-8, rtol=1e-3. Log and verification:
+`/tmp/fccee_optimizer_defaults_7jgk0xt0/run.log` and `verification.json` in that
+directory. The 003b reference and shared numerical helpers remain unchanged.

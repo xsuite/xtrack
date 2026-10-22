@@ -54,9 +54,10 @@ def coupling_vector(tw, reference, *, coupling_indices):
     return np.r_[f1001.real, f1001.imag, f1010.real, f1010.imag, dy]
 
 
-def build_optimizer(line, reference, action, *, observation_names, ip_names,
+def build_optimizer(line, reference, *, observation_names, ip_names,
                     settings, full_twiss, log):
     """Return an optimizer with RDT/Dy targets and a fixed nominal response."""
+    action = xt.Action(full_twiss)
     circuits = line.metadata['correction_knobs']['coupling']
     knobs = circuits['knobs']
     response, scales, weights, labels = setup.prepare_coupling_response(
@@ -81,9 +82,10 @@ def build_optimizer(line, reference, action, *, observation_names, ip_names,
         targets=[action.target(observable, value=0.0, tol=1e-15,
                                weight=weight, tag=label)
                  for observable, label, weight in zip(observables, labels, weights)],
-        action_results={action: reference},
+        action_results=[reference],
         assert_within_tol=False,
         show_call_counter=False,
     )
+    optimizer.rcond = settings.coupling_rcond
     optimizer.set_response(response)
     return optimizer

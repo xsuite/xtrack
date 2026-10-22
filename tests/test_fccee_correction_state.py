@@ -231,12 +231,12 @@ def test_optics_targets_use_relative_beta_and_physical_alpha(correction, monkeyp
     def no_tracking():
         raise AssertionError('Unexpected Twiss')
 
-    action = xt.Action(no_tracking)
+    monkeypatch.setattr(correction.line, 'twiss', no_tracking)
     opt = module.build_optimizer(
-        correction.line, reference, action, knobs=['quad', 'skew'],
+        correction.line, reference, knobs=['quad', 'skew'],
         observation_names=['bpm'], interaction_points=['bpm'], ip_names=['bpm'],
         settings=correction.settings)
-    supplied = {action: trial}
+    supplied = [trial]
     status = opt.target_status(ret=True, action_results=supplied)
     # Physical values in status; normalized relative-beta objective in the solve.
     np.testing.assert_allclose(status.current_val, [12., 16., 1.5, -1., 0.15, 0.32, 0.29])
@@ -262,7 +262,6 @@ def test_optics_targets_use_relative_beta_and_physical_alpha(correction, monkeyp
         -weights * relative_residuals, rcond=1e-12)[0]
     np.testing.assert_allclose(opt.get_correction(action_results=supplied, rcond=1e-12), expected)
     correction.optimizers = SimpleNamespace(optics=opt)
-    correction.twiss_action = action
     correction.optics_weights = target_weights
     assert status.penalty == pytest.approx(
         np.linalg.norm(weights * relative_residuals))
@@ -286,7 +285,6 @@ def test_optics_keeps_worsening_steps_until_goal_or_budget(correction, monkeypat
     opt.targets[1].active = False
     opt.set_response(np.array([[response], [0.]]))
     correction.optimizers = SimpleNamespace(optics=opt)
-    correction.twiss_action = action
     trials = []
 
     def evaluate_trial(tw):
@@ -323,13 +321,11 @@ def test_optics_keeps_worsening_steps_until_goal_or_budget(correction, monkeypat
 
 def test_explicit_stage_order_passes_latest_twiss(correction, monkeypatch):
     calls = []
-    action = object()
     def optimizer(name):
         def apply(*, action_results, **kwargs):
-            calls.append((name, action_results[action]))
+            calls.append((name, action_results[0]))
         return SimpleNamespace(run_lstsq=apply)
 
-    correction.twiss_action = action
     correction.optimizers = SimpleNamespace(**{
         name: optimizer(name) for name in ('orbit_x', 'orbit_y', 'optics', 'coupling')})
     def stage(name, advance=1):
@@ -389,7 +385,6 @@ def test_standalone_tune_correction(correction, monkeypatch, twiss_fails):
         action_results={action: baseline}, show_call_counter=False)
     opt.set_response(np.eye(2))
     correction.optimizers = SimpleNamespace(tunes=opt)
-    correction.twiss_action = action
     trials = []
     def evaluate(tw):
         values = np.array([float(correction.line[name]) for name in ('tune', 'quad')])
@@ -428,7 +423,6 @@ def test_tunes_allow_non_improving_iterations_until_limit(correction, monkeypatc
     # unchanged penalty. Only the tune iteration limit should reject them.
     opt.set_response(np.array([[1.]]))
     correction.optimizers = SimpleNamespace(tunes=opt)
-    correction.twiss_action = action
     trials = []
     def evaluate(tw):
         value = 2 * float(correction.line['tune'])
@@ -452,7 +446,6 @@ def test_settling_restores_failed_trial_before_continuing(correction, monkeypatc
     correction.optimizers = SimpleNamespace(
         orbit_x=SimpleNamespace(run_lstsq=apply),
         orbit_y=SimpleNamespace(run_lstsq=lambda **kwargs: None))
-    correction.twiss_action = object()
     def evaluate(kind):
         def run(tw):
             calls.append(kind)
