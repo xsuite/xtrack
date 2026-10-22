@@ -1,8 +1,19 @@
 """Build the tune optimizer and its two-knob finite-difference response."""
 
+import numpy as np
 import xtrack as xt
 
 import correction_setup as setup
+
+
+def compute_metrics(tw, reference):
+    tunes = np.array([tw.qx, tw.qy])
+    return dict(tunes=tunes, tune_error=tunes - np.array([reference.qx, reference.qy]))
+
+
+def tune_goal(tw, reference, *, tolerance):
+    metrics = compute_metrics(tw, reference)
+    return bool(np.all(np.abs(metrics['tune_error']) < tolerance))
 
 
 def build_optimizer(line, reference, action, *, tune_tol, full_twiss):

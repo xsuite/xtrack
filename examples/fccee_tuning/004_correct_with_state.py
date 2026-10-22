@@ -1,8 +1,9 @@
 """FCC-ee correction with inspectable state and an explicit ramp.
 
 003b_correct_with_optimizers.py remains the reference implementation.
-Inspect correction.optimizers, correction.settings and correction.history;
-correction.goal_optimizers expose the aggregate RMS/max stopping targets.
+Inspect correction.optimizers, correction.settings and correction.history.
+Each correction module computes its own metrics and checks its stopping goals;
+correction.compute_metrics(tw) combines diagnostics from all modules.
 Twiss is evaluated by correction and supplied to the optimizers explicitly.
 edit/subclass FCCeeCorrection to change the fixed-strength correction sequence.
 Set 003c's INPUT to response_api_class/machine.json to analyze the saved line.

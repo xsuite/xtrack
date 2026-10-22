@@ -13,9 +13,7 @@ from types import SimpleNamespace
 
 import numpy as np
 import xtrack as xt
-import xdeps as xd
 
-import correction_observables as obs
 import correction_steps as steps
 import correction_setup as setup
 from correction_io import HISTORY_COLUMNS, history_row, save_result
@@ -126,7 +124,6 @@ class FCCeeCorrection:
         self.log('Preparing nominal reference and correction responses')
         self._prepare_reference()
         self._build_optimizers()
-        self._build_goal_optimizers()
         self._set_values(self.orbit_knobs, np.zeros(len(self.orbit_knobs)))
         self._set_values(self.quad_knobs, np.zeros(len(self.quad_knobs)))
         self.set_error_fraction(0.0)
@@ -218,14 +215,14 @@ class FCCeeCorrection:
 
         RDT is the larger RMS residual of f1001 and f1010; tune error is
         the maximum absolute error across the two planes. Full diagnostics
-        remain available through measure() and the accepted history.
+        remain available through compute_metrics() and the accepted history.
         """
         if iteration == 0:
             self.log(
                 'iteration | orbit RMS x/y [um] | beta RMS x/y [%] | '
                 '|dQ| max | dDx/dDy RMS [mm] | RDT RMS max | |C-|'
             )
-        m = self.measure(tw)
+        m = self.compute_metrics(tw)
         x, y = 1e6 * m['orbit_rms']
         bx, by = 100 * m['beta_rms']
         label = 'initial' if iteration == 0 else str(iteration)
@@ -237,10 +234,9 @@ class FCCeeCorrection:
         )
 
     def orbit_goal(self, tw):
-        tolerance = max(0.002e-6, self.error_fraction * self.settings.orbit_tol)
-        metrics = dict(orbit_rms=obs.rms_arrays(self.orbit_errors(tw)))
-        # Target tolerance checks are strict; preserve 003b's inclusive orbit goal.
-        return self._goals_met('orbit', metrics, [np.nextafter(tolerance, np.inf)] * 2)
+        return orbit_corr.orbit_goal(
+            tw, monitor_indices=self.monitor_indices, monitor_alignment=self.monitor_alignment,
+            error_fraction=self.error_fraction, settings=self.settings)
 
     def goals_met(self, tw):
         return self.orbit_goal(tw) and self.optical_goal(tw) and self.coupling_goal(tw)
@@ -251,7 +247,7 @@ class FCCeeCorrection:
         Final refinement is a separate entry at the same error fraction. CSV
         diagnostics use the latest entry at each fraction, as in 003b.
         """
-        metrics = self.measure(tw)
+        metrics = self.compute_metrics(tw)
         self.accepted_twiss = tw
         self.line.twiss_default['co_guess'] = orbit_guess(tw)
         self.history.append(
@@ -289,7 +285,7 @@ class FCCeeCorrection:
             assert self.goals_met(tw)
         self.line.twiss_default['co_guess'] = orbit_guess(tw)
         self.line.twiss_default['steps_R_matrix'] = self.steps_r_matrix.copy()
-        metrics = self.measure(tw)
+        metrics = self.compute_metrics(tw)
         save_result(
             self.line,
             path,
@@ -349,108 +345,47 @@ class FCCeeCorrection:
             ret=True, action_results={self.twiss_action: tw}).residue
 
     def coupling_vector(self, tw):
-        return obs.coupling_vector(
-            tw, tw_ref=self.reference, coupling_indices=self.dispersion_indices
+        return coupling_corr.coupling_vector(
+            tw, self.reference, coupling_indices=self.dispersion_indices
         )
 
     def orbit_errors(self, tw, fraction=None):
-        return obs.orbit_errors(
+        return orbit_corr.orbit_errors(
             tw,
-            fraction,
             monitor_indices=self.monitor_indices,
             monitor_alignment=self.monitor_alignment,
         )
 
     def lab_orbit_errors(self, tw):
-        return obs.lab_orbit_errors(
+        return orbit_corr.lab_orbit_errors(
             tw, monitor_indices=self.monitor_indices, monitor_alignment=self.monitor_alignment
         )
 
-    def measure(self, tw, *, orbit_errors=True):
-        return obs.measure(
-            tw,
-            tw_ref=self.reference,
-            dispersion_indices=self.dispersion_indices,
-            ip_indices=self.ip_indices,
-            orbit_errors=self.orbit_errors if orbit_errors else None,
-        )
+    def compute_metrics(self, tw):
+        """Combine each correction module's diagnostics for logs and history."""
+        return {
+            **orbit_corr.compute_metrics(
+                tw, monitor_indices=self.monitor_indices, monitor_alignment=self.monitor_alignment),
+            **optics_corr.compute_metrics(
+                tw, self.reference, dispersion_indices=self.dispersion_indices,
+                ip_indices=self.ip_indices),
+            **coupling_corr.compute_metrics(
+                tw, self.reference, coupling_indices=self.coupling_indices,
+                ip_indices=self.ip_indices),
+            **tune_corr.compute_metrics(tw, self.reference),
+        }
 
     def coupling_goal(self, tw):
-        m = self.measure(tw, orbit_errors=None)
-        rdt_rms, rdt_ip, c_minus, dy_rms, dy_ip = (
-            (
-                self.settings.coupling_rms_tol,
-                self.settings.coupling_ip_tol,
-                self.settings.c_minus_tol,
-                self.settings.dispersion_rms_tol,
-                self.settings.dispersion_ip_tol,
-            )
-            if self.final_refinement
-            else (
-                self.settings.ramp_coupling_rms_tol,
-                self.settings.ramp_coupling_ip_tol,
-                self.settings.ramp_c_minus_tol,
-                self.settings.ramp_dispersion_rms_tol,
-                self.settings.ramp_dispersion_ip_tol,
-            )
-        )
-        return self._goals_met('coupling', m,
-                               [rdt_rms, rdt_rms, rdt_ip, c_minus, dy_rms, dy_ip])
+        return coupling_corr.coupling_goal(
+            tw, self.reference, coupling_indices=self.coupling_indices,
+            ip_indices=self.ip_indices, settings=self.settings,
+            final_refinement=self.final_refinement)
 
     def optical_goal(self, tw):
-        m = self.measure(tw, orbit_errors=None)
-        dx_rms, dx_ip = (
-            (
-                self.settings.horizontal_dispersion_rms_tol,
-                self.settings.horizontal_dispersion_ip_tol,
-            )
-            if self.final_refinement
-            else (
-                self.settings.ramp_horizontal_dispersion_rms_tol,
-                self.settings.ramp_horizontal_dispersion_ip_tol,
-            )
-        )
-        return self._goals_met('optics', m,
-                               [self.settings.beta_rms_tol] * 2
-                               + [self.settings.beta_max_tol] * 2
-                               + [dx_rms, dx_ip] + [self.settings.tune_tol] * 2)
-
-    def _build_goal_optimizers(self):
-        # Aggregate RMS/max goals are distinct from the response rows. These
-        # inspection-only optimizers do not calculate or apply a direction.
-        self.metrics_action = xt.Action(lambda: self.measure(self.twiss()))
-        groups = dict(
-            orbit=[('orbit_rms', i) for i in range(2)],
-            optics=[('beta_rms', i) for i in range(2)]
-                   + [('beta_max', i) for i in range(2)]
-                   + [('dx_rms', None), ('dx_ip', None)]
-                   + [('tune_error', i) for i in range(2)],
-            coupling=[('coupling_rms', i) for i in range(2)]
-                     + [(key, None) for key in ('coupling_ip', 'c_minus', 'dy_rms', 'dy_ip')],
-        )
-        self.goal_optimizers = SimpleNamespace()
-        metrics = self.measure(self.reference)
-        for name, quantities in groups.items():
-            targets = [
-                self.metrics_action.target(
-                    lambda data, key=key, i=i: data[key] if i is None else data[key][i],
-                    value=0.0, tol=1e-15, tag=key if i is None else f'{key}_{i}')
-                for key, i in quantities
-            ]
-            setattr(self.goal_optimizers, name, xd.Optimize(
-                vary=[], targets=targets, name=f'{name} goals',
-                action_results={self.metrics_action: metrics}, show_call_counter=False))
-        # Populate the live tolerances immediately for interactive inspection.
-        self.orbit_goal(self.reference)
-        self.optical_goal(self.reference)
-        self.coupling_goal(self.reference)
-
-    def _goals_met(self, name, metrics, tolerances):
-        optimizer = getattr(self.goal_optimizers, name)
-        for target, tolerance in zip(optimizer.targets, tolerances):
-            target.tol = tolerance
-        status = optimizer.target_status(ret=True, action_results={self.metrics_action: metrics})
-        return bool(np.all(status.tol_met))
+        return optics_corr.optical_goal(
+            tw, self.reference, dispersion_indices=self.dispersion_indices,
+            ip_indices=self.ip_indices, settings=self.settings,
+            final_refinement=self.final_refinement)
 
     def optical_cost(self, tw):
         return np.linalg.norm((self.optics_weights * self.optics_vector(tw))[:-2])
@@ -461,7 +396,7 @@ class FCCeeCorrection:
         return np.linalg.norm(self.coupling_weights * status.residue)
 
     def correctable_orbit_errors(self, tw):
-        return obs.correctable_orbit_errors(
+        return orbit_corr.correctable_orbit_errors(
             tw,
             lab_orbit_errors=self.lab_orbit_errors,
             orbit_optimizers=[self.optimizers.orbit_x, self.optimizers.orbit_y],

@@ -16,11 +16,24 @@ minimal and settings, optimizers, accepted state, and history inspectable.
 ## Optimizer setup modules
 
 - `optics_corr.py`: normal-optics and horizontal-dispersion targets, knob scales,
-  weights, and response construction.
+  weights, response construction, and the optics stopping check (`optical_goal`).
 - `orbit_corr.py`: horizontal and vertical orbit targets and response matrices.
 - `coupling_corr.py`: coupling and vertical-dispersion targets, scales, weights,
   and response construction.
 - `tune_corr.py`: nominal tune targets and the two-knob finite-difference response.
+
+Each correction module exposes `compute_metrics()` for its own quantities:
+orbit RMS in the BPM frame; whole-ring beta RMS/max and horizontal dispersion;
+coupling RDTs, vertical dispersion and c_minus; or tunes and tune errors.
+`correction.compute_metrics(tw)` combines those dictionaries for logging,
+history and output. It replaces `correction.measure()` and contains no metric
+formulas. All computations use supplied Twiss tables and run no tracking.
+
+Each module's goal function checks its local metrics directly. Optics also
+delegates the tune check to `tune_corr.tune_goal`. There are no auxiliary goal
+optimizers. Orbit comparisons remain inclusive; optics/coupling comparisons
+remain strict, signed errors use absolute values, and dispersion/coupling
+limits switch between ramp and final refinement.
 
 Each builder takes the line, nominal reference Twiss, and shared action and
 returns a configured optimizer (two for orbit) with its response installed.
@@ -298,6 +311,14 @@ include those two additional validation probes; refinement took three iterations
 The 12 focused tests pass, including finite-difference validation of the alpha
 row conversion. Log and verification:
 `/tmp/fccee_plain_alpha_v19jmngm/run.log` and `verification.json` there.
+
+Moving metrics and goal checks into their correction modules passed all 17
+focused tests. The full ramp, refinement, fresh final goal checks and saving
+completed in 211.5 seconds wall time, below the 250-second cap. All final goals
+passed, with 19 accepted entries and 256 Twiss calls (93 orbit-only). Saved
+history agrees with the preceding shared-BPM/IP run within atol=1e-8, rtol=1e-3.
+Log and verification: `/tmp/fccee_module_metrics_t28ffb3m/run.log` and
+`verification.json` in the same directory. The 003b reference is unchanged.
 
 Local comparison output: `/tmp/check_fccee_lstsq.log`; the earlier comparison
 including the rejected 0.0125 trial is `/tmp/check_fccee_lstsq_initial.log`.

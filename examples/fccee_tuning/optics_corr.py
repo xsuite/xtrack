@@ -4,6 +4,41 @@ import numpy as np
 import xtrack as xt
 
 from response_builders import normal_quadrupole_response
+import tune_corr
+
+
+def compute_metrics(tw, reference, *, dispersion_indices, ip_indices):
+    """Whole-ring beta beating and horizontal dispersion errors at BPMs/IPs."""
+    beta_x_error = tw.betx / reference.betx - 1
+    beta_y_error = tw.bety / reference.bety - 1
+    dx_error = tw.dx - reference.dx
+    return dict(
+        beta_rms=np.array([np.sqrt(np.mean(beta_x_error**2)),
+                           np.sqrt(np.mean(beta_y_error**2))]),
+        beta_max=np.array([np.max(np.abs(beta_x_error)), np.max(np.abs(beta_y_error))]),
+        dx_rms=float(np.sqrt(np.mean(dx_error[dispersion_indices]**2))),
+        dx_ip=float(np.max(np.abs(dx_error[ip_indices]))),
+    )
+
+
+def optical_goal(tw, reference, *, dispersion_indices, ip_indices,
+                 settings, final_refinement):
+    """Check optics errors from supplied Twiss tables; no tracking."""
+    metrics = compute_metrics(tw, reference, dispersion_indices=dispersion_indices,
+                              ip_indices=ip_indices)
+    if final_refinement:
+        dx_rms_tol = settings.horizontal_dispersion_rms_tol
+        dx_ip_tol = settings.horizontal_dispersion_ip_tol
+    else:
+        dx_rms_tol = settings.ramp_horizontal_dispersion_rms_tol
+        dx_ip_tol = settings.ramp_horizontal_dispersion_ip_tol
+    return bool(
+        np.all(metrics['beta_rms'] < settings.beta_rms_tol)
+        and np.all(metrics['beta_max'] < settings.beta_max_tol)
+        and metrics['dx_rms'] < dx_rms_tol
+        and metrics['dx_ip'] < dx_ip_tol
+        and tune_corr.tune_goal(tw, reference, tolerance=settings.tune_tol)
+    )
 
 
 def build_optimizer(line, reference, action, *, knobs, observation_names,
