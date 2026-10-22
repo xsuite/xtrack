@@ -38,6 +38,11 @@ by beta_ref and divide their target weights by beta_ref; scale their tolerances
 by beta_ref as well. This preserves the weighted linear system and acceptance
 cost of the relative-beta objective.
 
+Beta targets within 500 m of an interaction point receive the original extra
+weight of 5, accounting for ring wraparound. Horizontal dispersion retains its
+original extra IP weight (50 with the default tolerances). Both weightings were
+restored after testing uniform weights. IP stopping tolerances are unchanged.
+
 Alpha, dispersion, and tunes also use ordinary parameter/at targets. Alpha now
 targets `alpha_ref` directly, without the `beta_ref / beta` factor. Convert the
 shared helper's nominal normalized-alpha response using
@@ -73,10 +78,13 @@ assumes fixed geometry and normal-strength changes in unsliced, positive-length
 Quadrupoles, distributed over their lengths; it does not resolve a different
 longitudinal placement of individual multipole kicks.
 
-The FCC-ee setup installs this matrix and keeps its existing target weighting.
+The optics builder takes an explicit `knobs` list from the workflow, without
+reading line metadata. It installs this matrix with the original relative-beta,
+alpha, horizontal-dispersion and tune weights, including the IP emphasis.
 For its individual trims, the tune rows give the same integrated-beta knob
-scales as before. The directional tracking check now evaluates the optimizer's
-physical targets. `003b` and its shared helpers remain unchanged.
+scales as before. Optics setup does not run a directional tracking check or
+compute Twiss; response validation belongs in tests. `003b` and its shared
+helpers remain unchanged.
 
 ## Supplying model results
 
@@ -189,6 +197,25 @@ was possible; small state tests are not a full-machine physics validation.
 
 ### Implementation checks (2026-10-22)
 
+- Removing the horizontal-dispersion IP weight as well passed the 14 focused
+  tests, but the full run hit its 250 s wall-time limit during final refinement.
+  The ramp reached full error strength at 193.7 s after two rejected large steps.
+  At refinement iteration 4 (243.0 s), horizontal dispersion RMS was 0.273 mm
+  and beta RMS x/y was 0.44%/0.96%; completion and all final goals were not
+  verified. The log does not include individual IP residuals, so it does not
+  identify the remaining failing goal. Both beta and horizontal-dispersion IP
+  weights were subsequently restored. Artifacts:
+  `/tmp/fccee_uniform_dx_bz_rg2xd/{run.log,timing.json}`.
+- With uniform relative-beta weights (no extra IP beta weight), the full ramp,
+  final refinement and fresh final Twiss goal check passed in 196.2 s wall time,
+  below the 250 s limit. There were 17 accepted points, 233 full Twiss calls and
+  87 orbit calls. Final beta RMS x/y was 1.80%/0.99% (previous weighted run:
+  0.49%/0.70%); global maxima were 10.33%/37.50%, within the 50% goal. Maximum
+  absolute beta beating across the four IPs was 2.44%/3.24%. All dispersion,
+  orbit, coupling and tune goals passed. The run also includes the earlier
+  removal of the two setup validation Twiss calls and the generic response
+  builder, so its timing is not an isolated weighting benchmark. Artifacts:
+  `/tmp/fccee_uniform_beta_93kgi3aw/{run.log,verification.json,timing.json}`.
 - Optimizer-inspected optics response: 14 focused response/state tests pass in
   py313 with FutureWarning treated as an error. Coverage includes family knobs,
   intermediate expressions, combined k1/knl[1]/relative-knl contributions,

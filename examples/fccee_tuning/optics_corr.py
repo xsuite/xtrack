@@ -3,19 +3,16 @@
 import numpy as np
 import xtrack as xt
 
-import correction_setup as setup
 from response_builders import normal_quadrupole_response
 
 
-def build_optimizer(line, reference, action, *, beta_at, alpha_at, dispersion_at,
-                    interaction_points, ip_names, settings, full_twiss, log):
+def build_optimizer(line, reference, action, *, knobs, beta_at, alpha_at, dispersion_at,
+                    interaction_points, ip_names, settings):
     """Return an optimizer with weighted targets and a fixed nominal response.
 
-    Response checks use full_twiss; optimizer construction uses the supplied
-    reference table. The caller owns subsequent evaluations and trial acceptance.
+    Construction uses the supplied reference table without running Twiss.
+    The caller owns subsequent evaluations and trial acceptance.
     """
-    circuits = line.metadata['correction_knobs']['optics']
-    knobs = circuits['knobs']
     targets = (
         [xt.Target('bet' + p, at=name, value=reference['bet' + p, name], action=action)
          for p in 'xy' for name in beta_at]
@@ -30,7 +27,6 @@ def build_optimizer(line, reference, action, *, beta_at, alpha_at, dispersion_at
     distance = np.abs(reference.s[beta_indices, None] - ip_s[None, :])
     near_ip = np.any(np.minimum(distance, reference.line_length - distance)
                      < settings.ir_half_length, axis=1)
-    log(f'Upweighting beta at {np.sum(near_ip)} interaction-region observations')
     beta_weights = np.where(near_ip, settings.ir_beta_weight, 1.) / np.sqrt(len(beta_at))
     dx_weights = settings.horizontal_dispersion_weight * np.array([
         settings.horizontal_dispersion_ip_weight if name in ip_names else 1.
@@ -65,16 +61,6 @@ def build_optimizer(line, reference, action, *, beta_at, alpha_at, dispersion_at
     for vary, scale in zip(optimizer.vary, scales):
         vary.weight = scale
     optimizer.set_response(response)
-    setup.check_optics_response(
-        line, quad_knobs=knobs, strength_scale=scales, nominal_response=response,
-        optics_weights=np.array([target.weight for target in optimizer.targets]),
-        tw_ref=reference, full_twiss=full_twiss,
-        optics_vector=lambda tw: optimizer.target_status(
-            ret=True, action_results={action: tw}).residue,
-        horizontal_dispersion_errors=lambda tw: (
-            tw['dx', dispersion_at] - reference['dx', dispersion_at]),
-        n_dispersion=len(dispersion_at), log=log,
-    )
     return optimizer
 
 

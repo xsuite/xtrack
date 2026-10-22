@@ -618,10 +618,11 @@ class FCCeeCorrection:
         self.twiss_action = xt.Action(self.twiss)
         self.optimizers.optics = optics_corr.build_optimizer(
             self.line, self.reference, self.twiss_action,
+            knobs=self.quad_knobs,
             beta_at=self.obs_names, alpha_at=self.alpha_names,
             dispersion_at=self.dispersion_names,
             interaction_points=self.interaction_points, ip_names=self.ip_names,
-            settings=self.settings, full_twiss=self._full_twiss, log=_silent_log,
+            settings=self.settings,
         )
         self.opt_s = self.optimizers.optics.response.svd.s
         self.optimizers.orbit_x, self.optimizers.orbit_y = orbit_corr.build_optimizers(

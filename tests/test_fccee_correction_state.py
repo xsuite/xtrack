@@ -184,21 +184,20 @@ def test_optics_targets_use_relative_beta_and_physical_alpha(correction, monkeyp
     settings = correction.settings
     weights = np.array([settings.ir_beta_weight, settings.ir_beta_weight,
                         settings.alpha_weight, settings.alpha_weight,
-                        settings.horizontal_dispersion_weight, 1000., 1000.])
+                        settings.horizontal_dispersion_weight
+                        * settings.horizontal_dispersion_ip_weight, 1000., 1000.])
     monkeypatch.setattr(module, 'build_normal_quad_optics_response_matrix',
                         lambda *args: physical_response.copy())
-    monkeypatch.setattr(module.setup, 'check_optics_response', lambda *args, **kwargs: None)
-    correction.line.metadata['correction_knobs'] = dict(
-        optics=dict(knobs=['quad', 'skew'], quadrupoles=[]))
 
     def no_tracking():
         raise AssertionError('Unexpected Twiss')
 
     action = xt.Action(no_tracking)
     opt = module.build_optimizer(
-        correction.line, reference, action, beta_at=['bpm'], alpha_at=['bpm'],
-        dispersion_at=['bpm'], interaction_points=['bpm'], ip_names=[],
-        settings=correction.settings, full_twiss=no_tracking, log=correction.log)
+        correction.line, reference, action, knobs=['quad', 'skew'],
+        beta_at=['bpm'], alpha_at=['bpm'],
+        dispersion_at=['bpm'], interaction_points=['bpm'], ip_names=['bpm'],
+        settings=correction.settings)
     supplied = {action: trial}
     status = opt.target_status(ret=True, action_results=supplied)
     # Physical values in status; normalized relative-beta objective in the solve.
