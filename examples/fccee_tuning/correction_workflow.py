@@ -344,13 +344,9 @@ class FCCeeCorrection:
         ]
 
     def optics_vector(self, tw):
-        return obs.optics_vector(
-            tw,
-            tw_ref=self.reference,
-            obs_indices=self.obs_indices,
-            alpha_indices=self.alpha_indices,
-            dispersion_indices=self.dispersion_indices,
-        )
+        """Unweighted target residuals, in the installed response-row order."""
+        return self.optimizers.optics.target_status(
+            ret=True, action_results={self.twiss_action: tw}).residue
 
     def coupling_vector(self, tw):
         return obs.coupling_vector(
@@ -457,9 +453,7 @@ class FCCeeCorrection:
         return bool(np.all(status.tol_met))
 
     def optical_cost(self, tw):
-        status = self.optimizers.optics.target_status(
-            ret=True, action_results={self.twiss_action: tw})
-        return np.linalg.norm((self.optics_weights * status.residue)[:-2])
+        return np.linalg.norm((self.optics_weights * self.optics_vector(tw))[:-2])
 
     def coupling_cost(self, tw):
         status = self.optimizers.coupling.target_status(

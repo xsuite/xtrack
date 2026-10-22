@@ -29,6 +29,22 @@ the reference and observation locations, precomputes response SVDs, and retains
 the correction sequence, candidate evaluations, acceptance, rollback, and history.
 The existing `correction.optimizers` and inspection attributes remain available.
 
+## Relative beta objective
+
+The beta objective is relative beating, `beta / beta_ref - 1`, rather than
+`ln(beta / beta_ref)`. Ordinary `xt.Target` definitions expose physical beta
+values with their reference values. Multiply nominal relative-beta response rows
+by beta_ref and divide their target weights by beta_ref; scale their tolerances
+by beta_ref as well. This preserves the weighted linear system and acceptance
+cost of the relative-beta objective.
+
+Dispersion and tunes also use ordinary parameter/at targets. Normalized alpha
+uses a named helper with bound plane, location, and reference beta, and targets
+the reference alpha. No lambdas remain in optics optimizer setup. The workflow's
+`optics_vector` returns the optimizer's unweighted physical target residuals;
+`optics_weights` supplies the matching weights. Other settings are unchanged;
+the shared 003b helpers retain their logarithmic convention.
+
 ## Supplying model results
 
 Add optional `action_results={action: result}` to target-evaluation entry points.
@@ -174,6 +190,20 @@ After extracting the four optimizer setup modules, the full run completed in
 pre-extraction run exactly, with the same 19 accepted entries and 254 Twiss calls.
 The 11 focused response/action/state tests pass. Full-run log and verification:
 `/tmp/fccee_corr_modules__i4fb09r/run.log` and `verification.json` in that directory.
+
+Changing only the beta objective to relative beating completed the full ramp,
+refinement, fresh final goal checks, and saving in 222.2 seconds wall time,
+within the 250-second cap. There were 261 Twiss calls and four final-refinement
+iterations (previously 254 and three). All final goals passed; beta RMS was
+0.680%/0.764%. The 11 focused tests also pass. Log and verification:
+`/tmp/fccee_relative_beta_fjleyqm4/run.log` and `verification.json` there.
+
+Expressing beta, dispersion, and tunes as ordinary targets completed the full
+run in 223.6 seconds, with all final goals met and the same 261 Twiss calls and
+accepted fractions as the relative-beta run. History agrees within atol=1e-8,
+rtol=1e-3. The 12 focused tests include an independent check of the weighted
+linear system, correction, and acceptance cost. Log and verification:
+`/tmp/fccee_physical_targets_7bvco2p8/run.log` and `verification.json` there.
 
 Local comparison output: `/tmp/check_fccee_lstsq.log`; the earlier comparison
 including the rejected 0.0125 trial is `/tmp/check_fccee_lstsq_initial.log`.

@@ -158,3 +158,53 @@ def test_aggregate_goal_targets_preserve_thresholds(correction):
     assert not correction.coupling_goal(None)
     correction.settings.dispersion_ip_tol = 0.00006
     assert correction.coupling_goal(None)  # Settings remain live.
+
+
+def test_optics_targets_preserve_relative_beta_objective(correction, monkeypatch):
+    import xdeps as xd
+
+    module = importlib.import_module('optics_corr')
+    columns = ['name', 'betx', 'bety', 'alfx', 'alfy', 'dx']
+    reference = xd.Table(dict(
+        name=np.array(['bpm']), betx=np.array([10.]), bety=np.array([20.]),
+        alfx=np.array([1.]), alfy=np.array([-2.]), dx=np.array([0.1]),
+        qx=0.31, qy=0.32), col_names=columns)
+    trial = xd.Table(dict(
+        name=np.array(['bpm']), betx=np.array([12.]), bety=np.array([16.]),
+        alfx=np.array([1.5]), alfy=np.array([-1.]), dx=np.array([0.15]),
+        qx=0.32, qy=0.29), col_names=columns)
+    response = np.array([[1., 0.2], [0.3, 2.], [1., -1.], [0.5, 1.],
+                         [2., 0.], [0., 1.], [1., 1.]])
+    scales = np.array([0.2, 3.])
+    weights = np.arange(1., 8.)
+    monkeypatch.setattr(module.setup, 'prepare_optics_response', lambda *args, **kwargs:
+                        (response.copy(), scales.copy(), weights.copy(), [''] * 7))
+    correction.line.metadata['correction_knobs'] = dict(
+        optics=dict(knobs=['quad', 'skew'], quadrupoles=[]))
+
+    def no_tracking():
+        raise AssertionError('Unexpected Twiss')
+
+    action = xt.Action(no_tracking)
+    opt = module.build_optimizer(
+        correction.line, reference, action, beta_at=['bpm'], alpha_at=['bpm'],
+        dispersion_at=['bpm'], interaction_points=[], ip_names=[],
+        settings=correction.settings, full_twiss=no_tracking, log=correction.log)
+    supplied = {action: trial}
+    status = opt.target_status(ret=True, action_results=supplied)
+    # Physical values in status; normalized relative-beta objective in the solve.
+    np.testing.assert_allclose(status.current_val, [12., 16., 1.25, -1.25, 0.15, 0.32, 0.29])
+    np.testing.assert_allclose(status.target_val, [10., 20., 1., -2., 0.1, 0.31, 0.32])
+    relative_residuals = np.array([0.2, -0.2, 0.25, 0.75, 0.05, 0.01, -0.03])
+    target_weights = np.array([target.weight for target in opt.targets])
+    np.testing.assert_allclose(target_weights * status.residue, weights * relative_residuals)
+    np.testing.assert_allclose(
+        target_weights[:, None] * opt.response.matrix, weights[:, None] * response)
+    expected = scales * np.linalg.lstsq(
+        weights[:, None] * response * scales, -weights * relative_residuals, rcond=1e-12)[0]
+    np.testing.assert_allclose(opt.get_correction(action_results=supplied, rcond=1e-12), expected)
+    correction.optimizers = SimpleNamespace(optics=opt)
+    correction.twiss_action = action
+    correction.optics_weights = target_weights
+    assert correction.optical_cost(trial) == pytest.approx(
+        np.linalg.norm((weights * relative_residuals)[:-2]))
