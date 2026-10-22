@@ -164,21 +164,30 @@ def test_optics_targets_use_relative_beta_and_physical_alpha(correction, monkeyp
     import xdeps as xd
 
     module = importlib.import_module('optics_corr')
-    columns = ['name', 'betx', 'bety', 'alfx', 'alfy', 'dx']
+    columns = ['name', 's', 'betx', 'bety', 'alfx', 'alfy', 'dx']
     reference = xd.Table(dict(
-        name=np.array(['bpm']), betx=np.array([10.]), bety=np.array([20.]),
+        name=np.array(['bpm']), s=np.array([0.]), line_length=100.,
+        betx=np.array([10.]), bety=np.array([20.]),
         alfx=np.array([1.]), alfy=np.array([-2.]), dx=np.array([0.1]),
         qx=0.31, qy=0.32), col_names=columns)
     trial = xd.Table(dict(
-        name=np.array(['bpm']), betx=np.array([12.]), bety=np.array([16.]),
+        name=np.array(['bpm']), s=np.array([0.]), line_length=100.,
+        betx=np.array([12.]), bety=np.array([16.]),
         alfx=np.array([1.5]), alfy=np.array([-1.]), dx=np.array([0.15]),
         qx=0.32, qy=0.29), col_names=columns)
     response = np.array([[1., 0.2], [0.3, 2.], [1., -1.], [0.5, 1.],
                          [2., 0.], [0., 1.], [1., 1.]])
-    scales = np.array([0.2, 3.])
-    weights = np.arange(1., 8.)
-    monkeypatch.setattr(module.setup, 'prepare_optics_response', lambda *args, **kwargs:
-                        (response.copy(), scales.copy(), weights.copy(), [''] * 7))
+    physical_response = response.copy()
+    physical_response[2:4] += np.array([1., -2.])[:, None] * response[:2]
+    physical_response[:2] *= np.array([10., 20.])[:, None]
+    scales = 1 / (4 * np.pi * np.max(np.abs(physical_response[-2:]), axis=0))
+    settings = correction.settings
+    weights = np.array([settings.ir_beta_weight, settings.ir_beta_weight,
+                        settings.alpha_weight, settings.alpha_weight,
+                        settings.horizontal_dispersion_weight, 1000., 1000.])
+    monkeypatch.setattr(module, 'build_normal_quad_optics_response_matrix',
+                        lambda *args: physical_response.copy())
+    monkeypatch.setattr(module.setup, 'check_optics_response', lambda *args, **kwargs: None)
     correction.line.metadata['correction_knobs'] = dict(
         optics=dict(knobs=['quad', 'skew'], quadrupoles=[]))
 
@@ -188,7 +197,7 @@ def test_optics_targets_use_relative_beta_and_physical_alpha(correction, monkeyp
     action = xt.Action(no_tracking)
     opt = module.build_optimizer(
         correction.line, reference, action, beta_at=['bpm'], alpha_at=['bpm'],
-        dispersion_at=['bpm'], interaction_points=[], ip_names=[],
+        dispersion_at=['bpm'], interaction_points=['bpm'], ip_names=[],
         settings=correction.settings, full_twiss=no_tracking, log=correction.log)
     supplied = {action: trial}
     status = opt.target_status(ret=True, action_results=supplied)

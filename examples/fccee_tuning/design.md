@@ -24,7 +24,7 @@ minimal and settings, optimizers, accepted state, and history inspectable.
 
 Each builder takes the line, nominal reference Twiss, and shared action and
 returns a configured optimizer (two for orbit) with its response installed.
-Builders reuse the unchanged numerical preparation helpers. The workflow owns
+Builders reuse the unchanged analytical response helpers. The workflow owns
 the reference and observation locations, precomputes response SVDs, and retains
 the correction sequence, candidate evaluations, acceptance, rollback, and history.
 The existing `correction.optimizers` and inspection attributes remain available.
@@ -42,12 +42,41 @@ Alpha, dispersion, and tunes also use ordinary parameter/at targets. Alpha now
 targets `alpha_ref` directly, without the `beta_ref / beta` factor. Convert the
 shared helper's nominal normalized-alpha response using
 `d(alpha) = d(alpha * beta_ref / beta) + alpha_ref * d(log(beta))` at the reference.
-All alpha observation locations occur among the beta observations, so their
-existing beta rows provide the additional derivatives. Alpha weights are unchanged.
+The response builder includes alpha locations in its internal beta observations
+to supply these derivatives. Alpha weights are unchanged.
 No callable targets remain in optics optimizer setup. The workflow's
 `optics_vector` returns the optimizer's unweighted physical target residuals;
 `optics_weights` supplies the matching weights. Other settings are unchanged;
 the shared 003b helpers retain their logarithmic convention.
+
+## Optics response from the optimizer
+
+`build_normal_quad_optics_response_matrix(optimizer, reference)` lives at the
+bottom of `optics_corr.py`. It returns an array in full target/vary order,
+including inactive entries, without applying weights or knob scales. The caller
+supplies the periodic, uncoupled reference Twiss; the function runs no actions
+or Twiss calculations.
+
+Ordinary betx/bety, alfx/alfy, dx and qx/qy targets determine the observation
+locations and row order. The varies determine the column order and probe steps.
+For each independent line variable, xdeps `controlled_targets` identifies the
+affected quadrupoles, including dependencies through intermediate variables.
+Central knob probes read only those elements' `get_total_knl_ksl()[0][1]`, and
+restore the knob in `finally`. This includes k1, knl[1], and relative multipole
+contributions without inspecting which field holds the expression.
+
+The unchanged analytical helper supplies the four-point thick-quadrupole
+response, converted to physical beta/alpha and per integrated normal strength.
+Each knob column sums its affected quadrupole responses times the measured
+strength derivatives. No one-to-one knob/magnet pairing is assumed. This model
+assumes fixed geometry and normal-strength changes in unsliced, positive-length
+Quadrupoles, distributed over their lengths; it does not resolve a different
+longitudinal placement of individual multipole kicks.
+
+The FCC-ee setup installs this matrix and keeps its existing target weighting.
+For its individual trims, the tune rows give the same integrated-beta knob
+scales as before. The directional tracking check now evaluates the optimizer's
+physical targets. `003b` and its shared helpers remain unchanged.
 
 ## Supplying model results
 
@@ -160,6 +189,17 @@ was possible; small state tests are not a full-machine physics validation.
 
 ### Implementation checks (2026-10-22)
 
+- Optimizer-inspected optics response: 14 focused response/state tests pass in
+  py313 with FutureWarning treated as an error. Coverage includes family knobs,
+  intermediate expressions, combined k1/knl[1]/relative-knl contributions,
+  reordered and duplicate targets, tune-only targets, inactive entries, and
+  restoration after a failed probe. Tracking comparisons use resolved multipole
+  kicks consistent with the distributed-strength approximation.
+- The real FCC-ee 22173-by-2679 matrix agrees with the previous builder to a
+  relative norm difference of 3.5e-11. Weights, scales, tolerances and tags agree;
+  both builders' directional tracking checks pass. Complete optics setup took
+  5.8 s versus 3.7 s previously in a single comparison. This validation did not
+  rerun the full correction ramp.
 - xdeps suite: 107 passed, 2 expected failures.
 - Focused Xtrack response/action/state tests after cache removal: 11 passed, with
   FutureWarning promoted to an error.
