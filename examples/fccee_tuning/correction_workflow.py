@@ -1,9 +1,8 @@
-"""Inspectable FCC-ee correction workflow used by 004.
+"""Inspectable FCC-ee correction workflow used by 002.
 
 This is an example-local API prototype. The class owns increasing errors,
 correction, final refinement, Twiss evaluation, snapshots and history.
 Optimizers consume supplied Twiss tables and apply least-squares changes.
-003b and its shared trial helpers remain the numerical reference.
 """
 
 from copy import deepcopy
@@ -26,7 +25,7 @@ import corr_tune
 
 
 def _silent_log(*args, **kwargs):
-    """Suppress detailed output from the shared 003b helpers."""
+    """Suppress detailed output from the response preparation helpers."""
     pass
 
 
@@ -46,7 +45,7 @@ class MachineSnapshot:
 
 
 class FCCeeCorrection:
-    """Own correction state and execution for a line prepared by 003a.
+    """Own correction state and execution for a line prepared by 001.
 
     Construction builds the nominal reference and five fixed-response optimizers,
     then starts at zero error/nonlinear strength. The optimizers, iteration limits,
@@ -327,7 +326,7 @@ class FCCeeCorrection:
         """Accept a result and append independent knob/observable values to history.
 
         Final refinement is a separate entry at the same error fraction. CSV
-        diagnostics use the latest entry at each fraction, as in 003b.
+        diagnostics use the latest entry at each fraction.
         """
         metrics = _legacy_metrics(self.compute_metrics(tw))
         self.accepted_twiss = tw
@@ -350,7 +349,7 @@ class FCCeeCorrection:
 
     @property
     def history_rows(self):
-        """Latest accepted diagnostics per error fraction, in 003b CSV order."""
+        """Latest accepted diagnostics per error fraction, in history CSV order."""
         rows = []
         for entry in self.history:
             row = entry['row']
@@ -361,7 +360,7 @@ class FCCeeCorrection:
         return rows
 
     def save_result(self, path, *, completed=None):
-        """Save the accepted line and history for independent analysis with 003c."""
+        """Save the accepted line and history for independent analysis."""
         if completed is None:
             completed = self.completed
         tw = self.twiss()
@@ -492,7 +491,7 @@ class FCCeeCorrection:
 
 
 def _legacy_metrics(metrics):
-    """Adapt named error metrics to the existing 003b/003c output format."""
+    """Adapt named error metrics to the saved history and metadata format."""
     return dict(
         metrics,
         orbit_rms=np.array([metrics['orbit_x_rms'], metrics['orbit_y_rms']]),

@@ -31,7 +31,7 @@ def install_optics_knobs(line):
     Existing trims must already feed their quadrupole's k1 through
     on_optics_corr. Preserve their values, expressions and switch setting,
     including after a JSON round trip. Check all existing names before editing
-    the line, and record the resulting circuit for the 003b reference workflow.
+    the line, and record the resulting circuit in the line metadata.
     """
     table = line.get_table()
     quadrupoles = list(dict.fromkeys(table.env_name[table.element_type == 'Quadrupole']))

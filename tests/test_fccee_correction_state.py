@@ -791,10 +791,9 @@ def test_settling_restores_failed_trial_before_continuing(correction, monkeypatc
     assert calls == []
 
 
-def test_module_metrics_match_reference_helpers(correction, monkeypatch):
+def test_module_metrics_match_expected_errors(correction, monkeypatch):
     import xdeps as xd
 
-    obs = importlib.import_module('correction_observables')
     orbit = importlib.import_module('corr_orbit')
     columns = ['name', 'betx', 'bety', 'dx', 'dy', 'f1001', 'f1010', 'x', 'y']
     reference = xd.Table(dict(
@@ -835,13 +834,32 @@ def test_module_metrics_match_reference_helpers(correction, monkeypatch):
                                            orbit_x=orbit_opts[0], orbit_y=orbit_opts[1])
     del correction.compute_metrics
     monkeypatch.setattr(correction, 'twiss', lambda *a, **k: pytest.fail('Unexpected Twiss'))
-    expected = obs.measure(tw, tw_ref=reference, dispersion_indices=dispersion_indices,
-        ip_indices=ip_indices, orbit_errors=lambda table: obs.orbit_errors(
-            table, monitor_indices=monitor_indices, monitor_alignment=alignment))
+    # Known errors at all elements (beta) or only the selected BPMs/IP (dispersion
+    # and coupling); large errors at the unobserved element must be excluded.
+    x, y = np.array([.9e-6, -1.8e-6]), np.array([-2.7e-6, 3.6e-6])
+    roll = np.array([.1, -.2])
+    expected = dict(
+        orbit_rms=np.sqrt(np.mean(np.array([
+            x * np.cos(roll) + y * np.sin(roll),
+            -x * np.sin(roll) + y * np.cos(roll)])**2, axis=1)),
+        beta_rms=np.full(2, np.sqrt((.01**2 + .2**2 + .02**2 + .03**2) / 4)),
+        beta_max=np.array([.2, .2]),
+        tunes=np.array([.310001, .319998]),
+        tune_error=np.array([.310001 - .31, .319998 - .32]),
+        dx_rms=np.sqrt((.001**2 + .002**2 + .00004**2) / 3),
+        dx_ip=.00004,
+        dy_rms=np.sqrt((.0001**2 + .0002**2 + .00001**2) / 3),
+        dy_ip=.00001,
+        coupling_rms=np.sqrt(np.array([
+            .001**2 + .002**2 + .002**2 + .0004**2,
+            .002**2 + .001**2 + .0002**2]) / 3),
+        coupling_ip=.0004,
+        c_minus=-.0002,
+    )
     workflow = importlib.import_module('correction_workflow')
     actual = workflow._legacy_metrics(correction.compute_metrics(tw))
     for key in expected:
-        np.testing.assert_allclose(actual[key], expected[key], rtol=1e-14, atol=0)
+        np.testing.assert_allclose(actual[key], expected[key], rtol=1e-12, atol=0)
     orbit_only = SimpleNamespace(x=tw.x, y=tw.y)
     for i, opt in enumerate(orbit_opts):
         assert opt.compute_metrics(orbit_only)[f'orbit_{opt.plane}_rms'] == expected['orbit_rms'][i]

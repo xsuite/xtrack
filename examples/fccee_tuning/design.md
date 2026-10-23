@@ -9,9 +9,17 @@ acceptance decisions, retries, whole-machine snapshots, increasing errors and
 the separate final refinement at the requested error fraction (including
 fractions below one). The user script configures, loads, runs and saves.
 
-Do not change `003b_correct_with_optimizers.py` or its shared numerical helpers.
-It remains the reference. Do not reintroduce resume/checkpoints. Keep logging
-minimal and settings, optimizers, accepted state, and history inspectable.
+Run the example scripts in order:
+
+1. `000_install_errors.py` installs static lattice errors.
+2. `001_install_correction_knobs.py` installs the correction knobs.
+3. `002_correct_with_state.py` increases errors, corrects, refines and saves.
+
+The older correction and analysis scripts have been removed, together with
+unused helpers. Their reference implementations remain in Git history (commit
+`11b5f7f58`). Historical validation notes below retain the old script names.
+Do not reintroduce resume/checkpoints. Keep logging minimal and settings,
+optimizers, accepted state, and history inspectable.
 
 ## Executing the correction
 
@@ -39,7 +47,7 @@ raise out of these stage methods.
 A successful run to a smaller requested fraction returns True but remains a
 partial-strength output. `save_result(path)` infers this completion flag, performs
 its existing fresh Twiss validation, and saves the error-increase parameters
-without the script repeating them. `004` saves before raising on a failed run.
+without the script repeating them. `002` saves before raising on a failed run.
 There is no checkpoint or disk-resume mechanism. The explicit
 `correct_at_fixed_strengths` sequence remains the place to add correction stages.
 
@@ -121,7 +129,7 @@ standalone tune stage.
 
 The workflow collects metrics and prints one short summary from each optimizer.
 Metric names must be unique. A small output adapter combines `orbit_x_rms` and
-`orbit_y_rms` into the existing `orbit_rms` array for 003b/003c compatibility;
+`orbit_y_rms` into the existing `orbit_rms` array for the saved history and metadata format;
 it also provides the old optics names to the shared output helpers. Optics metrics
 are `beta_err_rms`/`beta_err_max` for relative beta errors and
 `dx_err_rms`/`dx_err_ip` for absolute dispersion errors against the reference.
@@ -141,7 +149,6 @@ The correction sequence remains custom Python; no generic pipeline is introduced
 Each optimizer owns a local action and uses supplied results at construction.
 The workflow still owns the common reference and observation policy, precomputes
 response SVDs, and controls candidate evaluations, acceptance and rollback.
-The shared 003b response and setup helpers remain unchanged.
 
 Each optimizer sets `rcond` from its module settings (zero for tunes).
 `run_lstsq`, `get_correction`, `step`, `solve`, and `run_jacobian` use this default
@@ -178,8 +185,7 @@ The response builder includes alpha locations in its internal beta observations
 to supply these derivatives. Alpha weights are unchanged.
 No callable targets remain in optics optimizer setup. Use the optimizer's
 `target_status(ret=True, action_results=[tw]).residue` for physical residuals
-and its targets' weights for the matching objective weights. The shared 003b
-helpers retain their logarithmic convention.
+and its targets' weights for the matching objective weights. The analytical response helpers retain their logarithmic convention.
 
 ## Optics response from the optimizer
 
@@ -208,7 +214,7 @@ longitudinal placement of individual multipole kicks.
 `corr_optics.install_optics_knobs(line)` installs one independent
 `dk1_optics_<name>` trim per quadrupole, adds it to `k1` through `on_optics_corr`,
 records the optics circuit in metadata, and returns the knob list. Repeated
-occurrences of the same element share one trim. Both 003a and the correction
+occurrences of the same element share one trim. Both 001 and the correction
 workflow call this function. Existing variables are checked against the actual
 `k1` expression dependencies, so a loaded lattice is reused without adding a
 second trim term, resetting its values or enabling a disabled switch. A conflicting
@@ -222,8 +228,7 @@ alpha, horizontal-dispersion and tune weights, including the IP emphasis.
 All optics knobs use the constant `vary.weight = 1.`, so their columns are no
 longer normalized using the tune derivatives. The SVD uses the physical knob
 coordinates and the existing target weights. Optics setup does not run a
-directional tracking check or compute Twiss; response validation belongs in tests. `003b` and its shared
-helpers remain unchanged.
+directional tracking check or compute Twiss; response validation belongs in tests.
 
 ## Supplying model results
 
@@ -588,3 +593,12 @@ workflow: 17 entries and 221 Twiss calls (79 orbit-only). Artifacts:
 `final_checks.json` and `timing.json`. `004` now contains configuration,
 construction, one `run(...)` call and saving; the reference and shared 003b
 helpers remain unchanged.
+
+The folder cleanup retains only the 000/001/002 entry scripts and their
+required modules. Four obsolete entry scripts and 21 unused helper functions
+were removed; retained numerical helper implementations are unchanged. All
+56 focused tests pass. Running the renamed `002_correct_with_state.py` completed
+in 175.2 seconds wall time, with all 12 final checks passing and exactly the
+same accepted history (17 entries, 221 Twiss calls, including 79 orbit-only).
+Artifacts: `/tmp/fccee_folder_cleanup_umez7zpj/run.log`, `verification.json`,
+`final_checks.json` and `timing.json`.

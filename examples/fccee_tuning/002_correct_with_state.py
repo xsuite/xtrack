@@ -1,12 +1,11 @@
 """FCC-ee correction with inspectable state and module-defined optimizers.
 
-003b_correct_with_optimizers.py remains the reference implementation.
 Inspect correction.optimizers, each optimizer.settings, and correction.history.
 Each correction module computes its own metrics and checks its stopping goals;
 correction.compute_metrics(tw) combines diagnostics from all modules.
 Twiss is evaluated by correction and supplied to the optimizers explicitly.
 Edit FCCeeCorrection.correct_at_fixed_strengths to change the correction sequence.
-Set 003c's INPUT to response_api_class/machine.json to analyze the saved line.
+The corrected line is saved to response_api_class/machine.json.
 """
 
 from copy import copy
