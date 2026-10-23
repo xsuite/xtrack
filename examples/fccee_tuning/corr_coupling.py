@@ -17,11 +17,11 @@ COUPLING_SETTINGS = SimpleNamespace(
     c_minus_tol=0.0003,
     dispersion_rms_tol=0.001,
     dispersion_ip_tol=0.00002,
-    ramp_c_minus_tol=0.003,
-    ramp_coupling_rms_tol=0.03,
-    ramp_coupling_ip_tol=0.03,
-    ramp_dispersion_rms_tol=0.005,
-    ramp_dispersion_ip_tol=0.0001,
+    intermediate_c_minus_tol=0.003,
+    intermediate_coupling_rms_tol=0.03,
+    intermediate_coupling_ip_tol=0.03,
+    intermediate_dispersion_rms_tol=0.005,
+    intermediate_dispersion_ip_tol=0.0001,
     dispersion_weight=1.,
     orbit_tol=5e-8,
     step_scale=0.5,
@@ -69,11 +69,11 @@ def build_coupling_corr_optimizer(line, reference, *, observation_names, ip_name
 
     optimizer.step_scale = settings.step_scale
     optimizer.orbit_tol = settings.orbit_tol
-    optimizer.rdt_rms_tol = settings.ramp_coupling_rms_tol
-    optimizer.rdt_ip_tol = settings.ramp_coupling_ip_tol
-    optimizer.c_minus_tol = settings.ramp_c_minus_tol
-    optimizer.dy_rms_tol = settings.ramp_dispersion_rms_tol
-    optimizer.dy_ip_tol = settings.ramp_dispersion_ip_tol
+    optimizer.rdt_rms_tol = settings.intermediate_coupling_rms_tol
+    optimizer.rdt_ip_tol = settings.intermediate_coupling_ip_tol
+    optimizer.c_minus_tol = settings.intermediate_c_minus_tol
+    optimizer.dy_rms_tol = settings.intermediate_dispersion_rms_tol
+    optimizer.dy_ip_tol = settings.intermediate_dispersion_ip_tol
 
     return optimizer
 

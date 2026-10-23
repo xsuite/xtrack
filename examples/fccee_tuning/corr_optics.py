@@ -19,8 +19,8 @@ OPTICS_SETTINGS = SimpleNamespace(
     ir_half_length=500.,
     horizontal_dispersion_rms_tol=0.001,
     horizontal_dispersion_ip_tol=0.0001,
-    ramp_horizontal_dispersion_rms_tol=0.005,
-    ramp_horizontal_dispersion_ip_tol=0.0005,
+    intermediate_horizontal_dispersion_rms_tol=0.005,
+    intermediate_horizontal_dispersion_ip_tol=0.0005,
     rcond=1e-5,
 )
 
@@ -139,8 +139,8 @@ def build_opt_corr_optimizer(line, reference, *, knobs, observation_names,
     optimizer.beta_err_rms_tol = settings.beta_err_rms_tol
     optimizer.beta_err_max_tol = settings.beta_err_max_tol
     optimizer.tune_tol = settings.tune_tol
-    optimizer.dx_err_rms_tol = settings.ramp_horizontal_dispersion_rms_tol
-    optimizer.dx_err_ip_tol = settings.ramp_horizontal_dispersion_ip_tol
+    optimizer.dx_err_rms_tol = settings.intermediate_horizontal_dispersion_rms_tol
+    optimizer.dx_err_ip_tol = settings.intermediate_horizontal_dispersion_ip_tol
 
     return optimizer
 

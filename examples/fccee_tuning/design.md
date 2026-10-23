@@ -5,13 +5,43 @@
 `Optimize` owns targets, tolerances, weights, varies, response matrices, the
 least-squares solve, and application of a requested change to its knobs.
 `FCCeeCorrection` owns Twiss computation, the sequence of corrections,
-acceptance decisions, retries, and whole-machine snapshots. The user script owns
-the error/nonlinear ramp and the separate final refinement at the requested error
-fraction (including fractions below one).
+acceptance decisions, retries, whole-machine snapshots, increasing errors and
+the separate final refinement at the requested error fraction (including
+fractions below one). The user script configures, loads, runs and saves.
 
 Do not change `003b_correct_with_optimizers.py` or its shared numerical helpers.
 It remains the reference. Do not reintroduce resume/checkpoints. Keep logging
 minimal and settings, optimizers, accepted state, and history inspectable.
+
+## Executing the correction
+
+`FCCeeCorrection.run(target_error_fraction=1., initial_increment=0.0125,
+min_increment=1e-5, max_increment=0.10)` calls two separate public methods:
+
+- `increase_errors_and_correct(...)` increases errors and nonlinear strengths
+  together, extrapolates existing corrections, evaluates Twiss, and runs the
+  custom fixed-strength sequence. Rejected trials are restored and the increment
+  is halved. Accepted trials are recorded. An accepted trial needing at most
+  three cycles grows the next increment by 1.25, capped at `max_increment`.
+- `refine()` switches to final tolerances and corrects the current accepted state,
+  including at fractions below one. It starts from `accepted_twiss` and does no
+  extra work when the final goals are already met. A failed refinement restores
+  its starting machine while retaining the final tolerances.
+
+Both stages and `run()` return a success boolean. `run()` skips refinement when
+increasing errors fails. The object exposes `correction_failed`, `failure_reason`,
+`target_error_fraction`, and `error_increase_settings`. Invalid targets or increment
+bounds raise before changing execution or machine state. Numerical failures
+leave the accepted machine available for inspection and saving; they do not
+raise out of these stage methods.
+
+`completed` means the accepted machine meets final goals at full error strength.
+A successful run to a smaller requested fraction returns True but remains a
+partial-strength output. `save_result(path)` infers this completion flag, performs
+its existing fresh Twiss validation, and saves the error-increase parameters
+without the script repeating them. `004` saves before raising on a failed run.
+There is no checkpoint or disk-resume mechanism. The explicit
+`correct_at_fixed_strengths` sequence remains the place to add correction stages.
 
 ## Correction optimizer modules
 
@@ -69,7 +99,7 @@ inspect or change them afterwards through each `optimizer.settings`. Response
 weights and cutoffs are configured during construction; `optimizer.rcond` remains
 directly editable. There is no central schema of correction-specific settings.
 
-Builders initialize constant tolerances and the active ramp limits. Changing
+Builders initialize constant tolerances and the active intermediate limits. Changing
 `FCCeeCorrection.final_refinement` explicitly switches only the optics Dx and
 coupling RDT/c_minus/Dy limits. Restoring across a mode change restores the
 corresponding limits; restoring within the same mode leaves them untouched.
@@ -77,12 +107,12 @@ Changing the error fraction does not change any tolerances. Goal calls need only
 `tw`, without mode/context arguments. Active tolerances, such as
 `optics.dx_err_ip_tol` or `orbit_x.orbit_tol`, remain inspectable and directly editable.
 There is no goal-configuration callback. When adding a correction with different
-ramp/refinement limits, include its assignments in the explicit mode switch.
+error-increase/refinement limits, include its assignments in the explicit mode switch.
 
 Orbit goals use inclusive RMS comparisons and a fixed tolerance (10 micrometres
-by default) throughout ramp and refinement. Coupling's internal orbit settling
+by default) throughout error increases and refinement. Coupling's internal orbit settling
 retains its separate 50-nanometre correctable-orbit tolerance.
-Optics/coupling goals retain strict comparisons and their ramp/refinement limits.
+Optics/coupling goals retain strict comparisons and their error-increase/refinement limits.
 Optics still checks tunes as well as beta and Dx. Tune global acceptance uses its
 configured tune tolerance; `optimizers.tunes.correct()` uses half that tolerance
 for cleanup. This preserves the existing distinction between acceptance and the
@@ -99,7 +129,7 @@ scales and singular values are inspected on the optimizer itself, without mirror
 attributes on `FCCeeCorrection`.
 
 After constructing the optimizers, the workflow collects their varies and nominal
-knob values for ramp scaling, snapshots and history. Shared knobs appear once;
+knob values for scaling as errors increase, snapshots and history. Shared knobs appear once;
 conflicting nominal values raise an error. Each module declares nonzero nominal
 values where needed (currently tune knobs); ordinary correction trims default to
 zero. A new correction therefore needs its own module, an instance added in
@@ -272,11 +302,11 @@ Candidate application and Twiss evaluation are explicit in
 `correct_at_fixed_strengths()`. There are no penalty comparisons, penalty helper
 methods or inner step-halving retries. Intermediate errors may increase.
 
-`ramp_max_iterations=5` limits complete cycles at each ramp fraction;
+`intermediate_max_iterations=5` limits complete cycles at each error fraction;
 `final_max_iterations=40` applies to final refinement. The loop checks all goals
 before any work and after every completed cycle, including the last allowed
-cycle. If goals remain unmet at the limit, it raises. The ramp/refinement caller
-owns rollback; a rejected ramp step also halves the error-fraction increment.
+cycle. If goals remain unmet at the limit, it raises. The error-increase/refinement caller
+owns rollback; a rejected error-increase trial also halves the error-fraction increment.
 Twiss failures propagate immediately, except during orbit settling as below.
 
 The coupling stage includes orbit settling before its baseline and after each
@@ -288,14 +318,14 @@ explicit after the coupling stage. Optics does not nest orbit correction.
 
 `optimizers.tunes.correct()` uses its cleanup tolerance and up to seven iterations,
 without comparing penalties. If the tune goal is still unmet, it raises to the
-ramp/refinement caller; it performs no local rollback. The optics optimizer also
+error-increase/refinement caller; it performs no local rollback. The optics optimizer also
 retains its qx/qy targets. Orbit, optics and tune use step_scale=1; coupling
 retains its configured scale (0.5 by default). Optimizer knob limits and
 maximum-step handling are unchanged.
 
 The RMS/max goals remain in the correction modules, with their strict versus
-inclusive comparisons and ramp/final tolerances unchanged. Only accepted
-ramp/refinement points enter correction history. The optimizer's scalar
+inclusive comparisons and intermediate/final tolerances unchanged. Only accepted
+error-increase/refinement points enter correction history. The optimizer's scalar
 `target_status().penalty` remains available for inspection, but the workflow
 no longer uses it to decide whether to retain a candidate.
 
@@ -546,3 +576,14 @@ orbit-only) previously. Final beta RMS was 1.30%/1.33%, beta maximum was
 `/tmp/fccee_constant_optics_weight_6nbea93h/run.log`, `verification.json`,
 `final_checks.json` and `timing.json`. The analytical response, target weights,
 acceptance tolerances and shared 003b helpers remain unchanged.
+
+Moving error-increase execution and refinement into `FCCeeCorrection` passed
+56 focused tests, including rejected-trial rollback, minimum-increment failure,
+partial-result saving, refinement failure, and refinement below full strength.
+The full run passed all 12 independent final checks in 182.3 seconds wall time,
+within the 250-second cap. Its accepted history is exactly equal to the previous
+workflow: 17 entries and 221 Twiss calls (79 orbit-only). Artifacts:
+`/tmp/fccee_class_execution_91lm1e1u/run.log`, `verification.json`,
+`final_checks.json` and `timing.json`. `004` now contains configuration,
+construction, one `run(...)` call and saving; the reference and shared 003b
+helpers remain unchanged.

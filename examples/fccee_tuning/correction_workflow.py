@@ -1,7 +1,7 @@
 """Inspectable FCC-ee correction workflow used by 004.
 
-This is an example-local API prototype. The ramp remains in the user script;
-the class owns Twiss evaluation, trial acceptance, snapshots and history.
+This is an example-local API prototype. The class owns increasing errors,
+correction, final refinement, Twiss evaluation, snapshots and history.
 Optimizers consume supplied Twiss tables and apply least-squares changes.
 003b and its shared trial helpers remain the numerical reference.
 """
@@ -33,13 +33,13 @@ def _silent_log(*args, **kwargs):
 class CorrectionSettings:
     """Iteration budgets for the custom interleaved correction sequence."""
 
-    ramp_max_iterations: int = 5
+    intermediate_max_iterations: int = 5
     final_max_iterations: int = 40
 
 
 @dataclass
 class MachineSnapshot:
-    """Controls and accepted orbit needed to undo an unaccepted ramp trial.
+    """Controls and accepted orbit needed to undo an unaccepted error-increase trial.
 
     Twiss tables are retained by reference; correction steps treat them as
     read-only. Variable values and the closed-orbit guess are independent copies.
@@ -53,14 +53,14 @@ class MachineSnapshot:
 
 
 class FCCeeCorrection:
-    """Own correction state for a line prepared by 003a, leaving the ramp explicit.
+    """Own correction state and execution for a line prepared by 003a.
 
     Construction builds the nominal reference and five fixed-response optimizers,
     then starts at zero error/nonlinear strength. The optimizers, settings,
     nominal knob values, reference, accepted_twiss and history are public.
 
     Snapshot before a trial; record only after accepting it. History stores
-    accepted ramp points, including separate final-refinement entries, rather
+    accepted error-increase points, including separate final-refinement entries, rather
     than the intermediate evaluations inside each correction step.
     """
 
@@ -73,6 +73,10 @@ class FCCeeCorrection:
         self.settings = settings if settings is not None else CorrectionSettings()
         self.log = log
         self._final_refinement = False
+        self.correction_failed = False
+        self.failure_reason = None
+        self.target_error_fraction = None
+        self.error_increase_settings = {}
         self.history = []
         self.accepted_twiss = None
         self.optimizers = SimpleNamespace()
@@ -87,6 +91,101 @@ class FCCeeCorrection:
         self.set_error_fraction(0.)
         self.accepted_twiss = self._full_twiss(self.reference)
         self.line.twiss_default['co_guess'] = orbit_guess(self.accepted_twiss)
+
+    def run(self, *, target_error_fraction=1., initial_increment=0.0125,
+            min_increment=1e-5, max_increment=0.10):
+        """Increase errors and correct, then refine; return whether both succeeded.
+
+        A successful target below one is supported. Saving still marks a
+        machine completed only at full error strength with final goals met.
+        """
+        if not self.increase_errors_and_correct(
+                target_error_fraction=target_error_fraction,
+                initial_increment=initial_increment,
+                min_increment=min_increment, max_increment=max_increment):
+            return False
+        return self.refine()
+
+    def increase_errors_and_correct(self, *, target_error_fraction=1.,
+                                    initial_increment=0.0125,
+                                    min_increment=1e-5, max_increment=0.10):
+        """Increase errors/nonlinear strengths together, correcting each trial.
+
+        Restore rejected trials and halve the increment. Record only accepted
+        states. On failure, retain the last accepted machine and expose the
+        reason in failure_reason; return False. Invalid settings raise before
+        changing the machine or execution state.
+        """
+        if not np.isfinite(target_error_fraction) or not 0 < target_error_fraction <= 1:
+            raise ValueError('target_error_fraction must be in (0, 1]')
+        if target_error_fraction < self.error_fraction - 1e-12:
+            raise ValueError('target_error_fraction cannot be below the current error fraction')
+        if (not np.all(np.isfinite([min_increment, initial_increment, max_increment]))
+                or not 0 < min_increment <= initial_increment <= max_increment):
+            raise ValueError('Require 0 < min_increment <= initial_increment <= max_increment')
+
+        self.correction_failed = False
+        self.failure_reason = None
+        self.target_error_fraction = target_error_fraction
+        self.error_increase_settings = dict(
+            target_error_fraction=target_error_fraction,
+            initial_increment=initial_increment, min_increment=min_increment,
+            max_increment=max_increment)
+        self.final_refinement = False
+        increment = initial_increment
+        while self.error_fraction < target_error_fraction - 1e-12:
+            next_error_fraction = self.error_fraction + increment
+            if next_error_fraction > target_error_fraction:
+                next_error_fraction = target_error_fraction
+            before = self.snapshot()
+            self.log(f'Increasing error fraction to {next_error_fraction:g}')
+            try:
+                self.scale_corrections(next_error_fraction)
+                self.set_error_fraction(next_error_fraction)
+                tw = self.twiss()
+                tw, iterations = self.correct_at_fixed_strengths(tw)
+            except self.correction_errors as err:
+                self.restore(before)
+                increment /= 2
+                self.log(f'Rejected: {err}')
+                if increment < min_increment:
+                    self.correction_failed = True
+                    self.failure_reason = f'Minimum error increment reached: {err}'
+                    return False
+                continue
+
+            self.record(tw, iterations=iterations)
+            if iterations <= 3:
+                increment *= 1.25
+                if increment > max_increment:
+                    increment = max_increment
+        return True
+
+    def refine(self):
+        """Refine the accepted state at its current error fraction; return success."""
+        self.correction_failed = False
+        self.failure_reason = None
+        self.final_refinement = True
+        self.log('Final refinement')
+        before = self.snapshot()
+        try:
+            if not self.goals_met(self.accepted_twiss):
+                tw, iterations = self.correct_at_fixed_strengths(self.accepted_twiss)
+                self.record(tw, iterations=iterations)
+        except self.correction_errors as err:
+            self.restore(before)
+            self.correction_failed = True
+            self.failure_reason = f'Refinement failed: {err}'
+            self.log(self.failure_reason)
+            return False
+        return True
+
+    @property
+    def completed(self):
+        """Whether the accepted machine meets final goals at full error strength."""
+        return (not self.correction_failed and self.final_refinement
+                and abs(self.error_fraction - 1.) < 1e-12
+                and self.goals_met(self.accepted_twiss))
 
     @property
     def error_fraction(self):
@@ -114,14 +213,14 @@ class FCCeeCorrection:
             coupling.dy_rms_tol = coupling.settings.dispersion_rms_tol
             coupling.dy_ip_tol = coupling.settings.dispersion_ip_tol
         else:
-            # Restore the ramp limits if rolling back across the mode change.
-            optics.dx_err_rms_tol = optics.settings.ramp_horizontal_dispersion_rms_tol
-            optics.dx_err_ip_tol = optics.settings.ramp_horizontal_dispersion_ip_tol
-            coupling.rdt_rms_tol = coupling.settings.ramp_coupling_rms_tol
-            coupling.rdt_ip_tol = coupling.settings.ramp_coupling_ip_tol
-            coupling.c_minus_tol = coupling.settings.ramp_c_minus_tol
-            coupling.dy_rms_tol = coupling.settings.ramp_dispersion_rms_tol
-            coupling.dy_ip_tol = coupling.settings.ramp_dispersion_ip_tol
+            # Restore the intermediate limits if rolling back across the mode change.
+            optics.dx_err_rms_tol = optics.settings.intermediate_horizontal_dispersion_rms_tol
+            optics.dx_err_ip_tol = optics.settings.intermediate_horizontal_dispersion_ip_tol
+            coupling.rdt_rms_tol = coupling.settings.intermediate_coupling_rms_tol
+            coupling.rdt_ip_tol = coupling.settings.intermediate_coupling_ip_tol
+            coupling.c_minus_tol = coupling.settings.intermediate_c_minus_tol
+            coupling.dy_rms_tol = coupling.settings.intermediate_dispersion_rms_tol
+            coupling.dy_ip_tol = coupling.settings.intermediate_dispersion_ip_tol
         self._final_refinement = value
 
     def twiss(self):
@@ -147,7 +246,7 @@ class FCCeeCorrection:
         self.line['on_errors'] = self.line['on_nonlinear'] = fraction
 
     def snapshot(self):
-        """Capture every control that a ramp trial can change, without tracking."""
+        """Capture every control that an error-increase trial can change, without tracking."""
         values = self.line.vars.val
         return MachineSnapshot(
             knob_values={name: float(values[name]) for name in self.control_names},
@@ -172,14 +271,14 @@ class FCCeeCorrection:
     def correct_at_fixed_strengths(self, tw):
         """Return the accepted Twiss and completed iteration count, or raise.
 
-        The caller owns rollback of the entire ramp trial. Tune correction is
+        The caller owns rollback of the entire error-increase trial. Tune correction is
         explicit; coupling correction includes orbit settling. Only goals and
         iteration limits decide success; intermediate errors may increase.
         """
         if self.final_refinement:
             max_iterations = self.settings.final_max_iterations
         else:
-            max_iterations = self.settings.ramp_max_iterations
+            max_iterations = self.settings.intermediate_max_iterations
         orbit = (self.optimizers.orbit_x, self.optimizers.orbit_y)
         optics = self.optimizers.optics
         coupling = self.optimizers.coupling
@@ -260,8 +359,10 @@ class FCCeeCorrection:
                 rows.append(list(row))
         return rows
 
-    def save_result(self, path, *, completed, ramp_settings=None):
+    def save_result(self, path, *, completed=None):
         """Save the accepted line and history for independent analysis with 003c."""
+        if completed is None:
+            completed = self.completed
         tw = self.twiss()
         if completed:
             assert self.goals_met(tw)
@@ -279,7 +380,7 @@ class FCCeeCorrection:
                 correction_settings=asdict(self.settings),
                 optimizer_settings={name: vars(opt.settings)
                                     for name, opt in vars(self.optimizers).items()},
-                ramp_settings=ramp_settings or {}
+                error_increase_settings=self.error_increase_settings.copy(),
             ),
         )
         np.savetxt(
@@ -338,7 +439,7 @@ class FCCeeCorrection:
                 trial = self.orbit_twiss(tw) if iteration < 2 else self._full_twiss(tw)
             except self.correction_errors:
                 # Settling continues from its last accepted orbit; unlike the
-                # main stages, a failed trial does not reject the ramp step.
+                # main stages, a failed trial does not reject the error increment.
                 self.restore(before)
                 break
             tw = trial
