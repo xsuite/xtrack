@@ -6,7 +6,6 @@ from types import SimpleNamespace
 import numpy as np
 import xtrack as xt
 
-import correction_setup as setup
 from correction_optimizer import CorrectionOptimizer
 
 
@@ -23,7 +22,7 @@ def build_tune_corr_optimizer(line, reference, *, full_twiss, settings=None):
     action = xt.Action(full_twiss)
     circuits = line.metadata['correction_knobs']['tunes']
     knobs = circuits['knobs']
-    response = setup.build_tune_response(
+    response = build_tune_response(
         reference, line=line, tune_knobs=knobs, full_twiss=full_twiss)
     optimizer = CorrectionOptimizer(
         line, reference, settings=settings,
@@ -73,3 +72,18 @@ def correct(optimizer, tw, *, full_twiss):
 def print_metrics(optimizer, tw, *, log=print):
     m = optimizer.compute_metrics(tw)
     log('Tunes:', m['tunes'], 'error', m['tune_error'])
+
+
+def build_tune_response(tw, *, line, tune_knobs, full_twiss):
+    """Numerical two-family tune response, with all probe settings restored."""
+    baseline = np.array(line.get(tune_knobs))
+    jac = np.empty((2, 2))
+    try:
+        for j in range(2):
+            line[tune_knobs[j]] = baseline[j] + 1e-7
+            probe = full_twiss(tw)
+            jac[:, j] = (np.array([probe.qx, probe.qy]) - np.array([tw.qx, tw.qy])) / 1e-7
+            line.set(tune_knobs, baseline)
+    finally:
+        line.set(tune_knobs, baseline)
+    return jac

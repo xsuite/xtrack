@@ -12,7 +12,6 @@ from types import SimpleNamespace
 import numpy as np
 import xtrack as xt
 
-import correction_setup as setup
 import corr_optics
 import corr_orbit
 import corr_coupling
@@ -384,8 +383,25 @@ class FCCeeCorrection:
         return self.ensure_full_twiss(tw)
 
     def _prepare_reference(self):
-        self.reference = setup.nominal_reference(
-            self.line, full_twiss=self._full_twiss, log=_silent_log)
+        """Prepare aligned optics with errors and nonlinear magnets off."""
+        line = self.line
+        # Check that fixed responses remain valid as nonlinear magnets turn on.
+        circuits = line.metadata['correction_knobs']
+        orbit_knobs = circuits['orbit']['x']['knobs'] + circuits['orbit']['y']['knobs']
+        line.set(orbit_knobs, np.zeros(len(orbit_knobs)))
+        line['on_errors'] = 0.0
+        for name in circuits['tunes']['knobs']:
+            line[name] = circuits['tunes']['nominal_values'][name]
+        line.twiss_default['co_guess'] = dict(x=0, px=0, y=0, py=0, zeta=0, delta=0)
+        tw_nonlinear_on = self._full_twiss()
+        line['on_nonlinear'] = 0.0
+        tw_ref = self._full_twiss()
+        nominal_beta_change = max(
+            np.max(np.abs(tw_nonlinear_on['bet' + p] / tw_ref['bet' + p] - 1)) for p in 'xy'
+        )
+        if nominal_beta_change > 1e-4:
+            raise RuntimeError('Aligned optics depend on nonlinear setting; rebuild responses per stage')
+        self.reference = tw_ref
         # Shared observation policy; each correction keeps its own row indices.
         self.monitor_names = self.line.metadata['correction_knobs']['orbit']['x']['monitors']
         self.ip_names = ['ipa', 'ipd', 'ipg', 'ipj']
