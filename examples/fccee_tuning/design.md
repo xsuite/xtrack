@@ -24,7 +24,11 @@ optimizers and accepted state inspectable.
 ## Executing the correction
 
 `accept(tw)` replaces `record(...)`: after a successful trial, it updates
-`accepted_twiss`, sets the default closed-orbit guess, and prints `Accepted`.
+`accepted_twiss` and prints `Accepted`. Subsequent Twiss calls use
+`accepted_twiss.particle_on_co` as `co_guess`, keeping the closed-orbit search
+active after knob changes. There is no separate default-guess copy to update
+or restore; snapshots retain the accepted table. This seed is not stored in
+`line.twiss_default`, so saving the line does not serialize a particle there.
 It does not evaluate metrics or retain history. Snapshots contain only the state
 needed for rollback. Saving belongs to the caller through `line.to_json(path)`;
 there is no correction history list or `history.csv` output.

@@ -5,7 +5,6 @@ correction, final refinement, Twiss evaluation, snapshots and accepted state.
 Optimizers consume supplied Twiss tables and apply least-squares changes.
 """
 
-from copy import deepcopy
 from dataclasses import dataclass
 from time import perf_counter
 from types import SimpleNamespace
@@ -15,7 +14,6 @@ import xtrack as xt
 
 import correction_steps as steps
 import correction_setup as setup
-from correction_steps import orbit_guess
 import corr_optics
 import corr_orbit
 import corr_coupling
@@ -32,11 +30,10 @@ class MachineSnapshot:
     """Controls and accepted orbit needed to undo an unaccepted error-increase trial.
 
     Twiss tables are retained by reference; correction steps treat them as
-    read-only. Variable values and the closed-orbit guess are independent copies.
+    read-only, including their closed-orbit particle. Variable values are copied.
     """
 
     knob_values: dict
-    co_guess: dict
     accepted_twiss: object
     final_refinement: bool
 
@@ -79,7 +76,6 @@ class FCCeeCorrection:
         self.line.vars.update(self.nominal_knob_values)
         self.set_error_fraction(0.)
         self.accepted_twiss = self._full_twiss(self.reference)
-        self.line.twiss_default['co_guess'] = orbit_guess(self.accepted_twiss)
 
     def _default_log(self, *args, **kwargs):
         """Print elapsed time since construction, flushing output by default."""
@@ -231,7 +227,7 @@ class FCCeeCorrection:
         ratio = next_error_fraction / previous
         knobs = self.correction_knobs
         nominal = np.array([self.nominal_knob_values[name] for name in knobs])
-        self._set_values(knobs, nominal + ratio * (self._values(knobs) - nominal))
+        self.line.set(knobs, nominal + ratio * (self._values(knobs) - nominal))
 
     def set_error_fraction(self, fraction):
         """Set errors and nonlinear strengths together; do not change corrections."""
@@ -244,7 +240,6 @@ class FCCeeCorrection:
         values = self.line.vars.val
         return MachineSnapshot(
             knob_values={name: float(values[name]) for name in self.control_names},
-            co_guess=deepcopy(self.line.twiss_default.get('co_guess')),
             accepted_twiss=self.accepted_twiss,
             final_refinement=self.final_refinement,
         )
@@ -256,7 +251,6 @@ class FCCeeCorrection:
             name: value for name, value in snapshot.knob_values.items()
             if values[name] != value
         })
-        self.line.twiss_default['co_guess'] = deepcopy(snapshot.co_guess)
         self.accepted_twiss = snapshot.accepted_twiss
         self.final_refinement = snapshot.final_refinement
 
@@ -315,16 +309,12 @@ class FCCeeCorrection:
         return all(opt.goal(tw) for opt in vars(self.optimizers).values())
 
     def accept(self, tw):
-        """Update the accepted Twiss and default orbit guess after a successful trial."""
+        """Keep the accepted Twiss, including its closed-orbit particle for the next trial."""
         self.accepted_twiss = tw
-        self.line.twiss_default['co_guess'] = orbit_guess(tw)
         self.log('Accepted')
 
     def _values(self, names):
         return steps.values(self.line, names)
-
-    def _set_values(self, names, values):
-        steps.set_values(self.line, names, values)
 
     def _full_twiss(self, seed=None, co_guess=None, radiation_integrals=False):
         return steps.compute_twiss(

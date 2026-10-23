@@ -209,6 +209,79 @@ def test_vars_and_element_access_modes(container_type):
         assert str(env.ref[nn].k1.xdeps.expr) == "(3.0 * vars['x0'])"
 
 
+@pytest.mark.parametrize('container_type', ['env', 'line'])
+@pytest.mark.parametrize('sequence', [list, tuple, np.array, iter])
+def test_set_paired_variable_values(container_type, sequence):
+    env = xt.Environment()
+    line = env.new_line([])
+    target = env if container_type == 'env' else line
+    env['a'] = 1.
+    env['b'] = 2.
+    env['sum'] = 'a + b'
+    env.new('q', xt.Quadrupole, k1='a + b')
+
+    target.set(sequence(['a', 'b']), sequence([3., 4.]))
+    assert env['a'] == 3. and env['b'] == 4.
+    assert env['sum'] == 7. and env['q'].k1 == 7.
+
+    target.set(sequence(['c', 'd']), sequence(['2*a', '3*b']))
+    target.set(['a', 'b'], [5., 6.])
+    assert env['c'] == 10. and env['d'] == 18.
+    assert env['sum'] == 11. and env['q'].k1 == 11.
+
+    target.set(['c', 'd'], [env.ref['a'] + 1, 0.])
+    target.set('a', 8.)
+    assert env['c'] == 9. and env['d'] == 0.
+    target.set([], [])
+
+
+@pytest.mark.parametrize('container_type', ['env', 'line'])
+@pytest.mark.parametrize('values', [[3.], [3., 4., 5.]])
+def test_set_paired_variable_length_mismatch(container_type, values):
+    env = xt.Environment()
+    line = env.new_line([])
+    target = env if container_type == 'env' else line
+    env['a'] = 1.
+    with pytest.raises(ValueError, match='same length'):
+        target.set(iter(['a', 'new_variable']), iter(values))
+    assert env['a'] == 1.
+    assert 'new_variable' not in env.vars
+
+
+@pytest.mark.parametrize('container_type', ['env', 'line'])
+@pytest.mark.parametrize('invalid_name', ['q', 'my_line'])
+def test_set_paired_values_rejects_elements_and_lines(container_type, invalid_name):
+    env = xt.Environment()
+    env.new('q', xt.Quadrupole, k1=1.)
+    line = env.new_line(['q'], name='my_line')
+    target = env if container_type == 'env' else line
+    env['a'] = 1.
+    with pytest.raises(ValueError):
+        target.set(['a', invalid_name], [2., 3.])
+    assert env['a'] == 1. and env['q'].k1 == 1.
+
+
+@pytest.mark.parametrize('container_type', ['env', 'line'])
+def test_set_broadcasting_unchanged(container_type):
+    env = xt.Environment()
+    line = env.new_line([])
+    target = env if container_type == 'env' else line
+    target.set(['a', 'b'], 2.)
+    assert env['a'] == env['b'] == 2.
+    target.set(['c', 'd'], '3*a')
+    target.set('a', 4.)
+    assert env['c'] == env['d'] == 12.
+    target.set(['a', 'b'], np.array(5.))
+    assert env['a'] == env['b'] == 5.
+
+    env.new('m1', xt.Multipole, knl=[0., 0.])
+    env.new('m2', xt.Multipole, knl=[0., 0.])
+    target.set(['m1', 'm2'], knl=[1., '2*a'])
+    target.set('a', 6.)
+    for name in ['m1', 'm2']:
+        np.testing.assert_allclose(env[name].knl, [1., 12.])
+
+
 def test_element_placing_at_s():
 
     env = xt.Environment()

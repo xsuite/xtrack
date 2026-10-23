@@ -1957,9 +1957,11 @@ class Environment:
         ----------
         name : str or iterable of str
             Name or names of the variable(s) or element(s).
-        value : float or str
-            Value or expression of the variable to set. Can be provided only
-            if the name is associated to a variable.
+        value : float, str or iterable
+            Value or expression of the variable to set. For multiple variable
+            names, an iterable supplies one value or expression per name and
+            must have the same length. A scalar is applied to every name.
+            Can be provided only if the names are associated to variables.
         **kwargs : float or str
             Attributes to set. Can be provided only if the name is associated
             to an element.
@@ -1972,6 +1974,8 @@ class Environment:
         >>> line.set(['quad1', 'quad2'], k1=0.1, k2='3*a')
         >>> line.set(['c', 'd'], 0.1)
         >>> line.set(['e', 'f'], '3*a')
+        >>> line.set(['c', 'd'], [0.1, 0.2])
+        >>> line.set(['e', 'f'], ['3*a', '4*a'])
 
         '''
         if hasattr(name, 'env_name'):
@@ -1980,6 +1984,22 @@ class Environment:
             name = name.name
 
         if isinstance(name, Iterable) and not isinstance(name, str):
+            if (len(args) == 1 and not kwargs
+                    and isinstance(args[0], Iterable)
+                    and not isinstance(args[0], (str, bytes))
+                    and not (isinstance(args[0], np.ndarray) and args[0].ndim == 0)):
+                # xdeps variable references use Python string keys.
+                names = [str(nn) if isinstance(nn, np.str_) else nn for nn in name]
+                values = list(args[0])
+                if len(names) != len(values):
+                    raise ValueError('Names and values must have the same length')
+                for nn in names:
+                    if nn in self.lines:
+                        raise ValueError('Cannot set a line')
+                    if nn in self.elements:
+                        raise ValueError('Only kwargs are allowed when setting element attributes')
+                self.vars.update(dict(zip(names, values)))
+                return
             for nn in name:
                 self.set(nn, *args, **kwargs)
             return

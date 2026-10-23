@@ -4,8 +4,7 @@ from functools import partial
 
 import numpy as np
 
-import correction_observables as obs
-from correction_steps import set_values, values
+from correction_steps import values
 from response_builders import skew_quadrupole_response
 
 
@@ -18,7 +17,7 @@ def nominal_reference(line, *, full_twiss, log):
     """
     circuits = line.metadata['correction_knobs']
     orbit_knobs = circuits['orbit']['x']['knobs'] + circuits['orbit']['y']['knobs']
-    set_values(line, orbit_knobs, np.zeros(len(orbit_knobs)))
+    line.set(orbit_knobs, np.zeros(len(orbit_knobs)))
     line['on_errors'] = 0.0
     for name in circuits['tunes']['knobs']:
         line[name] = circuits['tunes']['nominal_values'][name]
@@ -63,7 +62,7 @@ def prepare_coupling_response(
         line, skew_knobs=knobs, skew_scale=scales, coupling_response=matrix,
         tw_ref=tw_ref, full_twiss=full_twiss,
         coupling_vector=partial(
-            obs.coupling_vector, tw_ref=tw_ref,
+            coupling_vector, tw_ref=tw_ref,
             coupling_indices=tw_ref.rows.indices[observation_names],
         ),
         n_observations=len(observation_names), log=log,
@@ -80,9 +79,9 @@ def build_tune_response(tw, *, line, tune_knobs, full_twiss):
             line[tune_knobs[j]] = baseline[j] + 1e-7
             probe = full_twiss(tw)
             jac[:, j] = (np.array([probe.qx, probe.qy]) - np.array([tw.qx, tw.qy])) / 1e-7
-            set_values(line, tune_knobs, baseline)
+            line.set(tune_knobs, baseline)
     finally:
-        set_values(line, tune_knobs, baseline)
+        line.set(tune_knobs, baseline)
     return jac
 
 
@@ -100,7 +99,7 @@ def check_coupling_response(
 ):
     # Check the analytical response against tracking for a distributed probe.
     probe = 1e-5 * skew_scale * np.sin(np.arange(len(skew_knobs)) + 0.3)
-    set_values(line, skew_knobs, probe)
+    line.set(skew_knobs, probe)
     try:
         probe_tw = full_twiss(tw_ref)
         prediction = coupling_response @ probe
@@ -116,4 +115,23 @@ def check_coupling_response(
         if max(discrepancy, dy_discrepancy) > 0.05:
             raise RuntimeError('Coupling response disagrees with tracking')
     finally:
-        set_values(line, skew_knobs, np.zeros(len(skew_knobs)))
+        line.set(skew_knobs, np.zeros(len(skew_knobs)))
+
+
+def coupling_vector(tw, *, tw_ref, coupling_indices):
+    return np.concatenate(
+        [
+            part
+            for key in ('f1001', 'f1010')
+            for part in (
+                (tw[key] - tw_ref[key])[coupling_indices].real,
+                (tw[key] - tw_ref[key])[coupling_indices].imag,
+            )
+        ]
+        + [dispersion_errors(tw, tw_ref=tw_ref, coupling_indices=coupling_indices)]
+    )
+
+
+def dispersion_errors(tw, *, tw_ref, coupling_indices):
+    # Ideal model observable, like the coupling RDTs; not a noisy RF scan.
+    return (tw.dy - tw_ref.dy)[coupling_indices]

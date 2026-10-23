@@ -4,23 +4,8 @@ from time import perf_counter
 import numpy as np
 
 
-def orbit_guess(tw):
-    return dict(
-        x=float(tw.x[0]),
-        px=float(tw.px[0]),
-        y=float(tw.y[0]),
-        py=float(tw.py[0]),
-        zeta=0.0,
-        delta=0.0,
-    )
-
-
 def values(line, names):
     return np.array([line[name] for name in names])
-
-
-def set_values(line, names, vals):
-    line.vars.update({name: float(value) for name, value in zip(names, vals)})
 
 
 def compute_twiss(

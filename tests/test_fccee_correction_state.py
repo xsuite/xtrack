@@ -91,7 +91,7 @@ def test_increase_errors_restores_rejected_trial_and_retries(correction, monkeyp
         quad_values.append(float(correction.line['quad']))
         if len(attempts) == 1:
             correction.line['quad'] = 999.
-            correction.line.twiss_default['co_guess']['x'] = 999.
+            correction.accepted_twiss = object()
             raise RuntimeError('Unstable candidate')
         return tw, 4 if len(attempts) == 2 else 3
 
@@ -103,7 +103,6 @@ def test_increase_errors_restores_rejected_trial_and_retries(correction, monkeyp
     np.testing.assert_allclose(attempts, [.3, .25, .3, .3625, .4])
     np.testing.assert_allclose(quad_values[:2], [4.5, 3.75])
     assert correction.accepted_twiss.x == [.4]
-    assert correction.line.twiss_default['co_guess']['x'] == .4
     assert not correction.correction_failed and correction.failure_reason is None
     assert correction.target_error_fraction == .4
     assert not correction.completed
@@ -202,14 +201,13 @@ def test_refine_failure_restores_accepted_state(correction, monkeypatch):
     def fail(tw):
         assert tw is before.accepted_twiss
         correction.line['quad'] = 999.
-        correction.line.twiss_default['co_guess']['x'] = 999.
+        correction.accepted_twiss = object()
         raise RuntimeError('Iteration budget exhausted')
 
     monkeypatch.setattr(correction, 'correct_at_fixed_strengths', fail)
     assert not correction.refine()
     assert correction.snapshot().knob_values == before.knob_values
     assert correction.accepted_twiss is before.accepted_twiss
-    assert correction.line.twiss_default['co_guess'] == before.co_guess
     assert correction.final_refinement
     assert correction.correction_failed and not correction.completed
     assert correction.failure_reason == 'Refinement failed: Iteration budget exhausted'
@@ -248,12 +246,11 @@ def test_snapshot_restores_all_trial_state_and_preserves_expressions(correction)
     before = correction.snapshot()
     correction.scale_corrections(0.5)
     correction.set_error_fraction(0.5)
-    correction.line.twiss_default['co_guess']['x'] = 999
+    correction.accepted_twiss = object()
     correction.final_refinement = True
-    correction.accept(deepcopy(correction.accepted_twiss))
+    correction.accept(deepcopy(before.accepted_twiss))
     correction.restore(before)
     assert correction.snapshot().knob_values == before.knob_values
-    assert correction.line.twiss_default['co_guess'] == before.co_guess
     assert correction.accepted_twiss is before.accepted_twiss
     assert not correction.final_refinement
     correction.set_error_fraction(0.3)
@@ -262,6 +259,7 @@ def test_snapshot_restores_all_trial_state_and_preserves_expressions(correction)
 
 def test_accept_updates_state_without_evaluation_or_history(correction, monkeypatch):
     before = correction.snapshot()
+    defaults = deepcopy(correction.line.twiss_default)
     tw = deepcopy(correction.accepted_twiss)
     tw.x = [0.123]
     monkeypatch.setattr(correction, 'compute_metrics',
@@ -269,12 +267,10 @@ def test_accept_updates_state_without_evaluation_or_history(correction, monkeypa
     monkeypatch.setattr(correction, 'twiss', lambda: pytest.fail('Unexpected Twiss'))
     correction.accept(tw)
     assert correction.accepted_twiss is tw
-    assert correction.line.twiss_default['co_guess']['x'] == 0.123
+    assert correction.line.twiss_default == defaults
     assert correction.snapshot().knob_values == before.knob_values
     assert correction.final_refinement == before.final_refinement
     assert not hasattr(correction, 'history')
-    tw.x[0] = 999.
-    assert correction.line.twiss_default['co_guess']['x'] == 0.123
 
 
 def test_twiss_evaluation_is_explicit(correction, monkeypatch):
@@ -318,7 +314,7 @@ def test_twiss_particle_guess_recomputes_closed_orbit(monkeypatch):
     seed_x = seed.particle_on_co.x.copy()
     line[1].knl[0] = 2e-6
     stats = dict(calls=0, seconds=0., orbit_calls=0, orbit_seconds=0.)
-    expected = line.twiss(co_guess=steps.orbit_guess(seed))
+    expected = line.twiss()
     for only_orbit in (False, True):
         actual = steps.compute_twiss(
             seed, line=line, stats=stats, steps={}, only_orbit=only_orbit)
@@ -771,7 +767,7 @@ def test_settling_restores_failed_trial_before_continuing(correction, monkeypatc
         def run(tw):
             calls.append(kind)
             if outcome == 'fails':
-                correction.line.twiss_default['co_guess'] = {'x': 999.}
+                correction.accepted_twiss = object()
                 raise ValueError('Invalid orbit')
             if outcome == 'worsens':
                 return -1
@@ -783,7 +779,7 @@ def test_settling_restores_failed_trial_before_continuing(correction, monkeypatc
     def ensure_full(tw):
         if outcome == 'fails':
             assert correction.line['orbit'] == before.knob_values['orbit']
-            assert correction.line.twiss_default['co_guess'] == before.co_guess
+            assert correction.accepted_twiss is before.accepted_twiss
         return ('full', tw)
     monkeypatch.setattr(correction, 'ensure_full_twiss', ensure_full)
     correction.optimizers.tunes.correct = lambda *a, **kw: pytest.fail('Nested tune correction')

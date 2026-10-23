@@ -6765,9 +6765,11 @@ class Line:
         ----------
         name : str or iterable of str
             Name or names of the variable(s) or element(s).
-        value : float or str
-            Value or expression of the variable to set. Can be provided only
-            if the name is associated to a variable.
+        value : float, str or iterable
+            Value or expression of the variable to set. For multiple variable
+            names, an iterable supplies one value or expression per name and
+            must have the same length. A scalar is applied to every name.
+            Can be provided only if the names are associated to variables.
         **kwargs, float or str
             Attributes to set. Can be provided only if the name is associated
             to an element.
@@ -6780,6 +6782,8 @@ class Line:
         >>> line.set(['quad1', 'quad2'], k1=0.1, k2='3*a')
         >>> line.set(['c', 'd'], 0.1)
         >>> line.set(['e', 'f'], '3*a')
+        >>> line.set(['c', 'd'], [0.1, 0.2])
+        >>> line.set(['e', 'f'], ['3*a', '4*a'])
 
         '''
         self.env.set(name, *args, **kwargs)
