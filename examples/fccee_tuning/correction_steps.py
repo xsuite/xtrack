@@ -26,7 +26,7 @@ def set_values(line, names, vals):
 def compute_twiss(
     seed=None, co_guess=None, radiation_integrals=False, only_orbit=False, *, line, stats, steps
 ):
-    kwargs = {} if seed is None else dict(co_guess=orbit_guess(seed))
+    kwargs = {} if seed is None else dict(co_guess=seed.particle_on_co)
     if co_guess is not None:
         kwargs['co_guess'] = co_guess
     started = perf_counter()

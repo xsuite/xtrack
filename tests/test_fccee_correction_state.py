@@ -314,6 +314,31 @@ def test_twiss_evaluation_is_explicit(correction, monkeypatch):
     assert len(calls) == 3
 
 
+def test_twiss_particle_guess_recomputes_closed_orbit(monkeypatch):
+    examples = Path(__file__).resolve().parents[1] / 'examples' / 'fccee_tuning'
+    monkeypatch.syspath_prepend(str(examples))
+    steps = importlib.import_module('correction_steps')
+    line = xt.Line(elements=[
+        xt.LineSegmentMap(qx=.31, qy=.32, betx=2., bety=3.),
+        xt.Multipole(knl=[1e-6]),
+    ])
+    line.particle_ref = xt.Particles(p0c=1e9)
+    line.twiss_default.update(method='4d', delta0=0.)
+    line.build_tracker()
+    seed = line.twiss()
+    seed_x = seed.particle_on_co.x.copy()
+    line[1].knl[0] = 2e-6
+    stats = dict(calls=0, seconds=0., orbit_calls=0, orbit_seconds=0.)
+    expected = line.twiss(co_guess=steps.orbit_guess(seed))
+    for only_orbit in (False, True):
+        actual = steps.compute_twiss(
+            seed, line=line, stats=stats, steps={}, only_orbit=only_orbit)
+        np.testing.assert_allclose(actual.x, expected.x, rtol=1e-12, atol=1e-15)
+        assert not np.allclose(actual.x, seed.x, rtol=1e-6, atol=1e-15)
+    np.testing.assert_array_equal(seed.particle_on_co.x, seed_x)
+    assert stats['calls'] == 2 and stats['orbit_calls'] == 1
+
+
 def diagnostic_optimizer(module_name, settings_name, reference):
     # Test metric/goal methods independently of the expensive response setup.
     module = importlib.import_module(module_name)
