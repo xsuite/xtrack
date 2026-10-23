@@ -31,54 +31,10 @@ def _silent_log(*args, **kwargs):
 
 @dataclass
 class CorrectionSettings:
-    """Response weights are applied at construction; goals/cutoffs are read per step."""
+    """Iteration budgets for the custom interleaved correction sequence."""
 
-    beta_rms_tol: float = 0.03
-    beta_max_tol: float = 0.5
-    tune_tol: float = 1e-05
-    alpha_weight: float = 0.1
-    ir_beta_weight: float = 5.0
-    ir_half_length: float = 500.0
-    horizontal_dispersion_rms_tol: float = 0.001
-    horizontal_dispersion_ip_tol: float = 0.0001
-    ramp_horizontal_dispersion_rms_tol: float = 0.005
-    ramp_horizontal_dispersion_ip_tol: float = 0.0005
-    orbit_tol: float = 1e-05
-    optics_rcond: float = 1e-05
-    orbit_rcond: float = 1e-06
-    coupling_rcond: float = 1e-06
-    coupling_ip_weight: float = 20.0
-    coupling_rms_tol: float = 0.003
-    coupling_ip_tol: float = 0.002
-    c_minus_tol: float = 0.0003
-    dispersion_rms_tol: float = 0.001
-    dispersion_ip_tol: float = 2e-05
-    ramp_c_minus_tol: float = 0.003
-    ramp_coupling_rms_tol: float = 0.03
-    ramp_coupling_ip_tol: float = 0.03
-    ramp_dispersion_rms_tol: float = 0.005
-    ramp_dispersion_ip_tol: float = 0.0001
-    dispersion_weight: float = 1.0
-    coupling_orbit_tol: float = 5e-08
-    coupling_step: float = 0.5
     ramp_max_iterations: int = 5
     final_max_iterations: int = 40
-
-    @property
-    def horizontal_dispersion_weight(self):
-        return self.beta_rms_tol / self.horizontal_dispersion_rms_tol
-
-    @property
-    def horizontal_dispersion_ip_weight(self):
-        return (
-            self.ir_beta_weight
-            * self.horizontal_dispersion_rms_tol
-            / self.horizontal_dispersion_ip_tol
-        )
-
-    @property
-    def dispersion_ip_weight(self):
-        return self.coupling_ip_weight * self.dispersion_rms_tol / self.dispersion_ip_tol
 
 
 @dataclass
@@ -110,26 +66,25 @@ class FCCeeCorrection:
 
     correction_errors = (ValueError, RuntimeError, xt.twiss.ClosedOrbitSearchError)
 
-    def __init__(self, line, *, settings=None, log=print):
+    def __init__(self, line, *, settings=None, optimizer_settings=None, log=print):
         self.line = line
         # This workflow uses 4D optics at the reference momentum, as in 000.
         self.line.twiss_default.update(method='4d', delta0=0.0)
         self.settings = settings if settings is not None else CorrectionSettings()
         self.log = log
-        self.final_refinement = False
+        self._final_refinement = False
         self.history = []
         self.accepted_twiss = None
         self.optimizers = SimpleNamespace()
+        self.optimizer_settings = optimizer_settings or {}
         self.stats = dict(calls=0, seconds=0.0, orbit_calls=0, orbit_seconds=0.0)
         self.steps_r_matrix = dict(dx=1e-8, dpx=1e-9, dy=1e-8, dpy=1e-9, dzeta=1e-7, ddelta=1e-8)
         self.log('Preparing nominal reference and correction responses')
         self._prepare_reference()
         self._build_optimizers()
-        self._set_values(self.orbit_knobs, np.zeros(len(self.orbit_knobs)))
-        self._set_values(self.quad_knobs, np.zeros(len(self.quad_knobs)))
-        self.set_error_fraction(0.0)
-        for name in self.tune_knobs:
-            self.line[name] = self.original[name]
+        self._collect_controls()
+        self.line.vars.update(self.nominal_knob_values)
+        self.set_error_fraction(0.)
         self.accepted_twiss = self._full_twiss(self.reference)
         self.line.twiss_default['co_guess'] = orbit_guess(self.accepted_twiss)
 
@@ -137,6 +92,25 @@ class FCCeeCorrection:
     def error_fraction(self):
         """Live error fraction, including an unaccepted trial until restore/record."""
         return float(self.line['on_errors'])
+
+    @property
+    def final_refinement(self):
+        return self._final_refinement
+
+    @final_refinement.setter
+    def final_refinement(self, value):
+        self._final_refinement = bool(value)
+        self.configure_goals()
+
+    def configure_goals(self):
+        """Update optimizer goal parameters after changing mode or error fraction.
+
+        Also call this explicitly after editing a module's goal settings.
+        Active tolerances can be inspected directly on each optimizer.
+        """
+        for optimizer in vars(self.optimizers).values():
+            optimizer.configure_goals(final_refinement=self.final_refinement,
+                                      error_fraction=self.error_fraction)
 
     def twiss(self):
         """Compute full optics; callers explicitly retain and supply the result."""
@@ -150,15 +124,16 @@ class FCCeeCorrection:
         if previous == 0 or previous == next_error_fraction:
             return
         ratio = next_error_fraction / previous
-        for knobs in (self.orbit_knobs, self.quad_knobs, self.skew_knobs, self.tune_knobs):
-            nominal = np.array([self.nominal_knob_values[name] for name in knobs])
-            self._set_values(knobs, nominal + ratio * (self._values(knobs) - nominal))
+        knobs = self.correction_knobs
+        nominal = np.array([self.nominal_knob_values[name] for name in knobs])
+        self._set_values(knobs, nominal + ratio * (self._values(knobs) - nominal))
 
     def set_error_fraction(self, fraction):
         """Set errors and nonlinear strengths together; do not change corrections."""
         if not 0 <= fraction <= 1:
             raise ValueError('Error fraction must be in [0, 1]')
         self.line['on_errors'] = self.line['on_nonlinear'] = fraction
+        self.configure_goals()
 
     def snapshot(self):
         """Capture every control that a ramp trial can change, without tracking."""
@@ -194,31 +169,35 @@ class FCCeeCorrection:
             max_iterations = self.settings.final_max_iterations
         else:
             max_iterations = self.settings.ramp_max_iterations
+        orbit = (self.optimizers.orbit_x, self.optimizers.orbit_y)
+        optics = self.optimizers.optics
+        coupling = self.optimizers.coupling
+        tunes = self.optimizers.tunes
         self.log_iteration(0, tw)
         if self.goals_met(tw):
             return tw, 0
         for iteration in range(1, max_iterations + 1):
-            if not self.orbit_goal(tw):
-                for opt in (self.optimizers.orbit_x, self.optimizers.orbit_y):
+            if not all(opt.goal(tw) for opt in orbit):
+                for opt in orbit:
                     opt.run_lstsq(action_results=[tw], tag_outcome=False)
                 tw = self._full_twiss(tw)
-            tw = self.correct_tunes(tw)
+            tw = tunes.correct(tw, full_twiss=self._full_twiss)
 
-            if not self.optical_goal(tw):
-                self.optimizers.optics.run_lstsq(
+            if not optics.goal(tw):
+                optics.run_lstsq(
                     action_results=[tw], tag_outcome=False)
                 tw = self._full_twiss(tw)
-            tw = self.correct_tunes(tw)
+            tw = tunes.correct(tw, full_twiss=self._full_twiss)
 
-            if not self.coupling_goal(tw):
+            if not coupling.goal(tw):
                 tw = self.settle_coupling_orbit(tw)
-                if not self.coupling_goal(tw):
-                    self.optimizers.coupling.run_lstsq(
+                if not coupling.goal(tw):
+                    coupling.run_lstsq(
                         action_results=[tw],
-                        step_scale=self.settings.coupling_step, tag_outcome=False)
+                        step_scale=coupling.step_scale, tag_outcome=False)
                     tw = self.orbit_twiss(tw)
                     tw = self.settle_coupling_orbit(tw)
-            tw = self.correct_tunes(tw)
+            tw = tunes.correct(tw, full_twiss=self._full_twiss)
 
             self.log_iteration(iteration, tw)
             if self.goals_met(tw):
@@ -226,35 +205,12 @@ class FCCeeCorrection:
         raise RuntimeError(f'Correction goals not met after {max_iterations} iterations')
 
     def log_iteration(self, iteration, tw):
-        """Summarize existing Twiss residuals without an extra model evaluation.
-
-        RDT is the larger RMS residual of f1001 and f1010; tune error is
-        the maximum absolute error across the two planes. Full diagnostics
-        remain available through compute_metrics() and the accepted history.
-        """
-        if iteration == 0:
-            self.log(
-                'iteration | orbit RMS x/y [um] | beta RMS x/y [%] | '
-                '|dQ| max | dDx/dDy RMS [mm] | RDT RMS max | |C-|'
-            )
-        m = self.compute_metrics(tw)
-        x, y = 1e6 * m['orbit_rms']
-        bx, by = 100 * m['beta_rms']
-        label = 'initial' if iteration == 0 else str(iteration)
-        self.log(
-            f"{label:>9} | {x:8.2f} / {y:8.2f} | {bx:6.2f} / {by:6.2f} | "
-            f"{max(abs(m['tune_error'])):8.1e} | "
-            f"{1e3 * m['dx_rms']:6.3f} / {1e3 * m['dy_rms']:6.3f} | "
-            f"{max(m['coupling_rms']):11.2e} | {abs(m['c_minus']):.2e}"
-        )
-
-    def orbit_goal(self, tw):
-        return orbit_corr.orbit_goal(
-            tw, monitor_indices=self.monitor_indices, monitor_alignment=self.monitor_alignment,
-            error_fraction=self.error_fraction, settings=self.settings)
+        self.log('Initial state' if iteration == 0 else f'Iteration {iteration}')
+        for optimizer in vars(self.optimizers).values():
+            optimizer.print_metrics(tw, log=self.log)
 
     def goals_met(self, tw):
-        return self.orbit_goal(tw) and self.optical_goal(tw) and self.coupling_goal(tw)
+        return all(opt.goal(tw) for opt in vars(self.optimizers).values())
 
     def record(self, tw, *, iterations):
         """Accept a result and append independent knob/observable values to history.
@@ -262,7 +218,7 @@ class FCCeeCorrection:
         Final refinement is a separate entry at the same error fraction. CSV
         diagnostics use the latest entry at each fraction, as in 003b.
         """
-        metrics = self.compute_metrics(tw)
+        metrics = _legacy_metrics(self.compute_metrics(tw))
         self.accepted_twiss = tw
         self.line.twiss_default['co_guess'] = orbit_guess(tw)
         self.history.append(
@@ -300,7 +256,7 @@ class FCCeeCorrection:
             assert self.goals_met(tw)
         self.line.twiss_default['co_guess'] = orbit_guess(tw)
         self.line.twiss_default['steps_R_matrix'] = self.steps_r_matrix.copy()
-        metrics = self.compute_metrics(tw)
+        metrics = _legacy_metrics(self.compute_metrics(tw))
         save_result(
             self.line,
             path,
@@ -309,7 +265,10 @@ class FCCeeCorrection:
             completed=completed,
             metrics=metrics,
             settings=dict(
-                correction_settings=asdict(self.settings), ramp_settings=ramp_settings or {}
+                correction_settings=asdict(self.settings),
+                optimizer_settings={name: asdict(opt.settings)
+                                    for name, opt in vars(self.optimizers).items()},
+                ramp_settings=ramp_settings or {}
             ),
         )
         np.savetxt(
@@ -341,90 +300,29 @@ class FCCeeCorrection:
     def ensure_full_twiss(self, tw):
         return steps.ensure_full_twiss(tw, full_twiss=self._full_twiss)
 
-    def monitor_alignment(self):
-        # Read live expressions: the BPM offsets include the master error knob.
-        return [
-            np.array(
-                [
-                    self.env[self.line.metadata['tuning_errors']['bpm_alignment_variables'][n][a]]
-                    for n in self.monitor_names
-                ],
-                dtype=float,
-            )
-            for a in ('shift_x', 'shift_y', 'rot_s_rad')
-        ]
-
-    def optics_vector(self, tw):
-        """Unweighted target residuals, in the installed response-row order."""
-        return self.optimizers.optics.target_status(
-            ret=True, action_results=[tw]).residue
-
-    def coupling_vector(self, tw):
-        return coupling_corr.coupling_vector(
-            tw, self.reference, coupling_indices=self.dispersion_indices
-        )
-
-    def orbit_errors(self, tw, fraction=None):
-        return orbit_corr.orbit_errors(
-            tw,
-            monitor_indices=self.monitor_indices,
-            monitor_alignment=self.monitor_alignment,
-        )
-
-    def lab_orbit_errors(self, tw):
-        return orbit_corr.lab_orbit_errors(
-            tw, monitor_indices=self.monitor_indices, monitor_alignment=self.monitor_alignment
-        )
-
     def compute_metrics(self, tw):
-        """Combine each correction module's diagnostics for logs and history."""
-        return {
-            **orbit_corr.compute_metrics(
-                tw, monitor_indices=self.monitor_indices, monitor_alignment=self.monitor_alignment),
-            **optics_corr.compute_metrics(
-                tw, self.reference, dispersion_indices=self.dispersion_indices,
-                ip_indices=self.ip_indices),
-            **coupling_corr.compute_metrics(
-                tw, self.reference, coupling_indices=self.coupling_indices,
-                ip_indices=self.ip_indices),
-            **tune_corr.compute_metrics(tw, self.reference),
-        }
-
-    def coupling_goal(self, tw):
-        return coupling_corr.coupling_goal(
-            tw, self.reference, coupling_indices=self.coupling_indices,
-            ip_indices=self.ip_indices, settings=self.settings,
-            final_refinement=self.final_refinement)
-
-    def optical_goal(self, tw):
-        return optics_corr.optical_goal(
-            tw, self.reference, dispersion_indices=self.dispersion_indices,
-            ip_indices=self.ip_indices, settings=self.settings,
-            final_refinement=self.final_refinement)
-
-    def correctable_orbit_errors(self, tw):
-        return orbit_corr.correctable_orbit_errors(
-            tw,
-            lab_orbit_errors=self.lab_orbit_errors,
-            orbit_optimizers=[self.optimizers.orbit_x, self.optimizers.orbit_y],
-        )
-
-    def correct_tunes(self, tw):
-        return tune_corr.correct(
-            tw, optimizer=self.optimizers.tunes,
-            tolerance=self.settings.tune_tol / 2, full_twiss=self._full_twiss)
+        """Collect named diagnostics from every configured correction."""
+        metrics = {}
+        for optimizer in vars(self.optimizers).values():
+            current = optimizer.compute_metrics(tw)
+            duplicates = metrics.keys() & current.keys()
+            if duplicates:
+                raise ValueError(f'Duplicate correction metrics: {duplicates}')
+            metrics.update(current)
+        return metrics
 
     def settle_coupling_orbit(self, tw):
         # Settle both the baseline and trials so orbit feed-down does not mask
         # the effect of the skew correction. Tune correction remains explicit.
+        orbit = (self.optimizers.orbit_x, self.optimizers.orbit_y)
         for iteration in range(3):
-            errors = self.correctable_orbit_errors(tw)
+            errors = [opt.correctable_error(tw) for opt in orbit]
             rms = [np.sqrt(np.mean(error**2)) for error in errors]
-            if max(rms) < self.settings.coupling_orbit_tol:
+            if max(rms) < self.optimizers.coupling.orbit_tol:
                 break
             before = self.snapshot()
             try:
-                for opt in (self.optimizers.orbit_x, self.optimizers.orbit_y):
+                for opt in orbit:
                     opt.run_lstsq(action_results=[tw], tag_outcome=False)
                 trial = self.orbit_twiss(tw) if iteration < 2 else self._full_twiss(tw)
             except self.correction_errors:
@@ -436,74 +334,48 @@ class FCCeeCorrection:
         return self.ensure_full_twiss(tw)
 
     def _prepare_reference(self):
-        self.env = self.line.env
-        self.circuits = self.line.metadata['correction_knobs']
-        self.monitor_names = self.circuits['orbit']['x']['monitors']
-        self.corrector_names = [self.circuits['orbit'][p]['correctors'] for p in 'xy']
-        self.orbit_knobs = (
-            self.circuits['orbit']['x']['knobs'] + self.circuits['orbit']['y']['knobs']
-        )
-        self.quad_names = self.circuits['optics']['quadrupoles']
-        self.quad_knobs = self.circuits['optics']['knobs']
-        self.skew_groups = self.circuits['coupling']['magnet_groups']
-        self.skew_knobs = self.circuits['coupling']['knobs']
-        self.tune_knobs = self.circuits['tunes']['knobs']
-        self.original = self.circuits['tunes']['nominal_values']
-        self.correction_knobs = (
-            self.orbit_knobs + self.quad_knobs + self.skew_knobs + self.tune_knobs
-        )
-        self.control_names = self.correction_knobs + ['on_errors', 'on_nonlinear']
-        self.nominal_knob_values = dict.fromkeys(self.correction_knobs, 0.0)
-        self.nominal_knob_values.update(self.original)
         self.reference = setup.nominal_reference(
-            self.line, full_twiss=self._full_twiss, log=_silent_log
-        )
-        self.interaction_points = list(self.line.get_table().rows['ip.*'].name)
+            self.line, full_twiss=self._full_twiss, log=_silent_log)
+        # Shared observation policy; each correction keeps its own row indices.
+        self.monitor_names = self.line.metadata['correction_knobs']['orbit']['x']['monitors']
         self.ip_names = ['ipa', 'ipd', 'ipg', 'ipj']
         self.obs_names = list(dict.fromkeys(self.monitor_names + self.ip_names))
-        self.alpha_names = self.obs_names
-        self.dispersion_names = self.obs_names
-        self.obs_indices = self.reference.rows.indices[self.obs_names]
-        self.alpha_indices = self.reference.rows.indices[self.alpha_names]
-        self.monitor_indices = self.reference.rows.indices[self.monitor_names]
-        self.ip_indices = self.reference.rows.indices[self.ip_names]
-        self.dispersion_indices = self.reference.rows.indices[self.dispersion_names]
-        self._set_values(self.orbit_knobs, np.zeros(len(self.orbit_knobs)))
-        self.line['on_errors'] = 0.0
-        for name in self.tune_knobs:
-            self.line[name] = self.original[name]
 
     def _build_optimizers(self):
-        self.optimizers.optics = optics_corr.build_optimizer(
+        self.optimizers.optics = optics_corr.OpticsCorrection(
             self.line, self.reference,
-            knobs=self.quad_knobs,
+            knobs=self.line.metadata['correction_knobs']['optics']['knobs'],
             observation_names=self.obs_names,
-            interaction_points=self.interaction_points, ip_names=self.ip_names,
-            settings=self.settings,
-        )
-        self.opt_s = self.optimizers.optics.response.svd.s
-        self.optimizers.orbit_x, self.optimizers.orbit_y = orbit_corr.build_optimizers(
-            self.line, self.reference, settings=self.settings)
-        self.coupling_names = self.dispersion_names
-        self.coupling_indices = self.dispersion_indices
-        self.optimizers.coupling = coupling_corr.build_optimizer(
-            self.line, self.reference,
-            observation_names=self.coupling_names, ip_names=self.ip_names,
-            settings=self.settings, full_twiss=self._full_twiss, log=_silent_log,
-        )
-        self.optimizers.tunes = tune_corr.build_optimizer(
-            self.line, self.reference,
-            tune_tol=self.settings.tune_tol, full_twiss=self._full_twiss,
-        )
-        # Keep the existing inspection attributes tied to optimizer configuration.
-        self.strength_scale = np.array([vary.weight for vary in self.optimizers.optics.vary])
-        self.optics_weights = np.array([target.weight for target in self.optimizers.optics.targets])
-        self.optics_labels = [target.tag for target in self.optimizers.optics.targets]
-        self.skew_scale = np.array([vary.weight for vary in self.optimizers.coupling.vary])
-        self.coupling_weights = np.array([target.weight for target in self.optimizers.coupling.targets])
-        self.coupling_labels = [target.tag for target in self.optimizers.coupling.targets]
-        self.tune_response = self.optimizers.tunes.response.matrix
-        # As in 003b, pay the SVD construction cost during preparation, not in
-        # the first trial. Retries then reuse these decompositions.
+            interaction_points=list(self.line.get_table().rows['ip.*'].name),
+            ip_names=self.ip_names, settings=self.optimizer_settings.get('optics'))
+        self.optimizers.orbit_x = orbit_corr.OrbitCorrection(
+            self.line, self.reference, plane='x', settings=self.optimizer_settings.get('orbit'))
+        self.optimizers.orbit_y = orbit_corr.OrbitCorrection(
+            self.line, self.reference, plane='y', settings=self.optimizer_settings.get('orbit'))
+        self.optimizers.coupling = coupling_corr.CouplingCorrection(
+            self.line, self.reference, observation_names=self.obs_names,
+            ip_names=self.ip_names, full_twiss=self._full_twiss, log=_silent_log,
+            settings=self.optimizer_settings.get('coupling'))
+        self.optimizers.tunes = tune_corr.TuneCorrection(
+            self.line, self.reference, full_twiss=self._full_twiss,
+            settings=self.optimizer_settings.get('tunes'))
         for optimizer in vars(self.optimizers).values():
             _ = optimizer.response.svd
+
+    def _collect_controls(self):
+        """Include every optimizer's knobs in scaling, snapshots and history."""
+        self.nominal_knob_values = {}
+        for optimizer in vars(self.optimizers).values():
+            for vary in optimizer.vary:
+                nominal = optimizer.nominal_knob_values[vary.name]
+                if (vary.name in self.nominal_knob_values
+                        and self.nominal_knob_values[vary.name] != nominal):
+                    raise ValueError(f'Conflicting nominal values for {vary.name}')
+                self.nominal_knob_values[vary.name] = nominal
+        self.correction_knobs = list(self.nominal_knob_values)
+        self.control_names = self.correction_knobs + ['on_errors', 'on_nonlinear']
+
+
+def _legacy_metrics(metrics):
+    """Adapt separate orbit metrics to the existing 003b/003c output format."""
+    return dict(metrics, orbit_rms=np.array([metrics['orbit_x_rms'], metrics['orbit_y_rms']]))

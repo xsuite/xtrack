@@ -13,43 +13,70 @@ Do not change `003b_correct_with_optimizers.py` or its shared numerical helpers.
 It remains the reference. Do not reintroduce resume/checkpoints. Keep logging
 minimal and settings, optimizers, accepted state, and history inspectable.
 
-## Optimizer setup modules
+## Correction optimizer modules
 
-- `optics_corr.py`: normal-optics and horizontal-dispersion targets, knob scales,
-  weights, response construction, and the optics stopping check (`optical_goal`).
-- `orbit_corr.py`: horizontal and vertical orbit targets and response matrices.
-- `coupling_corr.py`: coupling and vertical-dispersion targets, scales, weights,
-  and response construction.
-- `tune_corr.py`: nominal tune targets, the two-knob finite-difference response,
-  metrics and the standalone tune correction stage.
+`correction_optimizer.py` defines the example-local `CorrectionOptimizer`, a
+subclass of `xtrack.match.OptimizeLine`. Each correction is a concrete subclass:
 
-Each correction module exposes `compute_metrics()` for its own quantities:
-orbit RMS in the BPM frame; whole-ring beta RMS/max and horizontal dispersion;
-coupling RDTs, vertical dispersion and c_minus; or tunes and tune errors.
-`correction.compute_metrics(tw)` combines those dictionaries for logging,
-history and output. It replaces `correction.measure()` and contains no metric
-formulas. All computations use supplied Twiss tables and run no tracking.
+- `optics_corr.OpticsCorrection`: normal optics and horizontal dispersion.
+- `orbit_corr.OrbitCorrection`: one instance for each plane, with independent
+  response solves and BPM-frame orbit goals.
+- `coupling_corr.CouplingCorrection`: RDTs, vertical dispersion and c_minus.
+- `tune_corr.TuneCorrection`: nominal tunes and the standalone cleanup stage.
 
-Each module's goal function checks its local metrics directly. Optics also
-delegates the tune check to `tune_corr.tune_goal`. There are no auxiliary goal
-optimizers. Orbit comparisons remain inclusive; optics/coupling comparisons
-remain strict, signed errors use absolute values, and dispersion/coupling
-limits switch between ramp and final refinement.
+Each module owns its settings dataclass, targets, varies, response construction,
+solve cutoff, reference/observation data, nominal knob values, `compute_metrics(tw)`,
+`goal(tw)` and `print_metrics(tw, log=...)`. These diagnostic methods consume the
+supplied table without tracking or implicitly retaining it. The normal optimizer
+API remains available for target inspection and least-squares steps.
 
-Each builder takes the line and nominal reference Twiss, creates its own action,
-and returns a configured optimizer (two for orbit) with its response installed.
-Builders reuse the unchanged analytical response helpers. The workflow owns
-the reference and observation locations, precomputes response SVDs, and retains
-the correction sequence, candidate evaluations, acceptance, rollback, and history.
-The existing `correction.optimizers` and inspection attributes remain available.
+`CorrectionSettings` contains only the workflow's iteration budgets. The example
+passes module settings through an `optimizer_settings` dictionary at construction;
+inspect or change them afterwards through each `optimizer.settings`. Response
+weights and cutoffs are configured during construction; `optimizer.rcond` remains
+directly editable. There is no central schema of correction-specific settings.
 
-Each builder sets `optimizer.rcond` from its correction settings (zero for tune
-correction). `run_lstsq`, `get_correction`, `step`, `solve`, and `run_jacobian`
-use this default when no per-call `rcond` is supplied. The default is `None`,
-which retains the existing SVD cutoff. Explicit per-call values, including zero,
-override it without changing the stored default or rebuilding the response SVD.
-Orbit settling uses the orbit optimizer's cutoff for its correctable-mode check.
-The orchestration no longer passes cutoffs at every correction step.
+`FCCeeCorrection.configure_goals()` asks every registered optimizer to refresh its
+active tolerance attributes from its settings. It runs after `set_error_fraction`,
+a change to `final_refinement`, and restoring a snapshot (even when the restored
+mode is unchanged). Goal calls consequently need only `tw`, without mode/context
+arguments. Call `configure_goals()` explicitly after editing goal settings. The
+active tolerances, such as `optics.dx_ip_tol` or `orbit_x.orbit_tol`, are inspectable
+and can also be changed directly for the current mode.
+
+Orbit goals use inclusive RMS comparisons and an error-fraction-dependent floor.
+Optics/coupling goals retain strict comparisons and their ramp/refinement limits.
+Optics still checks tunes as well as beta and Dx. Tune global acceptance uses its
+configured tune tolerance; `TuneCorrection.correct()` uses half that tolerance
+for cleanup. This preserves the existing distinction between acceptance and the
+standalone tune stage.
+
+The workflow collects metrics and prints one short summary from each optimizer.
+Metric names must be unique. A small output adapter combines `orbit_x_rms` and
+`orbit_y_rms` into the existing `orbit_rms` array for 003b/003c compatibility;
+accepted history retains additional named metrics too. Detailed targets, weights,
+scales and singular values are inspected on the optimizer itself, without mirrored
+attributes on `FCCeeCorrection`.
+
+After constructing the optimizers, the workflow collects their varies and nominal
+knob values for ramp scaling, snapshots and history. Shared knobs appear once;
+conflicting nominal values raise an error. Each module declares nonzero nominal
+values where needed (currently tune knobs); ordinary correction trims default to
+zero. A new correction therefore needs its own module, an instance added in
+`_build_optimizers`, and its desired placement in `correct_at_fixed_strengths`.
+It automatically participates in overall goals, metrics, printing and rollback.
+The correction sequence remains custom Python; no generic pipeline is introduced.
+
+Each optimizer owns a local action and uses supplied results at construction.
+The workflow still owns the common reference and observation policy, precomputes
+response SVDs, and controls candidate evaluations, acceptance and rollback.
+The shared 003b response and setup helpers remain unchanged.
+
+Each optimizer sets `rcond` from its module settings (zero for tunes).
+`run_lstsq`, `get_correction`, `step`, `solve`, and `run_jacobian` use this default
+when no per-call value is supplied. Explicit per-call values, including zero,
+override it without changing the default or rebuilding the response SVD.
+Orbit settling uses its orbit optimizers' cutoffs for correctable-mode checks.
 
 ## Relative beta objective
 
@@ -57,7 +84,7 @@ Beta, alpha and horizontal dispersion use one observation list: BPMs plus the
 four main IPs. The optics builder takes this list as `observation_names` and
 constructs all five local targets in one loop, assigning each target's value,
 weight, tolerance and tag immediately. Tune targets follow the local targets.
-The workflow still evaluates global beta RMS/max goals across the full Twiss
+The optics optimizer evaluates global beta RMS/max goals across the full Twiss
 table, including locations outside the fit observations.
 
 The beta objective is relative beating, `beta / beta_ref - 1`, rather than
@@ -78,10 +105,10 @@ shared helper's nominal normalized-alpha response using
 `d(alpha) = d(alpha * beta_ref / beta) + alpha_ref * d(log(beta))` at the reference.
 The response builder includes alpha locations in its internal beta observations
 to supply these derivatives. Alpha weights are unchanged.
-No callable targets remain in optics optimizer setup. The workflow's
-`optics_vector` returns the optimizer's unweighted physical target residuals;
-`optics_weights` supplies the matching weights. Other settings are unchanged;
-the shared 003b helpers retain their logarithmic convention.
+No callable targets remain in optics optimizer setup. Use the optimizer's
+`target_status(ret=True, action_results=[tw]).residue` for physical residuals
+and its targets' weights for the matching objective weights. The shared 003b
+helpers retain their logarithmic convention.
 
 ## Optics response from the optimizer
 
@@ -207,7 +234,7 @@ a local snapshot solely to restore a failed evaluation, then stops settling
 and promotes its last valid orbit to full Twiss. Tune correction remains
 explicit after the coupling stage. Optics does not nest orbit correction.
 
-`tune_corr.correct()` uses its tune tolerance and up to seven iterations,
+`TuneCorrection.correct()` uses its cleanup tolerance and up to seven iterations,
 without comparing penalties. If the tune goal is still unmet, it raises to the
 ramp/refinement caller; it performs no local rollback. The optics optimizer also
 retains its qx/qy targets. Orbit, optics and tune use step_scale=1; coupling
@@ -420,3 +447,15 @@ calls (83 orbit-only). History agrees with the preceding goal-only run within
 atol=1e-8, rtol=1e-3. Log and verification:
 `/tmp/fccee_optimizer_defaults_7jgk0xt0/run.log` and `verification.json` in that
 directory. The 003b reference and shared numerical helpers remain unchanged.
+
+Moving setup, settings, metrics, active goals and printing into
+`CorrectionOptimizer` subclasses passed 36 focused xtrack tests. Checks include
+mode/fraction changes, restoring active tolerances, strict/inclusive goal limits,
+unchanged metrics against the shared reference helpers, and an additional
+correction participating in goals, printing, metrics, knob scaling and rollback.
+The full ramp, final refinement, fresh final goal check and saving completed in
+190.4 seconds wall time under the 250-second cap. All final goals pass; there are
+20 accepted entries and 240 Twiss calls (83 orbit-only), as before. The saved CSV
+history is identical to the preceding optimizer-defaults run. Artifacts:
+`/tmp/fccee_correction_classes_gl4bmgt2/run.log`, `verification.json` and
+`timing.json`. The 003b reference and all its shared helpers remain unchanged.

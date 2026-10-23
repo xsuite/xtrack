@@ -1,7 +1,7 @@
 """FCC-ee correction with inspectable state and an explicit ramp.
 
 003b_correct_with_optimizers.py remains the reference implementation.
-Inspect correction.optimizers, correction.settings and correction.history.
+Inspect correction.optimizers, each optimizer.settings, and correction.history.
 Each correction module computes its own metrics and checks its stopping goals;
 correction.compute_metrics(tw) combines diagnostics from all modules.
 Twiss is evaluated by correction and supplied to the optimizers explicitly.
@@ -15,6 +15,10 @@ import builtins
 
 import xtrack as xt
 from correction_workflow import CorrectionSettings, FCCeeCorrection
+from optics_corr import OpticsSettings
+from orbit_corr import OrbitSettings
+from coupling_corr import CouplingSettings
+from tune_corr import TuneSettings
 
 START_TIME = perf_counter()
 
@@ -35,24 +39,20 @@ MAX_INCREMENT = 0.10
 if not 0 < TARGET_ERROR_FRACTION <= 1:
     raise ValueError('TARGET_ERROR_FRACTION must be in (0, 1]')
 
-# All correction settings are inspectable on correction.settings. These are
-# the main goals and solve cutoffs; the remaining defaults match 003b.
-settings = CorrectionSettings(
-    orbit_tol=10e-6,
-    beta_rms_tol=0.03,
-    beta_max_tol=0.50,
-    tune_tol=1e-5,
-    optics_rcond=1e-5,
-    orbit_rcond=1e-6,
-    coupling_rcond=1e-6,
-    ramp_max_iterations=5,
-    final_max_iterations=40,
+# Workflow budgets and independently configured correction modules.
+settings = CorrectionSettings(ramp_max_iterations=5, final_max_iterations=40)
+optimizer_settings = dict(
+    orbit=OrbitSettings(orbit_tol=10e-6, rcond=1e-6),
+    optics=OpticsSettings(beta_rms_tol=0.03, beta_max_tol=0.50, rcond=1e-5),
+    coupling=CouplingSettings(rcond=1e-6),
+    tunes=TuneSettings(tune_tol=1e-5),
 )
 
 # %% Construct the correction object
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 line = xt.load(INPUT)
-correction = FCCeeCorrection(line, settings=settings, log=log)
+correction = FCCeeCorrection(line, settings=settings,
+                             optimizer_settings=optimizer_settings, log=log)
 
 # %% Ramp the errors and nonlinear strengths
 correction_failed = False

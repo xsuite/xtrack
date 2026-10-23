@@ -10,6 +10,14 @@ import pytest
 import xtrack as xt
 
 
+def stub_optimizer(**kwargs):
+    defaults = dict(goal=lambda tw: True, configure_goals=lambda **kw: None,
+                    print_metrics=lambda tw, **kw: None,
+                    correct=lambda tw, **kw: tw, step_scale=.5, orbit_tol=5e-8)
+    defaults.update(kwargs)
+    return SimpleNamespace(**defaults)
+
+
 @pytest.fixture
 def correction(monkeypatch):
     examples = Path(__file__).resolve().parents[1] / 'examples' / 'fccee_tuning'
@@ -36,13 +44,15 @@ def correction(monkeypatch):
     state.settings = module.CorrectionSettings()
     state.log = lambda *args, **kwargs: None
     state.history = []
+    state.optimizers = SimpleNamespace(**{name: stub_optimizer() for name in
+        ('optics', 'orbit_x', 'orbit_y', 'coupling', 'tunes')})
     state.final_refinement = False
     state.accepted_twiss = SimpleNamespace(
         x=[1.0], px=[2.0], y=[3.0], py=[4.0], qx=1.2, qy=2.3, delta=[0.0], c_minus=1e-4
     )
     state.line.twiss_default['co_guess'] = dict(x=1.0, px=2.0, y=3.0, py=4.0, zeta=0.0, delta=0.0)
     metrics = dict(
-        orbit_rms=np.array([1e-6, 2e-6]),
+        orbit_x_rms=1e-6, orbit_y_rms=2e-6,
         beta_rms=np.array([0.01, 0.02]),
         beta_max=np.array([0.1, 0.2]),
         tunes=np.array([1.2, 2.3]),
@@ -132,71 +142,171 @@ def test_twiss_evaluation_is_explicit(correction, monkeypatch):
     assert calls[-1][1]['only_orbit']
 
     # A supplied point satisfying the goals requires no further Twiss.
-    correction.orbit_goal = correction.optical_goal = correction.coupling_goal = lambda tw: True
     tw, iterations = correction.correct_at_fixed_strengths(second)
     assert tw is second and iterations == 0
     assert len(calls) == 3
 
 
-def test_module_goals_preserve_thresholds(correction, monkeypatch):
-    correction.reference = correction.accepted_twiss
-    metrics = correction.compute_metrics(None)
-    correction.monitor_indices = np.array([0])
-    correction.coupling_indices = correction.ip_indices = np.array([0])
-    monkeypatch.setattr(importlib.import_module('orbit_corr'), 'compute_metrics',
-                        lambda *args, **kwargs: metrics)
-    monkeypatch.setattr(importlib.import_module('coupling_corr'), 'compute_metrics',
-                        lambda *args, **kwargs: metrics)
-    assert correction.coupling_goal(None)
-    metrics['orbit_rms'][:] = correction.error_fraction * correction.settings.orbit_tol
-    assert correction.orbit_goal(None)  # Inclusive orbit limit.
-    metrics['orbit_rms'][0] = np.nextafter(metrics['orbit_rms'][0], np.inf)
-    assert not correction.orbit_goal(None)
-    metrics['dy_ip'] = 0.00005
-    assert correction.coupling_goal(None)
+def diagnostic_optimizer(module_name, class_name, settings_name, reference):
+    # Test metric/goal methods independently of the expensive response setup.
+    module = importlib.import_module(module_name)
+    opt = object.__new__(getattr(module, class_name))
+    opt.settings = getattr(module, settings_name)()
+    opt.reference = reference
+    return opt
+
+
+def test_mode_and_restore_refresh_active_goals(correction):
+    reference = correction.accepted_twiss
+    optics = diagnostic_optimizer('optics_corr', 'OpticsCorrection', 'OpticsSettings', reference)
+    coupling = diagnostic_optimizer('coupling_corr', 'CouplingCorrection', 'CouplingSettings', reference)
+    orbit = diagnostic_optimizer('orbit_corr', 'OrbitCorrection', 'OrbitSettings', reference)
+    correction.optimizers = SimpleNamespace(optics=optics, coupling=coupling, orbit=orbit)
+    correction.configure_goals()
+    orbit.plane = 'x'
+    orbit.compute_metrics = lambda tw: {'orbit_x_rms': orbit.orbit_tol}
+    assert orbit.goal(None)  # Inclusive orbit limit.
+    orbit.compute_metrics = lambda tw: {'orbit_x_rms': np.nextafter(orbit.orbit_tol, np.inf)}
+    assert not orbit.goal(None)
+    assert orbit.orbit_tol == pytest.approx(2e-6)
+    assert optics.dx_ip_tol == 5e-4
+    assert coupling.dy_ip_tol == 1e-4
+    before = correction.snapshot()
+    correction.set_error_fraction(.8)
     correction.final_refinement = True
-    assert not correction.coupling_goal(None)
-    correction.settings.dispersion_ip_tol = 0.00006
-    assert correction.coupling_goal(None)  # Settings remain live.
+    assert orbit.orbit_tol == pytest.approx(8e-6)
+    assert optics.dx_ip_tol == 1e-4
+    assert coupling.dy_ip_tol == 2e-5
+    correction.restore(before)
+    assert not correction.final_refinement
+    assert orbit.orbit_tol == pytest.approx(2e-6)
+    assert optics.dx_ip_tol == 5e-4
+    assert coupling.dy_ip_tol == 1e-4
+    correction.set_error_fraction(0.)
+    assert orbit.orbit_tol == 2e-9
+    # Settings are configuration; active parameters refresh explicitly.
+    coupling.settings.ramp_dispersion_ip_tol = 6e-5
+    correction.configure_goals()
+    assert coupling.dy_ip_tol == 6e-5
+
+
+@pytest.mark.parametrize('key, tolerance', [
+    ('coupling_rms', 'rdt_rms_tol'), ('coupling_ip', 'rdt_ip_tol'),
+    ('c_minus', 'c_minus_tol'), ('dy_rms', 'dy_rms_tol'), ('dy_ip', 'dy_ip_tol')])
+def test_coupling_goal_limits_are_strict(correction, key, tolerance):
+    opt = diagnostic_optimizer('coupling_corr', 'CouplingCorrection',
+                               'CouplingSettings', correction.accepted_twiss)
+    metrics = dict(coupling_rms=np.zeros(2), coupling_ip=0., c_minus=0.,
+                   dy_rms=0., dy_ip=0.)
+    opt.compute_metrics = lambda tw: metrics
+    for final in (False, True):
+        opt.configure_goals(final_refinement=final, error_fraction=1.)
+        limit = getattr(opt, tolerance)
+        metrics[key] = -limit if key == 'c_minus' else limit
+        assert not opt.goal(None)
+        metrics[key] = np.nextafter(metrics[key], 0.)
+        assert opt.goal(None)
+        metrics[key] = 0.
+
+
+def test_additional_correction_participates_in_workflow(correction):
+    from dataclasses import dataclass
+
+    base = importlib.import_module('correction_optimizer').CorrectionOptimizer
+
+    @dataclass
+    class Settings:
+        tolerance: float = 0.1
+
+    class ChromaticityCorrection(base):
+        def __init__(self, line):
+            action = xt.Action(lambda: pytest.fail('Unexpected action execution'))
+            super().__init__(line, {'chromaticity': 0.}, settings=Settings(),
+                             name='chromaticity',
+                             nominal_knob_values={'sext': 1.},
+                             vary=[xt.Vary('sext', step=1e-6)],
+                             targets=[action.target('chromaticity', value=0., tol=1e-9)])
+            self.set_response([[1.]])
+
+        def configure_goals(self, *, final_refinement, error_fraction):
+            self.tolerance = self.settings.tolerance if final_refinement else 1.
+
+        def compute_metrics(self, tw):
+            return {'chromaticity': tw['chromaticity']}
+
+        def goal(self, tw):
+            return abs(tw['chromaticity']) < self.tolerance
+
+    correction.line['sext'] = 3.
+    opt = ChromaticityCorrection(correction.line)
+    correction.optimizers = SimpleNamespace(chromaticity=opt)
+    correction._collect_controls()
+    correction.configure_goals()
+    assert correction.correction_knobs == ['sext']
+    assert correction.nominal_knob_values == {'sext': 1.}
+    before = correction.snapshot()
+    correction.scale_corrections(.4)
+    assert correction.line['sext'] == 5.  # Scale the deviation from nominal once.
+    correction.set_error_fraction(.4)
+    correction.final_refinement = True
+    assert not correction.goals_met({'chromaticity': .5})
+    correction.restore(before)
+    assert correction.line['sext'] == 3.
+    assert opt.tolerance == 1.
+    assert correction.goals_met({'chromaticity': .5})
+    del correction.compute_metrics
+    assert correction.compute_metrics({'chromaticity': .5}) == {'chromaticity': .5}
+    lines = []
+    correction.log = lambda *args: lines.append(args)
+    correction.log_iteration(0, {'chromaticity': .5})
+    assert lines[-1] == ('chromaticity:', {'chromaticity': .5})
+    assert len(opt.log()) == 1
+    # A knob shared by two corrections is scaled/restored only once.
+    correction.optimizers.other = ChromaticityCorrection(correction.line)
+    correction._collect_controls()
+    assert correction.correction_knobs == ['sext']
+    correction.optimizers.other.nominal_knob_values['sext'] = 2.
+    with pytest.raises(ValueError, match='Conflicting nominal'):
+        correction._collect_controls()
 
 
 def test_optics_goal_computes_errors_without_aggregate_metrics(correction, monkeypatch):
-    correction.reference = SimpleNamespace(
+    reference = SimpleNamespace(
         betx=np.ones(1000), bety=np.ones(1000), dx=np.zeros(1000), qx=0., qy=0.)
-    correction.dispersion_indices = np.array([0, 1])
-    correction.ip_indices = np.array([1])
-    tw = deepcopy(correction.reference)
+    opt = diagnostic_optimizer('optics_corr', 'OpticsCorrection', 'OpticsSettings', reference)
+    opt.dispersion_indices = np.array([0, 1])
+    opt.ip_indices = np.array([1])
+    correction.optimizers = SimpleNamespace(optics=opt)
+    correction.configure_goals()
+    tw = deepcopy(reference)
     monkeypatch.setattr(correction, 'compute_metrics', lambda *a, **k: pytest.fail('Unexpected aggregate metrics'))
     monkeypatch.setattr(correction, 'twiss', lambda *a, **k: pytest.fail('Unexpected Twiss'))
-    assert correction.optical_goal(tw)
-
-    # Beta checks cover the full table, including points outside the BPM/IP list.
+    assert opt.goal(tw)
     for plane in ('betx', 'bety'):
         beta = getattr(tw, plane)
         beta[:] = 1.04
-        assert not correction.optical_goal(tw)  # RMS above 3%, maximum below 50%.
+        assert not opt.goal(tw)
         beta[:] = 1.
         beta[-1] = 1.5
-        assert not correction.optical_goal(tw)  # At maximum limit, RMS below 3%.
+        assert not opt.goal(tw)
         beta[-1] = 1.
     for tune in ('qx', 'qy'):
-        setattr(tw, tune, -correction.settings.tune_tol)
-        assert not correction.optical_goal(tw)  # Strict and sign-independent.
+        setattr(tw, tune, -opt.tune_tol)
+        assert not opt.goal(tw)
         setattr(tw, tune, 0.)
-
     tw.dx[-1] = 1.
-    assert correction.optical_goal(tw)  # Dispersion is checked only at BPMs/IPs.
+    assert opt.goal(tw)
     tw.dx[0] = 0.01
-    assert not correction.optical_goal(tw)  # RMS fails although IP error is zero.
+    assert not opt.goal(tw)
     tw.dx[0] = 0.
-    tw.dx[1] = -correction.settings.horizontal_dispersion_ip_tol
-    assert correction.optical_goal(tw)  # Looser ramp limit.
+    tw.dx[1] = -opt.settings.horizontal_dispersion_ip_tol
+    assert opt.goal(tw)
     correction.final_refinement = True
-    assert not correction.optical_goal(tw)  # Exactly at the final IP limit.
+    assert not opt.goal(tw)
     tw.dx[1] = np.nextafter(tw.dx[1], 0.)
-    assert correction.optical_goal(tw)
-    correction.settings.horizontal_dispersion_ip_tol *= 0.5
-    assert not correction.optical_goal(tw)  # Settings remain live.
+    assert opt.goal(tw)
+    opt.dx_ip_tol *= .5
+    assert not opt.goal(tw)  # Active tolerances are directly editable.
 
 
 def test_optics_targets_use_relative_beta_and_physical_alpha(correction, monkeypatch):
@@ -220,7 +330,7 @@ def test_optics_targets_use_relative_beta_and_physical_alpha(correction, monkeyp
     physical_response[2:4] += np.array([1., -2.])[:, None] * response[:2]
     physical_response[:2] *= np.array([10., 20.])[:, None]
     scales = 1 / (4 * np.pi * np.max(np.abs(physical_response[-2:]), axis=0))
-    settings = correction.settings
+    settings = module.OpticsSettings()
     weights = np.array([settings.ir_beta_weight, settings.ir_beta_weight,
                         settings.alpha_weight, settings.alpha_weight,
                         settings.horizontal_dispersion_weight
@@ -232,10 +342,10 @@ def test_optics_targets_use_relative_beta_and_physical_alpha(correction, monkeyp
         raise AssertionError('Unexpected Twiss')
 
     monkeypatch.setattr(correction.line, 'twiss', no_tracking)
-    opt = module.build_optimizer(
+    opt = module.OpticsCorrection(
         correction.line, reference, knobs=['quad', 'skew'],
         observation_names=['bpm'], interaction_points=['bpm'], ip_names=['bpm'],
-        settings=correction.settings)
+        settings=settings)
     supplied = [trial]
     status = opt.target_status(ret=True, action_results=supplied)
     # Physical values in status; normalized relative-beta objective in the solve.
@@ -284,7 +394,9 @@ def test_optics_keeps_worsening_steps_until_goal_or_budget(correction, monkeypat
         action_results={action: baseline}, show_call_counter=False)
     opt.targets[1].active = False
     opt.set_response(np.array([[response], [0.]]))
-    correction.optimizers = SimpleNamespace(optics=opt)
+    opt.goal = lambda tw: False
+    opt.configure_goals = lambda **kw: None
+    correction.optimizers.optics = opt
     trials = []
 
     def evaluate_trial(tw):
@@ -295,10 +407,6 @@ def test_optics_keeps_worsening_steps_until_goal_or_budget(correction, monkeypat
     monkeypatch.setattr(correction, '_full_twiss', evaluate_trial)
     monkeypatch.setattr(correction, 'log_iteration', lambda *args: None)
     monkeypatch.setattr(correction, 'goals_met', lambda tw: abs(tw['error']) < 0.2)
-    monkeypatch.setattr(correction, 'orbit_goal', lambda tw: True)
-    monkeypatch.setattr(correction, 'optical_goal', lambda tw: False)
-    monkeypatch.setattr(correction, 'coupling_goal', lambda tw: True)
-    monkeypatch.setattr(correction, 'correct_tunes', lambda tw: tw)
     before = correction.snapshot()
     if accepted:
         result, iterations = correction.correct_at_fixed_strengths(baseline)
@@ -324,7 +432,7 @@ def test_explicit_stage_order_passes_latest_twiss(correction, monkeypatch):
     def optimizer(name):
         def apply(*, action_results, **kwargs):
             calls.append((name, action_results[0]))
-        return SimpleNamespace(run_lstsq=apply)
+        return stub_optimizer(run_lstsq=apply, goal=lambda tw: False)
 
     correction.optimizers = SimpleNamespace(**{
         name: optimizer(name) for name in ('orbit_x', 'orbit_y', 'optics', 'coupling')})
@@ -336,11 +444,9 @@ def test_explicit_stage_order_passes_latest_twiss(correction, monkeypatch):
 
     monkeypatch.setattr(correction, 'log_iteration', lambda *args: None)
     monkeypatch.setattr(correction, 'goals_met', lambda tw: tw == 6)
-    for name in ('orbit_goal', 'optical_goal', 'coupling_goal'):
-        monkeypatch.setattr(correction, name, lambda tw: False)
     monkeypatch.setattr(correction, '_full_twiss', stage('full'))
     monkeypatch.setattr(correction, 'orbit_twiss', stage('orbit'))
-    monkeypatch.setattr(correction, 'correct_tunes', stage('tune'))
+    correction.optimizers.tunes = stub_optimizer(correct=lambda tw, **kw: stage('tune')(tw))
     monkeypatch.setattr(correction, 'settle_coupling_orbit', stage('settle', advance=0))
     monkeypatch.setattr(correction, 'snapshot', lambda: pytest.fail('Unexpected stage snapshot'))
     assert correction.correct_at_fixed_strengths(0) == (6, 1)
@@ -360,9 +466,7 @@ def test_cycle_budget_checks_goals_after_last_cycle(correction, monkeypatch,
     tune_calls = []
     monkeypatch.setattr(correction, 'log_iteration', lambda iteration, tw: logged.append(iteration))
     monkeypatch.setattr(correction, 'goals_met', lambda tw: converges and logged[-1] == limit)
-    for name in ('orbit_goal', 'optical_goal', 'coupling_goal'):
-        monkeypatch.setattr(correction, name, lambda tw: True)
-    monkeypatch.setattr(correction, 'correct_tunes', lambda tw: tune_calls.append(tw) or tw)
+    correction.optimizers.tunes.correct = lambda tw, **kw: tune_calls.append(tw) or tw
     if converges:
         assert correction.correct_at_fixed_strengths(0) == (0, limit)
     else:
@@ -378,13 +482,17 @@ def test_standalone_tune_correction(correction, monkeypatch, twiss_fails):
 
     action = xt.Action(lambda: pytest.fail('Unexpected optimizer evaluation'))
     baseline = np.array([12., 3.])
-    opt = xd.Optimize(
+    tune_module = importlib.import_module('tune_corr')
+    opt = object.__new__(tune_module.TuneCorrection)
+    xd.Optimize.__init__(opt,
         vary=[xd.Vary(name, correction.line.vars, step=1e-6) for name in ('tune', 'quad')],
         targets=[action.target(i, value=value, tol=1e-15)
                  for i, value in enumerate([1., 2.])],
         action_results={action: baseline}, show_call_counter=False)
     opt.set_response(np.eye(2))
-    correction.optimizers = SimpleNamespace(tunes=opt)
+    opt.settings = tune_module.TuneSettings()
+    opt.configure_goals(final_refinement=False, error_fraction=0.)
+    correction.optimizers.tunes = opt
     trials = []
     def evaluate(tw):
         values = np.array([float(correction.line[name]) for name in ('tune', 'quad')])
@@ -397,15 +505,15 @@ def test_standalone_tune_correction(correction, monkeypatch, twiss_fails):
     if twiss_fails:
         before = correction.snapshot()
         with pytest.raises(ValueError, match='Invalid trial optics'):
-            correction.correct_tunes(baseline)
+            opt.correct(baseline, full_twiss=correction._full_twiss)
         assert len(trials) == 1
         correction.restore(before)
         np.testing.assert_allclose([correction.line[name] for name in ('tune', 'quad')], baseline)
     else:
-        result = correction.correct_tunes(baseline)
+        result = opt.correct(baseline, full_twiss=correction._full_twiss)
         np.testing.assert_allclose(result, [1., 2.])
         assert len(trials) == 1
-        assert correction.correct_tunes(result) is result
+        assert opt.correct(result, full_twiss=correction._full_twiss) is result
         assert len(trials) == 1  # Goal check does not run Twiss again.
     assert len(opt.log()) == 1
 
@@ -415,14 +523,18 @@ def test_tunes_allow_non_improving_iterations_until_limit(correction, monkeypatc
 
     correction.line['tune'] = 1.
     action = xt.Action(lambda: pytest.fail('Unexpected optimizer evaluation'))
-    opt = xd.Optimize(
+    tune_module = importlib.import_module('tune_corr')
+    opt = object.__new__(tune_module.TuneCorrection)
+    xd.Optimize.__init__(opt,
         vary=[xd.Vary('tune', correction.line.vars, step=1e-6)],
         targets=[action.target(0, value=0., tol=1e-12)],
         action_results={action: [2.]}, show_call_counter=False)
     # The actual response is twice this value, so full steps oscillate with
     # unchanged penalty. Only the tune iteration limit should reject them.
     opt.set_response(np.array([[1.]]))
-    correction.optimizers = SimpleNamespace(tunes=opt)
+    opt.settings = tune_module.TuneSettings()
+    opt.configure_goals(final_refinement=False, error_fraction=0.)
+    correction.optimizers.tunes = opt
     trials = []
     def evaluate(tw):
         value = 2 * float(correction.line['tune'])
@@ -431,7 +543,7 @@ def test_tunes_allow_non_improving_iterations_until_limit(correction, monkeypatc
     monkeypatch.setattr(correction, '_full_twiss', evaluate)
     before = correction.snapshot()
     with pytest.raises(RuntimeError, match='Tune correction iteration limit'):
-        correction.correct_tunes([2.])
+        opt.correct([2.], full_twiss=correction._full_twiss)
     assert trials == [-2., 2., -2., 2., -2., 2., -2.]
     correction.restore(before)
     assert correction.line['tune'] == 1.
@@ -444,8 +556,10 @@ def test_settling_restores_failed_trial_before_continuing(correction, monkeypatc
     def apply(**kwargs):
         correction.line['orbit'] += 1.
     correction.optimizers = SimpleNamespace(
-        orbit_x=SimpleNamespace(run_lstsq=apply),
-        orbit_y=SimpleNamespace(run_lstsq=lambda **kwargs: None))
+        orbit_x=stub_optimizer(run_lstsq=apply, correctable_error=lambda tw: np.array([1.])),
+        orbit_y=stub_optimizer(run_lstsq=lambda **kwargs: None,
+                               correctable_error=lambda tw: np.array([2.])),
+        coupling=stub_optimizer(), tunes=stub_optimizer())
     def evaluate(kind):
         def run(tw):
             calls.append(kind)
@@ -457,8 +571,6 @@ def test_settling_restores_failed_trial_before_continuing(correction, monkeypatc
             return tw + 1
         return run
 
-    monkeypatch.setattr(correction, 'correctable_orbit_errors',
-                        lambda tw: [np.array([1.]), np.array([2.])])
     monkeypatch.setattr(correction, 'orbit_twiss', evaluate('orbit'))
     monkeypatch.setattr(correction, '_full_twiss', evaluate('full'))
     def ensure_full(tw):
@@ -467,7 +579,7 @@ def test_settling_restores_failed_trial_before_continuing(correction, monkeypatc
             assert correction.line.twiss_default['co_guess'] == before.co_guess
         return ('full', tw)
     monkeypatch.setattr(correction, 'ensure_full_twiss', ensure_full)
-    monkeypatch.setattr(correction, 'correct_tunes', lambda tw: pytest.fail('Nested tune correction'))
+    correction.optimizers.tunes.correct = lambda *a, **kw: pytest.fail('Nested tune correction')
     result = correction.settle_coupling_orbit(0)
     if outcome == 'improves':
         assert result == ('full', 3)
@@ -480,8 +592,8 @@ def test_settling_restores_failed_trial_before_continuing(correction, monkeypatc
         assert calls == ['orbit']
 
     calls.clear()
-    monkeypatch.setattr(correction, 'correctable_orbit_errors',
-                        lambda tw: [np.array([0.]), np.array([0.])])
+    for opt in (correction.optimizers.orbit_x, correction.optimizers.orbit_y):
+        opt.correctable_error = lambda tw: np.array([0.])
     assert correction.settle_coupling_orbit(0) == ('full', 0)
     assert calls == []
 
@@ -510,32 +622,40 @@ def test_module_metrics_match_reference_helpers(correction, monkeypatch):
     tw.x[:] = [1e-6, 1., -2e-6, 0.]
     tw.y[:] = [-3e-6, 2., 4e-6, 0.]
     tw['qx'], tw['qy'], tw['c_minus'] = .310001, .319998, -.0002
-    correction.reference = reference
-    correction.monitor_indices = np.array([0, 2])
-    correction.dispersion_indices = correction.coupling_indices = np.array([0, 2, 3])
-    correction.ip_indices = np.array([3])
-    correction.monitor_alignment = lambda: (
-        np.array([.1e-6, -.2e-6]), np.array([-.3e-6, .4e-6]), np.array([.1, -.2]))
-    del correction.compute_metrics  # Use the real aggregator instead of the state-test stub.
+    monitor_indices = np.array([0, 2])
+    dispersion_indices = np.array([0, 2, 3])
+    ip_indices = np.array([3])
+    alignment = lambda: (np.array([.1e-6, -.2e-6]), np.array([-.3e-6, .4e-6]),
+                         np.array([.1, -.2]))
+    optics = diagnostic_optimizer('optics_corr', 'OpticsCorrection', 'OpticsSettings', reference)
+    optics.dispersion_indices, optics.ip_indices = dispersion_indices, ip_indices
+    coupling = diagnostic_optimizer('coupling_corr', 'CouplingCorrection', 'CouplingSettings', reference)
+    coupling.coupling_indices, coupling.ip_indices = dispersion_indices, ip_indices
+    tunes = diagnostic_optimizer('tune_corr', 'TuneCorrection', 'TuneSettings', reference)
+    orbit_opts = []
+    for plane in 'xy':
+        opt = diagnostic_optimizer('orbit_corr', 'OrbitCorrection', 'OrbitSettings', reference)
+        opt.plane, opt.monitor_indices = plane, monitor_indices
+        opt.monitor_alignment = alignment
+        orbit_opts.append(opt)
+    correction.optimizers = SimpleNamespace(optics=optics, coupling=coupling, tunes=tunes,
+                                           orbit_x=orbit_opts[0], orbit_y=orbit_opts[1])
+    del correction.compute_metrics
     monkeypatch.setattr(correction, 'twiss', lambda *a, **k: pytest.fail('Unexpected Twiss'))
-    expected = obs.measure(
-        tw, tw_ref=reference, dispersion_indices=correction.dispersion_indices,
-        ip_indices=correction.ip_indices,
-        orbit_errors=lambda table: obs.orbit_errors(
-            table, monitor_indices=correction.monitor_indices,
-            monitor_alignment=correction.monitor_alignment))
-    actual = correction.compute_metrics(tw)
-    assert actual.keys() == expected.keys()
+    expected = obs.measure(tw, tw_ref=reference, dispersion_indices=dispersion_indices,
+        ip_indices=ip_indices, orbit_errors=lambda table: obs.orbit_errors(
+            table, monitor_indices=monitor_indices, monitor_alignment=alignment))
+    workflow = importlib.import_module('correction_workflow')
+    actual = workflow._legacy_metrics(correction.compute_metrics(tw))
     for key in expected:
         np.testing.assert_allclose(actual[key], expected[key], rtol=1e-14, atol=0)
-    np.testing.assert_allclose(correction.coupling_vector(tw), obs.coupling_vector(
-        tw, tw_ref=reference, coupling_indices=correction.coupling_indices))
-    np.testing.assert_allclose(correction.lab_orbit_errors(tw), obs.lab_orbit_errors(
-        tw, monitor_indices=correction.monitor_indices,
-        monitor_alignment=correction.monitor_alignment))
-    # Individual modules need only their own observables, not a full diagnostic table.
     orbit_only = SimpleNamespace(x=tw.x, y=tw.y)
-    np.testing.assert_allclose(orbit.compute_metrics(
-        orbit_only, monitor_indices=correction.monitor_indices,
-        monitor_alignment=correction.monitor_alignment)['orbit_rms'], expected['orbit_rms'])
-    assert not hasattr(correction, 'goal_optimizers')
+    for i, opt in enumerate(orbit_opts):
+        assert opt.compute_metrics(orbit_only)[f'orbit_{opt.plane}_rms'] == expected['orbit_rms'][i]
+    printed = []
+    correction.log = lambda *args: printed.append(args)
+    correction.configure_goals = lambda: None
+    for opt in orbit_opts:
+        opt.orbit_tol = 1e-5
+    correction.log_iteration(1, tw)
+    assert len(printed) == 6  # Iteration marker and each optimizer's summary.

@@ -1,10 +1,36 @@
-"""Build the normal-optics/horizontal-dispersion optimizer and its response."""
+"""Normal optics: optimizer, response, metrics, goals and reporting."""
 
+from dataclasses import dataclass
 import numpy as np
 import xtrack as xt
 
+from correction_optimizer import CorrectionOptimizer
 from response_builders import normal_quadrupole_response
 import tune_corr
+
+
+@dataclass
+class OpticsSettings:
+    beta_rms_tol: float = 0.03
+    beta_max_tol: float = 0.5
+    tune_tol: float = 1e-5
+    alpha_weight: float = 0.1
+    ir_beta_weight: float = 5.
+    ir_half_length: float = 500.
+    horizontal_dispersion_rms_tol: float = 0.001
+    horizontal_dispersion_ip_tol: float = 0.0001
+    ramp_horizontal_dispersion_rms_tol: float = 0.005
+    ramp_horizontal_dispersion_ip_tol: float = 0.0005
+    rcond: float = 1e-5
+
+    @property
+    def horizontal_dispersion_weight(self):
+        return self.beta_rms_tol / self.horizontal_dispersion_rms_tol
+
+    @property
+    def horizontal_dispersion_ip_weight(self):
+        return (self.ir_beta_weight * self.horizontal_dispersion_rms_tol
+                / self.horizontal_dispersion_ip_tol)
 
 
 def compute_metrics(tw, reference, *, dispersion_indices, ip_indices):
@@ -21,103 +47,110 @@ def compute_metrics(tw, reference, *, dispersion_indices, ip_indices):
     )
 
 
-def optical_goal(tw, reference, *, dispersion_indices, ip_indices,
-                 settings, final_refinement):
-    """Check optics errors from supplied Twiss tables; no tracking."""
-    metrics = compute_metrics(tw, reference, dispersion_indices=dispersion_indices,
-                              ip_indices=ip_indices)
-    if final_refinement:
-        dx_rms_tol = settings.horizontal_dispersion_rms_tol
-        dx_ip_tol = settings.horizontal_dispersion_ip_tol
-    else:
-        dx_rms_tol = settings.ramp_horizontal_dispersion_rms_tol
-        dx_ip_tol = settings.ramp_horizontal_dispersion_ip_tol
-    return bool(
-        np.all(metrics['beta_rms'] < settings.beta_rms_tol)
-        and np.all(metrics['beta_max'] < settings.beta_max_tol)
-        and metrics['dx_rms'] < dx_rms_tol
-        and metrics['dx_ip'] < dx_ip_tol
-        and tune_corr.tune_goal(tw, reference, tolerance=settings.tune_tol)
-    )
+class OpticsCorrection(CorrectionOptimizer):
+    def __init__(self, line, reference, *, knobs, observation_names,
+                 interaction_points, ip_names, settings=None):
+        settings = settings if settings is not None else OpticsSettings()
+        action = xt.Action(line.twiss)
+        self.observation_names = list(observation_names)
+        self.dispersion_indices = reference.rows.indices[observation_names]
+        self.ip_indices = reference.rows.indices[ip_names]
+        ip_names = set(ip_names)
+        ip_s = reference['s', interaction_points]
 
+        targets = []
+        for name in observation_names:
+            distance = np.abs(reference['s', name] - ip_s)
+            near_ip = np.any(np.minimum(distance, reference.line_length - distance)
+                             < settings.ir_half_length)
+            weight = 1 / np.sqrt(len(observation_names))
+            if near_ip:
+                weight *= settings.ir_beta_weight
 
-def build_optimizer(line, reference, *, knobs, observation_names,
-                    interaction_points, ip_names, settings):
-    """Return an optimizer with weighted targets and a fixed nominal response.
+            # Normalize by the reference beta for a relative-beta objective.
+            betx = reference['betx', name]
+            target = xt.Target('betx', at=name, value=betx, action=action,
+                               weight=weight / betx, tol=1e-15 * betx,
+                               tag=f'betx@{name}')
+            targets.append(target)
 
-    Construction uses the supplied reference table without running Twiss.
-    The caller owns subsequent evaluations and trial acceptance.
-    """
-    action = xt.Action(line.twiss)
-    ip_names = set(ip_names)
-    ip_s = reference['s', interaction_points]
+            bety = reference['bety', name]
+            target = xt.Target('bety', at=name, value=bety, action=action,
+                               weight=weight / bety, tol=1e-15 * bety,
+                               tag=f'bety@{name}')
+            targets.append(target)
 
-    targets = []
-    for name in observation_names:
-        distance = np.abs(reference['s', name] - ip_s)
-        near_ip = np.any(np.minimum(distance, reference.line_length - distance)
-                         < settings.ir_half_length)
-        weight = 1 / np.sqrt(len(observation_names))
-        if near_ip:
-            weight *= settings.ir_beta_weight
+            weight = settings.alpha_weight / np.sqrt(len(observation_names))
+            target = xt.Target('alfx', at=name, value=reference['alfx', name],
+                               action=action, weight=weight, tol=1e-15,
+                               tag=f'alfx@{name}')
+            targets.append(target)
 
-        # Normalize by the reference beta for a relative-beta objective.
-        betx = reference['betx', name]
-        target = xt.Target('betx', at=name, value=betx, action=action,
-                           weight=weight / betx, tol=1e-15 * betx,
-                           tag=f'betx@{name}')
+            target = xt.Target('alfy', at=name, value=reference['alfy', name],
+                               action=action, weight=weight, tol=1e-15,
+                               tag=f'alfy@{name}')
+            targets.append(target)
+
+            weight = settings.horizontal_dispersion_weight / np.sqrt(len(observation_names))
+            if name in ip_names:
+                weight *= settings.horizontal_dispersion_ip_weight
+            target = xt.Target('dx', at=name, value=reference['dx', name],
+                               action=action, weight=weight, tol=1e-15,
+                               tag=f'dx@{name}')
+            targets.append(target)
+
+        target = xt.Target('qx', value=reference.qx, action=action,
+                           weight=1000., tol=1e-15, tag='qx')
+        targets.append(target)
+        target = xt.Target('qy', value=reference.qy, action=action,
+                           weight=1000., tol=1e-15, tag='qy')
         targets.append(target)
 
-        bety = reference['bety', name]
-        target = xt.Target('bety', at=name, value=bety, action=action,
-                           weight=weight / bety, tol=1e-15 * bety,
-                           tag=f'bety@{name}')
-        targets.append(target)
+        super().__init__(
+            line, reference, settings=settings,
+            name='normal optics and horizontal dispersion',
+            vary=[xt.Vary(knob, step=1e-7, max_step=0.5) for knob in knobs],
+            targets=targets,
+        )
+        response = build_normal_quad_optics_response_matrix(self, reference)
+        # The tune derivatives give the integrated beta functions used to scale
+        # these individual quadrupole trims, as in the reference workflow.
+        scales = 1 / (4 * np.pi * np.max(np.abs(response[-2:]), axis=0))
+        for vary, scale in zip(self.vary, scales):
+            vary.weight = scale
+        self.rcond = settings.rcond
+        self.set_response(response)
 
-        weight = settings.alpha_weight / np.sqrt(len(observation_names))
-        target = xt.Target('alfx', at=name, value=reference['alfx', name],
-                           action=action, weight=weight, tol=1e-15,
-                           tag=f'alfx@{name}')
-        targets.append(target)
+        self.configure_goals(final_refinement=False, error_fraction=0.)
 
-        target = xt.Target('alfy', at=name, value=reference['alfy', name],
-                           action=action, weight=weight, tol=1e-15,
-                           tag=f'alfy@{name}')
-        targets.append(target)
+    def configure_goals(self, *, final_refinement, error_fraction):
+        self.beta_rms_tol = self.settings.beta_rms_tol
+        self.beta_max_tol = self.settings.beta_max_tol
+        self.tune_tol = self.settings.tune_tol
+        if final_refinement:
+            self.dx_rms_tol = self.settings.horizontal_dispersion_rms_tol
+            self.dx_ip_tol = self.settings.horizontal_dispersion_ip_tol
+        else:
+            self.dx_rms_tol = self.settings.ramp_horizontal_dispersion_rms_tol
+            self.dx_ip_tol = self.settings.ramp_horizontal_dispersion_ip_tol
 
-        weight = settings.horizontal_dispersion_weight / np.sqrt(len(observation_names))
-        if name in ip_names:
-            weight *= settings.horizontal_dispersion_ip_weight
-        target = xt.Target('dx', at=name, value=reference['dx', name],
-                           action=action, weight=weight, tol=1e-15,
-                           tag=f'dx@{name}')
-        targets.append(target)
+    def compute_metrics(self, tw):
+        return compute_metrics(tw, self.reference,
+                               dispersion_indices=self.dispersion_indices,
+                               ip_indices=self.ip_indices)
 
-    target = xt.Target('qx', value=reference.qx, action=action,
-                       weight=1000., tol=1e-15, tag='qx')
-    targets.append(target)
-    target = xt.Target('qy', value=reference.qy, action=action,
-                       weight=1000., tol=1e-15, tag='qy')
-    targets.append(target)
+    def goal(self, tw):
+        m = self.compute_metrics(tw)
+        return bool(np.all(m['beta_rms'] < self.beta_rms_tol)
+                    and np.all(m['beta_max'] < self.beta_max_tol)
+                    and m['dx_rms'] < self.dx_rms_tol
+                    and m['dx_ip'] < self.dx_ip_tol
+                    and tune_corr.tune_goal(tw, self.reference, tolerance=self.tune_tol))
 
-    optimizer = line.match(
-        solve=False,
-        name='normal optics and horizontal dispersion',
-        vary=[xt.Vary(knob, step=1e-7, max_step=0.5) for knob in knobs],
-        targets=targets,
-        action_results=[reference],
-        assert_within_tol=False,
-        show_call_counter=False,
-    )
-    response = build_normal_quad_optics_response_matrix(optimizer, reference)
-    # The tune derivatives give the integrated beta functions used to scale
-    # these individual quadrupole trims, as in the reference workflow.
-    scales = 1 / (4 * np.pi * np.max(np.abs(response[-2:]), axis=0))
-    for vary, scale in zip(optimizer.vary, scales):
-        vary.weight = scale
-    optimizer.rcond = settings.optics_rcond
-    optimizer.set_response(response)
-    return optimizer
+    def print_metrics(self, tw, *, log=print):
+        m = self.compute_metrics(tw)
+        log('Optics: beta RMS/max [%]', 100 * m['beta_rms'], 100 * m['beta_max'],
+            'Dx RMS/IP [mm]', 1e3 * m['dx_rms'], 1e3 * m['dx_ip'])
 
 
 def build_normal_quad_optics_response_matrix(optimizer, reference):
