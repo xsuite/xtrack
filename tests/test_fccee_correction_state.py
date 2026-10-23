@@ -25,7 +25,7 @@ def correction(monkeypatch):
     monkeypatch.syspath_prepend(str(examples))
     module = importlib.import_module('correction_workflow')
     # The full-lattice comparison exercises construction and physics. Here we
-    # isolate snapshots/history from the expensive FCC-specific preparation.
+    # isolate accepted-state updates and snapshots from the expensive FCC-specific preparation.
     state = object.__new__(module.FCCeeCorrection)
     state.line = xt.Line(elements=[xt.Drift(length=1)])
     state.line.vars.update(
@@ -49,7 +49,6 @@ def correction(monkeypatch):
     state.failure_reason = None
     state.target_error_fraction = None
     state.error_increase_settings = {}
-    state.history = []
     state.optimizers = SimpleNamespace(**{name: stub_optimizer() for name in
         ('optics', 'orbit_x', 'orbit_y', 'coupling', 'tunes')})
     state._final_refinement = False
@@ -93,7 +92,6 @@ def test_increase_errors_restores_rejected_trial_and_retries(correction, monkeyp
         if len(attempts) == 1:
             correction.line['quad'] = 999.
             correction.line.twiss_default['co_guess']['x'] = 999.
-            correction.history.append({'unaccepted': True})
             raise RuntimeError('Unstable candidate')
         return tw, 4 if len(attempts) == 2 else 3
 
@@ -104,8 +102,6 @@ def test_increase_errors_restores_rejected_trial_and_retries(correction, monkeyp
         min_increment=.0125, max_increment=.1)
     np.testing.assert_allclose(attempts, [.3, .25, .3, .3625, .4])
     np.testing.assert_allclose(quad_values[:2], [4.5, 3.75])
-    assert len(correction.history) == 4
-    assert all(not entry['final_refinement'] for entry in correction.history)
     assert correction.accepted_twiss.x == [.4]
     assert correction.line.twiss_default['co_guess']['x'] == .4
     assert not correction.correction_failed and correction.failure_reason is None
@@ -146,7 +142,6 @@ def test_run_stops_after_minimum_increment_and_can_save_partial(correction, monk
     np.testing.assert_allclose(attempts, [.3, .4, .35])
     assert correction.error_fraction == pytest.approx(.3)
     assert correction.line['quad'] == pytest.approx(4.5)
-    assert len(correction.history) == 1
     assert correction.correction_failed and not correction.completed
     assert 'Minimum error increment' in correction.failure_reason
     assert 'Invalid optics' in correction.failure_reason
@@ -162,7 +157,7 @@ def test_run_stops_after_minimum_increment_and_can_save_partial(correction, monk
     assert saved['progress'] == pytest.approx(.3)
     assert saved['settings']['error_increase_settings'] == dict(
         target_error_fraction=.5, initial_increment=.1, min_increment=.03, max_increment=.1)
-    assert (tmp_path / 'history.csv').exists()
+    assert not (tmp_path / 'history.csv').exists()
 
 
 @pytest.mark.parametrize('kwargs', [
@@ -198,7 +193,6 @@ def test_run_refines_at_requested_fraction(correction, monkeypatch, target):
     assert correction.error_fraction == target
     assert calls[-1] == (target, True)
     assert all(not final for _, final in calls[:-1])
-    assert correction.history[-1]['final_refinement']
     assert correction.accepted_twiss is refined
     assert correction.completed == (target == 1.)
 
@@ -212,7 +206,6 @@ def test_refine_failure_restores_accepted_state(correction, monkeypatch):
         assert tw is before.accepted_twiss
         correction.line['quad'] = 999.
         correction.line.twiss_default['co_guess']['x'] = 999.
-        correction.history.append({'unaccepted': True})
         raise RuntimeError('Iteration budget exhausted')
 
     monkeypatch.setattr(correction, 'correct_at_fixed_strengths', fail)
@@ -220,7 +213,6 @@ def test_refine_failure_restores_accepted_state(correction, monkeypatch):
     assert correction.snapshot().knob_values == before.knob_values
     assert correction.accepted_twiss is before.accepted_twiss
     assert correction.line.twiss_default['co_guess'] == before.co_guess
-    assert correction.history == []
     assert correction.final_refinement
     assert correction.correction_failed and not correction.completed
     assert correction.failure_reason == 'Refinement failed: Iteration budget exhausted'
@@ -232,7 +224,6 @@ def test_refine_already_satisfied_does_no_work(correction, monkeypatch):
                         lambda tw: pytest.fail('Unexpected correction'))
     assert correction.refine()
     assert correction.final_refinement
-    assert correction.history == []
     assert not correction.correction_failed
     assert correction.failure_reason is None
 
@@ -262,30 +253,31 @@ def test_snapshot_restores_all_trial_state_and_preserves_expressions(correction)
     correction.set_error_fraction(0.5)
     correction.line.twiss_default['co_guess']['x'] = 999
     correction.final_refinement = True
-    correction.record(correction.accepted_twiss, iterations=2)
+    correction.accept(deepcopy(correction.accepted_twiss))
     correction.restore(before)
     assert correction.snapshot().knob_values == before.knob_values
     assert correction.line.twiss_default['co_guess'] == before.co_guess
     assert correction.accepted_twiss is before.accepted_twiss
-    assert correction.history == [] and not correction.final_refinement
+    assert not correction.final_refinement
     correction.set_error_fraction(0.3)
     assert correction.line['bpm_offset'] == 0.0003
 
 
-def test_history_is_independent_and_keeps_refinement(correction):
-    correction.record(correction.accepted_twiss, iterations=2)
-    first = deepcopy(correction.history[0])
-    correction.line['quad'] = 99
-    correction.compute_metrics(None)['beta_err_rms'][0] = 0.5
-    correction.final_refinement = True
-    correction.record(correction.accepted_twiss, iterations=1)
-    assert correction.history[0] == first
-    assert len(correction.history) == 2
-    assert correction.history[-1]['final_refinement']
-    assert correction.history_rows == [correction.history[-1]['row']]
-    rows = correction.history_rows
-    rows[0][0] = 999
-    assert correction.history[0] == first
+def test_accept_updates_state_without_evaluation_or_history(correction, monkeypatch):
+    before = correction.snapshot()
+    tw = deepcopy(correction.accepted_twiss)
+    tw.x = [0.123]
+    monkeypatch.setattr(correction, 'compute_metrics',
+                        lambda tw: pytest.fail('Unexpected metrics evaluation'))
+    monkeypatch.setattr(correction, 'twiss', lambda: pytest.fail('Unexpected Twiss'))
+    correction.accept(tw)
+    assert correction.accepted_twiss is tw
+    assert correction.line.twiss_default['co_guess']['x'] == 0.123
+    assert correction.snapshot().knob_values == before.knob_values
+    assert correction.final_refinement == before.final_refinement
+    assert not hasattr(correction, 'history')
+    tw.x[0] = 999.
+    assert correction.line.twiss_default['co_guess']['x'] == 0.123
 
 
 def test_twiss_evaluation_is_explicit(correction, monkeypatch):

@@ -1,13 +1,12 @@
 """Inspectable FCC-ee correction workflow used by 002.
 
 This is an example-local API prototype. The class owns increasing errors,
-correction, final refinement, Twiss evaluation, snapshots and history.
+correction, final refinement, Twiss evaluation, snapshots and accepted state.
 Optimizers consume supplied Twiss tables and apply least-squares changes.
 """
 
 from copy import deepcopy
 from dataclasses import dataclass
-from pathlib import Path
 from time import perf_counter
 from types import SimpleNamespace
 
@@ -16,7 +15,7 @@ import xtrack as xt
 
 import correction_steps as steps
 import correction_setup as setup
-from correction_io import HISTORY_COLUMNS, history_row, save_result
+from correction_io import save_result
 from correction_steps import orbit_guess
 import corr_optics
 import corr_orbit
@@ -41,7 +40,6 @@ class MachineSnapshot:
     co_guess: dict
     accepted_twiss: object
     final_refinement: bool
-    history_length: int
 
 
 class FCCeeCorrection:
@@ -49,11 +47,9 @@ class FCCeeCorrection:
 
     Construction builds the nominal reference and five fixed-response optimizers,
     then starts at zero error/nonlinear strength. The optimizers, iteration limits,
-    nominal knob values, reference, accepted_twiss and history are public.
+    nominal knob values, reference and accepted_twiss are public.
 
-    Snapshot before a trial; record only after accepting it. History stores
-    accepted error-increase points, including separate final-refinement entries, rather
-    than the intermediate evaluations inside each correction step.
+    Snapshot before a trial; update the accepted state only after success.
     """
 
     correction_errors = (ValueError, RuntimeError, xt.twiss.ClosedOrbitSearchError)
@@ -72,7 +68,6 @@ class FCCeeCorrection:
         self.failure_reason = None
         self.target_error_fraction = None
         self.error_increase_settings = {}
-        self.history = []
         self.accepted_twiss = None
         self.optimizers = SimpleNamespace()
         self.optimizer_settings = optimizer_settings or {}
@@ -111,8 +106,8 @@ class FCCeeCorrection:
                                     min_increment=1e-5, max_increment=0.10):
         """Increase errors/nonlinear strengths together, correcting each trial.
 
-        Restore rejected trials and halve the increment. Record only accepted
-        states. On failure, retain the last accepted machine and expose the
+        Restore rejected trials and halve the increment. Keep the latest accepted
+        state. On failure, retain the last accepted machine and expose the
         reason in failure_reason; return False. Invalid settings raise before
         changing the machine or execution state.
         """
@@ -154,7 +149,7 @@ class FCCeeCorrection:
                     return False
                 continue
 
-            self.record(tw, iterations=iterations)
+            self.accept(tw)
             if iterations <= 3:
                 increment *= 1.25
                 if increment > max_increment:
@@ -170,8 +165,8 @@ class FCCeeCorrection:
         before = self.snapshot()
         try:
             if not self.goals_met(self.accepted_twiss):
-                tw, iterations = self.correct_at_fixed_strengths(self.accepted_twiss)
-                self.record(tw, iterations=iterations)
+                tw, _ = self.correct_at_fixed_strengths(self.accepted_twiss)
+                self.accept(tw)
         except self.correction_errors as err:
             self.restore(before)
             self.correction_failed = True
@@ -189,7 +184,7 @@ class FCCeeCorrection:
 
     @property
     def error_fraction(self):
-        """Live error fraction, including an unaccepted trial until restore/record."""
+        """Live error fraction, including an unaccepted trial until restoration or acceptance."""
         return float(self.line['on_errors'])
 
     @property
@@ -253,7 +248,6 @@ class FCCeeCorrection:
             co_guess=deepcopy(self.line.twiss_default.get('co_guess')),
             accepted_twiss=self.accepted_twiss,
             final_refinement=self.final_refinement,
-            history_length=len(self.history),
         )
 
     def restore(self, snapshot):
@@ -266,7 +260,6 @@ class FCCeeCorrection:
         self.line.twiss_default['co_guess'] = deepcopy(snapshot.co_guess)
         self.accepted_twiss = snapshot.accepted_twiss
         self.final_refinement = snapshot.final_refinement
-        del self.history[snapshot.history_length :]
 
     def correct_at_fixed_strengths(self, tw):
         """Return the accepted Twiss and completed iteration count, or raise.
@@ -322,45 +315,14 @@ class FCCeeCorrection:
     def goals_met(self, tw):
         return all(opt.goal(tw) for opt in vars(self.optimizers).values())
 
-    def record(self, tw, *, iterations):
-        """Accept a result and append independent knob/observable values to history.
-
-        Final refinement is a separate entry at the same error fraction. CSV
-        diagnostics use the latest entry at each fraction.
-        """
-        metrics = _legacy_metrics(self.compute_metrics(tw))
+    def accept(self, tw):
+        """Update the accepted Twiss and default orbit guess after a successful trial."""
         self.accepted_twiss = tw
         self.line.twiss_default['co_guess'] = orbit_guess(tw)
-        self.history.append(
-            dict(
-                error_fraction=self.error_fraction,
-                final_refinement=self.final_refinement,
-                iterations=int(iterations),
-                knob_values={name: float(self.line[name]) for name in self.correction_knobs},
-                co_guess=deepcopy(self.line.twiss_default['co_guess']),
-                observables={
-                    key: value.tolist() if isinstance(value, np.ndarray) else value
-                    for key, value in metrics.items()
-                },
-                row=history_row(tw, self.error_fraction, self.line, metrics),
-            )
-        )
         self.log('Accepted')
 
-    @property
-    def history_rows(self):
-        """Latest accepted diagnostics per error fraction, in history CSV order."""
-        rows = []
-        for entry in self.history:
-            row = entry['row']
-            if rows and rows[-1][0] == row[0]:
-                rows[-1] = list(row)
-            else:
-                rows.append(list(row))
-        return rows
-
     def save_result(self, path, *, completed=None):
-        """Save the accepted line and history for independent analysis."""
+        """Save the accepted line for independent analysis."""
         if completed is None:
             completed = self.completed
         tw = self.twiss()
@@ -384,13 +346,6 @@ class FCCeeCorrection:
                                     for name, opt in vars(self.optimizers).items()},
                 error_increase_settings=self.error_increase_settings.copy(),
             ),
-        )
-        np.savetxt(
-            Path(path).parent / 'history.csv',
-            np.array(self.history_rows, dtype=float),
-            delimiter=',',
-            header=HISTORY_COLUMNS,
-            comments='',
         )
         self.log(f'Saved {path}')
         return tw
@@ -477,7 +432,7 @@ class FCCeeCorrection:
             _ = optimizer.response.svd
 
     def _collect_controls(self):
-        """Include every optimizer's knobs in scaling, snapshots and history."""
+        """Include every optimizer's knobs in scaling and snapshots."""
         self.nominal_knob_values = {}
         for optimizer in vars(self.optimizers).values():
             for vary in optimizer.vary:
@@ -491,7 +446,7 @@ class FCCeeCorrection:
 
 
 def _legacy_metrics(metrics):
-    """Adapt named error metrics to the saved history and metadata format."""
+    """Adapt named error metrics to the saved metadata format."""
     return dict(
         metrics,
         orbit_rms=np.array([metrics['orbit_x_rms'], metrics['orbit_y_rms']]),

@@ -19,9 +19,15 @@ The older correction and analysis scripts have been removed, together with
 unused helpers. Their reference implementations remain in Git history (commit
 `11b5f7f58`). Historical validation notes below retain the old script names.
 Do not reintroduce resume/checkpoints. Keep logging minimal and settings,
-optimizers, accepted state, and history inspectable.
+optimizers and accepted state inspectable.
 
 ## Executing the correction
+
+`accept(tw)` replaces `record(...)`: after a successful trial, it updates
+`accepted_twiss`, sets the default closed-orbit guess, and prints `Accepted`.
+It does not evaluate metrics or retain history. Snapshots contain only the state
+needed for rollback. `save_result()` saves the line and final diagnostic metadata;
+there is no correction history list or `history.csv` output.
 
 `FCCeeCorrection.run(target_error_fraction=1., initial_increment=0.0125,
 min_increment=1e-5, max_increment=0.10)` calls two separate public methods:
@@ -29,7 +35,7 @@ min_increment=1e-5, max_increment=0.10)` calls two separate public methods:
 - `increase_errors_and_correct(...)` increases errors and nonlinear strengths
   together, extrapolates existing corrections, evaluates Twiss, and runs the
   custom fixed-strength sequence. Rejected trials are restored and the increment
-  is halved. Accepted trials are recorded. An accepted trial needing at most
+  is halved. Successful trials update the accepted state. An accepted trial needing at most
   three cycles grows the next increment by 1.25, capped at `max_increment`.
 - `refine()` switches to final tolerances and corrects the current accepted state,
   including at fractions below one. It starts from `accepted_twiss` and does no
@@ -129,16 +135,16 @@ standalone tune stage.
 
 The workflow collects metrics and prints one short summary from each optimizer.
 Metric names must be unique. A small output adapter combines `orbit_x_rms` and
-`orbit_y_rms` into the existing `orbit_rms` array for the saved history and metadata format;
+`orbit_y_rms` into the existing `orbit_rms` array for the saved metadata format;
 it also provides the old optics names to the shared output helpers. Optics metrics
 are `beta_err_rms`/`beta_err_max` for relative beta errors and
 `dx_err_rms`/`dx_err_ip` for absolute dispersion errors against the reference.
-Accepted history retains additional named metrics too. Detailed targets, weights,
+Additional named metrics remain available through `compute_metrics(tw)`. Detailed targets, weights,
 scales and singular values are inspected on the optimizer itself, without mirrored
 attributes on `FCCeeCorrection`.
 
 After constructing the optimizers, the workflow collects their varies and nominal
-knob values for scaling as errors increase, snapshots and history. Shared knobs appear once;
+knob values for scaling as errors increase and snapshots. Shared knobs appear once;
 conflicting nominal values raise an error. Each module declares nonzero nominal
 values where needed (currently tune knobs); ordinary correction trims default to
 zero. A new correction therefore needs its own module, an instance added in
@@ -330,8 +336,7 @@ retains its configured scale (0.5 by default). Optimizer knob limits and
 maximum-step handling are unchanged.
 
 The RMS/max goals remain in the correction modules, with their strict versus
-inclusive comparisons and intermediate/final tolerances unchanged. Only accepted
-error-increase/refinement points enter correction history. The optimizer's scalar
+inclusive comparisons and intermediate/final tolerances unchanged. The optimizer's scalar
 `target_status().penalty` remains available for inspection, but the workflow
 no longer uses it to decide whether to retain a candidate.
 

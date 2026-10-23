@@ -1,6 +1,6 @@
 """FCC-ee correction with inspectable state and module-defined optimizers.
 
-Inspect correction.optimizers, each optimizer.settings, and correction.history.
+Inspect correction.optimizers, each optimizer.settings, and correction.accepted_twiss.
 Each correction module computes its own metrics and checks its stopping goals;
 correction.compute_metrics(tw) combines diagnostics from all modules.
 Twiss is evaluated by correction and supplied to the optimizers explicitly.

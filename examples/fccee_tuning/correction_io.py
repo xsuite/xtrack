@@ -1,27 +1,4 @@
-"""Result and history I/O for the FCC-ee correction example."""
-
-
-HISTORY_COLUMNS = 'progress,orbit_rms_x_m,orbit_rms_y_m,beta_rms_x,beta_rms_y,beta_max_x,beta_max_y,qx,qy,delta0,error_fraction,nonlinear_fraction,c_minus,f1001_rms,f1010_rms,dy_rms_m,dy_ip_max_m,dx_rms_m,dx_ip_max_m'
-
-
-def history_row(tw, progress, line, metrics):
-    return [
-        progress,
-        *metrics['orbit_rms'],
-        *metrics['beta_rms'],
-        *metrics['beta_max'],
-        tw.qx,
-        tw.qy,
-        tw.delta[0],
-        float(line['on_errors']),
-        float(line['on_nonlinear']),
-        tw.c_minus,
-        *metrics['coupling_rms'],
-        metrics['dy_rms'],
-        metrics['dy_ip'],
-        metrics['dx_rms'],
-        metrics['dx_ip'],
-    ]
+"""Save the FCC-ee correction result and metadata."""
 
 
 def save_result(line, path, *, tw_ref, progress, completed, metrics, settings):
