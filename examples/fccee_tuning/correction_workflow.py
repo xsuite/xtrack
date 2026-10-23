@@ -15,7 +15,6 @@ import xtrack as xt
 
 import correction_steps as steps
 import correction_setup as setup
-from correction_io import save_result
 from correction_steps import orbit_guess
 import corr_optics
 import corr_orbit
@@ -91,8 +90,8 @@ class FCCeeCorrection:
             min_increment=1e-5, max_increment=0.10):
         """Increase errors and correct, then refine; return whether both succeeded.
 
-        A successful target below one is supported. Saving still marks a
-        machine completed only at full error strength with final goals met.
+        A successful target below one is supported. The completed property is
+        true only at full error strength with final goals met.
         """
         if not self.increase_errors_and_correct(
                 target_error_fraction=target_error_fraction,
@@ -321,35 +320,6 @@ class FCCeeCorrection:
         self.line.twiss_default['co_guess'] = orbit_guess(tw)
         self.log('Accepted')
 
-    def save_result(self, path, *, completed=None):
-        """Save the accepted line for independent analysis."""
-        if completed is None:
-            completed = self.completed
-        tw = self.twiss()
-        if completed:
-            assert self.goals_met(tw)
-        self.line.twiss_default['co_guess'] = orbit_guess(tw)
-        self.line.twiss_default['steps_R_matrix'] = self.steps_r_matrix.copy()
-        metrics = _legacy_metrics(self.compute_metrics(tw))
-        save_result(
-            self.line,
-            path,
-            tw_ref=self.reference,
-            progress=self.error_fraction,
-            completed=completed,
-            metrics=metrics,
-            settings=dict(
-                correction_settings=dict(
-                    intermediate_max_iterations=self.intermediate_max_iterations,
-                    final_max_iterations=self.final_max_iterations),
-                optimizer_settings={name: vars(opt.settings)
-                                    for name, opt in vars(self.optimizers).items()},
-                error_increase_settings=self.error_increase_settings.copy(),
-            ),
-        )
-        self.log(f'Saved {path}')
-        return tw
-
     def _values(self, names):
         return steps.values(self.line, names)
 
@@ -443,15 +413,3 @@ class FCCeeCorrection:
                 self.nominal_knob_values[vary.name] = nominal
         self.correction_knobs = list(self.nominal_knob_values)
         self.control_names = self.correction_knobs + ['on_errors', 'on_nonlinear']
-
-
-def _legacy_metrics(metrics):
-    """Adapt named error metrics to the saved metadata format."""
-    return dict(
-        metrics,
-        orbit_rms=np.array([metrics['orbit_x_rms'], metrics['orbit_y_rms']]),
-        beta_rms=metrics['beta_err_rms'],
-        beta_max=metrics['beta_err_max'],
-        dx_rms=metrics['dx_err_rms'],
-        dx_ip=metrics['dx_err_ip'],
-    )

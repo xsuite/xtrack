@@ -52,7 +52,8 @@ correction.run(
 
 # Save the accepted machine, including a partial result after failure
 output = OUTPUT_DIR / ('machine.json' if correction.completed else 'partial.json')
-correction.save_result(output)
+line.to_json(output, indent=None)
+correction.log(f'Saved {output}')
 correction.log('Finished')
 if correction.correction_failed:
     raise RuntimeError(

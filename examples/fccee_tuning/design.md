@@ -26,7 +26,7 @@ optimizers and accepted state inspectable.
 `accept(tw)` replaces `record(...)`: after a successful trial, it updates
 `accepted_twiss`, sets the default closed-orbit guess, and prints `Accepted`.
 It does not evaluate metrics or retain history. Snapshots contain only the state
-needed for rollback. `save_result()` saves the line and final diagnostic metadata;
+needed for rollback. Saving belongs to the caller through `line.to_json(path)`;
 there is no correction history list or `history.csv` output.
 
 `FCCeeCorrection.run(target_error_fraction=1., initial_increment=0.0125,
@@ -51,9 +51,10 @@ raise out of these stage methods.
 
 `completed` means the accepted machine meets final goals at full error strength.
 A successful run to a smaller requested fraction returns True but remains a
-partial-strength output. `save_result(path)` infers this completion flag, performs
-its existing fresh Twiss validation, and saves the error-increase parameters
-without the script repeating them. `002` saves before raising on a failed run.
+partial-strength output. `002` uses this flag to choose the output filename and
+saves with `line.to_json(...)` before raising on a failed run. The workflow has
+no saving method or correction-specific metadata writer. Saving does not run an
+extra Twiss calculation; callers can explicitly validate or add metadata if needed.
 There is no checkpoint or disk-resume mechanism. The explicit
 `correct_at_fixed_strengths` sequence remains the place to add correction stages.
 
@@ -134,10 +135,8 @@ for cleanup. This preserves the existing distinction between acceptance and the
 standalone tune stage.
 
 The workflow collects metrics and prints one short summary from each optimizer.
-Metric names must be unique. A small output adapter combines `orbit_x_rms` and
-`orbit_y_rms` into the existing `orbit_rms` array for the saved metadata format;
-it also provides the old optics names to the shared output helpers. Optics metrics
-are `beta_err_rms`/`beta_err_max` for relative beta errors and
+Metric names must be unique. Orbit metrics are `orbit_x_rms` and `orbit_y_rms`.
+Optics metrics are `beta_err_rms`/`beta_err_max` for relative beta errors and
 `dx_err_rms`/`dx_err_ip` for absolute dispersion errors against the reference.
 Additional named metrics remain available through `compute_metrics(tw)`. Detailed targets, weights,
 scales and singular values are inspected on the optimizer itself, without mirrored

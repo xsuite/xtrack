@@ -147,16 +147,13 @@ def test_run_stops_after_minimum_increment_and_can_save_partial(correction, monk
     assert 'Invalid optics' in correction.failure_reason
     assert not correction.final_refinement
 
-    saved = {}
-    workflow = importlib.import_module('correction_workflow')
-    monkeypatch.setattr(workflow, 'save_result', lambda *args, **kwargs: saved.update(kwargs))
-    correction.reference = correction.accepted_twiss
-    correction.steps_r_matrix = {}
-    correction.save_result(tmp_path / 'partial.json')
-    assert saved['completed'] is False
-    assert saved['progress'] == pytest.approx(.3)
-    assert saved['settings']['error_increase_settings'] == dict(
-        target_error_fraction=.5, initial_increment=.1, min_increment=.03, max_increment=.1)
+    # Saving belongs to the caller, including after a failed correction.
+    output = tmp_path / 'partial.json'
+    correction.line.to_json(output)
+    reloaded = xt.load(output)
+    for name, value in correction.snapshot().knob_values.items():
+        assert reloaded[name] == value
+    assert reloaded.twiss_default['co_guess'] == correction.line.twiss_default['co_guess']
     assert not (tmp_path / 'history.csv').exists()
 
 
@@ -856,15 +853,14 @@ def test_module_metrics_match_expected_errors(correction, monkeypatch):
     x, y = np.array([.9e-6, -1.8e-6]), np.array([-2.7e-6, 3.6e-6])
     roll = np.array([.1, -.2])
     expected = dict(
-        orbit_rms=np.sqrt(np.mean(np.array([
-            x * np.cos(roll) + y * np.sin(roll),
-            -x * np.sin(roll) + y * np.cos(roll)])**2, axis=1)),
-        beta_rms=np.full(2, np.sqrt((.01**2 + .2**2 + .02**2 + .03**2) / 4)),
-        beta_max=np.array([.2, .2]),
+        orbit_x_rms=np.sqrt(np.mean((x * np.cos(roll) + y * np.sin(roll))**2)),
+        orbit_y_rms=np.sqrt(np.mean((-x * np.sin(roll) + y * np.cos(roll))**2)),
+        beta_err_rms=np.full(2, np.sqrt((.01**2 + .2**2 + .02**2 + .03**2) / 4)),
+        beta_err_max=np.array([.2, .2]),
         tunes=np.array([.310001, .319998]),
         tune_error=np.array([.310001 - .31, .319998 - .32]),
-        dx_rms=np.sqrt((.001**2 + .002**2 + .00004**2) / 3),
-        dx_ip=.00004,
+        dx_err_rms=np.sqrt((.001**2 + .002**2 + .00004**2) / 3),
+        dx_err_ip=.00004,
         dy_rms=np.sqrt((.0001**2 + .0002**2 + .00001**2) / 3),
         dy_ip=.00001,
         coupling_rms=np.sqrt(np.array([
@@ -873,13 +869,14 @@ def test_module_metrics_match_expected_errors(correction, monkeypatch):
         coupling_ip=.0004,
         c_minus=-.0002,
     )
-    workflow = importlib.import_module('correction_workflow')
-    actual = workflow._legacy_metrics(correction.compute_metrics(tw))
+    actual = correction.compute_metrics(tw)
+    assert actual.keys() == expected.keys()
     for key in expected:
         np.testing.assert_allclose(actual[key], expected[key], rtol=1e-12, atol=0)
     orbit_only = SimpleNamespace(x=tw.x, y=tw.y)
-    for i, opt in enumerate(orbit_opts):
-        assert opt.compute_metrics(orbit_only)[f'orbit_{opt.plane}_rms'] == expected['orbit_rms'][i]
+    for opt in orbit_opts:
+        key = f'orbit_{opt.plane}_rms'
+        assert opt.compute_metrics(orbit_only)[key] == expected[key]
     printed = []
     correction.log = lambda *args: printed.append(args)
     for opt in orbit_opts:
