@@ -106,8 +106,8 @@ class FCCeeCorrection:
         optics = self.optimizers.optics
         coupling = self.optimizers.coupling
         if value:
-            optics.dx_rms_tol = optics.settings.horizontal_dispersion_rms_tol
-            optics.dx_ip_tol = optics.settings.horizontal_dispersion_ip_tol
+            optics.dx_err_rms_tol = optics.settings.horizontal_dispersion_rms_tol
+            optics.dx_err_ip_tol = optics.settings.horizontal_dispersion_ip_tol
             coupling.rdt_rms_tol = coupling.settings.coupling_rms_tol
             coupling.rdt_ip_tol = coupling.settings.coupling_ip_tol
             coupling.c_minus_tol = coupling.settings.c_minus_tol
@@ -115,8 +115,8 @@ class FCCeeCorrection:
             coupling.dy_ip_tol = coupling.settings.dispersion_ip_tol
         else:
             # Restore the ramp limits if rolling back across the mode change.
-            optics.dx_rms_tol = optics.settings.ramp_horizontal_dispersion_rms_tol
-            optics.dx_ip_tol = optics.settings.ramp_horizontal_dispersion_ip_tol
+            optics.dx_err_rms_tol = optics.settings.ramp_horizontal_dispersion_rms_tol
+            optics.dx_err_ip_tol = optics.settings.ramp_horizontal_dispersion_ip_tol
             coupling.rdt_rms_tol = coupling.settings.ramp_coupling_rms_tol
             coupling.rdt_ip_tol = coupling.settings.ramp_coupling_ip_tol
             coupling.c_minus_tol = coupling.settings.ramp_c_minus_tol
@@ -388,5 +388,12 @@ class FCCeeCorrection:
 
 
 def _legacy_metrics(metrics):
-    """Adapt separate orbit metrics to the existing 003b/003c output format."""
-    return dict(metrics, orbit_rms=np.array([metrics['orbit_x_rms'], metrics['orbit_y_rms']]))
+    """Adapt named error metrics to the existing 003b/003c output format."""
+    return dict(
+        metrics,
+        orbit_rms=np.array([metrics['orbit_x_rms'], metrics['orbit_y_rms']]),
+        beta_rms=metrics['beta_err_rms'],
+        beta_max=metrics['beta_err_max'],
+        dx_rms=metrics['dx_err_rms'],
+        dx_ip=metrics['dx_err_ip'],
+    )

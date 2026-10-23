@@ -11,8 +11,8 @@ import corr_tune
 
 
 OPTICS_SETTINGS = SimpleNamespace(
-    beta_rms_tol=0.03,
-    beta_max_tol=0.5,
+    beta_err_rms_tol=0.03,
+    beta_err_max_tol=0.5,
     tune_tol=1e-5,
     alpha_weight=0.1,
     ir_beta_weight=5.,
@@ -68,7 +68,7 @@ def build_opt_corr_optimizer(line, reference, *, knobs, observation_names,
                            tag=f'alfy@{name}')
         targets.append(target)
 
-        weight = settings.beta_rms_tol / settings.horizontal_dispersion_rms_tol
+        weight = settings.beta_err_rms_tol / settings.horizontal_dispersion_rms_tol
         weight /= np.sqrt(len(observation_names))
         if name in ip_names:
             weight *= (settings.ir_beta_weight * settings.horizontal_dispersion_rms_tol
@@ -100,11 +100,11 @@ def build_opt_corr_optimizer(line, reference, *, knobs, observation_names,
     optimizer.rcond = settings.rcond
     optimizer.set_response(response)
 
-    optimizer.beta_rms_tol = settings.beta_rms_tol
-    optimizer.beta_max_tol = settings.beta_max_tol
+    optimizer.beta_err_rms_tol = settings.beta_err_rms_tol
+    optimizer.beta_err_max_tol = settings.beta_err_max_tol
     optimizer.tune_tol = settings.tune_tol
-    optimizer.dx_rms_tol = settings.ramp_horizontal_dispersion_rms_tol
-    optimizer.dx_ip_tol = settings.ramp_horizontal_dispersion_ip_tol
+    optimizer.dx_err_rms_tol = settings.ramp_horizontal_dispersion_rms_tol
+    optimizer.dx_err_ip_tol = settings.ramp_horizontal_dispersion_ip_tol
 
     return optimizer
 
@@ -118,27 +118,27 @@ def compute_metrics(optimizer, tw):
     beta_y_error = tw.bety / reference.bety - 1
     dx_error = tw.dx - reference.dx
     return dict(
-        beta_rms=np.array([np.sqrt(np.mean(beta_x_error**2)),
+        beta_err_rms=np.array([np.sqrt(np.mean(beta_x_error**2)),
                            np.sqrt(np.mean(beta_y_error**2))]),
-        beta_max=np.array([np.max(np.abs(beta_x_error)), np.max(np.abs(beta_y_error))]),
-        dx_rms=float(np.sqrt(np.mean(dx_error[dispersion_indices]**2))),
-        dx_ip=float(np.max(np.abs(dx_error[ip_indices]))),
+        beta_err_max=np.array([np.max(np.abs(beta_x_error)), np.max(np.abs(beta_y_error))]),
+        dx_err_rms=float(np.sqrt(np.mean(dx_error[dispersion_indices]**2))),
+        dx_err_ip=float(np.max(np.abs(dx_error[ip_indices]))),
     )
 
 
 def goal(optimizer, tw):
     m = optimizer.compute_metrics(tw)
-    return bool(np.all(m['beta_rms'] < optimizer.beta_rms_tol)
-                and np.all(m['beta_max'] < optimizer.beta_max_tol)
-                and m['dx_rms'] < optimizer.dx_rms_tol
-                and m['dx_ip'] < optimizer.dx_ip_tol
+    return bool(np.all(m['beta_err_rms'] < optimizer.beta_err_rms_tol)
+                and np.all(m['beta_err_max'] < optimizer.beta_err_max_tol)
+                and m['dx_err_rms'] < optimizer.dx_err_rms_tol
+                and m['dx_err_ip'] < optimizer.dx_err_ip_tol
                 and corr_tune.tune_goal(tw, optimizer.reference, tolerance=optimizer.tune_tol))
 
 
 def print_metrics(optimizer, tw, *, log=print):
     m = optimizer.compute_metrics(tw)
-    log('Optics: beta RMS/max [%]', 100 * m['beta_rms'], 100 * m['beta_max'],
-        'Dx RMS/IP [mm]', 1e3 * m['dx_rms'], 1e3 * m['dx_ip'])
+    log('Optics: beta error RMS/max [%]', 100 * m['beta_err_rms'], 100 * m['beta_err_max'],
+        'Dx error RMS/IP [mm]', 1e3 * m['dx_err_rms'], 1e3 * m['dx_err_ip'])
 
 
 def build_normal_quad_optics_response_matrix(optimizer, reference):

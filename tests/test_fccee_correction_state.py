@@ -55,12 +55,12 @@ def correction(monkeypatch):
     state.line.twiss_default['co_guess'] = dict(x=1.0, px=2.0, y=3.0, py=4.0, zeta=0.0, delta=0.0)
     metrics = dict(
         orbit_x_rms=1e-6, orbit_y_rms=2e-6,
-        beta_rms=np.array([0.01, 0.02]),
-        beta_max=np.array([0.1, 0.2]),
+        beta_err_rms=np.array([0.01, 0.02]),
+        beta_err_max=np.array([0.1, 0.2]),
         tunes=np.array([1.2, 2.3]),
         tune_error=np.zeros(2),
-        dx_rms=0.001,
-        dx_ip=0.00001,
+        dx_err_rms=0.001,
+        dx_err_ip=0.00001,
         dy_rms=0.0001,
         dy_ip=0.00001,
         coupling_rms=np.array([0.001, 0.002]),
@@ -111,7 +111,7 @@ def test_history_is_independent_and_keeps_refinement(correction):
     correction.record(correction.accepted_twiss, iterations=2)
     first = deepcopy(correction.history[0])
     correction.line['quad'] = 99
-    correction.compute_metrics(None)['beta_rms'][0] = 0.5
+    correction.compute_metrics(None)['beta_err_rms'][0] = 0.5
     correction.final_refinement = True
     correction.record(correction.accepted_twiss, iterations=1)
     assert correction.history[0] == first
@@ -164,7 +164,7 @@ def diagnostic_optimizer(module_name, settings_name, reference):
     # Only diagnostic data is needed; response construction is tested separately.
     vars(opt).update(vars(opt.settings))
     if module_name == 'corr_optics':
-        opt.dx_rms_tol, opt.dx_ip_tol = .005, .0005
+        opt.dx_err_rms_tol, opt.dx_err_ip_tol = .005, .0005
     elif module_name == 'corr_coupling':
         opt.rdt_rms_tol, opt.rdt_ip_tol, opt.c_minus_tol = .03, .03, .003
         opt.dy_rms_tol, opt.dy_ip_tol = .005, .0001
@@ -183,18 +183,18 @@ def test_mode_switches_limits_and_orbit_tolerance_is_constant(correction):
     orbit.compute_metrics = lambda tw: {'orbit_x_rms': np.nextafter(orbit.orbit_tol, np.inf)}
     assert not orbit.goal(None)
     assert orbit.orbit_tol == 1e-5
-    assert optics.dx_ip_tol == 5e-4
+    assert optics.dx_err_ip_tol == 5e-4
     assert coupling.dy_ip_tol == 1e-4
     before = correction.snapshot()
     correction.set_error_fraction(.8)
     correction.final_refinement = True
     assert orbit.orbit_tol == 1e-5
-    assert optics.dx_ip_tol == 1e-4
+    assert optics.dx_err_ip_tol == 1e-4
     assert coupling.dy_ip_tol == 2e-5
     correction.restore(before)
     assert not correction.final_refinement
     assert orbit.orbit_tol == 1e-5
-    assert optics.dx_ip_tol == 5e-4
+    assert optics.dx_err_ip_tol == 5e-4
     assert coupling.dy_ip_tol == 1e-4
     correction.set_error_fraction(0.)
     assert orbit.orbit_tol == 1e-5
@@ -211,7 +211,7 @@ def test_mode_switches_limits_and_orbit_tolerance_is_constant(correction):
     correction.set_error_fraction(.7)
     correction.restore(before)
     assert correction.final_refinement
-    assert optics.dx_ip_tol == 1e-4
+    assert optics.dx_err_ip_tol == 1e-4
     assert coupling.dy_ip_tol == 2e-5
     assert orbit.orbit_tol == 1e-5
 
@@ -329,7 +329,7 @@ def test_optics_goal_computes_errors_without_aggregate_metrics(correction, monke
     assert not opt.goal(tw)
     tw.dx[1] = np.nextafter(tw.dx[1], 0.)
     assert opt.goal(tw)
-    opt.dx_ip_tol *= .5
+    opt.dx_err_ip_tol *= .5
     assert not opt.goal(tw)  # Active tolerances are directly editable.
 
 
@@ -356,7 +356,7 @@ def test_optics_targets_use_relative_beta_and_physical_alpha(correction, monkeyp
     settings = copy(module.OPTICS_SETTINGS)
     weights = np.array([settings.ir_beta_weight, settings.ir_beta_weight,
                         settings.alpha_weight, settings.alpha_weight,
-                        (settings.beta_rms_tol / settings.horizontal_dispersion_rms_tol)
+                        (settings.beta_err_rms_tol / settings.horizontal_dispersion_rms_tol)
                         * (settings.ir_beta_weight * settings.horizontal_dispersion_rms_tol
                            / settings.horizontal_dispersion_ip_tol), 1000., 1000.])
     monkeypatch.setattr(module, 'build_normal_quad_optics_response_matrix',

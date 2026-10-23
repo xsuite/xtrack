@@ -45,7 +45,7 @@ For example:
 from copy import copy
 
 settings = copy(corr_optics.OPTICS_SETTINGS)
-settings.beta_rms_tol = 0.02
+settings.beta_err_rms_tol = 0.02
 opt_corr = corr_optics.build_opt_corr_optimizer(
     line, reference, knobs=knobs, observation_names=bpm_and_ip_names,
     interaction_points=interaction_points, ip_names=ip_names,
@@ -74,7 +74,7 @@ coupling RDT/c_minus/Dy limits. Restoring across a mode change restores the
 corresponding limits; restoring within the same mode leaves them untouched.
 Changing the error fraction does not change any tolerances. Goal calls need only
 `tw`, without mode/context arguments. Active tolerances, such as
-`optics.dx_ip_tol` or `orbit_x.orbit_tol`, remain inspectable and directly editable.
+`optics.dx_err_ip_tol` or `orbit_x.orbit_tol`, remain inspectable and directly editable.
 There is no goal-configuration callback. When adding a correction with different
 ramp/refinement limits, include its assignments in the explicit mode switch.
 
@@ -90,7 +90,10 @@ standalone tune stage.
 The workflow collects metrics and prints one short summary from each optimizer.
 Metric names must be unique. A small output adapter combines `orbit_x_rms` and
 `orbit_y_rms` into the existing `orbit_rms` array for 003b/003c compatibility;
-accepted history retains additional named metrics too. Detailed targets, weights,
+it also provides the old optics names to the shared output helpers. Optics metrics
+are `beta_err_rms`/`beta_err_max` for relative beta errors and
+`dx_err_rms`/`dx_err_ip` for absolute dispersion errors against the reference.
+Accepted history retains additional named metrics too. Detailed targets, weights,
 scales and singular values are inspected on the optimizer itself, without mirrored
 attributes on `FCCeeCorrection`.
 
