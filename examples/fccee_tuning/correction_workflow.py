@@ -12,7 +12,6 @@ from types import SimpleNamespace
 import numpy as np
 import xtrack as xt
 
-import correction_steps as steps
 import correction_setup as setup
 import corr_optics
 import corr_orbit
@@ -345,7 +344,11 @@ class FCCeeCorrection:
                 self.stats['orbit_seconds'] += elapsed
 
     def ensure_full_twiss(self, tw):
-        return steps.ensure_full_twiss(tw, full_twiss=self._full_twiss)
+        # Call only while the line still has the settings used to compute tw.
+        # Use the tracked orbit as a guess; keep the ordinary closed-orbit search.
+        if 'betx' in tw._col_names:
+            return tw
+        return self._full_twiss(tw)
 
     def compute_metrics(self, tw):
         """Collect named diagnostics from every configured correction."""
