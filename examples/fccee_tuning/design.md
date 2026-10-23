@@ -151,7 +151,7 @@ knob values for scaling as errors increase and snapshots. Shared knobs appear on
 conflicting nominal values raise an error. Each module declares nonzero nominal
 values where needed (currently tune knobs); ordinary correction trims default to
 zero. A new correction therefore needs its own module, an instance added in
-`_build_optimizers`, and its desired placement in `correct_at_fixed_strengths`.
+`FCCeeCorrection.__init__`, and its desired placement in `correct_at_fixed_strengths`.
 It automatically participates in overall goals, metrics, printing and rollback.
 The correction sequence remains custom Python; no generic pipeline is introduced.
 

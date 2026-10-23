@@ -48,6 +48,52 @@ class FCCeeCorrection:
 
     correction_errors = (ValueError, RuntimeError, xt.twiss.ClosedOrbitSearchError)
 
+    def correct_at_fixed_strengths(self, tw):
+        """Return the accepted Twiss and completed iteration count, or raise.
+
+        The caller owns rollback of the entire error-increase trial. Tune correction is
+        explicit; coupling correction includes orbit settling. Only goals and
+        iteration limits decide success; intermediate errors may increase.
+        """
+        if self.final_refinement:
+            max_iterations = self.final_max_iterations
+        else:
+            max_iterations = self.intermediate_max_iterations
+        orbit = (self.optimizers.orbit_x, self.optimizers.orbit_y)
+        optics = self.optimizers.optics
+        coupling = self.optimizers.coupling
+        tunes = self.optimizers.tunes
+        self.log_iteration(0, tw)
+        if self.goals_met(tw):
+            return tw, 0
+        for iteration in range(1, max_iterations + 1):
+            if not all(opt.goal(tw) for opt in orbit):
+                for opt in orbit:
+                    opt.run_lstsq(action_results=[tw], tag_outcome=False)
+                tw = self._full_twiss(tw)
+            tw = tunes.correct(tw, full_twiss=self._full_twiss)
+
+            if not optics.goal(tw):
+                optics.run_lstsq(
+                    action_results=[tw], tag_outcome=False)
+                tw = self._full_twiss(tw)
+            tw = tunes.correct(tw, full_twiss=self._full_twiss)
+
+            if not coupling.goal(tw):
+                tw = self.settle_coupling_orbit(tw)
+                if not coupling.goal(tw):
+                    coupling.run_lstsq(
+                        action_results=[tw],
+                        step_scale=coupling.step_scale, tag_outcome=False)
+                    tw = self.orbit_twiss(tw)
+                    tw = self.settle_coupling_orbit(tw)
+            tw = tunes.correct(tw, full_twiss=self._full_twiss)
+
+            self.log_iteration(iteration, tw)
+            if self.goals_met(tw):
+                return tw, iteration
+        raise RuntimeError(f'Correction goals not met after {max_iterations} iterations')
+
     def __init__(self, line, *, intermediate_max_iterations=5,
                  final_max_iterations=40, optimizer_settings=None, log=None):
         self._start_time = perf_counter()
@@ -69,7 +115,27 @@ class FCCeeCorrection:
         self.steps_r_matrix = dict(dx=1e-8, dpx=1e-9, dy=1e-8, dpy=1e-9, dzeta=1e-7, ddelta=1e-8)
         self.log('Preparing nominal reference and correction responses')
         self._prepare_reference()
-        self._build_optimizers()
+
+        self.optimizers.optics = corr_optics.build_opt_corr_optimizer(
+            self.line, self.reference,
+            knobs=corr_optics.install_optics_knobs(self.line),
+            observation_names=self.obs_names,
+            interaction_points=list(self.line.get_table().rows['ip.*'].name),
+            ip_names=self.ip_names, settings=self.optimizer_settings.get('optics'))
+        self.optimizers.orbit_x = corr_orbit.build_orbit_corr_optimizer(
+            self.line, self.reference, plane='x', settings=self.optimizer_settings.get('orbit'))
+        self.optimizers.orbit_y = corr_orbit.build_orbit_corr_optimizer(
+            self.line, self.reference, plane='y', settings=self.optimizer_settings.get('orbit'))
+        self.optimizers.coupling = corr_coupling.build_coupling_corr_optimizer(
+            self.line, self.reference, observation_names=self.obs_names,
+            ip_names=self.ip_names, full_twiss=self._full_twiss, log=_silent_log,
+            settings=self.optimizer_settings.get('coupling'))
+        self.optimizers.tunes = corr_tune.build_tune_corr_optimizer(
+            self.line, self.reference, full_twiss=self._full_twiss,
+            settings=self.optimizer_settings.get('tunes'))
+        for optimizer in vars(self.optimizers).values():
+            _ = optimizer.response.svd
+
         self._collect_controls()
         self.line.vars.update(self.nominal_knob_values)
         self.set_error_fraction(0.)
@@ -253,52 +319,6 @@ class FCCeeCorrection:
         self.accepted_twiss = snapshot.accepted_twiss
         self.final_refinement = snapshot.final_refinement
 
-    def correct_at_fixed_strengths(self, tw):
-        """Return the accepted Twiss and completed iteration count, or raise.
-
-        The caller owns rollback of the entire error-increase trial. Tune correction is
-        explicit; coupling correction includes orbit settling. Only goals and
-        iteration limits decide success; intermediate errors may increase.
-        """
-        if self.final_refinement:
-            max_iterations = self.final_max_iterations
-        else:
-            max_iterations = self.intermediate_max_iterations
-        orbit = (self.optimizers.orbit_x, self.optimizers.orbit_y)
-        optics = self.optimizers.optics
-        coupling = self.optimizers.coupling
-        tunes = self.optimizers.tunes
-        self.log_iteration(0, tw)
-        if self.goals_met(tw):
-            return tw, 0
-        for iteration in range(1, max_iterations + 1):
-            if not all(opt.goal(tw) for opt in orbit):
-                for opt in orbit:
-                    opt.run_lstsq(action_results=[tw], tag_outcome=False)
-                tw = self._full_twiss(tw)
-            tw = tunes.correct(tw, full_twiss=self._full_twiss)
-
-            if not optics.goal(tw):
-                optics.run_lstsq(
-                    action_results=[tw], tag_outcome=False)
-                tw = self._full_twiss(tw)
-            tw = tunes.correct(tw, full_twiss=self._full_twiss)
-
-            if not coupling.goal(tw):
-                tw = self.settle_coupling_orbit(tw)
-                if not coupling.goal(tw):
-                    coupling.run_lstsq(
-                        action_results=[tw],
-                        step_scale=coupling.step_scale, tag_outcome=False)
-                    tw = self.orbit_twiss(tw)
-                    tw = self.settle_coupling_orbit(tw)
-            tw = tunes.correct(tw, full_twiss=self._full_twiss)
-
-            self.log_iteration(iteration, tw)
-            if self.goals_met(tw):
-                return tw, iteration
-        raise RuntimeError(f'Correction goals not met after {max_iterations} iterations')
-
     def log_iteration(self, iteration, tw):
         self.log('Initial state' if iteration == 0 else f'Iteration {iteration}')
         for optimizer in vars(self.optimizers).values():
@@ -406,27 +426,6 @@ class FCCeeCorrection:
         self.monitor_names = self.line.metadata['correction_knobs']['orbit']['x']['monitors']
         self.ip_names = ['ipa', 'ipd', 'ipg', 'ipj']
         self.obs_names = list(dict.fromkeys(self.monitor_names + self.ip_names))
-
-    def _build_optimizers(self):
-        self.optimizers.optics = corr_optics.build_opt_corr_optimizer(
-            self.line, self.reference,
-            knobs=corr_optics.install_optics_knobs(self.line),
-            observation_names=self.obs_names,
-            interaction_points=list(self.line.get_table().rows['ip.*'].name),
-            ip_names=self.ip_names, settings=self.optimizer_settings.get('optics'))
-        self.optimizers.orbit_x = corr_orbit.build_orbit_corr_optimizer(
-            self.line, self.reference, plane='x', settings=self.optimizer_settings.get('orbit'))
-        self.optimizers.orbit_y = corr_orbit.build_orbit_corr_optimizer(
-            self.line, self.reference, plane='y', settings=self.optimizer_settings.get('orbit'))
-        self.optimizers.coupling = corr_coupling.build_coupling_corr_optimizer(
-            self.line, self.reference, observation_names=self.obs_names,
-            ip_names=self.ip_names, full_twiss=self._full_twiss, log=_silent_log,
-            settings=self.optimizer_settings.get('coupling'))
-        self.optimizers.tunes = corr_tune.build_tune_corr_optimizer(
-            self.line, self.reference, full_twiss=self._full_twiss,
-            settings=self.optimizer_settings.get('tunes'))
-        for optimizer in vars(self.optimizers).values():
-            _ = optimizer.response.svd
 
     def _collect_controls(self):
         """Include every optimizer's knobs in scaling and snapshots."""
