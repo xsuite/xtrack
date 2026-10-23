@@ -355,7 +355,7 @@ class FCCeeCorrection:
     def _build_optimizers(self):
         self.optimizers.optics = corr_optics.build_opt_corr_optimizer(
             self.line, self.reference,
-            knobs=self.line.metadata['correction_knobs']['optics']['knobs'],
+            knobs=corr_optics.install_optics_knobs(self.line),
             observation_names=self.obs_names,
             interaction_points=list(self.line.get_table().rows['ip.*'].name),
             ip_names=self.ip_names, settings=self.optimizer_settings.get('optics'))

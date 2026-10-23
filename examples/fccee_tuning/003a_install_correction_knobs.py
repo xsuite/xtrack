@@ -9,6 +9,7 @@ from pathlib import Path
 import xtrack as xt
 
 from error_recipe import get_bpm_alignment
+import corr_optics
 
 HERE = Path(__file__).resolve().parent
 INPUT = HERE / 'fccee_z_lcc_errors.json'
@@ -131,13 +132,8 @@ print('Independent skew-quadrupole trims:', len(skew_knobs))
 
 
 # Independent normal-quadrupole trims.
-tt = line.get_table()
-quad_names = list(tt.rows[tt.element_type == 'Quadrupole'].name)
-quad_knobs = [f'dk1_optics_{name}' for name in quad_names]
-line['on_optics_corr'] = 1.0
-for name, knob in zip(quad_names, quad_knobs):
-    line[knob] = 0.0
-    line.ref[name].k1 += line.ref['on_optics_corr'] * line.ref[knob]
+corr_optics.install_optics_knobs(line)
+optics_circuits = line.metadata['correction_knobs']['optics']
 
 # Existing tune-family knobs are reused; keep their nominal values for the ramp.
 line.metadata['tuning_errors'] = env.metadata['tuning_errors']
@@ -151,7 +147,7 @@ line.metadata['correction_knobs'] = dict(
         )
         for plane, names in zip('xy', corrector_names)
     },
-    optics=dict(knobs=quad_knobs, quadrupoles=quad_names, units='m^-2'),
+    optics=optics_circuits,
     coupling=dict(knobs=skew_knobs, magnet_groups=skew_groups, units='m^-1'),
     tunes=dict(
         knobs=TUNE_KNOBS,

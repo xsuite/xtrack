@@ -25,6 +25,42 @@ OPTICS_SETTINGS = SimpleNamespace(
 )
 
 
+def install_optics_knobs(line):
+    """Install or reuse one independent k1 trim per quadrupole; return its names.
+
+    Existing trims must already feed their quadrupole's k1 through
+    on_optics_corr. Preserve their values, expressions and switch setting,
+    including after a JSON round trip. Check all existing names before editing
+    the line, and record the resulting circuit for the 003b reference workflow.
+    """
+    table = line.get_table()
+    quadrupoles = list(dict.fromkeys(table.env_name[table.element_type == 'Quadrupole']))
+    knobs = [f'dk1_optics_{name}' for name in quadrupoles]
+    switch = 'on_optics_corr'
+    missing = []
+    for name, knob in zip(quadrupoles, knobs):
+        if knob not in line.vars:
+            missing.append((name, knob))
+            continue
+        dependencies = line.ref[name].k1.xdeps.expr_dependencies
+        if (line.ref[knob].xdeps.expr is not None
+                or line.ref[knob] not in dependencies
+                or switch not in line.vars
+                or line.ref[switch] not in dependencies):
+            raise ValueError(f'Existing optics knob {knob!r} is not an independent '
+                             f'trim attached to {name}.k1 through {switch}')
+
+    if switch not in line.vars:
+        line[switch] = 1.
+    for name, knob in missing:
+        line[knob] = 0.
+        line.ref[name].k1 += line.ref[switch] * line.ref[knob]
+
+    line.metadata.setdefault('correction_knobs', {})['optics'] = dict(
+        knobs=knobs, quadrupoles=quadrupoles, units='m^-2')
+    return knobs
+
+
 def build_opt_corr_optimizer(line, reference, *, knobs, observation_names,
                              interaction_points, ip_names, settings=None):
     """Build a correction optimizer with local targets, response and diagnostics."""

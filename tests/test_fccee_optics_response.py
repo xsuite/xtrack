@@ -10,6 +10,69 @@ import xtrack as xt
 
 
 @pytest.fixture
+def optics_installer(monkeypatch):
+    monkeypatch.syspath_prepend(str(Path(__file__).resolve().parents[1]
+                                   / 'examples' / 'fccee_tuning'))
+    return importlib.import_module('corr_optics').install_optics_knobs
+
+
+def test_install_optics_knobs_is_idempotent(optics_installer):
+    line = xt.Line(elements=dict(qf=xt.Quadrupole(length=.4),
+                                 qd=xt.Quadrupole(length=.4, k1=-.5)),
+                   element_names=['qf', 'qd', 'qf'])
+    line['family'] = .5
+    line.ref['qf'].k1 = line.ref['family']
+    knobs = optics_installer(line)
+    assert knobs == ['dk1_optics_qf', 'dk1_optics_qd']
+    assert line.metadata['correction_knobs']['optics']['quadrupoles'] == ['qf', 'qd']
+    assert line['on_optics_corr'] == 1.
+    assert all(line[knob] == 0. for knob in knobs)
+    line[knobs[0]] = .03
+    before = str(line.ref['qf'].k1.xdeps.expr)
+    assert optics_installer(line) == knobs
+    assert str(line.ref['qf'].k1.xdeps.expr) == before
+    assert line[knobs[0]] == .03
+    assert line.get('qf').k1 == pytest.approx(.53)
+    line['family'] = .6
+    assert line.get('qf').k1 == pytest.approx(.63)
+
+
+@pytest.mark.parametrize('round_trip', [False, True])
+def test_install_optics_knobs_reuses_existing_connections(optics_installer, tmp_path,
+                                                         round_trip):
+    line = xt.Line(elements=[xt.Quadrupole(length=.4, k1=.5)], element_names=['q'])
+    # The connection made by the original 003a installer, without its metadata.
+    line['on_optics_corr'] = 0.
+    line['dk1_optics_q'] = .02
+    line.ref['q'].k1 += line.ref['on_optics_corr'] * line.ref['dk1_optics_q']
+    if round_trip:
+        path = tmp_path / 'line.json'
+        line.to_json(path)
+        line = xt.Line.from_json(path)
+    before = str(line.ref['q'].k1.xdeps.expr)
+    assert optics_installer(line) == ['dk1_optics_q']
+    assert str(line.ref['q'].k1.xdeps.expr) == before
+    assert line['on_optics_corr'] == 0.
+    assert line['dk1_optics_q'] == .02
+    line['on_optics_corr'] = .5
+    assert line.get('q').k1 == pytest.approx(.51)
+
+
+def test_install_optics_knobs_rejects_conflict_before_mutation(optics_installer):
+    line = xt.Line(elements=[xt.Quadrupole(length=.4, k1=.5),
+                             xt.Quadrupole(length=.4, k1=-.5)],
+                   element_names=['qf', 'qd'])
+    line['dk1_optics_qd'] = .03  # Occupied name, not attached to qd.k1.
+    with pytest.raises(ValueError, match='Existing optics knob'):
+        optics_installer(line)
+    assert 'dk1_optics_qf' not in line.vars
+    assert 'on_optics_corr' not in line.vars
+    assert line['dk1_optics_qd'] == .03
+    assert line.get('qd').k1 == -.5
+    assert 'correction_knobs' not in line.metadata
+
+
+@pytest.fixture
 def optics_problem(monkeypatch, temp_context_default_func):
     monkeypatch.syspath_prepend(str(Path(__file__).resolve().parents[1]
                                    / 'examples' / 'fccee_tuning'))

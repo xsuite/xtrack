@@ -46,6 +46,7 @@ from copy import copy
 
 settings = copy(corr_optics.OPTICS_SETTINGS)
 settings.beta_err_rms_tol = 0.02
+knobs = corr_optics.install_optics_knobs(line)
 opt_corr = corr_optics.build_opt_corr_optimizer(
     line, reference, knobs=knobs, observation_names=bpm_and_ip_names,
     interaction_points=interaction_points, ip_names=ip_names,
@@ -173,8 +174,19 @@ assumes fixed geometry and normal-strength changes in unsliced, positive-length
 Quadrupoles, distributed over their lengths; it does not resolve a different
 longitudinal placement of individual multipole kicks.
 
-The optics builder takes an explicit `knobs` list from the workflow, without
-reading line metadata. It installs this matrix with the original relative-beta,
+`corr_optics.install_optics_knobs(line)` installs one independent
+`dk1_optics_<name>` trim per quadrupole, adds it to `k1` through `on_optics_corr`,
+records the optics circuit in metadata, and returns the knob list. Repeated
+occurrences of the same element share one trim. Both 003a and the correction
+workflow call this function. Existing variables are checked against the actual
+`k1` expression dependencies, so a loaded lattice is reused without adding a
+second trim term, resetting its values or enabling a disabled switch. A conflicting
+variable name raises an error before any edits; the metadata alone is not used
+as evidence that the connection exists.
+
+The optics builder takes the returned `knobs` list explicitly, without reading
+line metadata. Custom pre-existing knob lists can still be passed directly to
+the builder. It installs this matrix with the original relative-beta,
 alpha, horizontal-dispersion and tune weights, including the IP emphasis.
 All optics knobs use the constant `vary.weight = 1.`, so their columns are no
 longer normalized using the tune derivatives. The SVD uses the physical knob
