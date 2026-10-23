@@ -31,7 +31,7 @@ def build_orbit_corr_optimizer(line, reference, *, plane, settings=None):
     optimizer = CorrectionOptimizer(
         line, reference, settings=settings,
         compute_metrics=compute_metrics, goal=goal,
-        configure_goals=configure_goals, print_metrics=print_metrics,
+        print_metrics=print_metrics,
         name=f'orbit {plane}',
         vary=[xt.Vary(knob, step=1e-7) for knob in circuits[plane]['knobs']],
         targets=[action.target(
@@ -46,14 +46,10 @@ def build_orbit_corr_optimizer(line, reference, *, plane, settings=None):
     optimizer.rcond = settings.rcond
     optimizer.set_response(orbit_response(
         reference, monitors, circuits[plane]['correctors'], plane))
-    optimizer.configure_goals(final_refinement=False, error_fraction=0.)
+    optimizer.orbit_tol = settings.orbit_tol
 
     optimizer.correctable_error = partial(correctable_error, optimizer)
     return optimizer
-
-
-def configure_goals(optimizer, *, final_refinement, error_fraction):
-    optimizer.orbit_tol = max(2e-9, error_fraction * optimizer.settings.orbit_tol)
 
 
 def monitor_alignment(optimizer):

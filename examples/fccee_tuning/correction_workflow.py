@@ -99,18 +99,30 @@ class FCCeeCorrection:
 
     @final_refinement.setter
     def final_refinement(self, value):
-        self._final_refinement = bool(value)
-        self.configure_goals()
-
-    def configure_goals(self):
-        """Update optimizer goal parameters after changing mode or error fraction.
-
-        Also call this explicitly after editing a module's goal settings.
-        Active tolerances can be inspected directly on each optimizer.
-        """
-        for optimizer in vars(self.optimizers).values():
-            optimizer.configure_goals(final_refinement=self.final_refinement,
-                                      error_fraction=self.error_fraction)
+        """Switch optics/coupling limits only when entering or leaving refinement."""
+        value = bool(value)
+        if value == self._final_refinement:
+            return
+        optics = self.optimizers.optics
+        coupling = self.optimizers.coupling
+        if value:
+            optics.dx_rms_tol = optics.settings.horizontal_dispersion_rms_tol
+            optics.dx_ip_tol = optics.settings.horizontal_dispersion_ip_tol
+            coupling.rdt_rms_tol = coupling.settings.coupling_rms_tol
+            coupling.rdt_ip_tol = coupling.settings.coupling_ip_tol
+            coupling.c_minus_tol = coupling.settings.c_minus_tol
+            coupling.dy_rms_tol = coupling.settings.dispersion_rms_tol
+            coupling.dy_ip_tol = coupling.settings.dispersion_ip_tol
+        else:
+            # Restore the ramp limits if rolling back across the mode change.
+            optics.dx_rms_tol = optics.settings.ramp_horizontal_dispersion_rms_tol
+            optics.dx_ip_tol = optics.settings.ramp_horizontal_dispersion_ip_tol
+            coupling.rdt_rms_tol = coupling.settings.ramp_coupling_rms_tol
+            coupling.rdt_ip_tol = coupling.settings.ramp_coupling_ip_tol
+            coupling.c_minus_tol = coupling.settings.ramp_c_minus_tol
+            coupling.dy_rms_tol = coupling.settings.ramp_dispersion_rms_tol
+            coupling.dy_ip_tol = coupling.settings.ramp_dispersion_ip_tol
+        self._final_refinement = value
 
     def twiss(self):
         """Compute full optics; callers explicitly retain and supply the result."""
@@ -133,7 +145,6 @@ class FCCeeCorrection:
         if not 0 <= fraction <= 1:
             raise ValueError('Error fraction must be in [0, 1]')
         self.line['on_errors'] = self.line['on_nonlinear'] = fraction
-        self.configure_goals()
 
     def snapshot(self):
         """Capture every control that a ramp trial can change, without tracking."""

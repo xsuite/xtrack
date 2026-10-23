@@ -28,7 +28,7 @@ def build_tune_corr_optimizer(line, reference, *, full_twiss, settings=None):
     optimizer = CorrectionOptimizer(
         line, reference, settings=settings,
         compute_metrics=compute_metrics, goal=goal,
-        configure_goals=configure_goals, print_metrics=print_metrics,
+        print_metrics=print_metrics,
         name='tunes',
         nominal_knob_values=circuits['nominal_values'],
         vary=[xt.Vary(knob, step=1e-7) for knob in knobs],
@@ -36,7 +36,8 @@ def build_tune_corr_optimizer(line, reference, *, full_twiss, settings=None):
                  for q in ('qx', 'qy')])
     optimizer.rcond = 0.
     optimizer.set_response(response)
-    optimizer.configure_goals(final_refinement=False, error_fraction=0.)
+    optimizer.tune_tol = settings.tune_tol
+    optimizer.cleanup_tol = settings.tune_tol / 2
 
     optimizer.correct = partial(correct, optimizer)
     return optimizer
@@ -51,13 +52,6 @@ def compute_metrics(optimizer, tw):
 def tune_goal(tw, reference, *, tolerance):
     error = np.array([tw.qx - reference.qx, tw.qy - reference.qy])
     return bool(np.all(np.abs(error) < tolerance))
-
-
-def configure_goals(optimizer, *, final_refinement, error_fraction):
-    optimizer.tune_tol = optimizer.settings.tune_tol
-    optimizer.cleanup_tol = optimizer.settings.tune_tol / 2
-    for target in optimizer.targets:
-        target.tol = optimizer.cleanup_tol
 
 
 def goal(optimizer, tw):

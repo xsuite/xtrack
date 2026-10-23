@@ -32,9 +32,9 @@ solve cutoff, reference/observation data, nominal knob values, `compute_metrics(
 supplied table without tracking or implicitly retaining it. The normal optimizer
 API remains available for target inspection and least-squares steps.
 
-The builder passes `compute_metrics`, `goal`, `configure_goals` and `print_metrics`
+The builder passes `compute_metrics`, `goal` and `print_metrics`
 functions to `CorrectionOptimizer`. Each function takes `optimizer` as its first
-argument, followed by Twiss or mode parameters. The shared class binds that first
+argument, followed by Twiss and any reporting options. The shared class binds that first
 argument, so the workflow still calls `optimizer.goal(tw)`, for example. Orbit
 and tune builders also attach their specialized operations, `correctable_error`
 and `correct`. Helpers used only within a module remain ordinary function calls.
@@ -61,15 +61,19 @@ inspect or change them afterwards through each `optimizer.settings`. Response
 weights and cutoffs are configured during construction; `optimizer.rcond` remains
 directly editable. There is no central schema of correction-specific settings.
 
-`FCCeeCorrection.configure_goals()` asks every registered optimizer to refresh its
-active tolerance attributes from its settings. It runs after `set_error_fraction`,
-a change to `final_refinement`, and restoring a snapshot (even when the restored
-mode is unchanged). Goal calls consequently need only `tw`, without mode/context
-arguments. Call `configure_goals()` explicitly after editing goal settings. The
-active tolerances, such as `optics.dx_ip_tol` or `orbit_x.orbit_tol`, are inspectable
-and can also be changed directly for the current mode.
+Builders initialize constant tolerances and the active ramp limits. Changing
+`FCCeeCorrection.final_refinement` explicitly switches only the optics Dx and
+coupling RDT/c_minus/Dy limits. Restoring across a mode change restores the
+corresponding limits; restoring within the same mode leaves them untouched.
+Changing the error fraction does not change any tolerances. Goal calls need only
+`tw`, without mode/context arguments. Active tolerances, such as
+`optics.dx_ip_tol` or `orbit_x.orbit_tol`, remain inspectable and directly editable.
+There is no goal-configuration callback. When adding a correction with different
+ramp/refinement limits, include its assignments in the explicit mode switch.
 
-Orbit goals use inclusive RMS comparisons and an error-fraction-dependent floor.
+Orbit goals use inclusive RMS comparisons and a fixed tolerance (10 micrometres
+by default) throughout ramp and refinement. Coupling's internal orbit settling
+retains its separate 50-nanometre correctable-orbit tolerance.
 Optics/coupling goals retain strict comparisons and their ramp/refinement limits.
 Optics still checks tunes as well as beta and Dx. Tune global acceptance uses its
 configured tune tolerance; `optimizers.tunes.correct()` uses half that tolerance
@@ -495,3 +499,16 @@ baseline. Log and verification are in
 `/tmp/fccee_correction_factories_jiyby7h_/run.log`, `verification.json` and
 `timing.json`. No correction module contains a class definition; the analytical
 optics response builder and the shared 003b helpers remain unchanged.
+
+Removing goal-configuration callbacks and using a constant 10-micrometre orbit
+tolerance passed all 36 focused tests. Mode-switch tests cover the tighter
+optics/coupling limits, rollback across modes, and preservation of active limits
+within a mode. The full ramp/refinement completed in 204.4 seconds wall time
+under the 250-second cap. All 12 independently checked final criteria passed.
+There were 20 accepted entries and 245 Twiss calls (88 orbit-only), compared with
+240 calls (83 orbit-only) before this change. The looser early orbit criterion
+changes the ramp history; exact history equality is no longer expected. Final
+orbit RMS values were 0.0112 and 7.1434 micrometres. Artifacts:
+`/tmp/fccee_constant_orbit_tol_oresz_3p/run.log`, `verification.json`,
+`final_checks.json` and `timing.json`. Coupling's 50-nanometre orbit settling
+tolerance and all shared 003b helpers remain unchanged.

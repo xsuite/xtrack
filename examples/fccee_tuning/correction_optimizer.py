@@ -10,19 +10,18 @@ class CorrectionOptimizer(OptimizeLine):
 
     Builders supply ordinary functions from their correction modules. Each
     function receives this optimizer as its first argument; callers only supply
-    Twiss or mode parameters. Diagnostics never run actions.
+    Twiss and any reporting options. Diagnostics never run actions.
     The workflow owns evaluation, sequencing and whole-machine rollback.
     """
 
     def __init__(self, line, reference, *, settings, compute_metrics, goal,
-                 configure_goals, print_metrics=None, nominal_knob_values=None, **kwargs):
+                 print_metrics=None, nominal_knob_values=None, **kwargs):
         super().__init__(line=line, action_results=[reference],
                          assert_within_tol=False, show_call_counter=False, **kwargs)
         self.reference = reference
         self.settings = settings
         self.compute_metrics = partial(compute_metrics, self)
         self.goal = partial(goal, self)
-        self.configure_goals = partial(configure_goals, self)
         if print_metrics is not None:
             self.print_metrics = partial(print_metrics, self)
         self.nominal_knob_values = dict.fromkeys((v.name for v in self.vary), 0.)

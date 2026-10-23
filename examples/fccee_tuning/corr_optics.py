@@ -101,7 +101,7 @@ def build_opt_corr_optimizer(line, reference, *, knobs, observation_names,
     optimizer = CorrectionOptimizer(
         line, reference, settings=settings,
         compute_metrics=compute_metrics, goal=goal,
-        configure_goals=configure_goals, print_metrics=print_metrics,
+        print_metrics=print_metrics,
         name='normal optics and horizontal dispersion',
         vary=[xt.Vary(knob, step=1e-7, max_step=0.5) for knob in knobs],
         targets=targets,
@@ -118,7 +118,11 @@ def build_opt_corr_optimizer(line, reference, *, knobs, observation_names,
     optimizer.rcond = settings.rcond
     optimizer.set_response(response)
 
-    optimizer.configure_goals(final_refinement=False, error_fraction=0.)
+    optimizer.beta_rms_tol = settings.beta_rms_tol
+    optimizer.beta_max_tol = settings.beta_max_tol
+    optimizer.tune_tol = settings.tune_tol
+    optimizer.dx_rms_tol = settings.ramp_horizontal_dispersion_rms_tol
+    optimizer.dx_ip_tol = settings.ramp_horizontal_dispersion_ip_tol
 
     return optimizer
 
@@ -138,18 +142,6 @@ def compute_metrics(optimizer, tw):
         dx_rms=float(np.sqrt(np.mean(dx_error[dispersion_indices]**2))),
         dx_ip=float(np.max(np.abs(dx_error[ip_indices]))),
     )
-
-
-def configure_goals(optimizer, *, final_refinement, error_fraction):
-    optimizer.beta_rms_tol = optimizer.settings.beta_rms_tol
-    optimizer.beta_max_tol = optimizer.settings.beta_max_tol
-    optimizer.tune_tol = optimizer.settings.tune_tol
-    if final_refinement:
-        optimizer.dx_rms_tol = optimizer.settings.horizontal_dispersion_rms_tol
-        optimizer.dx_ip_tol = optimizer.settings.horizontal_dispersion_ip_tol
-    else:
-        optimizer.dx_rms_tol = optimizer.settings.ramp_horizontal_dispersion_rms_tol
-        optimizer.dx_ip_tol = optimizer.settings.ramp_horizontal_dispersion_ip_tol
 
 
 def goal(optimizer, tw):

@@ -72,7 +72,7 @@ def build_coupling_corr_optimizer(line, reference, *, observation_names, ip_name
     optimizer = CorrectionOptimizer(
         line, reference, settings=settings,
         compute_metrics=compute_metrics, goal=goal,
-        configure_goals=configure_goals, print_metrics=print_metrics,
+        print_metrics=print_metrics,
         name='coupling and vertical dispersion',
         vary=[xt.Vary(knob, step=1e-7, weight=scale) for knob, scale in zip(knobs, scales)],
         targets=[action.target(observable, value=0.0, tol=1e-15,
@@ -86,7 +86,11 @@ def build_coupling_corr_optimizer(line, reference, *, observation_names, ip_name
 
     optimizer.step_scale = settings.step_scale
     optimizer.orbit_tol = settings.orbit_tol
-    optimizer.configure_goals(final_refinement=False, error_fraction=0.)
+    optimizer.rdt_rms_tol = settings.ramp_coupling_rms_tol
+    optimizer.rdt_ip_tol = settings.ramp_coupling_ip_tol
+    optimizer.c_minus_tol = settings.ramp_c_minus_tol
+    optimizer.dy_rms_tol = settings.ramp_dispersion_rms_tol
+    optimizer.dy_ip_tol = settings.ramp_dispersion_ip_tol
 
     return optimizer
 
@@ -108,21 +112,6 @@ def compute_metrics(optimizer, tw):
         dy_rms=float(np.sqrt(np.mean(dy[coupling_indices]**2))),
         dy_ip=float(np.max(np.abs(dy[ip_indices]))),
     )
-
-
-def configure_goals(optimizer, *, final_refinement, error_fraction):
-    if final_refinement:
-        optimizer.rdt_rms_tol = optimizer.settings.coupling_rms_tol
-        optimizer.rdt_ip_tol = optimizer.settings.coupling_ip_tol
-        optimizer.c_minus_tol = optimizer.settings.c_minus_tol
-        optimizer.dy_rms_tol = optimizer.settings.dispersion_rms_tol
-        optimizer.dy_ip_tol = optimizer.settings.dispersion_ip_tol
-    else:
-        optimizer.rdt_rms_tol = optimizer.settings.ramp_coupling_rms_tol
-        optimizer.rdt_ip_tol = optimizer.settings.ramp_coupling_ip_tol
-        optimizer.c_minus_tol = optimizer.settings.ramp_c_minus_tol
-        optimizer.dy_rms_tol = optimizer.settings.ramp_dispersion_rms_tol
-        optimizer.dy_ip_tol = optimizer.settings.ramp_dispersion_ip_tol
 
 
 def goal(optimizer, tw):
