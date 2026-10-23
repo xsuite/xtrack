@@ -1,6 +1,7 @@
 """Tune targets, response, metrics, goals and standalone correction stage."""
 
 from functools import partial
+from copy import copy
 from types import SimpleNamespace
 import numpy as np
 import xtrack as xt
@@ -9,17 +10,16 @@ import correction_setup as setup
 from correction_optimizer import CorrectionOptimizer
 
 
-def tune_settings(*, tune_tol=1e-5, max_iterations=7):
-    """Return editable settings for this correction."""
-    return SimpleNamespace(
-        tune_tol=tune_tol,
-        max_iterations=max_iterations,
-    )
+TUNE_SETTINGS = SimpleNamespace(
+    tune_tol=1e-5,
+    max_iterations=7,
+)
 
 
 def build_tune_corr_optimizer(line, reference, *, full_twiss, settings=None):
     """Build a correction optimizer with local targets, response and diagnostics."""
-    settings = settings if settings is not None else tune_settings()
+    if settings is None:
+        settings = copy(TUNE_SETTINGS)
     action = xt.Action(full_twiss)
     circuits = line.metadata['correction_knobs']['tunes']
     knobs = circuits['knobs']

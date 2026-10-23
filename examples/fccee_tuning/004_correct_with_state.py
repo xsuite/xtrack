@@ -9,16 +9,17 @@ edit/subclass FCCeeCorrection to change the fixed-strength correction sequence.
 Set 003c's INPUT to response_api_class/machine.json to analyze the saved line.
 """
 
+from copy import copy
 from pathlib import Path
 from time import perf_counter
 import builtins
 
 import xtrack as xt
 from correction_workflow import CorrectionSettings, FCCeeCorrection
-from corr_optics import optics_settings
-from corr_orbit import orbit_settings
-from corr_coupling import coupling_settings
-from corr_tune import tune_settings
+from corr_optics import OPTICS_SETTINGS
+from corr_orbit import ORBIT_SETTINGS
+from corr_coupling import COUPLING_SETTINGS
+from corr_tune import TUNE_SETTINGS
 
 START_TIME = perf_counter()
 
@@ -42,10 +43,10 @@ if not 0 < TARGET_ERROR_FRACTION <= 1:
 # Workflow budgets and independently configured correction modules.
 settings = CorrectionSettings(ramp_max_iterations=5, final_max_iterations=40)
 optimizer_settings = dict(
-    orbit=orbit_settings(orbit_tol=10e-6, rcond=1e-6),
-    optics=optics_settings(beta_rms_tol=0.03, beta_max_tol=0.50, rcond=1e-5),
-    coupling=coupling_settings(rcond=1e-6),
-    tunes=tune_settings(tune_tol=1e-5),
+    orbit=copy(ORBIT_SETTINGS),
+    optics=copy(OPTICS_SETTINGS),
+    coupling=copy(COUPLING_SETTINGS),
+    tunes=copy(TUNE_SETTINGS),
 )
 
 # %% Construct the correction object

@@ -1,4 +1,5 @@
 """Analytical response assembly from actual targets and compound knobs."""
+from copy import copy
 from pathlib import Path
 import importlib
 from types import SimpleNamespace
@@ -119,7 +120,8 @@ def test_optics_response_with_only_tunes(optics_problem):
 
 def test_optics_targets_are_built_per_location(optics_problem):
     module, line, reference, opt, keys = optics_problem
-    settings = module.optics_settings(ir_half_length=0.1)
+    settings = copy(module.OPTICS_SETTINGS)
+    settings.ir_half_length = 0.1
     built = module.build_opt_corr_optimizer(
         line, reference, knobs=['trim', 'family'],
         observation_names=['qf1', 'qd6'], interaction_points=['qf1'],

@@ -1,6 +1,7 @@
 """Orbit correction, including live BPM alignment and correctable-mode metrics."""
 
 from functools import partial
+from copy import copy
 from types import SimpleNamespace
 import numpy as np
 import xtrack as xt
@@ -9,19 +10,18 @@ from correction_optimizer import CorrectionOptimizer
 from response_builders import orbit_response
 
 
-def orbit_settings(*, orbit_tol=1e-5, rcond=1e-6):
-    """Return editable settings for this correction."""
-    return SimpleNamespace(
-        orbit_tol=orbit_tol,
-        rcond=rcond,
-    )
+ORBIT_SETTINGS = SimpleNamespace(
+    orbit_tol=1e-5,
+    rcond=1e-6,
+)
 
 
 def build_orbit_corr_optimizer(line, reference, *, plane, settings=None):
     """Build a correction optimizer with local targets, response and diagnostics."""
     if plane not in ('x', 'y'):
         raise ValueError('Orbit plane must be x or y')
-    settings = settings if settings is not None else orbit_settings()
+    if settings is None:
+        settings = copy(ORBIT_SETTINGS)
     circuits = line.metadata['correction_knobs']['orbit']
     alignment = line.metadata['tuning_errors']['bpm_alignment_variables']
     monitors = circuits[plane]['monitors']

@@ -1,5 +1,6 @@
 """Coupling and vertical dispersion: setup, metrics, goals and reporting."""
 
+from copy import copy
 from types import SimpleNamespace
 import numpy as np
 import xtrack as xt
@@ -8,8 +9,7 @@ import correction_setup as setup
 from correction_optimizer import CorrectionOptimizer
 
 
-def coupling_settings(
-    *,
+COUPLING_SETTINGS = SimpleNamespace(
     rcond=1e-6,
     coupling_ip_weight=20.,
     coupling_rms_tol=0.003,
@@ -25,31 +25,14 @@ def coupling_settings(
     dispersion_weight=1.,
     orbit_tol=5e-8,
     step_scale=0.5,
-):
-    """Return editable settings for this correction."""
-    return SimpleNamespace(
-        rcond=rcond,
-        coupling_ip_weight=coupling_ip_weight,
-        coupling_rms_tol=coupling_rms_tol,
-        coupling_ip_tol=coupling_ip_tol,
-        c_minus_tol=c_minus_tol,
-        dispersion_rms_tol=dispersion_rms_tol,
-        dispersion_ip_tol=dispersion_ip_tol,
-        ramp_c_minus_tol=ramp_c_minus_tol,
-        ramp_coupling_rms_tol=ramp_coupling_rms_tol,
-        ramp_coupling_ip_tol=ramp_coupling_ip_tol,
-        ramp_dispersion_rms_tol=ramp_dispersion_rms_tol,
-        ramp_dispersion_ip_tol=ramp_dispersion_ip_tol,
-        dispersion_weight=dispersion_weight,
-        orbit_tol=orbit_tol,
-        step_scale=step_scale,
-    )
+)
 
 
 def build_coupling_corr_optimizer(line, reference, *, observation_names, ip_names,
                                  full_twiss, settings=None, log=print):
     """Build a correction optimizer with local targets, response and diagnostics."""
-    settings = settings if settings is not None else coupling_settings()
+    if settings is None:
+        settings = copy(COUPLING_SETTINGS)
     action = xt.Action(full_twiss)
     circuits = line.metadata['correction_knobs']['coupling']
     knobs = circuits['knobs']

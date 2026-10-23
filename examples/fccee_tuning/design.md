@@ -26,7 +26,7 @@ definitions:
 - `corr_coupling.build_coupling_corr_optimizer`: RDTs, vertical dispersion and c_minus.
 - `corr_tune.build_tune_corr_optimizer`: nominal tunes and the standalone cleanup stage.
 
-Each module owns its settings factory, targets, varies, response construction,
+Each module owns its settings constant, targets, varies, response construction,
 solve cutoff, reference/observation data, nominal knob values, `compute_metrics(tw)`,
 `goal(tw)` and `print_metrics(tw, log=...)`. These diagnostic methods consume the
 supplied table without tracking or implicitly retaining it. The normal optimizer
@@ -42,17 +42,24 @@ and `correct`. Helpers used only within a module remain ordinary function calls.
 For example:
 
 ```python
+from copy import copy
+
+settings = copy(corr_optics.OPTICS_SETTINGS)
+settings.beta_rms_tol = 0.02
 opt_corr = corr_optics.build_opt_corr_optimizer(
     line, reference, knobs=knobs, observation_names=bpm_and_ip_names,
     interaction_points=interaction_points, ip_names=ip_names,
-    settings=corr_optics.optics_settings(beta_rms_tol=0.03),
+    settings=settings,
 )
 metrics = opt_corr.compute_metrics(tw)
 goals_met = opt_corr.goal(tw)
 ```
 
-Settings factories return fresh `SimpleNamespace` objects with named, editable
-attributes. Derived response weights are calculated in the builders. No subclass
+`OPTICS_SETTINGS`, `ORBIT_SETTINGS`, `COUPLING_SETTINGS` and `TUNE_SETTINGS` are
+module-level `SimpleNamespace` objects. Builders copy these defaults when no
+settings are supplied, so each optimizer's settings can be edited independently.
+Explicitly supplied settings are used as provided. Derived response weights are
+calculated in the builders. No subclass
 or method override is needed to define another correction.
 
 `CorrectionSettings` contains only the workflow's iteration budgets. The example
@@ -166,9 +173,10 @@ longitudinal placement of individual multipole kicks.
 The optics builder takes an explicit `knobs` list from the workflow, without
 reading line metadata. It installs this matrix with the original relative-beta,
 alpha, horizontal-dispersion and tune weights, including the IP emphasis.
-For its individual trims, the tune rows give the same integrated-beta knob
-scales as before. Optics setup does not run a directional tracking check or
-compute Twiss; response validation belongs in tests. `003b` and its shared
+All optics knobs use the constant `vary.weight = 1.`, so their columns are no
+longer normalized using the tune derivatives. The SVD uses the physical knob
+coordinates and the existing target weights. Optics setup does not run a
+directional tracking check or compute Twiss; response validation belongs in tests. `003b` and its shared
 helpers remain unchanged.
 
 ## Supplying model results
@@ -512,3 +520,14 @@ orbit RMS values were 0.0112 and 7.1434 micrometres. Artifacts:
 `/tmp/fccee_constant_orbit_tol_oresz_3p/run.log`, `verification.json`,
 `final_checks.json` and `timing.json`. Coupling's 50-nanometre orbit settling
 tolerance and all shared 003b helpers remain unchanged.
+
+Using the constant `weight=1.` for every optics knob, together with the module
+settings constants, passed all 36 focused tests. The full ramp/refinement passed
+all 12 independently checked final criteria in 174.9 seconds wall time, versus
+204.4 seconds for the preceding run. It accepted 17 history entries without any
+rejected ramp steps and used 221 Twiss calls (79 orbit-only), versus 245 (88
+orbit-only) previously. Final beta RMS was 1.30%/1.33%, beta maximum was
+5.04%/7.42%, and Dx RMS was 0.974 mm against the 1 mm limit. Artifacts:
+`/tmp/fccee_constant_optics_weight_6nbea93h/run.log`, `verification.json`,
+`final_checks.json` and `timing.json`. The analytical response, target weights,
+acceptance tolerances and shared 003b helpers remain unchanged.

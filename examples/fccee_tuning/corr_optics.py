@@ -1,5 +1,6 @@
 """Normal optics: optimizer, response, metrics, goals and reporting."""
 
+from copy import copy
 from types import SimpleNamespace
 import numpy as np
 import xtrack as xt
@@ -9,8 +10,7 @@ from response_builders import normal_quadrupole_response
 import corr_tune
 
 
-def optics_settings(
-    *,
+OPTICS_SETTINGS = SimpleNamespace(
     beta_rms_tol=0.03,
     beta_max_tol=0.5,
     tune_tol=1e-5,
@@ -22,27 +22,14 @@ def optics_settings(
     ramp_horizontal_dispersion_rms_tol=0.005,
     ramp_horizontal_dispersion_ip_tol=0.0005,
     rcond=1e-5,
-):
-    """Return editable settings for this correction."""
-    return SimpleNamespace(
-        beta_rms_tol=beta_rms_tol,
-        beta_max_tol=beta_max_tol,
-        tune_tol=tune_tol,
-        alpha_weight=alpha_weight,
-        ir_beta_weight=ir_beta_weight,
-        ir_half_length=ir_half_length,
-        horizontal_dispersion_rms_tol=horizontal_dispersion_rms_tol,
-        horizontal_dispersion_ip_tol=horizontal_dispersion_ip_tol,
-        ramp_horizontal_dispersion_rms_tol=ramp_horizontal_dispersion_rms_tol,
-        ramp_horizontal_dispersion_ip_tol=ramp_horizontal_dispersion_ip_tol,
-        rcond=rcond,
-    )
+)
 
 
 def build_opt_corr_optimizer(line, reference, *, knobs, observation_names,
                              interaction_points, ip_names, settings=None):
     """Build a correction optimizer with local targets, response and diagnostics."""
-    settings = settings if settings is not None else optics_settings()
+    if settings is None:
+        settings = copy(OPTICS_SETTINGS)
     action = xt.Action(line.twiss)
     ip_indices = reference.rows.indices[ip_names]
     ip_names = set(ip_names)
@@ -103,18 +90,13 @@ def build_opt_corr_optimizer(line, reference, *, knobs, observation_names,
         compute_metrics=compute_metrics, goal=goal,
         print_metrics=print_metrics,
         name='normal optics and horizontal dispersion',
-        vary=[xt.Vary(knob, step=1e-7, max_step=0.5) for knob in knobs],
+        vary=[xt.Vary(knob, step=1e-7, max_step=0.5, weight=1.) for knob in knobs],
         targets=targets,
     )
     optimizer.observation_names = list(observation_names)
     optimizer.dispersion_indices = reference.rows.indices[observation_names]
     optimizer.ip_indices = ip_indices
     response = build_normal_quad_optics_response_matrix(optimizer, reference)
-    # The tune derivatives give the integrated beta functions used to scale
-    # these individual quadrupole trims, as in the reference workflow.
-    scales = 1 / (4 * np.pi * np.max(np.abs(response[-2:]), axis=0))
-    for vary, scale in zip(optimizer.vary, scales):
-        vary.weight = scale
     optimizer.rcond = settings.rcond
     optimizer.set_response(response)
 
