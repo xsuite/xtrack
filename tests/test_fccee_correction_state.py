@@ -227,7 +227,7 @@ def test_scaling_is_separate_from_setting_strength(correction):
     correction.scale_corrections(0.4)
     assert correction.error_fraction == 0.2
     assert correction.line['on_nonlinear'] == 0.2
-    assert correction._values(correction.correction_knobs).tolist() == [4.0, 6.0, 8.0, 14.0]
+    assert correction.line.get(correction.correction_knobs) == [4.0, 6.0, 8.0, 14.0]
     correction.set_error_fraction(0.4)
     assert correction.line['on_errors'] == correction.line['on_nonlinear'] == 0.4
     assert correction.line['bpm_offset'] == 0.0004
@@ -239,7 +239,7 @@ def test_scaling_is_separate_from_setting_strength(correction):
     assert correction.snapshot().knob_values == before.knob_values
     correction.set_error_fraction(0)
     correction.scale_corrections(0.1)  # No previous finite-fraction solution to extrapolate.
-    assert correction._values(correction.correction_knobs).tolist() == [4.0, 6.0, 8.0, 14.0]
+    assert correction.line.get(correction.correction_knobs) == [4.0, 6.0, 8.0, 14.0]
 
 
 def test_snapshot_restores_all_trial_state_and_preserves_expressions(correction):
@@ -274,7 +274,6 @@ def test_accept_updates_state_without_evaluation_or_history(correction, monkeypa
 
 
 def test_twiss_evaluation_is_explicit(correction, monkeypatch):
-    module = importlib.import_module('correction_workflow')
     correction.steps_r_matrix = dict(dx=1e-8)
     correction.stats = {}
     calls = []
@@ -283,7 +282,7 @@ def test_twiss_evaluation_is_explicit(correction, monkeypatch):
         calls.append((args, kwargs))
         return object()
 
-    monkeypatch.setattr(module.steps, 'compute_twiss', compute)
+    monkeypatch.setattr(correction, '_compute_twiss', compute)
     first = correction.twiss()
     second = correction.twiss()
     assert second is not first
@@ -299,10 +298,7 @@ def test_twiss_evaluation_is_explicit(correction, monkeypatch):
     assert len(calls) == 3
 
 
-def test_twiss_particle_guess_recomputes_closed_orbit(monkeypatch):
-    examples = Path(__file__).resolve().parents[1] / 'examples' / 'fccee_tuning'
-    monkeypatch.syspath_prepend(str(examples))
-    steps = importlib.import_module('correction_steps')
+def test_twiss_particle_guess_recomputes_closed_orbit(correction):
     line = xt.Line(elements=[
         xt.LineSegmentMap(qx=.31, qy=.32, betx=2., bety=3.),
         xt.Multipole(knl=[1e-6]),
@@ -315,9 +311,11 @@ def test_twiss_particle_guess_recomputes_closed_orbit(monkeypatch):
     line[1].knl[0] = 2e-6
     stats = dict(calls=0, seconds=0., orbit_calls=0, orbit_seconds=0.)
     expected = line.twiss()
-    for only_orbit in (False, True):
-        actual = steps.compute_twiss(
-            seed, line=line, stats=stats, steps={}, only_orbit=only_orbit)
+    correction.line = line
+    correction.stats = stats
+    correction.steps_r_matrix = {}
+    for compute in (correction._full_twiss, correction.orbit_twiss):
+        actual = compute(seed)
         np.testing.assert_allclose(actual.x, expected.x, rtol=1e-12, atol=1e-15)
         assert not np.allclose(actual.x, seed.x, rtol=1e-6, atol=1e-15)
     np.testing.assert_array_equal(seed.particle_on_co.x, seed_x)

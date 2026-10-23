@@ -6791,17 +6791,18 @@ class Line:
     @doc_group("Inspection, Variables and Configuration")
     def get(self, key):
         '''
-        Get an element or the value of a variable.
+        Get elements or variable values by name.
 
         Parameters
         ----------
-        key : str
-            Name of the element or variable.
+        key : str or iterable of str
+            Name or names of the elements or variables.
 
         Returns
         -------
-        element : Element or float
-            Element or value of the variable.
+        result : Element, float or list
+            Element or variable value for a single name. For multiple names,
+            a list of results in the requested order.
 
         Examples
         --------
@@ -6820,6 +6821,9 @@ class Line:
 
             line.get('a')
             # 3.0
+
+            line.get(['a', 'qf'])
+            # [3.0, Quadrupole(...)]
         '''
         return self.env.get(key)
 

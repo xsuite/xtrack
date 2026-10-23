@@ -4,7 +4,6 @@ from functools import partial
 
 import numpy as np
 
-from correction_steps import values
 from response_builders import skew_quadrupole_response
 
 
@@ -72,7 +71,7 @@ def prepare_coupling_response(
 
 def build_tune_response(tw, *, line, tune_knobs, full_twiss):
     """Numerical two-family tune response, with all probe settings restored."""
-    baseline = values(line, tune_knobs)
+    baseline = np.array(line.get(tune_knobs))
     jac = np.empty((2, 2))
     try:
         for j in range(2):

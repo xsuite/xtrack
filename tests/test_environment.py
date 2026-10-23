@@ -211,6 +211,29 @@ def test_vars_and_element_access_modes(container_type):
 
 @pytest.mark.parametrize('container_type', ['env', 'line'])
 @pytest.mark.parametrize('sequence', [list, tuple, np.array, iter])
+def test_get_multiple_names(container_type, sequence):
+    env = xt.Environment()
+    env['a'] = 2.
+    env['b'] = '3*a'
+    env.new('q', xt.Quadrupole, k1='a')
+    line = env.new_line(['q'])
+    target = env if container_type == 'env' else line
+
+    assert target.get(sequence(['b', 'a', 'b'])) == [6., 2., 6.]
+    result = target.get(sequence(['q', 'a']))
+    assert isinstance(result, list)
+    assert result[0] is env.get('q') and result[1] == 2.
+    target.set('a', 4.)
+    assert target.get(sequence(['a', 'b'])) == [4., 12.]
+    assert target.get('a') == 4.
+    assert target.get('q') is result[0]
+    assert target.get(sequence([])) == []
+    with pytest.raises(KeyError, match='missing'):
+        target.get(sequence(['a', 'missing']))
+
+
+@pytest.mark.parametrize('container_type', ['env', 'line'])
+@pytest.mark.parametrize('sequence', [list, tuple, np.array, iter])
 def test_set_paired_variable_values(container_type, sequence):
     env = xt.Environment()
     line = env.new_line([])

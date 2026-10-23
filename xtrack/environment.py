@@ -2044,17 +2044,18 @@ class Environment:
     @doc_group("Editing, Inspection, Variables and Configuration")
     def get(self, key):
         '''
-        Get an element or the value of a variable.
+        Get elements or variable values by name.
 
         Parameters
         ----------
-        key : str
-            Name of the element or variable.
+        key : str or iterable of str
+            Name or names of the elements or variables.
 
         Returns
         -------
-        element : Element or float
-            Element or value of the variable.
+        result : Element, float or list
+            Element or variable value for a single name. For multiple names,
+            a list of results in the requested order.
 
         Examples
         --------
@@ -2070,7 +2071,13 @@ class Environment:
             value = env.get('kq')
 
             # element is the Quadrupole object; value is 0.2
+
+            env.get(['kq', 'qf'])
+            # [0.2, Quadrupole(...)]
         '''
+
+        if isinstance(key, Iterable) and not isinstance(key, (str, bytes)):
+            return [self.get(name) for name in key]
 
         if key in self._element_dict:
             return self._element_dict[key]

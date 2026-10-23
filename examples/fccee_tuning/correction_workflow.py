@@ -227,7 +227,8 @@ class FCCeeCorrection:
         ratio = next_error_fraction / previous
         knobs = self.correction_knobs
         nominal = np.array([self.nominal_knob_values[name] for name in knobs])
-        self.line.set(knobs, nominal + ratio * (self._values(knobs) - nominal))
+        current = np.array(self.line.get(knobs))
+        self.line.set(knobs, nominal + ratio * (current - nominal))
 
     def set_error_fraction(self, fraction):
         """Set errors and nonlinear strengths together; do not change corrections."""
@@ -313,18 +314,35 @@ class FCCeeCorrection:
         self.accepted_twiss = tw
         self.log('Accepted')
 
-    def _values(self, names):
-        return steps.values(self.line, names)
-
     def _full_twiss(self, seed=None, co_guess=None, radiation_integrals=False):
-        return steps.compute_twiss(
-            seed, co_guess, radiation_integrals,
-            line=self.line, stats=self.stats, steps=self.steps_r_matrix)
+        return self._compute_twiss(seed, co_guess, radiation_integrals)
 
     def orbit_twiss(self, seed=None, co_guess=None):
-        return steps.compute_twiss(
-            seed, co_guess, only_orbit=True,
-            line=self.line, stats=self.stats, steps=self.steps_r_matrix)
+        return self._compute_twiss(seed, co_guess, only_orbit=True)
+
+    def _compute_twiss(
+        self, seed=None, co_guess=None, radiation_integrals=False, only_orbit=False
+    ):
+        kwargs = {} if seed is None else dict(co_guess=seed.particle_on_co)
+        if co_guess is not None:
+            kwargs['co_guess'] = co_guess
+        started = perf_counter()
+        self.stats['calls'] += 1
+        if only_orbit:
+            self.stats['orbit_calls'] += 1
+        try:
+            return self.line.twiss(
+                chrom=False,
+                steps_R_matrix=self.steps_r_matrix.copy(),
+                radiation_integrals=radiation_integrals,
+                only_orbit=only_orbit,
+                **kwargs,
+            )
+        finally:
+            elapsed = perf_counter() - started
+            self.stats['seconds'] += elapsed
+            if only_orbit:
+                self.stats['orbit_seconds'] += elapsed
 
     def ensure_full_twiss(self, tw):
         return steps.ensure_full_twiss(tw, full_twiss=self._full_twiss)
