@@ -70,14 +70,14 @@ class FCCeeCorrection:
             if not all(opt.goal(tw) for opt in orbit):
                 for opt in orbit:
                     opt.run_lstsq(action_results=[tw], tag_outcome=False)
-                tw = self._full_twiss(tw)
-            tw = tunes.correct(tw, full_twiss=self._full_twiss)
+                tw = self.twiss(tw)
+            tw = tunes.correct(tw, full_twiss=self.twiss)
 
             if not optics.goal(tw):
                 optics.run_lstsq(
                     action_results=[tw], tag_outcome=False)
-                tw = self._full_twiss(tw)
-            tw = tunes.correct(tw, full_twiss=self._full_twiss)
+                tw = self.twiss(tw)
+            tw = tunes.correct(tw, full_twiss=self.twiss)
 
             if not coupling.goal(tw):
                 tw = self.settle_coupling_orbit(tw)
@@ -85,9 +85,9 @@ class FCCeeCorrection:
                     coupling.run_lstsq(
                         action_results=[tw],
                         step_scale=coupling.step_scale, tag_outcome=False)
-                    tw = self.orbit_twiss(tw)
+                    tw = self.twiss(tw, only_orbit=True)
                     tw = self.settle_coupling_orbit(tw)
-            tw = tunes.correct(tw, full_twiss=self._full_twiss)
+            tw = tunes.correct(tw, full_twiss=self.twiss)
 
             self.log_iteration(iteration, tw)
             if self.goals_met(tw):
@@ -104,42 +104,45 @@ class FCCeeCorrection:
         self.final_max_iterations = final_max_iterations
         self.log = self._default_log if log is None else log
         self._final_refinement = False
-        self.correction_failed = False
         self.failure_reason = None
         self.target_error_fraction = None
-        self.error_increase_settings = {}
         self.accepted_twiss = None
         self.optimizers = SimpleNamespace()
-        self.optimizer_settings = optimizer_settings or {}
+        optimizer_settings = optimizer_settings or {}
         self.stats = dict(calls=0, seconds=0.0, orbit_calls=0, orbit_seconds=0.0)
         self.steps_r_matrix = dict(dx=1e-8, dpx=1e-9, dy=1e-8, dpy=1e-9, dzeta=1e-7, ddelta=1e-8)
         self.log('Preparing nominal reference and correction responses')
         self._prepare_reference()
+
+        # Shared observation policy; each correction keeps its own row indices.
+        self.monitor_names = self.line.metadata['correction_knobs']['orbit']['x']['monitors']
+        self.ip_names = ['ipa', 'ipd', 'ipg', 'ipj']
+        self.obs_names = list(dict.fromkeys(self.monitor_names + self.ip_names))
 
         self.optimizers.optics = corr_optics.build_opt_corr_optimizer(
             self.line, self.reference,
             knobs=corr_optics.install_optics_knobs(self.line),
             observation_names=self.obs_names,
             interaction_points=list(self.line.get_table().rows['ip.*'].name),
-            ip_names=self.ip_names, settings=self.optimizer_settings.get('optics'))
+            ip_names=self.ip_names, settings=optimizer_settings.get('optics'))
         self.optimizers.orbit_x = corr_orbit.build_orbit_corr_optimizer(
-            self.line, self.reference, plane='x', settings=self.optimizer_settings.get('orbit'))
+            self.line, self.reference, plane='x', settings=optimizer_settings.get('orbit'))
         self.optimizers.orbit_y = corr_orbit.build_orbit_corr_optimizer(
-            self.line, self.reference, plane='y', settings=self.optimizer_settings.get('orbit'))
+            self.line, self.reference, plane='y', settings=optimizer_settings.get('orbit'))
         self.optimizers.coupling = corr_coupling.build_coupling_corr_optimizer(
             self.line, self.reference, observation_names=self.obs_names,
-            ip_names=self.ip_names, full_twiss=self._full_twiss, log=_silent_log,
-            settings=self.optimizer_settings.get('coupling'))
+            ip_names=self.ip_names, full_twiss=self.twiss, log=_silent_log,
+            settings=optimizer_settings.get('coupling'))
         self.optimizers.tunes = corr_tune.build_tune_corr_optimizer(
-            self.line, self.reference, full_twiss=self._full_twiss,
-            settings=self.optimizer_settings.get('tunes'))
+            self.line, self.reference, full_twiss=self.twiss,
+            settings=optimizer_settings.get('tunes'))
         for optimizer in vars(self.optimizers).values():
             _ = optimizer.response.svd
 
         self._collect_controls()
         self.line.vars.update(self.nominal_knob_values)
         self.set_error_fraction(0.)
-        self.accepted_twiss = self._full_twiss(self.reference)
+        self.accepted_twiss = self.twiss(self.reference)
 
     def _default_log(self, *args, **kwargs):
         """Print elapsed time since construction, flushing output by default."""
@@ -178,46 +181,35 @@ class FCCeeCorrection:
                 or not 0 < min_increment <= initial_increment <= max_increment):
             raise ValueError('Require 0 < min_increment <= initial_increment <= max_increment')
 
-        self.correction_failed = False
         self.failure_reason = None
         self.target_error_fraction = target_error_fraction
-        self.error_increase_settings = dict(
-            target_error_fraction=target_error_fraction,
-            initial_increment=initial_increment, min_increment=min_increment,
-            max_increment=max_increment)
         self.final_refinement = False
         increment = initial_increment
         while self.error_fraction < target_error_fraction - 1e-12:
-            next_error_fraction = self.error_fraction + increment
-            if next_error_fraction > target_error_fraction:
-                next_error_fraction = target_error_fraction
+            next_error_fraction = min(self.error_fraction + increment, target_error_fraction)
             before = self.snapshot()
             self.log(f'Increasing error fraction to {next_error_fraction:g}')
             try:
                 self.scale_corrections(next_error_fraction)
                 self.set_error_fraction(next_error_fraction)
-                tw = self.twiss()
+                tw = self.twiss(self.accepted_twiss)
                 tw, iterations = self.correct_at_fixed_strengths(tw)
             except self.correction_errors as err:
                 self.restore(before)
                 increment /= 2
                 self.log(f'Rejected: {err}')
                 if increment < min_increment:
-                    self.correction_failed = True
                     self.failure_reason = f'Minimum error increment reached: {err}'
                     return False
                 continue
 
             self.accept(tw)
             if iterations <= 3:
-                increment *= 1.25
-                if increment > max_increment:
-                    increment = max_increment
+                increment = min(1.25 * increment, max_increment)
         return True
 
     def refine(self):
         """Refine the accepted state at its current error fraction; return success."""
-        self.correction_failed = False
         self.failure_reason = None
         self.final_refinement = True
         self.log('Final refinement')
@@ -228,11 +220,14 @@ class FCCeeCorrection:
                 self.accept(tw)
         except self.correction_errors as err:
             self.restore(before)
-            self.correction_failed = True
             self.failure_reason = f'Refinement failed: {err}'
             self.log(self.failure_reason)
             return False
         return True
+
+    @property
+    def correction_failed(self):
+        return self.failure_reason is not None
 
     @property
     def completed(self):
@@ -276,10 +271,6 @@ class FCCeeCorrection:
             coupling.dy_rms_tol = coupling.settings.intermediate_dispersion_rms_tol
             coupling.dy_ip_tol = coupling.settings.intermediate_dispersion_ip_tol
         self._final_refinement = value
-
-    def twiss(self):
-        """Compute full optics; callers explicitly retain and supply the result."""
-        return self._full_twiss(seed=self.accepted_twiss)
 
     def scale_corrections(self, next_error_fraction):
         """Extrapolate deviations from nominal settings, without changing errors."""
@@ -332,18 +323,12 @@ class FCCeeCorrection:
         self.accepted_twiss = tw
         self.log('Accepted')
 
-    def _full_twiss(self, seed=None, co_guess=None, radiation_integrals=False):
-        return self._compute_twiss(seed, co_guess, radiation_integrals)
+    def twiss(self, seed=None, *, only_orbit=False):
+        """Evaluate Twiss, optionally using a supplied table's closed orbit as a guess.
 
-    def orbit_twiss(self, seed=None, co_guess=None):
-        return self._compute_twiss(seed, co_guess, only_orbit=True)
-
-    def _compute_twiss(
-        self, seed=None, co_guess=None, radiation_integrals=False, only_orbit=False
-    ):
+        Without a seed, use the line's default closed-orbit guess.
+        """
         kwargs = {} if seed is None else dict(co_guess=seed.particle_on_co)
-        if co_guess is not None:
-            kwargs['co_guess'] = co_guess
         started = perf_counter()
         self.stats['calls'] += 1
         if only_orbit:
@@ -352,7 +337,7 @@ class FCCeeCorrection:
             return self.line.twiss(
                 chrom=False,
                 steps_R_matrix=self.steps_r_matrix.copy(),
-                radiation_integrals=radiation_integrals,
+                radiation_integrals=False,
                 only_orbit=only_orbit,
                 **kwargs,
             )
@@ -367,7 +352,7 @@ class FCCeeCorrection:
         # Use the tracked orbit as a guess; keep the ordinary closed-orbit search.
         if 'betx' in tw._col_names:
             return tw
-        return self._full_twiss(tw)
+        return self.twiss(tw)
 
     def compute_metrics(self, tw):
         """Collect named diagnostics from every configured correction."""
@@ -393,7 +378,7 @@ class FCCeeCorrection:
             try:
                 for opt in orbit:
                     opt.run_lstsq(action_results=[tw], tag_outcome=False)
-                trial = self.orbit_twiss(tw) if iteration < 2 else self._full_twiss(tw)
+                trial = self.twiss(tw, only_orbit=iteration < 2)
             except self.correction_errors:
                 # Settling continues from its last accepted orbit; unlike the
                 # main stages, a failed trial does not reject the error increment.
@@ -413,19 +398,15 @@ class FCCeeCorrection:
         for name in circuits['tunes']['knobs']:
             line[name] = circuits['tunes']['nominal_values'][name]
         line.twiss_default['co_guess'] = dict(x=0, px=0, y=0, py=0, zeta=0, delta=0)
-        tw_nonlinear_on = self._full_twiss()
+        tw_nonlinear_on = self.twiss()
         line['on_nonlinear'] = 0.0
-        tw_ref = self._full_twiss()
+        tw_ref = self.twiss()
         nominal_beta_change = max(
             np.max(np.abs(tw_nonlinear_on['bet' + p] / tw_ref['bet' + p] - 1)) for p in 'xy'
         )
         if nominal_beta_change > 1e-4:
             raise RuntimeError('Aligned optics depend on nonlinear setting; rebuild responses per stage')
         self.reference = tw_ref
-        # Shared observation policy; each correction keeps its own row indices.
-        self.monitor_names = self.line.metadata['correction_knobs']['orbit']['x']['monitors']
-        self.ip_names = ['ipa', 'ipd', 'ipg', 'ipj']
-        self.obs_names = list(dict.fromkeys(self.monitor_names + self.ip_names))
 
     def _collect_controls(self):
         """Include every optimizer's knobs in scaling and snapshots."""

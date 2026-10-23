@@ -48,7 +48,7 @@ min_increment=1e-5, max_increment=0.10)` calls two separate public methods:
 
 Both stages and `run()` return a success boolean. `run()` skips refinement when
 increasing errors fails. The object exposes `correction_failed`, `failure_reason`,
-`target_error_fraction`, and `error_increase_settings`. Invalid targets or increment
+`target_error_fraction`. The failure flag is derived from `failure_reason`. Invalid targets or increment
 bounds raise before changing execution or machine state. Numerical failures
 leave the accepted machine available for inspection and saving; they do not
 raise out of these stage methods.
@@ -61,6 +61,11 @@ no saving method or correction-specific metadata writer. Saving does not run an
 extra Twiss calculation; callers can explicitly validate or add metadata if needed.
 There is no checkpoint or disk-resume mechanism. The explicit
 `correct_at_fixed_strengths` sequence remains the place to add correction stages.
+
+Twiss evaluation is centralized in `FCCeeCorrection.twiss(seed=None, *,
+only_orbit=False)`. A supplied table provides `co_guess=seed.particle_on_co`;
+without a seed, the line defaults apply. Error-increase trials explicitly pass
+`accepted_twiss`, while nominal-reference calculations are unseeded.
 
 ## Correction optimizer modules
 
