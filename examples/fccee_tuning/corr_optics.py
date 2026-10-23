@@ -10,7 +10,7 @@ from response_builders import normal_quadrupole_response
 import corr_tune
 
 
-OPTICS_SETTINGS = SimpleNamespace(
+DEFAULT_OPTICS_CORR_SETTINGS = SimpleNamespace(
     beta_err_rms_tol=0.03,
     beta_err_max_tol=0.5,
     tune_tol=1e-5,
@@ -65,7 +65,7 @@ def build_opt_corr_optimizer(line, reference, *, knobs, observation_names,
                              interaction_points, ip_names, settings=None):
     """Build a correction optimizer with local targets, response and diagnostics."""
     if settings is None:
-        settings = copy(OPTICS_SETTINGS)
+        settings = copy(DEFAULT_OPTICS_CORR_SETTINGS)
     action = xt.Action(line.twiss)
     ip_indices = reference.rows.indices[ip_names]
     ip_names = set(ip_names)

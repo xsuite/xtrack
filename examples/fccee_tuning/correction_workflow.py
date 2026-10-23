@@ -7,8 +7,9 @@ Optimizers consume supplied Twiss tables and apply least-squares changes.
 """
 
 from copy import deepcopy
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass
 from pathlib import Path
+from time import perf_counter
 from types import SimpleNamespace
 
 import numpy as np
@@ -30,14 +31,6 @@ def _silent_log(*args, **kwargs):
 
 
 @dataclass
-class CorrectionSettings:
-    """Iteration budgets for the custom interleaved correction sequence."""
-
-    intermediate_max_iterations: int = 5
-    final_max_iterations: int = 40
-
-
-@dataclass
 class MachineSnapshot:
     """Controls and accepted orbit needed to undo an unaccepted error-increase trial.
 
@@ -56,7 +49,7 @@ class FCCeeCorrection:
     """Own correction state and execution for a line prepared by 003a.
 
     Construction builds the nominal reference and five fixed-response optimizers,
-    then starts at zero error/nonlinear strength. The optimizers, settings,
+    then starts at zero error/nonlinear strength. The optimizers, iteration limits,
     nominal knob values, reference, accepted_twiss and history are public.
 
     Snapshot before a trial; record only after accepting it. History stores
@@ -66,12 +59,15 @@ class FCCeeCorrection:
 
     correction_errors = (ValueError, RuntimeError, xt.twiss.ClosedOrbitSearchError)
 
-    def __init__(self, line, *, settings=None, optimizer_settings=None, log=print):
+    def __init__(self, line, *, intermediate_max_iterations=5,
+                 final_max_iterations=40, optimizer_settings=None, log=None):
+        self._start_time = perf_counter()
         self.line = line
         # This workflow uses 4D optics at the reference momentum, as in 000.
         self.line.twiss_default.update(method='4d', delta0=0.0)
-        self.settings = settings if settings is not None else CorrectionSettings()
-        self.log = log
+        self.intermediate_max_iterations = intermediate_max_iterations
+        self.final_max_iterations = final_max_iterations
+        self.log = self._default_log if log is None else log
         self._final_refinement = False
         self.correction_failed = False
         self.failure_reason = None
@@ -91,6 +87,11 @@ class FCCeeCorrection:
         self.set_error_fraction(0.)
         self.accepted_twiss = self._full_twiss(self.reference)
         self.line.twiss_default['co_guess'] = orbit_guess(self.accepted_twiss)
+
+    def _default_log(self, *args, **kwargs):
+        """Print elapsed time since construction, flushing output by default."""
+        kwargs.setdefault('flush', True)
+        print(f'[+{perf_counter() - self._start_time:8.1f} s]', *args, **kwargs)
 
     def run(self, *, target_error_fraction=1., initial_increment=0.0125,
             min_increment=1e-5, max_increment=0.10):
@@ -276,9 +277,9 @@ class FCCeeCorrection:
         iteration limits decide success; intermediate errors may increase.
         """
         if self.final_refinement:
-            max_iterations = self.settings.final_max_iterations
+            max_iterations = self.final_max_iterations
         else:
-            max_iterations = self.settings.intermediate_max_iterations
+            max_iterations = self.intermediate_max_iterations
         orbit = (self.optimizers.orbit_x, self.optimizers.orbit_y)
         optics = self.optimizers.optics
         coupling = self.optimizers.coupling
@@ -377,7 +378,9 @@ class FCCeeCorrection:
             completed=completed,
             metrics=metrics,
             settings=dict(
-                correction_settings=asdict(self.settings),
+                correction_settings=dict(
+                    intermediate_max_iterations=self.intermediate_max_iterations,
+                    final_max_iterations=self.final_max_iterations),
                 optimizer_settings={name: vars(opt.settings)
                                     for name, opt in vars(self.optimizers).items()},
                 error_increase_settings=self.error_increase_settings.copy(),

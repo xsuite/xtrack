@@ -183,7 +183,7 @@ def test_optics_response_with_only_tunes(optics_problem):
 
 def test_optics_targets_are_built_per_location(optics_problem):
     module, line, reference, opt, keys = optics_problem
-    settings = copy(module.OPTICS_SETTINGS)
+    settings = copy(module.DEFAULT_OPTICS_CORR_SETTINGS)
     settings.ir_half_length = 0.1
     built = module.build_opt_corr_optimizer(
         line, reference, knobs=['trim', 'family'],

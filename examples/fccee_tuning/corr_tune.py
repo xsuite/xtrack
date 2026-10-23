@@ -10,7 +10,7 @@ import correction_setup as setup
 from correction_optimizer import CorrectionOptimizer
 
 
-TUNE_SETTINGS = SimpleNamespace(
+DEFAULT_TUNE_CORR_SETTINGS = SimpleNamespace(
     tune_tol=1e-5,
     max_iterations=7,
 )
@@ -19,7 +19,7 @@ TUNE_SETTINGS = SimpleNamespace(
 def build_tune_corr_optimizer(line, reference, *, full_twiss, settings=None):
     """Build a correction optimizer with local targets, response and diagnostics."""
     if settings is None:
-        settings = copy(TUNE_SETTINGS)
+        settings = copy(DEFAULT_TUNE_CORR_SETTINGS)
     action = xt.Action(full_twiss)
     circuits = line.metadata['correction_knobs']['tunes']
     knobs = circuits['knobs']

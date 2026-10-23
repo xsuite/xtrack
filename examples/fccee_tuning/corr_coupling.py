@@ -9,7 +9,7 @@ import correction_setup as setup
 from correction_optimizer import CorrectionOptimizer
 
 
-COUPLING_SETTINGS = SimpleNamespace(
+DEFAULT_COUPLING_CORR_SETTINGS = SimpleNamespace(
     rcond=1e-6,
     coupling_ip_weight=20.,
     coupling_rms_tol=0.003,
@@ -32,7 +32,7 @@ def build_coupling_corr_optimizer(line, reference, *, observation_names, ip_name
                                  full_twiss, settings=None, log=print):
     """Build a correction optimizer with local targets, response and diagnostics."""
     if settings is None:
-        settings = copy(COUPLING_SETTINGS)
+        settings = copy(DEFAULT_COUPLING_CORR_SETTINGS)
     action = xt.Action(full_twiss)
     circuits = line.metadata['correction_knobs']['coupling']
     knobs = circuits['knobs']

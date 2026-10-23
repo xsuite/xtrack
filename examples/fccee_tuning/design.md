@@ -74,7 +74,7 @@ For example:
 ```python
 from copy import copy
 
-settings = copy(corr_optics.OPTICS_SETTINGS)
+settings = copy(corr_optics.DEFAULT_OPTICS_CORR_SETTINGS)
 settings.beta_err_rms_tol = 0.02
 knobs = corr_optics.install_optics_knobs(line)
 opt_corr = corr_optics.build_opt_corr_optimizer(
@@ -86,14 +86,15 @@ metrics = opt_corr.compute_metrics(tw)
 goals_met = opt_corr.goal(tw)
 ```
 
-`OPTICS_SETTINGS`, `ORBIT_SETTINGS`, `COUPLING_SETTINGS` and `TUNE_SETTINGS` are
+`DEFAULT_OPTICS_CORR_SETTINGS`, `DEFAULT_ORBIT_CORR_SETTINGS`, `DEFAULT_COUPLING_CORR_SETTINGS` and `DEFAULT_TUNE_CORR_SETTINGS` are
 module-level `SimpleNamespace` objects. Builders copy these defaults when no
 settings are supplied, so each optimizer's settings can be edited independently.
 Explicitly supplied settings are used as provided. Derived response weights are
 calculated in the builders. No subclass
 or method override is needed to define another correction.
 
-`CorrectionSettings` contains only the workflow's iteration budgets. The example
+`FCCeeCorrection` accepts `intermediate_max_iterations` and `final_max_iterations`
+directly and stores them as editable attributes. The example
 passes module settings through an `optimizer_settings` dictionary at construction;
 inspect or change them afterwards through each `optimizer.settings`. Response
 weights and cutoffs are configured during construction; `optimizer.rcond` remains

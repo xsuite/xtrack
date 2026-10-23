@@ -10,7 +10,7 @@ from correction_optimizer import CorrectionOptimizer
 from response_builders import orbit_response
 
 
-ORBIT_SETTINGS = SimpleNamespace(
+DEFAULT_ORBIT_CORR_SETTINGS = SimpleNamespace(
     orbit_tol=1e-5,
     rcond=1e-6,
 )
@@ -21,7 +21,7 @@ def build_orbit_corr_optimizer(line, reference, *, plane, settings=None):
     if plane not in ('x', 'y'):
         raise ValueError('Orbit plane must be x or y')
     if settings is None:
-        settings = copy(ORBIT_SETTINGS)
+        settings = copy(DEFAULT_ORBIT_CORR_SETTINGS)
     circuits = line.metadata['correction_knobs']['orbit']
     alignment = line.metadata['tuning_errors']['bpm_alignment_variables']
     monitors = circuits[plane]['monitors']

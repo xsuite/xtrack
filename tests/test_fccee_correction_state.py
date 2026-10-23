@@ -42,7 +42,8 @@ def correction(monkeypatch):
     state.correction_knobs = ['orbit', 'quad', 'skew', 'tune']
     state.control_names = state.correction_knobs + ['on_errors', 'on_nonlinear']
     state.nominal_knob_values = dict(orbit=0.0, quad=0.0, skew=0.0, tune=10.0)
-    state.settings = module.CorrectionSettings()
+    state.intermediate_max_iterations = 5
+    state.final_max_iterations = 40
     state.log = lambda *args, **kwargs: None
     state.correction_failed = False
     state.failure_reason = None
@@ -52,8 +53,8 @@ def correction(monkeypatch):
     state.optimizers = SimpleNamespace(**{name: stub_optimizer() for name in
         ('optics', 'orbit_x', 'orbit_y', 'coupling', 'tunes')})
     state._final_refinement = False
-    state.optimizers.optics.settings = copy(importlib.import_module('corr_optics').OPTICS_SETTINGS)
-    state.optimizers.coupling.settings = copy(importlib.import_module('corr_coupling').COUPLING_SETTINGS)
+    state.optimizers.optics.settings = copy(importlib.import_module('corr_optics').DEFAULT_OPTICS_CORR_SETTINGS)
+    state.optimizers.coupling.settings = copy(importlib.import_module('corr_coupling').DEFAULT_COUPLING_CORR_SETTINGS)
     state.accepted_twiss = SimpleNamespace(
         x=[1.0], px=[2.0], y=[3.0], py=[4.0], qx=1.2, qy=2.3, delta=[0.0], c_minus=1e-4
     )
@@ -337,9 +338,9 @@ def diagnostic_optimizer(module_name, settings_name, reference):
 
 def test_mode_switches_limits_and_orbit_tolerance_is_constant(correction):
     reference = correction.accepted_twiss
-    optics = diagnostic_optimizer('corr_optics', 'OPTICS_SETTINGS', reference)
-    coupling = diagnostic_optimizer('corr_coupling', 'COUPLING_SETTINGS', reference)
-    orbit = diagnostic_optimizer('corr_orbit', 'ORBIT_SETTINGS', reference)
+    optics = diagnostic_optimizer('corr_optics', 'DEFAULT_OPTICS_CORR_SETTINGS', reference)
+    coupling = diagnostic_optimizer('corr_coupling', 'DEFAULT_COUPLING_CORR_SETTINGS', reference)
+    orbit = diagnostic_optimizer('corr_orbit', 'DEFAULT_ORBIT_CORR_SETTINGS', reference)
     correction.optimizers = SimpleNamespace(optics=optics, coupling=coupling, orbit=orbit)
     orbit.plane = 'x'
     orbit.compute_metrics = lambda tw: {'orbit_x_rms': orbit.orbit_tol}
@@ -384,7 +385,7 @@ def test_mode_switches_limits_and_orbit_tolerance_is_constant(correction):
     ('coupling_rms', 'rdt_rms_tol'), ('coupling_ip', 'rdt_ip_tol'),
     ('c_minus', 'c_minus_tol'), ('dy_rms', 'dy_rms_tol'), ('dy_ip', 'dy_ip_tol')])
 def test_coupling_goal_limits_are_strict(correction, key, tolerance):
-    opt = diagnostic_optimizer('corr_coupling', 'COUPLING_SETTINGS', correction.accepted_twiss)
+    opt = diagnostic_optimizer('corr_coupling', 'DEFAULT_COUPLING_CORR_SETTINGS', correction.accepted_twiss)
     metrics = dict(coupling_rms=np.zeros(2), coupling_ip=0., c_minus=0.,
                    dy_rms=0., dy_ip=0.)
     opt.compute_metrics = lambda tw: metrics
@@ -462,7 +463,7 @@ def test_additional_correction_participates_in_workflow(correction):
 def test_optics_goal_computes_errors_without_aggregate_metrics(correction, monkeypatch):
     reference = SimpleNamespace(
         betx=np.ones(1000), bety=np.ones(1000), dx=np.zeros(1000), qx=0., qy=0.)
-    opt = diagnostic_optimizer('corr_optics', 'OPTICS_SETTINGS', reference)
+    opt = diagnostic_optimizer('corr_optics', 'DEFAULT_OPTICS_CORR_SETTINGS', reference)
     opt.dispersion_indices = np.array([0, 1])
     opt.ip_indices = np.array([1])
     correction.optimizers.optics = opt
@@ -517,7 +518,7 @@ def test_optics_targets_use_relative_beta_and_physical_alpha(correction, monkeyp
     physical_response = response.copy()
     physical_response[2:4] += np.array([1., -2.])[:, None] * response[:2]
     physical_response[:2] *= np.array([10., 20.])[:, None]
-    settings = copy(module.OPTICS_SETTINGS)
+    settings = copy(module.DEFAULT_OPTICS_CORR_SETTINGS)
     weights = np.array([settings.ir_beta_weight, settings.ir_beta_weight,
                         settings.alpha_weight, settings.alpha_weight,
                         (settings.beta_err_rms_tol / settings.horizontal_dispersion_rms_tol)
@@ -671,14 +672,14 @@ def test_standalone_tune_correction(correction, monkeypatch, twiss_fails):
     action = xt.Action(lambda: pytest.fail('Unexpected optimizer evaluation'))
     baseline = np.array([12., 3.])
     tune_module = importlib.import_module('corr_tune')
-    opt = diagnostic_optimizer('corr_tune', 'TUNE_SETTINGS', None)
+    opt = diagnostic_optimizer('corr_tune', 'DEFAULT_TUNE_CORR_SETTINGS', None)
     xd.Optimize.__init__(opt,
         vary=[xd.Vary(name, correction.line.vars, step=1e-6) for name in ('tune', 'quad')],
         targets=[action.target(i, value=value, tol=1e-15)
                  for i, value in enumerate([1., 2.])],
         action_results={action: baseline}, show_call_counter=False)
     opt.set_response(np.eye(2))
-    opt.settings = copy(tune_module.TUNE_SETTINGS)
+    opt.settings = copy(tune_module.DEFAULT_TUNE_CORR_SETTINGS)
     opt.cleanup_tol = opt.settings.tune_tol / 2
     for target in opt.targets:
         target.tol = opt.cleanup_tol
@@ -714,7 +715,7 @@ def test_tunes_allow_non_improving_iterations_until_limit(correction, monkeypatc
     correction.line['tune'] = 1.
     action = xt.Action(lambda: pytest.fail('Unexpected optimizer evaluation'))
     tune_module = importlib.import_module('corr_tune')
-    opt = diagnostic_optimizer('corr_tune', 'TUNE_SETTINGS', None)
+    opt = diagnostic_optimizer('corr_tune', 'DEFAULT_TUNE_CORR_SETTINGS', None)
     xd.Optimize.__init__(opt,
         vary=[xd.Vary('tune', correction.line.vars, step=1e-6)],
         targets=[action.target(0, value=0., tol=1e-12)],
@@ -722,7 +723,7 @@ def test_tunes_allow_non_improving_iterations_until_limit(correction, monkeypatc
     # The actual response is twice this value, so full steps oscillate with
     # unchanged penalty. Only the tune iteration limit should reject them.
     opt.set_response(np.array([[1.]]))
-    opt.settings = copy(tune_module.TUNE_SETTINGS)
+    opt.settings = copy(tune_module.DEFAULT_TUNE_CORR_SETTINGS)
     opt.cleanup_tol = opt.settings.tune_tol / 2
     for target in opt.targets:
         target.tol = opt.cleanup_tol
@@ -819,15 +820,15 @@ def test_module_metrics_match_reference_helpers(correction, monkeypatch):
     ip_indices = np.array([3])
     alignment = lambda: (np.array([.1e-6, -.2e-6]), np.array([-.3e-6, .4e-6]),
                          np.array([.1, -.2]))
-    optics = diagnostic_optimizer('corr_optics', 'OPTICS_SETTINGS', reference)
+    optics = diagnostic_optimizer('corr_optics', 'DEFAULT_OPTICS_CORR_SETTINGS', reference)
     optics.dispersion_indices, optics.ip_indices = dispersion_indices, ip_indices
-    coupling = diagnostic_optimizer('corr_coupling', 'COUPLING_SETTINGS', reference)
+    coupling = diagnostic_optimizer('corr_coupling', 'DEFAULT_COUPLING_CORR_SETTINGS', reference)
     coupling.coupling_indices, coupling.ip_indices = dispersion_indices, ip_indices
-    tunes = diagnostic_optimizer('corr_tune', 'TUNE_SETTINGS', reference)
+    tunes = diagnostic_optimizer('corr_tune', 'DEFAULT_TUNE_CORR_SETTINGS', reference)
     monkeypatch.setattr(orbit, 'monitor_alignment', lambda optimizer: alignment())
     orbit_opts = []
     for plane in 'xy':
-        opt = diagnostic_optimizer('corr_orbit', 'ORBIT_SETTINGS', reference)
+        opt = diagnostic_optimizer('corr_orbit', 'DEFAULT_ORBIT_CORR_SETTINGS', reference)
         opt.plane, opt.monitor_indices = plane, monitor_indices
         orbit_opts.append(opt)
     correction.optimizers = SimpleNamespace(optics=optics, coupling=coupling, tunes=tunes,
