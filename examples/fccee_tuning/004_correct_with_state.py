@@ -15,10 +15,10 @@ import builtins
 
 import xtrack as xt
 from correction_workflow import CorrectionSettings, FCCeeCorrection
-from optics_corr import OpticsSettings
-from orbit_corr import OrbitSettings
-from coupling_corr import CouplingSettings
-from tune_corr import TuneSettings
+from corr_optics import optics_settings
+from corr_orbit import orbit_settings
+from corr_coupling import coupling_settings
+from corr_tune import tune_settings
 
 START_TIME = perf_counter()
 
@@ -42,10 +42,10 @@ if not 0 < TARGET_ERROR_FRACTION <= 1:
 # Workflow budgets and independently configured correction modules.
 settings = CorrectionSettings(ramp_max_iterations=5, final_max_iterations=40)
 optimizer_settings = dict(
-    orbit=OrbitSettings(orbit_tol=10e-6, rcond=1e-6),
-    optics=OpticsSettings(beta_rms_tol=0.03, beta_max_tol=0.50, rcond=1e-5),
-    coupling=CouplingSettings(rcond=1e-6),
-    tunes=TuneSettings(tune_tol=1e-5),
+    orbit=orbit_settings(orbit_tol=10e-6, rcond=1e-6),
+    optics=optics_settings(beta_rms_tol=0.03, beta_max_tol=0.50, rcond=1e-5),
+    coupling=coupling_settings(rcond=1e-6),
+    tunes=tune_settings(tune_tol=1e-5),
 )
 
 # %% Construct the correction object

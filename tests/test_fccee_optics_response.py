@@ -12,7 +12,7 @@ import xtrack as xt
 def optics_problem(monkeypatch, temp_context_default_func):
     monkeypatch.syspath_prepend(str(Path(__file__).resolve().parents[1]
                                    / 'examples' / 'fccee_tuning'))
-    module = importlib.import_module('optics_corr')
+    module = importlib.import_module('corr_optics')
     env = xt.Environment(particle_ref=xt.Particles(p0c=10e9))
     env['family'] = 0.001
     env['trim'] = 0.0
@@ -119,8 +119,8 @@ def test_optics_response_with_only_tunes(optics_problem):
 
 def test_optics_targets_are_built_per_location(optics_problem):
     module, line, reference, opt, keys = optics_problem
-    settings = module.OpticsSettings(ir_half_length=0.1)
-    built = module.OpticsCorrection(
+    settings = module.optics_settings(ir_half_length=0.1)
+    built = module.build_opt_corr_optimizer(
         line, reference, knobs=['trim', 'family'],
         observation_names=['qf1', 'qd6'], interaction_points=['qf1'],
         ip_names=['qd6'], settings=settings)

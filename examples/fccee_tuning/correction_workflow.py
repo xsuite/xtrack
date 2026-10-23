@@ -18,10 +18,10 @@ import correction_steps as steps
 import correction_setup as setup
 from correction_io import HISTORY_COLUMNS, history_row, save_result
 from correction_steps import orbit_guess
-import optics_corr
-import orbit_corr
-import coupling_corr
-import tune_corr
+import corr_optics
+import corr_orbit
+import corr_coupling
+import corr_tune
 
 
 def _silent_log(*args, **kwargs):
@@ -266,7 +266,7 @@ class FCCeeCorrection:
             metrics=metrics,
             settings=dict(
                 correction_settings=asdict(self.settings),
-                optimizer_settings={name: asdict(opt.settings)
+                optimizer_settings={name: vars(opt.settings)
                                     for name, opt in vars(self.optimizers).items()},
                 ramp_settings=ramp_settings or {}
             ),
@@ -342,21 +342,21 @@ class FCCeeCorrection:
         self.obs_names = list(dict.fromkeys(self.monitor_names + self.ip_names))
 
     def _build_optimizers(self):
-        self.optimizers.optics = optics_corr.OpticsCorrection(
+        self.optimizers.optics = corr_optics.build_opt_corr_optimizer(
             self.line, self.reference,
             knobs=self.line.metadata['correction_knobs']['optics']['knobs'],
             observation_names=self.obs_names,
             interaction_points=list(self.line.get_table().rows['ip.*'].name),
             ip_names=self.ip_names, settings=self.optimizer_settings.get('optics'))
-        self.optimizers.orbit_x = orbit_corr.OrbitCorrection(
+        self.optimizers.orbit_x = corr_orbit.build_orbit_corr_optimizer(
             self.line, self.reference, plane='x', settings=self.optimizer_settings.get('orbit'))
-        self.optimizers.orbit_y = orbit_corr.OrbitCorrection(
+        self.optimizers.orbit_y = corr_orbit.build_orbit_corr_optimizer(
             self.line, self.reference, plane='y', settings=self.optimizer_settings.get('orbit'))
-        self.optimizers.coupling = coupling_corr.CouplingCorrection(
+        self.optimizers.coupling = corr_coupling.build_coupling_corr_optimizer(
             self.line, self.reference, observation_names=self.obs_names,
             ip_names=self.ip_names, full_twiss=self._full_twiss, log=_silent_log,
             settings=self.optimizer_settings.get('coupling'))
-        self.optimizers.tunes = tune_corr.TuneCorrection(
+        self.optimizers.tunes = corr_tune.build_tune_corr_optimizer(
             self.line, self.reference, full_twiss=self._full_twiss,
             settings=self.optimizer_settings.get('tunes'))
         for optimizer in vars(self.optimizers).values():

@@ -16,19 +16,44 @@ minimal and settings, optimizers, accepted state, and history inspectable.
 ## Correction optimizer modules
 
 `correction_optimizer.py` defines the example-local `CorrectionOptimizer`, a
-subclass of `xtrack.match.OptimizeLine`. Each correction is a concrete subclass:
+subclass of `xtrack.match.OptimizeLine`. Each correction module builds an instance
+of this shared class using ordinary functions; the modules contain no class
+definitions:
 
-- `optics_corr.OpticsCorrection`: normal optics and horizontal dispersion.
-- `orbit_corr.OrbitCorrection`: one instance for each plane, with independent
+- `corr_optics.build_opt_corr_optimizer`: normal optics and horizontal dispersion.
+- `corr_orbit.build_orbit_corr_optimizer`: one instance for each plane, with independent
   response solves and BPM-frame orbit goals.
-- `coupling_corr.CouplingCorrection`: RDTs, vertical dispersion and c_minus.
-- `tune_corr.TuneCorrection`: nominal tunes and the standalone cleanup stage.
+- `corr_coupling.build_coupling_corr_optimizer`: RDTs, vertical dispersion and c_minus.
+- `corr_tune.build_tune_corr_optimizer`: nominal tunes and the standalone cleanup stage.
 
-Each module owns its settings dataclass, targets, varies, response construction,
+Each module owns its settings factory, targets, varies, response construction,
 solve cutoff, reference/observation data, nominal knob values, `compute_metrics(tw)`,
 `goal(tw)` and `print_metrics(tw, log=...)`. These diagnostic methods consume the
 supplied table without tracking or implicitly retaining it. The normal optimizer
 API remains available for target inspection and least-squares steps.
+
+The builder passes `compute_metrics`, `goal`, `configure_goals` and `print_metrics`
+functions to `CorrectionOptimizer`. Each function takes `optimizer` as its first
+argument, followed by Twiss or mode parameters. The shared class binds that first
+argument, so the workflow still calls `optimizer.goal(tw)`, for example. Orbit
+and tune builders also attach their specialized operations, `correctable_error`
+and `correct`. Helpers used only within a module remain ordinary function calls.
+
+For example:
+
+```python
+opt_corr = corr_optics.build_opt_corr_optimizer(
+    line, reference, knobs=knobs, observation_names=bpm_and_ip_names,
+    interaction_points=interaction_points, ip_names=ip_names,
+    settings=corr_optics.optics_settings(beta_rms_tol=0.03),
+)
+metrics = opt_corr.compute_metrics(tw)
+goals_met = opt_corr.goal(tw)
+```
+
+Settings factories return fresh `SimpleNamespace` objects with named, editable
+attributes. Derived response weights are calculated in the builders. No subclass
+or method override is needed to define another correction.
 
 `CorrectionSettings` contains only the workflow's iteration budgets. The example
 passes module settings through an `optimizer_settings` dictionary at construction;
@@ -47,7 +72,7 @@ and can also be changed directly for the current mode.
 Orbit goals use inclusive RMS comparisons and an error-fraction-dependent floor.
 Optics/coupling goals retain strict comparisons and their ramp/refinement limits.
 Optics still checks tunes as well as beta and Dx. Tune global acceptance uses its
-configured tune tolerance; `TuneCorrection.correct()` uses half that tolerance
+configured tune tolerance; `optimizers.tunes.correct()` uses half that tolerance
 for cleanup. This preserves the existing distinction between acceptance and the
 standalone tune stage.
 
@@ -113,7 +138,7 @@ helpers retain their logarithmic convention.
 ## Optics response from the optimizer
 
 `build_normal_quad_optics_response_matrix(optimizer, reference)` lives at the
-bottom of `optics_corr.py`. It returns an array in full target/vary order,
+bottom of `corr_optics.py`. It returns an array in full target/vary order,
 including inactive entries, without applying weights or knob scales. The caller
 supplies the periodic, uncoupled reference Twiss; the function runs no actions
 or Twiss calculations.
@@ -234,7 +259,7 @@ a local snapshot solely to restore a failed evaluation, then stops settling
 and promotes its last valid orbit to full Twiss. Tune correction remains
 explicit after the coupling stage. Optics does not nest orbit correction.
 
-`TuneCorrection.correct()` uses its cleanup tolerance and up to seven iterations,
+`optimizers.tunes.correct()` uses its cleanup tolerance and up to seven iterations,
 without comparing penalties. If the tune goal is still unmet, it raises to the
 ramp/refinement caller; it performs no local rollback. The optics optimizer also
 retains its qx/qy targets. Orbit, optics and tune use step_scale=1; coupling
@@ -459,3 +484,14 @@ The full ramp, final refinement, fresh final goal check and saving completed in
 history is identical to the preceding optimizer-defaults run. Artifacts:
 `/tmp/fccee_correction_classes_gl4bmgt2/run.log`, `verification.json` and
 `timing.json`. The 003b reference and all its shared helpers remain unchanged.
+
+Replacing the correction subclasses with module builder functions passed the same
+36 focused tests, including independent callback binding and settings on separate
+instances. All five correction optimizers are now direct `CorrectionOptimizer`
+instances. The full ramp/refinement completed in 198.2 seconds wall time under
+the 250-second cap, with all final goals met, 20 accepted entries and 240 Twiss
+calls (83 orbit-only). The saved CSV history is exactly equal to the preceding
+baseline. Log and verification are in
+`/tmp/fccee_correction_factories_jiyby7h_/run.log`, `verification.json` and
+`timing.json`. No correction module contains a class definition; the analytical
+optics response builder and the shared 003b helpers remain unchanged.
