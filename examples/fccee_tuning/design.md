@@ -37,7 +37,7 @@ the ordinary corrected machine. Its optional `CHECK_AMPLITUDE_DETUNING` diagnost
 runs the former 007's 0.5–3 sigma action scans before radiation/tapering is enabled,
 with cavity kicks inhibited and delta/zeta unfrozen. A timing pilot precedes
 512-turn tracking, and 256/512-turn estimates and separate-action slopes are saved.
-The normal 6D mean/quantum aperture study then proceeds with active RF and tapering.
+The 6D aperture study then proceeds with the selected radiation model, active RF and tapering.
 The diagnostic defaults off; it does not add plots or tracking to ordinary correction.
 
 Integration validation (2026-10-24) regenerated `001` from the standard error
@@ -286,14 +286,15 @@ The user selected a preliminary **300-turn** comparison, geometric emittances
 
 - DA: 16 polar angles covering all quadrants and 11 radii from 0 to 20 sigma;
   zero normalized momenta and zero initial momentum offset from the closed orbit.
-- MA: 13 initial momentum offsets from -3% to +3% and 11 signed equal transverse
+- MA: 13 initial momentum offsets from -1.2% to +1.2% and 11 signed equal transverse
   amplitudes from -20 to +20 sigma. Four phases (0, pi/4, pi/2, 3pi/4) are applied
   at each signed amplitude, with the same phase in both transverse modes.
   Positive and negative amplitudes together cover eight directions. The plotted
   color averages completed turns over four phases per sign; a white contour
   separates cells with all four phases surviving from cells with at least one loss.
-- Separate mean-radiation and quantum-radiation runs. Tapering always uses mean
-  radiation. Quantum tracking uses one reproducible random seed per particle,
+- One radiation model per run: `RADIATION_MODEL='mean'` by default, or `'quantum'`.
+  The same model is used for clean and corrected machines. Tapering always uses
+  mean radiation. Quantum tracking uses one reproducible random seed per particle,
   with the same seed assignment in clean/corrected cases. This is one lattice
   error realization and one quantum realization per launch, not an ensemble study.
 
@@ -319,7 +320,7 @@ Settings are at the top, with no argument parser and `SHOW_PLOTS=True`.
 `TRACKING_THREADS=8` enables OpenMP for tracking; BLAS stays single-threaded.
 Each case runs a small timing pilot before the scan and logs its projection.
 `RUN_SCANS=False` performs preparation and pilots only. There are two figures,
-DA and MA, with clean/corrected columns and mean/quantum rows. PNG/PDF files,
+DA and MA, each with clean/corrected panels for the selected radiation model. PNG/PDF files,
 per-case NPZ launch and loss data (in particle-ID order), optics, and a JSON
 summary are saved under `analysis/da_ma_6d`. The summary records input SHA256,
 closure residuals, aperture policy, settings, timings and completion status.

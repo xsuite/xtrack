@@ -1,7 +1,7 @@
 """Team-style DA and amplitude-versus-initial-delta survival maps at the septum.
 
 6D tracking, active RF, independent mean-radiation tapering for clean/corrected
-machines, followed by mean and quantum radiation tracking. No correction is run.
+machines, followed by the selected radiation model. No correction is run.
 MA here is a survival map, not a local Touschek momentum acceptance or lifetime.
 Run in IPython with %matplotlib followed by %run 004_da_ma_6d.py.
 """
@@ -24,7 +24,7 @@ NUM_TURNS = 300                    # Preliminary comparison; team benchmark: 250
 TRACKING_THREADS = 8               # BLAS can stay single-threaded.
 GEMITT_X = 0.71e-9                 # Geometric emittances [m].
 GEMITT_Y = 1.4e-12
-RADIATION_MODELS = ('mean', 'quantum')
+RADIATION_MODEL = 'mean'          # Choose 'mean' or 'quantum' for tracking.
 DA_RADII = np.linspace(0., 20., 11)
 DA_ANGLES = np.linspace(0., 2*np.pi, 16, endpoint=False)
 MA_DELTAS = np.linspace(-0.012, 0.012, 13)
@@ -206,44 +206,42 @@ def ordered_result(particles, turns):
 
 def plot_results(results):
     for scan in ('da', 'ma'):
-        fig, axes = plt.subplots(len(RADIATION_MODELS), 2, figsize=(12, 5*len(RADIATION_MODELS)),
-                                 squeeze=False, layout='constrained',
+        fig, axes = plt.subplots(1, 2, figsize=(12, 5), layout='constrained',
                                  num=f'FCC-ee 6D {scan.upper()}', clear=True)
-        for row, model in enumerate(RADIATION_MODELS):
-            for col, machine in enumerate(('clean', 'corrected')):
-                ax = axes[row, col]
-                key = f'{machine}_{model}_{scan}'
-                label = machine.capitalize()
-                if machine == 'corrected' and SUPPRESS_ARC_DIPOLE_B4:
-                    label += ' (arc-dipole b₄ off)'
-                ax.set_title(f'{label} — {model} radiation')
-                if key not in results:
-                    ax.text(.5, .5, 'Not yet tracked', ha='center', transform=ax.transAxes)
-                    continue
-                data = results[key]
-                if scan == 'da':
-                    color = ax.scatter(data['x_norm'], data['y_norm'],
-                        c=data['completed_turns'], s=15, vmin=0, vmax=NUM_TURNS,
-                        cmap='viridis')
-                    ax.set(xlabel=r'$x_N$ [$\sigma_x$]', ylabel=r'$y_N$ [$\sigma_y$]',
-                           aspect='equal')
-                else:
-                    shape = (len(MA_AMPLITUDES), len(MA_DELTAS), len(MA_PHASES))
-                    mean_turns = data['completed_turns'].reshape(shape).mean(axis=2)
-                    color = ax.pcolormesh(100*MA_DELTAS, MA_AMPLITUDES, mean_turns,
-                        shading='nearest', vmin=0, vmax=NUM_TURNS, cmap='viridis')
-                    fraction = data['survived'].reshape(shape).mean(axis=2)
-                    if np.any(fraction == 1) and np.any(fraction < 1):
-                        # Boundary between cells where all four phases survive and
-                        # cells with at least one loss. Not an interpolated MA value.
-                        ax.contour(100*MA_DELTAS, MA_AMPLITUDES,
-                            (fraction == 1).astype(float), levels=[.5], colors='white', linewidths=.8)
-                    ax.set(xlabel='Initial Δδ relative to closed orbit [%]',
-                           ylabel='Signed equal transverse amplitude A [σ]',
-                           xlim=(100*MA_DELTAS[0], 100*MA_DELTAS[-1]))
-                ax.grid(alpha=.15)
-                fig.colorbar(color, ax=ax, label=('Completed turns' if scan == 'da'
-                             else 'Mean completed turns over four phases per sign'))
+        for col, machine in enumerate(('clean', 'corrected')):
+            ax = axes[col]
+            key = f'{machine}_{RADIATION_MODEL}_{scan}'
+            label = machine.capitalize()
+            if machine == 'corrected' and SUPPRESS_ARC_DIPOLE_B4:
+                label += ' (arc-dipole b₄ off)'
+            ax.set_title(f'{label} — {RADIATION_MODEL} radiation')
+            if key not in results:
+                ax.text(.5, .5, 'Not yet tracked', ha='center', transform=ax.transAxes)
+                continue
+            data = results[key]
+            if scan == 'da':
+                color = ax.scatter(data['x_norm'], data['y_norm'],
+                    c=data['completed_turns'], s=15, vmin=0, vmax=NUM_TURNS,
+                    cmap='viridis')
+                ax.set(xlabel=r'$x_N$ [$\sigma_x$]', ylabel=r'$y_N$ [$\sigma_y$]',
+                       aspect='equal')
+            else:
+                shape = (len(MA_AMPLITUDES), len(MA_DELTAS), len(MA_PHASES))
+                mean_turns = data['completed_turns'].reshape(shape).mean(axis=2)
+                color = ax.pcolormesh(100*MA_DELTAS, MA_AMPLITUDES, mean_turns,
+                    shading='nearest', vmin=0, vmax=NUM_TURNS, cmap='viridis')
+                fraction = data['survived'].reshape(shape).mean(axis=2)
+                if np.any(fraction == 1) and np.any(fraction < 1):
+                    # Boundary between cells where all four phases survive and
+                    # cells with at least one loss. Not an interpolated MA value.
+                    ax.contour(100*MA_DELTAS, MA_AMPLITUDES,
+                        (fraction == 1).astype(float), levels=[.5], colors='white', linewidths=.8)
+                ax.set(xlabel='Initial Δδ relative to closed orbit [%]',
+                       ylabel='Signed equal transverse amplitude A [σ]',
+                       xlim=(100*MA_DELTAS[0], 100*MA_DELTAS[-1]))
+            ax.grid(alpha=.15)
+            fig.colorbar(color, ax=ax, label=('Completed turns' if scan == 'da'
+                         else 'Mean completed turns over four phases per sign'))
         fig.suptitle(f'{scan.upper()} at {LAUNCH_AT}; 6D RF + tapering; {NUM_TURNS} turns\n'
                      + ('Initial Δδ = 0; normalized momenta = 0' if scan == 'da' else
                         'Eight phase directions across both signs; white: all-phase survival boundary'))
@@ -275,6 +273,8 @@ def plot_amplitude_detuning(machines):
 
 
 def main():
+    if RADIATION_MODEL not in ('mean', 'quantum'):
+        raise ValueError("RADIATION_MODEL must be 'mean' or 'quantum'")
     started = perf_counter()
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     da, ma = launch_grids()
@@ -288,7 +288,7 @@ def main():
             radiation=False, tapering=False, rf='XS_FLAG_KILL_CAVITY_KICK',
             definition='dQ_i/dJ_j; vary each action separately, other mode at 0.5 sigma'),
         correction_settings='saved values; no re-correction',
-        radiation_models=list(RADIATION_MODELS), tapering='independent zero-mean-energy tapering',
+        radiation_model=RADIATION_MODEL, tapering='independent zero-mean-energy tapering',
         longitudinal_launch='zeta=closed orbit; delta=closed orbit + requested offset',
         transverse_launch='each machine 6D W matrix, identical geometric emittances',
         ma_definition='initial-delta versus equal-amplitude survival; same phase in both modes',
@@ -305,50 +305,51 @@ def main():
         np.savez_compressed(OUTPUT_DIR / f'{machine}_optics.npz',
                             name=np.asarray(tw.name, dtype=str), s=tw.s, delta=tw.delta,
                             W_matrix_at_launch=tw.W_matrix[0], closed_orbit=info['closed_orbit'])
-        for model in RADIATION_MODELS:
-            line.configure_radiation(model=model)
-            pilot_grid = dict(x_norm=np.linspace(.5, 5., PILOT_PARTICLES),
-                y_norm=np.linspace(.5, 5., PILOT_PARTICLES), px_norm=np.zeros(PILOT_PARTICLES),
-                py_norm=np.zeros(PILOT_PARTICLES), delta_offset=np.zeros(PILOT_PARTICLES))
-            particles = make_particles(line, tw, pilot_grid)
+        model = RADIATION_MODEL
+        line.configure_radiation(model=model)
+        pilot_grid = dict(x_norm=np.linspace(.5, 5., PILOT_PARTICLES),
+            y_norm=np.linspace(.5, 5., PILOT_PARTICLES), px_norm=np.zeros(PILOT_PARTICLES),
+            py_norm=np.zeros(PILOT_PARTICLES), delta_offset=np.zeros(PILOT_PARTICLES))
+        particles = make_particles(line, tw, pilot_grid)
+        if model == 'quantum':
+            particles._init_random_number_generator(
+                seeds=np.arange(PILOT_PARTICLES, dtype=np.uint32)+RNG_SEED)
+        t0 = perf_counter()
+        line.track(particles, num_turns=PILOT_TURNS)
+        seconds = perf_counter()-t0
+        estimate = seconds*NUM_TURNS/PILOT_TURNS*count/PILOT_PARTICLES
+        summary['pilots'].append(dict(machine=machine, model=model, seconds=seconds,
+            particles=PILOT_PARTICLES, turns=PILOT_TURNS,
+            estimated_scan_seconds_all_survive=estimate))
+        print(f'{machine}/{model}: pilot {seconds:.1f} s; projected scans '
+              f'{estimate/3600:.2f} h if all particles survive', flush=True)
+        (OUTPUT_DIR/'summary.json').write_text(json.dumps(summary, indent=2)+'\n')
+        if not RUN_SCANS:
+            del line, tw
+            continue
+        for scan, grid in (('da', da), ('ma', ma)):
+            key = f'{machine}_{model}_{scan}'
+            particles = make_particles(line, tw, grid)
             if model == 'quantum':
                 particles._init_random_number_generator(
-                    seeds=np.arange(PILOT_PARTICLES, dtype=np.uint32)+RNG_SEED)
+                    seeds=np.arange(len(grid['x_norm']), dtype=np.uint32)+RNG_SEED)
+            initial = {f'initial_{k}': np.array(getattr(particles, k))
+                       for k in ('x', 'px', 'y', 'py', 'zeta', 'delta')}
+            print(f'Start {key}: {len(grid["x_norm"])} particles, {NUM_TURNS} turns', flush=True)
             t0 = perf_counter()
-            line.track(particles, num_turns=PILOT_TURNS)
-            seconds = perf_counter()-t0
-            estimate = seconds*NUM_TURNS/PILOT_TURNS*count/PILOT_PARTICLES
-            summary['pilots'].append(dict(machine=machine, model=model, seconds=seconds,
-                particles=PILOT_PARTICLES, turns=PILOT_TURNS,
-                estimated_scan_seconds_all_survive=estimate))
-            print(f'{machine}/{model}: pilot {seconds:.1f} s; projected scans '
-                  f'{estimate/3600:.2f} h if all particles survive', flush=True)
+            for turn in range(0, NUM_TURNS, 50):
+                line.track(particles, num_turns=min(50, NUM_TURNS-turn))
+                print(f'{key}: {min(turn+50, NUM_TURNS)}/{NUM_TURNS} turns; '
+                      f'{np.sum(particles.state > 0)} alive; {perf_counter()-t0:.1f} s', flush=True)
+                if not np.any(particles.state > 0):
+                    break
+            data = dict(**grid, **initial, **ordered_result(particles, NUM_TURNS))
+            results[key] = data
+            np.savez_compressed(OUTPUT_DIR/f'{key}.npz', **data)
+            summary['cases'][key] = dict(seconds=perf_counter()-t0,
+                particles=len(grid['x_norm']), survived=int(data['survived'].sum()))
             (OUTPUT_DIR/'summary.json').write_text(json.dumps(summary, indent=2)+'\n')
-            if not RUN_SCANS:
-                continue
-            for scan, grid in (('da', da), ('ma', ma)):
-                key = f'{machine}_{model}_{scan}'
-                particles = make_particles(line, tw, grid)
-                if model == 'quantum':
-                    particles._init_random_number_generator(
-                        seeds=np.arange(len(grid['x_norm']), dtype=np.uint32)+RNG_SEED)
-                initial = {f'initial_{k}': np.array(getattr(particles, k))
-                           for k in ('x', 'px', 'y', 'py', 'zeta', 'delta')}
-                print(f'Start {key}: {len(grid["x_norm"])} particles, {NUM_TURNS} turns', flush=True)
-                t0 = perf_counter()
-                for turn in range(0, NUM_TURNS, 50):
-                    line.track(particles, num_turns=min(50, NUM_TURNS-turn))
-                    print(f'{key}: {min(turn+50, NUM_TURNS)}/{NUM_TURNS} turns; '
-                          f'{np.sum(particles.state > 0)} alive; {perf_counter()-t0:.1f} s', flush=True)
-                    if not np.any(particles.state > 0):
-                        break
-                data = dict(**grid, **initial, **ordered_result(particles, NUM_TURNS))
-                results[key] = data
-                np.savez_compressed(OUTPUT_DIR/f'{key}.npz', **data)
-                summary['cases'][key] = dict(seconds=perf_counter()-t0,
-                    particles=len(grid['x_norm']), survived=int(data['survived'].sum()))
-                (OUTPUT_DIR/'summary.json').write_text(json.dumps(summary, indent=2)+'\n')
-                plot_results(results)
+            plot_results(results)
         del line, tw
     if CHECK_AMPLITUDE_DETUNING:
         plot_amplitude_detuning(summary['machines'])
