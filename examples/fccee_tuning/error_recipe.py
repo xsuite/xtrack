@@ -12,6 +12,7 @@ This is an example mapping, not the original pyAT simulation: neighbouring
 quad/sextupole groups stand in for girders, with common translations and roll.
 BPM centres follow the associated quadrupole magnetic centre (post-BBA).
 Contiguous pieces with the same family name share one error draw.
+Zero-length embedded multipoles do not split the surrounding magnet.
 No tapering, orbit correction, or measurement noise is performed here.
 Current-dependent b1/a4 from skew trims and a3 from vertical trims are excluded.
 """
@@ -65,9 +66,10 @@ def relative_coefficient(units, n, main_order):
 
 
 def _inventory(line):
-    """Group adjacent pieces of a magnet, retaining distinct arc dipoles."""
+    """Group touching magnet pieces across thin inserts, keeping inserts separate."""
     tt = line.get_table()
     groups = []
+    previous_thick = None
     for name, kind, s, end in zip(tt.env_name, tt.element_type, tt.s_start, tt.s_end):
         if kind not in ('Bend', 'RBend', 'Quadrupole', 'Sextupole', 'Multipole'):
             continue
@@ -84,14 +86,20 @@ def _inventory(line):
         family = name.rsplit('.', 1)[0]
         strength = float(el.main_strength) / (float(el.length) or 1.0)
         signature = (family, kind, strength)
-        if (groups and groups[-1]['signature'] == signature
-                and np.isclose(s, groups[-1]['end'], atol=1e-8, rtol=0)
+        # An octupole/decapole at the centre of an IR sextupole is a separate
+        # error source, but does not divide the sextupole's alignment or trim
+        # circuit. Keep the last finite-length magnet across such thin inserts.
+        if (previous_thick is not None and previous_thick['signature'] == signature
+                and np.isclose(s, previous_thick['end'], atol=1e-8, rtol=0)
                 and end > s):
-            groups[-1]['names'].append(name)
-            groups[-1]['end'] = float(end)
+            previous_thick['names'].append(name)
+            previous_thick['end'] = float(end)
         else:
-            groups.append(dict(names=[name], kind=kind, order=order,
-                               s=float(s), end=float(end), signature=signature))
+            group = dict(names=[name], kind=kind, order=order,
+                         s=float(s), end=float(end), signature=signature)
+            groups.append(group)
+            if end > s:
+                previous_thick = group
     for group in groups:
         group['centre'] = (group['s'] + group['end']) / 2
     return tt, groups
@@ -293,7 +301,7 @@ def install_errors(line, seed=12345):
         assumptions=[
             'Static slide-7 recipe; current-dependent trim errors excluded.',
             'Lattice-frame harmonics; alternate dipole a2/b3/a4 and quad dx signs.',
-            'Contiguous pieces of the same family share errors.',
+            'Contiguous pieces of the same family share errors across zero-length inserts.',
             'Arc quad and nearest sextupole share girder translations and roll.',
             'Auxiliary arc/DS octupoles and decapoles use Other elt. tolerances.',
             'BPM offsets are post-BBA relative to quadrupole magnetic centres.',
