@@ -16,6 +16,7 @@ import corr_optics
 import corr_orbit
 import corr_coupling
 import corr_tune
+import corr_chromaticity
 
 
 def _silent_log(*args, **kwargs):
@@ -38,7 +39,7 @@ class MachineSnapshot:
 class FCCeeCorrection:
     """Own correction state and execution for a line prepared by 001.
 
-    Construction builds the nominal reference and five fixed-response optimizers,
+    Construction builds the nominal reference and six fixed-response optimizers,
     then starts at zero error/nonlinear strength. The optimizers, iteration limits,
     nominal knob values, reference and last_accepted_twiss are public.
 
@@ -47,53 +48,59 @@ class FCCeeCorrection:
 
     correction_errors = (ValueError, RuntimeError, xt.twiss.ClosedOrbitSearchError)
 
-    def correct_at_fixed_strengths(self, tw, *, max_iterations):
+    def correct_at_fixed_strengths(self, tw, *, max_iterations, chrom=False):
         """Return the accepted Twiss and completed iteration count, or raise.
 
         The caller owns rollback of the entire error-increase trial. Tune correction
         is explicit; coupling correction includes an orbit correction before and
         after it. Only goals and iteration limits decide success; intermediate
-        errors may increase.
+        errors may increase. With chrom=True, also evaluate and correct chromaticities.
         """
         orbit_x = self.optimizers.orbit_x
         orbit_y = self.optimizers.orbit_y
         optics = self.optimizers.optics
         coupling = self.optimizers.coupling
         tunes = self.optimizers.tunes
+        if chrom and ('dqx' not in tw or 'dqy' not in tw):
+            tw = self.twiss(tw, chrom=True)
         self.log_iteration(0, tw)
-        if self.goals_met(tw):
+        if self.goals_met(tw, chrom=chrom):
             return tw, 0
         for iteration in range(1, max_iterations + 1):
             if not (orbit_x.goal(tw) and orbit_y.goal(tw)):
                 orbit_x.run_lstsq(action_results=[tw])
                 orbit_y.run_lstsq(action_results=[tw])
-                tw = self.twiss(tw)
+                tw = self.twiss(tw, chrom=chrom)
 
             if not optics.goal(tw):
                 optics.run_lstsq(action_results=[tw])
-                tw = self.twiss(tw)
+                tw = self.twiss(tw, chrom=chrom)
 
             if not coupling.goal(tw):
                 # Coupling is very sensitive to orbit errors; need orbit correction
                 # before and after any coupling correction.
                 orbit_x.run_lstsq(action_results=[tw])
                 orbit_y.run_lstsq(action_results=[tw])
-                tw = self.twiss(tw)
+                tw = self.twiss(tw, chrom=chrom)
                 if not coupling.goal(tw):
                     coupling.run_lstsq(
                         action_results=[tw],
                         step_scale=coupling.step_scale)
-                    tw = self.twiss(tw)
+                    tw = self.twiss(tw, chrom=chrom)
                     orbit_x.run_lstsq(action_results=[tw])
                     orbit_y.run_lstsq(action_results=[tw])
-                    tw = self.twiss(tw)
+                    tw = self.twiss(tw, chrom=chrom)
 
             if not tunes.goal(tw):
                 tunes.run_lstsq(action_results=[tw])
-                tw = self.twiss(tw)
+                tw = self.twiss(tw, chrom=chrom)
+
+            if chrom and not self.optimizers.chromaticity.goal(tw):
+                self.optimizers.chromaticity.run_lstsq(action_results=[tw])
+                tw = self.twiss(tw, chrom=True)
 
             self.log_iteration(iteration, tw)
-            if self.goals_met(tw):
+            if self.goals_met(tw, chrom=chrom):
                 return tw, iteration
         raise RuntimeError(f'Correction goals not met after {max_iterations} iterations')
 
@@ -138,6 +145,9 @@ class FCCeeCorrection:
         self.optimizers.tunes = corr_tune.build_tune_corr_optimizer(
             self.line, self.reference, full_twiss=self.twiss,
             settings=optimizer_settings.get('tunes'))
+        self.optimizers.chromaticity = corr_chromaticity.build_chromaticity_corr_optimizer(
+            self.line, self.reference, full_twiss=self.twiss,
+            settings=optimizer_settings.get('chromaticity'))
         for optimizer in vars(self.optimizers).values():
             _ = optimizer.response.svd
 
@@ -239,7 +249,7 @@ class FCCeeCorrection:
         try:
             if not self.goals_met(self.last_accepted_twiss):
                 tw, _ = self.correct_at_fixed_strengths(
-                    self.last_accepted_twiss, max_iterations=self.final_max_iterations)
+                    self.last_accepted_twiss, max_iterations=self.final_max_iterations, chrom=True)
                 self.last_accepted_twiss = tw
                 self.log('Accepted')
         except self.correction_errors as err:
@@ -299,10 +309,11 @@ class FCCeeCorrection:
         for optimizer in vars(self.optimizers).values():
             optimizer.print_metrics(tw, log=self.log)
 
-    def goals_met(self, tw):
-        return all(opt.goal(tw) for opt in vars(self.optimizers).values())
+    def goals_met(self, tw, *, chrom=True):
+        return all(opt.goal(tw) for name, opt in vars(self.optimizers).items()
+                   if chrom or name != 'chromaticity')
 
-    def twiss(self, seed=None, *, only_orbit=False):
+    def twiss(self, seed=None, *, only_orbit=False, chrom=False):
         """Evaluate Twiss, optionally using a supplied table's closed orbit as a guess.
 
         Without a seed, use the line's default closed-orbit guess.
@@ -314,7 +325,8 @@ class FCCeeCorrection:
             self.stats['orbit_calls'] += 1
         try:
             return self.line.twiss(
-                chrom=False,
+                chrom=chrom,
+                delta_chrom=1e-6,
                 steps_R_matrix=self.steps_r_matrix.copy(),
                 radiation_integrals=False,
                 only_orbit=only_orbit,
@@ -348,6 +360,8 @@ class FCCeeCorrection:
         corr_tune.install_tune_knobs(line)
         line.set(circuits['tunes']['family_nominal_values'])
         line.set(circuits['tunes']['nominal_values'])
+        chromaticity_knobs = corr_chromaticity.install_chromaticity_knobs(line)
+        line.set(chromaticity_knobs, np.zeros(len(chromaticity_knobs)))
         line.twiss_default['co_guess'] = dict(x=0, px=0, y=0, py=0, zeta=0, delta=0)
         self.reference = self.twiss()
 

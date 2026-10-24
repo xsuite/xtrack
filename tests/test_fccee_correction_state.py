@@ -84,7 +84,7 @@ def test_increase_errors_restores_rejected_trial_and_retries(correction, monkeyp
         tw.x = [correction.error_fraction]
         return tw
 
-    def correct(tw, *, max_iterations):
+    def correct(tw, *, max_iterations, chrom=False):
         attempts.append(correction.error_fraction)
         quad_values.append(float(correction.line['quad']))
         if len(attempts) == 1:
@@ -109,7 +109,7 @@ def test_error_increment_growth_is_capped_and_target_is_exact(correction, monkey
     attempts = []
     monkeypatch.setattr(correction, 'twiss', lambda seed: correction.last_accepted_twiss)
 
-    def correct(tw, *, max_iterations):
+    def correct(tw, *, max_iterations, chrom=False):
         attempts.append(correction.error_fraction)
         return tw, 3
 
@@ -125,7 +125,7 @@ def test_run_stops_after_minimum_increment_and_can_save_partial(correction, monk
     monkeypatch.setattr(correction, 'twiss', lambda seed: correction.last_accepted_twiss)
     monkeypatch.setattr(correction, 'refine_correction', lambda: pytest.fail('Unexpected refinement'))
 
-    def correct(tw, *, max_iterations):
+    def correct(tw, *, max_iterations, chrom=False):
         attempts.append(correction.error_fraction)
         if len(attempts) > 1:
             correction.line['quad'] = 999.
@@ -172,9 +172,10 @@ def test_run_refines_at_requested_fraction(correction, monkeypatch, target):
     calls = []
     refined = deepcopy(correction.last_accepted_twiss)
     monkeypatch.setattr(correction, 'twiss', lambda seed: correction.last_accepted_twiss)
-    monkeypatch.setattr(correction, 'goals_met', lambda tw: tw is refined)
+    monkeypatch.setattr(correction, 'goals_met', lambda tw, **kwargs: tw is refined)
 
-    def correct(tw, *, max_iterations):
+    def correct(tw, *, max_iterations, chrom=False):
+        assert chrom == (max_iterations == correction.final_max_iterations)
         calls.append((correction.error_fraction, max_iterations))
         assert tw is correction.last_accepted_twiss
         return (refined if max_iterations == correction.final_max_iterations else tw), 1
@@ -189,10 +190,11 @@ def test_run_refines_at_requested_fraction(correction, monkeypatch, target):
 
 def test_refine_failure_restores_accepted_state(correction, monkeypatch):
     before = correction.snapshot()
-    monkeypatch.setattr(correction, 'goals_met', lambda tw: False)
+    monkeypatch.setattr(correction, 'goals_met', lambda tw, **kwargs: False)
     monkeypatch.setattr(correction, 'twiss', lambda: pytest.fail('Unexpected Twiss'))
 
-    def fail(tw, *, max_iterations):
+    def fail(tw, *, max_iterations, chrom=False):
+        assert chrom
         assert max_iterations == correction.final_max_iterations
         assert tw is before.last_accepted_twiss
         correction.line['quad'] = 999.
@@ -259,7 +261,7 @@ def test_refine_keeps_returned_twiss_without_extra_evaluation_or_history(correct
     monkeypatch.setattr(correction, 'twiss', lambda: pytest.fail('Unexpected Twiss'))
     messages = []
     monkeypatch.setattr(correction, 'log', messages.append)
-    monkeypatch.setattr(correction, 'goals_met', lambda tw: False)
+    monkeypatch.setattr(correction, 'goals_met', lambda tw, **kwargs: False)
     monkeypatch.setattr(correction, 'correct_at_fixed_strengths',
                         lambda seed, **kwargs: (tw, 1))
     assert correction.refine_correction()
@@ -351,7 +353,7 @@ def test_execution_methods_set_limits_and_snapshots_leave_them_unchanged(correct
     coupling = diagnostic_optimizer('corr_coupling', 'DEFAULT_COUPLING_CORR_SETTINGS', reference)
     orbit = diagnostic_optimizer('corr_orbit', 'DEFAULT_ORBIT_CORR_SETTINGS', reference)
     correction.optimizers = SimpleNamespace(optics=optics, coupling=coupling, orbit=orbit)
-    monkeypatch.setattr(correction, 'goals_met', lambda tw: True)
+    monkeypatch.setattr(correction, 'goals_met', lambda tw, **kwargs: True)
     monkeypatch.setattr(correction, 'twiss', lambda *a, **k: pytest.fail('Unexpected Twiss'))
     orbit.plane = 'x'
     orbit.compute_metrics = lambda tw: {'orbit_x_rms': orbit.orbit_tol}
@@ -630,14 +632,14 @@ def test_optics_keeps_worsening_steps_until_goal_or_budget(correction, monkeypat
     correction.optimizers.optics = opt
     trials = []
 
-    def evaluate_trial(tw):
+    def evaluate_trial(tw, *, chrom=False):
         knob = float(correction.line['quad'])
         trials.append(knob)
         return {'error': knob**2 - 0.25, 'inactive': 1000.}
 
     monkeypatch.setattr(correction, 'twiss', evaluate_trial)
     monkeypatch.setattr(correction, 'log_iteration', lambda *args: None)
-    monkeypatch.setattr(correction, 'goals_met', lambda tw: abs(tw['error']) < 0.2)
+    monkeypatch.setattr(correction, 'goals_met', lambda tw, **kwargs: abs(tw['error']) < 0.2)
     before = correction.snapshot()
     if accepted:
         result, iterations = correction.correct_at_fixed_strengths(baseline, max_iterations=5)
@@ -674,9 +676,9 @@ def test_explicit_stage_order_passes_latest_twiss(correction, monkeypatch):
         return run
 
     monkeypatch.setattr(correction, 'log_iteration', lambda *args: None)
-    monkeypatch.setattr(correction, 'goals_met', lambda tw: tw == 6)
+    monkeypatch.setattr(correction, 'goals_met', lambda tw, **kwargs: tw == 6)
     monkeypatch.setattr(correction, 'twiss',
-                        lambda tw, only_orbit=False: stage('orbit' if only_orbit else 'full')(tw))
+                        lambda tw, only_orbit=False, chrom=False: stage('orbit' if only_orbit else 'full')(tw))
     correction.optimizers.tunes = optimizer('tune')
     monkeypatch.setattr(correction, 'snapshot', lambda: pytest.fail('Unexpected stage snapshot'))
     assert correction.correct_at_fixed_strengths(0, max_iterations=5) == (6, 1)
@@ -697,10 +699,10 @@ def test_cycle_budget_checks_goals_after_last_cycle(correction, monkeypatch,
     logged = []
     tune_calls = []
     monkeypatch.setattr(correction, 'log_iteration', lambda iteration, tw: logged.append(iteration))
-    monkeypatch.setattr(correction, 'goals_met', lambda tw: converges and logged[-1] == limit)
+    monkeypatch.setattr(correction, 'goals_met', lambda tw, **kwargs: converges and logged[-1] == limit)
     correction.optimizers.tunes.goal = lambda tw: False
     correction.optimizers.tunes.run_lstsq = lambda **kw: tune_calls.append(kw['action_results'][0])
-    monkeypatch.setattr(correction, 'twiss', lambda tw: tw)
+    monkeypatch.setattr(correction, 'twiss', lambda tw, **kwargs: tw)
     if converges:
         assert correction.correct_at_fixed_strengths(0, max_iterations=limit) == (0, limit)
     else:
@@ -730,7 +732,7 @@ def test_tune_step_in_main_cycle(correction, monkeypatch, twiss_fails):
     opt.goal = lambda tw: np.all(np.abs(np.asarray(tw) - [1., 2.]) < opt.settings.tune_tol)
     correction.optimizers.tunes = opt
     trials = []
-    def evaluate(tw):
+    def evaluate(tw, *, chrom=False):
         values = np.array([float(correction.line[name]) for name in ('tune', 'quad')])
         trials.append(values)
         if twiss_fails:
@@ -739,7 +741,7 @@ def test_tune_step_in_main_cycle(correction, monkeypatch, twiss_fails):
 
     monkeypatch.setattr(correction, 'twiss', evaluate)
     monkeypatch.setattr(correction, 'log_iteration', lambda *args: None)
-    monkeypatch.setattr(correction, 'goals_met', lambda tw: np.allclose(tw, [1., 2.]))
+    monkeypatch.setattr(correction, 'goals_met', lambda tw, **kwargs: np.allclose(tw, [1., 2.]))
     if twiss_fails:
         before = correction.snapshot()
         with pytest.raises(ValueError, match='Invalid trial optics'):
@@ -777,14 +779,14 @@ def test_tunes_allow_non_improving_iterations_until_limit(correction, monkeypatc
     opt.goal = lambda tw: abs(tw[0]) < opt.settings.tune_tol
     correction.optimizers.tunes = opt
     trials = []
-    def evaluate(tw):
+    def evaluate(tw, *, chrom=False):
         value = 2 * float(correction.line['tune'])
         trials.append(value)
         return [value]
     monkeypatch.setattr(correction, 'twiss', evaluate)
     before = correction.snapshot()
     monkeypatch.setattr(correction, 'log_iteration', lambda *args: None)
-    monkeypatch.setattr(correction, 'goals_met', lambda tw: False)
+    monkeypatch.setattr(correction, 'goals_met', lambda tw, **kwargs: False)
     with pytest.raises(RuntimeError, match='goals not met after 5 iterations'):
         correction.correct_at_fixed_strengths([2.], max_iterations=5)
     assert trials == [-2., 2., -2., 2., -2.]
@@ -805,9 +807,9 @@ def test_coupling_orbit_correction_is_unconditional_and_failures_propagate(
     correction.optimizers.coupling = stub_optimizer(
         goal=lambda tw: False, run_lstsq=lambda **kwargs: None)
     monkeypatch.setattr(correction, 'log_iteration', lambda *args: None)
-    monkeypatch.setattr(correction, 'goals_met', lambda tw: tw == 3)
+    monkeypatch.setattr(correction, 'goals_met', lambda tw, **kwargs: tw == 3)
     monkeypatch.setattr(correction, 'snapshot', lambda: pytest.fail('Unexpected local rollback'))
-    def evaluate(tw, *, only_orbit=False):
+    def evaluate(tw, *, only_orbit=False, chrom=False):
         assert not only_orbit
         if tw + 1 == fail_at:
             raise ValueError('Invalid orbit')
@@ -902,3 +904,47 @@ def test_module_metrics_match_expected_errors(correction, monkeypatch):
         opt.orbit_tol = 1e-5
     correction.log_iteration(1, tw)
     assert len(printed) == 6  # Iteration marker and each optimizer's summary.
+
+
+def test_chromaticity_is_skipped_during_error_increase(correction, monkeypatch):
+    correction.optimizers.chromaticity = stub_optimizer(
+        goal=lambda tw: pytest.fail('Chromaticity goal during error increase'),
+        run_lstsq=lambda **kwargs: pytest.fail('Chromaticity step during error increase'))
+    correction.optimizers.tunes.goal = lambda tw: tw['qx'] == .3
+    calls = []
+    def evaluate(seed, *, chrom):
+        assert not chrom
+        calls.append(seed)
+        return {'qx': .3}
+    monkeypatch.setattr(correction, 'twiss', evaluate)
+    tw, iterations = correction.correct_at_fixed_strengths({'qx': .4}, max_iterations=5)
+    assert tw == {'qx': .3} and iterations == 1
+    assert calls == [{'qx': .4}]
+
+
+def test_chromaticity_stage_rechecks_other_goals(correction, monkeypatch):
+    # The sextupole change spoils the tune; success requires another cycle.
+    state = dict(qx=0., dqx=2., dqy=3.)
+    calls = []
+    def evaluate(seed, *, chrom=False):
+        assert chrom
+        calls.append('twiss')
+        return dict(state)
+    def chrom_step(*, action_results):
+        assert action_results[0] == state
+        calls.append('chromaticity')
+        state.update(qx=1., dqx=0.)
+    def tune_step(*, action_results):
+        assert action_results[0] == state
+        calls.append('tunes')
+        state['qx'] = 0.
+    correction.optimizers.chromaticity = stub_optimizer(
+        goal=lambda tw: tw.get('dqx') == 0., run_lstsq=chrom_step)
+    correction.optimizers.tunes = stub_optimizer(
+        goal=lambda tw: tw['qx'] == 0., run_lstsq=tune_step)
+    monkeypatch.setattr(correction, 'twiss', evaluate)
+    tw, iterations = correction.correct_at_fixed_strengths(
+        {'qx': 0.}, max_iterations=5, chrom=True)
+    assert iterations == 2
+    assert calls == ['twiss', 'chromaticity', 'twiss', 'tunes', 'twiss']
+    assert correction.goals_met(tw)

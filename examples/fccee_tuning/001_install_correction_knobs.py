@@ -12,6 +12,7 @@ import xtrack as xt
 from error_recipe import get_bpm_alignment
 import corr_optics
 import corr_tune
+import corr_chromaticity
 
 HERE = Path(__file__).resolve().parent
 INPUT = HERE / 'fccee_z_lcc_errors.json'
@@ -175,5 +176,6 @@ line.metadata['correction_knobs'] = dict(
     added_correctors=added_correctors,
 )
 corr_tune.install_tune_knobs(line)
+corr_chromaticity.install_chromaticity_knobs(line)
 line.to_json(OUTPUT)
 print('Saved', OUTPUT)

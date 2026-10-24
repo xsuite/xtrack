@@ -64,7 +64,7 @@ There is no checkpoint or disk-resume mechanism. The explicit
 `correct_at_fixed_strengths` sequence remains the place to add correction stages.
 
 Twiss evaluation is centralized in `FCCeeCorrection.twiss(seed=None, *,
-only_orbit=False)`. A supplied table provides `co_guess=seed.particle_on_co`;
+only_orbit=False, chrom=False)`. A supplied table provides `co_guess=seed.particle_on_co`;
 without a seed, the line defaults apply. Error-increase trials explicitly pass
 `last_accepted_twiss`, while nominal-reference calculations are unseeded.
 
@@ -80,11 +80,33 @@ definitions:
   response solves and BPM-frame orbit goals.
 - `corr_coupling.build_coupling_corr_optimizer`: RDTs, vertical dispersion and c_minus.
 - `corr_tune.build_tune_corr_optimizer`: nominal tune targets and response.
+- `corr_chromaticity.build_chromaticity_corr_optimizer`: ideal chromaticities using
+  four arc sextupole family offsets.
 
 Tune correction varies independent offsets `dkqf2_tune` and `dkqd1_tune`.
 The original `kqf2` and `kqd1` family variables remain unchanged. The installer
 follows their quadrupole connections and adds equivalent offsets to `k1`,
 recording the connections so reloading does not attach them twice.
+
+Chromaticity correction varies `dksf1_chromaticity`, `dksf2_chromaticity`,
+`dksd1_chromaticity` and `dksd2_chromaticity`. These independent offsets act on
+arc sextupoles only; the original family values and straight-section sextupoles
+remain unchanged. Installation is idempotent, including after saving/reloading.
+The module evaluates the aligned machine with nominal nonlinear strengths to
+obtain constant `dqx`/`dqy` targets. Its 2-by-4 response uses central differences
+of the family offsets and restores each probe. The default tolerance is 0.1
+in each plane; both targets and tolerance are inspectable on the optimizer.
+
+`correct_at_fixed_strengths(..., chrom=False)` retains ordinary Twiss during the
+error increase and excludes the chromaticity goal. `refine_correction()` calls
+it with `chrom=True`: a fresh chromatic Twiss is obtained when the input lacks
+chromaticities, and subsequent evaluations also include them. A conditional
+chromaticity correction follows the tune step. Every enabled goal is checked
+afterward, so sextupole changes that disturb other quantities require another
+cycle. No persistent phase flag is stored. Chromatic Twiss uses `delta_chrom=1e-6`.
+Diagnostics omit unavailable chromaticities; missing data never satisfies the
+chromaticity goal. Response preparation adds nine chromatic Twiss evaluations
+at nominal full nonlinear strength before the error increase begins.
 
 Each module owns its settings constant, targets, varies, response construction,
 solve cutoff, reference/observation data, nominal knob values, `compute_metrics(tw)`,
@@ -321,7 +343,8 @@ The new workflow uses `run_lstsq`, not manual direction application.
 
 ## Goal checks and iteration limits
 
-The fixed-strength loop runs **orbit, optics, coupling, tune**.
+The fixed-strength loop runs **orbit, optics, coupling, tune**, followed by
+**chromaticity** when `chrom=True`.
 Each stage is skipped when its goal is already met. At the end of a cycle,
 if `tunes.goal(tw)` is false, one `tunes.run_lstsq(action_results=[tw])` is followed
 by a fresh Twiss evaluation. An already satisfied overall goal returns before
@@ -346,8 +369,8 @@ Tune correction remains explicit after coupling. Optics does not nest orbit corr
 
 There is no nested tune loop: further tune corrections happen in subsequent
 main cycles, within the same iteration budget as the other corrections. The
-optics optimizer also retains its qx/qy targets. Orbit, optics and tune use
-step_scale=1; coupling
+optics optimizer also retains its qx/qy targets. Orbit, optics, tune and
+chromaticity use step_scale=1; coupling
 retains its configured scale (0.5 by default). Optimizer knob limits and
 maximum-step handling are unchanged.
 
@@ -661,3 +684,22 @@ satisfied goals, iteration exhaustion and outer rollback on failed evaluations.
 Artifacts: `/tmp/fccee_single_tune_kc05pjsp/run.log`, `comparison.json`, and the
 `candidate` (unconditional) and `conditional` subdirectories, each containing
 `verification.json`, `timing.json` and `response_api_class/machine.json`.
+
+
+### Chromaticity correction during refinement
+
+The full standard-lattice run passed every optimizer goal at full error strength
+and again after saving/reloading. The original tune and sextupole family values
+were unchanged. There were no rejected error increments, and refinement required
+four cycles. Final chromaticities were [12.08386247, 5.23995844], against ideal
+values [12.11101576, 5.24079795]; both errors were below the 0.1 tolerance.
+
+With one BLAS thread, the example took 152.7 s, versus 140.5 s in the preceding
+tune-offset run. Twiss calls increased from 132 to 144. The complete validation,
+including loading the baseline and reloading the saved result, took 187.9 s,
+within the 250-second cap. These are individual run timings, not repeated
+benchmarks. All 66 focused tests pass, covering family offsets and preservation,
+reload/idempotency, response restoration, refinement-only activation and
+rechecking other goals after a chromaticity change.
+Artifacts: `/tmp/fccee_chrom_refinement_yw7balkq/run.log`, `verification.json`,
+`timing.json`, and `response_api_class/machine.json`.

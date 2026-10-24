@@ -17,6 +17,7 @@ from corr_optics import DEFAULT_OPTICS_CORR_SETTINGS
 from corr_orbit import DEFAULT_ORBIT_CORR_SETTINGS
 from corr_coupling import DEFAULT_COUPLING_CORR_SETTINGS
 from corr_tune import DEFAULT_TUNE_CORR_SETTINGS
+from corr_chromaticity import DEFAULT_CHROMATICITY_CORR_SETTINGS
 
 # Settings
 HERE = Path(__file__).resolve().parent
@@ -33,6 +34,7 @@ optimizer_settings = dict(
     optics=copy(DEFAULT_OPTICS_CORR_SETTINGS),
     coupling=copy(DEFAULT_COUPLING_CORR_SETTINGS),
     tunes=copy(DEFAULT_TUNE_CORR_SETTINGS),
+    chromaticity=copy(DEFAULT_CHROMATICITY_CORR_SETTINGS),
 )
 
 # Construct the correction object
