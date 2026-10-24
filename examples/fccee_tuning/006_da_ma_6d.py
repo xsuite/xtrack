@@ -17,7 +17,8 @@ import xobjects as xo
 
 HERE = Path(__file__).resolve().parent
 INPUT = HERE / 'response_api_class' / 'machine.json'
-OUTPUT_DIR = HERE / 'analysis' / 'da_ma_6d'
+SUPPRESS_ARC_DIPOLE_B4 = True       # Installed systematic + random b4 errors only.
+OUTPUT_DIR = HERE / 'analysis' / ('da_ma_6d_b4_off' if SUPPRESS_ARC_DIPOLE_B4 else 'da_ma_6d')
 LAUNCH_AT = 'septum'
 NUM_TURNS = 300                    # Preliminary comparison; team benchmark: 2500.
 TRACKING_THREADS = 8               # BLAS can stay single-threaded.
@@ -26,7 +27,7 @@ GEMITT_Y = 1.4e-12
 RADIATION_MODELS = ('mean', 'quantum')
 DA_RADII = np.linspace(0., 20., 11)
 DA_ANGLES = np.linspace(0., 2*np.pi, 16, endpoint=False)
-MA_DELTAS = np.linspace(-0.03, 0.03, 13)
+MA_DELTAS = np.linspace(-0.012, 0.012, 13)
 MA_AMPLITUDES = np.linspace(-20., 20., 11)
 # Four phases for each amplitude sign = eight directions at nonzero |A|.
 # The two transverse modes use the SAME phase; not a 4 x 4 phase product.
@@ -55,6 +56,11 @@ def prepare_machine(clean):
         values.update(circuits['tunes']['nominal_values'])
         values.update(circuits['tunes']['family_nominal_values'])
         line.vars.update(values)
+    b4_before = float(line['on_error_arc_dipole_b4'])
+    if SUPPRESS_ARC_DIPOLE_B4:
+        # Keep the saved correction settings and nominal octupole strengths.
+        # This switch multiplies both systematic and random arc-dipole b4 errors.
+        line['on_error_arc_dipole_b4'] = 0.
     line.cycle(name_first_element=LAUNCH_AT, inplace=True)
     line.configure_radiation(model='mean')
     line.tracker.track_flags.XS_FLAG_KILL_CAVITY_KICK = False
@@ -73,6 +79,8 @@ def prepare_machine(clean):
         raise ValueError(f'6D closed orbit does not close: {after-before}')
     tt = line.get_table()
     info = dict(tunes=[float(tw.qx), float(tw.qy), float(tw.qs)],
+                arc_dipole_b4_switch_before=b4_before,
+                arc_dipole_b4_switch=float(line['on_error_arc_dipole_b4']),
                 closed_orbit=before.tolist(), closure_error=(after-before).tolist(),
                 betx=float(tw.betx[0]), bety=float(tw.bety[0]),
                 aperture_elements=tt.name[np.char.startswith(
@@ -130,7 +138,10 @@ def plot_results(results):
             for col, machine in enumerate(('clean', 'corrected')):
                 ax = axes[row, col]
                 key = f'{machine}_{model}_{scan}'
-                ax.set_title(f'{machine.capitalize()} — {model} radiation')
+                label = machine.capitalize()
+                if machine == 'corrected' and SUPPRESS_ARC_DIPOLE_B4:
+                    label += ' (arc-dipole b₄ off)'
+                ax.set_title(f'{label} — {model} radiation')
                 if key not in results:
                     ax.text(.5, .5, 'Not yet tracked', ha='center', transform=ax.transAxes)
                     continue
@@ -153,7 +164,8 @@ def plot_results(results):
                         ax.contour(100*MA_DELTAS, MA_AMPLITUDES,
                             (fraction == 1).astype(float), levels=[.5], colors='white', linewidths=.8)
                     ax.set(xlabel='Initial Δδ relative to closed orbit [%]',
-                           ylabel='Signed equal transverse amplitude A [σ]')
+                           ylabel='Signed equal transverse amplitude A [σ]',
+                           xlim=(100*MA_DELTAS[0], 100*MA_DELTAS[-1]))
                 ax.grid(alpha=.15)
                 fig.colorbar(color, ax=ax, label=('Completed turns' if scan == 'da'
                              else 'Mean completed turns over four phases per sign'))
@@ -174,6 +186,8 @@ def main():
     summary = dict(input=str(INPUT), input_sha256=hashlib.sha256(INPUT.read_bytes()).hexdigest(),
         launch_at=LAUNCH_AT, turns=NUM_TURNS, tracking_threads=TRACKING_THREADS,
         gemitt_x=GEMITT_X, gemitt_y=GEMITT_Y,
+        suppress_arc_dipole_b4=SUPPRESS_ARC_DIPOLE_B4,
+        correction_settings='saved values; no re-correction',
         radiation_models=list(RADIATION_MODELS), tapering='independent zero-mean-energy tapering',
         longitudinal_launch='zeta=closed orbit; delta=closed orbit + requested offset',
         transverse_launch='each machine 6D W matrix, identical geometric emittances',

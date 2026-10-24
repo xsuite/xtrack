@@ -1,5 +1,112 @@
 # Externally evaluated FCC-ee correction
 
+## Arc octupole response study
+
+`007_arc_octupoles.py` now uses additive `knl[3]` trims in the existing arc
+`qf2a` and `qd1a` quadrupoles, following the user's simplification. No new
+elements are inserted. Each knob denotes total integrated K3L [m^-3] per
+physical quadrupole; where a magnet has multiple pieces, the trim is shared
+in proportion to their lengths. Existing `knl[3]` expressions and relative
+errors are preserved. The added trim follows `on_arc_octupole_corr` and
+`on_nonlinear`; clean-machine reset disables the former.
+
+The component uses the quadrupole's existing body integration (five kicks in
+the current selected families), alignment and roll. It is therefore a different
+model from an independent thin entrance kick, requiring a new measured response.
+The analytic detuning response remains explicitly an entrance-optics estimate;
+tracking checks its predictions. New outputs use `analysis/arc_octupoles_quad_knl`,
+preserving the earlier thin-element study under `analysis/arc_octupoles`.
+
+The quad-body remeasurement gives K3L = -0.814773 / -1.017821 m^-3 per
+physical QF/QD, yielding Q''/2 = [18.721, -74.443] against clean
+[18.433, -74.341]. All 25 momentum points over +/-1.2% succeed. The full
+candidate's ten 0.5–3 sigma launches survive 512 conservative turns, with a
+similar detuning tradeoff to the earlier entrance-kick model. The focused
+validation took 101.5 s and verified unchanged element names, zero-trim
+preservation, total integrated trim per magnet, unchanged input SHA256, and
+independent Twiss after saving/reloading. Switching the trims off after reload
+recovers every original quadrupole knl[3]. Two focused tests pass, including
+an unequal-length split magnet and preservation of a live existing expression.
+
+The new directory contains `quad_knl_validation.json`, tracking/scan NPZs and
+`trial_full_machine.json` for a later 6D comparison. The original machine is
+unchanged. The log is `/tmp/fccee_quad_octupoles_jBQqA1/validation.log`.
+The guarded and fractional cases have not been rerun for this representation;
+the earlier results below remain explicitly those of the entrance-kick model.
+
+### Earlier entrance-kick study
+
+The first implementation explored new normal thin octupoles at the entrances of
+regular arc `qf2a` and `qd1a` quadrupoles: 848 and 864 sites respectively, with
+one shared integrated-strength knob per family. Physical-magnet metadata
+selects one entrance per magnet, avoiding duplicate correctors on split halves.
+These are hypothetical additional correctors; no IR octupole or original
+sextupole/tune/correction control is changed, and no hardware strength limit
+is assumed. The saved corrected input is never overwritten.
+
+The starting point restores arc dipole b4. A central finite-difference response
+fits Q and Q' as monitors and Q''/2 as the two objectives. Five delta points
+between -0.002 and +0.002 use a quartic fit and independent closed-orbit
+continuation from `ipd`; halving the fit interval checks sensitivity. The
+two-family linear solution is evaluated at 25%, 50%, and 100%, alongside clean,
+corrected and b4-off references. A second, guarded solution minimizes the two
+relative chromatic errors while requiring predicted errors in axx, the mean of
+axy/ayx, and ayy to be at most 90% of their initial distances from clean. It
+uses the measured chromatic response and analytic detuning response, then
+checks the result with tracking. This is a small-amplitude coefficient guard,
+not a bound on the whole tune footprint or an acceptance guarantee.
+Full tune scans cover +/-1.2%, retaining NaNs
+and failure messages when continuation fails. The analytic uncoupled response
+is recorded only as a comparison with the measured response.
+Continuation rejects tune changes larger than 0.02 per accepted substep and
+halves the delta step down to 1e-6. This is deliberately tighter than 003's
+default: the loose limit could bridge an ambiguous region of the guarded trial.
+
+The conservative diagnostic uses radiation/tapering off and inhibits cavity
+kicks with `XS_FLAG_KILL_CAVITY_KICK`; neither energy nor zeta is frozen.
+Tracking starts at `septum`, with zero normalized momenta, delta=0, and the
+approved geometric emittances 0.71 nm and 1.4 pm. A 64-turn pilot precedes
+512-turn tracking, using eight OpenMP threads and one BLAS thread. Separate
+action scans keep the other mode at 0.5 sigma; slopes over 0.5–1, 0.5–2 and
+0.5–3 sigma retain both cross derivatives. Comparing 256/512-turn estimates
+checks tune-extraction convergence. A synthetic test verifies that horizontal
+curvature cannot alias into the much smaller vertical action in this fit.
+Plots, monitored normal coordinates, tunes, strengths, response and settings
+are saved under `analysis/arc_octupoles`. This does not establish DA/MA:
+any candidate still needs the separate 6D radiation/tapering comparison.
+
+The full chromatic solution requires K3L = -0.837731 / -0.996423 m^-3 per
+QF/QD corrector. Measured Q''/2 changes from [1086.49, -1058.89] to
+[18.675, -74.436], against clean [18.433, -74.341]. The analytic and measured
+chromatic responses agree within 0.03%. At 0.5–1 sigma, ayy changes from
+-3.28e5 to -6.51e5 m^-1 (clean +4.39e5); the mean cross coefficient changes
+from 2.23e5 to 6.10e5 m^-1 (clean 3.21e5). These coefficients are farther
+from clean even though chromaticity improves. The b4-off reference also has
+worse amplitude-detuning coefficients despite its improved earlier DA/MA;
+therefore coefficient distances alone cannot select the final candidate.
+
+The guarded solution uses K3L = -1.412819 / +0.544977 m^-3. Tracking confirms
+that its three small-amplitude detuning errors are below the starting errors,
+but its Q''/2 is [-253.0, -623.8] and its negative-delta tune curve develops a
+large excursion. Tighter continuation cannot reach -1.2%, stopping at
+-0.01116406. This is a failed optics continuation, not a measured MA boundary.
+The full chromatic solution is the better candidate for the next 300-turn
+6D comparison; neither candidate has yet been validated with radiation/tapering.
+The nominal IR octupoles and original corrected machine remain unchanged.
+
+Validation: the six initial cases took 297.6 s, the additional guarded case
+66.9 s, and the final seven-case rescan with the tighter continuation limit
+192.4 s (all with one BLAS thread and eight tracking threads). Only the
+guarded -1.2% point fails in the final comparison. All tracked 0.5–3 sigma
+particles survive 512 conservative turns. The largest 256/512-turn difference
+in a small-amplitude detuning coefficient is 250 m^-1; halving the chromatic
+fit interval changes Q''/2 by at most 0.18. Artifact verification checks the
+1,712 unique arc sites, initial normal coordinates, fixed delta, failed-point
+NaNs, unchanged input hash, and all four plot files. The action-fit test passes.
+Results and `verification.json` are in `analysis/arc_octupoles`; the live log is
+`/tmp/fccee_octupole_survey_1geiXT/survey.log`. No DA/MA scan or saved-machine
+replacement was performed in this study.
+
 ## Agreed boundary
 
 `Optimize` owns targets, tolerances, weights, varies, response matrices, the
@@ -162,6 +269,44 @@ turn bookkeeping, and the unchanged input SHA256. Both optics NPZ files use
 string arrays for element names, so the artifacts load without pickle.
 Run log: `/tmp/fccee_6d_aperture_OMxkfW/comparison.log`.
 Results and validation: `analysis/da_ma_6d/summary.json` and `verification.json`.
+
+### Arc-dipole b4 suppression comparison
+
+The subsequent comparison sets `SUPPRESS_ARC_DIPOLE_B4=True` in `006` and
+changes the MA scan to 13 points over +/-1.2% (0.2% spacing). The plot limits
+are explicitly set to that same range. The switch
+`on_error_arc_dipole_b4=0` suppresses both systematic and random normal octupole
+field errors in arc dipoles. It leaves nominal octupoles, other error sources,
+and the saved correction settings intact; no re-correction is performed.
+This is the same component isolated by the earlier chromaticity ablation.
+Both machines are independently tapered again. The clean machine already has
+all installed errors disabled, so this additional switch does not change it.
+
+The turns, DA grid, signed MA amplitudes, phase directions, emittances and
+random seeds are otherwise unchanged. Results go to `analysis/da_ma_6d_b4_off`,
+preserving the previous `analysis/da_ma_6d` baseline. Because the MA delta grid
+is finer and narrower, total surviving-particle counts should not be compared
+directly between the two runs. Clean and corrected machines within each run
+still use identical grids. The script records the b4 switch values and labels
+the corrected-machine plot panels explicitly. The source machine remains intact.
+
+The b4-off repeat completed in 698.0 s on eight tracking threads. Corrected DA
+survival improved from 163 to 176 of 176 launches with mean radiation and from
+156 to 170 with quantum excitation; the clean reference retained all 176 in both
+cases. The six remaining quantum DA losses included a radius-16-sigma launch,
+so the improved count does not establish a larger minimum loss radius.
+On the new MA grid, corrected/clean survival counts were 279/330 (mean) and
+251/288 (quantum), each out of 572 launches. These are sampled-particle counts,
+not acceptance areas. A finite-amplitude MA deficit remains.
+
+Validation checked 9,935 correction knobs and other error controls against the
+saved values, with only `on_error_arc_dipole_b4` excluded. The independent 6D
+orbit closure, identical clean/corrected launch grids, physical longitudinal
+launch constraints, all eight artifacts, and unchanged input SHA256 passed.
+The repeated clean DA artifacts matched the baseline exactly, including the
+quantum cases. Three analysis tests passed. The log is
+`/tmp/fccee_b4_off_JhowYH/comparison.log`; the new output directory contains
+`summary.json` and `verification.json` alongside PNG/PDF plots and NPZ results.
 
 ## Executing the correction
 
