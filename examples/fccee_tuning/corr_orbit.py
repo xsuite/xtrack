@@ -1,6 +1,5 @@
-"""Orbit correction, including live BPM alignment and correctable-mode metrics."""
+"""Orbit correction, including live BPM alignment and orbit metrics."""
 
-from functools import partial
 from copy import copy
 from types import SimpleNamespace
 import numpy as np
@@ -48,7 +47,6 @@ def build_orbit_corr_optimizer(line, reference, *, plane, settings=None):
         reference, monitors, circuits[plane]['correctors'], plane))
     optimizer.orbit_tol = settings.orbit_tol
 
-    optimizer.correctable_error = partial(correctable_error, optimizer)
     return optimizer
 
 
@@ -74,16 +72,6 @@ def compute_metrics(optimizer, tw):
 
 def goal(optimizer, tw):
     return optimizer.compute_metrics(tw)[f'orbit_{optimizer.plane}_rms'] <= optimizer.orbit_tol
-
-
-def correctable_error(optimizer, tw):
-    """Lab-frame orbit projected onto retained nominal response modes."""
-    offset = monitor_alignment(optimizer)[0 if optimizer.plane == 'x' else 1]
-    error = tw[optimizer.plane][optimizer.monitor_indices] - offset
-    svd = optimizer.response.svd
-    rcond = optimizer.rcond if optimizer.rcond is not None else svd.rcond
-    u = svd.U[:, svd.s > rcond * svd.s[0]]
-    return u @ (u.T @ error)
 
 
 def print_metrics(optimizer, tw, *, log=print):

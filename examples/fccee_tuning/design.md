@@ -90,9 +90,9 @@ API remains available for target inspection and least-squares steps.
 The builder passes `compute_metrics`, `goal` and `print_metrics`
 functions to `CorrectionOptimizer`. Each function takes `optimizer` as its first
 argument, followed by Twiss and any reporting options. The shared class binds that first
-argument, so the workflow still calls `optimizer.goal(tw)`, for example. Orbit
-and tune builders also attach their specialized operations, `correctable_error`
-and `correct`. Helpers used only within a module remain ordinary function calls.
+argument, so the workflow still calls `optimizer.goal(tw)`, for example. The tune
+builder also attaches its specialized `correct` operation. Helpers used only within
+a module remain ordinary function calls.
 
 For example:
 
@@ -138,8 +138,7 @@ There is no goal-configuration callback. When adding a correction with different
 error-increase/refinement limits, include its assignments in the two execution methods.
 
 Orbit goals use inclusive RMS comparisons and a fixed tolerance (10 micrometres
-by default) throughout error increases and refinement. Coupling's internal orbit settling
-retains its separate 50-nanometre correctable-orbit tolerance.
+by default) throughout error increases and refinement.
 Optics/coupling goals retain strict comparisons and their error-increase/refinement limits.
 Optics still checks tunes as well as beta and Dx. Tune global acceptance uses its
 configured tune tolerance; `optimizers.tunes.correct()` uses half that tolerance
@@ -171,7 +170,6 @@ Each optimizer sets `rcond` from its module settings (zero for tunes).
 `run_lstsq`, `get_correction`, `step`, `solve`, and `run_jacobian` use this default
 when no per-call value is supplied. Explicit per-call values, including zero,
 override it without changing the default or rebuilding the response SVD.
-Orbit settling uses its orbit optimizers' cutoffs for correctable-mode checks.
 
 ## Relative beta objective
 
@@ -330,14 +328,14 @@ methods or inner step-halving retries. Intermediate errors may increase.
 before any work and after every completed cycle, including the last allowed
 cycle. If goals remain unmet at the limit, it raises. The error-increase/refinement caller
 owns rollback; a rejected error-increase trial also halves the error-fraction increment.
-Twiss failures propagate immediately, except during orbit settling as below.
+Twiss failures propagate immediately to the outer rollback.
 
-The coupling stage includes orbit settling before its baseline and after each
-skew correction. Settling checks the correctable-orbit tolerance and performs
-up to three orbit steps, retaining results even when errors increase. It keeps
-a local snapshot solely to restore a failed evaluation, then stops settling
-and promotes its last valid orbit to full Twiss. Tune correction remains
-explicit after the coupling stage. Optics does not nest orbit correction.
+The coupling stage applies one ordinary correction in both orbit planes before
+checking the coupling goal again. If a skew correction is needed, it evaluates
+Twiss, applies another orbit correction in both planes, and evaluates Twiss again.
+These orbit steps are unconditional within the coupling stage and use full Twiss;
+there is no separate settling loop, tolerance, projection, or local rollback.
+Tune correction remains explicit after coupling. Optics does not nest orbit correction.
 
 `optimizers.tunes.correct()` uses its cleanup tolerance and up to seven iterations,
 without comparing penalties. If the tune goal is still unmet, it raises to the
@@ -618,3 +616,20 @@ in 175.2 seconds wall time, with all 12 final checks passing and exactly the
 same accepted history (17 entries, 221 Twiss calls, including 79 orbit-only).
 Artifacts: `/tmp/fccee_folder_cleanup_umez7zpj/run.log`, `verification.json`,
 `final_checks.json` and `timing.json`.
+
+### Ordinary orbit correction around coupling
+
+Replacing the dedicated settling loop with one ordinary two-plane orbit correction
+before and after coupling passed a sequential baseline/candidate comparison on the
+same prepared input lattice, using one BLAS thread and a 250-second cap per run.
+Overall wall time fell from 178.7 s to 150.4 s (15.8%). Twiss calls fell from 219
+(140 full, 79 orbit-only) to 170 (all full). Both runs reached full error strength,
+passed all final optimizer goals, and had no rejected increments. Final refinement
+needed three cycles in the baseline and four in the candidate. All 57 focused
+tests pass, including unconditional orbit correction around coupling and propagation
+of failed evaluations to the outer rollback. The settling helper, correctable-mode
+projection, coupling-specific orbit tolerance, and full-Twiss promotion helper
+were removed. These timings are a single paired comparison.
+Artifacts: `/tmp/fccee_plain_orbit_8446z1w4/run.log`, `comparison.json`, and each
+run's `verification.json` and `timing.json`. Saved machines are in each run's
+`response_api_class/machine.json`.

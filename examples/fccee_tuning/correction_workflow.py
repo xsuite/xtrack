@@ -50,9 +50,10 @@ class FCCeeCorrection:
     def correct_at_fixed_strengths(self, tw, *, max_iterations):
         """Return the accepted Twiss and completed iteration count, or raise.
 
-        The caller owns rollback of the entire error-increase trial. Tune correction is
-        explicit; coupling correction includes orbit settling. Only goals and
-        iteration limits decide success; intermediate errors may increase.
+        The caller owns rollback of the entire error-increase trial. Tune correction
+        is explicit; coupling correction includes an orbit correction before and
+        after it. Only goals and iteration limits decide success; intermediate
+        errors may increase.
         """
         orbit = (self.optimizers.orbit_x, self.optimizers.orbit_y)
         optics = self.optimizers.optics
@@ -75,13 +76,17 @@ class FCCeeCorrection:
             tw = tunes.correct(tw, full_twiss=self.twiss)
 
             if not coupling.goal(tw):
-                tw = self.settle_coupling_orbit(tw)
+                for opt in orbit:
+                    opt.run_lstsq(action_results=[tw], tag_outcome=False)
+                tw = self.twiss(tw)
                 if not coupling.goal(tw):
                     coupling.run_lstsq(
                         action_results=[tw],
                         step_scale=coupling.step_scale, tag_outcome=False)
-                    tw = self.twiss(tw, only_orbit=True)
-                    tw = self.settle_coupling_orbit(tw)
+                    tw = self.twiss(tw)
+                    for opt in orbit:
+                        opt.run_lstsq(action_results=[tw], tag_outcome=False)
+                    tw = self.twiss(tw)
             tw = tunes.correct(tw, full_twiss=self.twiss)
 
             self.log_iteration(iteration, tw)
@@ -318,13 +323,6 @@ class FCCeeCorrection:
             if only_orbit:
                 self.stats['orbit_seconds'] += elapsed
 
-    def ensure_full_twiss(self, tw):
-        # Call only while the line still has the settings used to compute tw.
-        # Use the tracked orbit as a guess; keep the ordinary closed-orbit search.
-        if 'betx' in tw._col_names:
-            return tw
-        return self.twiss(tw)
-
     def compute_metrics(self, tw):
         """Collect named diagnostics from every configured correction."""
         metrics = {}
@@ -335,28 +333,6 @@ class FCCeeCorrection:
                 raise ValueError(f'Duplicate correction metrics: {duplicates}')
             metrics.update(current)
         return metrics
-
-    def settle_coupling_orbit(self, tw):
-        # Settle both the baseline and trials so orbit feed-down does not mask
-        # the effect of the skew correction. Tune correction remains explicit.
-        orbit = (self.optimizers.orbit_x, self.optimizers.orbit_y)
-        for iteration in range(3):
-            errors = [opt.correctable_error(tw) for opt in orbit]
-            rms = [np.sqrt(np.mean(error**2)) for error in errors]
-            if max(rms) < self.optimizers.coupling.orbit_tol:
-                break
-            before = self.snapshot()
-            try:
-                for opt in orbit:
-                    opt.run_lstsq(action_results=[tw], tag_outcome=False)
-                trial = self.twiss(tw, only_orbit=iteration < 2)
-            except self.correction_errors:
-                # Settling continues from its last accepted orbit; unlike the
-                # main stages, a failed trial does not reject the error increment.
-                self.restore(before)
-                break
-            tw = trial
-        return self.ensure_full_twiss(tw)
 
     def _prepare_reference(self):
         """Prepare aligned optics with errors and nonlinear magnets off."""

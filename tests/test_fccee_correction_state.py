@@ -646,18 +646,19 @@ def test_explicit_stage_order_passes_latest_twiss(correction, monkeypatch):
         return run
 
     monkeypatch.setattr(correction, 'log_iteration', lambda *args: None)
-    monkeypatch.setattr(correction, 'goals_met', lambda tw: tw == 6)
+    monkeypatch.setattr(correction, 'goals_met', lambda tw: tw == 8)
     monkeypatch.setattr(correction, 'twiss',
                         lambda tw, only_orbit=False: stage('orbit' if only_orbit else 'full')(tw))
     correction.optimizers.tunes = stub_optimizer(correct=lambda tw, **kw: stage('tune')(tw))
-    monkeypatch.setattr(correction, 'settle_coupling_orbit', stage('settle', advance=0))
     monkeypatch.setattr(correction, 'snapshot', lambda: pytest.fail('Unexpected stage snapshot'))
-    assert correction.correct_at_fixed_strengths(0, max_iterations=5) == (6, 1)
+    assert correction.correct_at_fixed_strengths(0, max_iterations=5) == (8, 1)
     assert calls == [('orbit_x', 0), ('orbit_y', 0), ('full', 0), ('tune', 1),
-                     ('optics', 2), ('full', 2), ('tune', 3), ('settle', 4),
-                     ('coupling', 4), ('orbit', 4), ('settle', 5), ('tune', 5)]
-    assert correction.correct_at_fixed_strengths(6, max_iterations=5) == (6, 0)
-    assert len(calls) == 12  # No work at an already accepted point.
+                     ('optics', 2), ('full', 2), ('tune', 3),
+                     ('orbit_x', 4), ('orbit_y', 4), ('full', 4),
+                     ('coupling', 5), ('full', 5),
+                     ('orbit_x', 6), ('orbit_y', 6), ('full', 6), ('tune', 7)]
+    assert correction.correct_at_fixed_strengths(8, max_iterations=5) == (8, 0)
+    assert len(calls) == 16  # No work at an already accepted point.
 
 
 @pytest.mark.parametrize('limit', [5, 40])
@@ -755,53 +756,36 @@ def test_tunes_allow_non_improving_iterations_until_limit(correction, monkeypatc
     assert correction.line['tune'] == 1.
 
 
-@pytest.mark.parametrize('outcome', ['improves', 'worsens', 'fails'])
-def test_settling_restores_failed_trial_before_continuing(correction, monkeypatch, outcome):
-    calls = []
+@pytest.mark.parametrize('fail_at', [None, 1, 3])
+def test_coupling_orbit_correction_is_unconditional_and_failures_propagate(
+        correction, monkeypatch, fail_at):
     before = correction.snapshot()
-    def apply(**kwargs):
+    orbit_calls = []
+    def apply(*, action_results, **kwargs):
+        orbit_calls.append(action_results[0])
         correction.line['orbit'] += 1.
-    correction.optimizers = SimpleNamespace(
-        orbit_x=stub_optimizer(run_lstsq=apply, correctable_error=lambda tw: np.array([1.])),
-        orbit_y=stub_optimizer(run_lstsq=lambda **kwargs: None,
-                               correctable_error=lambda tw: np.array([2.])),
-        coupling=stub_optimizer(), tunes=stub_optimizer())
-    def evaluate(kind):
-        def run(tw):
-            calls.append(kind)
-            if outcome == 'fails':
-                correction.last_accepted_twiss = object()
-                raise ValueError('Invalid orbit')
-            if outcome == 'worsens':
-                return -1
-            return tw + 1
-        return run
-
-    monkeypatch.setattr(correction, 'twiss',
-                        lambda tw, only_orbit=False: evaluate('orbit' if only_orbit else 'full')(tw))
-    def ensure_full(tw):
-        if outcome == 'fails':
-            assert correction.line['orbit'] == before.knob_values['orbit']
-            assert correction.last_accepted_twiss is before.last_accepted_twiss
-        return ('full', tw)
-    monkeypatch.setattr(correction, 'ensure_full_twiss', ensure_full)
-    correction.optimizers.tunes.correct = lambda *a, **kw: pytest.fail('Nested tune correction')
-    result = correction.settle_coupling_orbit(0)
-    if outcome == 'improves':
-        assert result == ('full', 3)
-        assert calls == ['orbit', 'orbit', 'full']
-    elif outcome == 'worsens':
-        assert result == ('full', -1)
-        assert calls == ['orbit', 'orbit', 'full']
+    correction.optimizers.orbit_x = stub_optimizer(run_lstsq=apply)
+    correction.optimizers.orbit_y = stub_optimizer(run_lstsq=apply)
+    correction.optimizers.coupling = stub_optimizer(
+        goal=lambda tw: False, run_lstsq=lambda **kwargs: None)
+    monkeypatch.setattr(correction, 'log_iteration', lambda *args: None)
+    monkeypatch.setattr(correction, 'goals_met', lambda tw: tw == 3)
+    monkeypatch.setattr(correction, 'snapshot', lambda: pytest.fail('Unexpected local rollback'))
+    def evaluate(tw, *, only_orbit=False):
+        assert not only_orbit
+        if tw + 1 == fail_at:
+            raise ValueError('Invalid orbit')
+        return tw + 1
+    monkeypatch.setattr(correction, 'twiss', evaluate)
+    if fail_at is None:
+        assert correction.correct_at_fixed_strengths(0, max_iterations=1) == (3, 1)
+        assert orbit_calls == [0, 0, 2, 2]  # Even though ordinary orbit goals are met.
     else:
-        assert result == ('full', 0)
-        assert calls == ['orbit']
-
-    calls.clear()
-    for opt in (correction.optimizers.orbit_x, correction.optimizers.orbit_y):
-        opt.correctable_error = lambda tw: np.array([0.])
-    assert correction.settle_coupling_orbit(0) == ('full', 0)
-    assert calls == []
+        with pytest.raises(ValueError, match='Invalid orbit'):
+            correction.correct_at_fixed_strengths(0, max_iterations=1)
+        assert correction.line['orbit'] > before.knob_values['orbit']
+        correction.restore(before)  # The outer caller owns rollback.
+        assert correction.line['orbit'] == before.knob_values['orbit']
 
 
 def test_module_metrics_match_expected_errors(correction, monkeypatch):

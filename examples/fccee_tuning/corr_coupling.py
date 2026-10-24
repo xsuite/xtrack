@@ -24,7 +24,6 @@ DEFAULT_COUPLING_CORR_SETTINGS = SimpleNamespace(
     intermediate_dispersion_rms_tol=0.005,
     intermediate_dispersion_ip_tol=0.0001,
     dispersion_weight=1.,
-    orbit_tol=5e-8,
     step_scale=0.5,
 )
 
@@ -69,7 +68,6 @@ def build_coupling_corr_optimizer(line, reference, *, observation_names, ip_name
     optimizer.set_response(response)
 
     optimizer.step_scale = settings.step_scale
-    optimizer.orbit_tol = settings.orbit_tol
     optimizer.rdt_rms_tol = settings.intermediate_coupling_rms_tol
     optimizer.rdt_ip_tol = settings.intermediate_coupling_ip_tol
     optimizer.c_minus_tol = settings.intermediate_c_minus_tol
