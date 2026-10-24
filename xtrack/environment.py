@@ -3,7 +3,7 @@ import json
 import re
 import uuid
 from collections import Counter, UserDict
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from contextlib import contextmanager
 from copy import deepcopy
 from pathlib import Path
@@ -1955,13 +1955,20 @@ class Environment:
 
         Parameters
         ----------
-        name : str or iterable of str
-            Name or names of the variable(s) or element(s).
-        value : float, str or iterable
+        name : str, iterable of str, mapping or Table
+            Name or names of the variable(s) or element(s). A mapping supplies
+            variable names and values. A table supplies variable names from its
+            ``name`` column and values from its ``value`` column.
+        value : float, str or iterable, optional
             Value or expression of the variable to set. For multiple variable
             names, an iterable supplies one value or expression per name and
             must have the same length. A scalar is applied to every name.
             Can be provided only if the names are associated to variables.
+            For a mapping or table, an explicit positional value overrides the
+            stored values. Iterables follow key or row order; scalars (including
+            expression strings) broadcast to all names. With an override, a table
+            needs only the ``name`` column. Mapping and table inputs accept no
+            keyword arguments.
         **kwargs : float or str
             Attributes to set. Can be provided only if the name is associated
             to an element.
@@ -1976,8 +1983,32 @@ class Environment:
         >>> line.set(['e', 'f'], '3*a')
         >>> line.set(['c', 'd'], [0.1, 0.2])
         >>> line.set(['e', 'f'], ['3*a', '4*a'])
+        >>> line.set({'c': 0.1, 'd': '2*a'})
+        >>> line.set({'c': 0.1, 'd': 0.2}, 0.)
+        >>> line.set(table)  # table with name and value columns
+        >>> line.set(table, [0.1, 0.2])  # table with two rows
+        >>> line.set(table, 0.)
 
         '''
+        if isinstance(name, (Mapping, xd.Table)):
+            if len(args) > 1 or kwargs:
+                raise ValueError('Mapping or table input accepts at most one value override '
+                                 'and no keyword arguments')
+            if isinstance(name, Mapping):
+                names = list(name.keys())
+                values = args[0] if args else name.values()
+            else:
+                if 'name' not in name._col_names:
+                    raise ValueError('Table must have a name column')
+                if not args and 'value' not in name._col_names:
+                    raise ValueError('Table must have a value column when no override is supplied')
+                names = name['name']
+                values = args[0] if args else name['value']
+            if (not isinstance(values, Iterable) or isinstance(values, (str, bytes))
+                    or (isinstance(values, np.ndarray) and values.ndim == 0)):
+                values = [values] * len(names)
+            return self.set(names, values)
+
         if hasattr(name, 'env_name'):
             name = name.env_name
         elif hasattr(name, 'name'):

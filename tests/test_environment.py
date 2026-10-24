@@ -305,6 +305,96 @@ def test_set_broadcasting_unchanged(container_type):
         np.testing.assert_allclose(env[name].knl, [1., 12.])
 
 
+@pytest.mark.parametrize('container_type', ['env', 'line'])
+@pytest.mark.parametrize('input_type', ['dict', 'mapping', 'table', 'xdeps_table'])
+def test_set_mapping_or_table(container_type, input_type):
+    env = xt.Environment()
+    line = env.new_line([])
+    target = env if container_type == 'env' else line
+    env['source'] = 2.
+    env['a'] = env['b'] = 0.
+    env['sum'] = 'a + b'
+    env.new('q', xt.Quadrupole, k1='a + b')
+    # Deliberately use non-alphabetic order for overrides.
+    data = {'b': '3*source', 'a': 1.}
+    if input_type == 'dict':
+        assignments = data
+    elif input_type == 'mapping':
+        assignments = types.MappingProxyType(data)
+    else:
+        table_class = xt.Table if input_type == 'table' else xd.Table
+        assignments = table_class({
+            'name': np.array(list(data)),
+            'value': np.array(list(data.values()), dtype=object)})
+    target.set(assignments)
+    assert target.get(['a', 'b', 'sum']) == [1., 6., 7.]
+    target.set('source', 4.)
+    assert env['b'] == 12. and env['q'].k1 == 13.
+
+    target.set(assignments, [5., 7.])
+    assert target.get(['a', 'b', 'sum']) == [7., 5., 12.]
+    target.set(assignments, iter([8., 9.]))
+    assert target.get(['a', 'b']) == [9., 8.]
+    for scalar in (0., np.array(2.), '2*source'):
+        target.set(assignments, scalar)
+        expected = 8. if isinstance(scalar, str) else float(scalar)
+        assert env['a'] == env['b'] == expected
+        assert env['q'].k1 == 2 * expected
+    target.set('source', 6.)
+    assert env['a'] == env['b'] == 12.
+
+    with pytest.raises(ValueError, match='same length'):
+        target.set(assignments, [1.])
+    with pytest.raises(ValueError, match='at most one'):
+        target.set(assignments, 1., 2.)
+    with pytest.raises(ValueError, match='no keyword arguments'):
+        target.set(assignments, k1=1.)
+    assert env['a'] == env['b'] == 12.
+
+
+@pytest.mark.parametrize('container_type', ['env', 'line'])
+def test_set_table_columns_and_variable_table(container_type):
+    env = xt.Environment()
+    line = env.new_line([])
+    target = env if container_type == 'env' else line
+    target.set({'a': 1., 'b': 2.})
+    saved = target.vars.get_table().rows[['b', 'a']]
+    target.set(saved, 0.)
+    assert target.get(['a', 'b']) == [0., 0.]
+    target.set(saved)
+    assert target.get(['a', 'b']) == [1., 2.]
+
+    names_only = xt.Table({'name': np.array(['b', 'a'])})
+    with pytest.raises(ValueError, match='value column'):
+        target.set(names_only)
+    target.set(names_only, [3., 4.])
+    assert target.get(['a', 'b']) == [4., 3.]
+    with pytest.raises(ValueError, match='name column'):
+        target.set(xt.Table({'value': np.array([1.])}, index=None), 0.)
+    target.set({})
+    target.set(xt.Table({'name': np.array([], dtype=str)}), 0.)
+    assert target.get(['a', 'b']) == [4., 3.]
+
+
+@pytest.mark.parametrize('container_type', ['env', 'line'])
+@pytest.mark.parametrize('input_type', ['dict', 'table'])
+@pytest.mark.parametrize('invalid_name', ['q', 'my_line'])
+@pytest.mark.parametrize('override', [(), (0.,)])
+def test_set_mapping_or_table_rejects_elements_before_mutation(
+        container_type, input_type, invalid_name, override):
+    env = xt.Environment()
+    env['a'] = 1.
+    env.new('q', xt.Quadrupole, k1=1.)
+    line = env.new_line(['q'], name='my_line')
+    target = env if container_type == 'env' else line
+    data = {'a': 2., invalid_name: 3.}
+    if input_type == 'table':
+        data = xt.Table({'name': np.array(list(data)), 'value': np.array(list(data.values()))})
+    with pytest.raises(ValueError):
+        target.set(data, *override)
+    assert env['a'] == 1. and env['q'].k1 == 1.
+
+
 def test_element_placing_at_s():
 
     env = xt.Environment()

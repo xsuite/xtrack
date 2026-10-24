@@ -6763,13 +6763,20 @@ class Line:
 
         Parameters
         ----------
-        name : str or iterable of str
-            Name or names of the variable(s) or element(s).
-        value : float, str or iterable
+        name : str, iterable of str, mapping or Table
+            Name or names of the variable(s) or element(s). A mapping supplies
+            variable names and values. A table supplies variable names from its
+            ``name`` column and values from its ``value`` column.
+        value : float, str or iterable, optional
             Value or expression of the variable to set. For multiple variable
             names, an iterable supplies one value or expression per name and
             must have the same length. A scalar is applied to every name.
             Can be provided only if the names are associated to variables.
+            For a mapping or table, an explicit positional value overrides the
+            stored values. Iterables follow key or row order; scalars (including
+            expression strings) broadcast to all names. With an override, a table
+            needs only the ``name`` column. Mapping and table inputs accept no
+            keyword arguments.
         **kwargs, float or str
             Attributes to set. Can be provided only if the name is associated
             to an element.
@@ -6784,6 +6791,11 @@ class Line:
         >>> line.set(['e', 'f'], '3*a')
         >>> line.set(['c', 'd'], [0.1, 0.2])
         >>> line.set(['e', 'f'], ['3*a', '4*a'])
+        >>> line.set({'c': 0.1, 'd': '2*a'})
+        >>> line.set({'c': 0.1, 'd': 0.2}, 0.)
+        >>> line.set(table)  # table with name and value columns
+        >>> line.set(table, [0.1, 0.2])  # table with two rows
+        >>> line.set(table, 0.)
 
         '''
         self.env.set(name, *args, **kwargs)
