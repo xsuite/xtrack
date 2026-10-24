@@ -36,12 +36,12 @@ there is no correction history list or `history.csv` output.
 `FCCeeCorrection.run(target_error_fraction=1., initial_increment=0.0125,
 min_increment=1e-5, max_increment=0.10)` calls two separate public methods:
 
-- `increase_errors_and_correct(...)` increases errors and nonlinear strengths
+- `iterative_error_increase_and_correction(...)` increases errors and nonlinear strengths
   together, extrapolates existing corrections, evaluates Twiss, and runs the
   custom fixed-strength sequence. Rejected trials are restored and the increment
   is halved. Successful trials update the accepted state. An accepted trial needing at most
   three cycles grows the next increment by 1.25, capped at `max_increment`.
-- `refine()` switches to final tolerances and corrects the current accepted state,
+- `refine_correction()` switches to final tolerances and corrects the current accepted state,
   including at fractions below one. It starts from `last_accepted_twiss` and does no
   extra work when the final goals are already met. A failed refinement restores
   its starting machine while retaining the final tolerances.
@@ -80,6 +80,11 @@ definitions:
   response solves and BPM-frame orbit goals.
 - `corr_coupling.build_coupling_corr_optimizer`: RDTs, vertical dispersion and c_minus.
 - `corr_tune.build_tune_corr_optimizer`: nominal tune targets and response.
+
+Tune correction varies independent offsets `dkqf2_tune` and `dkqd1_tune`.
+The original `kqf2` and `kqd1` family variables remain unchanged. The installer
+follows their quadrupole connections and adds equivalent offsets to `k1`,
+recording the connections so reloading does not attach them twice.
 
 Each module owns its settings constant, targets, varies, response construction,
 solve cutoff, reference/observation data, nominal knob values, `compute_metrics(tw)`,
@@ -126,8 +131,8 @@ weights and cutoffs are configured during construction; `optimizer.rcond` remain
 directly editable. There is no central schema of correction-specific settings.
 
 Builders initialize constant tolerances and the active intermediate limits.
-`increase_errors_and_correct()` explicitly sets the intermediate optics Dx and
-coupling RDT/c_minus/Dy limits; `refine()` explicitly sets the final limits.
+`iterative_error_increase_and_correction()` explicitly sets the intermediate optics Dx and
+coupling RDT/c_minus/Dy limits; `refine_correction()` explicitly sets the final limits.
 Each passes its iteration budget to `correct_at_fixed_strengths(tw, *, max_iterations)`.
 There is no stored refinement phase. Snapshots contain only machine controls and
 `last_accepted_twiss`; restoring does not change optimizer tolerances.

@@ -17,3 +17,4 @@ xtrack/prebuilt_kernels
 checkpoint_restart.dat
 .idea
 .claude/
+/examples/fccee_tuning/from_satya/

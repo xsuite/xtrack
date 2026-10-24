@@ -95,7 +95,7 @@ def test_increase_errors_restores_rejected_trial_and_retries(correction, monkeyp
 
     monkeypatch.setattr(correction, 'twiss', twiss)
     monkeypatch.setattr(correction, 'correct_at_fixed_strengths', correct)
-    assert correction.increase_errors_and_correct(
+    assert correction.iterative_error_increase_and_correction(
         target_error_fraction=.4, initial_increment=.1,
         min_increment=.0125, max_increment=.1)
     np.testing.assert_allclose(attempts, [.3, .25, .3, .3625, .4])
@@ -114,7 +114,7 @@ def test_error_increment_growth_is_capped_and_target_is_exact(correction, monkey
         return tw, 3
 
     monkeypatch.setattr(correction, 'correct_at_fixed_strengths', correct)
-    assert correction.increase_errors_and_correct(
+    assert correction.iterative_error_increase_and_correction(
         target_error_fraction=.4, initial_increment=.05, max_increment=.06)
     np.testing.assert_allclose(attempts, [.25, .31, .37, .4])
     assert correction.error_fraction == .4
@@ -123,7 +123,7 @@ def test_error_increment_growth_is_capped_and_target_is_exact(correction, monkey
 def test_run_stops_after_minimum_increment_and_can_save_partial(correction, monkeypatch, tmp_path):
     attempts = []
     monkeypatch.setattr(correction, 'twiss', lambda seed: correction.last_accepted_twiss)
-    monkeypatch.setattr(correction, 'refine', lambda: pytest.fail('Unexpected refinement'))
+    monkeypatch.setattr(correction, 'refine_correction', lambda: pytest.fail('Unexpected refinement'))
 
     def correct(tw, *, max_iterations):
         attempts.append(correction.error_fraction)
@@ -200,7 +200,7 @@ def test_refine_failure_restores_accepted_state(correction, monkeypatch):
         raise RuntimeError('Iteration budget exhausted')
 
     monkeypatch.setattr(correction, 'correct_at_fixed_strengths', fail)
-    assert not correction.refine()
+    assert not correction.refine_correction()
     assert correction.snapshot().knob_values == before.knob_values
     assert correction.last_accepted_twiss is before.last_accepted_twiss
     assert correction.optimizers.optics.dx_err_ip_tol == correction.optimizers.optics.settings.horizontal_dispersion_ip_tol
@@ -212,7 +212,7 @@ def test_refine_already_satisfied_does_no_work(correction, monkeypatch):
     monkeypatch.setattr(correction, 'twiss', lambda: pytest.fail('Unexpected Twiss'))
     monkeypatch.setattr(correction, 'correct_at_fixed_strengths',
                         lambda tw, **kwargs: pytest.fail('Unexpected correction'))
-    assert correction.refine()
+    assert correction.refine_correction()
     assert correction.optimizers.optics.dx_err_ip_tol == correction.optimizers.optics.settings.horizontal_dispersion_ip_tol
     assert not correction.correction_failed
     assert correction.failure_reason is None
@@ -262,7 +262,7 @@ def test_refine_keeps_returned_twiss_without_extra_evaluation_or_history(correct
     monkeypatch.setattr(correction, 'goals_met', lambda tw: False)
     monkeypatch.setattr(correction, 'correct_at_fixed_strengths',
                         lambda seed, **kwargs: (tw, 1))
-    assert correction.refine()
+    assert correction.refine_correction()
     assert messages == ['Final refinement', 'Accepted']
     assert correction.last_accepted_twiss is tw
     assert correction.line.twiss_default == defaults
@@ -373,9 +373,9 @@ def test_execution_methods_set_limits_and_snapshots_leave_them_unchanged(correct
         for opt, attr, _ in limits:
             setattr(opt, attr, -1.)
         if prefix:
-            assert correction.increase_errors_and_correct(target_error_fraction=correction.error_fraction)
+            assert correction.iterative_error_increase_and_correction(target_error_fraction=correction.error_fraction)
         else:
-            assert correction.refine()
+            assert correction.refine_correction()
         for opt, attr, setting in limits:
             assert getattr(opt, attr) == getattr(opt.settings, prefix + setting)
         assert orbit.orbit_tol == 1e-5

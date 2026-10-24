@@ -5,20 +5,31 @@ All settings are below; 002_correct_with_state.py consumes the saved line.
 """
 
 from pathlib import Path
+import argparse
 
 import xtrack as xt
 
 from error_recipe import get_bpm_alignment
 import corr_optics
+import corr_tune
 
 HERE = Path(__file__).resolve().parent
 INPUT = HERE / 'fccee_z_lcc_errors.json'
 OUTPUT = HERE / 'fccee_z_lcc_correction_knobs.json'
 TUNE_KNOBS = ['kqf2', 'kqd1']
 
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument('--input', type=Path, default=INPUT)
+parser.add_argument('--output', type=Path, default=OUTPUT)
+args = parser.parse_args()
+INPUT, OUTPUT = args.input, args.output
+
 # Install independent correction circuits on the lattice with errors.
-env = xt.load(INPUT)
-line = env.fccee_p_ring
+loaded = xt.load(INPUT)
+line = loaded if isinstance(loaded, xt.Line) else loaded.fccee_p_ring
+env = line.env
+if 'tuning_errors' in line.metadata:
+    env.metadata['tuning_errors'] = line.metadata['tuning_errors']
 if 'tuning_errors' not in env.metadata:
     raise ValueError('Run 000_install_errors.py first')
 if 'correction_knobs' in line.metadata:
@@ -135,7 +146,7 @@ print('Independent skew-quadrupole trims:', len(skew_knobs))
 corr_optics.install_optics_knobs(line)
 optics_circuits = line.metadata['correction_knobs']['optics']
 
-# Existing tune-family knobs are reused; keep their nominal values for the ramp.
+# Keep nominal tune families and attach independent correction offsets below.
 line.metadata['tuning_errors'] = env.metadata['tuning_errors']
 line.metadata['correction_knobs'] = dict(
     orbit={
@@ -163,5 +174,6 @@ line.metadata['correction_knobs'] = dict(
     nonlinear_magnets=nonlinear_magnets,
     added_correctors=added_correctors,
 )
+corr_tune.install_tune_knobs(line)
 line.to_json(OUTPUT)
 print('Saved', OUTPUT)

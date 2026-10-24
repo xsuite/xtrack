@@ -158,14 +158,14 @@ class FCCeeCorrection:
         A successful target below one is supported. The return value reports
         success at the requested fraction, including final refinement.
         """
-        if not self.increase_errors_and_correct(
+        if not self.iterative_error_increase_and_correction(
                 target_error_fraction=target_error_fraction,
                 initial_increment=initial_increment,
                 min_increment=min_increment, max_increment=max_increment):
             return False
-        return self.refine()
+        return self.refine_correction()
 
-    def increase_errors_and_correct(self, *, target_error_fraction=1.,
+    def iterative_error_increase_and_correction(self, *, target_error_fraction=1.,
                                     initial_increment=0.0125,
                                     min_increment=1e-5, max_increment=0.10):
         """Increase errors/nonlinear strengths together, correcting each trial.
@@ -221,7 +221,7 @@ class FCCeeCorrection:
                 increment = min(1.25 * increment, max_increment)
         return True
 
-    def refine(self):
+    def refine_correction(self):
         """Refine the accepted state at its current error fraction; return success."""
         self.failure_reason = None
         optics = self.optimizers.optics
@@ -345,6 +345,8 @@ class FCCeeCorrection:
         line.set(orbit_knobs, np.zeros(len(orbit_knobs)))
         line['on_errors'] = 0.0
         line['on_nonlinear'] = 0.0
+        corr_tune.install_tune_knobs(line)
+        line.set(circuits['tunes']['family_nominal_values'])
         line.set(circuits['tunes']['nominal_values'])
         line.twiss_default['co_guess'] = dict(x=0, px=0, y=0, py=0, zeta=0, delta=0)
         self.reference = self.twiss()
