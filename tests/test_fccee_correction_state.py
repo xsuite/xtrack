@@ -476,7 +476,8 @@ def test_additional_correction_participates_in_workflow(correction):
 
 def test_optics_goal_computes_errors_without_aggregate_metrics(correction, monkeypatch):
     reference = SimpleNamespace(
-        betx=np.ones(1000), bety=np.ones(1000), dx=np.zeros(1000), qx=0., qy=0.)
+        betx=np.ones(1000), bety=np.ones(1000), dx=np.zeros(1000),
+        alfx=np.zeros(1000), alfy=np.zeros(1000), qx=0., qy=0.)
     opt = diagnostic_optimizer('corr_optics', 'DEFAULT_OPTICS_CORR_SETTINGS', reference)
     opt.dispersion_indices = np.array([0, 1])
     opt.ip_indices = np.array([1])
@@ -534,7 +535,7 @@ def test_optics_targets_use_relative_beta_and_physical_alpha(correction, monkeyp
     physical_response[:2] *= np.array([10., 20.])[:, None]
     settings = copy(module.DEFAULT_OPTICS_CORR_SETTINGS)
     weights = np.array([settings.ir_beta_weight, settings.ir_beta_weight,
-                        settings.alpha_weight, settings.alpha_weight,
+                        settings.alpha_ip_weight, settings.alpha_ip_weight,
                         (settings.beta_err_rms_tol / settings.horizontal_dispersion_rms_tol)
                         * (settings.ir_beta_weight * settings.horizontal_dispersion_rms_tol
                            / settings.horizontal_dispersion_ip_tol), 1000., 1000.])
@@ -830,10 +831,11 @@ def test_module_metrics_match_expected_errors(correction, monkeypatch):
     import xdeps as xd
 
     orbit = importlib.import_module('corr_orbit')
-    columns = ['name', 'betx', 'bety', 'dx', 'dy', 'f1001', 'f1010', 'x', 'y']
+    columns = ['name', 'betx', 'bety', 'alfx', 'alfy', 'dx', 'dy', 'f1001', 'f1010', 'x', 'y']
     reference = xd.Table(dict(
         name=np.array(['bpm1', 'other', 'bpm2', 'ip']),
         betx=np.array([10., 20., 30., 40.]), bety=np.array([15., 25., 35., 45.]),
+        alfx=np.zeros(4), alfy=np.zeros(4),
         dx=np.array([.1, .2, .3, .4]), dy=np.array([.01, .02, .03, .04]),
         f1001=np.array([.01j, .02, -.03j, .04]),
         f1010=np.array([-.01, .02j, .03, -.04j]),
@@ -842,6 +844,8 @@ def test_module_metrics_match_expected_errors(correction, monkeypatch):
                    for key in columns + ['qx', 'qy', 'c_minus']}, col_names=columns)
     tw.betx[:] *= [1.01, 1.2, .98, 1.03]
     tw.bety[:] *= [.99, .8, 1.02, .97]
+    tw.alfx[:] = [0., 1., 0., .0003]
+    tw.alfy[:] = [0., 2., 0., -.0002]
     tw.dx[:] += [.001, .1, -.002, .00004]
     tw.dy[:] += [.0001, .2, -.0002, -.00001]
     tw.f1001[:] += [.001 + .002j, .3, -.002j, .0004]
@@ -878,6 +882,7 @@ def test_module_metrics_match_expected_errors(correction, monkeypatch):
         orbit_y_rms=np.sqrt(np.mean((-x * np.sin(roll) + y * np.cos(roll))**2)),
         beta_err_rms=np.full(2, np.sqrt((.01**2 + .2**2 + .02**2 + .03**2) / 4)),
         beta_err_max=np.array([.2, .2]),
+        alpha_err_ip=np.array([.0003, .0002]),
         tunes=np.array([.310001, .319998]),
         tune_error=np.array([.310001 - .31, .319998 - .32]),
         dx_err_rms=np.sqrt((.001**2 + .002**2 + .00004**2) / 3),

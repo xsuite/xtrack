@@ -1,5 +1,5 @@
 """Analytical response assembly from actual targets and compound knobs."""
-from copy import copy
+from copy import copy, deepcopy
 from pathlib import Path
 import importlib
 from types import SimpleNamespace
@@ -197,6 +197,7 @@ def test_optics_targets_are_built_per_location(optics_problem):
     assert [target.tar for target in built.targets] == expected_keys
     expected_weights = np.r_[np.array([5., 5., .1, .1, 30., 1., 1., .1, .1, 1500.])
                              / np.sqrt(2), 1000., 1000.]
+    expected_weights[7:9] = settings.alpha_ip_weight  # One IP, not two observations.
     for target, key, weight in zip(built.targets, expected_keys, expected_weights):
         assert target.value == reference[key]
         if isinstance(key, tuple) and key[0] in ('betx', 'bety'):
@@ -205,3 +206,21 @@ def test_optics_targets_are_built_per_location(optics_problem):
         else:
             assert target.weight == pytest.approx(weight)
             assert target.tol == 1e-15
+
+
+@pytest.mark.parametrize('plane', ['x', 'y'])
+def test_optics_goal_rejects_ip_alpha_error(optics_problem, plane):
+    module, line, reference, opt, keys = optics_problem
+    built = module.build_opt_corr_optimizer(
+        line, reference, knobs=['trim', 'family'],
+        observation_names=['qf1', 'qd6'], interaction_points=['qd6'],
+        ip_names=['qd6'])
+    tw = deepcopy(reference)
+    assert built.goal(tw)
+    index = reference.rows.indices['qd6']
+    tw['alf' + plane][index] += 2 * built.alpha_ip_tol
+    assert not built.goal(tw)
+    np.testing.assert_allclose(built.compute_metrics(tw)['alpha_err_ip'],
+                               [2 * built.alpha_ip_tol if p == plane else 0. for p in 'xy'])
+    tw['alf' + plane][index] = reference['alf' + plane][index] + .5 * built.alpha_ip_tol
+    assert built.goal(tw)

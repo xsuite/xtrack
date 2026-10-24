@@ -15,6 +15,8 @@ DEFAULT_OPTICS_CORR_SETTINGS = SimpleNamespace(
     beta_err_max_tol=0.5,
     tune_tol=1e-5,
     alpha_weight=0.1,
+    alpha_ip_weight=10.,
+    alpha_ip_tol=1e-3,
     ir_beta_weight=5.,
     ir_half_length=500.,
     horizontal_dispersion_rms_tol=0.001,
@@ -94,6 +96,10 @@ def build_opt_corr_optimizer(line, reference, *, knobs, observation_names,
         targets.append(target)
 
         weight = settings.alpha_weight / np.sqrt(len(observation_names))
+        if name in ip_names:
+            # Keep the four waist constraints significant independently of the
+            # number of BPMs; the ordinary alpha targets still constrain shape.
+            weight = settings.alpha_ip_weight / np.sqrt(len(ip_names))
         target = xt.Target('alfx', at=name, value=reference['alfx', name],
                            action=action, weight=weight, tol=1e-15,
                            tag=f'alfx@{name}')
@@ -139,6 +145,7 @@ def build_opt_corr_optimizer(line, reference, *, knobs, observation_names,
     optimizer.beta_err_rms_tol = settings.beta_err_rms_tol
     optimizer.beta_err_max_tol = settings.beta_err_max_tol
     optimizer.tune_tol = settings.tune_tol
+    optimizer.alpha_ip_tol = settings.alpha_ip_tol
     optimizer.dx_err_rms_tol = settings.intermediate_horizontal_dispersion_rms_tol
     optimizer.dx_err_ip_tol = settings.intermediate_horizontal_dispersion_ip_tol
 
@@ -146,7 +153,7 @@ def build_opt_corr_optimizer(line, reference, *, knobs, observation_names,
 
 
 def compute_metrics(optimizer, tw):
-    """Whole-ring beta beating and horizontal dispersion errors at BPMs/IPs."""
+    """Beta beating, IP waist errors and horizontal dispersion errors."""
     reference = optimizer.reference
     dispersion_indices = optimizer.dispersion_indices
     ip_indices = optimizer.ip_indices
@@ -157,6 +164,9 @@ def compute_metrics(optimizer, tw):
         beta_err_rms=np.array([np.sqrt(np.mean(beta_x_error**2)),
                            np.sqrt(np.mean(beta_y_error**2))]),
         beta_err_max=np.array([np.max(np.abs(beta_x_error)), np.max(np.abs(beta_y_error))]),
+        alpha_err_ip=np.array([
+            np.max(np.abs((tw.alfx - reference.alfx)[ip_indices])),
+            np.max(np.abs((tw.alfy - reference.alfy)[ip_indices]))]),
         dx_err_rms=float(np.sqrt(np.mean(dx_error[dispersion_indices]**2))),
         dx_err_ip=float(np.max(np.abs(dx_error[ip_indices]))),
     )
@@ -166,6 +176,7 @@ def goal(optimizer, tw):
     m = optimizer.compute_metrics(tw)
     return bool(np.all(m['beta_err_rms'] < optimizer.beta_err_rms_tol)
                 and np.all(m['beta_err_max'] < optimizer.beta_err_max_tol)
+                and np.all(m['alpha_err_ip'] < optimizer.alpha_ip_tol)
                 and m['dx_err_rms'] < optimizer.dx_err_rms_tol
                 and m['dx_err_ip'] < optimizer.dx_err_ip_tol
                 and corr_tune.tune_goal(tw, optimizer.reference, tolerance=optimizer.tune_tol))
@@ -174,7 +185,8 @@ def goal(optimizer, tw):
 def print_metrics(optimizer, tw, *, log=print):
     m = optimizer.compute_metrics(tw)
     log('Optics: beta error RMS/max [%]', 100 * m['beta_err_rms'], 100 * m['beta_err_max'],
-        'Dx error RMS/IP [mm]', 1e3 * m['dx_err_rms'], 1e3 * m['dx_err_ip'])
+        'Dx error RMS/IP [mm]', 1e3 * m['dx_err_rms'], 1e3 * m['dx_err_ip'],
+        'IP alpha max error [x,y]', m['alpha_err_ip'])
 
 
 def build_normal_quad_optics_response_matrix(optimizer, reference):
