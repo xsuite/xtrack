@@ -86,10 +86,82 @@ root. Set `INPUT` to the desired machine path before running. `SHOW_PLOTS = True
 by default keeps both figures open while still saving the artifacts.
 Set it to `False` for batch runs to close figures after saving.
 
-DA/MA implementation and tracking scans are deferred at the user's request.
-The chosen MA definition for that future work is off-momentum closed-orbit
-launches at `ipa` with a small transverse amplitude. Turns, amplitudes and
-scan ranges still need to be settled and timed before a substantial scan.
+## 6D DA/MA comparison at the septum
+
+`006_da_ma_6d.py` compares the standard clean and corrected machines. This is
+a separate 6D study: the user now requested active RF, synchrotron radiation
+and tapering, replacing the earlier proposal of fixed-delta launches at `ipa`.
+Both lines are cycled to the exact element `septum`. Clean controls are restored
+using the same recipe as `003`; neither the input machine nor correction knobs
+are rewritten. Each machine is independently tapered with mean radiation and
+zero mean energy deviation. An independent closed-orbit search at `ipd` recovers
+the 6D orbit, and an additional physical one-turn track checks closure.
+
+The user selected a preliminary **300-turn** comparison, geometric emittances
+0.71 nm / 1.4 pm, and a coarse grid. Both machines use identical settings:
+
+- DA: 16 polar angles covering all quadrants and 11 radii from 0 to 20 sigma;
+  zero normalized momenta and zero initial momentum offset from the closed orbit.
+- MA: 13 initial momentum offsets from -3% to +3% and 11 signed equal transverse
+  amplitudes from -20 to +20 sigma. Four phases (0, pi/4, pi/2, 3pi/4) are applied
+  at each signed amplitude, with the same phase in both transverse modes.
+  Positive and negative amplitudes together cover eight directions. The plotted
+  color averages completed turns over four phases per sign; a white contour
+  separates cells with all four phases surviving from cells with at least one loss.
+- Separate mean-radiation and quantum-radiation runs. Tapering always uses mean
+  radiation. Quantum tracking uses one reproducible random seed per particle,
+  with the same seed assignment in clean/corrected cases. This is one lattice
+  error realization and one quantum realization per launch, not an ensemble study.
+
+Transverse coordinates use each machine's 6D normal-form matrix at the septum
+and the same geometric emittances. Initial physical zeta equals the synchronous
+closed-orbit value; initial delta equals its local closed-orbit value plus the
+scan offset. The six launch constraints include the linear dispersive offsets.
+They are not nonlinear off-momentum closed orbits. Neither zeta nor delta is
+frozen during tracking. No beam-beam or beamstrahlung model is added. Input
+physical apertures and the global tracking aperture are retained and recorded;
+no chamber aperture is invented. Survival means the tracking state remains
+positive through the requested turns. MA denotes this initial-delta versus
+transverse-amplitude survival map, not local Touschek acceptance or lifetime.
+
+The recipe is inspired by the [July ESRF presentation, slide 5](https://indico.cern.ch/event/1704042/contributions/7166876/attachments/3307462/5918024/LCC_tuning02072026.pdf)
+(eight phases and equal normalized amplitudes) and the
+[February GHC study, slides 9–14](https://indico.cern.ch/event/1648395/contributions/6928073/attachments/3219867/5737223/Optics_tuning_of_the_Fccee_xsuite_incl_RDT_correction_Satya_13_FEB_2026.pdf)
+(2500 turns, radiation with/without quantum excitation). The septum, 300 turns,
+coarse grid, and explicit equal-phase pairing are settings of this comparison;
+this is not an exact reproduction of either team's complete simulation.
+
+Settings are at the top, with no argument parser and `SHOW_PLOTS=True`.
+`TRACKING_THREADS=8` enables OpenMP for tracking; BLAS stays single-threaded.
+Each case runs a small timing pilot before the scan and logs its projection.
+`RUN_SCANS=False` performs preparation and pilots only. There are two figures,
+DA and MA, with clean/corrected columns and mean/quantum rows. PNG/PDF files,
+per-case NPZ launch and loss data (in particle-ID order), optics, and a JSON
+summary are saved under `analysis/da_ma_6d`. The summary records input SHA256,
+closure residuals, aperture policy, settings, timings and completion status.
+Initial transverse coordinates are normal coordinates, not laboratory x/y
+divided by a common beam size; the NPZ also retains physical launch coordinates.
+The stashed phase/chromatic studies remain separate from this script.
+
+Validation on 2026-10-24 used input SHA256
+`2268eecc2db8d2d38dd8383e5bb24f4c3fd85d0bc0dd6dc758d79435d27eddc7`.
+The full eight scans finished in 464.9 s on eight tracking threads, with
+single-threaded BLAS. The independent 6D closure residuals were below 1.5e-12
+in x/y/zeta and 8.6e-14 in delta. All 176 DA launches survived for the clean
+machine in both radiation models. The corrected machine retained 163 with mean
+radiation and 156 with quantum excitation; the first sampled losses occurred at
+radius 16 sigma. The clean DA boundary was not reached within the 20-sigma grid.
+The corrected MA map was smaller at finite transverse amplitude. At zero initial
+transverse amplitude, all four cases survived the sampled delta points through
+both -1% and +1%; the next points, +/-1.5%, did not survive. These coarse,
+300-turn results do not establish converged acceptance limits.
+
+Three launch/action and loss-ordering tests passed. Artifact validation checked
+all eight cases, matching launch grids, physical zeta/delta constraints, loss
+turn bookkeeping, and the unchanged input SHA256. Both optics NPZ files use
+string arrays for element names, so the artifacts load without pickle.
+Run log: `/tmp/fccee_6d_aperture_OMxkfW/comparison.log`.
+Results and validation: `analysis/da_ma_6d/summary.json` and `verification.json`.
 
 ## Executing the correction
 
