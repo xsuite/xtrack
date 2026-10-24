@@ -24,8 +24,8 @@ optimizers and accepted state inspectable.
 ## Executing the correction
 
 `accept(tw)` replaces `record(...)`: after a successful trial, it updates
-`accepted_twiss` and prints `Accepted`. Subsequent Twiss calls use
-`accepted_twiss.particle_on_co` as `co_guess`, keeping the closed-orbit search
+`last_accepted_twiss` and prints `Accepted`. Subsequent Twiss calls use
+`last_accepted_twiss.particle_on_co` as `co_guess`, keeping the closed-orbit search
 active after knob changes. There is no separate default-guess copy to update
 or restore; snapshots retain the accepted table. This seed is not stored in
 `line.twiss_default`, so saving the line does not serialize a particle there.
@@ -42,7 +42,7 @@ min_increment=1e-5, max_increment=0.10)` calls two separate public methods:
   is halved. Successful trials update the accepted state. An accepted trial needing at most
   three cycles grows the next increment by 1.25, capped at `max_increment`.
 - `refine()` switches to final tolerances and corrects the current accepted state,
-  including at fractions below one. It starts from `accepted_twiss` and does no
+  including at fractions below one. It starts from `last_accepted_twiss` and does no
   extra work when the final goals are already met. A failed refinement restores
   its starting machine while retaining the final tolerances.
 
@@ -65,7 +65,7 @@ There is no checkpoint or disk-resume mechanism. The explicit
 Twiss evaluation is centralized in `FCCeeCorrection.twiss(seed=None, *,
 only_orbit=False)`. A supplied table provides `co_guess=seed.particle_on_co`;
 without a seed, the line defaults apply. Error-increase trials explicitly pass
-`accepted_twiss`, while nominal-reference calculations are unseeded.
+`last_accepted_twiss`, while nominal-reference calculations are unseeded.
 
 ## Correction optimizer modules
 
@@ -354,7 +354,7 @@ no longer uses it to decide whether to retain a candidate.
 retains the returned table and supplies it to target checks and least-squares
 steps. After changing knobs, compute a new table before checking the candidate.
 For retries, restore the baseline machine and reuse its original table. Final
-refinement starts from `accepted_twiss`; final saving independently recomputes
+refinement starts from `last_accepted_twiss`; final saving independently recomputes
 Twiss. There is no variable tracking, cache, invalidation API, or force flag.
 Orbit-only tables are promoted to full optics when required.
 

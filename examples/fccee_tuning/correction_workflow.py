@@ -32,7 +32,7 @@ class MachineSnapshot:
     """
 
     knob_values: dict
-    accepted_twiss: object
+    last_accepted_twiss: object
     final_refinement: bool
 
 
@@ -41,7 +41,7 @@ class FCCeeCorrection:
 
     Construction builds the nominal reference and five fixed-response optimizers,
     then starts at zero error/nonlinear strength. The optimizers, iteration limits,
-    nominal knob values, reference and accepted_twiss are public.
+    nominal knob values, reference and last_accepted_twiss are public.
 
     Snapshot before a trial; update the accepted state only after success.
     """
@@ -106,7 +106,7 @@ class FCCeeCorrection:
         self._final_refinement = False
         self.failure_reason = None
         self.target_error_fraction = None
-        self.accepted_twiss = None
+        self.last_accepted_twiss = None
         self.optimizers = SimpleNamespace()
         optimizer_settings = optimizer_settings or {}
         self.stats = dict(calls=0, seconds=0.0, orbit_calls=0, orbit_seconds=0.0)
@@ -139,10 +139,10 @@ class FCCeeCorrection:
         for optimizer in vars(self.optimizers).values():
             _ = optimizer.response.svd
 
-        self._collect_controls()
+        self._identify_correction_knobs()
         self.line.vars.update(self.nominal_knob_values)
         self.set_error_fraction(0.)
-        self.accepted_twiss = self.twiss(self.reference)
+        self.last_accepted_twiss = self.twiss(self.reference)
 
     def _default_log(self, *args, **kwargs):
         """Print elapsed time since construction, flushing output by default."""
@@ -192,7 +192,7 @@ class FCCeeCorrection:
             try:
                 self.scale_corrections(next_error_fraction)
                 self.set_error_fraction(next_error_fraction)
-                tw = self.twiss(self.accepted_twiss)
+                tw = self.twiss(self.last_accepted_twiss)
                 tw, iterations = self.correct_at_fixed_strengths(tw)
             except self.correction_errors as err:
                 self.restore(before)
@@ -215,8 +215,8 @@ class FCCeeCorrection:
         self.log('Final refinement')
         before = self.snapshot()
         try:
-            if not self.goals_met(self.accepted_twiss):
-                tw, _ = self.correct_at_fixed_strengths(self.accepted_twiss)
+            if not self.goals_met(self.last_accepted_twiss):
+                tw, _ = self.correct_at_fixed_strengths(self.last_accepted_twiss)
                 self.accept(tw)
         except self.correction_errors as err:
             self.restore(before)
@@ -234,7 +234,7 @@ class FCCeeCorrection:
         """Whether the accepted machine meets final goals at full error strength."""
         return (not self.correction_failed and self.final_refinement
                 and abs(self.error_fraction - 1.) < 1e-12
-                and self.goals_met(self.accepted_twiss))
+                and self.goals_met(self.last_accepted_twiss))
 
     @property
     def error_fraction(self):
@@ -296,7 +296,7 @@ class FCCeeCorrection:
         values = self.line.vars.val
         return MachineSnapshot(
             knob_values={name: float(values[name]) for name in self.control_names},
-            accepted_twiss=self.accepted_twiss,
+            last_accepted_twiss=self.last_accepted_twiss,
             final_refinement=self.final_refinement,
         )
 
@@ -307,7 +307,7 @@ class FCCeeCorrection:
             name: value for name, value in snapshot.knob_values.items()
             if values[name] != value
         })
-        self.accepted_twiss = snapshot.accepted_twiss
+        self.last_accepted_twiss = snapshot.last_accepted_twiss
         self.final_refinement = snapshot.final_refinement
 
     def log_iteration(self, iteration, tw):
@@ -320,7 +320,7 @@ class FCCeeCorrection:
 
     def accept(self, tw):
         """Keep the accepted Twiss, including its closed-orbit particle for the next trial."""
-        self.accepted_twiss = tw
+        self.last_accepted_twiss = tw
         self.log('Accepted')
 
     def twiss(self, seed=None, *, only_orbit=False):
@@ -399,7 +399,7 @@ class FCCeeCorrection:
         line.twiss_default['co_guess'] = dict(x=0, px=0, y=0, py=0, zeta=0, delta=0)
         self.reference = self.twiss()
 
-    def _collect_controls(self):
+    def _identify_correction_knobs(self):
         """Include every optimizer's knobs in scaling and snapshots."""
         self.nominal_knob_values = {}
         for optimizer in vars(self.optimizers).values():

@@ -52,7 +52,7 @@ def correction(monkeypatch):
     state._final_refinement = False
     state.optimizers.optics.settings = copy(importlib.import_module('corr_optics').DEFAULT_OPTICS_CORR_SETTINGS)
     state.optimizers.coupling.settings = copy(importlib.import_module('corr_coupling').DEFAULT_COUPLING_CORR_SETTINGS)
-    state.accepted_twiss = SimpleNamespace(
+    state.last_accepted_twiss = SimpleNamespace(
         x=[1.0], px=[2.0], y=[3.0], py=[4.0], qx=1.2, qy=2.3, delta=[0.0], c_minus=1e-4
     )
     state.line.twiss_default['co_guess'] = dict(x=1.0, px=2.0, y=3.0, py=4.0, zeta=0.0, delta=0.0)
@@ -76,11 +76,11 @@ def correction(monkeypatch):
 
 
 def test_increase_errors_restores_rejected_trial_and_retries(correction, monkeypatch):
-    baseline = correction.accepted_twiss
+    baseline = correction.last_accepted_twiss
     attempts, quad_values = [], []
 
     def twiss(seed):
-        assert seed is correction.accepted_twiss
+        assert seed is correction.last_accepted_twiss
         tw = deepcopy(baseline)
         tw.x = [correction.error_fraction]
         return tw
@@ -90,7 +90,7 @@ def test_increase_errors_restores_rejected_trial_and_retries(correction, monkeyp
         quad_values.append(float(correction.line['quad']))
         if len(attempts) == 1:
             correction.line['quad'] = 999.
-            correction.accepted_twiss = object()
+            correction.last_accepted_twiss = object()
             raise RuntimeError('Unstable candidate')
         return tw, 4 if len(attempts) == 2 else 3
 
@@ -101,7 +101,7 @@ def test_increase_errors_restores_rejected_trial_and_retries(correction, monkeyp
         min_increment=.0125, max_increment=.1)
     np.testing.assert_allclose(attempts, [.3, .25, .3, .3625, .4])
     np.testing.assert_allclose(quad_values[:2], [4.5, 3.75])
-    assert correction.accepted_twiss.x == [.4]
+    assert correction.last_accepted_twiss.x == [.4]
     assert not correction.correction_failed and correction.failure_reason is None
     assert correction.target_error_fraction == .4
     assert not correction.completed
@@ -109,7 +109,7 @@ def test_increase_errors_restores_rejected_trial_and_retries(correction, monkeyp
 
 def test_error_increment_growth_is_capped_and_target_is_exact(correction, monkeypatch):
     attempts = []
-    monkeypatch.setattr(correction, 'twiss', lambda seed: correction.accepted_twiss)
+    monkeypatch.setattr(correction, 'twiss', lambda seed: correction.last_accepted_twiss)
 
     def correct(tw):
         attempts.append(correction.error_fraction)
@@ -124,7 +124,7 @@ def test_error_increment_growth_is_capped_and_target_is_exact(correction, monkey
 
 def test_run_stops_after_minimum_increment_and_can_save_partial(correction, monkeypatch, tmp_path):
     attempts = []
-    monkeypatch.setattr(correction, 'twiss', lambda seed: correction.accepted_twiss)
+    monkeypatch.setattr(correction, 'twiss', lambda seed: correction.last_accepted_twiss)
     monkeypatch.setattr(correction, 'refine', lambda: pytest.fail('Unexpected refinement'))
 
     def correct(tw):
@@ -173,13 +173,13 @@ def test_invalid_execution_settings_do_not_change_state(correction, kwargs):
 @pytest.mark.parametrize('target', [.5, 1.])
 def test_run_refines_at_requested_fraction(correction, monkeypatch, target):
     calls = []
-    refined = deepcopy(correction.accepted_twiss)
-    monkeypatch.setattr(correction, 'twiss', lambda seed: correction.accepted_twiss)
+    refined = deepcopy(correction.last_accepted_twiss)
+    monkeypatch.setattr(correction, 'twiss', lambda seed: correction.last_accepted_twiss)
     monkeypatch.setattr(correction, 'goals_met', lambda tw: tw is refined)
 
     def correct(tw):
         calls.append((correction.error_fraction, correction.final_refinement))
-        assert tw is correction.accepted_twiss
+        assert tw is correction.last_accepted_twiss
         return (refined if correction.final_refinement else tw), 1
 
     monkeypatch.setattr(correction, 'correct_at_fixed_strengths', correct)
@@ -187,7 +187,7 @@ def test_run_refines_at_requested_fraction(correction, monkeypatch, target):
     assert correction.error_fraction == target
     assert calls[-1] == (target, True)
     assert all(not final for _, final in calls[:-1])
-    assert correction.accepted_twiss is refined
+    assert correction.last_accepted_twiss is refined
     assert correction.completed == (target == 1.)
 
 
@@ -197,15 +197,15 @@ def test_refine_failure_restores_accepted_state(correction, monkeypatch):
     monkeypatch.setattr(correction, 'twiss', lambda: pytest.fail('Unexpected Twiss'))
 
     def fail(tw):
-        assert tw is before.accepted_twiss
+        assert tw is before.last_accepted_twiss
         correction.line['quad'] = 999.
-        correction.accepted_twiss = object()
+        correction.last_accepted_twiss = object()
         raise RuntimeError('Iteration budget exhausted')
 
     monkeypatch.setattr(correction, 'correct_at_fixed_strengths', fail)
     assert not correction.refine()
     assert correction.snapshot().knob_values == before.knob_values
-    assert correction.accepted_twiss is before.accepted_twiss
+    assert correction.last_accepted_twiss is before.last_accepted_twiss
     assert correction.final_refinement
     assert correction.correction_failed and not correction.completed
     assert correction.failure_reason == 'Refinement failed: Iteration budget exhausted'
@@ -244,12 +244,12 @@ def test_snapshot_restores_all_trial_state_and_preserves_expressions(correction)
     before = correction.snapshot()
     correction.scale_corrections(0.5)
     correction.set_error_fraction(0.5)
-    correction.accepted_twiss = object()
+    correction.last_accepted_twiss = object()
     correction.final_refinement = True
-    correction.accept(deepcopy(before.accepted_twiss))
+    correction.accept(deepcopy(before.last_accepted_twiss))
     correction.restore(before)
     assert correction.snapshot().knob_values == before.knob_values
-    assert correction.accepted_twiss is before.accepted_twiss
+    assert correction.last_accepted_twiss is before.last_accepted_twiss
     assert not correction.final_refinement
     correction.set_error_fraction(0.3)
     assert correction.line['bpm_offset'] == 0.0003
@@ -258,13 +258,13 @@ def test_snapshot_restores_all_trial_state_and_preserves_expressions(correction)
 def test_accept_updates_state_without_evaluation_or_history(correction, monkeypatch):
     before = correction.snapshot()
     defaults = deepcopy(correction.line.twiss_default)
-    tw = deepcopy(correction.accepted_twiss)
+    tw = deepcopy(correction.last_accepted_twiss)
     tw.x = [0.123]
     monkeypatch.setattr(correction, 'compute_metrics',
                         lambda tw: pytest.fail('Unexpected metrics evaluation'))
     monkeypatch.setattr(correction, 'twiss', lambda: pytest.fail('Unexpected Twiss'))
     correction.accept(tw)
-    assert correction.accepted_twiss is tw
+    assert correction.last_accepted_twiss is tw
     assert correction.line.twiss_default == defaults
     assert correction.snapshot().knob_values == before.knob_values
     assert correction.final_refinement == before.final_refinement
@@ -349,7 +349,7 @@ def diagnostic_optimizer(module_name, settings_name, reference):
 
 
 def test_mode_switches_limits_and_orbit_tolerance_is_constant(correction):
-    reference = correction.accepted_twiss
+    reference = correction.last_accepted_twiss
     optics = diagnostic_optimizer('corr_optics', 'DEFAULT_OPTICS_CORR_SETTINGS', reference)
     coupling = diagnostic_optimizer('corr_coupling', 'DEFAULT_COUPLING_CORR_SETTINGS', reference)
     orbit = diagnostic_optimizer('corr_orbit', 'DEFAULT_ORBIT_CORR_SETTINGS', reference)
@@ -397,7 +397,7 @@ def test_mode_switches_limits_and_orbit_tolerance_is_constant(correction):
     ('coupling_rms', 'rdt_rms_tol'), ('coupling_ip', 'rdt_ip_tol'),
     ('c_minus', 'c_minus_tol'), ('dy_rms', 'dy_rms_tol'), ('dy_ip', 'dy_ip_tol')])
 def test_coupling_goal_limits_are_strict(correction, key, tolerance):
-    opt = diagnostic_optimizer('corr_coupling', 'DEFAULT_COUPLING_CORR_SETTINGS', correction.accepted_twiss)
+    opt = diagnostic_optimizer('corr_coupling', 'DEFAULT_COUPLING_CORR_SETTINGS', correction.last_accepted_twiss)
     metrics = dict(coupling_rms=np.zeros(2), coupling_ip=0., c_minus=0.,
                    dy_rms=0., dy_ip=0.)
     opt.compute_metrics = lambda tw: metrics
@@ -436,7 +436,7 @@ def test_additional_correction_participates_in_workflow(correction):
     correction.line['sext'] = 3.
     opt = build_chromaticity_optimizer(correction.line)
     correction.optimizers = SimpleNamespace(chromaticity=opt)
-    correction._collect_controls()
+    correction._identify_correction_knobs()
     assert correction.correction_knobs == ['sext']
     assert correction.nominal_knob_values == {'sext': 1.}
     before = correction.snapshot()
@@ -465,11 +465,11 @@ def test_additional_correction_participates_in_workflow(correction):
     assert opt.settings.tolerance == 1.
     assert opt.goal({'chromaticity': .5})
     assert not other.goal({'chromaticity': .5})
-    correction._collect_controls()
+    correction._identify_correction_knobs()
     assert correction.correction_knobs == ['sext']
     correction.optimizers.other.nominal_knob_values['sext'] = 2.
     with pytest.raises(ValueError, match='Conflicting nominal'):
-        correction._collect_controls()
+        correction._identify_correction_knobs()
 
 
 def test_optics_goal_computes_errors_without_aggregate_metrics(correction, monkeypatch):
@@ -769,7 +769,7 @@ def test_settling_restores_failed_trial_before_continuing(correction, monkeypatc
         def run(tw):
             calls.append(kind)
             if outcome == 'fails':
-                correction.accepted_twiss = object()
+                correction.last_accepted_twiss = object()
                 raise ValueError('Invalid orbit')
             if outcome == 'worsens':
                 return -1
@@ -781,7 +781,7 @@ def test_settling_restores_failed_trial_before_continuing(correction, monkeypatc
     def ensure_full(tw):
         if outcome == 'fails':
             assert correction.line['orbit'] == before.knob_values['orbit']
-            assert correction.accepted_twiss is before.accepted_twiss
+            assert correction.last_accepted_twiss is before.last_accepted_twiss
         return ('full', tw)
     monkeypatch.setattr(correction, 'ensure_full_twiss', ensure_full)
     correction.optimizers.tunes.correct = lambda *a, **kw: pytest.fail('Nested tune correction')
