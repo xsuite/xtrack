@@ -28,5 +28,9 @@ class CorrectionOptimizer(OptimizeLine):
         if nominal_knob_values is not None:
             self.nominal_knob_values.update(nominal_knob_values)
 
+    def run_lstsq(self, *args, tag_outcome=False, **kwargs):
+        """Apply a correction without evaluating or tagging its outcome by default."""
+        return super().run_lstsq(*args, tag_outcome=tag_outcome, **kwargs)
+
     def print_metrics(self, tw, *, log=print):
         log(f'{self.name}:', self.compute_metrics(tw))

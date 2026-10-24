@@ -14,7 +14,7 @@ def stub_optimizer(**kwargs):
     defaults = dict(goal=lambda tw: True,
                     settings=SimpleNamespace(),
                     print_metrics=lambda tw, **kw: None,
-                    correct=lambda tw, **kw: tw, step_scale=.5, orbit_tol=5e-8)
+                    run_lstsq=lambda **kw: None, step_scale=.5)
     defaults.update(kwargs)
     return SimpleNamespace(**defaults)
 
@@ -333,8 +333,6 @@ def diagnostic_optimizer(module_name, settings_name, reference):
     opt = object.__new__(base)
     for name in ('compute_metrics', 'goal', 'print_metrics'):
         setattr(opt, name, partial(getattr(module, name), opt))
-    if module_name == 'corr_tune':
-        opt.correct = partial(module.correct, opt)
     opt.settings = copy(getattr(module, settings_name))
     opt.reference = reference
     # Only diagnostic data is needed; response construction is tested separately.
@@ -581,6 +579,35 @@ def test_optics_targets_use_relative_beta_and_physical_alpha(correction, monkeyp
         np.linalg.norm(weights * relative_residuals))
 
 
+def test_correction_optimizer_tags_outcome_only_when_requested(correction):
+    base = importlib.import_module('correction_optimizer').CorrectionOptimizer
+    correction.line['quad'] = 1.
+    calls = []
+
+    def evaluate():
+        value = correction.line['quad']
+        calls.append(value)
+        return {'error': value}
+
+    action = xt.Action(evaluate)
+    opt = base(correction.line, {'error': 1.}, settings=SimpleNamespace(),
+               compute_metrics=lambda opt, tw: {}, goal=lambda opt, tw: False,
+               vary=[xt.Vary('quad', step=1e-6)],
+               targets=[action.target('error', value=0., tol=1e-12)])
+    opt.set_response(np.array([[1.]]))
+    assert calls == []
+    initial_log_length = len(opt.log())
+    assert opt.run_lstsq([{'error': 1.}], step_scale=.5) is opt
+    assert correction.line['quad'] == pytest.approx(.5)
+    assert calls == []
+    assert len(opt.log()) == initial_log_length
+
+    assert opt.run_lstsq(action_results=[{'error': .5}], tag_outcome=True) is opt
+    assert correction.line['quad'] == pytest.approx(0.)
+    assert calls == [pytest.approx(0.)]
+    assert len(opt.log()) == initial_log_length + 1
+
+
 @pytest.mark.parametrize('response, accepted', [(0.1, False), (1., True)])
 def test_optics_keeps_worsening_steps_until_goal_or_budget(correction, monkeypatch, response, accepted):
     import xdeps as xd
@@ -591,11 +618,12 @@ def test_optics_keeps_worsening_steps_until_goal_or_budget(correction, monkeypat
 
     action = xt.Action(no_tracking)
     baseline = {'error': 0.75, 'inactive': 0.}
-    opt = xd.Optimize(
+    base = importlib.import_module('correction_optimizer').CorrectionOptimizer
+    opt = base(correction.line, baseline, settings=SimpleNamespace(),
+        compute_metrics=lambda opt, tw: {}, goal=lambda opt, tw: False,
         vary=[xd.Vary('quad', correction.line.vars, step=1e-6)],
         targets=[action.target('error', value=0., tol=1e-12, weight=2.),
-                 action.target('inactive', value=0., tol=1e-12)],
-        action_results={action: baseline}, show_call_counter=False)
+                 action.target('inactive', value=0., tol=1e-12)])
     opt.targets[1].active = False
     opt.set_response(np.array([[response], [0.]]))
     opt.goal = lambda tw: False
@@ -646,19 +674,20 @@ def test_explicit_stage_order_passes_latest_twiss(correction, monkeypatch):
         return run
 
     monkeypatch.setattr(correction, 'log_iteration', lambda *args: None)
-    monkeypatch.setattr(correction, 'goals_met', lambda tw: tw == 8)
+    monkeypatch.setattr(correction, 'goals_met', lambda tw: tw == 6)
     monkeypatch.setattr(correction, 'twiss',
                         lambda tw, only_orbit=False: stage('orbit' if only_orbit else 'full')(tw))
-    correction.optimizers.tunes = stub_optimizer(correct=lambda tw, **kw: stage('tune')(tw))
+    correction.optimizers.tunes = optimizer('tune')
     monkeypatch.setattr(correction, 'snapshot', lambda: pytest.fail('Unexpected stage snapshot'))
-    assert correction.correct_at_fixed_strengths(0, max_iterations=5) == (8, 1)
-    assert calls == [('orbit_x', 0), ('orbit_y', 0), ('full', 0), ('tune', 1),
-                     ('optics', 2), ('full', 2), ('tune', 3),
+    assert correction.correct_at_fixed_strengths(0, max_iterations=5) == (6, 1)
+    assert calls == [('orbit_x', 0), ('orbit_y', 0), ('full', 0),
+                     ('optics', 1), ('full', 1),
+                     ('orbit_x', 2), ('orbit_y', 2), ('full', 2),
+                     ('coupling', 3), ('full', 3),
                      ('orbit_x', 4), ('orbit_y', 4), ('full', 4),
-                     ('coupling', 5), ('full', 5),
-                     ('orbit_x', 6), ('orbit_y', 6), ('full', 6), ('tune', 7)]
-    assert correction.correct_at_fixed_strengths(8, max_iterations=5) == (8, 0)
-    assert len(calls) == 16  # No work at an already accepted point.
+                     ('tune', 5), ('full', 5)]
+    assert correction.correct_at_fixed_strengths(6, max_iterations=5) == (6, 0)
+    assert len(calls) == 15  # No work at an already accepted point.
 
 
 @pytest.mark.parametrize('limit', [5, 40])
@@ -669,18 +698,20 @@ def test_cycle_budget_checks_goals_after_last_cycle(correction, monkeypatch,
     tune_calls = []
     monkeypatch.setattr(correction, 'log_iteration', lambda iteration, tw: logged.append(iteration))
     monkeypatch.setattr(correction, 'goals_met', lambda tw: converges and logged[-1] == limit)
-    correction.optimizers.tunes.correct = lambda tw, **kw: tune_calls.append(tw) or tw
+    correction.optimizers.tunes.goal = lambda tw: False
+    correction.optimizers.tunes.run_lstsq = lambda **kw: tune_calls.append(kw['action_results'][0])
+    monkeypatch.setattr(correction, 'twiss', lambda tw: tw)
     if converges:
         assert correction.correct_at_fixed_strengths(0, max_iterations=limit) == (0, limit)
     else:
         with pytest.raises(RuntimeError, match=f'goals not met after {limit} iterations'):
             correction.correct_at_fixed_strengths(0, max_iterations=limit)
     assert logged == list(range(limit + 1))
-    assert len(tune_calls) == 3 * limit
+    assert len(tune_calls) == limit
 
 
 @pytest.mark.parametrize('twiss_fails', [False, True])
-def test_standalone_tune_correction(correction, monkeypatch, twiss_fails):
+def test_tune_step_in_main_cycle(correction, monkeypatch, twiss_fails):
     import xdeps as xd
 
     action = xt.Action(lambda: pytest.fail('Unexpected optimizer evaluation'))
@@ -694,9 +725,9 @@ def test_standalone_tune_correction(correction, monkeypatch, twiss_fails):
         action_results={action: baseline}, show_call_counter=False)
     opt.set_response(np.eye(2))
     opt.settings = copy(tune_module.DEFAULT_TUNE_CORR_SETTINGS)
-    opt.cleanup_tol = opt.settings.tune_tol / 2
     for target in opt.targets:
-        target.tol = opt.cleanup_tol
+        target.tol = opt.settings.tune_tol
+    opt.goal = lambda tw: np.all(np.abs(np.asarray(tw) - [1., 2.]) < opt.settings.tune_tol)
     correction.optimizers.tunes = opt
     trials = []
     def evaluate(tw):
@@ -707,18 +738,21 @@ def test_standalone_tune_correction(correction, monkeypatch, twiss_fails):
         return values
 
     monkeypatch.setattr(correction, 'twiss', evaluate)
+    monkeypatch.setattr(correction, 'log_iteration', lambda *args: None)
+    monkeypatch.setattr(correction, 'goals_met', lambda tw: np.allclose(tw, [1., 2.]))
     if twiss_fails:
         before = correction.snapshot()
         with pytest.raises(ValueError, match='Invalid trial optics'):
-            opt.correct(baseline, full_twiss=correction.twiss)
+            correction.correct_at_fixed_strengths(baseline, max_iterations=1)
         assert len(trials) == 1
         correction.restore(before)
         np.testing.assert_allclose([correction.line[name] for name in ('tune', 'quad')], baseline)
     else:
-        result = opt.correct(baseline, full_twiss=correction.twiss)
+        result, iterations = correction.correct_at_fixed_strengths(baseline, max_iterations=1)
+        assert iterations == 1
         np.testing.assert_allclose(result, [1., 2.])
         assert len(trials) == 1
-        assert opt.correct(result, full_twiss=correction.twiss) is result
+        assert correction.correct_at_fixed_strengths(result, max_iterations=1)[0] is result
         assert len(trials) == 1  # Goal check does not run Twiss again.
     assert len(opt.log()) == 1
 
@@ -735,12 +769,12 @@ def test_tunes_allow_non_improving_iterations_until_limit(correction, monkeypatc
         targets=[action.target(0, value=0., tol=1e-12)],
         action_results={action: [2.]}, show_call_counter=False)
     # The actual response is twice this value, so full steps oscillate with
-    # unchanged penalty. Only the tune iteration limit should reject them.
+    # unchanged penalty. Only the main iteration budget should reject them.
     opt.set_response(np.array([[1.]]))
     opt.settings = copy(tune_module.DEFAULT_TUNE_CORR_SETTINGS)
-    opt.cleanup_tol = opt.settings.tune_tol / 2
     for target in opt.targets:
-        target.tol = opt.cleanup_tol
+        target.tol = opt.settings.tune_tol
+    opt.goal = lambda tw: abs(tw[0]) < opt.settings.tune_tol
     correction.optimizers.tunes = opt
     trials = []
     def evaluate(tw):
@@ -749,9 +783,11 @@ def test_tunes_allow_non_improving_iterations_until_limit(correction, monkeypatc
         return [value]
     monkeypatch.setattr(correction, 'twiss', evaluate)
     before = correction.snapshot()
-    with pytest.raises(RuntimeError, match='Tune correction iteration limit'):
-        opt.correct([2.], full_twiss=correction.twiss)
-    assert trials == [-2., 2., -2., 2., -2., 2., -2.]
+    monkeypatch.setattr(correction, 'log_iteration', lambda *args: None)
+    monkeypatch.setattr(correction, 'goals_met', lambda tw: False)
+    with pytest.raises(RuntimeError, match='goals not met after 5 iterations'):
+        correction.correct_at_fixed_strengths([2.], max_iterations=5)
+    assert trials == [-2., 2., -2., 2., -2.]
     correction.restore(before)
     assert correction.line['tune'] == 1.
 

@@ -65,30 +65,32 @@ class FCCeeCorrection:
             return tw, 0
         for iteration in range(1, max_iterations + 1):
             if not (orbit_x.goal(tw) and orbit_y.goal(tw)):
-                orbit_x.run_lstsq(action_results=[tw], tag_outcome=False)
-                orbit_y.run_lstsq(action_results=[tw], tag_outcome=False)
+                orbit_x.run_lstsq(action_results=[tw])
+                orbit_y.run_lstsq(action_results=[tw])
                 tw = self.twiss(tw)
-            tw = tunes.correct(tw, full_twiss=self.twiss)
 
             if not optics.goal(tw):
-                optics.run_lstsq(
-                    action_results=[tw], tag_outcome=False)
+                optics.run_lstsq(action_results=[tw])
                 tw = self.twiss(tw)
-            tw = tunes.correct(tw, full_twiss=self.twiss)
 
             if not coupling.goal(tw):
-                orbit_x.run_lstsq(action_results=[tw], tag_outcome=False)
-                orbit_y.run_lstsq(action_results=[tw], tag_outcome=False)
+                # Coupling is very sensitive to orbit errors; need orbit correction
+                # before and after any coupling correction.
+                orbit_x.run_lstsq(action_results=[tw])
+                orbit_y.run_lstsq(action_results=[tw])
                 tw = self.twiss(tw)
                 if not coupling.goal(tw):
                     coupling.run_lstsq(
                         action_results=[tw],
-                        step_scale=coupling.step_scale, tag_outcome=False)
+                        step_scale=coupling.step_scale)
                     tw = self.twiss(tw)
-                    orbit_x.run_lstsq(action_results=[tw], tag_outcome=False)
-                    orbit_y.run_lstsq(action_results=[tw], tag_outcome=False)
+                    orbit_x.run_lstsq(action_results=[tw])
+                    orbit_y.run_lstsq(action_results=[tw])
                     tw = self.twiss(tw)
-            tw = tunes.correct(tw, full_twiss=self.twiss)
+
+            if not tunes.goal(tw):
+                tunes.run_lstsq(action_results=[tw])
+                tw = self.twiss(tw)
 
             self.log_iteration(iteration, tw)
             if self.goals_met(tw):

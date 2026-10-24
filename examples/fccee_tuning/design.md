@@ -79,7 +79,7 @@ definitions:
 - `corr_orbit.build_orbit_corr_optimizer`: one instance for each plane, with independent
   response solves and BPM-frame orbit goals.
 - `corr_coupling.build_coupling_corr_optimizer`: RDTs, vertical dispersion and c_minus.
-- `corr_tune.build_tune_corr_optimizer`: nominal tunes and the standalone cleanup stage.
+- `corr_tune.build_tune_corr_optimizer`: nominal tune targets and response.
 
 Each module owns its settings constant, targets, varies, response construction,
 solve cutoff, reference/observation data, nominal knob values, `compute_metrics(tw)`,
@@ -90,9 +90,9 @@ API remains available for target inspection and least-squares steps.
 The builder passes `compute_metrics`, `goal` and `print_metrics`
 functions to `CorrectionOptimizer`. Each function takes `optimizer` as its first
 argument, followed by Twiss and any reporting options. The shared class binds that first
-argument, so the workflow still calls `optimizer.goal(tw)`, for example. The tune
-builder also attaches its specialized `correct` operation. Helpers used only within
-a module remain ordinary function calls.
+argument, so the workflow still calls `optimizer.goal(tw)`, for example.
+All stages apply corrections through `run_lstsq`; there is no specialized tune
+correction method. Helpers used only within a module remain ordinary function calls.
 
 For example:
 
@@ -140,10 +140,8 @@ error-increase/refinement limits, include its assignments in the two execution m
 Orbit goals use inclusive RMS comparisons and a fixed tolerance (10 micrometres
 by default) throughout error increases and refinement.
 Optics/coupling goals retain strict comparisons and their error-increase/refinement limits.
-Optics still checks tunes as well as beta and Dx. Tune global acceptance uses its
-configured tune tolerance; `optimizers.tunes.correct()` uses half that tolerance
-for cleanup. This preserves the existing distinction between acceptance and the
-standalone tune stage.
+Optics still checks tunes as well as beta and Dx. Tune targets and global
+acceptance both use the configured tune tolerance, without a separate cleanup limit.
 
 The workflow collects metrics and prints one short summary from each optimizer.
 Metric names must be unique. Orbit metrics are `orbit_x_rms` and `orbit_y_rms`.
@@ -292,8 +290,10 @@ Supplied `action_results` describe only the starting point and are never reused
 for the outcome. It does not backtrack or decide whether to accept the change.
 It returns the optimizer, as `step()` does.
 
-The FCC-ee workflow passes `tag_outcome=False` to skip the outcome evaluation and
-log entry. The caller evaluates the candidate and can record it with `tag()`.
+The example's `CorrectionOptimizer` defaults to `tag_outcome=False`, skipping the
+outcome evaluation and log entry. The caller evaluates the candidate and can
+record it with `tag()`, or explicitly pass `tag_outcome=True`. Ordinary optimizers
+retain the default of `True`.
 
 Jacobian precedence:
 
@@ -316,9 +316,11 @@ The new workflow uses `run_lstsq`, not manual direction application.
 
 ## Goal checks and iteration limits
 
-The fixed-strength loop runs **orbit, tune, optics, tune, coupling, tune**.
-Orbit, optics and coupling are skipped when their goals are already met; tune
-correction checks its own tolerance and returns immediately when satisfied.
+The fixed-strength loop runs **orbit, optics, coupling, tune**.
+Each stage is skipped when its goal is already met. At the end of a cycle,
+if `tunes.goal(tw)` is false, one `tunes.run_lstsq(action_results=[tw])` is followed
+by a fresh Twiss evaluation. An already satisfied overall goal returns before
+starting a cycle.
 Candidate application and Twiss evaluation are explicit in
 `correct_at_fixed_strengths()`. There are no penalty comparisons, penalty helper
 methods or inner step-halving retries. Intermediate errors may increase.
@@ -337,10 +339,10 @@ These orbit steps are unconditional within the coupling stage and use full Twiss
 there is no separate settling loop, tolerance, projection, or local rollback.
 Tune correction remains explicit after coupling. Optics does not nest orbit correction.
 
-`optimizers.tunes.correct()` uses its cleanup tolerance and up to seven iterations,
-without comparing penalties. If the tune goal is still unmet, it raises to the
-error-increase/refinement caller; it performs no local rollback. The optics optimizer also
-retains its qx/qy targets. Orbit, optics and tune use step_scale=1; coupling
+There is no nested tune loop: further tune corrections happen in subsequent
+main cycles, within the same iteration budget as the other corrections. The
+optics optimizer also retains its qx/qy targets. Orbit, optics and tune use
+step_scale=1; coupling
 retains its configured scale (0.5 by default). Optimizer knob limits and
 maximum-step handling are unchanged.
 
@@ -633,3 +635,24 @@ were removed. These timings are a single paired comparison.
 Artifacts: `/tmp/fccee_plain_orbit_8446z1w4/run.log`, `comparison.json`, and each
 run's `verification.json` and `timing.json`. Saved machines are in each run's
 `response_api_class/machine.json`.
+
+### One conditional tune step per cycle
+
+The tune stage now uses one ordinary `run_lstsq` at the end of each main cycle,
+only when `tunes.goal(tw)` is false. The specialized `correct` method, its nested
+iteration budget, and half-tolerance cleanup setting were removed. The ordinary
+tune tolerance is used by targets and goals. `CorrectionOptimizer.run_lstsq`
+defaults to `tag_outcome=False`, while explicit outcome tagging remains available.
+
+Using the same prepared lattice and one BLAS thread, the conditional version
+completed in 139.3 s with 132 full Twiss calls, compared with the preceding
+three-position tune cleanup's 150.4 s and 170 calls. The intermediate experiment
+with an unconditional end-of-cycle tune step took 143.0 s and 140 calls. All
+three runs reached full error strength and passed every final optimizer goal.
+The conditional run had no rejected increments and needed four refinement cycles.
+These are individual run timings, each below the 250-second cap. All 58 focused
+tests pass, including default/explicit tagging, tune-step ordering, skipped
+satisfied goals, iteration exhaustion and outer rollback on failed evaluations.
+Artifacts: `/tmp/fccee_single_tune_kc05pjsp/run.log`, `comparison.json`, and the
+`candidate` (unconditional) and `conditional` subdirectories, each containing
+`verification.json`, `timing.json` and `response_api_class/machine.json`.
