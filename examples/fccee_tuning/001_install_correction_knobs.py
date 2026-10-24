@@ -13,6 +13,7 @@ from error_recipe import get_bpm_alignment
 import corr_optics
 import corr_tune
 import corr_chromaticity
+import corr_second_order_chrom
 
 HERE = Path(__file__).resolve().parent
 INPUT = HERE / 'fccee_z_lcc_errors.json'
@@ -177,5 +178,6 @@ line.metadata['correction_knobs'] = dict(
 )
 corr_tune.install_tune_knobs(line)
 corr_chromaticity.install_chromaticity_knobs(line)
+corr_second_order_chrom.install_second_order_chrom_knobs(line)
 line.to_json(OUTPUT)
 print('Saved', OUTPUT)

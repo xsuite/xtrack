@@ -3,7 +3,7 @@
 6D tracking, active RF, independent mean-radiation tapering for clean/corrected
 machines, followed by mean and quantum radiation tracking. No correction is run.
 MA here is a survival map, not a local Touschek momentum acceptance or lifetime.
-Run in IPython with %matplotlib followed by %run 006_da_ma_6d.py.
+Run in IPython with %matplotlib followed by %run 004_da_ma_6d.py.
 """
 from pathlib import Path
 from time import perf_counter
@@ -17,7 +17,7 @@ import xobjects as xo
 
 HERE = Path(__file__).resolve().parent
 INPUT = HERE / 'response_api_class' / 'machine.json'
-SUPPRESS_ARC_DIPOLE_B4 = True       # Installed systematic + random b4 errors only.
+SUPPRESS_ARC_DIPOLE_B4 = False       # Installed systematic + random b4 errors only.
 OUTPUT_DIR = HERE / 'analysis' / ('da_ma_6d_b4_off' if SUPPRESS_ARC_DIPOLE_B4 else 'da_ma_6d')
 LAUNCH_AT = 'septum'
 NUM_TURNS = 300                    # Preliminary comparison; team benchmark: 2500.
@@ -37,9 +37,70 @@ PILOT_TURNS = 64
 PILOT_PARTICLES = 128
 RUN_SCANS = True                  # False: preparation and runtime pilot only.
 SHOW_PLOTS = True
+CHECK_AMPLITUDE_DETUNING = False   # Optional conservative diagnostic before tapering.
+DETUNING_TURNS = 512
+DETUNING_MAX_SECONDS_PER_CASE = 120.
+DETUNING_AMPLITUDES = np.array([[.5, .5], [1., .5], [2., .5], [3., .5],
+    [.5, 1.], [.5, 2.], [.5, 3.], [1., 1.], [2., 2.], [3., 3.]])
 CO_SEARCH_AT = 'ipd'
 STEPS_R_MATRIX = dict(dx=1e-8, dpx=1e-9, dy=1e-8, dpy=1e-9,
                       dzeta=1e-7, ddelta=1e-8)
+
+
+def detuning_slopes(tunes, maximum):
+    """Vary each action separately; keep the other amplitude fixed at 0.5 sigma."""
+    slopes = np.empty((2, 2))  # rows: tune mode; columns: geometric action.
+    for mode in range(2):
+        selected = (DETUNING_AMPLITUDES[:, 1-mode] == .5) & (DETUNING_AMPLITUDES[:, mode] <= maximum)
+        action_in_emittances = DETUNING_AMPLITUDES[selected, mode]**2/2
+        slopes[:, mode] = np.polynomial.polynomial.polyfit(
+            action_in_emittances, tunes[selected]-tunes[0], 1)[1]/[GEMITT_X, GEMITT_Y][mode]
+    return slopes
+
+
+def track_amplitude_detuning(line, tw, turns, label):
+    import nafflib
+
+    if line.element_names[0] != LAUNCH_AT:
+        raise ValueError('Cycle to septum before the amplitude diagnostic')
+    particles = line.build_particles(particle_on_co=tw.particle_on_co,
+        W_matrix=tw.W_matrix[0], method='4d',
+        x_norm=DETUNING_AMPLITUDES[:, 0], px_norm=0., y_norm=DETUNING_AMPLITUDES[:, 1], py_norm=0.,
+        gemitt_x=GEMITT_X, gemitt_y=GEMITT_Y, zeta=0., delta=0.)
+    flags = line.tracker.track_flags
+    previous = flags.XS_FLAG_KILL_CAVITY_KICK
+    started = perf_counter()
+    try:
+        flags.XS_FLAG_KILL_CAVITY_KICK = True
+        line.track(particles, num_turns=turns, turn_by_turn_monitor=True)
+    finally:
+        flags.XS_FLAG_KILL_CAVITY_KICK = previous
+    elapsed = perf_counter()-started
+    mon = line.record_last_track
+    order = np.argsort(np.asarray(particles.particle_id))
+    state = np.asarray(particles.state)[order]
+    if np.any(state <= 0):
+        raise RuntimeError(f'{label}: amplitude diagnostic lost particles: {state}')
+    np.testing.assert_allclose(mon.delta, 0., atol=1e-14, rtol=0.)
+    physical = np.array([np.asarray(getattr(mon, key))-tw[key][0]
+                         for key in ('x', 'px', 'y', 'py')])
+    normal = np.einsum('ij,jpt->ipt', np.linalg.inv(tw.W_matrix[0, :4, :4]), physical)
+    q0 = np.array([tw.qx, tw.qy])
+    results = {}
+    for n in sorted(set([turns//2, turns])):
+        tunes = np.empty((len(DETUNING_AMPLITUDES), 2))
+        for mode in range(2):
+            signals = normal[2*mode, :, :n]-1j*normal[2*mode+1, :, :n]
+            for i, signal in enumerate(signals):
+                q = nafflib.get_tune(signal-signal.mean())
+                tunes[i, mode] = q + np.round(q0[mode]-q)
+        results[str(n)] = dict(tunes=tunes.tolist(), slopes={str(a): detuning_slopes(tunes, a).tolist()
+                                                   for a in (1., 2., 3.)})
+    np.savez_compressed(OUTPUT_DIR / f'{label}_detuning_tracking.npz',
+        normalized=normal, q0=q0, amplitudes=DETUNING_AMPLITUDES, emittances=[GEMITT_X, GEMITT_Y],
+        state=state, delta=np.asarray(mon.delta), zeta=np.asarray(mon.zeta))
+    print(label, 'tracking seconds', elapsed, 'detuning', results[str(turns)]['slopes']['1.0'], flush=True)
+    return dict(seconds=elapsed, turns=turns, estimates=results)
 
 
 def prepare_machine(clean):
@@ -62,6 +123,20 @@ def prepare_machine(clean):
         # This switch multiplies both systematic and random arc-dipole b4 errors.
         line['on_error_arc_dipole_b4'] = 0.
     line.cycle(name_first_element=LAUNCH_AT, inplace=True)
+    detuning = None
+    if CHECK_AMPLITUDE_DETUNING:
+        label = 'clean' if clean else 'corrected'
+        line.build_tracker(_context=xo.ContextCpu(omp_num_threads=TRACKING_THREADS))
+        tw4d = line.twiss(method='4d', co_search_at=CO_SEARCH_AT, chrom=False,
+                         steps_R_matrix=STEPS_R_MATRIX)
+        pilot = track_amplitude_detuning(line, tw4d, 64, label+'_pilot')
+        estimate = pilot['seconds']*DETUNING_TURNS/64
+        print(label, 'estimated detuning tracking seconds:', estimate, flush=True)
+        if estimate > DETUNING_MAX_SECONDS_PER_CASE:
+            raise RuntimeError('Amplitude-detuning pilot exceeds configured runtime limit')
+        detuning = track_amplitude_detuning(line, tw4d, DETUNING_TURNS, label)
+        # Radiation Twiss requires a serial context; restore parallelism below.
+        line.build_tracker(_context=xo.ContextCpu())
     line.configure_radiation(model='mean')
     line.tracker.track_flags.XS_FLAG_KILL_CAVITY_KICK = False
     # Keep the mean reference energy fixed, sharing the loss among active RF.
@@ -78,7 +153,7 @@ def prepare_machine(clean):
                                  np.array([1e-7, 1e-8, 1e-7, 1e-8, 1e-6, 1e-8])):
         raise ValueError(f'6D closed orbit does not close: {after-before}')
     tt = line.get_table()
-    info = dict(tunes=[float(tw.qx), float(tw.qy), float(tw.qs)],
+    info = dict(amplitude_detuning=detuning, tunes=[float(tw.qx), float(tw.qy), float(tw.qs)],
                 arc_dipole_b4_switch_before=b4_before,
                 arc_dipole_b4_switch=float(line['on_error_arc_dipole_b4']),
                 closed_orbit=before.tolist(), closure_error=(after-before).tolist(),
@@ -178,6 +253,27 @@ def plot_results(results):
             plt.close(fig)
 
 
+def plot_amplitude_detuning(machines):
+    fig, axes = plt.subplots(1, 3, figsize=(12, 4), layout='constrained')
+    for label, info in machines.items():
+        estimates = info['amplitude_detuning']['estimates'][str(DETUNING_TURNS)]['slopes']
+        matrices = np.array([estimates[str(a)] for a in (1., 2., 3.)])
+        for ax, (i, j), title in zip(axes, [(0, 0), (0, 1), (1, 1)],
+                ['axx', 'axy (solid), ayx (dotted)', 'ayy']):
+            ln, = ax.plot([1, 2, 3], matrices[:, i, j]/1e5, '.-', label=label)
+            if i != j:
+                ax.plot([1, 2, 3], matrices[:, j, i]/1e5, ':', color=ln.get_color())
+            ax.set(xlabel='Maximum amplitude in separate action fit [σ]',
+                   ylabel='Detuning coefficient [10⁵ m⁻¹]', title=title, xticks=[1, 2, 3])
+            ax.grid(alpha=.25)
+    axes[0].legend()
+    fig.suptitle('Amplitude detuning at '+LAUNCH_AT+'; radiation/tapering off; cavity kicks off')
+    for suffix in ('png', 'pdf'):
+        fig.savefig(OUTPUT_DIR / f'amplitude_detuning.{suffix}', dpi=180)
+    if not SHOW_PLOTS:
+        plt.close(fig)
+
+
 def main():
     started = perf_counter()
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -187,6 +283,10 @@ def main():
         launch_at=LAUNCH_AT, turns=NUM_TURNS, tracking_threads=TRACKING_THREADS,
         gemitt_x=GEMITT_X, gemitt_y=GEMITT_Y,
         suppress_arc_dipole_b4=SUPPRESS_ARC_DIPOLE_B4,
+        amplitude_detuning_settings=dict(enabled=CHECK_AMPLITUDE_DETUNING,
+            turns=DETUNING_TURNS, amplitudes=DETUNING_AMPLITUDES.tolist(),
+            radiation=False, tapering=False, rf='XS_FLAG_KILL_CAVITY_KICK',
+            definition='dQ_i/dJ_j; vary each action separately, other mode at 0.5 sigma'),
         correction_settings='saved values; no re-correction',
         radiation_models=list(RADIATION_MODELS), tapering='independent zero-mean-energy tapering',
         longitudinal_launch='zeta=closed orbit; delta=closed orbit + requested offset',
@@ -250,6 +350,8 @@ def main():
                 (OUTPUT_DIR/'summary.json').write_text(json.dumps(summary, indent=2)+'\n')
                 plot_results(results)
         del line, tw
+    if CHECK_AMPLITUDE_DETUNING:
+        plot_amplitude_detuning(summary['machines'])
     summary.update(status='complete' if RUN_SCANS else 'pilot_only',
                    elapsed_seconds=perf_counter()-started)
     (OUTPUT_DIR/'summary.json').write_text(json.dumps(summary, indent=2)+'\n')

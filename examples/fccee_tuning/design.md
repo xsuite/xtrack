@@ -1,8 +1,85 @@
 # Externally evaluated FCC-ee correction
 
-## Arc octupole response study
+## Integrated second-order chromaticity correction
 
-`007_arc_octupoles.py` now uses additive `knl[3]` trims in the existing arc
+`corr_second_order_chrom.py` replaces the dedicated `007_arc_octupoles.py` study.
+`001` installs two independent arc quadrupole knl[3] offsets; `002` includes
+`second_order_chrom` among its configured optimizers and saves the final result
+in the usual `response_api_class/machine.json`. No new elements are added and
+arc dipole b4 stays active. Settings are exposed as
+`DEFAULT_SECOND_ORDER_CHROM_SETTINGS` and `optimizer_settings['second_order_chrom']`.
+
+The targets are the clean machine's Q''/2 with nominal nonlinear strengths.
+The default tolerance is 1 in each plane, while the underlying optimizer targets
+Twiss's Q'' (`ddqx`, `ddqy`) with tolerance 2. Central K3L probes of +/-0.02 m^-3
+build the fixed 2-by-2 response at the clean reference. The two offsets are
+included in the workflow's knob discovery, scaling and snapshot/rollback.
+Unlike the earlier standalone study, these correction trims are outside
+`on_nonlinear` so the workflow scales their physical strength exactly once.
+Their own master switch is registered for clean-machine reconstruction.
+
+Both chromatic corrections are skipped during the error ramp (`chrom=False`).
+During refinement, first-order chromaticity correction is followed by
+second-order correction, then every goal is rechecked. Orbit, optics, coupling,
+tunes or first-order chromaticity disturbed by an octupole step must converge
+again before the machine is accepted. Tracking is not part of this loop.
+
+Both orders reuse the same chromatic Twiss calculation. The shared
+`delta_chrom=2e-4` is configured through the second-order settings. At the old
+1e-6 step, numerical cancellation produced unreliable Q''/2 (errors of thousands
+on this lattice). At 2e-4, clean, corrected and quad-octupole cases agree with
+the independently validated five-point quartic fit to about 0.25 in Q''/2;
+first-order chromaticity changes by much less than its 0.1 tolerance. The
+numerical comparison is in `/tmp/fccee_second_order_Tc9y0Y/chromatic_check.json`.
+
+`003` remains the tune-versus-delta analysis. `004` defaults to b4 on and accepts
+the ordinary corrected machine. Its optional `CHECK_AMPLITUDE_DETUNING` diagnostic
+runs the former 007's 0.5–3 sigma action scans before radiation/tapering is enabled,
+with cavity kicks inhibited and delta/zeta unfrozen. A timing pilot precedes
+512-turn tracking, and 256/512-turn estimates and separate-action slopes are saved.
+The normal 6D mean/quantum aperture study then proceeds with active RF and tapering.
+The diagnostic defaults off; it does not add plots or tracking to ordinary correction.
+
+Integration validation (2026-10-24) regenerated `001` from the standard error
+machine and ran `002` with one BLAS/OMP thread. It reached full errors and passed
+all seven goals after three refinement cycles, including an independent reload
+using `co_search_at='ipd'`. Correction and saving took 160.4 s including input
+loading; the complete supervised validation took 204.9 s, below the 250 s cap.
+Final Q''/2 was [18.57463124, -73.96432232], against ideal targets
+[18.55382726, -74.35966084]. An independent five-point quartic fit at
+delta = [-0.002, -0.001, 0, 0.001, 0.002] gave corrected
+[18.70125993, -74.17406517] versus clean [18.44353563, -74.33321068],
+within tolerance in both planes. The resulting arc trims were
+[-0.81376613, -1.01478430] m^-3. Original tune/sextupole family variables and
+element names were preserved; b4 remained on, radiation and tapering off.
+The validation report and log are in `/tmp/fccee_second_order_Tc9y0Y/`.
+All 80 focused regression tests passed; 58 relevant tests were rerun after
+the final installer validation and settings changes and also passed.
+
+The optional `004` diagnostic was exercised on both regenerated machines with
+`RUN_SCANS=False`, eight tracking threads and single-threaded BLAS. This exposed
+and fixed a context transition: radiation Twiss requires a serial tracker after
+the parallel detuning scan; parallel tracking is restored after 6D optics.
+The successful smoke test took 114.7 s, including ten launches per machine for
+512 turns, independent tapering/6D closure and four 64-turn mean/quantum pilots.
+All detuning launches survived, delta stayed fixed and zeta evolved freely.
+JSON, NPZ and PNG/PDF outputs are in
+`/tmp/fccee_second_order_Tc9y0Y/analysis_006/`; the successful log is
+`/tmp/fccee_second_order_Tc9y0Y/analysis_006_retry.log`.
+At 0.5–1 sigma the clean [axx, axy, ayx, ayy] coefficients were approximately
+[-0.092, 3.212, 3.206, 4.394] x 10^5 m^-1, versus corrected
+[-0.498, 6.021, 6.000, -6.206] x 10^5 m^-1. Matching Q'' therefore does not
+restore ideal amplitude detuning. No full DA/MA scan or acceptance claim is
+part of this integration validation.
+
+The validated prepared input and `response_api_class/machine.json` replace the
+standard local files. Their predecessors are preserved as
+`previous_correction_knobs.json` and `previous_machine.json` in the validation
+directory above.
+
+## Earlier arc octupole response study
+
+Before integration, `007_arc_octupoles.py` used additive `knl[3]` trims in the existing arc
 `qf2a` and `qd1a` quadrupoles, following the user's simplification. No new
 elements are inserted. Each knob denotes total integrated K3L [m^-3] per
 physical quadrupole; where a magnet has multiple pieces, the trim is shared
@@ -195,7 +272,7 @@ Set it to `False` for batch runs to close figures after saving.
 
 ## 6D DA/MA comparison at the septum
 
-`006_da_ma_6d.py` compares the standard clean and corrected machines. This is
+`004_da_ma_6d.py` compares the standard clean and corrected machines. This is
 a separate 6D study: the user now requested active RF, synchrotron radiation
 and tapering, replacing the earlier proposal of fixed-delta launches at `ipa`.
 Both lines are cycled to the exact element `septum`. Clean controls are restored
@@ -272,7 +349,7 @@ Results and validation: `analysis/da_ma_6d/summary.json` and `verification.json`
 
 ### Arc-dipole b4 suppression comparison
 
-The subsequent comparison sets `SUPPRESS_ARC_DIPOLE_B4=True` in `006` and
+The subsequent comparison sets `SUPPRESS_ARC_DIPOLE_B4=True` in `004` and
 changes the MA scan to 13 points over +/-1.2% (0.2% spacing). The plot limits
 are explicitly set to that same range. The switch
 `on_error_arc_dipole_b4=0` suppresses both systematic and random normal octupole
@@ -369,6 +446,8 @@ definitions:
 - `corr_tune.build_tune_corr_optimizer`: nominal tune targets and response.
 - `corr_chromaticity.build_chromaticity_corr_optimizer`: ideal chromaticities using
   four arc sextupole family offsets.
+- `corr_second_order_chrom.build_second_order_chrom_optimizer`: ideal second-order
+  chromaticities using two arc quadrupole knl[3] offsets.
 
 Tune correction varies independent offsets `dkqf2_tune` and `dkqd1_tune`.
 The original `kqf2` and `kqd1` family variables remain unchanged. The installer
@@ -385,15 +464,15 @@ of the family offsets and restores each probe. The default tolerance is 0.1
 in each plane; both targets and tolerance are inspectable on the optimizer.
 
 `correct_at_fixed_strengths(..., chrom=False)` retains ordinary Twiss during the
-error increase and excludes the chromaticity goal. `refine_correction()` calls
+error increase and excludes both chromaticity goals. `refine_correction()` calls
 it with `chrom=True`: a fresh chromatic Twiss is obtained when the input lacks
-chromaticities, and subsequent evaluations also include them. A conditional
-chromaticity correction follows the tune step. Every enabled goal is checked
-afterward, so sextupole changes that disturb other quantities require another
-cycle. No persistent phase flag is stored. Chromatic Twiss uses `delta_chrom=1e-6`.
-Diagnostics omit unavailable chromaticities; missing data never satisfies the
-chromaticity goal. Response preparation adds nine chromatic Twiss evaluations
-at nominal full nonlinear strength before the error increase begins.
+the required derivatives, and subsequent evaluations also include them.
+First-order and then second-order correction follow the tune step. Every enabled
+goal is checked afterward, so changes that disturb other quantities require
+another cycle. No persistent phase flag is stored. Chromatic Twiss uses the
+shared `delta_chrom=2e-4`. Missing derivatives never satisfy their goals.
+Response preparation adds nine first-order and five second-order chromatic
+Twiss evaluations at nominal full nonlinear strength before the error ramp.
 
 Each module owns its settings constant, targets, varies, response construction,
 solve cutoff, reference/observation data, nominal knob values, `compute_metrics(tw)`,
@@ -631,11 +710,10 @@ The new workflow uses `run_lstsq`, not manual direction application.
 ## Goal checks and iteration limits
 
 The fixed-strength loop runs **orbit, optics, coupling, tune**, followed by
-**chromaticity** when `chrom=True`.
+**first-order and second-order chromaticity** when `chrom=True`.
 Each stage is skipped when its goal is already met. At the end of a cycle,
-if `tunes.goal(tw)` is false, one `tunes.run_lstsq(action_results=[tw])` is followed
-by a fresh Twiss evaluation. An already satisfied overall goal returns before
-starting a cycle.
+all goals are checked again; a disturbed tune is corrected on the next cycle.
+An already satisfied overall goal returns before starting a cycle.
 Candidate application and Twiss evaluation are explicit in
 `correct_at_fixed_strengths()`. There are no penalty comparisons, penalty helper
 methods or inner step-halving retries. Intermediate errors may increase.
@@ -657,7 +735,7 @@ Tune correction remains explicit after coupling. Optics does not nest orbit corr
 There is no nested tune loop: further tune corrections happen in subsequent
 main cycles, within the same iteration budget as the other corrections. The
 optics optimizer also retains its qx/qy targets. Orbit, optics, tune and
-chromaticity use step_scale=1; coupling
+both chromaticity corrections use step_scale=1; coupling
 retains its configured scale (0.5 by default). Optimizer knob limits and
 maximum-step handling are unchanged.
 

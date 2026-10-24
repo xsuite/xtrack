@@ -7,7 +7,7 @@ import numpy as np
 import xtrack as xt
 
 spec = importlib.util.spec_from_file_location('fccee_aperture',
-    Path(__file__).resolve().parents[1] / 'examples/fccee_tuning/006_da_ma_6d.py')
+    Path(__file__).resolve().parents[1] / 'examples/fccee_tuning/004_da_ma_6d.py')
 analysis = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(analysis)
 
@@ -57,3 +57,18 @@ def test_launch_fixes_physical_longitudinal_coordinates_and_includes_dispersion(
     np.testing.assert_allclose(p.delta, co.delta[0]+grid['delta_offset'], atol=1e-14)
     expected_x = co.x[0]+3*np.sqrt(analysis.GEMITT_X)+2*(p.pzeta[1]-co.pzeta[0])
     np.testing.assert_allclose(p.x[1], expected_x, atol=1e-14)
+
+
+def test_separate_action_fits_do_not_alias_horizontal_curvature_into_vertical_slope():
+    actions = analysis.DETUNING_AMPLITUDES**2 * np.array([analysis.GEMITT_X, analysis.GEMITT_Y]) / 2
+    detuning = np.array([[1.7e5, 2.2e5], [2.2e5, -3.3e5]])
+    tunes = np.array([.157, .2]) + actions @ detuning.T
+    # The emittances differ by a factor ~500. A joint linear fit to both
+    # actions would misinterpret this horizontal curvature as vertical slope.
+    tunes += actions[:, :1]**2 * np.array([2e12, -3e12])
+    for maximum in (1., 2., 3.):
+        slopes = analysis.detuning_slopes(tunes, maximum)
+        np.testing.assert_allclose(slopes[:, 1], detuning[:, 1], rtol=1e-7)
+    # With no curvature, recover all four coefficients and the geometric units.
+    linear = np.array([.157, .2]) + actions @ detuning.T
+    np.testing.assert_allclose(analysis.detuning_slopes(linear, 3.), detuning, rtol=1e-7)

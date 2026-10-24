@@ -44,6 +44,7 @@ def correction(monkeypatch):
     state.nominal_knob_values = dict(orbit=0.0, quad=0.0, skew=0.0, tune=10.0)
     state.intermediate_max_iterations = 5
     state.final_max_iterations = 40
+    state.delta_chrom = 2e-4
     state.log = lambda *args, **kwargs: None
     state.failure_reason = None
     state.target_error_fraction = None
@@ -915,6 +916,9 @@ def test_chromaticity_is_skipped_during_error_increase(correction, monkeypatch):
     correction.optimizers.chromaticity = stub_optimizer(
         goal=lambda tw: pytest.fail('Chromaticity goal during error increase'),
         run_lstsq=lambda **kwargs: pytest.fail('Chromaticity step during error increase'))
+    correction.optimizers.second_order_chrom = stub_optimizer(
+        goal=lambda tw: pytest.fail('Second-order goal during error increase'),
+        run_lstsq=lambda **kwargs: pytest.fail('Second-order step during error increase'))
     correction.optimizers.tunes.goal = lambda tw: tw['qx'] == .3
     calls = []
     def evaluate(seed, *, chrom):
@@ -953,3 +957,47 @@ def test_chromaticity_stage_rechecks_other_goals(correction, monkeypatch):
     assert iterations == 2
     assert calls == ['twiss', 'chromaticity', 'twiss', 'tunes', 'twiss']
     assert correction.goals_met(tw)
+
+
+def test_second_order_stage_rechecks_first_order_and_tunes(correction, monkeypatch):
+    state = dict(qx=0., dqx=0., dqy=0., ddqx=4., ddqy=0.)
+    calls = []
+    def evaluate(seed, *, chrom=False):
+        assert chrom
+        calls.append('twiss')
+        return dict(state)
+    def second_order_step(*, action_results):
+        assert action_results[0] == state
+        calls.append('second_order')
+        state.update(qx=1., dqx=2., ddqx=0.)
+    def first_order_step(*, action_results):
+        calls.append('first_order')
+        state['dqx'] = 0.
+    def tune_step(*, action_results):
+        calls.append('tunes')
+        state['qx'] = 0.
+    correction.optimizers.chromaticity = stub_optimizer(
+        goal=lambda tw: tw.get('dqx') == 0., run_lstsq=first_order_step)
+    correction.optimizers.second_order_chrom = stub_optimizer(
+        goal=lambda tw: tw.get('ddqx') == 0., run_lstsq=second_order_step)
+    correction.optimizers.tunes = stub_optimizer(
+        goal=lambda tw: tw['qx'] == 0., run_lstsq=tune_step)
+    monkeypatch.setattr(correction, 'twiss', evaluate)
+    tw, iterations = correction.correct_at_fixed_strengths(dict(state), max_iterations=5, chrom=True)
+    assert iterations == 2
+    assert calls == ['second_order', 'twiss', 'tunes', 'twiss', 'first_order', 'twiss']
+    assert correction.goals_met(tw)
+
+
+def test_second_order_knobs_are_scaled_once_and_rolled_back(correction, monkeypatch):
+    correction.line['dko_arc_f'] = .2
+    correction.optimizers.second_order_chrom = SimpleNamespace(
+        vary=[SimpleNamespace(name='dko_arc_f')], nominal_knob_values={'dko_arc_f': 0.})
+    # Isolate the new optimizer, while exercising the normal control discovery.
+    correction.optimizers = SimpleNamespace(second_order_chrom=correction.optimizers.second_order_chrom)
+    correction._identify_correction_knobs()
+    before = correction.snapshot()
+    correction.scale_corrections(.4)
+    assert correction.line['dko_arc_f'] == pytest.approx(.4)
+    correction.restore(before)
+    assert correction.line['dko_arc_f'] == .2

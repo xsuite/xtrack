@@ -17,6 +17,7 @@ import corr_orbit
 import corr_coupling
 import corr_tune
 import corr_chromaticity
+import corr_second_order_chrom
 
 
 def _silent_log(*args, **kwargs):
@@ -39,7 +40,7 @@ class MachineSnapshot:
 class FCCeeCorrection:
     """Own correction state and execution for a line prepared by 001.
 
-    Construction builds the nominal reference and six fixed-response optimizers,
+    Construction builds the nominal reference and seven fixed-response optimizers,
     then starts at zero error/nonlinear strength. The optimizers, iteration limits,
     nominal knob values, reference and last_accepted_twiss are public.
 
@@ -61,7 +62,9 @@ class FCCeeCorrection:
         optics = self.optimizers.optics
         coupling = self.optimizers.coupling
         tunes = self.optimizers.tunes
-        if chrom and ('dqx' not in tw or 'dqy' not in tw):
+        second_order = getattr(self.optimizers, 'second_order_chrom', None)
+        if chrom and ('dqx' not in tw or 'dqy' not in tw or
+                      (second_order is not None and ('ddqx' not in tw or 'ddqy' not in tw))):
             tw = self.twiss(tw, chrom=True)
         self.log_iteration(0, tw)
         if self.goals_met(tw, chrom=chrom):
@@ -99,6 +102,10 @@ class FCCeeCorrection:
                 self.optimizers.chromaticity.run_lstsq(action_results=[tw])
                 tw = self.twiss(tw, chrom=True)
 
+            if chrom and second_order is not None and not second_order.goal(tw):
+                second_order.run_lstsq(action_results=[tw])
+                tw = self.twiss(tw, chrom=True)
+
             self.log_iteration(iteration, tw)
             if self.goals_met(tw, chrom=chrom):
                 return tw, iteration
@@ -118,6 +125,9 @@ class FCCeeCorrection:
         self.last_accepted_twiss = None
         self.optimizers = SimpleNamespace()
         optimizer_settings = optimizer_settings or {}
+        second_order_settings = (optimizer_settings.get('second_order_chrom')
+                                 or corr_second_order_chrom.DEFAULT_SECOND_ORDER_CHROM_SETTINGS)
+        self.delta_chrom = second_order_settings.delta_chrom
         self.stats = dict(calls=0, seconds=0.0, orbit_calls=0, orbit_seconds=0.0)
         self.steps_r_matrix = dict(dx=1e-8, dpx=1e-9, dy=1e-8, dpy=1e-9, dzeta=1e-7, ddelta=1e-8)
         self.log('Preparing nominal reference and correction responses')
@@ -148,6 +158,9 @@ class FCCeeCorrection:
         self.optimizers.chromaticity = corr_chromaticity.build_chromaticity_corr_optimizer(
             self.line, self.reference, full_twiss=self.twiss,
             settings=optimizer_settings.get('chromaticity'))
+        self.optimizers.second_order_chrom = corr_second_order_chrom.build_second_order_chrom_optimizer(
+            self.line, self.reference, full_twiss=self.twiss,
+            settings=second_order_settings)
         for optimizer in vars(self.optimizers).values():
             _ = optimizer.response.svd
 
@@ -311,7 +324,7 @@ class FCCeeCorrection:
 
     def goals_met(self, tw, *, chrom=True):
         return all(opt.goal(tw) for name, opt in vars(self.optimizers).items()
-                   if chrom or name != 'chromaticity')
+                   if chrom or name not in ('chromaticity', 'second_order_chrom'))
 
     def twiss(self, seed=None, *, only_orbit=False, chrom=False):
         """Evaluate Twiss, optionally using a supplied table's closed orbit as a guess.
@@ -326,7 +339,7 @@ class FCCeeCorrection:
         try:
             return self.line.twiss(
                 chrom=chrom,
-                delta_chrom=1e-6,
+                delta_chrom=self.delta_chrom,
                 steps_R_matrix=self.steps_r_matrix.copy(),
                 radiation_integrals=False,
                 only_orbit=only_orbit,
@@ -362,6 +375,8 @@ class FCCeeCorrection:
         line.set(circuits['tunes']['nominal_values'])
         chromaticity_knobs = corr_chromaticity.install_chromaticity_knobs(line)
         line.set(chromaticity_knobs, np.zeros(len(chromaticity_knobs)))
+        second_order_knobs = corr_second_order_chrom.install_second_order_chrom_knobs(line)
+        line.set(second_order_knobs, np.zeros(len(second_order_knobs)))
         line.twiss_default['co_guess'] = dict(x=0, px=0, y=0, py=0, zeta=0, delta=0)
         self.reference = self.twiss()
 
