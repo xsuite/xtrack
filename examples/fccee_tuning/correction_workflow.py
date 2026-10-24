@@ -55,7 +55,8 @@ class FCCeeCorrection:
         after it. Only goals and iteration limits decide success; intermediate
         errors may increase.
         """
-        orbit = (self.optimizers.orbit_x, self.optimizers.orbit_y)
+        orbit_x = self.optimizers.orbit_x
+        orbit_y = self.optimizers.orbit_y
         optics = self.optimizers.optics
         coupling = self.optimizers.coupling
         tunes = self.optimizers.tunes
@@ -63,9 +64,9 @@ class FCCeeCorrection:
         if self.goals_met(tw):
             return tw, 0
         for iteration in range(1, max_iterations + 1):
-            if not all(opt.goal(tw) for opt in orbit):
-                for opt in orbit:
-                    opt.run_lstsq(action_results=[tw], tag_outcome=False)
+            if not (orbit_x.goal(tw) and orbit_y.goal(tw)):
+                orbit_x.run_lstsq(action_results=[tw], tag_outcome=False)
+                orbit_y.run_lstsq(action_results=[tw], tag_outcome=False)
                 tw = self.twiss(tw)
             tw = tunes.correct(tw, full_twiss=self.twiss)
 
@@ -76,16 +77,16 @@ class FCCeeCorrection:
             tw = tunes.correct(tw, full_twiss=self.twiss)
 
             if not coupling.goal(tw):
-                for opt in orbit:
-                    opt.run_lstsq(action_results=[tw], tag_outcome=False)
+                orbit_x.run_lstsq(action_results=[tw], tag_outcome=False)
+                orbit_y.run_lstsq(action_results=[tw], tag_outcome=False)
                 tw = self.twiss(tw)
                 if not coupling.goal(tw):
                     coupling.run_lstsq(
                         action_results=[tw],
                         step_scale=coupling.step_scale, tag_outcome=False)
                     tw = self.twiss(tw)
-                    for opt in orbit:
-                        opt.run_lstsq(action_results=[tw], tag_outcome=False)
+                    orbit_x.run_lstsq(action_results=[tw], tag_outcome=False)
+                    orbit_y.run_lstsq(action_results=[tw], tag_outcome=False)
                     tw = self.twiss(tw)
             tw = tunes.correct(tw, full_twiss=self.twiss)
 
