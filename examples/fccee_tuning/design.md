@@ -14,12 +14,82 @@ Run the example scripts in order:
 1. `000_install_errors.py` installs static lattice errors.
 2. `001_install_correction_knobs.py` installs the correction knobs.
 3. `002_correct_with_state.py` increases errors, corrects, refines and saves.
+4. `003_momentum_scan.py` analyzes the saved machine versus momentum offset.
 
 The older correction and analysis scripts have been removed, together with
 unused helpers. Their reference implementations remain in Git history (commit
 `11b5f7f58`). Historical validation notes below retain the old script names.
 Do not reintroduce resume/checkpoints. Keep logging minimal and settings,
 optimizers and accepted state inspectable.
+
+## Momentum-offset analysis
+
+`003_momentum_scan.py` loads `response_api_class/machine.json` independently of
+the correction object. All settings are near the top of the script: `INPUT`
+and `OUTPUT_DIR` select the saved standard machine and artifact directory.
+The default scan is 21 points over delta = -0.01 to +0.01, configured through
+`DELTA_MAX` and `NUM_POINTS`. There is no argument parser. Delta means
+`(p-p0)/p0`. Radiation is disabled, nonzero magnet tapering is rejected, and no
+radiation compensation is performed. All optics calculations use 4D Twiss.
+
+An independent zero-guess search at `ipd` recovers the corrected orbit. Searching
+at the line start (`ipa`) fails for the validated error realization; the script
+does not reuse the old correction's accepted orbit. Positive and negative delta
+branches start independently from the recovered delta=0 solution. Subsequent
+Twiss calls use the last successful `particle_on_co` as `co_guess`, keeping the
+orbit search active. Steps are limited to 5e-4 and failed steps are halved down
+to 1e-6. A tune jump larger than 0.25 per continuation step is also retried;
+finite but discontinuous Twiss tunes must not silently enter the plots.
+Failed requested points are logged and saved as NaN with their errors and the
+last delta reached. Once continuation fails, subsequent points on that branch
+are explicitly marked as not reached, also NaN; the opposite branch still runs.
+This probes the optics branch connected to delta=0. Twiss failure or a tune
+continuity rejection is not a measurement of momentum acceptance.
+
+The ideal reference is reconstructed on the identical element layout by turning
+off errors and correction switches, resetting the independent tune offsets and
+original tune families to their nominal values, and retaining nominal nonlinear
+strengths (`on_nonlinear=1`). All changed controls are restored afterward.
+Both the clean and corrected machines are scanned on the same delta grid, using
+independent closed-orbit continuation and failure reporting. Only tunes are
+plotted versus delta, with clean and corrected curves overlaid in each plane.
+The reference momentum is always delta=0: beta beating is
+`beta_machine(delta)/beta_ideal(0)-1` for each machine, including chromatic changes.
+Thus the saved clean beta beating is zero at delta=0, but generally not elsewhere.
+This common denominator allows direct comparison of the saved results. It does not
+subtract the ideal machine's own off-momentum beta variation.
+The correction's optics target used nonlinear strengths off, so its reported
+beta-beating RMS need not exactly equal this analysis with nominal sextupoles on.
+
+Observations are the union of horizontal-correction BPM entrances and the four
+IP entrances `ipa/ipd/ipg/ipj`, matching the correction's optics observations.
+Orbit is expressed in lattice coordinates, without subtracting BPM alignment
+offsets. Orbit and off-momentum betas remain available in the saved data.
+The second figure overlays nominal and corrected beta along the ring at delta=0,
+with signed beating below. Ring plots use those same observations, sorted by s;
+they are not maxima over every lattice element.
+
+Artifacts in `analysis/momentum_scan` are `tunes_vs_delta.png`,
+`beta_along_ring.png`,
+`momentum_scan.npz` (coordinates, names, s, betas, reference betas, beating,
+tunes, and failures), and `summary.json` (definitions, settings and failures).
+NPZ fields without a prefix describe the corrected machine; `clean_*` fields
+store the clean scan, including its own tunes, errors and last reached delta.
+The JSON records these separately in `failed_points` and `clean_failed_points`.
+Blue/orange vertical lines mark failed or unreached corrected/clean points.
+For reproducible runs set `OPENBLAS_NUM_THREADS=1`, `OMP_NUM_THREADS=1`,
+`MKL_NUM_THREADS=1`, and `VECLIB_MAXIMUM_THREADS=1` before starting Python.
+
+For interactive figures in IPython, enable a GUI backend with `%matplotlib`,
+then run `%run examples/fccee_tuning/003_momentum_scan.py` from the repository
+root. Set `INPUT` to the desired machine path before running. `SHOW_PLOTS = True`
+by default keeps both figures open while still saving the artifacts.
+Set it to `False` for batch runs to close figures after saving.
+
+DA/MA implementation and tracking scans are deferred at the user's request.
+The chosen MA definition for that future work is off-momentum closed-orbit
+launches at `ipa` with a small transverse amplitude. Turns, amplitudes and
+scan ranges still need to be settled and timed before a substantial scan.
 
 ## Executing the correction
 
@@ -703,3 +773,39 @@ reload/idempotency, response restoration, refinement-only activation and
 rechecking other goals after a chromaticity change.
 Artifacts: `/tmp/fccee_chrom_refinement_yw7balkq/run.log`, `verification.json`,
 `timing.json`, and `response_api_class/machine.json`.
+
+### Independent momentum scan
+
+The new script was validated on the saved standard machine above, without the
+correction object or its accepted Twiss particle. Independent search at `ipa`
+failed; search at `ipd` succeeded. Recovered tunes agree with the preceding
+validation within 4e-9. Ideal reference betas match a separate load of the
+original standard lattice exactly at all 2643 BPM/IP observations. Beta-beating
+RMS relative to this nominal-nonlinearity reference is 1.176% / 1.260%.
+
+The final 21-point scan over delta = +/-0.01 took 38.9 s with one BLAS/OMP
+thread. Sixteen requested points succeeded, from -0.008 through +0.007.
+Continuation could not resolve tune discontinuities on the way to -0.009
+and +0.008 (last reached -0.00809375 and +0.007083984375). The remaining
+three points were marked not reached. These are optics/continuation limits,
+not physical aperture or momentum-acceptance measurements.
+
+Output checks verified the requested grid, finite successful rows, NaN failed
+rows, matching failure metadata, beta-beating arithmetic and four plot artifacts.
+Plot axes were subsequently fixed to the requested +/-0.01 range and regenerated
+from the saved scan. Python compilation and `git diff --check` passed. No DA/MA
+tracking scan was run. Artifacts: `/tmp/fccee_analysis_KNaJM2/final_scan.log`,
+`final_scan/` (plots, NPZ, summary and verification), and
+`/tmp/fccee_analysis_KNaJM2/reference_verification.json`.
+
+Adding the clean-machine scan and overlays completed in 48.2 s with one BLAS/OMP
+thread. All 21 clean points succeeded; the corrected scan retained the same 16
+successful points and five failed/unreached points. Corrected coordinates,
+betas and tunes agree with the preceding output within rtol=1e-8, atol=1e-10.
+Clean results were independently compared with the original standard lattice
+at delta=0 and +/-0.003: beta/orbit arrays and tunes passed, with maximum
+horizontal-beta relative differences below 1.2e-8. Checks also covered NaN
+failure rows and both beta-beating definitions. All four plots were saved and
+the comparison plots were visually inspected. Artifacts:
+`/tmp/fccee_analysis_KNaJM2/clean_comparison.log` and `clean_comparison/`
+(plots, NPZ, summary and `verification.json`).
