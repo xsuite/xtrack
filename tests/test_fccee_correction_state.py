@@ -49,7 +49,6 @@ def correction(monkeypatch):
     state.target_error_fraction = None
     state.optimizers = SimpleNamespace(**{name: stub_optimizer() for name in
         ('optics', 'orbit_x', 'orbit_y', 'coupling', 'tunes')})
-    state._final_refinement = False
     state.optimizers.optics.settings = copy(importlib.import_module('corr_optics').DEFAULT_OPTICS_CORR_SETTINGS)
     state.optimizers.coupling.settings = copy(importlib.import_module('corr_coupling').DEFAULT_COUPLING_CORR_SETTINGS)
     state.last_accepted_twiss = SimpleNamespace(
@@ -85,7 +84,7 @@ def test_increase_errors_restores_rejected_trial_and_retries(correction, monkeyp
         tw.x = [correction.error_fraction]
         return tw
 
-    def correct(tw):
+    def correct(tw, *, max_iterations):
         attempts.append(correction.error_fraction)
         quad_values.append(float(correction.line['quad']))
         if len(attempts) == 1:
@@ -104,14 +103,13 @@ def test_increase_errors_restores_rejected_trial_and_retries(correction, monkeyp
     assert correction.last_accepted_twiss.x == [.4]
     assert not correction.correction_failed and correction.failure_reason is None
     assert correction.target_error_fraction == .4
-    assert not correction.completed
 
 
 def test_error_increment_growth_is_capped_and_target_is_exact(correction, monkeypatch):
     attempts = []
     monkeypatch.setattr(correction, 'twiss', lambda seed: correction.last_accepted_twiss)
 
-    def correct(tw):
+    def correct(tw, *, max_iterations):
         attempts.append(correction.error_fraction)
         return tw, 3
 
@@ -127,7 +125,7 @@ def test_run_stops_after_minimum_increment_and_can_save_partial(correction, monk
     monkeypatch.setattr(correction, 'twiss', lambda seed: correction.last_accepted_twiss)
     monkeypatch.setattr(correction, 'refine', lambda: pytest.fail('Unexpected refinement'))
 
-    def correct(tw):
+    def correct(tw, *, max_iterations):
         attempts.append(correction.error_fraction)
         if len(attempts) > 1:
             correction.line['quad'] = 999.
@@ -140,10 +138,9 @@ def test_run_stops_after_minimum_increment_and_can_save_partial(correction, monk
     np.testing.assert_allclose(attempts, [.3, .4, .35])
     assert correction.error_fraction == pytest.approx(.3)
     assert correction.line['quad'] == pytest.approx(4.5)
-    assert correction.correction_failed and not correction.completed
+    assert correction.correction_failed
     assert 'Minimum error increment' in correction.failure_reason
     assert 'Invalid optics' in correction.failure_reason
-    assert not correction.final_refinement
 
     # Saving belongs to the caller, including after a failed correction.
     output = tmp_path / 'partial.json'
@@ -177,18 +174,17 @@ def test_run_refines_at_requested_fraction(correction, monkeypatch, target):
     monkeypatch.setattr(correction, 'twiss', lambda seed: correction.last_accepted_twiss)
     monkeypatch.setattr(correction, 'goals_met', lambda tw: tw is refined)
 
-    def correct(tw):
-        calls.append((correction.error_fraction, correction.final_refinement))
+    def correct(tw, *, max_iterations):
+        calls.append((correction.error_fraction, max_iterations))
         assert tw is correction.last_accepted_twiss
-        return (refined if correction.final_refinement else tw), 1
+        return (refined if max_iterations == correction.final_max_iterations else tw), 1
 
     monkeypatch.setattr(correction, 'correct_at_fixed_strengths', correct)
     assert correction.run(target_error_fraction=target, initial_increment=.3, max_increment=.3)
     assert correction.error_fraction == target
-    assert calls[-1] == (target, True)
-    assert all(not final for _, final in calls[:-1])
+    assert calls[-1] == (target, correction.final_max_iterations)
+    assert all(limit == correction.intermediate_max_iterations for _, limit in calls[:-1])
     assert correction.last_accepted_twiss is refined
-    assert correction.completed == (target == 1.)
 
 
 def test_refine_failure_restores_accepted_state(correction, monkeypatch):
@@ -196,7 +192,8 @@ def test_refine_failure_restores_accepted_state(correction, monkeypatch):
     monkeypatch.setattr(correction, 'goals_met', lambda tw: False)
     monkeypatch.setattr(correction, 'twiss', lambda: pytest.fail('Unexpected Twiss'))
 
-    def fail(tw):
+    def fail(tw, *, max_iterations):
+        assert max_iterations == correction.final_max_iterations
         assert tw is before.last_accepted_twiss
         correction.line['quad'] = 999.
         correction.last_accepted_twiss = object()
@@ -206,17 +203,17 @@ def test_refine_failure_restores_accepted_state(correction, monkeypatch):
     assert not correction.refine()
     assert correction.snapshot().knob_values == before.knob_values
     assert correction.last_accepted_twiss is before.last_accepted_twiss
-    assert correction.final_refinement
-    assert correction.correction_failed and not correction.completed
+    assert correction.optimizers.optics.dx_err_ip_tol == correction.optimizers.optics.settings.horizontal_dispersion_ip_tol
+    assert correction.correction_failed
     assert correction.failure_reason == 'Refinement failed: Iteration budget exhausted'
 
 
 def test_refine_already_satisfied_does_no_work(correction, monkeypatch):
     monkeypatch.setattr(correction, 'twiss', lambda: pytest.fail('Unexpected Twiss'))
     monkeypatch.setattr(correction, 'correct_at_fixed_strengths',
-                        lambda tw: pytest.fail('Unexpected correction'))
+                        lambda tw, **kwargs: pytest.fail('Unexpected correction'))
     assert correction.refine()
-    assert correction.final_refinement
+    assert correction.optimizers.optics.dx_err_ip_tol == correction.optimizers.optics.settings.horizontal_dispersion_ip_tol
     assert not correction.correction_failed
     assert correction.failure_reason is None
 
@@ -245,17 +242,14 @@ def test_snapshot_restores_all_trial_state_and_preserves_expressions(correction)
     correction.scale_corrections(0.5)
     correction.set_error_fraction(0.5)
     correction.last_accepted_twiss = object()
-    correction.final_refinement = True
-    correction.accept(deepcopy(before.last_accepted_twiss))
     correction.restore(before)
     assert correction.snapshot().knob_values == before.knob_values
     assert correction.last_accepted_twiss is before.last_accepted_twiss
-    assert not correction.final_refinement
     correction.set_error_fraction(0.3)
     assert correction.line['bpm_offset'] == 0.0003
 
 
-def test_accept_updates_state_without_evaluation_or_history(correction, monkeypatch):
+def test_refine_keeps_returned_twiss_without_extra_evaluation_or_history(correction, monkeypatch):
     before = correction.snapshot()
     defaults = deepcopy(correction.line.twiss_default)
     tw = deepcopy(correction.last_accepted_twiss)
@@ -263,11 +257,16 @@ def test_accept_updates_state_without_evaluation_or_history(correction, monkeypa
     monkeypatch.setattr(correction, 'compute_metrics',
                         lambda tw: pytest.fail('Unexpected metrics evaluation'))
     monkeypatch.setattr(correction, 'twiss', lambda: pytest.fail('Unexpected Twiss'))
-    correction.accept(tw)
+    messages = []
+    monkeypatch.setattr(correction, 'log', messages.append)
+    monkeypatch.setattr(correction, 'goals_met', lambda tw: False)
+    monkeypatch.setattr(correction, 'correct_at_fixed_strengths',
+                        lambda seed, **kwargs: (tw, 1))
+    assert correction.refine()
+    assert messages == ['Final refinement', 'Accepted']
     assert correction.last_accepted_twiss is tw
     assert correction.line.twiss_default == defaults
     assert correction.snapshot().knob_values == before.knob_values
-    assert correction.final_refinement == before.final_refinement
     assert not hasattr(correction, 'history')
 
 
@@ -297,7 +296,7 @@ def test_twiss_evaluation_is_explicit(correction, monkeypatch):
     assert correction.stats['orbit_calls'] == 1
 
     # A supplied point satisfying the goals requires no further Twiss.
-    tw, iterations = correction.correct_at_fixed_strengths(second)
+    tw, iterations = correction.correct_at_fixed_strengths(second, max_iterations=5)
     assert tw is second and iterations == 0
     assert len(calls) == 4
 
@@ -348,49 +347,49 @@ def diagnostic_optimizer(module_name, settings_name, reference):
     return opt
 
 
-def test_mode_switches_limits_and_orbit_tolerance_is_constant(correction):
+def test_execution_methods_set_limits_and_snapshots_leave_them_unchanged(correction, monkeypatch):
     reference = correction.last_accepted_twiss
     optics = diagnostic_optimizer('corr_optics', 'DEFAULT_OPTICS_CORR_SETTINGS', reference)
     coupling = diagnostic_optimizer('corr_coupling', 'DEFAULT_COUPLING_CORR_SETTINGS', reference)
     orbit = diagnostic_optimizer('corr_orbit', 'DEFAULT_ORBIT_CORR_SETTINGS', reference)
     correction.optimizers = SimpleNamespace(optics=optics, coupling=coupling, orbit=orbit)
+    monkeypatch.setattr(correction, 'goals_met', lambda tw: True)
+    monkeypatch.setattr(correction, 'twiss', lambda *a, **k: pytest.fail('Unexpected Twiss'))
     orbit.plane = 'x'
     orbit.compute_metrics = lambda tw: {'orbit_x_rms': orbit.orbit_tol}
-    assert orbit.goal(None)  # Inclusive orbit limit.
+    assert orbit.goal(None)
     orbit.compute_metrics = lambda tw: {'orbit_x_rms': np.nextafter(orbit.orbit_tol, np.inf)}
     assert not orbit.goal(None)
-    assert orbit.orbit_tol == 1e-5
-    assert optics.dx_err_ip_tol == 5e-4
-    assert coupling.dy_ip_tol == 1e-4
+
+    limits = [
+        (optics, 'dx_err_rms_tol', 'horizontal_dispersion_rms_tol'),
+        (optics, 'dx_err_ip_tol', 'horizontal_dispersion_ip_tol'),
+        (coupling, 'rdt_rms_tol', 'coupling_rms_tol'),
+        (coupling, 'rdt_ip_tol', 'coupling_ip_tol'),
+        (coupling, 'c_minus_tol', 'c_minus_tol'),
+        (coupling, 'dy_rms_tol', 'dispersion_rms_tol'),
+        (coupling, 'dy_ip_tol', 'dispersion_ip_tol'),
+    ]
     before = correction.snapshot()
-    correction.set_error_fraction(.8)
-    correction.final_refinement = True
-    assert orbit.orbit_tol == 1e-5
-    assert optics.dx_err_ip_tol == 1e-4
-    assert coupling.dy_ip_tol == 2e-5
-    correction.restore(before)
-    assert not correction.final_refinement
-    assert orbit.orbit_tol == 1e-5
-    assert optics.dx_err_ip_tol == 5e-4
-    assert coupling.dy_ip_tol == 1e-4
-    correction.set_error_fraction(0.)
-    assert orbit.orbit_tol == 1e-5
-    # Changes to active limits survive ordinary ramp updates and rollback.
+    for prefix in ('', 'intermediate_', ''):
+        for opt, attr, _ in limits:
+            setattr(opt, attr, -1.)
+        if prefix:
+            assert correction.increase_errors_and_correct(target_error_fraction=correction.error_fraction)
+        else:
+            assert correction.refine()
+        for opt, attr, setting in limits:
+            assert getattr(opt, attr) == getattr(opt.settings, prefix + setting)
+        assert orbit.orbit_tol == 1e-5
+        correction.set_error_fraction(.8)
+        correction.restore(before)
+        # Rollback restores the machine, without restoring optimizer configuration.
+        for opt, attr, setting in limits:
+            assert getattr(opt, attr) == getattr(opt.settings, prefix + setting)
+        assert correction.error_fraction == .2
     coupling.dy_ip_tol = 6e-5
-    before = correction.snapshot()
-    correction.set_error_fraction(.5)
     correction.restore(before)
     assert coupling.dy_ip_tol == 6e-5
-    assert orbit.orbit_tol == 1e-5
-    # A failed refinement restores within the mode, retaining final limits.
-    correction.final_refinement = True
-    before = correction.snapshot()
-    correction.set_error_fraction(.7)
-    correction.restore(before)
-    assert correction.final_refinement
-    assert optics.dx_err_ip_tol == 1e-4
-    assert coupling.dy_ip_tol == 2e-5
-    assert orbit.orbit_tol == 1e-5
 
 
 @pytest.mark.parametrize('key, tolerance', [
@@ -402,9 +401,12 @@ def test_coupling_goal_limits_are_strict(correction, key, tolerance):
                    dy_rms=0., dy_ip=0.)
     opt.compute_metrics = lambda tw: metrics
     correction.optimizers.coupling = opt
-    for final in (False, True):
-        correction.final_refinement = final
-        limit = getattr(opt, tolerance)
+    setting = {'rdt_rms_tol': 'coupling_rms_tol', 'rdt_ip_tol': 'coupling_ip_tol',
+               'c_minus_tol': 'c_minus_tol', 'dy_rms_tol': 'dispersion_rms_tol',
+               'dy_ip_tol': 'dispersion_ip_tol'}[tolerance]
+    for prefix in ('intermediate_', ''):
+        limit = getattr(opt.settings, prefix + setting)
+        setattr(opt, tolerance, limit)
         metrics[key] = -limit if key == 'c_minus' else limit
         assert not opt.goal(None)
         metrics[key] = np.nextafter(metrics[key], 0.)
@@ -502,7 +504,7 @@ def test_optics_goal_computes_errors_without_aggregate_metrics(correction, monke
     tw.dx[0] = 0.
     tw.dx[1] = -opt.settings.horizontal_dispersion_ip_tol
     assert opt.goal(tw)
-    correction.final_refinement = True
+    opt.dx_err_ip_tol = opt.settings.horizontal_dispersion_ip_tol
     assert not opt.goal(tw)
     tw.dx[1] = np.nextafter(tw.dx[1], 0.)
     assert opt.goal(tw)
@@ -610,14 +612,14 @@ def test_optics_keeps_worsening_steps_until_goal_or_budget(correction, monkeypat
     monkeypatch.setattr(correction, 'goals_met', lambda tw: abs(tw['error']) < 0.2)
     before = correction.snapshot()
     if accepted:
-        result, iterations = correction.correct_at_fixed_strengths(baseline)
+        result, iterations = correction.correct_at_fixed_strengths(baseline, max_iterations=5)
         assert iterations == 1
         np.testing.assert_allclose(trials, [0.25])
         assert correction.line['quad'] == pytest.approx(0.25)
         assert result['error'] == pytest.approx(-0.1875)
     else:
         with pytest.raises(RuntimeError, match='goals not met after 5 iterations'):
-            correction.correct_at_fixed_strengths(baseline)
+            correction.correct_at_fixed_strengths(baseline, max_iterations=5)
         assert len(trials) == 5
         assert trials[0] == pytest.approx(-6.5)
         assert all(abs(b) > abs(a) for a, b in zip(trials, trials[1:]))
@@ -650,29 +652,28 @@ def test_explicit_stage_order_passes_latest_twiss(correction, monkeypatch):
     correction.optimizers.tunes = stub_optimizer(correct=lambda tw, **kw: stage('tune')(tw))
     monkeypatch.setattr(correction, 'settle_coupling_orbit', stage('settle', advance=0))
     monkeypatch.setattr(correction, 'snapshot', lambda: pytest.fail('Unexpected stage snapshot'))
-    assert correction.correct_at_fixed_strengths(0) == (6, 1)
+    assert correction.correct_at_fixed_strengths(0, max_iterations=5) == (6, 1)
     assert calls == [('orbit_x', 0), ('orbit_y', 0), ('full', 0), ('tune', 1),
                      ('optics', 2), ('full', 2), ('tune', 3), ('settle', 4),
                      ('coupling', 4), ('orbit', 4), ('settle', 5), ('tune', 5)]
-    assert correction.correct_at_fixed_strengths(6) == (6, 0)
+    assert correction.correct_at_fixed_strengths(6, max_iterations=5) == (6, 0)
     assert len(calls) == 12  # No work at an already accepted point.
 
 
-@pytest.mark.parametrize('final_refinement, limit', [(False, 5), (True, 40)])
+@pytest.mark.parametrize('limit', [5, 40])
 @pytest.mark.parametrize('converges', [False, True])
 def test_cycle_budget_checks_goals_after_last_cycle(correction, monkeypatch,
-                                                   final_refinement, limit, converges):
-    correction.final_refinement = final_refinement
+                                                   limit, converges):
     logged = []
     tune_calls = []
     monkeypatch.setattr(correction, 'log_iteration', lambda iteration, tw: logged.append(iteration))
     monkeypatch.setattr(correction, 'goals_met', lambda tw: converges and logged[-1] == limit)
     correction.optimizers.tunes.correct = lambda tw, **kw: tune_calls.append(tw) or tw
     if converges:
-        assert correction.correct_at_fixed_strengths(0) == (0, limit)
+        assert correction.correct_at_fixed_strengths(0, max_iterations=limit) == (0, limit)
     else:
         with pytest.raises(RuntimeError, match=f'goals not met after {limit} iterations'):
-            correction.correct_at_fixed_strengths(0)
+            correction.correct_at_fixed_strengths(0, max_iterations=limit)
     assert logged == list(range(limit + 1))
     assert len(tune_calls) == 3 * limit
 

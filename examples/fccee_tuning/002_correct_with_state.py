@@ -43,7 +43,7 @@ correction = FCCeeCorrection(
     optimizer_settings=optimizer_settings)
 
 # Increase errors and correct, then refine at the requested fraction
-correction.run(
+success = correction.run(
     target_error_fraction=TARGET_ERROR_FRACTION,
     initial_increment=INITIAL_INCREMENT,
     min_increment=MIN_INCREMENT,
@@ -51,7 +51,8 @@ correction.run(
 )
 
 # Save the accepted machine, including a partial result after failure
-output = OUTPUT_DIR / ('machine.json' if correction.completed else 'partial.json')
+full_correction = success and abs(correction.error_fraction - 1.) < 1e-12
+output = OUTPUT_DIR / ('machine.json' if full_correction else 'partial.json')
 line.to_json(output, indent=None)
 correction.log(f'Saved {output}')
 correction.log('Finished')

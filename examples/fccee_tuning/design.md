@@ -23,13 +23,13 @@ optimizers and accepted state inspectable.
 
 ## Executing the correction
 
-`accept(tw)` replaces `record(...)`: after a successful trial, it updates
+After a successful trial, each execution method directly updates
 `last_accepted_twiss` and prints `Accepted`. Subsequent Twiss calls use
 `last_accepted_twiss.particle_on_co` as `co_guess`, keeping the closed-orbit search
 active after knob changes. There is no separate default-guess copy to update
 or restore; snapshots retain the accepted table. This seed is not stored in
 `line.twiss_default`, so saving the line does not serialize a particle there.
-It does not evaluate metrics or retain history. Snapshots contain only the state
+The acceptance update does not evaluate metrics or retain history. Snapshots contain only the state
 needed for rollback. Saving belongs to the caller through `line.to_json(path)`;
 there is no correction history list or `history.csv` output.
 
@@ -53,10 +53,11 @@ bounds raise before changing execution or machine state. Numerical failures
 leave the accepted machine available for inspection and saving; they do not
 raise out of these stage methods.
 
-`completed` means the accepted machine meets final goals at full error strength.
-A successful run to a smaller requested fraction returns True but remains a
-partial-strength output. `002` uses this flag to choose the output filename and
-saves with `line.to_json(...)` before raising on a failed run. The workflow has
+`run()` returns success at the requested error fraction, including final refinement.
+A successful run to a smaller fraction remains a partial-strength output. `002`
+uses the returned success flag together with the achieved error fraction to choose
+`machine.json` or `partial.json`, and saves with `line.to_json(...)` before raising
+on a failed run. The workflow has
 no saving method or correction-specific metadata writer. Saving does not run an
 extra Twiss calculation; callers can explicitly validate or add metadata if needed.
 There is no checkpoint or disk-resume mechanism. The explicit
@@ -124,15 +125,17 @@ inspect or change them afterwards through each `optimizer.settings`. Response
 weights and cutoffs are configured during construction; `optimizer.rcond` remains
 directly editable. There is no central schema of correction-specific settings.
 
-Builders initialize constant tolerances and the active intermediate limits. Changing
-`FCCeeCorrection.final_refinement` explicitly switches only the optics Dx and
-coupling RDT/c_minus/Dy limits. Restoring across a mode change restores the
-corresponding limits; restoring within the same mode leaves them untouched.
+Builders initialize constant tolerances and the active intermediate limits.
+`increase_errors_and_correct()` explicitly sets the intermediate optics Dx and
+coupling RDT/c_minus/Dy limits; `refine()` explicitly sets the final limits.
+Each passes its iteration budget to `correct_at_fixed_strengths(tw, *, max_iterations)`.
+There is no stored refinement phase. Snapshots contain only machine controls and
+`last_accepted_twiss`; restoring does not change optimizer tolerances.
 Changing the error fraction does not change any tolerances. Goal calls need only
 `tw`, without mode/context arguments. Active tolerances, such as
 `optics.dx_err_ip_tol` or `orbit_x.orbit_tol`, remain inspectable and directly editable.
 There is no goal-configuration callback. When adding a correction with different
-error-increase/refinement limits, include its assignments in the explicit mode switch.
+error-increase/refinement limits, include its assignments in the two execution methods.
 
 Orbit goals use inclusive RMS comparisons and a fixed tolerance (10 micrometres
 by default) throughout error increases and refinement. Coupling's internal orbit settling

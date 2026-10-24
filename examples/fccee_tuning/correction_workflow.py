@@ -33,7 +33,6 @@ class MachineSnapshot:
 
     knob_values: dict
     last_accepted_twiss: object
-    final_refinement: bool
 
 
 class FCCeeCorrection:
@@ -48,17 +47,13 @@ class FCCeeCorrection:
 
     correction_errors = (ValueError, RuntimeError, xt.twiss.ClosedOrbitSearchError)
 
-    def correct_at_fixed_strengths(self, tw):
+    def correct_at_fixed_strengths(self, tw, *, max_iterations):
         """Return the accepted Twiss and completed iteration count, or raise.
 
         The caller owns rollback of the entire error-increase trial. Tune correction is
         explicit; coupling correction includes orbit settling. Only goals and
         iteration limits decide success; intermediate errors may increase.
         """
-        if self.final_refinement:
-            max_iterations = self.final_max_iterations
-        else:
-            max_iterations = self.intermediate_max_iterations
         orbit = (self.optimizers.orbit_x, self.optimizers.orbit_y)
         optics = self.optimizers.optics
         coupling = self.optimizers.coupling
@@ -103,7 +98,6 @@ class FCCeeCorrection:
         self.intermediate_max_iterations = intermediate_max_iterations
         self.final_max_iterations = final_max_iterations
         self.log = self._default_log if log is None else log
-        self._final_refinement = False
         self.failure_reason = None
         self.target_error_fraction = None
         self.last_accepted_twiss = None
@@ -153,8 +147,8 @@ class FCCeeCorrection:
             min_increment=1e-5, max_increment=0.10):
         """Increase errors and correct, then refine; return whether both succeeded.
 
-        A successful target below one is supported. The completed property is
-        true only at full error strength with final goals met.
+        A successful target below one is supported. The return value reports
+        success at the requested fraction, including final refinement.
         """
         if not self.increase_errors_and_correct(
                 target_error_fraction=target_error_fraction,
@@ -183,7 +177,16 @@ class FCCeeCorrection:
 
         self.failure_reason = None
         self.target_error_fraction = target_error_fraction
-        self.final_refinement = False
+        optics = self.optimizers.optics
+        coupling = self.optimizers.coupling
+        optics.dx_err_rms_tol = optics.settings.intermediate_horizontal_dispersion_rms_tol
+        optics.dx_err_ip_tol = optics.settings.intermediate_horizontal_dispersion_ip_tol
+        coupling.rdt_rms_tol = coupling.settings.intermediate_coupling_rms_tol
+        coupling.rdt_ip_tol = coupling.settings.intermediate_coupling_ip_tol
+        coupling.c_minus_tol = coupling.settings.intermediate_c_minus_tol
+        coupling.dy_rms_tol = coupling.settings.intermediate_dispersion_rms_tol
+        coupling.dy_ip_tol = coupling.settings.intermediate_dispersion_ip_tol
+
         increment = initial_increment
         while self.error_fraction < target_error_fraction - 1e-12:
             next_error_fraction = min(self.error_fraction + increment, target_error_fraction)
@@ -193,7 +196,8 @@ class FCCeeCorrection:
                 self.scale_corrections(next_error_fraction)
                 self.set_error_fraction(next_error_fraction)
                 tw = self.twiss(self.last_accepted_twiss)
-                tw, iterations = self.correct_at_fixed_strengths(tw)
+                tw, iterations = self.correct_at_fixed_strengths(
+                    tw, max_iterations=self.intermediate_max_iterations)
             except self.correction_errors as err:
                 self.restore(before)
                 increment /= 2
@@ -203,7 +207,8 @@ class FCCeeCorrection:
                     return False
                 continue
 
-            self.accept(tw)
+            self.last_accepted_twiss = tw
+            self.log('Accepted')
             if iterations <= 3:
                 increment = min(1.25 * increment, max_increment)
         return True
@@ -211,13 +216,24 @@ class FCCeeCorrection:
     def refine(self):
         """Refine the accepted state at its current error fraction; return success."""
         self.failure_reason = None
-        self.final_refinement = True
+        optics = self.optimizers.optics
+        coupling = self.optimizers.coupling
+        optics.dx_err_rms_tol = optics.settings.horizontal_dispersion_rms_tol
+        optics.dx_err_ip_tol = optics.settings.horizontal_dispersion_ip_tol
+        coupling.rdt_rms_tol = coupling.settings.coupling_rms_tol
+        coupling.rdt_ip_tol = coupling.settings.coupling_ip_tol
+        coupling.c_minus_tol = coupling.settings.c_minus_tol
+        coupling.dy_rms_tol = coupling.settings.dispersion_rms_tol
+        coupling.dy_ip_tol = coupling.settings.dispersion_ip_tol
+
         self.log('Final refinement')
         before = self.snapshot()
         try:
             if not self.goals_met(self.last_accepted_twiss):
-                tw, _ = self.correct_at_fixed_strengths(self.last_accepted_twiss)
-                self.accept(tw)
+                tw, _ = self.correct_at_fixed_strengths(
+                    self.last_accepted_twiss, max_iterations=self.final_max_iterations)
+                self.last_accepted_twiss = tw
+                self.log('Accepted')
         except self.correction_errors as err:
             self.restore(before)
             self.failure_reason = f'Refinement failed: {err}'
@@ -230,47 +246,9 @@ class FCCeeCorrection:
         return self.failure_reason is not None
 
     @property
-    def completed(self):
-        """Whether the accepted machine meets final goals at full error strength."""
-        return (not self.correction_failed and self.final_refinement
-                and abs(self.error_fraction - 1.) < 1e-12
-                and self.goals_met(self.last_accepted_twiss))
-
-    @property
     def error_fraction(self):
         """Live error fraction, including an unaccepted trial until restoration or acceptance."""
         return float(self.line['on_errors'])
-
-    @property
-    def final_refinement(self):
-        return self._final_refinement
-
-    @final_refinement.setter
-    def final_refinement(self, value):
-        """Switch optics/coupling limits only when entering or leaving refinement."""
-        value = bool(value)
-        if value == self._final_refinement:
-            return
-        optics = self.optimizers.optics
-        coupling = self.optimizers.coupling
-        if value:
-            optics.dx_err_rms_tol = optics.settings.horizontal_dispersion_rms_tol
-            optics.dx_err_ip_tol = optics.settings.horizontal_dispersion_ip_tol
-            coupling.rdt_rms_tol = coupling.settings.coupling_rms_tol
-            coupling.rdt_ip_tol = coupling.settings.coupling_ip_tol
-            coupling.c_minus_tol = coupling.settings.c_minus_tol
-            coupling.dy_rms_tol = coupling.settings.dispersion_rms_tol
-            coupling.dy_ip_tol = coupling.settings.dispersion_ip_tol
-        else:
-            # Restore the intermediate limits if rolling back across the mode change.
-            optics.dx_err_rms_tol = optics.settings.intermediate_horizontal_dispersion_rms_tol
-            optics.dx_err_ip_tol = optics.settings.intermediate_horizontal_dispersion_ip_tol
-            coupling.rdt_rms_tol = coupling.settings.intermediate_coupling_rms_tol
-            coupling.rdt_ip_tol = coupling.settings.intermediate_coupling_ip_tol
-            coupling.c_minus_tol = coupling.settings.intermediate_c_minus_tol
-            coupling.dy_rms_tol = coupling.settings.intermediate_dispersion_rms_tol
-            coupling.dy_ip_tol = coupling.settings.intermediate_dispersion_ip_tol
-        self._final_refinement = value
 
     def scale_corrections(self, next_error_fraction):
         """Extrapolate deviations from nominal settings, without changing errors."""
@@ -297,7 +275,6 @@ class FCCeeCorrection:
         return MachineSnapshot(
             knob_values={name: float(values[name]) for name in self.control_names},
             last_accepted_twiss=self.last_accepted_twiss,
-            final_refinement=self.final_refinement,
         )
 
     def restore(self, snapshot):
@@ -308,7 +285,6 @@ class FCCeeCorrection:
             if values[name] != value
         })
         self.last_accepted_twiss = snapshot.last_accepted_twiss
-        self.final_refinement = snapshot.final_refinement
 
     def log_iteration(self, iteration, tw):
         self.log('Initial state' if iteration == 0 else f'Iteration {iteration}')
@@ -317,11 +293,6 @@ class FCCeeCorrection:
 
     def goals_met(self, tw):
         return all(opt.goal(tw) for opt in vars(self.optimizers).values())
-
-    def accept(self, tw):
-        """Keep the accepted Twiss, including its closed-orbit particle for the next trial."""
-        self.last_accepted_twiss = tw
-        self.log('Accepted')
 
     def twiss(self, seed=None, *, only_orbit=False):
         """Evaluate Twiss, optionally using a supplied table's closed orbit as a guess.
