@@ -107,12 +107,11 @@ def main():
     print(f'Independent closed orbit: Qx={tw0.qx:.9f}, Qy={tw0.qy:.9f}', flush=True)
 
     # Recover the ideal lattice on the identical element layout. Disable every
-    # installed correction, including tune offsets (which have no master switch).
+    # installed correction and zero the tune offsets without overwriting their families.
     circuits = line.metadata['correction_knobs']
     ideal_values = {name: 0. for name in circuits['switches'].values()}
     ideal_values.update(on_nonlinear=1., on_chromaticity_corr=0.)
     ideal_values.update(circuits['tunes']['nominal_values'])
-    ideal_values.update(circuits['tunes']['family_nominal_values'])
     names = list(dict.fromkeys(circuits['orbit']['x']['monitors'] + IPS))
     indices = tw0.rows.indices[names]
     s = tw0.s[indices]

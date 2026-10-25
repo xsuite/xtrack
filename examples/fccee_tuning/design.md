@@ -231,8 +231,8 @@ This probes the optics branch connected to delta=0. Twiss failure or a tune
 continuity rejection is not a measurement of momentum acceptance.
 
 The ideal reference is reconstructed on the identical element layout by turning
-off errors and correction switches, resetting the independent tune offsets and
-original tune families to their nominal values, and retaining nominal nonlinear
+off errors and correction switches, resetting the independent tune offsets to
+zero while preserving the family expressions, and retaining nominal nonlinear
 strengths (`on_nonlinear=1`). All changed controls are restored afterward.
 Both the clean and corrected machines are scanned on the same delta grid, using
 independent closed-orbit continuation and failure reporting. Only tunes are
@@ -460,15 +460,31 @@ definitions:
 - `corr_second_order_chrom.build_second_order_chrom_optimizer`: ideal second-order
   chromaticities using two arc quadrupole knl[3] offsets.
 
-The tune and second-order chromaticity installers share
-the same convention: reset trims to independent zero values on every call,
-preserve original magnet expressions and existing switch settings, and use
-the recorded knob list to avoid attaching a trim twice. Existing correction
-expressions are not inspected. Tune installation retains the first-installation
-measurement of independent family coefficients; second-order installation
-retains physical-magnet grouping and length weighting. Optics and tune quadrupole
-selection uses `table.rows.match(element_type=...)`. Orbit and coupling
-installation remains in `001`.
+Optics, coupling, tune, and chromaticity installation asserts that correction
+knob names are absent before creating zero-valued trims and enabling their
+switches. The second-order chromaticity installer still resets existing trims
+and uses metadata to avoid attaching them twice, retaining physical-magnet
+grouping and length weighting. Existing correction expressions are not inspected.
+Optics and coupling use `table.rows.match(element_type=...)` for element
+selection; tune and chromaticity work directly on family variables.
+Orbit installation remains in `001`.
+
+`corr_coupling.install_coupling_knobs(line)` mirrors the optics install-once
+pattern: select sextupoles with `rows.match`, assert all correction knob names
+are absent, set `on_coupling_corr` to one, initialize zero-valued trims, append
+their contributions, record metadata, and return the knob list. `001` calls it
+after copying the error metadata onto the line. The physical-magnet groups come
+from that metadata: one `dk1sl_coupling_<first_piece>` controls each sextupole,
+with integrated `ksl[1]` shared among its pieces in proportion to their lengths.
+Existing field expressions remain intact, and the skew trims remain outside
+`on_nonlinear`. The optimizer consumes the recorded coupling circuit.
+
+Validation of the extracted coupling installer (2026-10-25): 83 focused tests
+passed in 5.86 s with one BLAS/OMP thread. The new checks cover unequal piece
+lengths, preservation of existing expressions, switch behavior, independence
+from nonlinear scaling, and assertion on existing knobs before any changes,
+including after JSON reload. Log: `/tmp/fccee_coupling_installer_tests.log`.
+The full-machine correction was not rerun.
 
 Validation (2026-10-25): 79 focused tests passed in 5.72 s with one BLAS/OMP
 thread. Tests cover zeroing existing trim expressions, preserved family controls
@@ -477,9 +493,22 @@ physical-piece weighting. Log: `/tmp/fccee_installers_cleanup_tests.log`.
 The full-machine correction was not rerun.
 
 Tune correction varies independent offsets `dkqf2_tune` and `dkqd1_tune`.
-The original `kqf2` and `kqd1` family variables remain unchanged. The installer
-follows their quadrupole connections and adds equivalent offsets to `k1`,
-recording the connections so reloading does not attach them twice.
+The installer appends each offset, multiplied by `on_tune_corr`, to the existing
+`kqf2` or `kqd1` family expression. All dependents follow those families; no
+element lookup, dependency traversal, or coefficient measurement is needed.
+`001` passes its configured `TUNE_KNOBS` list and registers the tune switch.
+The optimizer reads the installed knob list. Reference preparation and clean
+reconstruction in `003`/`004` zero only the offsets, preserving family expressions.
+Metadata retains zero nominal trim values and the family names; the former
+`family_nominal_values` and `k1_coefficients` fields are no longer needed.
+
+Validation of the family-level tune installer (2026-10-25): 91 focused correction
+and aperture-analysis tests passed in 16.57 s with one BLAS/OMP thread. Checks
+cover constant and expression-defined families, dependent variables, switch
+behavior, rejection of existing trims, JSON reload, zeroing offsets without
+erasing family expressions, and response construction from installed knobs.
+Log: `/tmp/fccee_tune_family_tests.log`. Saved machines were not regenerated and
+the full-machine correction was not rerun.
 
 Chromaticity correction varies `dksf1_chromaticity`, `dksf2_chromaticity`,
 `dksd1_chromaticity` and `dksd2_chromaticity`. The installer appends each offset,

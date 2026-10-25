@@ -11,6 +11,7 @@ import xtrack as xt
 
 from error_recipe import get_bpm_alignment
 import corr_optics
+import corr_coupling
 import corr_tune
 import corr_chromaticity
 import corr_second_order_chrom
@@ -121,33 +122,6 @@ for name in dict.fromkeys(line.element_names):
 
 nonlinear_magnets = controlled
 
-# Independent skew-quadrupole circuits in sextupoles (one per physical magnet).
-# ksl[1] is absolute integrated strength [1/m], and is deliberately not ramped
-# with k2. Main sextupoles can be off while the skew trims remain powered.
-skew_groups = [
-    record['names']
-    for record in env.metadata['tuning_errors']['magnets'].values()
-    if isinstance(line.get(record['names'][0]), xt.Sextupole)
-]
-skew_knobs = [f'dk1sl_coupling_{names[0]}' for names in skew_groups]
-line['on_coupling_corr'] = 1.0
-for names, knob in zip(skew_groups, skew_knobs):
-    line[knob] = 0.0
-    length = sum(line.get(name).length for name in names)
-    for name in names:
-        line.ref[name].ksl[1] += (
-            line.ref['on_coupling_corr']
-            * line.ref[knob]
-            * line.get(name).length
-            / length
-        )
-print('Independent skew-quadrupole trims:', len(skew_knobs))
-
-
-# Independent normal-quadrupole trims.
-corr_optics.install_optics_knobs(line)
-optics_circuits = line.metadata['correction_knobs']['optics']
-
 # Keep nominal tune families and attach independent correction offsets below.
 line.metadata['tuning_errors'] = env.metadata['tuning_errors']
 line.metadata['correction_knobs'] = dict(
@@ -160,23 +134,21 @@ line.metadata['correction_knobs'] = dict(
         )
         for plane, names in zip('xy', corrector_names)
     },
-    optics=optics_circuits,
-    coupling=dict(knobs=skew_knobs, magnet_groups=skew_groups, units='m^-1'),
-    tunes=dict(
-        knobs=TUNE_KNOBS,
-        nominal_values={name: float(line[name]) for name in TUNE_KNOBS},
-    ),
     switches=dict(
         orbit='on_orbit_corr',
         optics='on_corr_optics',
         coupling='on_coupling_corr',
+        tunes='on_tune_corr',
         nonlinear='on_nonlinear',
         errors='on_errors',
     ),
     nonlinear_magnets=nonlinear_magnets,
     added_correctors=added_correctors,
 )
-corr_tune.install_tune_knobs(line)
+corr_optics.install_optics_knobs(line)
+skew_knobs = corr_coupling.install_coupling_knobs(line)
+print('Independent skew-quadrupole trims:', len(skew_knobs))
+corr_tune.install_tune_knobs(line, families=TUNE_KNOBS)
 corr_chromaticity.install_chromaticity_knobs(line)
 corr_second_order_chrom.install_second_order_chrom_knobs(line)
 line.to_json(OUTPUT)

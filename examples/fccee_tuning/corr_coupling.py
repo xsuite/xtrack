@@ -28,6 +28,37 @@ DEFAULT_COUPLING_CORR_SETTINGS = SimpleNamespace(
 )
 
 
+def install_coupling_knobs(line):
+    """Install new integrated skew trims, preserving existing sextupole expressions.
+
+    The error metadata groups lattice elements belonging to the same physical
+    magnet. A sextupole can have several pieces, so each group gets one knob
+    for the total integrated skew-quadrupole strength, rather than one knob per
+    piece. Each piece receives a fraction of that ksl[1] trim proportional to
+    its length; summing over the group recovers the full trim. The contribution
+    is outside on_nonlinear, so the skew trim remains active when k2 is off.
+    """
+    table = line.get_table()
+    sextupoles = set(table.rows.match(element_type='Sextupole').env_name)
+    groups = [record['names']
+              for record in line.metadata['tuning_errors']['magnets'].values()
+              if record['names'][0] in sextupoles]
+    knobs = [f'dk1sl_coupling_{names[0]}' for names in groups]
+    switch = 'on_coupling_corr'
+    assert all(knob not in line.vars for knob in knobs), 'Coupling correction knobs already exist'
+    line[switch] = 1.
+    for names, knob in zip(groups, knobs):
+        line[knob] = 0.
+        length = sum(line.get(name).length for name in names)
+        for name in names:
+            line.ref[name].ksl[1] += (line.ref[switch] * line.ref[knob]
+                                      * line.get(name).length / length)
+
+    line.metadata.setdefault('correction_knobs', {})['coupling'] = dict(
+        knobs=knobs, magnet_groups=groups, units='m^-1')
+    return knobs
+
+
 def build_coupling_corr_optimizer(line, reference, *, observation_names, ip_names,
                                  full_twiss, settings=None, log=print):
     """Build a correction optimizer with local targets, response and diagnostics."""

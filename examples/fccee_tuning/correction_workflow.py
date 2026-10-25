@@ -370,8 +370,7 @@ class FCCeeCorrection:
         line.set(dict.fromkeys(circuits['optics']['knobs'], 0.))
         line['on_errors'] = 0.0
         line['on_nonlinear'] = 0.0
-        corr_tune.install_tune_knobs(line)
-        line.set(circuits['tunes']['family_nominal_values'])
+        line.set(circuits['tunes']['nominal_values'])
         line.set(dict.fromkeys(circuits['chromaticity']['knobs'], 0.))
         corr_second_order_chrom.install_second_order_chrom_knobs(line)
         self.reference = self.twiss()

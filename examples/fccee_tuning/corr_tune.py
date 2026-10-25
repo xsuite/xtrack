@@ -13,48 +13,22 @@ DEFAULT_TUNE_CORR_SETTINGS = SimpleNamespace(
 )
 
 
-def install_tune_knobs(line):
-    """Install tune trims, reset them to zero, and return their names.
+def install_tune_knobs(line, *, families=('kqf2', 'kqd1')):
+    """Install new family trims initialized to zero and return their names.
 
-    Preserve the k1 family expressions and use metadata to reuse installed trims.
-    On first installation, measure each family's k1 coefficients through xdeps.
+    Append to the existing family expressions so all dependent magnets follow
+    the corrections without changing their individual strength expressions.
     """
-    circuits = line.metadata['correction_knobs']['tunes']
-    families = circuits.get('family_knobs', circuits['knobs'])
-    family_nominal_values = circuits.get('family_nominal_values', circuits['nominal_values'])
     knobs = [f'd{family}_tune' for family in families]
-    installed = circuits['knobs'] if 'family_knobs' in circuits else []
-    coefficients = circuits.get('k1_coefficients')
-    if coefficients is None:
-        table = line.get_table()
-        quad_refs = {line.ref[name]: name for name in
-                     table.rows.match(element_type='Quadrupole').env_name}
-        coefficients = []
-        for family in families:
-            if line.ref[family].xdeps.expr is not None:
-                raise ValueError(f'Tune family {family} must be an independent variable')
-            names = [quad_refs[ref] for ref in line.ref[family].xdeps.controlled_targets
-                     if ref in quad_refs]
-            if not names:
-                raise ValueError(f'No quadrupoles controlled by {family}')
-            value = float(line[family])
-            before = np.array([line.get(name).k1 for name in names])
-            try:
-                line[family] = value + 1e-6
-                slopes = (np.array([line.get(name).k1 for name in names]) - before) / 1e-6
-            finally:
-                line[family] = value
-            coefficients.append({name: float(slope) for name, slope in zip(names, slopes)
-                                 if slope != 0})
-    for knob, slopes in zip(knobs, coefficients):
+    switch = 'on_tune_corr'
+    assert all(knob not in line.vars for knob in knobs), 'Tune correction knobs already exist'
+    line[switch] = 1.
+    for family, knob in zip(families, knobs):
         line[knob] = 0.
-        if knob not in installed:
-            for name, slope in slopes.items():
-                line.ref[name].k1 += slope * line.ref[knob]
-    line.metadata['correction_knobs']['tunes'] = dict(
+        line.ref[family] += line.ref[switch] * line.ref[knob]
+    line.metadata.setdefault('correction_knobs', {})['tunes'] = dict(
         knobs=knobs, nominal_values=dict.fromkeys(knobs, 0.),
-        family_knobs=list(families), family_nominal_values=family_nominal_values,
-        k1_coefficients=coefficients, units='m^-2')
+        family_knobs=list(families), units='m^-2')
     return knobs
 
 
@@ -63,8 +37,8 @@ def build_tune_corr_optimizer(line, reference, *, full_twiss, settings=None):
     if settings is None:
         settings = copy(DEFAULT_TUNE_CORR_SETTINGS)
     action = xt.Action(full_twiss)
-    knobs = install_tune_knobs(line)
     circuits = line.metadata['correction_knobs']['tunes']
+    knobs = circuits['knobs']
     response = build_tune_response(
         reference, line=line, tune_knobs=knobs, full_twiss=full_twiss)
     optimizer = CorrectionOptimizer(

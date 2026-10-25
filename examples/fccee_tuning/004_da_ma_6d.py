@@ -121,7 +121,6 @@ def prepare_machine(clean):
         values = {name: 0. for name in circuits['switches'].values()}
         values.update(on_nonlinear=1., on_chromaticity_corr=0.)
         values.update(circuits['tunes']['nominal_values'])
-        values.update(circuits['tunes']['family_nominal_values'])
         line.vars.update(values)
     b4_before = float(line['on_error_arc_dipole_b4'])
     if SUPPRESS_ARC_DIPOLE_B4:
