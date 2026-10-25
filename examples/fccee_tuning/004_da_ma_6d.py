@@ -29,6 +29,12 @@ DA_RADII = np.linspace(0., 20., 11)
 DA_ANGLES = np.linspace(0., 2*np.pi, 16, endpoint=False)
 MA_DELTAS = np.linspace(-0.012, 0.012, 13)
 MA_AMPLITUDES = np.linspace(-20., 20., 11)
+# MA recipe inspired by K. André, S. Liuzzo, S. White, P. Raimondi (ESRF),
+# "LCC Optics Tuning Updates", 2 July 2026, slide 5: eight phases and equal
+# normalized transverse amplitudes.
+# https://indico.cern.ch/event/1704042/contributions/7166876/attachments/3307462/5918024/LCC_tuning02072026.pdf
+# The identical phase in both modes below is our interpretation; the slide
+# does not specify the exact phase pairing or longitudinal initialization.
 # Four phases for each amplitude sign = eight directions at nonzero |A|.
 # The two transverse modes use the SAME phase; not a 4 x 4 phase product.
 MA_PHASES = np.arange(4)*np.pi/4
