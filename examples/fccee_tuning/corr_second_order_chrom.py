@@ -26,11 +26,12 @@ def build_second_order_chrom_optimizer(line, reference, *, settings=None, **twis
         settings = copy(DEFAULT_SECOND_ORDER_CHROM_SETTINGS)
     twiss_kwargs.setdefault('delta_chrom', settings.delta_chrom)
     knobs = line.metadata['correction_knobs']['second_order_chrom']['knobs']
-    targets = []
-    for quantity in ('ddqx', 'ddqy'):
-        target = xt.Target(quantity, value=reference[quantity],
-                           tol=2 * settings.second_order_chrom_tol, tag=quantity)
-        targets.append(target)
+    targets = [
+        xt.Target('ddqx', value=reference.ddqx,
+                  tol=2 * settings.second_order_chrom_tol, tag='ddqx'),
+        xt.Target('ddqy', value=reference.ddqy,
+                  tol=2 * settings.second_order_chrom_tol, tag='ddqy')
+    ]
     vary = []
     for knob in knobs:
         vary.append(xt.Vary(knob, step=settings.response_step))

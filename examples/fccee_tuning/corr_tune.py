@@ -21,11 +21,12 @@ def build_tune_corr_optimizer(line, reference, *, settings=None, **twiss_kwargs)
     knobs = circuits['knobs']
     response = build_tune_response(
         reference, line=line, tune_knobs=knobs, **twiss_kwargs)
-    targets = []
-    for quantity in ('qx', 'qy'):
-        target = xt.Target(quantity, value=reference[quantity],
-                           tol=settings.tune_tol, tag=quantity)
-        targets.append(target)
+    targets = [
+        xt.Target('qx', value=reference.qx,
+                  tol=settings.tune_tol, tag='qx'),
+        xt.Target('qy', value=reference.qy,
+                  tol=settings.tune_tol, tag='qy')
+    ]
     vary = []
     for knob in knobs:
         vary.append(xt.Vary(knob, step=1e-7))
