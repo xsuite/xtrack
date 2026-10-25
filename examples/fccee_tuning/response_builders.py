@@ -40,7 +40,29 @@ def normal_quadrupole_response(
     dispersion_indices = reference.rows.indices[dispersion_at]
 
     def quad_samples(tw, plane):
-        # Gauss integration of the uncoupled thick-quadrupole response.
+        # A distributed dk1 acts all along the quadrupole. Its response is the
+        # integral of thin-kick responses, whose beta, phase and dispersion vary
+        # with the source position inside the magnet. We sample that integrand
+        # at four Gauss-Legendre points, rather than replace the whole magnet by
+        # one kick or average its entrance and exit values.
+        #
+        # leggauss(4) supplies nodes and weights on [-1, 1]. Map the nodes to
+        # distances ell in [0, L] and multiply the weights by L/2, so that
+        # integral_0^L f(s) ds ~= sum_j weights[j] * f(ell[j]). The mapped
+        # weights have units of length and sum to L. This rule integrates
+        # polynomials through degree seven exactly; the actual response is
+        # not polynomial, so this remains an approximation to its integral.
+        #
+        # Starting from the entrance Twiss, propagate to each sample using the
+        # uncoupled, constant-gradient quadrupole matrix: a = M11, b = M12.
+        # Focusing uses sin/cos, defocusing uses sinh/cosh, and zero gradient
+        # uses the drift limit. The factors of 1 + delta account for momentum.
+        # From a and b we obtain local beta, phase advance (in turns), and
+        # dispersion without tracking or another Twiss calculation.
+        #
+        # Arrays have shape (quadrupoles, four samples). The response functions
+        # below evaluate their kernels at these samples and sum with the same
+        # length weights, giving derivatives per distributed dk1 [m^-2].
         nodes, weights = np.polynomial.legendre.leggauss(4)
         ell = lengths[:, None] * (nodes + 1)[None, :] / 2
         weights = lengths[:, None] * weights[None, :] / 2
