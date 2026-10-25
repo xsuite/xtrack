@@ -117,7 +117,7 @@ def build_tune_response(tw, *, line, tune_knobs, full_twiss):
     try:
         for j in range(2):
             line[tune_knobs[j]] = baseline[j] + 1e-7
-            probe = full_twiss(tw)
+            probe = full_twiss(co_guess=tw.particle_on_co)
             jac[:, j] = (np.array([probe.qx, probe.qy]) - np.array([tw.qx, tw.qy])) / 1e-7
             line.set(tune_knobs, baseline)
     finally:

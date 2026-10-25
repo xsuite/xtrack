@@ -25,7 +25,8 @@ def build_orbit_corr_optimizer(line, reference, *, plane, settings=None):
     alignment = line.metadata['tuning_errors']['bpm_alignment_variables']
     monitors = circuits[plane]['monitors']
     indices = reference.rows.indices[monitors]
-    action = xt.Action(line.twiss)
+    action = xt.Action(line.twiss, method='4d', delta0=0.0,
+                       co_guess=dict(x=0, px=0, y=0, py=0, zeta=0, delta=0))
     env = line.env
     optimizer = CorrectionOptimizer(
         line, reference, settings=settings,

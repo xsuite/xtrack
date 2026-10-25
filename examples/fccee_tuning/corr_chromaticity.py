@@ -69,7 +69,7 @@ def build_chromaticity_corr_optimizer(line, reference, *, full_twiss, settings=N
     nonlinear = float(line['on_nonlinear'])
     try:
         line['on_nonlinear'] = 1.
-        ideal = chromatic_twiss(reference)
+        ideal = chromatic_twiss(co_guess=reference.particle_on_co)
         action = xt.Action(chromatic_twiss)
         optimizer = CorrectionOptimizer(
             line, ideal, settings=settings,
@@ -97,9 +97,9 @@ def build_chromaticity_response(line, reference, *, knobs, full_twiss, step):
     try:
         for column, knob in enumerate(knobs):
             line[knob] = baseline[column] + step
-            plus = full_twiss(reference)
+            plus = full_twiss(co_guess=reference.particle_on_co)
             line[knob] = baseline[column] - step
-            minus = full_twiss(reference)
+            minus = full_twiss(co_guess=reference.particle_on_co)
             response[:, column] = np.array([plus.dqx - minus.dqx,
                                              plus.dqy - minus.dqy]) / (2 * step)
             line[knob] = baseline[column]

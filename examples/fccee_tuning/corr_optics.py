@@ -68,7 +68,8 @@ def build_opt_corr_optimizer(line, reference, *, knobs, observation_names,
     """Build a correction optimizer with local targets, response and diagnostics."""
     if settings is None:
         settings = copy(DEFAULT_OPTICS_CORR_SETTINGS)
-    action = xt.Action(line.twiss)
+    action = xt.Action(line.twiss, method='4d', delta0=0.0,
+                       co_guess=dict(x=0, px=0, y=0, py=0, zeta=0, delta=0))
     ip_indices = reference.rows.indices[ip_names]
     ip_names = set(ip_names)
     ip_s = reference['s', interaction_points]

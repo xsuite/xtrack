@@ -65,7 +65,7 @@ class FCCeeCorrection:
         second_order = getattr(self.optimizers, 'second_order_chrom', None)
         if chrom and ('dqx' not in tw or 'dqy' not in tw or
                       (second_order is not None and ('ddqx' not in tw or 'ddqy' not in tw))):
-            tw = self.twiss(tw, chrom=True)
+            tw = self.twiss(co_guess=tw.particle_on_co, chrom=True)
         self.log_iteration(0, tw)
         if self.goals_met(tw, chrom=chrom):
             return tw, 0
@@ -73,38 +73,38 @@ class FCCeeCorrection:
             if not (orbit_x.goal(tw) and orbit_y.goal(tw)):
                 orbit_x.run_lstsq(action_results=[tw])
                 orbit_y.run_lstsq(action_results=[tw])
-                tw = self.twiss(tw, chrom=chrom)
+                tw = self.twiss(co_guess=tw.particle_on_co, chrom=chrom)
 
             if not optics.goal(tw):
                 optics.run_lstsq(action_results=[tw])
-                tw = self.twiss(tw, chrom=chrom)
+                tw = self.twiss(co_guess=tw.particle_on_co, chrom=chrom)
 
             if not coupling.goal(tw):
                 # Coupling is very sensitive to orbit errors; need orbit correction
                 # before and after any coupling correction.
                 orbit_x.run_lstsq(action_results=[tw])
                 orbit_y.run_lstsq(action_results=[tw])
-                tw = self.twiss(tw, chrom=chrom)
+                tw = self.twiss(co_guess=tw.particle_on_co, chrom=chrom)
                 if not coupling.goal(tw):
                     coupling.run_lstsq(
                         action_results=[tw],
                         step_scale=coupling.step_scale)
-                    tw = self.twiss(tw, chrom=chrom)
+                    tw = self.twiss(co_guess=tw.particle_on_co, chrom=chrom)
                     orbit_x.run_lstsq(action_results=[tw])
                     orbit_y.run_lstsq(action_results=[tw])
-                    tw = self.twiss(tw, chrom=chrom)
+                    tw = self.twiss(co_guess=tw.particle_on_co, chrom=chrom)
 
             if not tunes.goal(tw):
                 tunes.run_lstsq(action_results=[tw])
-                tw = self.twiss(tw, chrom=chrom)
+                tw = self.twiss(co_guess=tw.particle_on_co, chrom=chrom)
 
             if chrom and not self.optimizers.chromaticity.goal(tw):
                 self.optimizers.chromaticity.run_lstsq(action_results=[tw])
-                tw = self.twiss(tw, chrom=True)
+                tw = self.twiss(co_guess=tw.particle_on_co, chrom=True)
 
             if chrom and second_order is not None and not second_order.goal(tw):
                 second_order.run_lstsq(action_results=[tw])
-                tw = self.twiss(tw, chrom=True)
+                tw = self.twiss(co_guess=tw.particle_on_co, chrom=True)
 
             self.log_iteration(iteration, tw)
             if self.goals_met(tw, chrom=chrom):
@@ -115,8 +115,6 @@ class FCCeeCorrection:
                  final_max_iterations=40, optimizer_settings=None, log=None):
         self._start_time = perf_counter()
         self.line = line
-        # This workflow uses 4D optics at the reference momentum, as in 000.
-        self.line.twiss_default.update(method='4d', delta0=0.0)
         self.intermediate_max_iterations = intermediate_max_iterations
         self.final_max_iterations = final_max_iterations
         self.log = self._default_log if log is None else log
@@ -167,7 +165,7 @@ class FCCeeCorrection:
         self._identify_correction_knobs()
         self.line.vars.update(self.nominal_knob_values)
         self.set_error_fraction(0.)
-        self.last_accepted_twiss = self.twiss(self.reference)
+        self.last_accepted_twiss = self.twiss(co_guess=self.reference.particle_on_co)
 
     def _default_log(self, *args, **kwargs):
         """Print elapsed time since construction, flushing output by default."""
@@ -226,7 +224,7 @@ class FCCeeCorrection:
             try:
                 self.scale_corrections(next_error_fraction)
                 self.set_error_fraction(next_error_fraction)
-                tw = self.twiss(self.last_accepted_twiss)
+                tw = self.twiss(co_guess=self.last_accepted_twiss.particle_on_co)
                 tw, iterations = self.correct_at_fixed_strengths(
                     tw, max_iterations=self.intermediate_max_iterations)
             except self.correction_errors as err:
@@ -326,24 +324,22 @@ class FCCeeCorrection:
         return all(opt.goal(tw) for name, opt in vars(self.optimizers).items()
                    if chrom or name not in ('chromaticity', 'second_order_chrom'))
 
-    def twiss(self, seed=None, *, only_orbit=False, chrom=False):
-        """Evaluate Twiss, optionally using a supplied table's closed orbit as a guess.
-
-        Without a seed, use the line's default closed-orbit guess.
-        """
-        kwargs = {} if seed is None else dict(co_guess=seed.particle_on_co)
+    def twiss(self, co_guess=None, *, only_orbit=False, chrom=False):
+        """Evaluate 4D optics at the reference momentum, using a zero guess if omitted."""
+        if co_guess is None:
+            co_guess = dict(x=0, px=0, y=0, py=0, zeta=0, delta=0)
         started = perf_counter()
         self.stats['calls'] += 1
         if only_orbit:
             self.stats['orbit_calls'] += 1
         try:
             return self.line.twiss(
+                method='4d', delta0=0.0, co_guess=co_guess,
                 chrom=chrom,
                 delta_chrom=self.delta_chrom,
                 steps_R_matrix=self.steps_r_matrix.copy(),
                 radiation_integrals=False,
                 only_orbit=only_orbit,
-                **kwargs,
             )
         finally:
             elapsed = perf_counter() - started
@@ -377,7 +373,6 @@ class FCCeeCorrection:
         line.set(chromaticity_knobs, np.zeros(len(chromaticity_knobs)))
         second_order_knobs = corr_second_order_chrom.install_second_order_chrom_knobs(line)
         line.set(second_order_knobs, np.zeros(len(second_order_knobs)))
-        line.twiss_default['co_guess'] = dict(x=0, px=0, y=0, py=0, zeta=0, delta=0)
         self.reference = self.twiss()
 
     def _identify_correction_knobs(self):

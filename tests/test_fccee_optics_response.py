@@ -208,6 +208,22 @@ def test_optics_targets_are_built_per_location(optics_problem):
             assert target.tol == 1e-15
 
 
+@pytest.mark.parametrize('defaults', [{}, dict(method='6d', delta0=.01,
+                                             co_guess=dict(x=.1, y=.2))])
+def test_optics_action_preserves_twiss_defaults(optics_problem, defaults):
+    module, line, reference, opt, keys = optics_problem
+    line.twiss_default.update(deepcopy(defaults))
+    built = module.build_opt_corr_optimizer(
+        line, reference, knobs=['trim', 'family'],
+        observation_names=['qf1', 'qd6'], interaction_points=['qf1'],
+        ip_names=['qd6'])
+    actual = built.targets[0].action.run()
+    np.testing.assert_allclose([actual.qx, actual.qy], [reference.qx, reference.qy],
+                               rtol=1e-10, atol=1e-12)
+    np.testing.assert_allclose(actual.betx, reference.betx, rtol=1e-10)
+    assert line.twiss_default == defaults
+
+
 @pytest.mark.parametrize('plane', ['x', 'y'])
 def test_optics_goal_rejects_ip_alpha_error(optics_problem, plane):
     module, line, reference, opt, keys = optics_problem

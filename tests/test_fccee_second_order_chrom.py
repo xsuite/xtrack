@@ -1,5 +1,6 @@
 """Arc quad offsets, Q'' conventions, and restoration of response probes."""
 import importlib
+from types import SimpleNamespace
 from pathlib import Path
 
 import numpy as np
@@ -65,11 +66,11 @@ def test_response_targets_and_metrics_use_consistent_derivative_conventions(modu
     knobs = module.install_second_order_chrom_knobs(line)
     matrix = np.array([[2000., 400.], [-1000., -1100.]])  # d(Q'')/dK3L
     calls = []
-    def evaluate(seed=None, *, chrom=True):
+    def evaluate(co_guess=None, *, chrom=True):
         assert chrom
         calls.append(line['on_nonlinear'])
         values = np.array([40., -150.])*line['on_nonlinear'] + matrix @ np.array(line.get(knobs))
-        return xd.Table(dict(name=np.array(['ip']), ddqx=values[0], ddqy=values[1]), col_names=['name'])
+        return xd.Table(dict(name=np.array(['ip']), particle_on_co=object(), ddqx=values[0], ddqy=values[1]), col_names=['name'])
     opt = module.build_second_order_chrom_optimizer(line, evaluate(), full_twiss=evaluate)
     np.testing.assert_allclose(opt.response.matrix, matrix)
     assert calls[1:] == [1.]*5
@@ -97,22 +98,22 @@ def test_response_failure_restores_every_probe(module):
     knobs = module.install_second_order_chrom_knobs(line)
     line.set(knobs, [.3, -.4])
     count = 0
-    def evaluate(seed):
+    def evaluate(co_guess):
         nonlocal count
         count += 1
         if count == 2:
             raise ValueError('failed negative probe')
-        return xd.Table(dict(name=np.array(['ip']), ddqx=1., ddqy=2.), col_names=['name'])
+        return xd.Table(dict(name=np.array(['ip']), particle_on_co=object(), ddqx=1., ddqy=2.), col_names=['name'])
     with pytest.raises(ValueError, match='negative probe'):
-        module.build_second_order_chrom_response(line, None, knobs=knobs, full_twiss=evaluate, step=.02)
+        module.build_second_order_chrom_response(line, SimpleNamespace(particle_on_co=object()), knobs=knobs, full_twiss=evaluate, step=.02)
     np.testing.assert_allclose(line.get(knobs), [.3, -.4])
 
 
 def test_builder_restores_nonlinear_strength_on_failure(module):
     line = quad_line()
-    def fail(seed, *, chrom):
+    def fail(co_guess, *, chrom):
         assert chrom and line['on_nonlinear'] == 1.
         raise ValueError('failed nominal Twiss')
     with pytest.raises(ValueError, match='nominal Twiss'):
-        module.build_second_order_chrom_optimizer(line, None, full_twiss=fail)
+        module.build_second_order_chrom_optimizer(line, SimpleNamespace(particle_on_co=object()), full_twiss=fail)
     assert line['on_nonlinear'] == .25

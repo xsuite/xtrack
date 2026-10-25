@@ -164,7 +164,7 @@ def check_coupling_response(
     probe = 1e-5 * skew_scale * np.sin(np.arange(len(skew_knobs)) + 0.3)
     line.set(skew_knobs, probe)
     try:
-        probe_tw = full_twiss(tw_ref)
+        probe_tw = full_twiss(co_guess=tw_ref.particle_on_co)
         prediction = coupling_response @ probe
         discrepancy = np.linalg.norm(coupling_vector(probe_tw) - prediction) / np.linalg.norm(
             prediction

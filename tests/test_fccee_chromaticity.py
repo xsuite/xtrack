@@ -2,6 +2,7 @@
 
 from pathlib import Path
 import importlib
+from types import SimpleNamespace
 
 import numpy as np
 import pytest
@@ -73,12 +74,12 @@ def test_chromaticity_response_and_ideal_targets(chromaticity_module):
     matrix = np.array([[10., 20., 3., 4.], [-1., -2., -30., -40.]])
     calls = []
 
-    def evaluate(seed=None, *, chrom=True):
+    def evaluate(co_guess=None, *, chrom=True):
         assert chrom
         calls.append(line['on_nonlinear'])
         values = natural + line['on_nonlinear'] * (ideal - natural)
         values += matrix @ np.array(line.get(knobs))
-        return xd.Table(dict(name=np.array(['ip']), dqx=values[0], dqy=values[1]),
+        return xd.Table(dict(name=np.array(['ip']), particle_on_co=object(), dqx=values[0], dqy=values[1]),
                         col_names=['name'])
 
     reference = evaluate()
@@ -112,21 +113,21 @@ def test_chromaticity_probes_restore_on_failure(chromaticity_module):
     knobs = chromaticity_module.install_chromaticity_knobs(line)
     line.set(knobs, [.01, .02, .03, .04])
     before = line.get(knobs)
-    def fail(seed):
+    def fail(co_guess):
         raise ValueError('Failed chromatic Twiss')
     with pytest.raises(ValueError, match='Failed chromatic Twiss'):
         chromaticity_module.build_chromaticity_response(
-            line, None, knobs=knobs, full_twiss=fail, step=1e-4)
+            line, SimpleNamespace(particle_on_co=object()), knobs=knobs, full_twiss=fail, step=1e-4)
     assert line.get(knobs) == before
 
 
 
 def test_chromaticity_builder_restores_nonlinear_strength_on_failure(chromaticity_module):
     line = sextupole_line()
-    def fail(seed, *, chrom):
+    def fail(co_guess, *, chrom):
         assert chrom and line['on_nonlinear'] == 1.
         raise ValueError('Failed nominal chromatic Twiss')
     with pytest.raises(ValueError, match='Failed nominal chromatic Twiss'):
         chromaticity_module.build_chromaticity_corr_optimizer(
-            line, None, full_twiss=fail)
+            line, SimpleNamespace(particle_on_co=object()), full_twiss=fail)
     assert line['on_nonlinear'] == .25

@@ -428,10 +428,20 @@ extra Twiss calculation; callers can explicitly validate or add metadata if need
 There is no checkpoint or disk-resume mechanism. The explicit
 `correct_at_fixed_strengths` sequence remains the place to add correction stages.
 
-Twiss evaluation is centralized in `FCCeeCorrection.twiss(seed=None, *,
-only_orbit=False, chrom=False)`. A supplied table provides `co_guess=seed.particle_on_co`;
-without a seed, the line defaults apply. Error-increase trials explicitly pass
-`last_accepted_twiss`, while nominal-reference calculations are unseeded.
+Twiss evaluation is centralized in `FCCeeCorrection.twiss(co_guess=None, *,
+only_orbit=False, chrom=False)`. Callers pass `co_guess=tw.particle_on_co`
+directly; when omitted, a zero closed-orbit guess is passed explicitly. The workflow
+and the direct optics/orbit actions pass `method='4d'` and `delta0=0.0`
+explicitly, leaving `line.twiss_default` unchanged. `000` no longer writes
+correction-specific Twiss defaults into the saved input. Error-increase trials
+explicitly pass `last_accepted_twiss.particle_on_co`, while nominal-reference
+calculations use the zero guess.
+
+Validation (2026-10-25): after replacing the Twiss-table seed argument with
+`co_guess`, 79 focused correction/error-recipe tests passed in 6.07 s
+with one BLAS/OMP thread, including Twiss evaluations with empty and conflicting
+line defaults and checks that those defaults remain unchanged. Log:
+`/tmp/fccee_co_guess_tests.log`. The full-machine correction was not rerun.
 
 ## Correction optimizer modules
 
