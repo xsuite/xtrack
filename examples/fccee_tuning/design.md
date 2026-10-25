@@ -9,7 +9,12 @@ in the usual `response_api_class/machine.json`. No new elements are added and
 arc dipole b4 stays active. Settings are exposed as
 `DEFAULT_SECOND_ORDER_CHROM_SETTINGS` and `optimizer_settings['second_order_chrom']`.
 
-The targets are the clean machine's Q''/2 with nominal nonlinear strengths.
+All optimizers share one clean reference computed with errors off, correction
+trims zero, `on_nonlinear=1`, and `chrom=True`. Their responses are prepared in
+that same nominal state, before setting the initial error/nonlinear ramp fraction.
+The chromaticity builders use the supplied derivatives directly and do not
+change nonlinear strength or recompute separate target references.
+The second-order targets are the clean machine's Q''/2 with nominal nonlinear strengths.
 The default tolerance is 1 in each plane, while the underlying optimizer targets
 Twiss's Q'' (`ddqx`, `ddqy`) with tolerance 2. Central k3 probes of +/-0.01 m^-4
 build the fixed 2-by-2 response at the clean reference. Each controlled
@@ -246,8 +251,9 @@ The reference momentum is always delta=0: beta beating is
 Thus the saved clean beta beating is zero at delta=0, but generally not elsewhere.
 This common denominator allows direct comparison of the saved results. It does not
 subtract the ideal machine's own off-momentum beta variation.
-The correction's optics target used nonlinear strengths off, so its reported
-beta-beating RMS need not exactly equal this analysis with nominal sextupoles on.
+Earlier correction runs used an optics reference with nonlinear strengths off.
+The shared clean reference now uses nominal nonlinear strengths, matching this
+analysis's reference convention; existing saved runs retain their original targets.
 
 Observations are the union of horizontal-correction BPM entrances and the four
 IP entrances `ipa/ipd/ipg/ipj`, matching the correction's optics observations.
@@ -566,8 +572,8 @@ unchanged element expressions, JSON reload, and single nonlinear scaling with
 snapshot rollback. Log: `/tmp/fccee_chromaticity_family_tests.log`.
 The full-machine correction was not rerun for this changed circuit.
 
-The module evaluates the aligned machine with nominal nonlinear strengths to
-obtain constant `dqx`/`dqy` targets. Its 2-by-4 response uses central differences
+The module takes constant `dqx`/`dqy` targets from the shared clean reference.
+Its 2-by-4 response uses central differences
 of the family offsets and restores each probe. The default tolerance is 0.1
 in each plane; both targets and tolerance are inspectable on the optimizer.
 
@@ -579,8 +585,9 @@ First-order and then second-order correction follow the tune step. Every enabled
 goal is checked afterward, so changes that disturb other quantities require
 another cycle. No persistent phase flag is stored. Chromatic Twiss uses the
 shared `delta_chrom=2e-4`. Missing derivatives never satisfy their goals.
-Response preparation adds nine first-order and five second-order chromatic
-Twiss evaluations at nominal full nonlinear strength before the error ramp.
+Chromatic response preparation adds eight first-order and four second-order
+probe Twiss evaluations at nominal full nonlinear strength before the error
+ramp. Each optimizer also performs its native default-action setup Twiss.
 
 Each module owns its settings constant, targets, varies, response construction,
 solve cutoff, reference/observation data, nominal knob values, `compute_metrics(tw)`,
@@ -757,8 +764,10 @@ the builder. It installs this matrix with the original relative-beta,
 alpha, horizontal-dispersion and tune weights, including the IP emphasis.
 All optics knobs use the constant `vary.weight = 1.`, so their columns are no
 longer normalized using the tune derivatives. The SVD uses the physical knob
-coordinates and the existing target weights. Optics setup does not run a
-directional tracking check or compute Twiss; response validation belongs in tests.
+coordinates and the existing target weights. The analytical response builder
+does not run a directional tracking check or compute Twiss; response validation
+belongs in tests. Optimizer construction prepares the native Twiss action,
+which performs one setup Twiss.
 
 ## Supplying model results
 
@@ -768,11 +777,21 @@ all target-evaluation entry points. Sequence entries follow `optimizer.actions`
 one result per action. Dictionary input remains supported; `run_actions()` still
 returns a dictionary.
 
-FCC-ee uses `action_results=[tw]` and `[reference]` at construction. Each optimizer
-owns a local action, so builders and tune correction no longer accept a shared
-action and the workflow has no `twiss_action` attribute. Optics/orbit actions
-wrap `line.twiss`; coupling/tune actions wrap the existing full-Twiss callback.
-Supplied results bypass action preparation and execution, including construction.
+FCC-ee uses `action_results=[tw]` and `[reference]` at construction. All `corr_*`
+builders use ordinary targets without an explicit action. `OptimizeLine` supplies
+the native Twiss action, using the Twiss keyword arguments passed to the optimizer.
+The builders specify 4D optics at delta=0 with a zero closed-orbit guess and
+radiation integrals disabled; chromaticity builders additionally enable `chrom`.
+The workflow passes its shared `delta_chrom` and `steps_R_matrix` settings.
+Twiss failures propagate (`allow_twiss_failure=False`), and `twiss_default` is
+unchanged. Reference and response probes call `line.twiss` directly with the
+same explicit options and the reference particle as `co_guess`; no Twiss
+callbacks are passed between the workflow and correction modules.
+Native action preparation performs one setup Twiss per optimizer, even with a
+supplied reference. This call goes directly through `line.twiss`, outside the
+workflow's timed Twiss method, as do the reference and response probes.
+Consequently the workflow Twiss counters cover its own correction evaluations,
+not all setup calls. Subsequent supplied-result evaluations bypass action execution.
 Results are the ordinary outputs of actions, e.g. a Twiss table, not externally
 assembled residual vectors. Targets still extract observables and apply their
 transformations, weights, tolerances, and activation masks.

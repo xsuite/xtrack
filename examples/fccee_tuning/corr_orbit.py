@@ -16,7 +16,7 @@ DEFAULT_ORBIT_CORR_SETTINGS = SimpleNamespace(
 )
 
 
-def build_orbit_corr_optimizer(line, reference, *, plane, settings=None):
+def build_orbit_corr_optimizer(line, reference, *, plane, settings=None, **twiss_kwargs):
     """Build a correction optimizer with local targets, response and diagnostics."""
     if plane not in ('x', 'y'):
         raise ValueError('Orbit plane must be x or y')
@@ -25,12 +25,10 @@ def build_orbit_corr_optimizer(line, reference, *, plane, settings=None):
     circuits = line.metadata['correction_knobs']['orbit']
     alignment = line.metadata['tuning_errors']['bpm_alignment_variables']
     monitors = circuits[plane]['monitors']
-    action = xt.Action(line.twiss, method='4d', delta0=0.0,
-                       co_guess=dict(x=0, px=0, y=0, py=0, zeta=0, delta=0))
     targets = []
     for name in monitors:
         offset = alignment[name]['shift_' + plane]
-        target = action.target(
+        target = xt.Target(
             lambda tw, name=name, offset=offset: tw[plane, name] - line[offset],
             value=0., tol=1e-15, tag=f'{plane}@{name}')
         targets.append(target)
@@ -40,6 +38,10 @@ def build_orbit_corr_optimizer(line, reference, *, plane, settings=None):
         vary.append(xt.Vary(knob, step=1e-7))
     optimizer = CorrectionOptimizer(
         line, reference, settings=settings,
+        method='4d', delta0=0., chrom=False, radiation_integrals=False,
+        allow_twiss_failure=False,
+        co_guess=dict(x=0, px=0, y=0, py=0, zeta=0, delta=0),
+        **twiss_kwargs,
         compute_metrics=compute_metrics, goal=goal,
         print_metrics=print_metrics,
         name=f'orbit {plane}', vary=vary, targets=targets)

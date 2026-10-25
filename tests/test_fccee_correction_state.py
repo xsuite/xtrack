@@ -557,10 +557,8 @@ def test_optics_targets_use_relative_beta_and_physical_alpha(correction, monkeyp
     monkeypatch.setattr(module, 'build_normal_quad_optics_response_matrix',
                         lambda *args: physical_response.copy())
 
-    def no_tracking():
-        raise AssertionError('Unexpected Twiss')
-
-    monkeypatch.setattr(correction.line, 'twiss', no_tracking)
+    reference._data.update(completed_init='periodic', periodic=True)
+    monkeypatch.setattr(correction.line, 'twiss', lambda **kwargs: reference)
     opt = module.build_opt_corr_optimizer(
         correction.line, reference, knobs=['quad', 'skew'],
         observation_names=['bpm'], interaction_points=['bpm'], ip_names=['bpm'],
@@ -1070,9 +1068,44 @@ def test_orbit_targets_use_monitor_names_and_live_offsets(correction, monkeypatc
         x=np.array([1e-6, 1., 3e-6]), y=np.array([4e-6, 2., 6e-6])),
         col_names=['name', 'x', 'y'])
     monkeypatch.setattr(module, 'orbit_response', lambda *args: np.eye(2))
+    reference._data.update(completed_init='periodic', periodic=True)
+    monkeypatch.setattr(line, 'twiss', lambda **kwargs: reference)
     opt = module.build_orbit_corr_optimizer(line, reference, plane=plane)
+    assert opt.action_twiss.line is line
+    assert opt.action_twiss.kwargs['chrom'] is False
+    assert not opt.action_twiss.allow_twiss_failure
     line['on_errors'] = .5  # Change the deferred BPM offset after target construction.
     status = opt.target_status(ret=True, action_results=[reference])
     np.testing.assert_allclose(status.residue,
         reference[plane][[2, 0]] - [line['offset2'], line['bpm_offset']])
     assert [target.tag for target in opt.targets] == [f'{plane}@bpm2', f'{plane}@bpm1']
+
+
+def test_shared_reference_keeps_nominal_nonlinear_strength(correction, monkeypatch):
+    line = correction.line
+    line['orbit_y'], line['chrom'], line['chrom2'] = .1, .2, .3
+    line.metadata['correction_knobs'] = {
+        'orbit': {'x': {'knobs': ['orbit']}, 'y': {'knobs': ['orbit_y']}},
+        'optics': {'knobs': ['quad']}, 'coupling': {'knobs': ['skew']},
+        'tunes': {'nominal_values': {'tune': 0.}},
+        'chromaticity': {'knobs': ['chrom']}, 'second_order_chrom': {'knobs': ['chrom2']}}
+    knobs = ['orbit', 'orbit_y', 'quad', 'skew', 'tune', 'chrom', 'chrom2']
+    reference = stub_twiss(dqx=2., dqy=3., ddqx=40., ddqy=-150.)
+    calls = []
+
+    def twiss(*, chrom):
+        calls.append(chrom)
+        assert chrom
+        assert line['on_errors'] == 0.
+        assert line['on_nonlinear'] == 1.
+        np.testing.assert_array_equal(line.get(knobs), np.zeros(len(knobs)))
+        return reference
+
+    monkeypatch.setattr(correction, 'twiss', twiss)
+    correction._prepare_reference()
+    assert calls == [True]
+    assert correction.reference is reference
+    assert line['on_nonlinear'] == 1.
+    correction.set_error_fraction(0.)
+    assert correction.reference is reference
+    assert reference.dqx == 2. and reference.ddqy == -150.

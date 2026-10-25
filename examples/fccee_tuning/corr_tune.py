@@ -13,18 +13,17 @@ DEFAULT_TUNE_CORR_SETTINGS = SimpleNamespace(
 )
 
 
-def build_tune_corr_optimizer(line, reference, *, full_twiss, settings=None):
+def build_tune_corr_optimizer(line, reference, *, settings=None, **twiss_kwargs):
     """Build a correction optimizer with local targets, response and diagnostics."""
     if settings is None:
         settings = copy(DEFAULT_TUNE_CORR_SETTINGS)
-    action = xt.Action(full_twiss)
     circuits = line.metadata['correction_knobs']['tunes']
     knobs = circuits['knobs']
     response = build_tune_response(
-        reference, line=line, tune_knobs=knobs, full_twiss=full_twiss)
+        reference, line=line, tune_knobs=knobs, **twiss_kwargs)
     targets = []
     for quantity in ('qx', 'qy'):
-        target = xt.Target(quantity, value=reference[quantity], action=action,
+        target = xt.Target(quantity, value=reference[quantity],
                            tol=settings.tune_tol, tag=quantity)
         targets.append(target)
     vary = []
@@ -32,6 +31,10 @@ def build_tune_corr_optimizer(line, reference, *, full_twiss, settings=None):
         vary.append(xt.Vary(knob, step=1e-7))
     optimizer = CorrectionOptimizer(
         line, reference, settings=settings,
+        method='4d', delta0=0., chrom=False, radiation_integrals=False,
+        allow_twiss_failure=False,
+        co_guess=dict(x=0, px=0, y=0, py=0, zeta=0, delta=0),
+        **twiss_kwargs,
         compute_metrics=compute_metrics, goal=goal,
         print_metrics=print_metrics,
         name='tunes',
@@ -83,14 +86,15 @@ def print_metrics(optimizer, tw, *, log=print):
     log('Tunes:', m['tunes'], 'error', m['tune_error'])
 
 
-def build_tune_response(tw, *, line, tune_knobs, full_twiss):
+def build_tune_response(tw, *, line, tune_knobs, **twiss_kwargs):
     """Numerical two-family tune response, with all probe settings restored."""
     baseline = np.array(line.get(tune_knobs))
     jac = np.empty((2, 2))
     try:
         for j in range(2):
             line[tune_knobs[j]] = baseline[j] + 1e-7
-            probe = full_twiss(co_guess=tw.particle_on_co)
+            probe = line.twiss(method='4d', delta0=0., chrom=False, radiation_integrals=False,
+                               co_guess=tw.particle_on_co, **twiss_kwargs)
             jac[:, j] = (np.array([probe.qx, probe.qy]) - np.array([tw.qx, tw.qy])) / 1e-7
             line.set(tune_knobs, baseline)
     finally:

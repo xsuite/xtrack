@@ -1,7 +1,6 @@
 """Second-order chromaticity correction with arc quadrupole knl[3] offsets."""
 
 from copy import copy
-from functools import partial
 from types import SimpleNamespace
 
 import numpy as np
@@ -21,36 +20,34 @@ KNOBS = ('dko_arc_f', 'dko_arc_d')
 SWITCH = 'on_arc_octupole_corr'
 
 
-def build_second_order_chrom_optimizer(line, reference, *, full_twiss, settings=None):
+def build_second_order_chrom_optimizer(line, reference, *, settings=None, **twiss_kwargs):
+    """Target the second-order chromaticities of the shared clean reference."""
     if settings is None:
         settings = copy(DEFAULT_SECOND_ORDER_CHROM_SETTINGS)
+    twiss_kwargs.setdefault('delta_chrom', settings.delta_chrom)
     knobs = line.metadata['correction_knobs']['second_order_chrom']['knobs']
-    chromatic_twiss = partial(full_twiss, chrom=True)
-    nonlinear = float(line['on_nonlinear'])
-    try:
-        line['on_nonlinear'] = 1.
-        ideal = chromatic_twiss(co_guess=reference.particle_on_co)
-        action = xt.Action(chromatic_twiss)
-        targets = []
-        for quantity in ('ddqx', 'ddqy'):
-            target = xt.Target(quantity, value=ideal[quantity], action=action,
-                               tol=2 * settings.second_order_chrom_tol, tag=quantity)
-            targets.append(target)
-        vary = []
-        for knob in knobs:
-            vary.append(xt.Vary(knob, step=settings.response_step))
-        optimizer = CorrectionOptimizer(
-            line, ideal, settings=settings,
-            compute_metrics=compute_metrics, goal=goal, print_metrics=print_metrics,
-            name='second_order_chrom',
-            vary=vary, targets=targets)
-        optimizer.ideal_second_order_chrom = np.array([ideal.ddqx, ideal.ddqy])/2
-        optimizer.second_order_chrom_tol = settings.second_order_chrom_tol
-        optimizer.rcond = settings.rcond
-        optimizer.set_response(build_second_order_chrom_response(
-            line, ideal, knobs=knobs, full_twiss=chromatic_twiss, step=settings.response_step))
-    finally:
-        line['on_nonlinear'] = nonlinear
+    targets = []
+    for quantity in ('ddqx', 'ddqy'):
+        target = xt.Target(quantity, value=reference[quantity],
+                           tol=2 * settings.second_order_chrom_tol, tag=quantity)
+        targets.append(target)
+    vary = []
+    for knob in knobs:
+        vary.append(xt.Vary(knob, step=settings.response_step))
+    optimizer = CorrectionOptimizer(
+        line, reference, settings=settings,
+        method='4d', delta0=0., chrom=True, radiation_integrals=False,
+        allow_twiss_failure=False,
+        co_guess=dict(x=0, px=0, y=0, py=0, zeta=0, delta=0),
+        **twiss_kwargs,
+        compute_metrics=compute_metrics, goal=goal, print_metrics=print_metrics,
+        name='second_order_chrom',
+        vary=vary, targets=targets)
+    optimizer.ideal_second_order_chrom = np.array([reference.ddqx, reference.ddqy])/2
+    optimizer.second_order_chrom_tol = settings.second_order_chrom_tol
+    optimizer.rcond = settings.rcond
+    optimizer.set_response(build_second_order_chrom_response(
+        line, reference, knobs=knobs, step=settings.response_step, **twiss_kwargs))
     return optimizer
 
 
@@ -88,16 +85,19 @@ def install_second_order_chrom_knobs(line):
     return list(KNOBS)
 
 
-def build_second_order_chrom_response(line, reference, *, knobs, full_twiss, step):
+def build_second_order_chrom_response(line, reference, *, knobs, step, **twiss_kwargs):
     """Response of Q'' (Twiss convention), restoring all probes even on failure."""
+    twiss_kwargs.setdefault('delta_chrom', DEFAULT_SECOND_ORDER_CHROM_SETTINGS.delta_chrom)
     baseline = np.array(line.get(knobs))
     response = np.empty((2, len(knobs)))
     try:
         for column, knob in enumerate(knobs):
             line[knob] = baseline[column] + step
-            plus = full_twiss(co_guess=reference.particle_on_co)
+            plus = line.twiss(method='4d', delta0=0., chrom=True, radiation_integrals=False,
+                               co_guess=reference.particle_on_co, **twiss_kwargs)
             line[knob] = baseline[column] - step
-            minus = full_twiss(co_guess=reference.particle_on_co)
+            minus = line.twiss(method='4d', delta0=0., chrom=True, radiation_integrals=False,
+                               co_guess=reference.particle_on_co, **twiss_kwargs)
             response[:, column] = np.array([plus.ddqx-minus.ddqx,
                                              plus.ddqy-minus.ddqy])/(2*step)
             line[knob] = baseline[column]

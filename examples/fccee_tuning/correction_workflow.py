@@ -136,29 +136,31 @@ class FCCeeCorrection:
         self.ip_names = ['ipa', 'ipd', 'ipg', 'ipj']
         self.obs_names = list(dict.fromkeys(self.monitor_names + self.ip_names))
 
+        twiss_kwargs = dict(delta_chrom=self.delta_chrom,
+                            steps_R_matrix=self.steps_r_matrix.copy())
         self.optimizers.optics = corr_optics.build_opt_corr_optimizer(
             self.line, self.reference,
             knobs=self.line.metadata['correction_knobs']['optics']['knobs'],
             observation_names=self.obs_names,
             interaction_points=list(self.line.get_table().rows['ip.*'].name),
-            ip_names=self.ip_names, settings=optimizer_settings.get('optics'))
+            ip_names=self.ip_names, settings=optimizer_settings.get('optics'), **twiss_kwargs)
         self.optimizers.orbit_x = corr_orbit.build_orbit_corr_optimizer(
-            self.line, self.reference, plane='x', settings=optimizer_settings.get('orbit'))
+            self.line, self.reference, plane='x', settings=optimizer_settings.get('orbit'), **twiss_kwargs)
         self.optimizers.orbit_y = corr_orbit.build_orbit_corr_optimizer(
-            self.line, self.reference, plane='y', settings=optimizer_settings.get('orbit'))
+            self.line, self.reference, plane='y', settings=optimizer_settings.get('orbit'), **twiss_kwargs)
         self.optimizers.coupling = corr_coupling.build_coupling_corr_optimizer(
             self.line, self.reference, observation_names=self.obs_names,
-            ip_names=self.ip_names, full_twiss=self.twiss, log=_silent_log,
-            settings=optimizer_settings.get('coupling'))
+            ip_names=self.ip_names, log=_silent_log,
+            settings=optimizer_settings.get('coupling'), **twiss_kwargs)
         self.optimizers.tunes = corr_tune.build_tune_corr_optimizer(
-            self.line, self.reference, full_twiss=self.twiss,
-            settings=optimizer_settings.get('tunes'))
+            self.line, self.reference,
+            settings=optimizer_settings.get('tunes'), **twiss_kwargs)
         self.optimizers.chromaticity = corr_chromaticity.build_chromaticity_corr_optimizer(
-            self.line, self.reference, full_twiss=self.twiss,
-            settings=optimizer_settings.get('chromaticity'))
+            self.line, self.reference,
+            settings=optimizer_settings.get('chromaticity'), **twiss_kwargs)
         self.optimizers.second_order_chrom = corr_second_order_chrom.build_second_order_chrom_optimizer(
-            self.line, self.reference, full_twiss=self.twiss,
-            settings=second_order_settings)
+            self.line, self.reference,
+            settings=second_order_settings, **twiss_kwargs)
         for optimizer in vars(self.optimizers).values():
             _ = optimizer.response.svd
 
@@ -362,18 +364,19 @@ class FCCeeCorrection:
         return metrics
 
     def _prepare_reference(self):
-        """Prepare aligned optics with errors and nonlinear magnets off."""
+        """Prepare the shared clean reference with nominal nonlinear strengths and chromaticities."""
         line = self.line
         circuits = line.metadata['correction_knobs']
         orbit_knobs = circuits['orbit']['x']['knobs'] + circuits['orbit']['y']['knobs']
         line.set(orbit_knobs, np.zeros(len(orbit_knobs)))
         line.set(dict.fromkeys(circuits['optics']['knobs'], 0.))
+        line.set(dict.fromkeys(circuits['coupling']['knobs'], 0.))
         line['on_errors'] = 0.0
-        line['on_nonlinear'] = 0.0
+        line['on_nonlinear'] = 1.0
         line.set(circuits['tunes']['nominal_values'])
         line.set(dict.fromkeys(circuits['chromaticity']['knobs'], 0.))
         line.set(dict.fromkeys(circuits['second_order_chrom']['knobs'], 0.))
-        self.reference = self.twiss()
+        self.reference = self.twiss(chrom=True)
 
     def _identify_correction_knobs(self):
         """Collect every optimizer's knobs and nominal values for control and snapshots."""

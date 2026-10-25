@@ -91,10 +91,11 @@ def test_coupling_targets_match_response_in_observation_order(coupling_problem, 
     monkeypatch.setattr(module, 'skew_quadrupole_response',
                         lambda *args: (matrix.copy(), np.array([.5, 2.])))
 
-    def evaluate(co_guess=None):
+    def evaluate(co_guess=None, **kwargs):
         changes = matrix @ np.array(line.get(knobs))
         tw = xd.Table(dict(
             name=np.array(['sf.0', 'unused', 'sd']), particle_on_co=object(),
+            completed_init='periodic', periodic=True,
             f1001=np.array([.1 + .2j, 10j, .3 + .4j]),
             f1010=np.array([.5 + .6j, 20j, .7 + .8j]),
             dy=np.array([.01, 30., .02])), col_names=['name', 'f1001', 'f1010', 'dy'])
@@ -104,9 +105,15 @@ def test_coupling_targets_match_response_in_observation_order(coupling_problem, 
         return tw
 
     reference = evaluate()
+    monkeypatch.setattr(line, 'twiss', evaluate)
     opt = module.build_coupling_corr_optimizer(
         line, reference, observation_names=['sd', 'sf.0'], ip_names=['sd'],
-        full_twiss=evaluate, log=lambda *args: None)
+        log=lambda *args: None)
+    assert opt.action_twiss.line is line
+    assert all(target.action is opt.action_twiss for target in opt.targets)
+    assert opt.action_twiss.kwargs['method'] == '4d'
+    assert opt.action_twiss.kwargs['chrom'] is False
+    assert not opt.action_twiss.allow_twiss_failure
     expected = matrix[[0, 2, 4, 6, 8, 1, 3, 5, 7, 9]]
     np.testing.assert_array_equal(opt.response.matrix, expected)
     settings = opt.settings

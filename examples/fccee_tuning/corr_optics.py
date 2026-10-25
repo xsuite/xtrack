@@ -28,12 +28,10 @@ DEFAULT_OPTICS_CORR_SETTINGS = SimpleNamespace(
 
 
 def build_opt_corr_optimizer(line, reference, *, knobs, observation_names,
-                             interaction_points, ip_names, settings=None):
+                             interaction_points, ip_names, settings=None, **twiss_kwargs):
     """Build a correction optimizer with local targets, response and diagnostics."""
     if settings is None:
         settings = copy(DEFAULT_OPTICS_CORR_SETTINGS)
-    action = xt.Action(line.twiss, method='4d', delta0=0.0,
-                       co_guess=dict(x=0, px=0, y=0, py=0, zeta=0, delta=0))
     ip_indices = reference.rows.indices[ip_names]
     ip_names = set(ip_names)
     ip_s = reference['s', interaction_points]
@@ -49,13 +47,13 @@ def build_opt_corr_optimizer(line, reference, *, knobs, observation_names,
 
         # Normalize by the reference beta for a relative-beta objective.
         betx = reference['betx', name]
-        target = xt.Target('betx', at=name, value=betx, action=action,
+        target = xt.Target('betx', at=name, value=betx,
                            weight=weight / betx, tol=1e-15 * betx,
                            tag=f'betx@{name}')
         targets.append(target)
 
         bety = reference['bety', name]
-        target = xt.Target('bety', at=name, value=bety, action=action,
+        target = xt.Target('bety', at=name, value=bety,
                            weight=weight / bety, tol=1e-15 * bety,
                            tag=f'bety@{name}')
         targets.append(target)
@@ -66,12 +64,12 @@ def build_opt_corr_optimizer(line, reference, *, knobs, observation_names,
             # number of BPMs; the ordinary alpha targets still constrain shape.
             weight = settings.alpha_ip_weight / np.sqrt(len(ip_names))
         target = xt.Target('alfx', at=name, value=reference['alfx', name],
-                           action=action, weight=weight, tol=1e-15,
+                           weight=weight, tol=1e-15,
                            tag=f'alfx@{name}')
         targets.append(target)
 
         target = xt.Target('alfy', at=name, value=reference['alfy', name],
-                           action=action, weight=weight, tol=1e-15,
+                           weight=weight, tol=1e-15,
                            tag=f'alfy@{name}')
         targets.append(target)
 
@@ -81,19 +79,23 @@ def build_opt_corr_optimizer(line, reference, *, knobs, observation_names,
             weight *= (settings.ir_beta_weight * settings.horizontal_dispersion_rms_tol
                        / settings.horizontal_dispersion_ip_tol)
         target = xt.Target('dx', at=name, value=reference['dx', name],
-                           action=action, weight=weight, tol=1e-15,
+                           weight=weight, tol=1e-15,
                            tag=f'dx@{name}')
         targets.append(target)
 
-    target = xt.Target('qx', value=reference.qx, action=action,
+    target = xt.Target('qx', value=reference.qx,
                        weight=1000., tol=1e-15, tag='qx')
     targets.append(target)
-    target = xt.Target('qy', value=reference.qy, action=action,
+    target = xt.Target('qy', value=reference.qy,
                        weight=1000., tol=1e-15, tag='qy')
     targets.append(target)
 
     optimizer = CorrectionOptimizer(
         line, reference, settings=settings,
+        method='4d', delta0=0., chrom=False, radiation_integrals=False,
+        allow_twiss_failure=False,
+        co_guess=dict(x=0, px=0, y=0, py=0, zeta=0, delta=0),
+        **twiss_kwargs,
         compute_metrics=compute_metrics, goal=goal,
         print_metrics=print_metrics,
         name='normal optics and horizontal dispersion',

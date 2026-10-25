@@ -73,7 +73,7 @@ def test_tune_installer_rejects_existing_knobs_before_changes(tune_module, exist
     assert other not in line.vars
 
 
-def test_tune_builder_uses_installed_family_trims(tune_module):
+def test_tune_builder_uses_installed_family_trims(tune_module, monkeypatch):
     import xdeps as xd
 
     line = xt.Line(elements=[])
@@ -82,15 +82,24 @@ def test_tune_builder_uses_installed_family_trims(tune_module):
     orbit = object()
     calls = []
 
-    def evaluate(co_guess=None):
-        assert co_guess is None or co_guess is orbit
+    def evaluate(co_guess=None, **kwargs):
+        assert co_guess is None or co_guess is orbit or co_guess == dict(x=0, px=0, y=0, py=0, zeta=0, delta=0)
+        if kwargs:
+            assert kwargs['method'] == '4d' and kwargs['chrom'] is False
         calls.append(co_guess)
         return xd.Table(dict(name=np.array(['ip']), particle_on_co=orbit,
+                             completed_init='periodic', periodic=True,
                              qx=line['kqf2'], qy=2 * line['kqd1']), col_names=['name'])
 
     reference = evaluate()
-    optimizer = tune_module.build_tune_corr_optimizer(line, reference, full_twiss=evaluate)
+    monkeypatch.setattr(line, 'twiss', evaluate)
+    optimizer = tune_module.build_tune_corr_optimizer(line, reference)
+    assert optimizer.action_twiss.line is line
+    assert all(target.action is optimizer.action_twiss for target in optimizer.targets)
+    assert optimizer.action_twiss.kwargs['method'] == '4d'
+    assert optimizer.action_twiss.kwargs['chrom'] is False
+    assert not optimizer.action_twiss.allow_twiss_failure
     np.testing.assert_allclose(optimizer.response.matrix, [[1., 0.], [0., 2.]], atol=1e-8)
     np.testing.assert_array_equal(line.get(knobs), [0., 0.])
-    assert len(calls) == 3
+    assert len(calls) == 4  # Reference, response probes, and default-action setup.
     assert optimizer.goal(reference)

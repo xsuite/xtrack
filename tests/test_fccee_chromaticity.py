@@ -79,30 +79,43 @@ def test_chromaticity_installer_rejects_existing_knob(chromaticity_module):
     assert 'on_chromaticity_corr' not in line.vars
 
 
-def test_chromaticity_response_and_ideal_targets(chromaticity_module):
+def test_chromaticity_response_and_ideal_targets(chromaticity_module, monkeypatch):
     line = sextupole_line()
-    line['on_nonlinear'] = 0.
+    line['on_nonlinear'] = 1.
     knobs = chromaticity_module.install_chromaticity_knobs(line)
     natural, ideal = np.array([-30., -40.]), np.array([2., 3.])
     matrix = np.array([[10., 20., 3., 4.], [-1., -2., -30., -40.]])
     calls = []
 
-    def evaluate(co_guess=None, *, chrom=True):
+    def evaluate(co_guess=None, *, chrom=True, **kwargs):
         assert chrom
+        if kwargs:
+            assert kwargs['method'] == '4d' and kwargs['delta0'] == 0.
+            assert kwargs['delta_chrom'] == 2e-4
+            assert kwargs['radiation_integrals'] is False
         calls.append(line['on_nonlinear'])
         values = natural + line['on_nonlinear'] * (ideal - natural)
         values += matrix @ np.array(line.get(knobs))
-        return xd.Table(dict(name=np.array(['ip']), particle_on_co=object(), dqx=values[0], dqy=values[1]),
+        return xd.Table(dict(name=np.array(['ip']), particle_on_co=object(),
+                             completed_init='periodic', periodic=True, dqx=values[0], dqy=values[1]),
                         col_names=['name'])
 
     reference = evaluate()
+    monkeypatch.setattr(line, 'twiss', evaluate)
     opt = chromaticity_module.build_chromaticity_corr_optimizer(
-        line, reference, full_twiss=evaluate)
+        line, reference)
+    assert opt.action_twiss.line is line
+    assert all(target.action is opt.action_twiss for target in opt.targets)
+    assert opt.action_twiss.kwargs['method'] == '4d'
+    assert opt.action_twiss.kwargs['chrom'] is True
+    assert not opt.action_twiss.allow_twiss_failure
+    assert opt.action_twiss.kwargs['delta_chrom'] == 2e-4
     np.testing.assert_allclose(opt.response.matrix, matrix)
-    assert line['on_nonlinear'] == 0.
+    assert line['on_nonlinear'] == 1.
+    assert opt.reference is reference
     np.testing.assert_array_equal(line.get(knobs), np.zeros(4))
     np.testing.assert_array_equal(opt.ideal_chromaticities, ideal)
-    assert calls[1:] == [1.] * 9  # Ideal optics and eight response probes.
+    assert calls[1:] == [1.] * 9  # Default-action setup and eight probes.
     line['on_nonlinear'] = 1.
     tw = evaluate()
     assert opt.goal(tw)
@@ -121,27 +134,29 @@ def test_chromaticity_response_and_ideal_targets(chromaticity_module):
     opt.print_metrics(missing, log=lambda *args: pytest.fail('No chromaticity data'))
 
 
-def test_chromaticity_probes_restore_on_failure(chromaticity_module):
+def test_chromaticity_probes_restore_on_failure(chromaticity_module, monkeypatch):
     line = sextupole_line()
     knobs = chromaticity_module.install_chromaticity_knobs(line)
     line.set(knobs, [.01, .02, .03, .04])
     before = line.get(knobs)
-    def fail(co_guess):
+    def fail(co_guess, **kwargs):
         raise ValueError('Failed chromatic Twiss')
+    monkeypatch.setattr(line, 'twiss', fail)
     with pytest.raises(ValueError, match='Failed chromatic Twiss'):
         chromaticity_module.build_chromaticity_response(
-            line, SimpleNamespace(particle_on_co=object()), knobs=knobs, full_twiss=fail, step=1e-4)
+            line, SimpleNamespace(particle_on_co=object()), knobs=knobs, step=1e-4)
     assert line.get(knobs) == before
 
 
 
-def test_chromaticity_builder_restores_nonlinear_strength_on_failure(chromaticity_module):
+def test_chromaticity_builder_leaves_nonlinear_strength_unchanged_on_failure(chromaticity_module, monkeypatch):
     line = sextupole_line()
     chromaticity_module.install_chromaticity_knobs(line)
-    def fail(co_guess, *, chrom):
-        assert chrom and line['on_nonlinear'] == 1.
+    def fail(co_guess, *, chrom, **kwargs):
+        assert chrom and line['on_nonlinear'] == .25
         raise ValueError('Failed nominal chromatic Twiss')
+    monkeypatch.setattr(line, 'twiss', fail)
     with pytest.raises(ValueError, match='Failed nominal chromatic Twiss'):
         chromaticity_module.build_chromaticity_corr_optimizer(
-            line, SimpleNamespace(particle_on_co=object()), full_twiss=fail)
+            line, xd.Table(dict(name=np.array(['ip']), dqx=2., dqy=3.), col_names=['name']))
     assert line['on_nonlinear'] == .25

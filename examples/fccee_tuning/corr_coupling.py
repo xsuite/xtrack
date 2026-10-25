@@ -29,16 +29,15 @@ DEFAULT_COUPLING_CORR_SETTINGS = SimpleNamespace(
 
 
 def build_coupling_corr_optimizer(line, reference, *, observation_names, ip_names,
-                                 full_twiss, settings=None, log=print):
+                                 settings=None, log=print, **twiss_kwargs):
     """Build a correction optimizer with local targets, response and diagnostics."""
     if settings is None:
         settings = copy(DEFAULT_COUPLING_CORR_SETTINGS)
-    action = xt.Action(full_twiss)
     circuits = line.metadata['correction_knobs']['coupling']
     knobs = circuits['knobs']
     response, scales = prepare_coupling_response(
         line, reference, circuits['magnet_groups'], observation_names,
-        knobs=knobs, full_twiss=full_twiss, log=log)
+        knobs=knobs, log=log, **twiss_kwargs)
 
     targets = []
     for name in observation_names:
@@ -46,12 +45,12 @@ def build_coupling_corr_optimizer(line, reference, *, observation_names, ip_name
         if name in ip_names:
             weight *= settings.coupling_ip_weight
         for quantity in ('f1001', 'f1010'):
-            target = action.target(
+            target = xt.Target(
                 lambda tw, name=name, quantity=quantity: tw[quantity, name].real,
                 value=reference[quantity, name].real, tol=1e-15,
                 weight=weight, tag=f'real_{quantity}@{name}')
             targets.append(target)
-            target = action.target(
+            target = xt.Target(
                 lambda tw, name=name, quantity=quantity: tw[quantity, name].imag,
                 value=reference[quantity, name].imag, tol=1e-15,
                 weight=weight, tag=f'imag_{quantity}@{name}')
@@ -61,7 +60,7 @@ def build_coupling_corr_optimizer(line, reference, *, observation_names, ip_name
         if name in ip_names:
             weight *= (settings.coupling_ip_weight * settings.dispersion_rms_tol
                        / settings.dispersion_ip_tol)
-        target = xt.Target('dy', at=name, value=reference['dy', name], action=action,
+        target = xt.Target('dy', at=name, value=reference['dy', name],
                            tol=1e-15, weight=weight, tag=f'dy@{name}')
         targets.append(target)
 
@@ -70,6 +69,10 @@ def build_coupling_corr_optimizer(line, reference, *, observation_names, ip_name
         vary.append(xt.Vary(knob, step=1e-7, weight=scale))
     optimizer = CorrectionOptimizer(
         line, reference, settings=settings,
+        method='4d', delta0=0., chrom=False, radiation_integrals=False,
+        allow_twiss_failure=False,
+        co_guess=dict(x=0, px=0, y=0, py=0, zeta=0, delta=0),
+        **twiss_kwargs,
         compute_metrics=compute_metrics, goal=goal,
         print_metrics=print_metrics,
         name='coupling and vertical dispersion', vary=vary, targets=targets)
@@ -155,7 +158,7 @@ def print_metrics(optimizer, tw, *, log=print):
 
 
 def prepare_coupling_response(
-    line, tw_ref, skew_groups, observation_names, *, knobs, full_twiss, log,
+    line, tw_ref, skew_groups, observation_names, *, knobs, log, **twiss_kwargs
 ):
     """Return the response in observation order and the knob scales.
 
@@ -164,12 +167,12 @@ def prepare_coupling_response(
     matrix, scales = skew_quadrupole_response(line, tw_ref, skew_groups, observation_names)
     check_coupling_response(
         line, skew_knobs=knobs, skew_scale=scales, coupling_response=matrix,
-        tw_ref=tw_ref, full_twiss=full_twiss,
+        tw_ref=tw_ref,
         coupling_vector=partial(
             coupling_vector, tw_ref=tw_ref,
             coupling_indices=tw_ref.rows.indices[observation_names],
         ),
-        n_observations=len(observation_names), log=log,
+        n_observations=len(observation_names), log=log, **twiss_kwargs,
     )
     # The analytical response groups rows by quantity; targets group them by location.
     matrix = matrix.reshape(5, len(observation_names), len(knobs))
@@ -184,16 +187,17 @@ def check_coupling_response(
     skew_scale,
     coupling_response,
     tw_ref,
-    full_twiss,
     coupling_vector,
     n_observations,
     log,
+    **twiss_kwargs,
 ):
     # Check the analytical response against tracking for a distributed probe.
     probe = 1e-5 * skew_scale * np.sin(np.arange(len(skew_knobs)) + 0.3)
     line.set(skew_knobs, probe)
     try:
-        probe_tw = full_twiss(co_guess=tw_ref.particle_on_co)
+        probe_tw = line.twiss(method='4d', delta0=0., chrom=False, radiation_integrals=False,
+                              co_guess=tw_ref.particle_on_co, **twiss_kwargs)
         prediction = coupling_response @ probe
         discrepancy = np.linalg.norm(coupling_vector(probe_tw) - prediction) / np.linalg.norm(
             prediction

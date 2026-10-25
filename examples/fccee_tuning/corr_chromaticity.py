@@ -1,7 +1,6 @@
 """Chromaticity correction using four sextupole family offsets."""
 
 from copy import copy
-from functools import partial
 from types import SimpleNamespace
 
 import numpy as np
@@ -19,42 +18,38 @@ DEFAULT_CHROMATICITY_CORR_SETTINGS = SimpleNamespace(
 SEXTUPOLE_FAMILY_KNOBS = ('ksf1', 'ksf2', 'ksd1', 'ksd2')
 
 
-def build_chromaticity_corr_optimizer(line, reference, *, full_twiss, settings=None):
+def build_chromaticity_corr_optimizer(line, reference, *, settings=None, **twiss_kwargs):
     """Build a fixed family response and target the aligned machine's chromaticities.
 
-    Evaluate the ideal machine with nominal nonlinear strengths. The workflow
-    uses this correction during refinement, after increasing the errors.
+    The shared reference includes chromaticities at nominal nonlinear strength.
+    The workflow uses this correction during refinement, after increasing errors.
     """
     if settings is None:
         settings = copy(DEFAULT_CHROMATICITY_CORR_SETTINGS)
+    twiss_kwargs.setdefault('delta_chrom', 2e-4)
     knobs = line.metadata['correction_knobs']['chromaticity']['knobs']
-    chromatic_twiss = partial(full_twiss, chrom=True)
-    nonlinear = float(line['on_nonlinear'])
-    try:
-        line['on_nonlinear'] = 1.
-        ideal = chromatic_twiss(co_guess=reference.particle_on_co)
-        action = xt.Action(chromatic_twiss)
-        targets = []
-        for quantity in ('dqx', 'dqy'):
-            target = xt.Target(quantity, value=ideal[quantity], action=action,
-                               tol=settings.chromaticity_tol, tag=quantity)
-            targets.append(target)
-        vary = []
-        for knob in knobs:
-            vary.append(xt.Vary(knob, step=settings.response_step))
-        optimizer = CorrectionOptimizer(
-            line, ideal, settings=settings,
-            compute_metrics=compute_metrics, goal=goal, print_metrics=print_metrics,
-            name='chromaticity',
-            vary=vary, targets=targets)
-        optimizer.ideal_chromaticities = np.array([ideal.dqx, ideal.dqy])
-        optimizer.chromaticity_tol = settings.chromaticity_tol
-        optimizer.rcond = settings.rcond
-        optimizer.set_response(build_chromaticity_response(
-            line, ideal, knobs=knobs, full_twiss=chromatic_twiss,
-            step=settings.response_step))
-    finally:
-        line['on_nonlinear'] = nonlinear
+    targets = []
+    for quantity in ('dqx', 'dqy'):
+        target = xt.Target(quantity, value=reference[quantity],
+                           tol=settings.chromaticity_tol, tag=quantity)
+        targets.append(target)
+    vary = []
+    for knob in knobs:
+        vary.append(xt.Vary(knob, step=settings.response_step))
+    optimizer = CorrectionOptimizer(
+        line, reference, settings=settings,
+        method='4d', delta0=0., chrom=True, radiation_integrals=False,
+        allow_twiss_failure=False,
+        co_guess=dict(x=0, px=0, y=0, py=0, zeta=0, delta=0),
+        **twiss_kwargs,
+        compute_metrics=compute_metrics, goal=goal, print_metrics=print_metrics,
+        name='chromaticity',
+        vary=vary, targets=targets)
+    optimizer.ideal_chromaticities = np.array([reference.dqx, reference.dqy])
+    optimizer.chromaticity_tol = settings.chromaticity_tol
+    optimizer.rcond = settings.rcond
+    optimizer.set_response(build_chromaticity_response(
+        line, reference, knobs=knobs, step=settings.response_step, **twiss_kwargs))
     return optimizer
 
 
@@ -77,16 +72,19 @@ def install_chromaticity_knobs(line):
     return knobs
 
 
-def build_chromaticity_response(line, reference, *, knobs, full_twiss, step):
+def build_chromaticity_response(line, reference, *, knobs, step, **twiss_kwargs):
     """Numerical d(dqx,dqy)/d(family offset), restoring every probe."""
+    twiss_kwargs.setdefault('delta_chrom', 2e-4)
     baseline = np.array(line.get(knobs))
     response = np.empty((2, len(knobs)))
     try:
         for column, knob in enumerate(knobs):
             line[knob] = baseline[column] + step
-            plus = full_twiss(co_guess=reference.particle_on_co)
+            plus = line.twiss(method='4d', delta0=0., chrom=True, radiation_integrals=False,
+                               co_guess=reference.particle_on_co, **twiss_kwargs)
             line[knob] = baseline[column] - step
-            minus = full_twiss(co_guess=reference.particle_on_co)
+            minus = line.twiss(method='4d', delta0=0., chrom=True, radiation_integrals=False,
+                               co_guess=reference.particle_on_co, **twiss_kwargs)
             response[:, column] = np.array([plus.dqx - minus.dqx,
                                              plus.dqy - minus.dqy]) / (2 * step)
             line[knob] = baseline[column]

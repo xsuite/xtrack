@@ -221,11 +221,18 @@ def test_optics_action_preserves_twiss_defaults(optics_problem, defaults):
     built = module.build_opt_corr_optimizer(
         line, reference, knobs=['trim', 'family'],
         observation_names=['qf1', 'qd6'], interaction_points=['qf1'],
-        ip_names=['qd6'])
-    actual = built.targets[0].action.run()
-    np.testing.assert_allclose([actual.qx, actual.qy], [reference.qx, reference.qy],
+        ip_names=['qd6'], delta_chrom=3e-4, steps_R_matrix={'dx': 2e-8})
+    assert all(target.action is built.action_twiss for target in built.targets)
+    assert built.action_twiss.kwargs['delta_chrom'] == 3e-4
+    assert built.action_twiss.kwargs['steps_R_matrix'] == {'dx': 2e-8}
+    assert not built.action_twiss.allow_twiss_failure
+    actual = built.action_twiss.run()
+    expected = line.twiss(method='4d', delta0=0., chrom=False, radiation_integrals=False,
+                          co_guess=dict(x=0, px=0, y=0, py=0, zeta=0, delta=0),
+                          delta_chrom=3e-4, steps_R_matrix={'dx': 2e-8})
+    np.testing.assert_allclose([actual.qx, actual.qy], [expected.qx, expected.qy],
                                rtol=1e-10, atol=1e-12)
-    np.testing.assert_allclose(actual.betx, reference.betx, rtol=1e-10)
+    np.testing.assert_allclose(actual.betx, expected.betx, rtol=1e-10)
     assert line.twiss_default == defaults
 
 
