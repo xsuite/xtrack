@@ -78,3 +78,46 @@ def test_coupling_installer_rejects_existing_knobs(coupling_problem, tmp_path, r
     if not round_trip:
         assert 'dk1sl_coupling_sf.0' not in line.vars
         assert 'correction_knobs' not in line.metadata
+
+
+def test_coupling_targets_match_response_in_observation_order(coupling_problem, monkeypatch):
+    import xdeps as xd
+
+    install, line = coupling_problem
+    module = importlib.import_module('corr_coupling')
+    knobs = install(line)
+    # The response has quantity blocks, while observations deliberately reverse table order.
+    matrix = np.random.default_rng(42).normal(size=(10, 2))
+    monkeypatch.setattr(module, 'skew_quadrupole_response',
+                        lambda *args: (matrix.copy(), np.array([.5, 2.])))
+
+    def evaluate(co_guess=None):
+        changes = matrix @ np.array(line.get(knobs))
+        tw = xd.Table(dict(
+            name=np.array(['sf.0', 'unused', 'sd']), particle_on_co=object(),
+            f1001=np.array([.1 + .2j, 10j, .3 + .4j]),
+            f1010=np.array([.5 + .6j, 20j, .7 + .8j]),
+            dy=np.array([.01, 30., .02])), col_names=['name', 'f1001', 'f1010', 'dy'])
+        tw.f1001[[2, 0]] += changes[:2] + 1j * changes[2:4]
+        tw.f1010[[2, 0]] += changes[4:6] + 1j * changes[6:8]
+        tw.dy[[2, 0]] += changes[8:]
+        return tw
+
+    reference = evaluate()
+    opt = module.build_coupling_corr_optimizer(
+        line, reference, observation_names=['sd', 'sf.0'], ip_names=['sd'],
+        full_twiss=evaluate, log=lambda *args: None)
+    expected = matrix[[0, 2, 4, 6, 8, 1, 3, 5, 7, 9]]
+    np.testing.assert_array_equal(opt.response.matrix, expected)
+    settings = opt.settings
+    np.testing.assert_allclose([target.weight for target in opt.targets],
+        np.array([settings.coupling_ip_weight] * 4
+                 + [settings.dispersion_weight * settings.coupling_ip_weight
+                    * settings.dispersion_rms_tol / settings.dispersion_ip_tol]
+                 + [1.] * 4 + [settings.dispersion_weight]) / np.sqrt(2))
+    errors = np.array([.002, -.001])
+    line.set(knobs, errors)
+    tw = evaluate()
+    status = opt.target_status(ret=True, action_results=[tw])
+    np.testing.assert_allclose(status.residue, expected @ errors)
+    np.testing.assert_allclose(opt.get_correction(action_results=[tw]), -errors)

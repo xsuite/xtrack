@@ -1050,3 +1050,29 @@ def test_chromaticity_family_trims_scale_only_through_nonlinear_strength(correct
     correction.restore(before)
     assert correction.line[knobs[0]] == .4
     assert correction.line['chromaticity_strength'] == pytest.approx(.08)
+
+
+@pytest.mark.parametrize('plane', ['x', 'y'])
+def test_orbit_targets_use_monitor_names_and_live_offsets(correction, monkeypatch, plane):
+    module = importlib.import_module('corr_orbit')
+    line = correction.line
+    line['orbit2'] = 0.
+    line['offset2'] = 2e-6
+    line.metadata['correction_knobs'] = {'orbit': {
+        'x': {'monitors': ['bpm2', 'bpm1'], 'correctors': ['c2', 'c1'],
+              'knobs': ['orbit', 'orbit2']},
+        'y': {'monitors': ['bpm2', 'bpm1'], 'correctors': ['c2', 'c1'],
+              'knobs': ['orbit', 'orbit2']}}}
+    line.metadata['tuning_errors']['bpm_alignment_variables'] = {
+        'bpm1': {'shift_x': 'bpm_offset', 'shift_y': 'bpm_offset'},
+        'bpm2': {'shift_x': 'offset2', 'shift_y': 'offset2'}}
+    reference = xd.Table(dict(name=np.array(['bpm1', 'unused', 'bpm2']),
+        x=np.array([1e-6, 1., 3e-6]), y=np.array([4e-6, 2., 6e-6])),
+        col_names=['name', 'x', 'y'])
+    monkeypatch.setattr(module, 'orbit_response', lambda *args: np.eye(2))
+    opt = module.build_orbit_corr_optimizer(line, reference, plane=plane)
+    line['on_errors'] = .5  # Change the deferred BPM offset after target construction.
+    status = opt.target_status(ret=True, action_results=[reference])
+    np.testing.assert_allclose(status.residue,
+        reference[plane][[2, 0]] - [line['offset2'], line['bpm_offset']])
+    assert [target.tag for target in opt.targets] == [f'{plane}@bpm2', f'{plane}@bpm1']

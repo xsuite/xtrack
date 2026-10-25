@@ -21,6 +21,39 @@ KNOBS = ('dko_arc_f', 'dko_arc_d')
 SWITCH = 'on_arc_octupole_corr'
 
 
+def build_second_order_chrom_optimizer(line, reference, *, full_twiss, settings=None):
+    if settings is None:
+        settings = copy(DEFAULT_SECOND_ORDER_CHROM_SETTINGS)
+    knobs = line.metadata['correction_knobs']['second_order_chrom']['knobs']
+    chromatic_twiss = partial(full_twiss, chrom=True)
+    nonlinear = float(line['on_nonlinear'])
+    try:
+        line['on_nonlinear'] = 1.
+        ideal = chromatic_twiss(co_guess=reference.particle_on_co)
+        action = xt.Action(chromatic_twiss)
+        targets = []
+        for quantity in ('ddqx', 'ddqy'):
+            target = xt.Target(quantity, value=ideal[quantity], action=action,
+                               tol=2 * settings.second_order_chrom_tol, tag=quantity)
+            targets.append(target)
+        vary = []
+        for knob in knobs:
+            vary.append(xt.Vary(knob, step=settings.response_step))
+        optimizer = CorrectionOptimizer(
+            line, ideal, settings=settings,
+            compute_metrics=compute_metrics, goal=goal, print_metrics=print_metrics,
+            name='second_order_chrom',
+            vary=vary, targets=targets)
+        optimizer.ideal_second_order_chrom = np.array([ideal.ddqx, ideal.ddqy])/2
+        optimizer.second_order_chrom_tol = settings.second_order_chrom_tol
+        optimizer.rcond = settings.rcond
+        optimizer.set_response(build_second_order_chrom_response(
+            line, ideal, knobs=knobs, full_twiss=chromatic_twiss, step=settings.response_step))
+    finally:
+        line['on_nonlinear'] = nonlinear
+    return optimizer
+
+
 def install_second_order_chrom_knobs(line):
     """Install shared k3 trims on quadrupoles controlled by the arc family knobs.
 
@@ -53,34 +86,6 @@ def install_second_order_chrom_knobs(line):
         quadrupole_groups=groups, units='m^-4')
     circuits.setdefault('switches', {})['second_order_chrom'] = SWITCH
     return list(KNOBS)
-
-
-def build_second_order_chrom_optimizer(line, reference, *, full_twiss, settings=None):
-    if settings is None:
-        settings = copy(DEFAULT_SECOND_ORDER_CHROM_SETTINGS)
-    knobs = line.metadata['correction_knobs']['second_order_chrom']['knobs']
-    chromatic_twiss = partial(full_twiss, chrom=True)
-    nonlinear = float(line['on_nonlinear'])
-    try:
-        line['on_nonlinear'] = 1.
-        ideal = chromatic_twiss(co_guess=reference.particle_on_co)
-        action = xt.Action(chromatic_twiss)
-        optimizer = CorrectionOptimizer(
-            line, ideal, settings=settings,
-            compute_metrics=compute_metrics, goal=goal, print_metrics=print_metrics,
-            name='second_order_chrom',
-            vary=[xt.Vary(knob, step=settings.response_step) for knob in knobs],
-            targets=[xt.Target(quantity, value=ideal[quantity], action=action,
-                               tol=2*settings.second_order_chrom_tol, tag=quantity)
-                     for quantity in ('ddqx', 'ddqy')])
-        optimizer.ideal_second_order_chrom = np.array([ideal.ddqx, ideal.ddqy])/2
-        optimizer.second_order_chrom_tol = settings.second_order_chrom_tol
-        optimizer.rcond = settings.rcond
-        optimizer.set_response(build_second_order_chrom_response(
-            line, ideal, knobs=knobs, full_twiss=chromatic_twiss, step=settings.response_step))
-    finally:
-        line['on_nonlinear'] = nonlinear
-    return optimizer
 
 
 def build_second_order_chrom_response(line, reference, *, knobs, full_twiss, step):

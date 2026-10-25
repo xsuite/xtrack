@@ -27,23 +27,6 @@ DEFAULT_OPTICS_CORR_SETTINGS = SimpleNamespace(
 )
 
 
-def install_optics_knobs(line):
-    """Install new optics trims initialized to zero, preserving k1 family expressions."""
-    table = line.get_table()
-    quadrupoles = list(dict.fromkeys(table.rows.match(element_type='Quadrupole').env_name))
-    knobs = [f'dk1_corr_optimics_{name}' for name in quadrupoles]
-    switch = 'on_corr_optics'
-    assert all(knob not in line.vars for knob in knobs), 'Optics correction knobs already exist'
-    line[switch] = 1.
-    for name, knob in zip(quadrupoles, knobs):
-        line[knob] = 0.
-        line.ref[name].k1 += line.ref[switch] * line.ref[knob]
-
-    line.metadata.setdefault('correction_knobs', {})['optics'] = dict(
-        knobs=knobs, quadrupoles=quadrupoles, units='m^-2')
-    return knobs
-
-
 def build_opt_corr_optimizer(line, reference, *, knobs, observation_names,
                              interaction_points, ip_names, settings=None):
     """Build a correction optimizer with local targets, response and diagnostics."""
@@ -132,6 +115,23 @@ def build_opt_corr_optimizer(line, reference, *, knobs, observation_names,
     optimizer.dx_err_ip_tol = settings.intermediate_horizontal_dispersion_ip_tol
 
     return optimizer
+
+
+def install_optics_knobs(line):
+    """Install new optics trims initialized to zero, preserving k1 family expressions."""
+    table = line.get_table()
+    quadrupoles = list(dict.fromkeys(table.rows.match(element_type='Quadrupole').env_name))
+    knobs = [f'dk1_corr_optimics_{name}' for name in quadrupoles]
+    switch = 'on_corr_optics'
+    assert all(knob not in line.vars for knob in knobs), 'Optics correction knobs already exist'
+    line[switch] = 1.
+    for name, knob in zip(quadrupoles, knobs):
+        line[knob] = 0.
+        line.ref[name].k1 += line.ref[switch] * line.ref[knob]
+
+    line.metadata.setdefault('correction_knobs', {})['optics'] = dict(
+        knobs=knobs, quadrupoles=quadrupoles, units='m^-2')
+    return knobs
 
 
 def compute_metrics(optimizer, tw):

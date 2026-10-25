@@ -19,6 +19,45 @@ DEFAULT_CHROMATICITY_CORR_SETTINGS = SimpleNamespace(
 SEXTUPOLE_FAMILY_KNOBS = ('ksf1', 'ksf2', 'ksd1', 'ksd2')
 
 
+def build_chromaticity_corr_optimizer(line, reference, *, full_twiss, settings=None):
+    """Build a fixed family response and target the aligned machine's chromaticities.
+
+    Evaluate the ideal machine with nominal nonlinear strengths. The workflow
+    uses this correction during refinement, after increasing the errors.
+    """
+    if settings is None:
+        settings = copy(DEFAULT_CHROMATICITY_CORR_SETTINGS)
+    knobs = line.metadata['correction_knobs']['chromaticity']['knobs']
+    chromatic_twiss = partial(full_twiss, chrom=True)
+    nonlinear = float(line['on_nonlinear'])
+    try:
+        line['on_nonlinear'] = 1.
+        ideal = chromatic_twiss(co_guess=reference.particle_on_co)
+        action = xt.Action(chromatic_twiss)
+        targets = []
+        for quantity in ('dqx', 'dqy'):
+            target = xt.Target(quantity, value=ideal[quantity], action=action,
+                               tol=settings.chromaticity_tol, tag=quantity)
+            targets.append(target)
+        vary = []
+        for knob in knobs:
+            vary.append(xt.Vary(knob, step=settings.response_step))
+        optimizer = CorrectionOptimizer(
+            line, ideal, settings=settings,
+            compute_metrics=compute_metrics, goal=goal, print_metrics=print_metrics,
+            name='chromaticity',
+            vary=vary, targets=targets)
+        optimizer.ideal_chromaticities = np.array([ideal.dqx, ideal.dqy])
+        optimizer.chromaticity_tol = settings.chromaticity_tol
+        optimizer.rcond = settings.rcond
+        optimizer.set_response(build_chromaticity_response(
+            line, ideal, knobs=knobs, full_twiss=chromatic_twiss,
+            step=settings.response_step))
+    finally:
+        line['on_nonlinear'] = nonlinear
+    return optimizer
+
+
 def install_chromaticity_knobs(line):
     """Install new family trims initialized to zero and return their names.
 
@@ -36,40 +75,6 @@ def install_chromaticity_knobs(line):
     line.metadata.setdefault('correction_knobs', {})['chromaticity'] = dict(
         knobs=knobs, family_knobs=list(families), units='m^-3')
     return knobs
-
-
-def build_chromaticity_corr_optimizer(line, reference, *, full_twiss, settings=None):
-    """Build a fixed family response and target the aligned machine's chromaticities.
-
-    Evaluate the ideal machine with nominal nonlinear strengths. The workflow
-    uses this correction during refinement, after increasing the errors.
-    """
-    if settings is None:
-        settings = copy(DEFAULT_CHROMATICITY_CORR_SETTINGS)
-    knobs = line.metadata['correction_knobs']['chromaticity']['knobs']
-    chromatic_twiss = partial(full_twiss, chrom=True)
-    nonlinear = float(line['on_nonlinear'])
-    try:
-        line['on_nonlinear'] = 1.
-        ideal = chromatic_twiss(co_guess=reference.particle_on_co)
-        action = xt.Action(chromatic_twiss)
-        optimizer = CorrectionOptimizer(
-            line, ideal, settings=settings,
-            compute_metrics=compute_metrics, goal=goal, print_metrics=print_metrics,
-            name='chromaticity',
-            vary=[xt.Vary(knob, step=settings.response_step) for knob in knobs],
-            targets=[xt.Target(quantity, value=ideal[quantity], action=action,
-                               tol=settings.chromaticity_tol, tag=quantity)
-                     for quantity in ('dqx', 'dqy')])
-        optimizer.ideal_chromaticities = np.array([ideal.dqx, ideal.dqy])
-        optimizer.chromaticity_tol = settings.chromaticity_tol
-        optimizer.rcond = settings.rcond
-        optimizer.set_response(build_chromaticity_response(
-            line, ideal, knobs=knobs, full_twiss=chromatic_twiss,
-            step=settings.response_step))
-    finally:
-        line['on_nonlinear'] = nonlinear
-    return optimizer
 
 
 def build_chromaticity_response(line, reference, *, knobs, full_twiss, step):

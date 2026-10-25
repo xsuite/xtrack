@@ -28,6 +28,66 @@ DEFAULT_COUPLING_CORR_SETTINGS = SimpleNamespace(
 )
 
 
+def build_coupling_corr_optimizer(line, reference, *, observation_names, ip_names,
+                                 full_twiss, settings=None, log=print):
+    """Build a correction optimizer with local targets, response and diagnostics."""
+    if settings is None:
+        settings = copy(DEFAULT_COUPLING_CORR_SETTINGS)
+    action = xt.Action(full_twiss)
+    circuits = line.metadata['correction_knobs']['coupling']
+    knobs = circuits['knobs']
+    response, scales = prepare_coupling_response(
+        line, reference, circuits['magnet_groups'], observation_names,
+        knobs=knobs, full_twiss=full_twiss, log=log)
+
+    targets = []
+    for name in observation_names:
+        weight = 1 / np.sqrt(len(observation_names))
+        if name in ip_names:
+            weight *= settings.coupling_ip_weight
+        for quantity in ('f1001', 'f1010'):
+            target = action.target(
+                lambda tw, name=name, quantity=quantity: tw[quantity, name].real,
+                value=reference[quantity, name].real, tol=1e-15,
+                weight=weight, tag=f'real_{quantity}@{name}')
+            targets.append(target)
+            target = action.target(
+                lambda tw, name=name, quantity=quantity: tw[quantity, name].imag,
+                value=reference[quantity, name].imag, tol=1e-15,
+                weight=weight, tag=f'imag_{quantity}@{name}')
+            targets.append(target)
+
+        weight = settings.dispersion_weight / np.sqrt(len(observation_names))
+        if name in ip_names:
+            weight *= (settings.coupling_ip_weight * settings.dispersion_rms_tol
+                       / settings.dispersion_ip_tol)
+        target = xt.Target('dy', at=name, value=reference['dy', name], action=action,
+                           tol=1e-15, weight=weight, tag=f'dy@{name}')
+        targets.append(target)
+
+    vary = []
+    for knob, scale in zip(knobs, scales):
+        vary.append(xt.Vary(knob, step=1e-7, weight=scale))
+    optimizer = CorrectionOptimizer(
+        line, reference, settings=settings,
+        compute_metrics=compute_metrics, goal=goal,
+        print_metrics=print_metrics,
+        name='coupling and vertical dispersion', vary=vary, targets=targets)
+    optimizer.coupling_indices = reference.rows.indices[observation_names]
+    optimizer.ip_indices = reference.rows.indices[ip_names]
+    optimizer.rcond = settings.rcond
+    optimizer.set_response(response)
+
+    optimizer.step_scale = settings.step_scale
+    optimizer.rdt_rms_tol = settings.intermediate_coupling_rms_tol
+    optimizer.rdt_ip_tol = settings.intermediate_coupling_ip_tol
+    optimizer.c_minus_tol = settings.intermediate_c_minus_tol
+    optimizer.dy_rms_tol = settings.intermediate_dispersion_rms_tol
+    optimizer.dy_ip_tol = settings.intermediate_dispersion_ip_tol
+
+    return optimizer
+
+
 def install_coupling_knobs(line):
     """Install new integrated skew trims, preserving existing sextupole expressions.
 
@@ -57,55 +117,6 @@ def install_coupling_knobs(line):
     line.metadata.setdefault('correction_knobs', {})['coupling'] = dict(
         knobs=knobs, magnet_groups=groups, units='m^-1')
     return knobs
-
-
-def build_coupling_corr_optimizer(line, reference, *, observation_names, ip_names,
-                                 full_twiss, settings=None, log=print):
-    """Build a correction optimizer with local targets, response and diagnostics."""
-    if settings is None:
-        settings = copy(DEFAULT_COUPLING_CORR_SETTINGS)
-    action = xt.Action(full_twiss)
-    circuits = line.metadata['correction_knobs']['coupling']
-    knobs = circuits['knobs']
-    response, scales, weights, labels = prepare_coupling_response(
-        line, reference, circuits['magnet_groups'], observation_names,
-        ip_names=ip_names,
-        coupling_ip_weight=settings.coupling_ip_weight,
-        dispersion_weight=settings.dispersion_weight,
-        dispersion_ip_weight=(settings.coupling_ip_weight * settings.dispersion_rms_tol
-                              / settings.dispersion_ip_tol),
-        knobs=knobs, full_twiss=full_twiss, log=log,
-    )
-    indices = reference.rows.indices[observation_names]
-    observables = (
-        [lambda tw, key=key, part=part, i=i:
-            getattr(tw[key][i] - reference[key][i], part)
-         for key in ('f1001', 'f1010') for part in ('real', 'imag') for i in indices]
-        + [lambda tw, i=i: tw.dy[i] - reference.dy[i] for i in indices]
-    )
-    optimizer = CorrectionOptimizer(
-        line, reference, settings=settings,
-        compute_metrics=compute_metrics, goal=goal,
-        print_metrics=print_metrics,
-        name='coupling and vertical dispersion',
-        vary=[xt.Vary(knob, step=1e-7, weight=scale) for knob, scale in zip(knobs, scales)],
-        targets=[action.target(observable, value=0.0, tol=1e-15,
-                               weight=weight, tag=label)
-                 for observable, label, weight in zip(observables, labels, weights)],
-    )
-    optimizer.coupling_indices = indices
-    optimizer.ip_indices = reference.rows.indices[ip_names]
-    optimizer.rcond = settings.rcond
-    optimizer.set_response(response)
-
-    optimizer.step_scale = settings.step_scale
-    optimizer.rdt_rms_tol = settings.intermediate_coupling_rms_tol
-    optimizer.rdt_ip_tol = settings.intermediate_coupling_ip_tol
-    optimizer.c_minus_tol = settings.intermediate_c_minus_tol
-    optimizer.dy_rms_tol = settings.intermediate_dispersion_rms_tol
-    optimizer.dy_ip_tol = settings.intermediate_dispersion_ip_tol
-
-    return optimizer
 
 
 def compute_metrics(optimizer, tw):
@@ -144,29 +155,13 @@ def print_metrics(optimizer, tw, *, log=print):
 
 
 def prepare_coupling_response(
-    line, tw_ref, skew_groups, observation_names, *, ip_names,
-    coupling_ip_weight, dispersion_weight, dispersion_ip_weight, knobs, full_twiss, log,
+    line, tw_ref, skew_groups, observation_names, *, knobs, full_twiss, log,
 ):
-    """Return matrix, knob scales, target weights and labels for RDTs and Dy.
+    """Return the response in observation order and the knob scales.
 
     Check the response with one tracking probe, restoring the nominal trims.
     """
     matrix, scales = skew_quadrupole_response(line, tw_ref, skew_groups, observation_names)
-    weights = np.tile(
-        np.array([coupling_ip_weight if n in ip_names else 1.0 for n in observation_names]), 4
-    )
-    weights = np.r_[
-        weights,
-        dispersion_weight
-        * np.array([dispersion_ip_weight if n in ip_names else 1.0 for n in observation_names]),
-    ]
-    weights /= np.sqrt(len(observation_names))
-    labels = [
-        f'{part}_{rdt}@{n}'
-        for rdt in ('f1001', 'f1010')
-        for part in ('real', 'imag')
-        for n in observation_names
-    ] + [f'dy@{n}' for n in observation_names]
     check_coupling_response(
         line, skew_knobs=knobs, skew_scale=scales, coupling_response=matrix,
         tw_ref=tw_ref, full_twiss=full_twiss,
@@ -176,7 +171,10 @@ def prepare_coupling_response(
         ),
         n_observations=len(observation_names), log=log,
     )
-    return matrix, scales, weights, labels
+    # The analytical response groups rows by quantity; targets group them by location.
+    matrix = matrix.reshape(5, len(observation_names), len(knobs))
+    matrix = matrix.transpose(1, 0, 2).reshape(5 * len(observation_names), len(knobs))
+    return matrix, scales
 
 
 def check_coupling_response(

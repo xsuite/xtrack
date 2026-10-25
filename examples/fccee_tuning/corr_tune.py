@@ -13,6 +13,37 @@ DEFAULT_TUNE_CORR_SETTINGS = SimpleNamespace(
 )
 
 
+def build_tune_corr_optimizer(line, reference, *, full_twiss, settings=None):
+    """Build a correction optimizer with local targets, response and diagnostics."""
+    if settings is None:
+        settings = copy(DEFAULT_TUNE_CORR_SETTINGS)
+    action = xt.Action(full_twiss)
+    circuits = line.metadata['correction_knobs']['tunes']
+    knobs = circuits['knobs']
+    response = build_tune_response(
+        reference, line=line, tune_knobs=knobs, full_twiss=full_twiss)
+    targets = []
+    for quantity in ('qx', 'qy'):
+        target = xt.Target(quantity, value=reference[quantity], action=action,
+                           tol=settings.tune_tol, tag=quantity)
+        targets.append(target)
+    vary = []
+    for knob in knobs:
+        vary.append(xt.Vary(knob, step=1e-7))
+    optimizer = CorrectionOptimizer(
+        line, reference, settings=settings,
+        compute_metrics=compute_metrics, goal=goal,
+        print_metrics=print_metrics,
+        name='tunes',
+        nominal_knob_values=circuits['nominal_values'],
+        vary=vary, targets=targets)
+    optimizer.rcond = 0.
+    optimizer.set_response(response)
+    optimizer.tune_tol = settings.tune_tol
+
+    return optimizer
+
+
 def install_tune_knobs(line, *, families=('kqf2', 'kqd1')):
     """Install new family trims initialized to zero and return their names.
 
@@ -30,31 +61,6 @@ def install_tune_knobs(line, *, families=('kqf2', 'kqd1')):
         knobs=knobs, nominal_values=dict.fromkeys(knobs, 0.),
         family_knobs=list(families), units='m^-2')
     return knobs
-
-
-def build_tune_corr_optimizer(line, reference, *, full_twiss, settings=None):
-    """Build a correction optimizer with local targets, response and diagnostics."""
-    if settings is None:
-        settings = copy(DEFAULT_TUNE_CORR_SETTINGS)
-    action = xt.Action(full_twiss)
-    circuits = line.metadata['correction_knobs']['tunes']
-    knobs = circuits['knobs']
-    response = build_tune_response(
-        reference, line=line, tune_knobs=knobs, full_twiss=full_twiss)
-    optimizer = CorrectionOptimizer(
-        line, reference, settings=settings,
-        compute_metrics=compute_metrics, goal=goal,
-        print_metrics=print_metrics,
-        name='tunes',
-        nominal_knob_values=circuits['nominal_values'],
-        vary=[xt.Vary(knob, step=1e-7) for knob in knobs],
-        targets=[action.target(q, value=reference[q], tol=settings.tune_tol, tag=q)
-                 for q in ('qx', 'qy')])
-    optimizer.rcond = 0.
-    optimizer.set_response(response)
-    optimizer.tune_tol = settings.tune_tol
-
-    return optimizer
 
 
 def compute_metrics(optimizer, tw):

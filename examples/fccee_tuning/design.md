@@ -679,6 +679,15 @@ weight, tolerance and tag immediately. Tune targets follow the local targets.
 The optics optimizer evaluates global beta RMS/max goals across the full Twiss
 table, including locations outside the fit observations.
 
+The other correction builders also construct targets in explicit loops with
+values, weights, tolerances, and tags assigned together. Orbit targets address
+BPMs by name and read live alignment offsets. Coupling builds the real and
+imaginary parts of both RDTs and Dy together for each observation; its analytical
+response is reordered from quantity blocks to this observation order after the
+directional check. Diagnostic indices remain separate from target construction.
+Validation: 91 focused tests passed, including response/target ordering,
+coupling weights, and live orbit offsets (`/tmp/fccee_optimizer_target_tests.log`).
+
 The beta objective is relative beating, `beta / beta_ref - 1`, rather than
 `ln(beta / beta_ref)`. Ordinary `xt.Target` definitions expose physical beta
 values with their reference values. Multiply nominal relative-beta response rows
