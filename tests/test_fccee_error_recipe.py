@@ -48,7 +48,7 @@ def test_sextupole_halves_share_errors_across_thin_inserts(recipe, monkeypatch):
         recipe.install_errors(line)
     assert metadata['magnets']['sfx1r.0']['names'] == groups[0]['names']
     assert 'sfx1r.2' not in metadata['magnets']
-    for key in recipe.AXES:
+    for key in recipe.AXES.values():
         values = [getattr(line[n], key) for n in groups[0]['names']]
         np.testing.assert_array_equal(values, np.repeat(values[0], 4))
     errors = [line[n].knl_rel[2] for n in groups[0]['names']]

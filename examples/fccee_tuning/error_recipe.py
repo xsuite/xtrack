@@ -26,29 +26,29 @@ SOURCE = ('https://indico.cern.ch/event/1704042/contributions/7166876/'
           'attachments/3307462/5918024/LCC_tuning02072026.pdf')
 R_REF = 0.010
 TRUNCATION = 2.5
-AXES = ('shift_x', 'shift_y', 'shift_s', 'rot_s_rad')
-AXIS_LABELS = ('dx', 'dy', 'ds', 'roll')
+AXES = {'dx': 'shift_x', 'dy': 'shift_y', 'ds': 'shift_s', 'roll': 'rot_s_rad'}
 
 # x/y/s in metres, roll in radians, relative main-strength error.
 SIGMAS = {
-    'arc_quad': (50e-6, 50e-6, 100e-6, 50e-6, 10e-4),
-    'arc_sext': (50e-6, 50e-6, 100e-6, 50e-6, 2e-4),
-    'arc_dipole': (1e-3, 1e-3, 500e-6, 1e-3, 10e-4),
-    # The table has no separate arc/DS octupole/decapole row. Use "Other elt."
-    # for these auxiliary magnets in this model.
-    'arc_other': (100e-6, 100e-6, 100e-6, 100e-6, 2e-4),
-    'straight_dipole': (1e-3, 1e-3, 100e-6, 1e-3, 10e-4),
-    'ip_to_fd': (30e-6, 30e-6, 100e-6, 30e-6, 0.5e-4),
-    'fd_to_cs': (50e-6, 50e-6, 100e-6, 50e-6, 1e-4),
-    'straight_other': (100e-6, 100e-6, 100e-6, 100e-6, 2e-4),
+    'arc_quad': {'dx': 50e-6, 'dy': 50e-6, 'ds': 100e-6, 'roll': 50e-6, 'relative_strength': 10e-4},
+    'arc_sext': {'dx': 50e-6, 'dy': 50e-6, 'ds': 100e-6, 'roll': 50e-6, 'relative_strength': 2e-4},
+    'arc_dipole': {'dx': 1e-3, 'dy': 1e-3, 'ds': 500e-6, 'roll': 1e-3, 'relative_strength': 10e-4},
+    'arc_other': {'dx': 100e-6, 'dy': 100e-6, 'ds': 100e-6, 'roll': 100e-6, 'relative_strength': 2e-4},
+    'straight_dipole': {'dx': 1e-3, 'dy': 1e-3, 'ds': 100e-6, 'roll': 1e-3, 'relative_strength': 10e-4},
+    'ip_to_fd': {'dx': 30e-6, 'dy': 30e-6, 'ds': 100e-6, 'roll': 30e-6, 'relative_strength': 0.5e-4},
+    'fd_to_cs': {'dx': 50e-6, 'dy': 50e-6, 'ds': 100e-6, 'roll': 50e-6, 'relative_strength': 1e-4},
+    'straight_other': {'dx': 100e-6, 'dy': 100e-6, 'ds': 100e-6, 'roll': 100e-6, 'relative_strength': 2e-4},
 }
-GIRDER_SIGMAS = (150e-6, 150e-6, 500e-6, 150e-6)
-BPM_SIGMAS = (10e-6, 10e-6, 1000e-6)
-# (systematic, random sigma). Main-order entries implement dk/k ONCE.
-ARC_DIPOLE = {'b1': (0, 10), 'b2': (0, 5), 'a2': (1, 2),
-              'b3': (0.5, 0.5), 'a3': (0.5, 0),
-              'b4': (0.5, 0.5), 'a4': (0.1, 0.1)}
-ARC_QUAD = {'b2': (0, 10), 'a2': (0, 12)}
+GIRDER_SIGMAS = {'dx': 150e-6, 'dy': 150e-6, 'ds': 500e-6, 'roll': 150e-6}
+BPM_SIGMAS = {'dx': 10e-6, 'dy': 10e-6, 'roll': 1000e-6}
+# Main-order entries implement dk/k ONCE.
+ARC_DIPOLE = {
+    'b1': {'systematic': 0, 'random_sigma': 10}, 'b2': {'systematic': 0, 'random_sigma': 5},
+    'a2': {'systematic': 1, 'random_sigma': 2}, 'b3': {'systematic': 0.5, 'random_sigma': 0.5},
+    'a3': {'systematic': 0.5, 'random_sigma': 0}, 'b4': {'systematic': 0.5, 'random_sigma': 0.5},
+    'a4': {'systematic': 0.1, 'random_sigma': 0.1},
+}
+ARC_QUAD = {'b2': {'systematic': 0, 'random_sigma': 10}, 'a2': {'systematic': 0, 'random_sigma': 12}}
 
 
 def truncated_normal(rng):
@@ -198,19 +198,19 @@ def install_errors(line, seed=12345):
             support = nearest['names'][0]
         group['girder'] = support
         if support is not None and support not in girder_records:
-            girder_records[support] = [sigma * truncated_normal(rng)
-                                       for sigma in GIRDER_SIGMAS]
+            girder_records[support] = [GIRDER_SIGMAS[label] * truncated_normal(rng)
+                                       for label in AXES]
 
     for group in groups:
         category, order = group['category'], group['order']
         sigmas = SIGMAS[category]
-        draws = [sigma * truncated_normal(rng) for sigma in sigmas[:4]]
+        draws = [sigmas[label] * truncated_normal(rng) for label in AXES]
         support = group['girder']
         record = dict(category=category, names=group['names'], girder=support,
                       arc_index=group['arc_index'], alignment=draws, field_units={})
         records[group['names'][0]] = record
         alignment = []
-        for ii, label in enumerate(AXIS_LABELS):
+        for ii, label in enumerate(AXES):
             expr = draws[ii] * align * knob(f'on_error_{category}_{label}')
             if support is not None:
                 expr += girder_records[support][ii] * girder * knob(f'on_error_girder_{label}')
@@ -228,7 +228,7 @@ def install_errors(line, seed=12345):
             alignment[1] += field * knob('on_error_arc_quad_a1') * knob('on_error_field_k0s') * magnetic_centre[2] * random
 
         for name in group['names']:
-            for attr, expr in zip(AXES, alignment):
+            for attr, expr in zip(AXES.values(), alignment):
                 old = getattr(env.ref[name], attr)
                 baseline = old._expr if old._expr is not None else old._get_value()
                 setattr(env.ref[name], attr, baseline + expr)
@@ -245,10 +245,12 @@ def install_errors(line, seed=12345):
             is_sf = group['names'][0].startswith('sf')
             if not group['names'][0].startswith(('sf', 'sd')):
                 raise ValueError(f'Unclassified arc sextupole {group["names"][0]}')
-            harmonics = {'b1': (0, 20 if is_sf else 8), 'b3': (0, 2)}
+            harmonics = {'b1': {'systematic': 0, 'random_sigma': 20 if is_sf else 8},
+                         'b3': {'systematic': 0, 'random_sigma': 2}}
         else:
-            harmonics = {f'b{order + 1}': (0, sigmas[4] / 1e-4)}
-        for harmonic, (mean, sigma) in harmonics.items():
+            harmonics = {f'b{order + 1}': {'systematic': 0, 'random_sigma': sigmas['relative_strength'] / 1e-4}}
+        for harmonic, settings in harmonics.items():
+            mean, sigma = settings['systematic'], settings['random_sigma']
             n = int(harmonic[1:]) - 1
             skew = harmonic[0] == 'a'
             # Mirror-related systematic field terms change sign each octant.
@@ -274,8 +276,8 @@ def install_errors(line, seed=12345):
             raise ValueError(f'Cannot identify BPM parent: {name}')
         bpm_variables[name] = {}
         bpm_samples[name] = {}
-        for attr, label, sigma in zip(('shift_x', 'shift_y', 'rot_s_rad'),
-                                      ('dx', 'dy', 'roll'), BPM_SIGMAS):
+        for label, sigma in BPM_SIGMAS.items():
+            attr = AXES[label]
             sample = sigma * truncated_normal(rng)
             variable = f'err_{name}_{label}'
             # Offsets are residual post-BBA: use the displaced magnetic centre.
