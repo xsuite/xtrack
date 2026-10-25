@@ -306,6 +306,35 @@ def test_set_broadcasting_unchanged(container_type):
 
 
 @pytest.mark.parametrize('container_type', ['env', 'line'])
+@pytest.mark.parametrize('table_source', ['elements', 'line', 'xdeps'])
+def test_set_element_attributes_from_table(container_type, table_source):
+    env = xt.Environment()
+    env['strength'] = 2.
+    for name in ['q1', 'q2', 'q3']:
+        env.new(name, xt.Quadrupole, k1=0., length=1.)
+    line = env.new_line(['q1', 'q2', 'q3'])
+    target = env if container_type == 'env' else line
+    if table_source == 'elements':
+        selected = env.elements.get_table().rows[['q1', 'q2']]
+    elif table_source == 'line':
+        selected = line.get_table().rows[['q1', 'q2']]
+    else:
+        selected = xd.Table({'name': np.array(['q1', 'q2'])})
+
+    target.set(selected, k1='3*strength', length=2.)
+    target.set('strength', 4.)
+    for name in ['q1', 'q2']:
+        assert env[name].k1 == 12.
+        assert env[name].length == 2.
+    assert env['q3'].k1 == 0.
+    assert env['q3'].length == 1.
+    with pytest.raises(ValueError):
+        target.set(selected, 0., k1=1.)
+    with pytest.raises(ValueError, match='name column'):
+        target.set(xd.Table({'value': np.array([1.])}, index=None), k1=1.)
+
+
+@pytest.mark.parametrize('container_type', ['env', 'line'])
 @pytest.mark.parametrize('input_type', ['dict', 'mapping', 'table', 'xdeps_table'])
 def test_set_mapping_or_table(container_type, input_type):
     env = xt.Environment()
@@ -347,7 +376,9 @@ def test_set_mapping_or_table(container_type, input_type):
         target.set(assignments, [1.])
     with pytest.raises(ValueError, match='at most one'):
         target.set(assignments, 1., 2.)
-    with pytest.raises(ValueError, match='no keyword arguments'):
+    message = ('no keyword arguments' if input_type in ('dict', 'mapping')
+               else 'Only a single value is allowed when setting variable')
+    with pytest.raises(ValueError, match=message):
         target.set(assignments, k1=1.)
     assert env['a'] == env['b'] == 12.
 

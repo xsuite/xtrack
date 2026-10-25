@@ -6775,8 +6775,10 @@ class Line:
             For a mapping or table, an explicit positional value overrides the
             stored values. Iterables follow key or row order; scalars (including
             expression strings) broadcast to all names. With an override, a table
-            needs only the ``name`` column. Mapping and table inputs accept no
-            keyword arguments.
+            needs only the ``name`` column. Mapping inputs accept no keyword
+            arguments. With a table, keyword arguments set attributes of the
+            elements in its ``name`` column and cannot be combined with a
+            positional value.
         **kwargs, float or str
             Attributes to set. Can be provided only if the name is associated
             to an element.
@@ -6796,6 +6798,7 @@ class Line:
         >>> line.set(table)  # table with name and value columns
         >>> line.set(table, [0.1, 0.2])  # table with two rows
         >>> line.set(table, 0.)
+        >>> line.set(element_table, k1='3*a')
 
         '''
         self.env.set(name, *args, **kwargs)
