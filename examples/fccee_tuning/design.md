@@ -212,8 +212,8 @@ Run the example scripts in order:
 
 1. `000_install_errors.py` installs static lattice errors.
 2. `001_install_correction_knobs.py` installs the correction knobs.
-3. `002_correct_with_state.py` increases errors, corrects, refines and saves.
-4. `003_momentum_scan.py` analyzes the saved machine versus momentum offset.
+3. `002_correct.py` increases errors, corrects, refines and saves.
+4. `003_analyze_after_correction.py` analyzes the saved machine versus momentum offset.
 
 The older correction and analysis scripts have been removed, together with
 unused helpers. Their reference implementations remain in Git history (commit
@@ -223,7 +223,7 @@ optimizers and accepted state inspectable.
 
 ## Momentum-offset analysis
 
-`003_momentum_scan.py` loads `response_api_class/machine.json` independently of
+`003_analyze_after_correction.py` loads `response_api_class/machine.json` independently of
 the correction object. All settings are near the top of the script: `INPUT`
 and `OUTPUT_DIR` select the saved standard machine and artifact directory.
 The default scan is 21 points over delta = -0.01 to +0.01, configured through
@@ -281,7 +281,7 @@ For reproducible runs set `OPENBLAS_NUM_THREADS=1`, `OMP_NUM_THREADS=1`,
 `MKL_NUM_THREADS=1`, and `VECLIB_MAXIMUM_THREADS=1` before starting Python.
 
 For interactive figures in IPython, enable a GUI backend with `%matplotlib`,
-then run `%run examples/fccee_tuning/003_momentum_scan.py` from the repository
+then run `%run examples/fccee_tuning/003_analyze_after_correction.py` from the repository
 root. Set `INPUT` to the desired machine path before running. `SHOW_PLOTS = True`
 by default keeps both figures open while still saving the artifacts.
 Set it to `False` for batch runs to close figures after saving.
@@ -1155,7 +1155,7 @@ helpers remain unchanged.
 The folder cleanup retains only the 000/001/002 entry scripts and their
 required modules. Four obsolete entry scripts and 21 unused helper functions
 were removed; retained numerical helper implementations are unchanged. All
-56 focused tests pass. Running the renamed `002_correct_with_state.py` completed
+56 focused tests pass. Running the renamed `002_correct.py` completed
 in 175.2 seconds wall time, with all 12 final checks passing and exactly the
 same accepted history (17 entries, 221 Twiss calls, including 79 orbit-only).
 Artifacts: `/tmp/fccee_folder_cleanup_umez7zpj/run.log`, `verification.json`,

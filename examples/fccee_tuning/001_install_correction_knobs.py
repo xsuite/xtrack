@@ -1,7 +1,7 @@
 """Install correction knobs, record them in line.metadata, and save the line.
 
 Run after 000_install_errors.py. No correction is performed here.
-All settings are below; 002_correct_with_state.py consumes the saved line.
+All settings are below; 002_correct.py consumes the saved line.
 """
 
 from pathlib import Path
