@@ -138,7 +138,7 @@ class FCCeeCorrection:
 
         self.optimizers.optics = corr_optics.build_opt_corr_optimizer(
             self.line, self.reference,
-            knobs=corr_optics.install_optics_knobs(self.line),
+            knobs=self.line.metadata['correction_knobs']['optics']['knobs'],
             observation_names=self.obs_names,
             interaction_points=list(self.line.get_table().rows['ip.*'].name),
             ip_names=self.ip_names, settings=optimizer_settings.get('optics'))
@@ -287,7 +287,10 @@ class FCCeeCorrection:
         if previous == 0 or previous == next_error_fraction:
             return
         ratio = next_error_fraction / previous
-        knobs = self.correction_knobs
+        # Family chromaticity trims already scale through on_nonlinear.
+        chromaticity_knobs = self.line.metadata.get('correction_knobs', {}).get(
+            'chromaticity', {}).get('knobs', [])
+        knobs = [name for name in self.correction_knobs if name not in chromaticity_knobs]
         nominal = np.array([self.nominal_knob_values[name] for name in knobs])
         current = np.array(self.line.get(knobs))
         self.line.set(knobs, nominal + ratio * (current - nominal))
@@ -364,19 +367,17 @@ class FCCeeCorrection:
         circuits = line.metadata['correction_knobs']
         orbit_knobs = circuits['orbit']['x']['knobs'] + circuits['orbit']['y']['knobs']
         line.set(orbit_knobs, np.zeros(len(orbit_knobs)))
+        line.set(dict.fromkeys(circuits['optics']['knobs'], 0.))
         line['on_errors'] = 0.0
         line['on_nonlinear'] = 0.0
         corr_tune.install_tune_knobs(line)
         line.set(circuits['tunes']['family_nominal_values'])
-        line.set(circuits['tunes']['nominal_values'])
-        chromaticity_knobs = corr_chromaticity.install_chromaticity_knobs(line)
-        line.set(chromaticity_knobs, np.zeros(len(chromaticity_knobs)))
-        second_order_knobs = corr_second_order_chrom.install_second_order_chrom_knobs(line)
-        line.set(second_order_knobs, np.zeros(len(second_order_knobs)))
+        line.set(dict.fromkeys(circuits['chromaticity']['knobs'], 0.))
+        corr_second_order_chrom.install_second_order_chrom_knobs(line)
         self.reference = self.twiss()
 
     def _identify_correction_knobs(self):
-        """Include every optimizer's knobs in scaling and snapshots."""
+        """Collect every optimizer's knobs and nominal values for control and snapshots."""
         self.nominal_knob_values = {}
         for optimizer in vars(self.optimizers).values():
             for vary in optimizer.vary:

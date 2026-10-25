@@ -24,46 +24,59 @@ def sextupole_line():
     line = xt.Line(elements=elements, element_names=list(elements))
     line['on_nonlinear'] = .25
     for family, strength in zip(('sf1', 'sf2', 'sd1', 'sd2'), (.2, .3, -.4, -.5)):
-        line['k' + family] = strength
+        line['base_' + family] = strength
+        line.ref['k' + family] = line.ref['base_' + family]
+    line['ksf1fl'] = line.ref['ksf1'] + .1
     for name in elements:
-        family = name[:3]
+        family = name.split('.')[0] if name.startswith('sf1fl') else name[:3]
         line.ref[name].k2 = line.ref['k' + family] * line.ref['on_nonlinear']
     return line
 
 
-def test_chromaticity_offsets_are_grouped_and_preserve_original_families(
+def test_chromaticity_offsets_follow_family_expressions_and_reload(
         chromaticity_module, tmp_path):
     line = sextupole_line()
+    element_expressions = {name: str(line.ref[name].k2.xdeps.expr)
+                           for name in line.element_names}
     install = chromaticity_module.install_chromaticity_knobs
     knobs = install(line)
     assert knobs == ['dksf1_chromaticity', 'dksf2_chromaticity',
                      'dksd1_chromaticity', 'dksd2_chromaticity']
     line[knobs[0]] = .02
-    assert line['ksf1'] == .2
-    assert line['sf1a.0'].k2 == pytest.approx(.07)
-    assert line['sf1a.1'].k2 == pytest.approx(.07)
-    assert line['sf1fl.0'].k2 == pytest.approx(.05)
+    assert line['ksf1'] == pytest.approx(.22)
+    assert line['base_sf1'] == .2
+    assert line['sf1a.0'].k2 == pytest.approx(.055)
+    assert line['sf1a.1'].k2 == pytest.approx(.055)
+    assert line['sf1fl.0'].k2 == pytest.approx(.08)  # Derived families follow too.
     line['on_nonlinear'] = .5
-    assert line['sf1a.0'].k2 == pytest.approx(.12)  # Trim is not scaled twice.
-    line['ksf1'] = .4
-    assert line['sf1a.0'].k2 == pytest.approx(.22)
+    assert line['sf1a.0'].k2 == pytest.approx(.11)
+    line['base_sf1'] = .4
+    assert line['sf1a.0'].k2 == pytest.approx(.21)
+    assert {name: str(line.ref[name].k2.xdeps.expr)
+            for name in line.element_names} == element_expressions
     line.to_json(tmp_path / 'line.json')
     reloaded = xt.load(tmp_path / 'line.json')
-    expression = str(reloaded.ref['sf1a.0'].k2.xdeps.expr)
-    assert install(reloaded) == knobs
-    assert str(reloaded.ref['sf1a.0'].k2.xdeps.expr) == expression
+    expression = str(reloaded.ref['ksf1'].xdeps.expr)
+    with pytest.raises(AssertionError, match='knobs already exist'):
+        install(reloaded)
+    assert str(reloaded.ref['ksf1'].xdeps.expr) == expression
     assert reloaded[knobs[0]] == .02
+    assert reloaded['sf1a.0'].k2 == pytest.approx(.21)
     reloaded['on_chromaticity_corr'] = 0.
     assert reloaded['sf1a.0'].k2 == pytest.approx(.2)
+    assert reloaded['sf1fl.0'].k2 == pytest.approx(.25)
 
 
-def test_chromaticity_installer_rejects_conflicts_before_mutation(chromaticity_module):
+def test_chromaticity_installer_rejects_existing_knob(chromaticity_module):
     line = sextupole_line()
-    line['dksd2_chromaticity'] = .03
-    with pytest.raises(ValueError, match='Conflicting chromaticity knob'):
+    line['dksd2_chromaticity'] = 2 * line.ref['ksd2']
+    before = str(line.ref['ksd2'].xdeps.expr)
+    with pytest.raises(AssertionError, match='knobs already exist'):
         chromaticity_module.install_chromaticity_knobs(line)
-    assert 'on_chromaticity_corr' not in line.vars
+    assert str(line.ref['ksd2'].xdeps.expr) == before
+    assert line['dksd2_chromaticity'] == pytest.approx(-1.)
     assert 'dksf1_chromaticity' not in line.vars
+    assert 'on_chromaticity_corr' not in line.vars
 
 
 def test_chromaticity_response_and_ideal_targets(chromaticity_module):
@@ -124,6 +137,7 @@ def test_chromaticity_probes_restore_on_failure(chromaticity_module):
 
 def test_chromaticity_builder_restores_nonlinear_strength_on_failure(chromaticity_module):
     line = sextupole_line()
+    chromaticity_module.install_chromaticity_knobs(line)
     def fail(co_guess, *, chrom):
         assert chrom and line['on_nonlinear'] == 1.
         raise ValueError('Failed nominal chromatic Twiss')

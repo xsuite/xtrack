@@ -46,19 +46,32 @@ def test_trims_preserve_expressions_share_strength_and_reload(module, tmp_path):
     before = str(loaded.ref['qf2a.0'].knl[3].xdeps.expr)
     assert module.install_second_order_chrom_knobs(loaded) == knobs
     assert str(loaded.ref['qf2a.0'].knl[3].xdeps.expr) == before
+    np.testing.assert_array_equal(loaded.get(knobs), [0., 0.])
+    np.testing.assert_allclose([loaded[n].knl[3] for n in names], [.4, 0., 0.])
+    loaded.set(knobs, [4., -2.])
+    np.testing.assert_allclose([loaded[n].knl[3] for n in names], [1.4, 3., -2.])
     loaded['on_arc_octupole_corr'] = 0.
     loaded['existing_octupole'] = .7
     np.testing.assert_allclose([loaded[n].knl[3] for n in names], [.7, 0., 0.])
 
 
-def test_conflicts_are_rejected_before_mutation(module):
+def test_installer_resets_trim_expressions_and_preserves_switch(module):
     line = quad_line()
-    line['dko_arc_d'] = 1.
-    with pytest.raises(ValueError, match='without circuit metadata'):
-        module.install_second_order_chrom_knobs(line)
-    assert 'on_arc_octupole_corr' not in line.vars
-    assert 'dko_arc_f' not in line.vars
-    np.testing.assert_allclose(line['qf2a.0'].knl[3], .2)
+    line['on_arc_octupole_corr'] = .5
+    line['dko_arc_d'] = 2 * line.ref['existing_octupole']
+    knobs = module.install_second_order_chrom_knobs(line)
+    assert line['on_arc_octupole_corr'] == .5
+    np.testing.assert_array_equal(line.get(knobs), [0., 0.])
+    line['existing_octupole'] = .4
+    assert line['dko_arc_d'] == 0.
+    assert line['qd1a.0'].knl[3] == 0.
+    line['dko_arc_d'] = 3 * line.ref['existing_octupole']
+    module.install_second_order_chrom_knobs(line)
+    line['existing_octupole'] = .6
+    assert line['dko_arc_d'] == 0.
+    line['dko_arc_d'] = 4.
+    assert line['qd1a.0'].knl[3] == pytest.approx(2.)
+    assert line['qf2a.0'].knl[3] == pytest.approx(.6)
 
 
 def test_response_targets_and_metrics_use_consistent_derivative_conventions(module):

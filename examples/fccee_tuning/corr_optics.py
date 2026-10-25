@@ -28,33 +28,14 @@ DEFAULT_OPTICS_CORR_SETTINGS = SimpleNamespace(
 
 
 def install_optics_knobs(line):
-    """Install or reuse one independent k1 trim per quadrupole; return its names.
-
-    Existing trims must already feed their quadrupole's k1 through
-    on_optics_corr. Preserve their values, expressions and switch setting,
-    including after a JSON round trip. Check all existing names before editing
-    the line, and record the resulting circuit in the line metadata.
-    """
+    """Install new optics trims initialized to zero, preserving k1 family expressions."""
     table = line.get_table()
-    quadrupoles = list(dict.fromkeys(table.env_name[table.element_type == 'Quadrupole']))
-    knobs = [f'dk1_optics_{name}' for name in quadrupoles]
-    switch = 'on_optics_corr'
-    missing = []
+    quadrupoles = list(dict.fromkeys(table.rows.match(element_type='Quadrupole').env_name))
+    knobs = [f'dk1_corr_optimics_{name}' for name in quadrupoles]
+    switch = 'on_corr_optics'
+    assert all(knob not in line.vars for knob in knobs), 'Optics correction knobs already exist'
+    line[switch] = 1.
     for name, knob in zip(quadrupoles, knobs):
-        if knob not in line.vars:
-            missing.append((name, knob))
-            continue
-        dependencies = line.ref[name].k1.xdeps.expr_dependencies
-        if (line.ref[knob].xdeps.expr is not None
-                or line.ref[knob] not in dependencies
-                or switch not in line.vars
-                or line.ref[switch] not in dependencies):
-            raise ValueError(f'Existing optics knob {knob!r} is not an independent '
-                             f'trim attached to {name}.k1 through {switch}')
-
-    if switch not in line.vars:
-        line[switch] = 1.
-    for name, knob in missing:
         line[knob] = 0.
         line.ref[name].k1 += line.ref[switch] * line.ref[knob]
 

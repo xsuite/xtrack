@@ -22,7 +22,7 @@ SWITCH = 'on_arc_octupole_corr'
 
 
 def install_second_order_chrom_knobs(line):
-    """Install/reuse additive K3L offsets, length-weighted across physical halves.
+    """Install length-weighted K3L trims, reset them to zero, and return their names.
 
     Original errors and expressions are preserved. Trims are outside
     on_nonlinear: the workflow scales their physical strength exactly once.
@@ -32,40 +32,29 @@ def install_second_order_chrom_knobs(line):
                and g['names'][0].split('.')[0] == family]
               for family in ARC_QUADRUPOLE_FAMILIES]
     circuits = line.metadata.setdefault('correction_knobs', {})
-    existing = circuits.get('second_order_chrom')
-    if existing is not None:
-        if (existing['knobs'] != list(KNOBS) or existing['magnet_groups'] != groups
-                or SWITCH not in line.vars):
-            raise ValueError('Conflicting second-order chromaticity circuit metadata')
-    elif SWITCH in line.vars or any(knob in line.vars for knob in KNOBS):
-        raise ValueError('Second-order chromaticity knobs exist without circuit metadata')
-    for knob, magnets in zip(KNOBS, groups):
+    installed = circuits.get('second_order_chrom', {}).get('knobs', [])
+    for family, magnets in zip(ARC_QUADRUPOLE_FAMILIES, groups):
         if not magnets:
-            raise ValueError(f'No arc quadrupoles found for {knob}')
-        if existing is not None and (knob not in line.vars or line.ref[knob].xdeps.expr is not None):
-            raise ValueError(f'Conflicting second-order chromaticity knob {knob}')
+            raise ValueError(f'No arc quadrupoles found for {family}')
         for names in magnets:
             for name in names:
                 if (not isinstance(line.get(name), xt.Quadrupole)
                         or line[name].length <= 0 or len(line[name].knl) < 4
                         or line[name].order < 3):
                     raise ValueError(f'{name} must be a positive-length quadrupole with order >= 3')
-                if existing is not None:
-                    deps = line.ref[name].knl[3].xdeps.expr_dependencies
-                    if line.ref[knob] not in deps or line.ref[SWITCH] not in deps:
-                        raise ValueError(f'Second-order chromaticity knob {knob} is not attached to {name}')
-    if existing is None:
+    if SWITCH not in line.vars:
         line[SWITCH] = 1.
-        for knob, magnets in zip(KNOBS, groups):
-            line[knob] = 0.
+    for knob, magnets in zip(KNOBS, groups):
+        line[knob] = 0.
+        if knob not in installed:
             for names in magnets:
                 length = sum(line[name].length for name in names)
                 for name in names:
                     line.ref[name].knl[3] += (line.ref[SWITCH] * line.ref[knob]
                                             * line[name].length / length)
-        circuits['second_order_chrom'] = dict(
-            knobs=list(KNOBS), families=list(ARC_QUADRUPOLE_FAMILIES),
-            magnet_groups=groups, units='total K3L per physical quadrupole [m^-3]')
+    circuits['second_order_chrom'] = dict(
+        knobs=list(KNOBS), families=list(ARC_QUADRUPOLE_FAMILIES),
+        magnet_groups=groups, units='total K3L per physical quadrupole [m^-3]')
     circuits.setdefault('switches', {})['second_order_chrom'] = SWITCH
     return list(KNOBS)
 

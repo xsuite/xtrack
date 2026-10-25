@@ -168,7 +168,7 @@ line.metadata['correction_knobs'] = dict(
     ),
     switches=dict(
         orbit='on_orbit_corr',
-        optics='on_optics_corr',
+        optics='on_corr_optics',
         coupling='on_coupling_corr',
         nonlinear='on_nonlinear',
         errors='on_errors',

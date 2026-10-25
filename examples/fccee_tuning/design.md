@@ -456,9 +456,25 @@ definitions:
 - `corr_coupling.build_coupling_corr_optimizer`: RDTs, vertical dispersion and c_minus.
 - `corr_tune.build_tune_corr_optimizer`: nominal tune targets and response.
 - `corr_chromaticity.build_chromaticity_corr_optimizer`: ideal chromaticities using
-  four arc sextupole family offsets.
+  four sextupole family offsets.
 - `corr_second_order_chrom.build_second_order_chrom_optimizer`: ideal second-order
   chromaticities using two arc quadrupole knl[3] offsets.
+
+The tune and second-order chromaticity installers share
+the same convention: reset trims to independent zero values on every call,
+preserve original magnet expressions and existing switch settings, and use
+the recorded knob list to avoid attaching a trim twice. Existing correction
+expressions are not inspected. Tune installation retains the first-installation
+measurement of independent family coefficients; second-order installation
+retains physical-magnet grouping and length weighting. Optics and tune quadrupole
+selection uses `table.rows.match(element_type=...)`. Orbit and coupling
+installation remains in `001`.
+
+Validation (2026-10-25): 79 focused tests passed in 5.72 s with one BLAS/OMP
+thread. Tests cover zeroing existing trim expressions, preserved family controls
+and switches, no duplicate trim contributions after JSON reload, and unchanged
+physical-piece weighting. Log: `/tmp/fccee_installers_cleanup_tests.log`.
+The full-machine correction was not rerun.
 
 Tune correction varies independent offsets `dkqf2_tune` and `dkqd1_tune`.
 The original `kqf2` and `kqd1` family variables remain unchanged. The installer
@@ -466,9 +482,32 @@ follows their quadrupole connections and adds equivalent offsets to `k1`,
 recording the connections so reloading does not attach them twice.
 
 Chromaticity correction varies `dksf1_chromaticity`, `dksf2_chromaticity`,
-`dksd1_chromaticity` and `dksd2_chromaticity`. These independent offsets act on
-arc sextupoles only; the original family values and straight-section sextupoles
-remain unchanged. Installation is idempotent, including after saving/reloading.
+`dksd1_chromaticity` and `dksd2_chromaticity`. The installer appends each offset,
+multiplied by `on_chromaticity_corr`, directly to the existing expression of
+`ksf1`, `ksf2`, `ksd1`, or `ksd2`. It does not inspect elements or alter their
+expressions. All dependents follow the corrected family, including the derived
+straight-section family knobs in the standard machine. Installation asserts
+that all correction knob names are absent before making changes. `001` installs
+these knobs once; the optimizer reads the recorded knob list, and reference
+preparation explicitly zeros the installed trims. Reinstallation also asserts
+after JSON reload.
+Validation of this install-once behavior (2026-10-25): all 56 chromaticity and
+workflow tests passed in 4.02 s. Log:
+`/tmp/fccee_chromaticity_install_once_tests.log`.
+
+The offsets inherit the sextupoles' `on_nonlinear` factor, so `scale_corrections`
+excludes them from its additional scaling; snapshots still include them.
+Prepared inputs with the old element-based chromaticity circuit must be
+regenerated with `001_install_correction_knobs.py`. The installer does not check
+for old element-based circuit metadata. Existing saved machine files have not
+been regenerated.
+
+Validation of the family-level attachment (2026-10-25): 81 focused tests passed
+in 5.85 s with one BLAS/OMP thread, including derived-family propagation,
+unchanged element expressions, JSON reload, and single nonlinear scaling with
+snapshot rollback. Log: `/tmp/fccee_chromaticity_family_tests.log`.
+The full-machine correction was not rerun for this changed circuit.
+
 The module evaluates the aligned machine with nominal nonlinear strengths to
 obtain constant `dqx`/`dqy` targets. Its 2-by-4 response uses central differences
 of the family offsets and restores each probe. The default tolerance is 0.1
@@ -629,14 +668,21 @@ Quadrupoles, distributed over their lengths; it does not resolve a different
 longitudinal placement of individual multipole kicks.
 
 `corr_optics.install_optics_knobs(line)` installs one independent
-`dk1_optics_<name>` trim per quadrupole, adds it to `k1` through `on_optics_corr`,
+`dk1_corr_optimics_<name>` trim per quadrupole, adds it to `k1` through `on_corr_optics`,
 records the optics circuit in metadata, and returns the knob list. Repeated
-occurrences of the same element share one trim. Both 001 and the correction
-workflow call this function. Existing variables are checked against the actual
-`k1` expression dependencies, so a loaded lattice is reused without adding a
-second trim term, resetting its values or enabling a disabled switch. A conflicting
-variable name raises an error before any edits; the metadata alone is not used
-as evidence that the connection exists.
+occurrences of the same element share one trim. Like the chromaticity installer,
+it asserts that all knob names are absent, sets the switch to one, and creates
+zero-valued trims while preserving the original `k1` family expressions. `001`
+installs them once. The workflow reads the recorded knob list and zeros the
+installed trims before computing the nominal reference. Reinstallation asserts,
+including after JSON reload. No expression dependencies are inspected.
+Quadrupoles are selected with `table.rows.match(element_type='Quadrupole')`.
+
+Validation of the install-once behavior (2026-10-25): 64 optics and workflow
+tests passed in 5.73 s with one BLAS/OMP thread, covering preserved family
+expressions, repeated elements, and rejection of existing knobs before changes,
+including after JSON reload. Log: `/tmp/fccee_optics_install_once_tests.log`.
+Existing machine JSON files were not regenerated for the renamed knobs/switch.
 
 The optics builder takes the returned `knobs` list explicitly, without reading
 line metadata. Custom pre-existing knob lists can still be passed directly to

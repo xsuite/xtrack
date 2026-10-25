@@ -1021,3 +1021,32 @@ def test_second_order_knobs_are_scaled_once_and_rolled_back(correction, monkeypa
     assert correction.line['dko_arc_f'] == pytest.approx(.4)
     correction.restore(before)
     assert correction.line['dko_arc_f'] == .2
+
+
+def test_chromaticity_family_trims_scale_only_through_nonlinear_strength(correction):
+    module = importlib.import_module('corr_chromaticity')
+    # Installation needs only the family variables, even with no sextupole elements.
+    for family in module.SEXTUPOLE_FAMILY_KNOBS:
+        correction.line[family] = .2
+    knobs = module.install_chromaticity_knobs(correction.line)
+    correction.line[knobs[0]] = .4
+    correction.line['chromaticity_strength'] = (
+        correction.line.ref['on_nonlinear'] * correction.line.ref[knobs[0]])
+    correction.optimizers = SimpleNamespace(
+        chromaticity=SimpleNamespace(
+            vary=[SimpleNamespace(name=name) for name in knobs],
+            nominal_knob_values=dict.fromkeys(knobs, 0.)),
+        tunes=SimpleNamespace(vary=[SimpleNamespace(name='tune')],
+                              nominal_knob_values={'tune': 10.}))
+    correction._identify_correction_knobs()
+    before = correction.snapshot()
+    assert correction.line['chromaticity_strength'] == pytest.approx(.08)
+    correction.scale_corrections(.4)
+    assert correction.line[knobs[0]] == .4
+    assert correction.line['tune'] == 14.
+    correction.set_error_fraction(.4)
+    assert correction.line['chromaticity_strength'] == pytest.approx(.16)
+    correction.line[knobs[0]] = .8
+    correction.restore(before)
+    assert correction.line[knobs[0]] == .4
+    assert correction.line['chromaticity_strength'] == pytest.approx(.08)

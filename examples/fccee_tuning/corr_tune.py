@@ -14,53 +14,46 @@ DEFAULT_TUNE_CORR_SETTINGS = SimpleNamespace(
 
 
 def install_tune_knobs(line):
-    """Attach independent tune offsets without changing the original families.
+    """Install tune trims, reset them to zero, and return their names.
 
-    Follow the original knobs through xdeps and measure their k1 coefficients;
-    attach the same change to each physical quadrupole through the new offset.
-    Existing circuits are reused on reload, without adding the offsets twice.
+    Preserve the k1 family expressions and use metadata to reuse installed trims.
+    On first installation, measure each family's k1 coefficients through xdeps.
     """
     circuits = line.metadata['correction_knobs']['tunes']
-    if 'family_knobs' in circuits:
-        for knob, coefficients in zip(circuits['knobs'], circuits['k1_coefficients']):
-            if knob not in line.vars or line.ref[knob].xdeps.expr is not None:
-                raise ValueError(f'Conflicting tune knob {knob}')
-            for name in coefficients:
-                if line.ref[knob] not in line.ref[name].k1.xdeps.expr_dependencies:
-                    raise ValueError(f'Tune knob {knob} is not attached to {name}')
-        return circuits['knobs']
-
-    families = circuits['knobs']
+    families = circuits.get('family_knobs', circuits['knobs'])
+    family_nominal_values = circuits.get('family_nominal_values', circuits['nominal_values'])
     knobs = [f'd{family}_tune' for family in families]
-    if any(knob in line.vars for knob in knobs):
-        raise ValueError('Tune correction knob exists without circuit metadata')
-    table = line.get_table()
-    quad_refs = {line.ref[name]: name for name in
-                 table.env_name[table.element_type == 'Quadrupole']}
-    coefficients = []
-    for family in families:
-        if line.ref[family].xdeps.expr is not None:
-            raise ValueError(f'Tune family {family} must be an independent variable')
-        names = [quad_refs[ref] for ref in line.ref[family].xdeps.controlled_targets
-                 if ref in quad_refs]
-        if not names:
-            raise ValueError(f'No quadrupoles controlled by {family}')
-        value = float(line[family])
-        before = np.array([line.get(name).k1 for name in names])
-        try:
-            line[family] = value + 1e-6
-            slopes = (np.array([line.get(name).k1 for name in names]) - before) / 1e-6
-        finally:
-            line[family] = value
-        coefficients.append({name: float(slope) for name, slope in zip(names, slopes)
-                             if slope != 0})
+    installed = circuits['knobs'] if 'family_knobs' in circuits else []
+    coefficients = circuits.get('k1_coefficients')
+    if coefficients is None:
+        table = line.get_table()
+        quad_refs = {line.ref[name]: name for name in
+                     table.rows.match(element_type='Quadrupole').env_name}
+        coefficients = []
+        for family in families:
+            if line.ref[family].xdeps.expr is not None:
+                raise ValueError(f'Tune family {family} must be an independent variable')
+            names = [quad_refs[ref] for ref in line.ref[family].xdeps.controlled_targets
+                     if ref in quad_refs]
+            if not names:
+                raise ValueError(f'No quadrupoles controlled by {family}')
+            value = float(line[family])
+            before = np.array([line.get(name).k1 for name in names])
+            try:
+                line[family] = value + 1e-6
+                slopes = (np.array([line.get(name).k1 for name in names]) - before) / 1e-6
+            finally:
+                line[family] = value
+            coefficients.append({name: float(slope) for name, slope in zip(names, slopes)
+                                 if slope != 0})
     for knob, slopes in zip(knobs, coefficients):
         line[knob] = 0.
-        for name, slope in slopes.items():
-            line.ref[name].k1 += slope * line.ref[knob]
+        if knob not in installed:
+            for name, slope in slopes.items():
+                line.ref[name].k1 += slope * line.ref[knob]
     line.metadata['correction_knobs']['tunes'] = dict(
         knobs=knobs, nominal_values=dict.fromkeys(knobs, 0.),
-        family_knobs=list(families), family_nominal_values=circuits['nominal_values'],
+        family_knobs=list(families), family_nominal_values=family_nominal_values,
         k1_coefficients=coefficients, units='m^-2')
     return knobs
 

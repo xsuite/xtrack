@@ -1,4 +1,4 @@
-"""Chromaticity correction using four arc sextupole family offsets."""
+"""Chromaticity correction using four sextupole family offsets."""
 
 from copy import copy
 from functools import partial
@@ -16,43 +16,25 @@ DEFAULT_CHROMATICITY_CORR_SETTINGS = SimpleNamespace(
     rcond=1e-8,
 )
 
-ARC_SEXTUPOLE_FAMILIES = ('sf1a', 'sf2a', 'sd1a', 'sd2a')
+SEXTUPOLE_FAMILY_KNOBS = ('ksf1', 'ksf2', 'ksd1', 'ksd2')
 
 
 def install_chromaticity_knobs(line):
-    """Add or reuse one independent k2 offset per arc sextupole family.
+    """Install new family trims initialized to zero and return their names.
 
-    Original family variables and IR/straight sextupoles are unchanged. Offsets
-    are added outside on_nonlinear, like the other correction trims: their
-    physical strength is scaled once by the workflow's scale_corrections.
+    Append to the existing family expressions. All dependent sextupoles inherit
+    the trims and their existing on_nonlinear scaling.
     """
-    table = line.get_table()
-    sextupoles = list(dict.fromkeys(table.env_name[table.element_type == 'Sextupole']))
-    groups = [[name for name in sextupoles if name.split('.')[0] == family]
-              for family in ARC_SEXTUPOLE_FAMILIES]
-    knobs = [f'dk{family[:-1]}_chromaticity' for family in ARC_SEXTUPOLE_FAMILIES]
+    families = SEXTUPOLE_FAMILY_KNOBS
+    knobs = [f'd{family}_chromaticity' for family in families]
     switch = 'on_chromaticity_corr'
-    for family, names, knob in zip(ARC_SEXTUPOLE_FAMILIES, groups, knobs):
-        if not names:
-            raise ValueError(f'No arc sextupoles found for {family}')
-        if knob in line.vars:
-            if line.ref[knob].xdeps.expr is not None or switch not in line.vars:
-                raise ValueError(f'Conflicting chromaticity knob {knob}')
-            for name in names:
-                dependencies = line.ref[name].k2.xdeps.expr_dependencies
-                if line.ref[knob] not in dependencies or line.ref[switch] not in dependencies:
-                    raise ValueError(f'Existing chromaticity knob {knob} is not attached to {name}')
-    if switch not in line.vars:
-        line[switch] = 1.
-    for names, knob in zip(groups, knobs):
-        if knob in line.vars:
-            continue
+    assert all(knob not in line.vars for knob in knobs), 'Chromaticity correction knobs already exist'
+    line[switch] = 1.
+    for family, knob in zip(families, knobs):
         line[knob] = 0.
-        for name in names:
-            line.ref[name].k2 += line.ref[switch] * line.ref[knob]
+        line.ref[family] += line.ref[switch] * line.ref[knob]
     line.metadata.setdefault('correction_knobs', {})['chromaticity'] = dict(
-        knobs=knobs, families=list(ARC_SEXTUPOLE_FAMILIES),
-        sextupole_groups=groups, units='m^-3')
+        knobs=knobs, family_knobs=list(families), units='m^-3')
     return knobs
 
 
@@ -64,7 +46,7 @@ def build_chromaticity_corr_optimizer(line, reference, *, full_twiss, settings=N
     """
     if settings is None:
         settings = copy(DEFAULT_CHROMATICITY_CORR_SETTINGS)
-    knobs = install_chromaticity_knobs(line)
+    knobs = line.metadata['correction_knobs']['chromaticity']['knobs']
     chromatic_twiss = partial(full_twiss, chrom=True)
     nonlinear = float(line['on_nonlinear'])
     try:
