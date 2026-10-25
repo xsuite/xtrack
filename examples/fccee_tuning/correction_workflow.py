@@ -20,6 +20,9 @@ import corr_chromaticity
 import corr_second_order_chrom
 
 
+DEFAULT_STEPS_R_MATRIX = dict(dx=1e-8, dpx=1e-9, dy=1e-8, dpy=1e-9, dzeta=1e-7, ddelta=1e-8)
+
+
 def _silent_log(*args, **kwargs):
     """Suppress detailed output from the response preparation helpers."""
     pass
@@ -40,29 +43,32 @@ class MachineSnapshot:
 class FCCeeCorrection:
     """Own correction state and execution for a line prepared by 001.
 
-    Construction builds the nominal reference and seven fixed-response optimizers,
-    then starts at zero error/nonlinear strength. The optimizers, iteration limits,
-    nominal knob values, reference and last_accepted_twiss are public.
+    Construction takes a clean line and its reference Twiss, builds seven
+    fixed-response optimizers, then starts at zero error/nonlinear strength.
+    The optimizers, iteration limits, nominal knob values, reference and
+    last_accepted_twiss are public.
 
     Snapshot before a trial; update the accepted state only after success.
     """
 
     correction_errors = (ValueError, RuntimeError, xt.twiss.ClosedOrbitSearchError)
 
-    def __init__(self, line, *, intermediate_max_iterations=5,
-                 final_max_iterations=40, optimizer_settings=None, log=None):
-        # Prepare the clean reference and shared Twiss settings.
+    def __init__(self, line, *, reference_twiss, intermediate_max_iterations=5,
+                 final_max_iterations=40, optimizer_settings=None, steps_R_matrix=None, log=None):
+        # Use the supplied clean reference and shared Twiss settings.
         self._start_time = perf_counter()
         self.line = line
+        self.reference = reference_twiss
         self.log = self._default_log if log is None else log
         optimizer_settings = optimizer_settings or {}
         second_order_settings = (optimizer_settings.get('second_order_chrom')
                                  or corr_second_order_chrom.DEFAULT_SECOND_ORDER_CHROM_SETTINGS)
         self.delta_chrom = second_order_settings.delta_chrom
         self.stats = dict(calls=0, seconds=0.0, orbit_calls=0, orbit_seconds=0.0)
-        self.steps_r_matrix = dict(dx=1e-8, dpx=1e-9, dy=1e-8, dpy=1e-9, dzeta=1e-7, ddelta=1e-8)
-        self.log('Preparing nominal reference and correction responses')
-        self._prepare_reference()
+        if steps_R_matrix is None:
+            steps_R_matrix = DEFAULT_STEPS_R_MATRIX
+        self.steps_r_matrix = steps_R_matrix.copy()
+        self.log('Preparing correction responses')
         twiss_kwargs = dict(delta_chrom=self.delta_chrom,
                             steps_R_matrix=self.steps_r_matrix.copy())
 
@@ -372,21 +378,6 @@ class FCCeeCorrection:
             metrics.update(current)
         return metrics
 
-    def _prepare_reference(self):
-        """Prepare the shared clean reference with nominal nonlinear strengths and chromaticities."""
-        line = self.line
-        circuits = line.metadata['correction_knobs']
-        orbit_knobs = circuits['orbit']['x']['knobs'] + circuits['orbit']['y']['knobs']
-        line.set(orbit_knobs, np.zeros(len(orbit_knobs)))
-        line.set(dict.fromkeys(circuits['optics']['knobs'], 0.))
-        line.set(dict.fromkeys(circuits['coupling']['knobs'], 0.))
-        line['on_errors'] = 0.0
-        line['on_nonlinear'] = 1.0
-        line.set(circuits['tunes']['nominal_values'])
-        line.set(dict.fromkeys(circuits['chromaticity']['knobs'], 0.))
-        line.set(dict.fromkeys(circuits['second_order_chrom']['knobs'], 0.))
-        self.reference = self.twiss(chrom=True)
-
     def _identify_correction_knobs(self):
         """Collect every optimizer's knobs and nominal values for control and snapshots."""
         self.nominal_knob_values = {}
@@ -399,6 +390,30 @@ class FCCeeCorrection:
                 self.nominal_knob_values[vary.name] = nominal
         self.correction_knobs = list(self.nominal_knob_values)
         self.control_names = self.correction_knobs + ['on_errors', 'on_nonlinear']
+
+
+def prepare_reference(line, *, delta_chrom=2e-4, steps_R_matrix=None):
+    """Return clean chromatic Twiss and leave the line ready for response preparation.
+
+    Disable errors and zero correction trims, retaining nominal nonlinear
+    strengths. Call before constructing FCCeeCorrection to inspect the reference.
+    """
+    if steps_R_matrix is None:
+        steps_R_matrix = DEFAULT_STEPS_R_MATRIX
+    circuits = line.metadata['correction_knobs']
+    orbit_knobs = circuits['orbit']['x']['knobs'] + circuits['orbit']['y']['knobs']
+    line.set(orbit_knobs, np.zeros(len(orbit_knobs)))
+    line.set(dict.fromkeys(circuits['optics']['knobs'], 0.))
+    line.set(dict.fromkeys(circuits['coupling']['knobs'], 0.))
+    line['on_errors'] = 0.0
+    line['on_nonlinear'] = 1.0
+    line.set(circuits['tunes']['nominal_values'])
+    line.set(dict.fromkeys(circuits['chromaticity']['knobs'], 0.))
+    line.set(dict.fromkeys(circuits['second_order_chrom']['knobs'], 0.))
+    return line.twiss(
+        method='4d', delta0=0., chrom=True, radiation_integrals=False,
+        co_guess=dict(x=0, px=0, y=0, py=0, zeta=0, delta=0),
+        delta_chrom=delta_chrom, steps_R_matrix=steps_R_matrix.copy())
 
 
 def install_nonlinear_switch(line):

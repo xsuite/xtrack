@@ -12,6 +12,12 @@ arc dipole b4 stays active. Settings are exposed as
 All optimizers share one clean reference computed with errors off, correction
 trims zero, `on_nonlinear=1`, and `chrom=True`. Their responses are prepared in
 that same nominal state, before setting the initial error/nonlinear ramp fraction.
+`002` calls the standalone `prepare_reference(line, ...)` before constructing
+`FCCeeCorrection`, so its returned `reference_twiss` can be inspected first.
+The helper leaves the line clean; the constructor receives that line and
+`reference_twiss` explicitly. Both use the same `delta_chrom` and
+`steps_R_matrix` settings. Reference preparation is outside the class's timing
+and Twiss-call counters.
 The chromaticity builders use the supplied derivatives directly and do not
 change nonlinear strength or recompute separate target references.
 The second-order targets are the clean machine's Q''/2 with nominal nonlinear strengths.

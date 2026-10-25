@@ -1093,19 +1093,71 @@ def test_shared_reference_keeps_nominal_nonlinear_strength(correction, monkeypat
     reference = stub_twiss(dqx=2., dqy=3., ddqx=40., ddqy=-150.)
     calls = []
 
-    def twiss(*, chrom):
-        calls.append(chrom)
-        assert chrom
+    def twiss(**kwargs):
+        calls.append(kwargs)
+        assert kwargs['chrom']
+        assert kwargs['method'] == '4d' and kwargs['delta0'] == 0.
+        assert kwargs['delta_chrom'] == 3e-4
+        assert kwargs['steps_R_matrix'] == {'dx': 2e-8}
         assert line['on_errors'] == 0.
         assert line['on_nonlinear'] == 1.
         np.testing.assert_array_equal(line.get(knobs), np.zeros(len(knobs)))
         return reference
 
-    monkeypatch.setattr(correction, 'twiss', twiss)
-    correction._prepare_reference()
-    assert calls == [True]
-    assert correction.reference is reference
+    monkeypatch.setattr(line, 'twiss', twiss)
+    prepare_reference = importlib.import_module('correction_workflow').prepare_reference
+    result = prepare_reference(line, delta_chrom=3e-4, steps_R_matrix={'dx': 2e-8})
+    assert len(calls) == 1
+    assert result is reference
     assert line['on_nonlinear'] == 1.
     correction.set_error_fraction(0.)
-    assert correction.reference is reference
+    assert result is reference
     assert reference.dqx == 2. and reference.ddqy == -150.
+
+
+def test_constructor_uses_supplied_reference_before_starting_ramp(correction, monkeypatch):
+    module = importlib.import_module('correction_workflow')
+    line = correction.line
+    line['on_errors'], line['on_nonlinear'] = 0., 1.
+    line.metadata['correction_knobs'] = {
+        'orbit': {'x': {'monitors': ['ip']}}, 'optics': {'knobs': ['quad']}}
+    reference = stub_twiss(dqx=2., dqy=3., ddqx=40., ddqy=-150.)
+    built = []
+
+    def build(line, supplied_reference, **kwargs):
+        assert supplied_reference is reference
+        assert line['on_errors'] == 0. and line['on_nonlinear'] == 1.
+        assert kwargs['delta_chrom'] == 3e-4
+        assert kwargs['steps_R_matrix'] == {'dx': 2e-8}
+        optimizer = SimpleNamespace(reference=supplied_reference, vary=[],
+            nominal_knob_values={}, response=SimpleNamespace(svd=object()))
+        built.append(optimizer)
+        return optimizer
+
+    for name, builder in [
+        ('corr_optics', 'build_opt_corr_optimizer'),
+        ('corr_orbit', 'build_orbit_corr_optimizer'),
+        ('corr_coupling', 'build_coupling_corr_optimizer'),
+        ('corr_tune', 'build_tune_corr_optimizer'),
+        ('corr_chromaticity', 'build_chromaticity_corr_optimizer'),
+        ('corr_second_order_chrom', 'build_second_order_chrom_optimizer')]:
+        monkeypatch.setattr(importlib.import_module(name), builder, build)
+
+    calls = []
+    def twiss(**kwargs):
+        calls.append(kwargs)
+        assert line['on_errors'] == line['on_nonlinear'] == 0.
+        assert kwargs['co_guess'] is reference.particle_on_co
+        assert not kwargs['chrom']
+        return reference
+
+    monkeypatch.setattr(line, 'twiss', twiss)
+    settings = copy(module.corr_second_order_chrom.DEFAULT_SECOND_ORDER_CHROM_SETTINGS)
+    settings.delta_chrom = 3e-4
+    state = module.FCCeeCorrection(
+        line=line, reference_twiss=reference, steps_R_matrix={'dx': 2e-8},
+        optimizer_settings={'second_order_chrom': settings}, log=lambda *a: None)
+    assert state.reference is reference
+    assert len(built) == 7
+    assert len(calls) == state.stats['calls'] == 1
+    assert state.last_accepted_twiss is reference

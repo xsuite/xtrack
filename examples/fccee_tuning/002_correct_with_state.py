@@ -12,7 +12,7 @@ from copy import copy
 from pathlib import Path
 
 import xtrack as xt
-from correction_workflow import FCCeeCorrection
+from correction_workflow import FCCeeCorrection, prepare_reference, DEFAULT_STEPS_R_MATRIX
 from corr_optics import DEFAULT_OPTICS_CORR_SETTINGS
 from corr_orbit import DEFAULT_ORBIT_CORR_SETTINGS
 from corr_coupling import DEFAULT_COUPLING_CORR_SETTINGS
@@ -28,6 +28,7 @@ TARGET_ERROR_FRACTION = 1.0
 INITIAL_INCREMENT = 0.0125
 MIN_INCREMENT = 1e-5
 MAX_INCREMENT = 0.10
+STEPS_R_MATRIX = DEFAULT_STEPS_R_MATRIX.copy()
 
 # Independently configured correction modules.
 optimizer_settings = dict(
@@ -39,12 +40,18 @@ optimizer_settings = dict(
     second_order_chrom=copy(DEFAULT_SECOND_ORDER_CHROM_SETTINGS),
 )
 
-# Construct the correction object
+# Prepare the clean reference; inspect reference_twiss before building optimizers.
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 line = xt.load(INPUT)
+reference_twiss = prepare_reference(
+    line, delta_chrom=optimizer_settings['second_order_chrom'].delta_chrom,
+    steps_R_matrix=STEPS_R_MATRIX)
+
+# Build the optimizers from the shared reference.
 correction = FCCeeCorrection(
-    line, intermediate_max_iterations=5, final_max_iterations=40,
-    optimizer_settings=optimizer_settings)
+    line=line, reference_twiss=reference_twiss,
+    intermediate_max_iterations=5, final_max_iterations=40,
+    optimizer_settings=optimizer_settings, steps_R_matrix=STEPS_R_MATRIX)
 
 # Increase errors and correct, then refine at the requested fraction
 success = correction.run(
