@@ -49,6 +49,73 @@ class FCCeeCorrection:
 
     correction_errors = (ValueError, RuntimeError, xt.twiss.ClosedOrbitSearchError)
 
+    def __init__(self, line, *, intermediate_max_iterations=5,
+                 final_max_iterations=40, optimizer_settings=None, log=None):
+        # Prepare the clean reference and shared Twiss settings.
+        self._start_time = perf_counter()
+        self.line = line
+        self.log = self._default_log if log is None else log
+        optimizer_settings = optimizer_settings or {}
+        second_order_settings = (optimizer_settings.get('second_order_chrom')
+                                 or corr_second_order_chrom.DEFAULT_SECOND_ORDER_CHROM_SETTINGS)
+        self.delta_chrom = second_order_settings.delta_chrom
+        self.stats = dict(calls=0, seconds=0.0, orbit_calls=0, orbit_seconds=0.0)
+        self.steps_r_matrix = dict(dx=1e-8, dpx=1e-9, dy=1e-8, dpy=1e-9, dzeta=1e-7, ddelta=1e-8)
+        self.log('Preparing nominal reference and correction responses')
+        self._prepare_reference()
+        twiss_kwargs = dict(delta_chrom=self.delta_chrom,
+                            steps_R_matrix=self.steps_r_matrix.copy())
+
+        # Use the BPMs and main IPs as observation points.
+        self.monitor_names = self.line.metadata['correction_knobs']['orbit']['x']['monitors']
+        self.ip_names = ['ipa', 'ipd', 'ipg', 'ipj']
+        self.obs_names = list(dict.fromkeys(self.monitor_names + self.ip_names))
+
+        # Build all optimizers on the same clean machine.
+        self.optimizers = SimpleNamespace()
+        self.optimizers.optics = corr_optics.build_opt_corr_optimizer(
+            self.line, self.reference,
+            knobs=self.line.metadata['correction_knobs']['optics']['knobs'],
+            observation_names=self.obs_names,
+            interaction_points=list(self.line.get_table().rows['ip.*'].name),
+            ip_names=self.ip_names, settings=optimizer_settings.get('optics'), **twiss_kwargs)
+
+        self.optimizers.orbit_x = corr_orbit.build_orbit_corr_optimizer(
+            self.line, self.reference, plane='x', settings=optimizer_settings.get('orbit'), **twiss_kwargs)
+        self.optimizers.orbit_y = corr_orbit.build_orbit_corr_optimizer(
+            self.line, self.reference, plane='y', settings=optimizer_settings.get('orbit'), **twiss_kwargs)
+
+        self.optimizers.coupling = corr_coupling.build_coupling_corr_optimizer(
+            self.line, self.reference, observation_names=self.obs_names,
+            ip_names=self.ip_names, log=_silent_log,
+            settings=optimizer_settings.get('coupling'), **twiss_kwargs)
+
+        self.optimizers.tunes = corr_tune.build_tune_corr_optimizer(
+            self.line, self.reference,
+            settings=optimizer_settings.get('tunes'), **twiss_kwargs)
+
+        self.optimizers.chromaticity = corr_chromaticity.build_chromaticity_corr_optimizer(
+            self.line, self.reference,
+            settings=optimizer_settings.get('chromaticity'), **twiss_kwargs)
+
+        self.optimizers.second_order_chrom = corr_second_order_chrom.build_second_order_chrom_optimizer(
+            self.line, self.reference,
+            settings=second_order_settings, **twiss_kwargs)
+
+        # Cache the response decompositions and collect correction knobs.
+        for optimizer in vars(self.optimizers).values():
+            _ = optimizer.response.svd
+        self._identify_correction_knobs()
+
+        # Initialize correction state and the starting point of the error ramp.
+        self.intermediate_max_iterations = intermediate_max_iterations
+        self.final_max_iterations = final_max_iterations
+        self.failure_reason = None
+        self.target_error_fraction = None
+        self.line.vars.update(self.nominal_knob_values)
+        self.set_error_fraction(0.)
+        self.last_accepted_twiss = self.twiss(co_guess=self.reference.particle_on_co)
+
     def correct_at_fixed_strengths(self, tw, *, max_iterations, chrom=False):
         """Return the accepted Twiss and completed iteration count, or raise.
 
@@ -110,64 +177,6 @@ class FCCeeCorrection:
             if self.goals_met(tw, chrom=chrom):
                 return tw, iteration
         raise RuntimeError(f'Correction goals not met after {max_iterations} iterations')
-
-    def __init__(self, line, *, intermediate_max_iterations=5,
-                 final_max_iterations=40, optimizer_settings=None, log=None):
-        self._start_time = perf_counter()
-        self.line = line
-        self.intermediate_max_iterations = intermediate_max_iterations
-        self.final_max_iterations = final_max_iterations
-        self.log = self._default_log if log is None else log
-        self.failure_reason = None
-        self.target_error_fraction = None
-        self.last_accepted_twiss = None
-        self.optimizers = SimpleNamespace()
-        optimizer_settings = optimizer_settings or {}
-        second_order_settings = (optimizer_settings.get('second_order_chrom')
-                                 or corr_second_order_chrom.DEFAULT_SECOND_ORDER_CHROM_SETTINGS)
-        self.delta_chrom = second_order_settings.delta_chrom
-        self.stats = dict(calls=0, seconds=0.0, orbit_calls=0, orbit_seconds=0.0)
-        self.steps_r_matrix = dict(dx=1e-8, dpx=1e-9, dy=1e-8, dpy=1e-9, dzeta=1e-7, ddelta=1e-8)
-        self.log('Preparing nominal reference and correction responses')
-        self._prepare_reference()
-
-        # Shared observation policy; each correction keeps its own row indices.
-        self.monitor_names = self.line.metadata['correction_knobs']['orbit']['x']['monitors']
-        self.ip_names = ['ipa', 'ipd', 'ipg', 'ipj']
-        self.obs_names = list(dict.fromkeys(self.monitor_names + self.ip_names))
-
-        twiss_kwargs = dict(delta_chrom=self.delta_chrom,
-                            steps_R_matrix=self.steps_r_matrix.copy())
-        self.optimizers.optics = corr_optics.build_opt_corr_optimizer(
-            self.line, self.reference,
-            knobs=self.line.metadata['correction_knobs']['optics']['knobs'],
-            observation_names=self.obs_names,
-            interaction_points=list(self.line.get_table().rows['ip.*'].name),
-            ip_names=self.ip_names, settings=optimizer_settings.get('optics'), **twiss_kwargs)
-        self.optimizers.orbit_x = corr_orbit.build_orbit_corr_optimizer(
-            self.line, self.reference, plane='x', settings=optimizer_settings.get('orbit'), **twiss_kwargs)
-        self.optimizers.orbit_y = corr_orbit.build_orbit_corr_optimizer(
-            self.line, self.reference, plane='y', settings=optimizer_settings.get('orbit'), **twiss_kwargs)
-        self.optimizers.coupling = corr_coupling.build_coupling_corr_optimizer(
-            self.line, self.reference, observation_names=self.obs_names,
-            ip_names=self.ip_names, log=_silent_log,
-            settings=optimizer_settings.get('coupling'), **twiss_kwargs)
-        self.optimizers.tunes = corr_tune.build_tune_corr_optimizer(
-            self.line, self.reference,
-            settings=optimizer_settings.get('tunes'), **twiss_kwargs)
-        self.optimizers.chromaticity = corr_chromaticity.build_chromaticity_corr_optimizer(
-            self.line, self.reference,
-            settings=optimizer_settings.get('chromaticity'), **twiss_kwargs)
-        self.optimizers.second_order_chrom = corr_second_order_chrom.build_second_order_chrom_optimizer(
-            self.line, self.reference,
-            settings=second_order_settings, **twiss_kwargs)
-        for optimizer in vars(self.optimizers).values():
-            _ = optimizer.response.svd
-
-        self._identify_correction_knobs()
-        self.line.vars.update(self.nominal_knob_values)
-        self.set_error_fraction(0.)
-        self.last_accepted_twiss = self.twiss(co_guess=self.reference.particle_on_co)
 
     def _default_log(self, *args, **kwargs):
         """Print elapsed time since construction, flushing output by default."""
