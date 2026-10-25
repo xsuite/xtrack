@@ -372,7 +372,7 @@ class FCCeeCorrection:
         line['on_nonlinear'] = 0.0
         line.set(circuits['tunes']['nominal_values'])
         line.set(dict.fromkeys(circuits['chromaticity']['knobs'], 0.))
-        corr_second_order_chrom.install_second_order_chrom_knobs(line)
+        line.set(dict.fromkeys(circuits['second_order_chrom']['knobs'], 0.))
         self.reference = self.twiss()
 
     def _identify_correction_knobs(self):

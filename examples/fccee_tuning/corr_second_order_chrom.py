@@ -12,49 +12,45 @@ from correction_optimizer import CorrectionOptimizer
 
 DEFAULT_SECOND_ORDER_CHROM_SETTINGS = SimpleNamespace(
     second_order_chrom_tol=1.,       # Tolerance on Q''/2, in both planes.
-    response_step=0.02,              # Integrated K3L per physical magnet [m^-3].
+    response_step=0.01,              # k3 [m^-4]; integrated probe is step * length.
     delta_chrom=2e-4,                # Avoid cancellation in the second derivative.
     rcond=1e-8,
 )
-ARC_QUADRUPOLE_FAMILIES = ('qf2a', 'qd1a')
+ARC_QUADRUPOLE_KNOBS = ('kqf2', 'kqd1')
 KNOBS = ('dko_arc_f', 'dko_arc_d')
 SWITCH = 'on_arc_octupole_corr'
 
 
 def install_second_order_chrom_knobs(line):
-    """Install length-weighted K3L trims, reset them to zero, and return their names.
+    """Install shared k3 trims on quadrupoles controlled by the arc family knobs.
 
-    Original errors and expressions are preserved. Trims are outside
-    on_nonlinear: the workflow scales their physical strength exactly once.
+    Use xdeps to find all controlled quadrupoles, including through derived
+    variables. Each receives an additive knl[3] = switch * trim * length term.
+    The knobs represent k3 [m^-4], so no physical-magnet grouping is needed.
+    Existing knl[3] expressions are preserved; k1 and its correction trims do
+    not modulate the octupole term. Trims remain outside on_nonlinear.
     """
-    records = line.metadata['tuning_errors']['magnets'].values()
-    groups = [[g['names'] for g in records if g['category'] == 'arc_quad'
-               and g['names'][0].split('.')[0] == family]
-              for family in ARC_QUADRUPOLE_FAMILIES]
-    circuits = line.metadata.setdefault('correction_knobs', {})
-    installed = circuits.get('second_order_chrom', {}).get('knobs', [])
-    for family, magnets in zip(ARC_QUADRUPOLE_FAMILIES, groups):
-        if not magnets:
-            raise ValueError(f'No arc quadrupoles found for {family}')
-        for names in magnets:
-            for name in names:
-                if (not isinstance(line.get(name), xt.Quadrupole)
-                        or line[name].length <= 0 or len(line[name].knl) < 4
-                        or line[name].order < 3):
-                    raise ValueError(f'{name} must be a positive-length quadrupole with order >= 3')
-    if SWITCH not in line.vars:
-        line[SWITCH] = 1.
-    for knob, magnets in zip(KNOBS, groups):
+    assert all(knob not in line.vars for knob in KNOBS), 'Second-order chromaticity knobs already exist'
+    table = line.get_table()
+    quad_refs = {line.ref[name]: name for name in
+                 table.rows.match(element_type='Quadrupole').env_name}
+    groups = [[quad_refs[ref] for ref in line.ref[family].xdeps.controlled_targets
+               if ref in quad_refs] for family in ARC_QUADRUPOLE_KNOBS]
+    for family, names in zip(ARC_QUADRUPOLE_KNOBS, groups):
+        if not names:
+            raise ValueError(f'No quadrupoles controlled by {family}')
+        for name in names:
+            if line[name].length <= 0 or len(line[name].knl) < 4 or line[name].order < 3:
+                raise ValueError(f'{name} must be a positive-length quadrupole with order >= 3')
+    line[SWITCH] = 1.
+    for knob, names in zip(KNOBS, groups):
         line[knob] = 0.
-        if knob not in installed:
-            for names in magnets:
-                length = sum(line[name].length for name in names)
-                for name in names:
-                    line.ref[name].knl[3] += (line.ref[SWITCH] * line.ref[knob]
-                                            * line[name].length / length)
+        for name in names:
+            line.ref[name].knl[3] += line.ref[SWITCH] * line.ref[knob] * line[name].length
+    circuits = line.metadata.setdefault('correction_knobs', {})
     circuits['second_order_chrom'] = dict(
-        knobs=list(KNOBS), families=list(ARC_QUADRUPOLE_FAMILIES),
-        magnet_groups=groups, units='total K3L per physical quadrupole [m^-3]')
+        knobs=list(KNOBS), family_knobs=list(ARC_QUADRUPOLE_KNOBS),
+        quadrupole_groups=groups, units='m^-4')
     circuits.setdefault('switches', {})['second_order_chrom'] = SWITCH
     return list(KNOBS)
 
@@ -62,7 +58,7 @@ def install_second_order_chrom_knobs(line):
 def build_second_order_chrom_optimizer(line, reference, *, full_twiss, settings=None):
     if settings is None:
         settings = copy(DEFAULT_SECOND_ORDER_CHROM_SETTINGS)
-    knobs = install_second_order_chrom_knobs(line)
+    knobs = line.metadata['correction_knobs']['second_order_chrom']['knobs']
     chromatic_twiss = partial(full_twiss, chrom=True)
     nonlinear = float(line['on_nonlinear'])
     try:

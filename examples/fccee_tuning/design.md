@@ -11,8 +11,10 @@ arc dipole b4 stays active. Settings are exposed as
 
 The targets are the clean machine's Q''/2 with nominal nonlinear strengths.
 The default tolerance is 1 in each plane, while the underlying optimizer targets
-Twiss's Q'' (`ddqx`, `ddqy`) with tolerance 2. Central K3L probes of +/-0.02 m^-3
-build the fixed 2-by-2 response at the clean reference. The two offsets are
+Twiss's Q'' (`ddqx`, `ddqy`) with tolerance 2. Central k3 probes of +/-0.01 m^-4
+build the fixed 2-by-2 response at the clean reference. Each controlled
+quadrupole receives an additive `knl[3] = switch * trim * length` contribution.
+The two offsets are
 included in the workflow's knob discovery, scaling and snapshot/rollback.
 Unlike the earlier standalone study, these correction trims are outside
 `on_nonlinear` so the workflow scales their physical strength exactly once.
@@ -40,6 +42,8 @@ with cavity kicks inhibited and delta/zeta unfrozen. A timing pilot precedes
 The 6D aperture study then proceeds with the selected radiation model, active RF and tapering.
 The diagnostic defaults off; it does not add plots or tracking to ordinary correction.
 
+The following integration validation used the former per-magnet K3L circuit;
+it does not validate the k3 circuit introduced on 2026-10-25.
 Integration validation (2026-10-24) regenerated `001` from the standard error
 machine and ran `002` with one BLAS/OMP thread. It reached full errors and passed
 all seven goals after three refinement cycles, including an independent reload
@@ -460,14 +464,31 @@ definitions:
 - `corr_second_order_chrom.build_second_order_chrom_optimizer`: ideal second-order
   chromaticities using two arc quadrupole knl[3] offsets.
 
-Optics, coupling, tune, and chromaticity installation asserts that correction
-knob names are absent before creating zero-valued trims and enabling their
-switches. The second-order chromaticity installer still resets existing trims
-and uses metadata to avoid attaching them twice, retaining physical-magnet
-grouping and length weighting. Existing correction expressions are not inspected.
+Optics, coupling, tune, chromaticity, and second-order chromaticity installation
+asserts that correction knob names are absent before creating zero-valued trims
+and enabling their switches. `001` installs the knobs once. Optimizers consume
+the recorded knob lists, while reference preparation zeros their values.
+Existing correction expressions are not inspected.
 Optics and coupling use `table.rows.match(element_type=...)` for element
 selection; tune and chromaticity work directly on family variables.
 Orbit installation remains in `001`.
+
+Second-order chromaticity uses xdeps to find quadrupoles controlled by `kqf2`
+and `kqd1`, including through derived variables. In the standard lattice this
+includes `qf3a` and `qd1am` as well as `qf2a` and `qd1a`. Each of the two
+correction knobs specifies k3 [m^-4]; every controlled quadrupole receives
+`switch * trim * length` in `knl[3]`. No physical-magnet metadata is needed.
+Existing `knl[3]` expressions are preserved, and the new contribution is
+independent of k1 and its correction trims. Reinstallation asserts, including
+after JSON reload; the workflow resets installed knob values instead.
+
+Validation of second-order k3 installation (2026-10-25): 87 focused tests
+passed in 14.32 s with one BLAS/OMP thread. The tests cover direct and indirect
+family control, exclusion of unrelated quadrupoles and controlled bends,
+unequal lengths, independence from k1 and optics trims, preserved expressions,
+switch initialization, rejection of existing knobs, and JSON reload. Log:
+`/tmp/fccee_second_order_k3_tests.log`. No full-machine correction was
+rerun and no saved machine files were regenerated.
 
 `corr_coupling.install_coupling_knobs(line)` mirrors the optics install-once
 pattern: select sextupoles with `rows.match`, assert all correction knob names
