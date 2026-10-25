@@ -714,14 +714,14 @@ original extra IP weight (50 with the default tolerances). Both weightings were
 restored after testing uniform weights. IP stopping tolerances are unchanged.
 
 Alpha, dispersion, and tunes also use ordinary parameter/at targets. Alpha now
-targets `alpha_ref` directly, without the `beta_ref / beta` factor. Convert the
-shared helper's nominal normalized-alpha response using
-`d(alpha) = d(alpha * beta_ref / beta) + alpha_ref * d(log(beta))` at the reference.
-The response builder includes alpha locations in its internal beta observations
-to supply these derivatives. Alpha weights are unchanged.
+targets `alpha_ref` directly, without the `beta_ref / beta` factor. The shared
+analytical helper returns ordinary beta and alpha derivatives directly, with
+the reference-beta factor and alpha cosine term included in its integration.
+Beta and alpha observation lists are independent; `corr_optics` only orders
+the rows and maps quadrupole strengths to correction knobs. Alpha weights are unchanged.
 No callable targets remain in optics optimizer setup. Use the optimizer's
 `target_status(ret=True, action_results=[tw]).residue` for physical residuals
-and its targets' weights for the matching objective weights. The analytical response helpers retain their logarithmic convention.
+and its targets' weights for the matching objective weights.
 
 ## Optics response from the optimizer
 

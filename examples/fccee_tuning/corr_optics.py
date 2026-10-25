@@ -197,9 +197,7 @@ def build_normal_quad_optics_response_matrix(optimizer, reference):
         elif not isinstance(target.tar, str) or target.tar not in ('qx', 'qy'):
             raise ValueError(f'Unsupported optics target: {target.tar!r}')
 
-    # Include alpha locations in beta_at for the physical-alpha row conversion.
-    beta_at = list(dict.fromkeys(observations['betx'] + observations['bety']
-                                + observations['alfx'] + observations['alfy']))
+    beta_at = list(dict.fromkeys(observations['betx'] + observations['bety']))
     alpha_at = list(dict.fromkeys(observations['alfx'] + observations['alfy']))
     dispersion_at = list(dict.fromkeys(observations['dx']))
     quad_refs = {}
@@ -228,20 +226,13 @@ def build_normal_quad_optics_response_matrix(optimizer, reference):
     if np.any(lengths <= 0):
         raise ValueError('The thick-quadrupole response requires positive lengths')
 
-    # The shared analytical helper returns d(log beta), d(normalized alpha),
-    # d(dx), and d(tune) per distributed dk1. Convert to physical target values.
+    # Get physical target derivatives per distributed dk1 and order the rows.
     response, _ = normal_quadrupole_response(
         line, reference, quadrupoles, beta_at, alpha_at, dispersion_at)
     row_keys = ([(quantity, name) for quantity in ('betx', 'bety') for name in beta_at]
                 + [(quantity, name) for quantity in ('alfx', 'alfy') for name in alpha_at]
                 + [('dx', name) for name in dispersion_at] + ['qx', 'qy'])
     row_indices = {key: i for i, key in enumerate(row_keys)}
-    for plane in 'xy':
-        for name in alpha_at:
-            response[row_indices['alf' + plane, name]] += (
-                reference['alf' + plane, name] * response[row_indices['bet' + plane, name]])
-        for name in beta_at:
-            response[row_indices['bet' + plane, name]] *= reference['bet' + plane, name]
     response = response[[row_indices[target.tar] for target in optimizer.targets]]
     response /= lengths[None, :]  # Derivatives per integrated normal strength.
     quad_indices = {name: i for i, name in enumerate(quadrupoles)}

@@ -27,10 +27,10 @@ def orbit_response(reference, monitors, correctors, plane):
 def normal_quadrupole_response(
     line, reference, quadrupoles, beta_at, alpha_at, dispersion_at
 ):
-    """Return joint log-beta/normalized-alpha/Dx/tune derivatives and knob scales.
+    """Return beta/alpha/Dx/tune derivatives and knob scales.
 
     Columns are distributed dk1 [m^-2], one per named thick quadrupole.
-    Rows: log(betx), log(bety), normalized alfx/alfy, Dx, Qx, Qy.
+    Rows: betx, bety, alfx, alfy, Dx, Qx, Qy, without target weights.
     Uses the four-point Gauss integration of the original FCC tuning example.
     """
     quad_indices = reference.rows.indices[quadrupoles]
@@ -67,7 +67,7 @@ def normal_quadrupole_response(
         return beta_at, mu_at, weights, dispersion_at
 
     def beta_tune_response(tw):
-        """Derivatives of log(beta_x), log(beta_y), Qx and Qy versus each dk1."""
+        """Derivatives of beta_x, beta_y, Qx and Qy versus each dk1."""
         blocks = []
         tune_rows = []
         for plane, sign in [('x', 1), ('y', -1)]:
@@ -78,6 +78,7 @@ def normal_quadrupole_response(
                 diff = np.abs(tw['mu' + plane][obs_indices, None] - mu[None, :, j])
                 response += (
                     -sign
+                    * tw['bet' + plane][obs_indices, None]
                     * beta[None, :, j]
                     * weights[None, :, j]
                     * np.cos(4 * np.pi * diff - 2 * np.pi * tune)
@@ -88,19 +89,20 @@ def normal_quadrupole_response(
         return np.vstack(blocks + tune_rows)
 
     def alpha_response(tw):
-        """Derivative of alpha * beta_ref / beta - alpha_ref at nominal optics."""
+        """Derivatives of alpha_x and alpha_y versus each dk1."""
         rows = []
         for plane, sign in [('x', 1), ('y', -1)]:
             beta, mu, weights, _ = quad_samples(tw, plane)
             response = np.zeros((len(alpha_indices), len(quadrupoles)))
             for j in range(beta.shape[1]):
                 diff = tw['mu' + plane][alpha_indices, None] - mu[None, :, j]
+                phase = 4 * np.pi * np.abs(diff) - 2 * np.pi * tw['q' + plane]
                 response += (
                     -sign
                     * beta[None, :, j]
                     * weights[None, :, j]
-                    * np.sin(4 * np.pi * np.abs(diff) - 2 * np.pi * tw['q' + plane])
-                    * np.sign(diff)
+                    * (np.sin(phase) * np.sign(diff)
+                       + tw['alf' + plane][alpha_indices, None] * np.cos(phase))
                     / (2 * np.sin(2 * np.pi * tw['q' + plane]))
                 )
             rows.append(response)
