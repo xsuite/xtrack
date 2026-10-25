@@ -28,9 +28,9 @@ def build_orbit_corr_optimizer(line, reference, *, plane, settings=None, **twiss
     targets = []
     for name in monitors:
         offset = alignment[name]['shift_' + plane]
-        target = xt.Target(
-            lambda tw, name=name, offset=offset: tw[plane, name] - line[offset],
-            value=0., tol=1e-15, tag=f'{plane}@{name}')
+        # Keep the BPM target as ref: its alignment offset changes with the error ramp.
+        target = xt.Target(plane, at=name, value=line.ref[offset],
+                           tol=1e-15, weight=1., tag=f'{plane}@{name}')
         targets.append(target)
 
     vary = []

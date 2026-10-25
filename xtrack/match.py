@@ -336,7 +336,8 @@ class Target(xd.Target):
         return out
 
     def transform(self, val):
-        if hasattr(self.value, 'auxtarget'):
+        # References synthesize arbitrary attributes; they are not inequalities.
+        if not xd.refs.is_ref(self.value) and hasattr(self.value, 'auxtarget'):
             return self.value.auxtarget(val)
         else:
             return val

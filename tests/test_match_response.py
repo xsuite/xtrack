@@ -114,3 +114,31 @@ def test_external_twiss_lstsq_and_status(monkeypatch):
     trial = line.twiss(method='4d')
     status = opt.target_status(ret=True, action_results={action: trial})
     assert np.all(status.tol_met)
+
+
+def test_match_target_follows_live_reference():
+    line = xt.Line(elements=[xt.Marker()])
+    line['a'], line['ramp'] = 0., .2
+    line['offset'] = 2 * line.ref['ramp']
+    action = xt.Action(lambda: {'position': line['a']})
+    opt = line.match(
+        solve=False, vary=[xt.Vary('a', step=1e-6)],
+        targets=[action.target('position', value=line.ref['offset'], tol=1e-10)])
+    opt.set_response([[1.]])
+    line['ramp'] = .5
+    status = opt.target_status(ret=True)
+    assert status.target_val[0]._value == pytest.approx(1.)
+    np.testing.assert_allclose(status.residue, [-1.])
+    opt.run_lstsq()
+    assert line['a'] == pytest.approx(1.)
+    line['ramp'] = .75
+    np.testing.assert_allclose(opt.target_status(ret=True).residue, [-.5])
+    opt.run_lstsq()
+    assert line['a'] == pytest.approx(1.5)
+
+
+@pytest.mark.parametrize('inequality, value, expected', [
+    (xt.GreaterThan(1.), .5, -.5), (xt.GreaterThan(1.), 2., 0.),
+    (xt.LessThan(1.), 1.5, -.5), (xt.LessThan(1.), 0., 0.)])
+def test_target_inequality_transform(inequality, value, expected):
+    assert xt.Target('x', value=inequality).transform(value) == pytest.approx(expected)
