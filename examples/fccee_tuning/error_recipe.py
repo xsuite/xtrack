@@ -154,7 +154,7 @@ def _classify(tt, groups):
 
 def install_errors(line, seed=12345):
     env = line.env
-    if 'tuning_errors' in env.metadata:
+    if 'tuning_errors' in line.metadata:
         raise ValueError('Errors already installed: reload the nominal model first')
     rng = np.random.default_rng(seed)
     tt, groups = _inventory(line)
@@ -290,7 +290,7 @@ def install_errors(line, seed=12345):
             bpm_variables[name][attr] = variable
             bpm_samples[name][attr] = sample
 
-    env.metadata['tuning_errors'] = dict(
+    line.metadata['tuning_errors'] = dict(
         source=SOURCE, slide=7, seed=seed, reference_radius_m=R_REF,
         gaussian_cut=TRUNCATION, knobs=sorted(knob_names),
         counts=dict(Counter(g['category'] for g in groups)),
@@ -307,15 +307,15 @@ def install_errors(line, seed=12345):
             'BPM offsets are post-BBA relative to quadrupole magnetic centres.',
             'No radiation/tapering, correction, or measurement noise applied.',
         ])
-    return env.metadata['tuning_errors']
+    return line.metadata['tuning_errors']
 
 
-def get_bpm_alignment(env):
+def get_bpm_alignment(line):
     """Evaluate current knobs for correct_trajectory(monitor_alignment=...).
 
     Re-evaluate this mapping (and recreate the correction object) after changing
     alignment knobs. Marker transforms do not model a BPM readout offset.
     """
-    return {name: {attr: float(env[vname]) for attr, vname in variables.items()}
-            for name, variables in env.metadata['tuning_errors'][
+    return {name: {attr: float(line[vname]) for attr, vname in variables.items()}
+            for name, variables in line.metadata['tuning_errors'][
                 'bpm_alignment_variables'].items()}

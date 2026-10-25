@@ -22,7 +22,7 @@ line.configure_radiation(model=None)
 install_errors(line, seed=SEED)
 env.to_json(OUTPUT)
 print(f'Saved {OUTPUT}')
-print(env.metadata['tuning_errors']['counts'])
+print(line.metadata['tuning_errors']['counts'])
 
 # All error knobs default to one. Examples (also work after reloading the JSON):
 # env['on_errors'] = 0                       # recover the input model
@@ -36,6 +36,6 @@ print(env.metadata['tuning_errors']['counts'])
 # env['on_error_bpm'] = 0                    # residual post-BBA offsets/roll
 #
 # BPMs are markers, so their alignment is supplied to the correction algorithm:
-# alignment = get_bpm_alignment(env)         # evaluate after changing knobs
+# alignment = get_bpm_alignment(line)         # evaluate after changing knobs
 # correction = line.correct_trajectory(
 #     twiss_table=twiss_reference, monitor_alignment=alignment, run=False)

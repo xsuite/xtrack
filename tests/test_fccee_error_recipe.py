@@ -42,6 +42,10 @@ def test_sextupole_halves_share_errors_across_thin_inserts(recipe, monkeypatch):
             group.update(category='straight_other', arc_index=0)
     monkeypatch.setattr(recipe, '_classify', classify)
     metadata = recipe.install_errors(line)
+    assert metadata is line.metadata['tuning_errors']
+    assert 'tuning_errors' not in line.env.metadata
+    with pytest.raises(ValueError, match='Errors already installed'):
+        recipe.install_errors(line)
     assert metadata['magnets']['sfx1r.0']['names'] == groups[0]['names']
     assert 'sfx1r.2' not in metadata['magnets']
     for key in recipe.AXES:
@@ -56,6 +60,22 @@ def test_sextupole_halves_share_errors_across_thin_inserts(recipe, monkeypatch):
     for name in groups[0]['names']:
         assert line[name].shift_y == 0.
         assert line[name].knl_rel[2] == 0.
+
+
+def test_bpm_alignment_uses_line_metadata_after_reload(recipe, tmp_path):
+    env = xt.Environment()
+    env.new('bpm_q', xt.Marker)
+    env.new_line(name='ring', components=['bpm_q'])
+    line = env.ring
+    line['bpm_dx'] = 1e-5
+    line.metadata['tuning_errors'] = dict(
+        bpm_alignment_variables={'bpm_q': {'shift_x': 'bpm_dx'}})
+    env.to_json(tmp_path / 'environment.json')
+    loaded = xt.load(tmp_path / 'environment.json').ring
+    assert 'tuning_errors' not in loaded.env.metadata
+    assert recipe.get_bpm_alignment(loaded) == {'bpm_q': {'shift_x': 1e-5}}
+    loaded['bpm_dx'] = 2e-5
+    assert recipe.get_bpm_alignment(loaded) == {'bpm_q': {'shift_x': 2e-5}}
 
 
 @pytest.mark.parametrize('barrier', ['gap', 'magnet', 'family', 'strength'])

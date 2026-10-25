@@ -476,6 +476,10 @@ corrector layout at quadrupole entrances, attaches independent zero-valued
 trims, and records the per-plane correctors, BPMs, and switch. `001` calls it
 before installing the nonlinear ramp. Existing corrector expressions and the
 horizontal/vertical kick signs are preserved.
+`correction_workflow.install_nonlinear_switch(line)` installs the nonlinear
+ramp and records its switch and affected magnets. `001` calls it before
+installing the nonlinear correction trims; relative errors that follow an
+already ramped main strength are not multiplied a second time.
 
 Second-order chromaticity uses xdeps to find quadrupoles controlled by `kqf2`
 and `kqd1`, including through derived variables. In the standard lattice this
@@ -498,7 +502,7 @@ rerun and no saved machine files were regenerated.
 pattern: select sextupoles with `rows.match`, assert all correction knob names
 are absent, set `on_coupling_corr` to one, initialize zero-valued trims, append
 their contributions, record metadata, and return the knob list. `001` calls it
-after copying the error metadata onto the line. The physical-magnet groups come
+using the error metadata already on the line. The physical-magnet groups come
 from that metadata: one `dk1sl_coupling_<first_piece>` controls each sextupole,
 with integrated `ksl[1]` shared among its pieces in proportion to their lengths.
 Existing field expressions remain intact, and the skew trims remain outside
@@ -1215,3 +1219,9 @@ failure rows and both beta-beating definitions. All four plots were saved and
 the comparison plots were visually inspected. Artifacts:
 `/tmp/fccee_analysis_KNaJM2/clean_comparison.log` and `clean_comparison/`
 (plots, NPZ, summary and `verification.json`).
+
+Workflow metadata lives on `line.metadata`: `install_errors` writes
+`tuning_errors` there, and the BPM helper and all correction installers read
+it there. `001` does not copy metadata to or from the environment. Existing
+inputs with error metadata only on the environment must be regenerated with
+`000_install_errors.py` before running `001`.

@@ -387,3 +387,58 @@ class FCCeeCorrection:
                 self.nominal_knob_values[vary.name] = nominal
         self.correction_knobs = list(self.nominal_knob_values)
         self.control_names = self.correction_knobs + ['on_errors', 'on_nonlinear']
+
+
+def install_nonlinear_switch(line):
+    """Attach on_nonlinear to magnetic strengths of sextupole order and higher.
+
+    Preserve existing expressions and scale relative errors only when they do
+    not already follow a ramped main strength. Record and return the affected
+    magnet names. Call once, before installing nonlinear correction trims.
+    """
+    line['on_nonlinear'] = 1.0
+    controlled = []
+    magnet_types = (
+        xt.Bend,
+        xt.RBend,
+        xt.Quadrupole,
+        xt.Sextupole,
+        xt.Octupole,
+        xt.Multipole,
+    )
+    for name in dict.fromkeys(line.element_names):
+        element = line.element_dict[name]
+        if not isinstance(element, magnet_types):
+            continue
+        main_is_nonlinear = isinstance(element, (xt.Sextupole, xt.Octupole)) or (
+            isinstance(element, xt.Multipole) and element.main_order >= 2
+        )
+        changed = False
+        # Preserve existing family expressions, including currently zero ones.
+        for field in ('k2', 'k2s', 'k3', 'k3s'):
+            if hasattr(element, field):
+                strength = getattr(line.ref[name], field)
+                strength *= line.ref['on_nonlinear']
+                setattr(line.ref[name], field, strength)
+                changed = True
+        fields = ['knl', 'ksl']
+        # Relative errors in sextupoles/octupoles/etc. already follow their
+        # ramped main strength. Multiplying these again would give a squared
+        # ramp. Relative nonlinear errors in dipoles/quads need the knob here.
+        if not main_is_nonlinear:
+            fields += ['knl_rel', 'ksl_rel']
+        for field in fields:
+            if not hasattr(element, field):
+                continue
+            for order in range(2, len(getattr(element, field))):
+                ref = getattr(line.ref[name], field)[order]
+                if getattr(element, field)[order] != 0 or ref._expr is not None:
+                    getattr(line.ref[name], field)[order] *= line.ref['on_nonlinear']
+                    changed = True
+        if changed:
+            controlled.append(name)
+
+    circuits = line.metadata.setdefault('correction_knobs', {})
+    circuits['nonlinear_magnets'] = controlled
+    circuits.setdefault('switches', {})['nonlinear'] = 'on_nonlinear'
+    return controlled

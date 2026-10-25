@@ -42,7 +42,7 @@ def install_orbit_knobs(line):
     print(
         'Added', len(added_correctors), 'H/V correctors to complete the quadrupole layout'
     )
-    monitor_names = list(get_bpm_alignment(env))
+    monitor_names = list(get_bpm_alignment(line))
     corrector_names = [
         [n for n in line.element_names if n.startswith(prefix)]
         for prefix in ('hcor_', 'vcor_')
