@@ -38,15 +38,16 @@ if 'correction_knobs' in line.metadata:
 if 'orbit_optics_correction' in line.metadata:
     raise ValueError('Input already corrected: use the output of 000')
 
+# Add a master switch to ramp existing sextupole-and-higher magnetic terms.
+install_nonlinear_switch(line)
+
 # Install independent correction circuits on the lattice with errors.
 corr_orbit.install_orbit_knobs(line)
-install_nonlinear_switch(line)
 corr_optics.install_optics_knobs(line)
-skew_knobs = corr_coupling.install_coupling_knobs(line)
+corr_coupling.install_coupling_knobs(line)
 corr_tune.install_tune_knobs(line, families=TUNE_KNOBS)
 corr_chromaticity.install_chromaticity_knobs(line)
 corr_second_order_chrom.install_second_order_chrom_knobs(line)
-print('Independent skew-quadrupole trims:', len(skew_knobs))
 
 # Complete the metadata after installing all correction circuits.
 circuits = line.metadata['correction_knobs']
