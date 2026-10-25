@@ -464,14 +464,18 @@ definitions:
 - `corr_second_order_chrom.build_second_order_chrom_optimizer`: ideal second-order
   chromaticities using two arc quadrupole knl[3] offsets.
 
-Optics, coupling, tune, chromaticity, and second-order chromaticity installation
+Orbit, optics, coupling, tune, chromaticity, and second-order chromaticity installation
 asserts that correction knob names are absent before creating zero-valued trims
 and enabling their switches. `001` installs the knobs once. Optimizers consume
 the recorded knob lists, while reference preparation zeros their values.
 Existing correction expressions are not inspected.
 Optics and coupling use `table.rows.match(element_type=...)` for element
 selection; tune and chromaticity work directly on family variables.
-Orbit installation remains in `001`.
+`corr_orbit.install_orbit_knobs(line)` completes the horizontal/vertical
+corrector layout at quadrupole entrances, attaches independent zero-valued
+trims, and records the per-plane correctors, BPMs, and switch. `001` calls it
+before installing the nonlinear ramp. Existing corrector expressions and the
+horizontal/vertical kick signs are preserved.
 
 Second-order chromaticity uses xdeps to find quadrupoles controlled by `kqf2`
 and `kqd1`, including through derived variables. In the standard lattice this

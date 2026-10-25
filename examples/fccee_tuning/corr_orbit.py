@@ -7,12 +7,71 @@ import xtrack as xt
 
 from correction_optimizer import CorrectionOptimizer
 from response_builders import orbit_response
+from error_recipe import get_bpm_alignment
 
 
 DEFAULT_ORBIT_CORR_SETTINGS = SimpleNamespace(
     orbit_tol=1e-5,
     rcond=1e-6,
 )
+
+
+def install_orbit_knobs(line):
+    """Install zero-valued orbit trims and record correctors and BPMs by plane.
+
+    Complete the layout with horizontal and vertical correctors at every
+    quadrupole entrance, preserving existing correctors and their expressions.
+    The trims represent kicks in radians: -knl[0] for x and +ksl[0] for y.
+    """
+    env = line.env
+    # Complete the presentation's corrector-in-every-quadrupole layout. Existing
+    # correctors are preserved; missing zero-length trims go at the quad entrance.
+    added_correctors = []
+    placements = []
+    layout = line.get_table()
+    for name in dict.fromkeys(layout.rows.match(element_type='Quadrupole').env_name):
+        for prefix in ('hcor_', 'vcor_'):
+            corrector = prefix + name
+            if corrector not in line.element_dict:
+                placements.append(
+                    env.new(corrector, xt.Multipole, knl=[0], ksl=[0], at=name + '@start')
+                )
+                added_correctors.append(corrector)
+    if placements:
+        line.insert(placements)
+    print(
+        'Added', len(added_correctors), 'H/V correctors to complete the quadrupole layout'
+    )
+    monitor_names = list(get_bpm_alignment(env))
+    corrector_names = [
+        [n for n in line.element_names if n.startswith(prefix)]
+        for prefix in ('hcor_', 'vcor_')
+    ]
+    orbit_knobs = [f'orbit_corr_{name}_{plane}'
+                   for plane, names in zip('xy', corrector_names) for name in names]
+    assert all(knob not in line.vars for knob in orbit_knobs), 'Orbit correction knobs already exist'
+    line['on_orbit_corr'] = 1.0
+    for plane, names, field, sign in zip('xy', corrector_names, ('knl', 'ksl'), (-1, 1)):
+        for name in names:
+            knob = f'orbit_corr_{name}_{plane}'
+            line[knob] = 0.0
+            getattr(line.ref[name], field)[0] += (
+                sign * line.ref['on_orbit_corr'] * line.ref[knob]
+            )
+    line.steering_monitors_x = line.steering_monitors_y = monitor_names
+    line.steering_correctors_x, line.steering_correctors_y = corrector_names
+    print('BPMs:', len(monitor_names), 'H/V correctors:', [len(n) for n in corrector_names])
+
+    circuits = line.metadata.setdefault('correction_knobs', {})
+    circuits['orbit'] = {
+        plane: dict(
+            knobs=[f'orbit_corr_{name}_{plane}' for name in names],
+            correctors=names, monitors=monitor_names, units='rad')
+        for plane, names in zip('xy', corrector_names)
+    }
+    circuits.setdefault('switches', {})['orbit'] = 'on_orbit_corr'
+    circuits['added_correctors'] = added_correctors
+    return orbit_knobs
 
 
 def build_orbit_corr_optimizer(line, reference, *, plane, settings=None):
