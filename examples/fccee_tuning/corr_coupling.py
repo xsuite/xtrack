@@ -44,17 +44,23 @@ def build_coupling_corr_optimizer(line, reference, *, observation_names, ip_name
         weight = 1 / np.sqrt(len(observation_names))
         if name in ip_names:
             weight *= settings.coupling_ip_weight
-        for quantity in ('f1001', 'f1010'):
-            target = xt.Target(
-                lambda tw, name=name, quantity=quantity: tw[quantity, name].real,
-                value=reference[quantity, name].real, tol=1e-15,
-                weight=weight, tag=f'real_{quantity}@{name}')
-            targets.append(target)
-            target = xt.Target(
-                lambda tw, name=name, quantity=quantity: tw[quantity, name].imag,
-                value=reference[quantity, name].imag, tol=1e-15,
-                weight=weight, tag=f'imag_{quantity}@{name}')
-            targets.append(target)
+        target = xt.Target('f1001.real', at=name,
+            value=reference['f1001', name].real, tol=1e-15,
+            weight=weight, tag=f'real_f1001@{name}')
+        targets.append(target)
+        target = xt.Target('f1001.imag', at=name,
+            value=reference['f1001', name].imag, tol=1e-15,
+            weight=weight, tag=f'imag_f1001@{name}')
+        targets.append(target)
+
+        target = xt.Target('f1010.real', at=name,
+            value=reference['f1010', name].real, tol=1e-15,
+            weight=weight, tag=f'real_f1010@{name}')
+        targets.append(target)
+        target = xt.Target('f1010.imag', at=name,
+            value=reference['f1010', name].imag, tol=1e-15,
+            weight=weight, tag=f'imag_f1010@{name}')
+        targets.append(target)
 
         weight = settings.dispersion_weight / np.sqrt(len(observation_names))
         if name in ip_names:
@@ -68,7 +74,7 @@ def build_coupling_corr_optimizer(line, reference, *, observation_names, ip_name
     for knob, scale in zip(knobs, scales):
         vary.append(xt.Vary(knob, step=1e-7, weight=scale))
     optimizer = CorrectionOptimizer(
-        line, reference, settings=settings,
+        line=line, reference_twiss=reference, settings=settings,
         method='4d', delta0=0., chrom=False, radiation_integrals=False,
         allow_twiss_failure=False,
         co_guess=dict(x=0, px=0, y=0, py=0, zeta=0, delta=0),

@@ -35,7 +35,7 @@ def build_second_order_chrom_optimizer(line, reference, *, settings=None, **twis
     for knob in knobs:
         vary.append(xt.Vary(knob, step=settings.response_step))
     optimizer = CorrectionOptimizer(
-        line, reference, settings=settings,
+        line=line, reference_twiss=reference, settings=settings,
         method='4d', delta0=0., chrom=True, radiation_integrals=False,
         allow_twiss_failure=False,
         co_guess=dict(x=0, px=0, y=0, py=0, zeta=0, delta=0),

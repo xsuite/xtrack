@@ -28,16 +28,17 @@ def build_chromaticity_corr_optimizer(line, reference, *, settings=None, **twiss
         settings = copy(DEFAULT_CHROMATICITY_CORR_SETTINGS)
     twiss_kwargs.setdefault('delta_chrom', 2e-4)
     knobs = line.metadata['correction_knobs']['chromaticity']['knobs']
-    targets = []
-    for quantity in ('dqx', 'dqy'):
-        target = xt.Target(quantity, value=reference[quantity],
-                           tol=settings.chromaticity_tol, tag=quantity)
-        targets.append(target)
+    targets = [
+        xt.Target('dqx', value=reference.dqx,
+                  tol=settings.chromaticity_tol, tag='dqx'),
+        xt.Target('dqy', value=reference.dqy,
+                  tol=settings.chromaticity_tol, tag='dqy')
+    ]
     vary = []
     for knob in knobs:
         vary.append(xt.Vary(knob, step=settings.response_step))
     optimizer = CorrectionOptimizer(
-        line, reference, settings=settings,
+        line=line, reference_twiss=reference, settings=settings,
         method='4d', delta0=0., chrom=True, radiation_integrals=False,
         allow_twiss_failure=False,
         co_guess=dict(x=0, px=0, y=0, py=0, zeta=0, delta=0),

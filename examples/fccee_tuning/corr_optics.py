@@ -91,7 +91,7 @@ def build_opt_corr_optimizer(line, reference, *, knobs, observation_names,
     targets.append(target)
 
     optimizer = CorrectionOptimizer(
-        line, reference, settings=settings,
+        line=line, reference_twiss=reference, settings=settings,
         method='4d', delta0=0., chrom=False, radiation_integrals=False,
         allow_twiss_failure=False,
         co_guess=dict(x=0, px=0, y=0, py=0, zeta=0, delta=0),

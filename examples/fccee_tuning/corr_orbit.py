@@ -37,7 +37,7 @@ def build_orbit_corr_optimizer(line, reference, *, plane, settings=None, **twiss
     for knob in circuits[plane]['knobs']:
         vary.append(xt.Vary(knob, step=1e-7))
     optimizer = CorrectionOptimizer(
-        line, reference, settings=settings,
+        line=line, reference_twiss=reference, settings=settings,
         method='4d', delta0=0., chrom=False, radiation_integrals=False,
         allow_twiss_failure=False,
         co_guess=dict(x=0, px=0, y=0, py=0, zeta=0, delta=0),

@@ -14,11 +14,11 @@ class CorrectionOptimizer(OptimizeLine):
     The workflow owns evaluation, sequencing and whole-machine rollback.
     """
 
-    def __init__(self, line, reference, *, settings, compute_metrics, goal,
+    def __init__(self, line, reference_twiss, *, settings, compute_metrics, goal,
                  print_metrics=None, nominal_knob_values=None, **kwargs):
-        super().__init__(line=line, action_results=[reference],
+        super().__init__(line=line, action_results=[reference_twiss],
                          assert_within_tol=False, show_call_counter=False, **kwargs)
-        self.reference = reference
+        self.reference = reference_twiss
         self.settings = settings
         self.compute_metrics = partial(compute_metrics, self)
         self.goal = partial(goal, self)
