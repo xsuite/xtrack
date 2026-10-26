@@ -79,16 +79,24 @@ array: "{" sum ( "," sum )* "}"  -> build_list
     | sum "+" product   -> op_add
     | sum "-" product   -> op_sub
 
-?product: power
-    | product "*" power -> op_mul
-    | product "/" power -> op_div
+?product: unary
+    | product "*" unary -> op_mul
+    | product "/" unary -> op_div
+
+?unary: power
+    | "-" unary         -> op_neg
+    | "+" unary         -> op_pos
 
 ?power: atom
-    | power "^" atom    -> op_pow
+    | power "^" exponent -> op_pow
+
+// Preserve signed exponents and left-associative powers, while unary
+// signs on the base apply after exponentiation: -a^2 means -(a^2).
+?exponent: atom
+    | "-" exponent      -> op_neg
+    | "+" exponent      -> op_pos
 
 ?atom: NUMBER           -> number
-    | "-" atom          -> op_neg
-    | "+" atom          -> op_pos
     | NAME              -> name_atom
     | NAME "->" NAME    -> op_arrow
     | function "(" sum ("," sum)* ")" -> call
