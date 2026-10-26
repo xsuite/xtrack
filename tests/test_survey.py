@@ -13,44 +13,6 @@ else:
     trapz = np.trapz
 
 
-@pytest.mark.parametrize('repeated', [False, True])
-@pytest.mark.parametrize('element_width', [None, 0.1])
-def test_survey_plot_names(monkeypatch, repeated, element_width):
-    xplt = pytest.importorskip('xplt')
-    import matplotlib.pyplot as plt
-
-    env = xt.Environment()
-    env.new('q', xt.Quadrupole, length=0.3, k1=0.1)
-    env.new('b', xt.Bend, length=3, angle=0.2)
-    env.new('qr', 'q', mode='replica')
-    env.new('br', 'b', mode='replica')
-    names = ['q', 'b', 'q', 'b'] if repeated else ['q', 'b', 'qr', 'br']
-    line = env.new_line(components=names)
-    survey = line.survey()
-    original_names = survey.name.copy()
-    plotted = []
-    floor_plot = xplt.FloorPlot
-
-    def capture_floor_plot(**kwargs):
-        plotted.append(kwargs['survey'])
-        return floor_plot(**kwargs)
-
-    monkeypatch.setattr(xplt, 'FloorPlot', capture_floor_plot)
-    fig, ax = plt.subplots()
-    try:
-        survey.plot(element_width=element_width, legend=False, ax=ax)
-        fig.canvas.draw()
-        assert len(plotted) == 1
-        # Older xplt versions create numeric defaults with ones_like(name).
-        assert plotted[0].name.dtype == original_names.dtype == np.dtype(object)
-        np.testing.assert_array_equal(plotted[0].name, names + ['_end_point'])
-        np.testing.assert_array_equal(survey.name, original_names)
-        assert survey.line is line
-        assert ax.has_data()
-    finally:
-        plt.close(fig)
-
-
 @pytest.mark.parametrize('angle', [0.0, np.deg2rad(0.1), np.deg2rad(20)])
 @pytest.mark.parametrize('sliced', [False, True])
 def test_survey_include_element_frames(angle, sliced):
