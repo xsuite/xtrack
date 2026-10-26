@@ -55,7 +55,7 @@ def test_match_twiss_fixed_finite_difference_response():
         opt.set_response(response)
 
 
-def test_match_jacobian_report_and_env_snapshot():
+def test_match_step_and_env_snapshot():
     line = xt.Line(elements=[xt.Marker()])
     env = line.env
     line['a'] = 0.
@@ -68,14 +68,14 @@ def test_match_jacobian_report_and_env_snapshot():
     )
     opt.set_response([[-1.]])
     before = opt.get_knob_values()
-    info = opt.run_jacobian(take_best=False)
-    assert info.degraded
+    opt.step(take_best=False)
+    assert opt.target_status(ret=True).penalty > 1.
     env.vars.update(before)
     assert opt.get_knob_values() == before
     assert opt.get_knob_values(iteration=-1) != before
     opt.set_response([[1.]])
-    info = opt.run_jacobian(take_best=False)
-    assert info.improved and info.within_tol
+    opt.step(take_best=False)
+    assert np.all(opt.target_status(ret=True).tol_met)
     assert line['a'] == pytest.approx(1.)
 
 
