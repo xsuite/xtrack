@@ -2,6 +2,7 @@
 #define create_bfieldexpansion_bent_H
 
 #include "track_bfieldexpansion_helpers.h"
+#include "create_bfieldexpansion_straight.h"
 
 /* Index of c[i,m,k] in the c array, ordered as
 c[0,mmin,0] ... c[0,mmin,deg], c[0,mmin+1,0] ... c[0,mmin+1,deg], ..., c[0,mmin+nm-1,0] ... c[0,mmin+nm-1,deg],
@@ -44,6 +45,10 @@ void build_expansion_bent(BFieldExpansionData el){
     const int nm   = BFieldExpansionData_get__nm(el);
 
     GPUGLMEM double *c = BFieldExpansionData_getp1__c(el, 0);
+
+    /* The tracker evaluates the seed rows from these x polynomials; the q
+       basis below is only the source of the recursion rows i >= 2. */
+    bfieldexpansion_seed_x_rows(el, BFieldExpansionData_getp1__cx(el, 0), mmax + 1, 0);
 
     int nmax = (na > nb) ? na : nb;
     /* Construction is serial; reuse the element workspace for the seeds. */
