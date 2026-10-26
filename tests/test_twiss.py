@@ -86,6 +86,40 @@ def test_get_twiss_init_element_selection():
         tw.rows['d1':].get_twiss_init('d0')
 
 
+@pytest.mark.parametrize('reverse', [False, True])
+@pytest.mark.parametrize('selection', [
+    slice(None), slice('d1', None), slice(None, 'd1'), slice('d1', 'd1'),
+])
+def test_get_twiss_init_boundaries(selection, reverse):
+    line = xt.Line(
+        elements=[xt.Drift(length=1), xt.Drift(length=2)],
+        element_names=['d0', 'd1'],
+    )
+    line.particle_ref = xt.Particles(p0c=1e9)
+    tw = line.twiss4d(betx=1, bety=2, x=1e-3, px=2e-4)
+    if reverse:
+        tw = tw.reverse()
+    selected = tw.rows[selection]
+
+    for location, index in [(xt.START, 0), (xt.END, -1)]:
+        init = selected.get_twiss_init(at_element=location)
+        expected = selected.get_twiss_init(at_element=index)
+        assert init.element_name == expected.element_name == selected.name[index]
+        assert init.reference_frame == expected.reference_frame
+        np.testing.assert_array_equal(init.W_matrix, expected.W_matrix)
+        for coord in ('x', 'px', 'y', 'py', 'zeta', 'ptau', 's', 'ax', 'ay'):
+            np.testing.assert_array_equal(
+                getattr(init.particle_on_co, coord),
+                getattr(expected.particle_on_co, coord))
+        for name in ('mux', 'muy', 'muzeta', 'dzeta'):
+            assert getattr(init, name) == getattr(expected, name)
+
+    # On the full table, END selects the exit, beyond the last element entry.
+    end_init = tw.get_twiss_init(at_element=xt.END)
+    assert end_init.element_name == '_end_point'
+    np.testing.assert_array_equal(end_init.particle_on_co.s, 3.)
+
+
 def test_twiss_with_different_particle_species():
     line = xt.Line(elements=[
         xt.Drift(length=1),

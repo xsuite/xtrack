@@ -333,9 +333,13 @@ class TwissTable(Table):
 
         Parameters
         ----------
-        at_element : str or int
+        at_element : str, int, xt.START or xt.END
             Element name or row index at which the initial conditions are
             extracted. The table must contain values at element entry.
+            ``xt.START`` and ``xt.END`` select the first and last rows of this
+            table, respectively, including for sliced tables. On a full Twiss
+            table, ``xt.END`` selects ``_end_point``, at the exit of the last
+            element.
 
         Returns
         -------
@@ -349,6 +353,11 @@ class TwissTable(Table):
         """
 
         assert self.values_at == 'entry', 'Not yet implemented for exit'
+
+        if at_element is xt.START:
+            at_element = 0
+        elif at_element is xt.END:
+            at_element = -1
 
         if isinstance(at_element, str):
             indices = np.where(self.name == at_element)[0]
