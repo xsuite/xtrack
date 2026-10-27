@@ -13,9 +13,26 @@ from scipy.special import factorial
 from ..base_element import FloatOrTpsa
 from ..general import DEPRECATION_INFO_PREP_1_0
 from ..internal_record import RecordIndex
+from ._edge import (
+    BEND_EDGE_MODELS,
+    BEND_EDGE_PARAMS,
+    EDGE_ACTIVE,
+    EDGE_LINEAR,
+    _HasEdges,
+    edge_xofields,
+)
 
 DEFAULT_MULTIPOLE_ORDER = 5
 DEFAULT_RELATIVE_MULTIPOLE_LENGTH = 1
+# Highest multipole order of the magnets (MAGNET_MAX_MULTIPOLE_ORDER in C)
+MAX_MAGNET_MULTIPOLE_ORDER = 20
+
+
+def _check_magnet_multipole_order(order, name='order'):
+    if order > MAX_MAGNET_MULTIPOLE_ORDER:
+        raise ValueError(
+            f'{name} = {order} is above the highest multipole order of a '
+            f'magnet, {MAX_MAGNET_MULTIPOLE_ORDER}')
 
 _INDEX_TO_MODEL_DRIFT = {
     0: 'adaptive',
@@ -50,15 +67,6 @@ _INDEX_TO_INTEGRATOR = {
 }
 
 _INTEGRATOR_TO_INDEX = {k: v for v, k in _INDEX_TO_INTEGRATOR.items()}
-
-_INDEX_TO_EDGE_MODEL = {
-   -1: 'suppressed',
-    0: 'linear',
-    1: 'full',
-    2: 'dipole-only',
-}
-
-_EDGE_MODEL_TO_INDEX = {k: v for v, k in _INDEX_TO_EDGE_MODEL.items()}
 
 _INDEX_TO_MODEL_STRAIGHT = {
     0: 'adaptive',
@@ -106,24 +114,39 @@ _INDEX_TO_RBEND_MODEL = {
 
 _RBEND_MODEL_TO_INDEX = {k: v for v, k in _INDEX_TO_RBEND_MODEL.items()}
 
+_for_docstring_edge_qint = '''
+    edge_entry_qint1, edge_exit_qint1 : float
+        SAD soft quadrupole fringe integral f1 (m). Default is ``0``.
+    edge_entry_qint2, edge_exit_qint2 : float
+        SAD soft quadrupole fringe integral f2 (m^3). Default is ``0``.
+    '''.strip()
+
 _for_docstring_edge_straight = ('''
     edge_entry_active : bool
         Fringe field at the entrance edge is active if True. Default is False.
+        See :ref:`edge_label`.
     edge_exit_active : bool
         Fringe field at the exit edge is active if True. Default is False.
-    ''').strip()
+    edge_entry_model : str
+        "full" (default), "no-mult" or "suppressed".
+    edge_exit_model : str
+        As ``edge_entry_model``.
+    ''').strip() + '\n    ' + _for_docstring_edge_qint
 
 _for_docstring_edge_bend = ('''
     edge_entry_active : bool
         Edge effects at the entrance edge are active if True. Default is True.
+        See :ref:`edge_label`.
     edge_exit_active : bool
         Edge effects at the exit edge are active if True. Default is True.
     edge_entry_model : str
         Model used for the entrance edge. Available models are: "suppressed",
-        "linear", "full", "dipole-only". Default is "linear".
+        "linear", "full", "no-mult" ("dipole-only": deprecated name of
+        "no-mult"). Default is "linear".
     edge_exit_model : str
         Model used for the exit edge. Available models are: "suppressed",
-        "linear", "full", "dipole-only". Default is "linear".
+        "linear", "full", "no-mult" ("dipole-only": deprecated name of
+        "no-mult"). Default is "linear".
     edge_entry_angle : float
         Entrance edge angle in radians. Default is ``0``.
     edge_exit_angle : float
@@ -136,17 +159,17 @@ _for_docstring_edge_bend = ('''
         when `edge_exit_model` is "linear". Default is ``0``.
     edge_entry_fint : float
         Fringe field integral at the entrance edge. Used with the "linear",
-        "full", and "dipole-only" edge models. Default is ``0``.
+        "full", and "no-mult" edge models. Default is ``0``.
     edge_exit_fint : float
         Fringe field integral at the exit edge. Used with the "linear",
-        "full", and "dipole-only" edge models. Default is ``0``.
+        "full", and "no-mult" edge models. Default is ``0``.
     edge_entry_hgap : float
         Magnet half-gap at the entrance edge in meters. Used together with
         ``edge_entry_fint`` in the fringe field calculation. Default is ``0``.
     edge_exit_hgap : float
         Magnet half-gap at the exit edge in meters. Used together with
         ``edge_exit_fint`` in the fringe field calculation. Default is ``0``.
-    ''').strip()
+    ''').strip() + '\n    ' + _for_docstring_edge_qint
 
 _for_docstring_alignment = '''
     shift_x : float
@@ -417,6 +440,8 @@ class _HasKnlKsl:
 
     @order.setter
     def order(self, value):
+        if 'knl_rel' in self._xo_fnames:
+            _check_magnet_multipole_order(value)
         self._order = value
         self.inv_factorial_order = 1.0 / factorial(value, exact=True)
 
@@ -475,6 +500,9 @@ class _HasKnlKsl:
         if self.order != 0 and 'knl' not in out and 'ksl' not in out:
             out['order'] = self.order
 
+        if isinstance(self, _HasEdges):
+            self._edges_to_dict(out)
+
         return out
 
     def __init__(self, **kwargs):
@@ -506,6 +534,9 @@ class _HasKnlKsl:
 
         model = kwargs.pop('model', None)
         integrator = kwargs.pop('integrator', None)
+
+        if isinstance(self, _HasEdges):
+            kwargs = self._edge_kwargs_to_flags(kwargs)
 
         if 'knl_rel' in self._xo_fnames:
             _handle_knl_ksl_rel_kwargs(kwargs)
@@ -594,6 +625,8 @@ class _HasKnlKsl:
             new_kwarg[: len(kwarg)] = np.array(kwarg)
 
         order = target_len - 1
+        if 'knl_rel' in self._xofields:
+            _check_magnet_multipole_order(order)
 
         new_kwargs[order_name] = order
 
@@ -614,14 +647,19 @@ def _handle_knl_ksl_rel_kwargs(kwargs):
     if len(knl_rel) != len(ksl_rel):
         knl_rel = list(knl_rel) + [0] * (max_len_rel - len(knl_rel))
         ksl_rel = list(ksl_rel) + [0] * (max_len_rel - len(ksl_rel))
+    _check_magnet_multipole_order(max_len_rel - 1, 'len(knl_rel) - 1')
     kwargs['knl_rel'] = knl_rel
     kwargs['ksl_rel'] = ksl_rel
 
-class _BendCommon(_HasKnlKsl, _HasIntegrator, _HasModelCurved):
+
+
+class _BendCommon(_HasEdges, _HasKnlKsl, _HasIntegrator, _HasModelCurved):
     """Common properties for Bend and RBend: see their respective docstrings."""
     isthick = True
     has_backtrack = True
     allow_loss_refinement = True
+
+    _edge_models = BEND_EDGE_MODELS
 
     _skip_in_to_dict = ['inv_factorial_order', 'h', 'k0_from_h']
 
@@ -636,18 +674,7 @@ class _BendCommon(_HasKnlKsl, _HasIntegrator, _HasModelCurved):
         'integrator': xo.Int64,
         'radiation_flag': xo.Int64,
         'delta_taper': xo.Float64,
-        'edge_entry_active': xo.Field(xo.Int64, default=1),
-        'edge_exit_active': xo.Field(xo.Int64, default=1),
-        'edge_entry_model': xo.Int64,
-        'edge_exit_model': xo.Int64,
-        'edge_entry_angle': xo.Float64,
-        'edge_exit_angle': xo.Float64,
-        'edge_entry_angle_fdown': xo.Float64,
-        'edge_exit_angle_fdown': xo.Float64,
-        'edge_entry_fint': xo.Float64,
-        'edge_exit_fint': xo.Float64,
-        'edge_entry_hgap': xo.Float64,
-        'edge_exit_hgap': xo.Float64,
+        **edge_xofields(EDGE_ACTIVE | EDGE_LINEAR, BEND_EDGE_PARAMS),
         'num_multipole_kicks': xo.Int64,
         'order': xo.Int64,
         'inv_factorial_order': xo.Float64,
@@ -662,8 +689,6 @@ class _BendCommon(_HasKnlKsl, _HasIntegrator, _HasModelCurved):
         'order': '_order',
         'model': '_model',
         'integrator': '_integrator',
-        'edge_entry_model': '_edge_entry_model',
-        'edge_exit_model': '_edge_exit_model',
         'k0': '_k0',
         'k0_from_h': '_k0_from_h',
         'angle': '_angle',
@@ -741,32 +766,6 @@ class _BendCommon(_HasKnlKsl, _HasIntegrator, _HasModelCurved):
         elif self.k0_from_h: # was true before
             self._k0 = 0.
         self._k0_from_h = value
-
-    @property
-    def edge_entry_model(self):
-        return _INDEX_TO_EDGE_MODEL[self._edge_entry_model]
-
-    @edge_entry_model.setter
-    def edge_entry_model(self, value):
-        try:
-            self._edge_entry_model = _EDGE_MODEL_TO_INDEX[value]
-        except KeyError:
-            raise ValueError(f'Invalid model: {value}')
-
-    _default_edge_entry_model = _INDEX_TO_EDGE_MODEL[0]
-
-    @property
-    def edge_exit_model(self):
-        return _INDEX_TO_EDGE_MODEL[self._edge_exit_model]
-
-    @edge_exit_model.setter
-    def edge_exit_model(self, value):
-        try:
-            self._edge_exit_model = _EDGE_MODEL_TO_INDEX[value]
-        except KeyError:
-            raise ValueError(f'Invalid model: {value}')
-
-    _default_edge_exit_model = _INDEX_TO_EDGE_MODEL[0]
 
     @property
     def _repr_fields(self):

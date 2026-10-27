@@ -12,6 +12,7 @@
 #include "xtrack/headers/track.h"
 #include "xtrack/headers/factorial.h"
 #include "xtrack/beam_elements/elements_src/track_magnet.h"
+#include "xtrack/beam_elements/elements_src/edge_load.h"
 #include "xtrack/beam_elements/elements_src/default_magnet_config.h"
 
 GPUFUN
@@ -20,61 +21,40 @@ void ThinSliceRBendEntry_track_local_particle(
     LocalParticle* part0
 ) {
 
-    track_magnet_particles(
-        /*weight*/                0., // unused
-        /*part0*/                 part0,
-        /*length*/                ThinSliceRBendEntryData_get__parent_length(el),
-        /*order*/                 ThinSliceRBendEntryData_get__parent_order(el),
-        /*inv_factorial_order*/   ThinSliceRBendEntryData_get__parent_inv_factorial_order(el),
-        /*knl*/                   ThinSliceRBendEntryData_getp1__parent_knl(el, 0),
-        /*ksl*/                   ThinSliceRBendEntryData_getp1__parent_ksl(el, 0),
-        /*order_rel*/             ThinSliceRBendEntryData_len__parent_knl_rel(el) - 1, // order_rel is derived from the length of knl_rel and ksl_rel arrays
-      /*inv_factorial_order_rel*/ one_over_factorial(ThinSliceRBendEntryData_len__parent_knl_rel(el) - 1), // 1 / (order_rel)!
-        /*knl_rel*/               ThinSliceRBendEntryData_getp1__parent_knl_rel(el, 0),
-        /*ksl_rel*/               ThinSliceRBendEntryData_getp1__parent_ksl_rel(el, 0),
-        /*rel_ref_strength*/      ThinSliceRBendEntryData_get__parent_k0(el) * ThinSliceRBendEntryData_get__parent_length(el),
-        /*num_multipole_kicks*/   0, // unused
-        /*model*/                 0, // unused
-        /*default_model*/         RBEND_DEFAULT_MODEL,
-        /*integrator*/            0, // unused
-        /*default_integrator*/    RBEND_DEFAULT_INTEGRATOR,
-        /*radiation_flag*/        ThinSliceRBendEntryData_get_radiation_flag(el),
-        /*radiation_flag_parent*/ ThinSliceRBendEntryData_get__parent_radiation_flag(el),
-        /*radiation_record*/      NULL,
-        /*delta_taper*/           ThinSliceRBendEntryData_get_delta_taper(el),
-        /*h*/                     ThinSliceRBendEntryData_get__parent_h(el),
-        /*hxl*/                   0.,
-        /*k0*/                    ThinSliceRBendEntryData_get__parent_k0(el),
-        /*k1*/                    ThinSliceRBendEntryData_get__parent_k1(el),
-        /*k2*/                    ThinSliceRBendEntryData_get__parent_k2(el),
-        /*k3*/                    0.,
-        /*k0s*/                   0.,
-        /*k1s*/                   0.,
-        /*k2s*/                   0.,
-        /*k3s*/                   0.,
-        /*ks*/                    0.,
-        /*dks_ds*/                0.,
-        /*x0_solenoid*/           0.,
-        /*y0_solenoid*/           0.,
-        /*rbend_model*/           ThinSliceRBendEntryData_get__parent_rbend_model(el),
-     /*rbend_compensate_sagitta*/ ThinSliceRBendEntryData_get__parent_rbend_compensate_sagitta(el),
-        /*rbend_shift*/           ThinSliceRBendEntryData_get__parent_rbend_shift(el),
-        /*rbend_angle_diff*/      ThinSliceRBendEntryData_get__parent_rbend_angle_diff(el),
-        /*length_straight*/       ThinSliceRBendEntryData_get__parent_length_straight(el),
-        /*body_active*/           0, // disabled
-        /*edge_entry_active*/     ThinSliceRBendEntryData_get__parent_edge_entry_active(el),
-        /*edge_exit_active*/      0,
-        /*edge_entry_model*/      ThinSliceRBendEntryData_get__parent_edge_entry_model(el),
-        /*edge_exit_model*/       0,
-        /*edge_entry_angle*/      ThinSliceRBendEntryData_get__parent_edge_entry_angle(el),
-        /*edge_exit_angle*/       0,
-        /*edge_entry_angle_fdown*/ThinSliceRBendEntryData_get__parent_edge_entry_angle_fdown(el),
-        /*edge_exit_angle_fdown*/ 0,
-        /*edge_entry_fint*/       ThinSliceRBendEntryData_get__parent_edge_entry_fint(el),
-        /*edge_exit_fint*/        0,
-        /*edge_entry_hgap*/       ThinSliceRBendEntryData_get__parent_edge_entry_hgap(el),
-        /*edge_exit_hgap*/        0
-    );
+    MagnetFace entry_face = MagnetFace_empty(0);
+    EDGE_LOAD_BEND(entry_face, ThinSliceRBendEntryData_get__parent_, el, entry);
+    MagnetFace exit_face = MagnetFace_empty(1);
+
+    // Settings aligned by hand: not formatted
+    // clang-format off
+    MagnetSettings magnet;
+    MagnetSettings_init_default(&magnet);
+    magnet.body_active              = 0;  // faces only
+    magnet.length                   = ThinSliceRBendEntryData_get__parent_length(el);
+    magnet.order                    = ThinSliceRBendEntryData_get__parent_order(el);
+    magnet.inv_factorial_order      = ThinSliceRBendEntryData_get__parent_inv_factorial_order(el);
+    magnet.knl                      = ThinSliceRBendEntryData_getp1__parent_knl(el, 0);
+    magnet.ksl                      = ThinSliceRBendEntryData_getp1__parent_ksl(el, 0);
+    magnet.order_rel                = ThinSliceRBendEntryData_len__parent_knl_rel(el) - 1;  // order_rel is derived from the length of knl_rel and ksl_rel arrays
+    magnet.knl_rel                  = ThinSliceRBendEntryData_getp1__parent_knl_rel(el, 0);
+    magnet.ksl_rel                  = ThinSliceRBendEntryData_getp1__parent_ksl_rel(el, 0);
+    magnet.rel_ref_strength         = ThinSliceRBendEntryData_get__parent_k0(el) * ThinSliceRBendEntryData_get__parent_length(el);
+    magnet.radiation_flag           = magnet_radiation_flag(ThinSliceRBendEntryData_get_radiation_flag(el), ThinSliceRBendEntryData_get__parent_radiation_flag(el));
+    magnet.delta_taper              = ThinSliceRBendEntryData_get_delta_taper(el);
+    magnet.h                        = ThinSliceRBendEntryData_get__parent_h(el);
+    magnet.k0                       = ThinSliceRBendEntryData_get__parent_k0(el);
+    magnet.k1                       = ThinSliceRBendEntryData_get__parent_k1(el);
+    magnet.k2                       = ThinSliceRBendEntryData_get__parent_k2(el);
+    magnet.rbend_model              = magnet_or_default(ThinSliceRBendEntryData_get__parent_rbend_model(el), RBEND_MODEL_CURVED_BODY);
+    magnet.rbend_compensate_sagitta = ThinSliceRBendEntryData_get__parent_rbend_compensate_sagitta(el);
+    magnet.rbend_shift              = ThinSliceRBendEntryData_get__parent_rbend_shift(el);
+    magnet.rbend_angle_diff         = ThinSliceRBendEntryData_get__parent_rbend_angle_diff(el);
+    magnet.length_straight          = ThinSliceRBendEntryData_get__parent_length_straight(el);
+    // Kept at default (MagnetSettings_init_default):
+    //     weight, num_multipole_kicks, model, integrator, radiation_record,
+    //     hxl, k3, k0s, k1s, k2s, k3s, ks, dks_ds, x0_solenoid, y0_solenoid
+    // clang-format on
+    track_magnet_particles(part0, &magnet, &entry_face, &exit_face);
 }
 
 #endif // XTRACK_ENTRY_SLICE_RBEND_H

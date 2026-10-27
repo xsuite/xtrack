@@ -5,6 +5,8 @@
 #ifndef XTRACK_INTEGRATOR_H
 #define XTRACK_INTEGRATOR_H
 
+#include "xtrack/beam_elements/elements_src/default_magnet_config.h"
+
 /*
     Single shared implementation of the slice/kick integration schemes
     (TEAPOT, uniform, Yoshida 2/4/6/8), used by both track_magnet.h and
@@ -25,7 +27,7 @@
 #define RUN_INTEGRATOR(INTEGRATOR, LENGTH, NUM_KICKS, PART, \
                         DRIFT_FUNCTION, KICK_FUNCTION, RADIATION_MACRO) \
 do { \
-    if ((INTEGRATOR) == 1){ /* TEAPOT */ \
+    if ((INTEGRATOR) == INTEGRATOR_TEAPOT) { \
 \
         RADIATION_MACRO((LENGTH), \
             const double kick_weight = 1. / (NUM_KICKS); \
@@ -48,7 +50,7 @@ do { \
         ) \
 \
     } \
-    else if ((INTEGRATOR) == 3){ /* uniform */ \
+    else if ((INTEGRATOR) == INTEGRATOR_UNIFORM) { \
 \
         const double kick_weight = 1. / (NUM_KICKS); \
         const double drift_weight = kick_weight; \
@@ -62,7 +64,7 @@ do { \
         } \
 \
     } \
-    else if ((INTEGRATOR) == 2) { /* YOSHIDA 6 */ \
+    else if ((INTEGRATOR) == INTEGRATOR_YOSHIDA6) { \
 \
         const int64_t n_kicks_yoshida = 7; \
         const int64_t num_slices = ((NUM_KICKS) / n_kicks_yoshida \
@@ -93,7 +95,7 @@ do { \
             ) \
         } \
     } \
-    else if ((INTEGRATOR) == 4) { /* YOSHIDA 4 */ \
+    else if ((INTEGRATOR) == INTEGRATOR_YOSHIDA4) { \
 \
         const int64_t n_kicks_yoshida = 3; \
         const int64_t num_slices = ((NUM_KICKS) / n_kicks_yoshida \
@@ -116,7 +118,7 @@ do { \
             ) \
         } \
     } \
-    else if ((INTEGRATOR) == 5) { /* YOSHIDA 8 */ \
+    else if ((INTEGRATOR) == INTEGRATOR_YOSHIDA8) { \
 \
         const int64_t n_kicks_yoshida = 15; \
         const int64_t num_slices = ((NUM_KICKS) / n_kicks_yoshida \

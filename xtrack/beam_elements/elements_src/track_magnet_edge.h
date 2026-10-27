@@ -6,183 +6,444 @@
 #define XTRACK_TRACK_MAGNET_EDGE_H
 
 #include "xtrack/headers/track.h"
+#include "xtrack/beam_elements/elements_src/track_magnet_structs.h"
+#include "xtrack/beam_elements/elements_src/edge_flags.h"
 #include "xtrack/beam_elements/elements_src/track_dipole_edge_linear.h"
 #include "xtrack/beam_elements/elements_src/track_yrotation.h"
 #include "xtrack/beam_elements/elements_src/track_wedge.h"
 #include "xtrack/beam_elements/elements_src/track_mult_fringe.h"
 #include "xtrack/beam_elements/elements_src/track_dipole_fringe.h"
+#include "xtrack/beam_elements/elements_src/fringe_convergence.h"
 
 
+// A magnet face is tracked as a fixed sequence of independent sub-maps, each
+// selected by the fringe mask of the face (edge_flags.h), following MAD-NG
+// (strex_fringe). Going from the drift into the field the order is
+//
+//     patch -> vector potential -> y-rotation -> bend fringe -> mult fringe
+//         -> qsad fringe -> quad wedge -> wedge
+//
+// and going from the field into the drift it is the reverse. Every sub-map
+// is written as the forward map of its face, in the element frame, and
+// applies its exact inverse when backtracking, so that backtracking crosses
+// the faces in the reverse order and undoes them one by one.
+//
+// EDGE_LINEAR replaces the magnet fringe (y-rotation to wedge) with the
+// r21/r43 linear edge. A face without EDGE_ACTIVE is skipped altogether.
+// MagnetFace_prepare turns the mask and the parameters into one do_* switch
+// per sub-map (off for zero parameters), and every sub-map returns at once
+// when its switch is off.
+
+
+// Vector potential: picked up when entering the field region, dropped when
+// leaving it (we assume a drift outside the magnet).
 GPUFUN
-void track_magnet_edge_particles(
-    LocalParticle* part0,
-    const int8_t model,  // 0: linear, 1: full, 2: dipole-only, 3: ax ay cancellation
-    // Which of the two faces of the magnet this is, as labelled in the element
-    // frame (entry face = 0, exit face = 1). This is a property of the element,
-    // not of the direction of travel, so it alone fixes the orientation of the
-    // face: the sign of k0 seen by the dipole fringe, and the face passed to the
-    // multipole fringe. Backtracking does not change it; it inverts the maps.
-    const uint8_t is_element_exit,
-    const double half_gap,
-    const double* knorm,
-    const double* kskew,
-    const int64_t k_order,
-    GPUGLMEM const double* knl,
-    GPUGLMEM const double* ksl,
-    const double factor_knl_ksl,
-    const int64_t kl_order,
-    GPUGLMEM const double* knl_rel,
-    GPUGLMEM const double* ksl_rel,
-    const double factor_knl_ksl_rel,
-    int64_t order_rel,
-    const double ksol,
+void MagnetEdge_vector_potential_single_particle(
+    LocalParticle* part,
+    const uint8_t is_leaving_magnet,
+    xt_float_or_tpsa_arg ksol,
     const double x0_solenoid,
-    const double y0_solenoid,
-    const double length,
-    const double face_angle,
-    const double face_angle_feed_down,
-    const double fringe_integral,
-    const double factor_for_backtrack // -1 for backtracking, 1 for forward tracking
+    const double y0_solenoid
 ) {
-    double k0 = 0;
-    if (k_order > -1) k0 += knorm[0];
-    if (fabs(length) > 1e-10 && kl_order > -1) {
-        k0 += factor_knl_ksl * knl[0] / length;
-    }
-    if (fabs(length) > 1e-10 && order_rel > -1 && knl_rel != NULL) {
-        k0 += factor_knl_ksl_rel * knl_rel[0] / length;
-    }
-
-    const uint8_t backtrack = (factor_for_backtrack < 0);
-
-    // Whether the particle is leaving the magnet, rather than entering it. This
-    // follows the direction of travel, not the element frame, so backtracking
-    // swaps the two faces here: the vector potential is picked up on the face
-    // where the particle enters the field region and dropped on the one where
-    // it leaves.
-    const uint8_t is_leaving_magnet = (is_element_exit != backtrack);
-
-    // Assume we are coming from or going to a drift
     if (is_leaving_magnet) {
-        START_PER_PARTICLE_BLOCK(part0, part);
-            LocalParticle_set_ax(part, 0.);
-            LocalParticle_set_ay(part, 0.);
-        END_PER_PARTICLE_BLOCK;
+        LocalParticle_set_ax(part, 0.);
+        LocalParticle_set_ay(part, 0.);
     }
     else {
-        START_PER_PARTICLE_BLOCK(part0, part);
-            LocalParticle_set_ax(part, -0.5 * ksol * (LocalParticle_get_y(part) - y0_solenoid));
-            LocalParticle_set_ay(part, 0.5 * ksol * (LocalParticle_get_x(part) - x0_solenoid));
-        END_PER_PARTICLE_BLOCK;
-    }
-
-    if (model == 0) {  // Linear model
-        // Calculate coefficients for x and y to compute the px and py kicks
-        double r21, r43;
-        compute_dipole_edge_linear_coefficients(
-            k0, face_angle, face_angle_feed_down, half_gap, fringe_integral,
-            &r21, &r43
+        LocalParticle_set_ax(
+            part, -0.5 * ksol * (LocalParticle_get_y(part) - y0_solenoid)
         );
+        LocalParticle_set_ay(
+            part, 0.5 * ksol * (LocalParticle_get_x(part) - x0_solenoid)
+        );
+    }
+}
 
-        r21 = r21 * factor_for_backtrack;
-        r43 = r43 * factor_for_backtrack;
 
-        START_PER_PARTICLE_BLOCK(part0, part);
-            DipoleEdgeLinear_single_particle(part, r21, r43);
-        END_PER_PARTICLE_BLOCK;
+// cosh(f) and sinh(f)/f as functions of m = f^2, regular at m = 0 (series
+// below m = 1 on the constant part, so that they also hold for TPSA)
+GPUFUN
+void MagnetEdge_cosh_sinhc(
+    xt_float_or_tpsa_arg m,
+    xt_float_or_tpsa* cosh_f,
+    xt_float_or_tpsa* sinhc_f
+) {
+    if (xt_float_or_tpsa_const_part(m) < 1.) {
+        xt_float_or_tpsa c = 1., s = 1.;
+        for (int n = 12; n >= 1; n--) {
+            c = 1. + m * c / ((2. * n - 1.) * (2. * n));
+            s = 1. + m * s / ((2. * n) * (2. * n + 1.));
+        }
+        *cosh_f = c;
+        *sinhc_f = s;
+    }
+    else {
+        const xt_float_or_tpsa f = sqrt(m);
+        *cosh_f = cosh(f);
+        *sinhc_f = sinh(f) / f;
+    }
+}
+
+
+// Quadrupole fringe of SAD (MAD-NG qsad_fringe): Lee-Whiting formula,
+// E. Forest ch 13.2.3, eq 13.33. MAD-NG evaluates it in the frame rotated by
+// -atan2(k1s, k1)/2, which is singular at k1 = k1s = 0. Here the rotation is
+// absorbed into the matrix K = [[k1, -k1s], [-k1s, -k1]] (= b2 times the
+// reflection in that frame, K^2 = b2^2), so that the exponentials become
+// cosh(f) + sinh(f)/f f K/b2, with f = c1 b2, functions of f^2 = c1^2 (k1^2 +
+// k1s^2). The map is then regular at zero strength, with TPSA derivatives.
+// g1 carries MAD-NG's lw (+1 on the face crossed first, -1 on the other) and g2
+// the direction sdir, so that each backtracking call inverts the forward one
+// (as in MAD-NG's strex_fringe).
+GPUFUN
+void MagnetEdge_qsad_fringe_single_particle(
+    LocalParticle* part,
+    xt_float_or_tpsa_arg k1,   // total quadrupole strength
+    xt_float_or_tpsa_arg k1s,  // total skew quadrupole strength
+    const double g1,
+    const double g2
+) {
+    const double chi = LocalParticle_get_chi(part);
+    const double beta0 = LocalParticle_get_beta0(part);
+
+    const xt_float_or_tpsa x = LocalParticle_get_x(part);
+    const xt_float_or_tpsa px = LocalParticle_get_px(part);
+    const xt_float_or_tpsa y = LocalParticle_get_y(part);
+    const xt_float_or_tpsa py = LocalParticle_get_py(part);
+    xt_float_or_tpsa t = LocalParticle_get_zeta(part) / beta0;
+    const xt_float_or_tpsa pt = LocalParticle_get_ptau(part);
+
+    const xt_float_or_tpsa _pz = 1 / sqrt(1 + 2 / beta0 * pt + POW2(pt));
+    const xt_float_or_tpsa dt = (1 / beta0 + pt) * _pz;
+
+    const xt_float_or_tpsa c1 = chi * g1 * _pz;
+    const xt_float_or_tpsa c2 = chi * g2 * _pz;
+
+    const xt_float_or_tpsa kk = POW2(k1) + POW2(k1s);
+    xt_float_or_tpsa cosh_f = 1., sinhc_f = 1.;
+    MagnetEdge_cosh_sinhc(POW2(c1) * kk, &cosh_f, &sinhc_f);
+
+    // K q and K p
+    const xt_float_or_tpsa kq_x = k1 * x - k1s * y;
+    const xt_float_or_tpsa kq_y = -k1s * x - k1 * y;
+    const xt_float_or_tpsa kp_x = k1 * px - k1s * py;
+    const xt_float_or_tpsa kp_y = -k1s * px - k1 * py;
+
+    // Time of flight: q.K p, p.K p, p.p
+    const xt_float_or_tpsa a_s = cosh_f - POW2(c1) * kk / 2 * sinhc_f;
+    const xt_float_or_tpsa sum =
+        c1 * (x * kp_x + y * kp_y) + a_s * _pz * c2 * (px * kp_x + py * kp_y)
+        + _pz * c1 * c2 * kk * (cosh_f / 2 - sinhc_f) * (POW2(px) + POW2(py));
+    t -= dt * sum * _pz;
+
+    LocalParticle_set_x(part, cosh_f * x + sinhc_f * c1 * kq_x + c2 * _pz * kp_x);
+    LocalParticle_set_y(part, cosh_f * y + sinhc_f * c1 * kq_y + c2 * _pz * kp_y);
+    LocalParticle_set_px(part, cosh_f * px - sinhc_f * c1 * kp_x);
+    LocalParticle_set_py(part, cosh_f * py - sinhc_f * c1 * kp_y);
+    LocalParticle_set_zeta(part, t * beta0);
+}
+
+
+
+// Total dipole and quadrupole strengths: k + knl / length
+GPUFUN
+void MagnetField_prepare(MagnetField* field) {
+    const double length = field->length;
+    xt_float_or_tpsa k0 = 0., k1 = 0., k1s = 0.;
+    if (field->k_order > -1) k0 += field->knorm[0];
+    if (field->k_order > 0) {
+        k1 += field->knorm[1];
+        k1s += field->kskew[1];
+    }
+    if (fabs(length) > 1e-10 && field->kl_order > -1) {
+        k0 += field->knl_scale * field->knl[0] / length;
+        if (field->kl_order > 0) {
+            k1 += field->knl_scale * field->knl[1] / length;
+            k1s += field->knl_scale * field->ksl[1] / length;
+        }
+    }
+    field->k0 = k0;
+    field->k1 = k1;
+    field->k1s = k1s;
+
+    uint8_t has_mult = 0;
+    for (int64_t ii = 1; ii <= field->k_order && !has_mult; ii++) {
+        has_mult = !xt_float_or_tpsa_is_zero(field->knorm[ii])
+                   || !xt_float_or_tpsa_is_zero(field->kskew[ii]);
+    }
+    for (int64_t ii = 1; ii <= field->kl_order && !has_mult; ii++) {
+        has_mult = !xt_float_or_tpsa_is_zero(field->knl[ii])
+                   || !xt_float_or_tpsa_is_zero(field->ksl[ii]);
+    }
+    field->has_mult = has_mult;
+}
+
+
+
+// Face with all fringes switched off and no patch
+GPUFUN
+MagnetFace MagnetFace_empty(const uint8_t is_exit_face) {
+    MagnetFace face;
+    face.flags = 0;
+    face.is_exit_face = is_exit_face;
+    face.angle = 0;
+    face.angle_fdown = 0;
+    face.fint = 0;
+    face.hgap = 0;
+    face.f1 = 0;
+    face.f2 = 0;
+    face.has_patch = 0;
+    face.patch_angle = 0;
+    face.patch_dx = 0;
+    face.field = NULL;
+    return face;
+}
+
+
+// Whether a face is active with a sub-map that uses the derived field
+// (MagnetField_prepare): the linear edge and the fringes. The patch and the
+// vector potential do not.
+GPUFUN
+uint8_t MagnetFace_uses_field(const MagnetFace* face) {
+    return (face->flags & EDGE_ACTIVE)
+           && (face->flags & (EDGE_LINEAR | EDGE_BEND | EDGE_MULT | EDGE_QSAD));
+}
+
+
+// Derive the sub-maps of a face for the direction of travel. The field must
+// have been prepared (MagnetField_prepare) if MagnetFace_uses_field.
+GPUFUN
+void MagnetFace_prepare(MagnetFace* face, MagnetField* field, const uint8_t backtrack) {
+    const int64_t flags = face->flags;
+    // Rotations and wedges are inverted by flipping the angle sign
+    const double rot_sign = backtrack ? 1. : -1.;
+
+    face->field = field;
+    face->backtrack = backtrack;
+    if (!(flags & EDGE_ACTIVE)) {
+        face->do_patch = 0;
+        face->do_vector_potential = 0;
+        face->do_linear = 0;
+        face->do_rotate = 0;
+        face->do_bend = 0;
+        face->do_mult = 0;
+        face->do_qsad = 0;
+        face->do_quad_wedge = 0;
+        face->do_wedge = 0;
         return;
     }
-    else if (model == 1 || model == 2) { // Full model (1) or dipole-only model (2)
 
-        uint8_t should_rotate = 0;
-        double sin_ = 0, cos_ = 1, tan_ = 0;
-        if (fabs(face_angle) > 10e-10) {
-            should_rotate = 1;
-            sin_ = sin(face_angle);
-            cos_ = cos(face_angle);
-            tan_ = tan(face_angle);
-        }
-
-        // The fringe kick changes sign between the two faces of the magnet.
-        // This is a property of the face itself, so it does not depend on the
-        // direction of travel: backtracking a face applies the inverse of the
-        // very map the forward pass applied, at the same k0.
-        if (is_element_exit) k0 = -k0;
-
-        // Rotations and wedges are inverted by flipping the angle sign.
-        const double rot_sign = backtrack ? 1.0 : -1.0;
-        const double wedge_angle = rot_sign * face_angle;
-
-        // Which face the particle meets first, following MAD-NG's strex_fringe:
-        // it branches on sdir*lw, the tracking direction times the element-frame
-        // face, and runs the same sub-maps in the opposite order in each arm.
-        const uint8_t entry_face_ordering = (is_element_exit == backtrack);
-
-        #define MAGNET_Y_ROTATE(PART) \
-            if (should_rotate) YRotation_single_particle( \
-                (PART), rot_sign * sin_, cos_, rot_sign * tan_)
-
-        #define MAGNET_DIPOLE_FRINGE(PART) \
-            DipoleFringe_track_single_particle( \
-                (PART), fringe_integral, half_gap, k0, backtrack)
-
-        #define MAGNET_MULTIPOLE_FRINGE(PART) \
-            MultFringe_track_single_particle( \
-                (PART), \
-                knorm, \
-                kskew, \
-                k_order, \
-                knl, \
-                ksl, \
-                kl_order, \
-                length / factor_knl_ksl, \
-                is_element_exit, \
-                /* min_order */ 1 \
-            );
-        // Above, I use the length to rescale knl and ksl. Here I am relying on
-        // the fact that the length is only used to obtain kn and ks in
-        // MultFringe_track_single_particle. To be remembered if the fringe
-        // model changes!
-
-        #define MAGNET_WEDGE(PART) \
-            if (should_rotate & (k_order >= 0)) Wedge_single_particle((PART), wedge_angle, knorm[0])
-
-        #define MAGNET_QUAD_WEDGE(PART) \
-            if (should_rotate & (k_order >= 1)) Quad_wedge_single_particle((PART), wedge_angle, knorm[1])
-
-        if (entry_face_ordering){
-            START_PER_PARTICLE_BLOCK(part0, part);
-                MAGNET_Y_ROTATE(part);
-                MAGNET_DIPOLE_FRINGE(part);
-                if (model == 1){
-                    MAGNET_MULTIPOLE_FRINGE(part);
-                    MAGNET_QUAD_WEDGE(part);
-                }
-                MAGNET_WEDGE(part);
-            END_PER_PARTICLE_BLOCK;
-        }
-        else {
-            START_PER_PARTICLE_BLOCK(part0, part);
-                MAGNET_WEDGE(part);
-                if (model == 1){
-                    MAGNET_QUAD_WEDGE(part);
-                    MAGNET_MULTIPOLE_FRINGE(part);
-                }
-                MAGNET_DIPOLE_FRINGE(part);
-                MAGNET_Y_ROTATE(part);
-            END_PER_PARTICLE_BLOCK;
-        }
-
-        #undef MAGNET_Y_ROTATE
-        #undef MAGNET_DIPOLE_FRINGE
-        #undef MAGNET_MULTIPOLE_FRINGE
-        #undef MAGNET_WEDGE
-        #undef MAGNET_QUAD_WEDGE
+    // Patch
+    face->do_patch = face->has_patch;
+    double patch_sin = 0, patch_cos = 1;
+    if (face->has_patch && fabs(face->patch_angle) > EDGE_ANGLE_EPS) {
+        patch_sin = sin(face->patch_angle);
+        patch_cos = cos(face->patch_angle);
     }
-    else if (model == 3) { // only ax ay cancellation (already done above)
-        // do nothing
+    face->patch_sin = rot_sign * patch_sin;
+    face->patch_cos = patch_cos;
+    face->patch_tan = rot_sign * patch_sin / patch_cos;
+
+    face->do_vector_potential = 1;
+
+    // Linear edge: a kick, inverted by flipping it
+    face->do_linear = (flags & EDGE_LINEAR) != 0;
+    if (face->do_linear) {
+        xt_float_or_tpsa* r21 = &field->r21[face->is_exit_face];
+        xt_float_or_tpsa* r43 = &field->r43[face->is_exit_face];
+        compute_dipole_edge_linear_coefficients(
+            field->k0, face->angle, face->angle_fdown, face->hgap, face->fint, r21, r43
+        );
+        if (backtrack) {
+            *r21 = -*r21;
+            *r43 = -*r43;
+        }
     }
-    // If model is none of the above, do nothing
+
+    // Magnet fringes; no geometric sub-map without a fringe map
+    const uint8_t fringe =
+        !(flags & EDGE_LINEAR) && (flags & (EDGE_BEND | EDGE_MULT | EDGE_QSAD));
+    // A fringe of a vanishing field is the identity: skipped (the dipole
+    // fringe uses the threshold of DipoleFringe_track_single_particle)
+    face->do_bend = fringe && (flags & EDGE_BEND)
+                    && !xt_float_or_tpsa_is_negligible(field->k0, EDGE_K0_EPS);
+    face->do_mult = fringe && (flags & EDGE_MULT) && field->has_mult;
+    face->do_rotate = fringe && fabs(face->angle) > EDGE_ANGLE_EPS;
+    face->do_wedge = face->do_rotate && (field->k_order >= 0);
+    face->do_quad_wedge = face->do_mult && face->do_rotate && (field->k_order >= 1);
+    // Soft quadrupole fringe of SAD, with or without the hard-edge one
+    face->do_qsad =
+        fringe && (flags & EDGE_QSAD) && (face->f1 != 0 || face->f2 != 0)
+        && !(xt_float_or_tpsa_is_zero(field->k1) && xt_float_or_tpsa_is_zero(field->k1s));
+
+    double sin_ = 0, cos_ = 1, tan_ = 0;
+    if (face->do_rotate) {
+        sin_ = sin(face->angle);
+        cos_ = cos(face->angle);
+        tan_ = tan(face->angle);
+    }
+    face->rot_sin = rot_sign * sin_;
+    face->rot_cos = cos_;
+    face->rot_tan = rot_sign * tan_;
+    face->wedge_angle = rot_sign * face->angle;
+
+    // +1 on the face crossed first, -1 on the other (MAD-NG lw)
+    const uint8_t entering = (face->is_exit_face == backtrack);
+    face->qsad_g1 = (entering ? 1. : -1.) * (fabs(face->f1) * face->f1 / -24);
+    face->qsad_g2 = face->f2 * (backtrack ? -1. : 1.);
+}
+
+
+// The sub-maps of a face, each the forward map of the face or, when
+// backtracking, its inverse (the signs are set in MagnetFace_prepare).
+
+GPUFUN
+void MagnetFace_patch_single_particle(
+    LocalParticle* part,
+    const MagnetFace* f,
+    const uint8_t entering
+) {
+    if (!f->do_patch) return;
+    if (entering) {
+        YRotation_single_particle(part, f->patch_sin, f->patch_cos, f->patch_tan);
+        LocalParticle_add_to_x(part, f->patch_dx);
+    }
+    else {
+        LocalParticle_add_to_x(part, -f->patch_dx);
+        YRotation_single_particle(part, f->patch_sin, f->patch_cos, f->patch_tan);
+    }
+}
+
+GPUFUN
+void MagnetFace_vector_potential_single_particle(
+    LocalParticle* part,
+    const MagnetFace* f,
+    const uint8_t entering
+) {
+    if (!f->do_vector_potential) return;
+    MagnetEdge_vector_potential_single_particle(
+        part,
+        /*is_leaving_magnet*/ !entering,
+        f->field->ks,
+        f->field->x0_solenoid,
+        f->field->y0_solenoid
+    );
+}
+
+GPUFUN
+void MagnetFace_linear_single_particle(LocalParticle* part, const MagnetFace* f) {
+    if (!f->do_linear) return;
+    DipoleEdgeLinear_single_particle(
+        part, f->field->r21[f->is_exit_face], f->field->r43[f->is_exit_face]
+    );
+}
+
+GPUFUN
+void MagnetFace_rotation_single_particle(LocalParticle* part, const MagnetFace* f) {
+    if (!f->do_rotate) return;
+    YRotation_single_particle(part, f->rot_sin, f->rot_cos, f->rot_tan);
+}
+
+GPUFUN
+void MagnetFace_bend_fringe_single_particle(LocalParticle* part, const MagnetFace* f) {
+    if (!f->do_bend) return;
+    // The fringe kick changes sign between the two faces, a property of the
+    // face itself
+    if (f->is_exit_face) {
+        DipoleFringe_track_single_particle(
+            part, f->fint, f->hgap, -f->field->k0, f->backtrack
+        );
+    }
+    else {
+        DipoleFringe_track_single_particle(
+            part, f->fint, f->hgap, f->field->k0, f->backtrack
+        );
+    }
+}
+
+GPUFUN
+void MagnetFace_mult_fringe_single_particle(LocalParticle* part, const MagnetFace* f) {
+    if (!f->do_mult) return;
+    const MagnetField* field = f->field;
+    MultFringe_track_single_particle(
+        part,
+        field->knorm,
+        field->kskew,
+        field->k_order,
+        field->knl,
+        field->ksl,
+        field->kl_order,
+        field->knl_scale,
+        field->length,
+        f->is_exit_face,
+        /* min_order */ 1
+    );
+}
+
+GPUFUN
+void MagnetFace_qsad_fringe_single_particle(LocalParticle* part, const MagnetFace* f) {
+    if (!f->do_qsad) return;
+    MagnetEdge_qsad_fringe_single_particle(
+        part, f->field->k1, f->field->k1s, f->qsad_g1, f->qsad_g2
+    );
+}
+
+GPUFUN
+void MagnetFace_quad_wedge_single_particle(LocalParticle* part, const MagnetFace* f) {
+    if (!f->do_quad_wedge) return;
+    Quad_wedge_single_particle(part, f->wedge_angle, f->field->knorm[1]);
+}
+
+GPUFUN
+void MagnetFace_wedge_single_particle(LocalParticle* part, const MagnetFace* f) {
+    if (!f->do_wedge) return;
+    // sin, cos and tan of wedge_angle are those of the face rotation
+    Wedge_trig_single_particle(
+        part, f->rot_sin, f->rot_cos, f->rot_tan, f->field->knorm[0]
+    );
+}
+
+
+// Cross a face from the drift into the field (the order at the top of this
+// file)
+GPUFUN
+void MagnetFace_enter_single_particle(LocalParticle* part, const MagnetFace* f) {
+    MagnetFace_patch_single_particle(part, f, 1);
+    MagnetFace_vector_potential_single_particle(part, f, 1);
+    MagnetFace_linear_single_particle(part, f);
+    MagnetFace_rotation_single_particle(part, f);
+    MagnetFace_bend_fringe_single_particle(part, f);
+    MagnetFace_mult_fringe_single_particle(part, f);
+    MagnetFace_qsad_fringe_single_particle(part, f);
+    MagnetFace_quad_wedge_single_particle(part, f);
+    MagnetFace_wedge_single_particle(part, f);
+}
+
+
+// Cross a face from the field into the drift: the same sub-maps in reverse
+GPUFUN
+void MagnetFace_leave_single_particle(LocalParticle* part, const MagnetFace* f) {
+    MagnetFace_wedge_single_particle(part, f);
+    MagnetFace_quad_wedge_single_particle(part, f);
+    MagnetFace_qsad_fringe_single_particle(part, f);
+    MagnetFace_mult_fringe_single_particle(part, f);
+    MagnetFace_bend_fringe_single_particle(part, f);
+    MagnetFace_rotation_single_particle(part, f);
+    MagnetFace_linear_single_particle(part, f);
+    MagnetFace_vector_potential_single_particle(part, f, 0);
+    MagnetFace_patch_single_particle(part, f, 0);
+}
+
+
+// Cross a face, entering or leaving the field as follows from the face and the
+// direction of travel: forward tracking enters at the entry face,
+// backtracking at the exit one
+GPUFUN
+void MagnetFace_track_single_particle(LocalParticle* part, const MagnetFace* f) {
+    if (f->is_exit_face == f->backtrack)
+        MagnetFace_enter_single_particle(part, f);
+    else
+        MagnetFace_leave_single_particle(part, f);
 }
 
 #endif // XTRACK_TRACK_MAGNET_EDGE_H

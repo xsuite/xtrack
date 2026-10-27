@@ -36,9 +36,9 @@ void ThickSliceCavity_track_local_particle(ThickSliceCavityData el, LocalParticl
         /*phase_s*/               NULL,
         /*num_kicks*/             ThickSliceCavityData_get__parent_num_kicks(el),
         /*model*/                 ThickSliceCavityData_get__parent_model(el),
-        /*default_model*/         6, // drift-kick-drift-expanded
+        /*default_model*/         MODEL_DRIFT_KICK_DRIFT_EXPANDED,
         /*integrator*/            ThickSliceCavityData_get__parent_integrator(el),
-        /*default_integrator*/    3, // Uniform
+        /*default_integrator*/    INTEGRATOR_UNIFORM,
         /*radiation_flag*/        0, // not used here
         /*radiation_flag_parent*/ 0, // not used here
         /*lag_taper*/             ThickSliceCavityData_get__parent_lag_taper(el),

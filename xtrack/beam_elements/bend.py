@@ -91,8 +91,7 @@ class Bend(_BendCommon, BeamElement):
                                 "Set `length` and `angle` instead.")
 
         to_be_set_with_properties = []
-        for nn in ['length', 'angle', 'k0_from_h', 'edge_entry_model',
-                   'edge_exit_model', 'k0']:
+        for nn in ['length', 'angle', 'k0_from_h', 'k0']:
             if nn in kwargs:
                 to_be_set_with_properties.append((nn, kwargs.pop(nn)))
 

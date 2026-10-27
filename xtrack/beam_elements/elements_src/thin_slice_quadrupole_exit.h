@@ -12,6 +12,7 @@
 #include "xtrack/headers/track.h"
 #include "xtrack/headers/factorial.h"
 #include "xtrack/beam_elements/elements_src/track_magnet.h"
+#include "xtrack/beam_elements/elements_src/edge_load.h"
 #include "xtrack/beam_elements/elements_src/default_magnet_config.h"
 
 GPUFUN
@@ -20,61 +21,35 @@ void ThinSliceQuadrupoleExit_track_local_particle(
         LocalParticle* part0
 ) {
 
-    track_magnet_particles(
-        /*weight*/                0., // unused
-        /*part0*/                 part0,
-        /*length*/                ThinSliceQuadrupoleExitData_get__parent_length(el),
-        /*order*/                 ThinSliceQuadrupoleExitData_get__parent_order(el),
-        /*inv_factorial_order*/   ThinSliceQuadrupoleExitData_get__parent_inv_factorial_order(el),
-        /*knl*/                   ThinSliceQuadrupoleExitData_getp1__parent_knl(el, 0),
-        /*ksl*/                   ThinSliceQuadrupoleExitData_getp1__parent_ksl(el, 0),
-        /*order_rel*/             ThinSliceQuadrupoleExitData_len__parent_knl_rel(el) - 1, // order_rel is derived from the length of knl_rel and ksl_rel arrays
-      /*inv_factorial_order_rel*/ one_over_factorial(ThinSliceQuadrupoleExitData_len__parent_knl_rel(el) - 1), // 1 / (order_rel)!
-        /*knl_rel*/               ThinSliceQuadrupoleExitData_getp1__parent_knl_rel(el, 0),
-        /*ksl_rel*/               ThinSliceQuadrupoleExitData_getp1__parent_ksl_rel(el, 0),
-        /*rel_ref_strength*/      ThinSliceQuadrupoleExitData_get__parent_length(el) * ((ThinSliceQuadrupoleExitData_get__parent_main_is_skew(el)) ? ThinSliceQuadrupoleExitData_get__parent_k1s(el) : ThinSliceQuadrupoleExitData_get__parent_k1(el)),
-        /*num_multipole_kicks*/   0, // unused
-        /*model*/                 0, // unused
-        /*default_model*/         QUADRUPOLE_DEFAULT_MODEL,
-        /*integrator*/            0, // unused
-        /*default_integrator*/    QUADRUPOLE_DEFAULT_INTEGRATOR,
-        /*radiation_flag*/        ThinSliceQuadrupoleExitData_get_radiation_flag(el),
-        /*radiation_flag_parent*/ ThinSliceQuadrupoleExitData_get__parent_radiation_flag(el),
-        /*radiation_record*/      NULL,
-        /*delta_taper*/           ThinSliceQuadrupoleExitData_get_delta_taper(el),
-        /*h*/                     0.,
-        /*hxl*/                   0.,
-        /*k0*/                    0.,
-        /*k1*/                    ThinSliceQuadrupoleExitData_get__parent_k1(el),
-        /*k2*/                    0.,
-        /*k3*/                    0.,
-        /*k0s*/                   0.,
-        /*k1s*/                   ThinSliceQuadrupoleExitData_get__parent_k1s(el),
-        /*k2s*/                   0.,
-        /*k3s*/                   0.,
-        /*ks*/                    0.,
-        /*dks_ds*/                0.,
-        /*x0_solenoid*/           0.,
-        /*y0_solenoid*/           0.,
-        /*rbend_model*/           -1, // not rbend
-     /*rbend_compensate_sagitta*/ 0,  // not rbend
-        /*rbend_shift*/           0., // not rbend
-        /*rbend_angle_diff*/      0., // not rbend
-        /*length_straight*/       0., // not rbend
-        /*body_active*/           0, // disabled
-        /*edge_entry_active*/     0,
-        /*edge_exit_active*/      ThinSliceQuadrupoleExitData_get__parent_edge_exit_active(el),
-        /*edge_entry_model*/      0,
-        /*edge_exit_model*/       1,
-        /*edge_entry_angle*/      0.,
-        /*edge_exit_angle*/       0.,
-        /*edge_entry_angle_fdown*/0.,
-        /*edge_exit_angle_fdown*/ 0.,
-        /*edge_entry_fint*/       0.,
-        /*edge_exit_fint*/        0.,
-        /*edge_entry_hgap*/       0.,
-        /*edge_exit_hgap*/        0.
-    );
+    MagnetFace entry_face = MagnetFace_empty(0);
+    MagnetFace exit_face = MagnetFace_empty(1);
+    EDGE_LOAD_STRAIGHT(exit_face, ThinSliceQuadrupoleExitData_get__parent_, el, exit);
+
+    // Settings aligned by hand: not formatted
+    // clang-format off
+    MagnetSettings magnet;
+    MagnetSettings_init_default(&magnet);
+    magnet.body_active              = 0;  // faces only
+    magnet.length                   = ThinSliceQuadrupoleExitData_get__parent_length(el);
+    magnet.order                    = ThinSliceQuadrupoleExitData_get__parent_order(el);
+    magnet.inv_factorial_order      = ThinSliceQuadrupoleExitData_get__parent_inv_factorial_order(el);
+    magnet.knl                      = ThinSliceQuadrupoleExitData_getp1__parent_knl(el, 0);
+    magnet.ksl                      = ThinSliceQuadrupoleExitData_getp1__parent_ksl(el, 0);
+    magnet.order_rel                = ThinSliceQuadrupoleExitData_len__parent_knl_rel(el) - 1;  // order_rel is derived from the length of knl_rel and ksl_rel arrays
+    magnet.knl_rel                  = ThinSliceQuadrupoleExitData_getp1__parent_knl_rel(el, 0);
+    magnet.ksl_rel                  = ThinSliceQuadrupoleExitData_getp1__parent_ksl_rel(el, 0);
+    magnet.rel_ref_strength         = ThinSliceQuadrupoleExitData_get__parent_length(el) * ((ThinSliceQuadrupoleExitData_get__parent_main_is_skew(el)) ? ThinSliceQuadrupoleExitData_get__parent_k1s(el) : ThinSliceQuadrupoleExitData_get__parent_k1(el));
+    magnet.radiation_flag           = magnet_radiation_flag(ThinSliceQuadrupoleExitData_get_radiation_flag(el), ThinSliceQuadrupoleExitData_get__parent_radiation_flag(el));
+    magnet.delta_taper              = ThinSliceQuadrupoleExitData_get_delta_taper(el);
+    magnet.k1                       = ThinSliceQuadrupoleExitData_get__parent_k1(el);
+    magnet.k1s                      = ThinSliceQuadrupoleExitData_get__parent_k1s(el);
+    // Kept at default (MagnetSettings_init_default):
+    //     weight, num_multipole_kicks, model, integrator, radiation_record, h,
+    //     hxl, k0, k2, k3, k0s, k2s, k3s, ks, dks_ds, x0_solenoid,
+    //     y0_solenoid, rbend_model, rbend_compensate_sagitta, rbend_shift,
+    //     rbend_angle_diff, length_straight
+    // clang-format on
+    track_magnet_particles(part0, &magnet, &entry_face, &exit_face);
 }
 
 #endif // XTRACK_EXIT_SLICE_QUADRUPOLE_H

@@ -340,7 +340,7 @@ def test_bend(case, atol):
 
 
 @pytest.mark.parametrize(
-    'edge_model', ['suppressed', 'linear', 'full', 'dipole-only'])
+    'edge_model', ['suppressed', 'linear', 'full', 'no-mult'])
 @pytest.mark.parametrize(
     'rbend_model', ['adaptive', 'curved-body', 'straight-body'])
 def test_spin_rbend_and_edge_models(edge_model, rbend_model):

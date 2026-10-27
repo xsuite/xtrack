@@ -9,6 +9,7 @@
 #include "xtrack/headers/track.h"
 #include "xtrack/headers/factorial.h"
 #include "xtrack/beam_elements/elements_src/track_magnet.h"
+#include "xtrack/beam_elements/elements_src/edge_load.h"
 #include "xtrack/beam_elements/elements_src/default_magnet_config.h"
 
 GPUFUN
@@ -17,61 +18,38 @@ void Quadrupole_track_local_particle(
         LocalParticle* part0
 ) {
 
-    track_magnet_particles(
-        /*weight*/                1.,
-        /*part0*/                 part0,
-        /*length*/                QuadrupoleData_get_length(el),
-        /*order*/                 QuadrupoleData_get_order(el),
-        /*inv_factorial_order*/   QuadrupoleData_get_inv_factorial_order(el),
-        /*knl*/                   QuadrupoleData_getp1_knl(el, 0),
-        /*ksl*/                   QuadrupoleData_getp1_ksl(el, 0),
-        /*order_rel*/             QuadrupoleData_len_knl_rel(el) - 1, // order_rel is derived from the length of knl_rel and ksl_rel arrays
-      /*inv_factorial_order_rel*/ one_over_factorial(QuadrupoleData_len_knl_rel(el) - 1), // 1 / (order_rel)!
-        /*knl_rel*/               QuadrupoleData_getp1_knl_rel(el, 0),
-        /*ksl_rel*/               QuadrupoleData_getp1_ksl_rel(el, 0),
-        /*rel_ref_strength*/      QuadrupoleData_get_length(el) * ((QuadrupoleData_get_main_is_skew(el)) ? QuadrupoleData_get_k1s(el) : QuadrupoleData_get_k1(el)),
-        /*num_multipole_kicks*/   QuadrupoleData_get_num_multipole_kicks(el),
-        /*model*/                 QuadrupoleData_get_model(el),
-        /*default_model*/         QUADRUPOLE_DEFAULT_MODEL,
-        /*integrator*/            QuadrupoleData_get_integrator(el),
-        /*default_integrator*/    QUADRUPOLE_DEFAULT_INTEGRATOR,
-        /*radiation_flag*/        QuadrupoleData_get_radiation_flag(el),
-        /*radiation_flag_parent*/ 0, // not used here
-        /*radiation_record*/      NULL,
-        /*delta_taper*/           QuadrupoleData_get_delta_taper(el),
-        /*h*/                     0.,
-        /*hxl*/                   0.,
-        /*k0*/                    0.,
-        /*k1*/                    QuadrupoleData_get_k1(el),
-        /*k2*/                    0.,
-        /*k3*/                    0.,
-        /*k0s*/                   0.,
-        /*k1s*/                   QuadrupoleData_get_k1s(el),
-        /*k2s*/                   0.,
-        /*k3s*/                   0.,
-        /*ks*/                    0.,
-        /*dks_ds*/                0.,
-        /*x0_solenoid*/           0.,
-        /*y0_solenoid*/           0.,
-        /*rbend_model*/           -1, // not rbend
-     /*rbend_compensate_sagitta*/ 0,  // not rbend
-        /*rbend_shift*/           0., // not rbend
-        /*rbend_angle_diff*/      0., // not rbend
-        /*length_straight*/       0., // not rbend
-        /*body_active*/           1,
-        /*edge_entry_active*/     QuadrupoleData_get_edge_entry_active(el),
-        /*edge_exit_active*/      QuadrupoleData_get_edge_exit_active(el),
-        /*edge_entry_model*/      1,
-        /*edge_exit_model*/       1,
-        /*edge_entry_angle*/      0.,
-        /*edge_exit_angle*/       0.,
-        /*edge_entry_angle_fdown*/0.,
-        /*edge_exit_angle_fdown*/ 0.,
-        /*edge_entry_fint*/       0.,
-        /*edge_exit_fint*/        0.,
-        /*edge_entry_hgap*/       0.,
-        /*edge_exit_hgap*/        0.
-    );
+    MagnetFace entry_face = MagnetFace_empty(0);
+    EDGE_LOAD_STRAIGHT(entry_face, QuadrupoleData_get_, el, entry);
+    MagnetFace exit_face = MagnetFace_empty(1);
+    EDGE_LOAD_STRAIGHT(exit_face, QuadrupoleData_get_, el, exit);
+
+    // Settings aligned by hand: not formatted
+    // clang-format off
+    MagnetSettings magnet;
+    MagnetSettings_init_default(&magnet);
+    magnet.length                   = QuadrupoleData_get_length(el);
+    magnet.order                    = QuadrupoleData_get_order(el);
+    magnet.inv_factorial_order      = QuadrupoleData_get_inv_factorial_order(el);
+    magnet.knl                      = QuadrupoleData_getp1_knl(el, 0);
+    magnet.ksl                      = QuadrupoleData_getp1_ksl(el, 0);
+    magnet.order_rel                = QuadrupoleData_len_knl_rel(el) - 1;  // order_rel is derived from the length of knl_rel and ksl_rel arrays
+    magnet.knl_rel                  = QuadrupoleData_getp1_knl_rel(el, 0);
+    magnet.ksl_rel                  = QuadrupoleData_getp1_ksl_rel(el, 0);
+    magnet.rel_ref_strength         = QuadrupoleData_get_length(el) * ((QuadrupoleData_get_main_is_skew(el)) ? QuadrupoleData_get_k1s(el) : QuadrupoleData_get_k1(el));
+    magnet.num_multipole_kicks      = QuadrupoleData_get_num_multipole_kicks(el);
+    magnet.model                    = magnet_or_default(QuadrupoleData_get_model(el), QUADRUPOLE_DEFAULT_MODEL);
+    magnet.integrator               = magnet_or_default(QuadrupoleData_get_integrator(el), QUADRUPOLE_DEFAULT_INTEGRATOR);
+    magnet.radiation_flag           = QuadrupoleData_get_radiation_flag(el);
+    magnet.delta_taper              = QuadrupoleData_get_delta_taper(el);
+    magnet.k1                       = QuadrupoleData_get_k1(el);
+    magnet.k1s                      = QuadrupoleData_get_k1s(el);
+    // Kept at default (MagnetSettings_init_default):
+    //     weight, radiation_record, h, hxl, k0, k2, k3,
+    //     k0s, k2s, k3s, ks, dks_ds, x0_solenoid, y0_solenoid, rbend_model,
+    //     rbend_compensate_sagitta, rbend_shift, rbend_angle_diff,
+    //     length_straight, body_active
+    // clang-format on
+    track_magnet_particles(part0, &magnet, &entry_face, &exit_face);
 }
 
 #endif // XTRACK_QUADRUPOLE_H

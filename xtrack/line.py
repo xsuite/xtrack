@@ -36,9 +36,13 @@ from . import json as json_utils
 from .api_categorization import GroupedAPICollector, doc_group, property_with_doc_group
 from .beam_elements import BeamElement, Drift, Marker, Multipole, element_classes
 from .beam_elements._common import (
-    _EDGE_MODEL_TO_INDEX,
     _MODEL_TO_INDEX_CURVED,
     _MODEL_TO_INDEX_DRIFT,
+)
+from .beam_elements._edge import (
+    BEND_EDGE_MODELS,
+    edge_bits_to_model,
+    edge_model_to_bits,
 )
 from .beam_elements.slice_base import ID_RADIATION_FROM_PARENT
 from .composer.composer import (
@@ -4820,7 +4824,8 @@ class Line:
             'drift-kick-drift-exact', or 'drift-kick-drift-expanded'.
         edge: str
             Model to be used for the bend edges. Can be 'linear', 'full',
-            'dipole-only' or 'suppressed'.
+            'no-mult' or 'suppressed' ('dipole-only': deprecated name of
+            'no-mult').
         num_multipole_kicks: int
             Number of multipole kicks to consider.
         integrator: str
@@ -4833,15 +4838,18 @@ class Line:
         if core is not None and core not in _MODEL_TO_INDEX_CURVED:
             raise ValueError(f'Unknown bend model {core}')
 
-        if edge is not None and edge not in _EDGE_MODEL_TO_INDEX:
-            raise ValueError(f'Unknown bend edge model {edge}')
+        if edge is not None:
+            # Validates the name, and warns for a deprecated one
+            edge = edge_bits_to_model(
+                BEND_EDGE_MODELS, edge_model_to_bits(BEND_EDGE_MODELS, edge, 'bends')
+            )
 
         for ee in self._element_dict.values():
             if core is not None and isinstance(ee, (xt.Bend, xt.RBend)):
                 ee.model = core
 
             if edge is not None and isinstance(ee, xt.DipoleEdge):
-                ee.model = edge if not edge == 'dipole-only' else 'full'
+                ee.model = edge if not edge == 'no-mult' else 'full'
 
             if edge is not None and isinstance(ee, (xt.Bend, xt.RBend)):
                 ee.edge_entry_model = edge

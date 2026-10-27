@@ -11,6 +11,7 @@
 
 #include "xtrack/headers/track.h"
 #include "xtrack/beam_elements/elements_src/track_magnet.h"
+#include "xtrack/beam_elements/elements_src/edge_load.h"
 #include "xtrack/beam_elements/elements_src/default_magnet_config.h"
 
 GPUFUN
@@ -19,61 +20,45 @@ void ThickSliceUniformSolenoid_track_local_particle(
         LocalParticle* part0
 ) {
 
-    track_magnet_particles(
-        /*weight*/                ThickSliceUniformSolenoidData_get_weight(el),
-        /*part0*/                 part0,
-        /*length*/                ThickSliceUniformSolenoidData_get__parent_length(el),
-        /*order*/                 ThickSliceUniformSolenoidData_get__parent_order(el),
-        /*inv_factorial_order*/   ThickSliceUniformSolenoidData_get__parent_inv_factorial_order(el),
-        /*knl*/                   ThickSliceUniformSolenoidData_getp1__parent_knl(el, 0),
-        /*ksl*/                   ThickSliceUniformSolenoidData_getp1__parent_ksl(el, 0),
-        /*order_rel*/             -1,
-      /*inv_factorial_order_rel*/ 0,
-        /*knl_rel*/               NULL,
-        /*ksl_rel*/               NULL,
-        /*rel_ref_strength*/      0.,
-        /*num_multipole_kicks*/   ThickSliceUniformSolenoidData_get__parent_num_multipole_kicks(el),
-        /*model*/                 -2, // sol-kick-sol
-        /*default_model*/         0, // unused
-        /*integrator*/            ThickSliceUniformSolenoidData_get__parent_integrator(el),
-        /*default_integrator*/    SOLENOID_DEFAULT_INTEGRATOR,
-        /*radiation_flag*/        ThickSliceUniformSolenoidData_get_radiation_flag(el),
-        /*radiation_flag_parent*/ ThickSliceUniformSolenoidData_get__parent_radiation_flag(el),
-        /*radiation_record*/      NULL,
-        /*delta_taper*/           ThickSliceUniformSolenoidData_get_delta_taper(el),
-        /*h*/                     0.,
-        /*hxl*/                   0.,
-        /*k0*/                    0.,
-        /*k1*/                    0.,
-        /*k2*/                    0.,
-        /*k3*/                    0.,
-        /*k0s*/                   0.,
-        /*k1s*/                   0.,
-        /*k2s*/                   0.,
-        /*k3s*/                   0.,
-        /*ks*/                    ThickSliceUniformSolenoidData_get__parent_ks(el),
-        /*dks_ds*/                0.,
-        /*x0_solenoid*/           ThickSliceUniformSolenoidData_get__parent_x0(el),
-        /*y0_solenoid*/           ThickSliceUniformSolenoidData_get__parent_y0(el),
-        /*rbend_model*/           -1, // not rbend
-     /*rbend_compensate_sagitta*/ 0,  // not rbend
-        /*rbend_shift*/           0., // not rbend
-        /*rbend_angle_diff*/      0., // not rbend
-        /*length_straight*/       0., // not rbend
-        /*body_active*/           1,
-        /*edge_entry_active*/     0,
-        /*edge_exit_active*/      0,
-        /*edge_entry_model*/      0,
-        /*edge_exit_model*/       0,
-        /*edge_entry_angle*/      0.,
-        /*edge_exit_angle*/       0.,
-        /*edge_entry_angle_fdown*/0.,
-        /*edge_exit_angle_fdown*/ 0.,
-        /*edge_entry_fint*/       0.,
-        /*edge_exit_fint*/        0.,
-        /*edge_entry_hgap*/       0.,
-        /*edge_exit_hgap*/        0.
-    );
+
+    MagnetFace entry_face = MagnetFace_empty(0);
+    MagnetFace exit_face = MagnetFace_empty(1);
+
+    // Settings aligned by hand: not formatted
+    // clang-format off
+    MagnetSettings magnet;
+    MagnetSettings_init_default(&magnet);
+    magnet.weight                   = ThickSliceUniformSolenoidData_get_weight(el);
+    magnet.length                   = ThickSliceUniformSolenoidData_get__parent_length(el);
+    magnet.order                    = ThickSliceUniformSolenoidData_get__parent_order(el);
+    magnet.inv_factorial_order      = ThickSliceUniformSolenoidData_get__parent_inv_factorial_order(el);
+    magnet.knl                      = ThickSliceUniformSolenoidData_getp1__parent_knl(el, 0);
+    magnet.ksl                      = ThickSliceUniformSolenoidData_getp1__parent_ksl(el, 0);
+    magnet.num_multipole_kicks      = ThickSliceUniformSolenoidData_get__parent_num_multipole_kicks(el);
+    magnet.model                    = MODEL_SOL_KICK_SOL;
+    magnet.integrator               = magnet_or_default(ThickSliceUniformSolenoidData_get__parent_integrator(el), SOLENOID_DEFAULT_INTEGRATOR);
+    magnet.radiation_flag           = magnet_radiation_flag(ThickSliceUniformSolenoidData_get_radiation_flag(el), ThickSliceUniformSolenoidData_get__parent_radiation_flag(el));
+    magnet.delta_taper              = ThickSliceUniformSolenoidData_get_delta_taper(el);
+    magnet.ks                       = ThickSliceUniformSolenoidData_get__parent_ks(el);
+    magnet.x0_solenoid              = ThickSliceUniformSolenoidData_get__parent_x0(el);
+    magnet.y0_solenoid              = ThickSliceUniformSolenoidData_get__parent_y0(el);
+    // Kept at default (MagnetSettings_init_default):
+    //     order_rel, knl_rel, ksl_rel, rel_ref_strength, radiation_record, h,
+    //     hxl, k0, k1, k2, k3, k0s, k1s, k2s, k3s, dks_ds, rbend_model,
+    //     rbend_compensate_sagitta, rbend_shift, rbend_angle_diff,
+    //     length_straight, body_active
+    // clang-format on
+    // The default faces (vector potential only) get their own call, in which
+    // the compiler knows that the fringe maps are off. In the general call
+    // their code costs about 20 % of a solenoid on GPU, even when unused.
+    if (((entry_face.flags | exit_face.flags) & ~EDGE_ACTIVE) == 0) {
+        entry_face.flags &= EDGE_ACTIVE;
+        exit_face.flags &= EDGE_ACTIVE;
+        track_magnet_particles(part0, &magnet, &entry_face, &exit_face);
+    }
+    else {
+        track_magnet_particles(part0, &magnet, &entry_face, &exit_face);
+    }
 }
 
 #endif // XTRACK_THICK_SLICE_UNIFORM_SOLENOID_H

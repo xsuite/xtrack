@@ -1,11 +1,13 @@
-import numpy as np
-import xtrack as xt
+import warnings
 from enum import Enum
 
+import numpy as np
 from xdeps.refs import is_ref
-from xtrack.functions import Functions
-from .beam_elements._common import _get_expr as _ge
 
+import xtrack as xt
+from xtrack.functions import Functions
+
+from .beam_elements._common import _get_expr as _ge
 
 LUA_VARS_PER_CHUNK = 200
 
@@ -690,7 +692,30 @@ def element_to_mad_str(
 
     return ', '.join(tokens)
 
+def _warn_soft_fringe(line):
+    """The soft quadrupole fringe (qint1, qint2) is not exported: warn once,
+    naming the magnets that have one (slices by their magnet)."""
+    names = {}
+    for nn in line.element_names:
+        el = line._element_dict[nn]
+        while isinstance(el, xt.Replica):
+            nn = el.parent_name
+            el = line._element_dict[nn]
+        if hasattr(el, '_parent'):
+            nn, el = el.parent_name, el._parent
+        if any(getattr(el, f'edge_{face}_qint{ii}', 0)
+               for face in ('entry', 'exit') for ii in (1, 2)):
+            names[nn] = None
+    if names:
+        names = list(names)
+        warnings.warn(
+            'The MAD-X and MAD-NG export does not include the soft quadrupole '
+            f'fringe (qint1, qint2): {len(names)} magnets have one, e.g. '
+            f'{names[:3]}.')
+
 def to_madx_sequence(line, name='seq', mode='sequence'):
+
+    _warn_soft_fringe(line)
 
     # build variables part
     vars_str = ""
@@ -750,6 +775,7 @@ def to_madx_sequence(line, name='seq', mode='sequence'):
     return mad_input
 
 def to_madng_sequence(line, name='seq'):
+    _warn_soft_fringe(line)
     code_str = ""
     chunk_start = "(function()\t -- Begin chunk\n"
     chunk_end = "end)();\t -- End chunk\n"

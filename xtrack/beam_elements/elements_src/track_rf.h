@@ -300,14 +300,14 @@ void track_rf_particles(
 
     if (body_active){
 
-        if (integrator == 0){
+        if (integrator == INTEGRATOR_ADAPTIVE){
             integrator = default_integrator;
         }
-        if (model == 0){
+        if (model == MODEL_ADAPTIVE){
             model = default_model;
         }
-        if (model==-1){ // kick only
-            integrator = 3; // uniform
+        if (model == MODEL_KICK_ONLY){
+            integrator = INTEGRATOR_UNIFORM;
             num_kicks = 1;
         }
 
@@ -321,33 +321,10 @@ void track_rf_particles(
             num_kicks = 1;
         }
 
-        xt_float_or_tpsa k0_drift=0., k1_drift=0., ks_drift=0.;
-        double h_drift;
-        xt_float_or_tpsa k0_kick=0., k1_kick=0.;
-        double h_kick;
-        xt_float_or_tpsa k0_h_correction=0., k1_h_correction=0.;
-        int8_t kick_rot_frame;
-        int8_t drift_model;
-        uint8_t do_drift_correction;
-        configure_tracking_model(
-            model,
-            0, // k0
-            0, // k1
-            0, // h
-            0, // ks
-            &k0_drift,
-            &k1_drift,
-            &h_drift,
-            &ks_drift,
-            &k0_kick,
-            &k1_kick,
-            &h_kick,
-            &k0_h_correction,
-            &k1_h_correction,
-            &kick_rot_frame,
-            &drift_model,
-            &do_drift_correction
-        );
+        // Only the drift model is used: no field
+        const int8_t drift_model = configure_tracking_model(
+            model, /*k0*/ 0., /*k1*/ 0., /*h*/ 0., /*ks*/ 0.
+        ).drift.model;
 
 
         START_PER_PARTICLE_BLOCK(part0, part);

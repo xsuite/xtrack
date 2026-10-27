@@ -146,6 +146,7 @@ TPSA_SUPPORTED_ELEMENTS = [
     CrabCavity,
     RFMultipole,
     UniformSolenoid,
+    BFieldExpansion,
     Translation,
     Rotation,
     XYShift,
