@@ -1109,6 +1109,11 @@ class Environment:
         -------
         dict
             Serialized environment data.
+
+        Raises
+        ------
+        TypeError
+            If an element to be serialized has no callable ``to_dict`` method.
         """
 
         out = {}
@@ -1117,7 +1122,8 @@ class Environment:
         if include_version:
             out["xtrack_version"] = xt.__version__
 
-        out["elements"] = {k: el.to_dict() for k, el in self._element_dict.items()}
+        out["elements"] = {k: xt.line._serialize_element(el, k)
+                           for k, el in self._element_dict.items()}
 
         if self._particle_ref is not None:
             if isinstance(self._particle_ref, str):

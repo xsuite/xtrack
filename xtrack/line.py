@@ -825,6 +825,11 @@ class Line:
         -------
         out : dict
             Dictionary representation of the line.
+
+        Raises
+        ------
+        TypeError
+            If an element to be serialized has no callable ``to_dict`` method.
         '''
 
         out = {}
@@ -834,7 +839,8 @@ class Line:
             out["xtrack_version"] = xt.__version__
 
         if include_element_dict:
-            out["elements"] = {k: el.to_dict() for k, el in self._element_dict.items()}
+            out["elements"] = {k: _serialize_element(el, k)
+                               for k, el in self._element_dict.items()}
             if include_aperture and (
                 len(self.env.aperture.profiles) or len(self.env.aperture.pipes)
             ):
@@ -7954,6 +7960,16 @@ class LineTable(Table):
         'angle_rad': ('`angle_rad` is deprecated, please use `angle` instead'
                       + DEPRECATION_INFO_PREP_1_0),
     }
+
+def _serialize_element(element, name):
+    to_dict = getattr(element, 'to_dict', None)
+    if not callable(to_dict):
+        raise TypeError(
+            f"Cannot serialize element {name!r} "
+            f"(type {type(element).__name__}): "
+            "the element does not provide a callable to_dict() method.")
+    return to_dict()
+
 
 def _deserialize_element(el, class_dict, _buffer):
     eldct = el.copy()
