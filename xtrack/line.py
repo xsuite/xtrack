@@ -8393,8 +8393,9 @@ class LineAttrItem:
                 if hasattr(inner_obj, '_xobject'):
                     if inner_name not in inner_obj._xofields:
                         continue
-                    # Match MultiSetter's numeric storage access, bypassing
-                    # user-facing properties such as Bend.k0 == 'from_h'.
+                    # Match MultiSetter's numeric storage access. For example,
+                    # a Bend's element.k0 can return 'from_h', whereas
+                    # element._xobject.k0 contains the stored numeric value.
                     inner_obj = inner_obj._xobject
                 if not hasattr(inner_obj, inner_name):
                     continue
