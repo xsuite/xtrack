@@ -95,7 +95,7 @@ void MagnetEdge_cosh_sinhc(
 // g1 carries MAD-NG's lw (+1 on the face crossed first, -1 on the other) and g2
 // the direction sdir, so that each backtracking call inverts the forward one
 // (as in MAD-NG's strex_fringe).
-GPUFUN
+GPUFUN XT_NOINLINE
 void MagnetEdge_qsad_fringe_single_particle(
     LocalParticle* part,
     xt_float_or_tpsa_arg k1,   // total quadrupole strength
@@ -146,7 +146,7 @@ void MagnetEdge_qsad_fringe_single_particle(
 
 
 // Total dipole and quadrupole strengths: k + knl / length
-GPUFUN
+GPUFUN XT_INLINE
 void MagnetField_prepare(MagnetField* field) {
     const double length = field->length;
     xt_float_or_tpsa k0 = 0., k1 = 0., k1s = 0.;
@@ -203,7 +203,7 @@ MagnetFace MagnetFace_empty(const uint8_t is_exit_face) {
 // Whether a face is active with a sub-map that uses the derived field
 // (MagnetField_prepare): the linear edge and the fringes. The patch and the
 // vector potential do not.
-GPUFUN
+GPUFUN XT_INLINE
 uint8_t MagnetFace_uses_field(const MagnetFace* face) {
     return (face->flags & EDGE_ACTIVE)
            && (face->flags & (EDGE_LINEAR | EDGE_BEND | EDGE_MULT | EDGE_QSAD));
@@ -212,7 +212,7 @@ uint8_t MagnetFace_uses_field(const MagnetFace* face) {
 
 // Derive the sub-maps of a face for the direction of travel. The field must
 // have been prepared (MagnetField_prepare) if MagnetFace_uses_field.
-GPUFUN
+GPUFUN XT_INLINE
 void MagnetFace_prepare(MagnetFace* face, MagnetField* field, const uint8_t backtrack) {
     const int64_t flags = face->flags;
     // Rotations and wedges are inverted by flipping the angle sign
@@ -296,8 +296,10 @@ void MagnetFace_prepare(MagnetFace* face, MagnetField* field, const uint8_t back
 
 // The sub-maps of a face, each the forward map of the face or, when
 // backtracking, its inverse (the signs are set in MagnetFace_prepare).
+// Inlined: they take the face by pointer; the fringe maps they call take
+// scalars and are not inlined (XT_INLINE, XT_NOINLINE: headers/track.h).
 
-GPUFUN
+GPUFUN XT_INLINE
 void MagnetFace_patch_single_particle(
     LocalParticle* part,
     const MagnetFace* f,
@@ -314,7 +316,7 @@ void MagnetFace_patch_single_particle(
     }
 }
 
-GPUFUN
+GPUFUN XT_INLINE
 void MagnetFace_vector_potential_single_particle(
     LocalParticle* part,
     const MagnetFace* f,
@@ -330,7 +332,7 @@ void MagnetFace_vector_potential_single_particle(
     );
 }
 
-GPUFUN
+GPUFUN XT_INLINE
 void MagnetFace_linear_single_particle(LocalParticle* part, const MagnetFace* f) {
     if (!f->do_linear) return;
     DipoleEdgeLinear_single_particle(
@@ -338,13 +340,13 @@ void MagnetFace_linear_single_particle(LocalParticle* part, const MagnetFace* f)
     );
 }
 
-GPUFUN
+GPUFUN XT_INLINE
 void MagnetFace_rotation_single_particle(LocalParticle* part, const MagnetFace* f) {
     if (!f->do_rotate) return;
     YRotation_single_particle(part, f->rot_sin, f->rot_cos, f->rot_tan);
 }
 
-GPUFUN
+GPUFUN XT_INLINE
 void MagnetFace_bend_fringe_single_particle(LocalParticle* part, const MagnetFace* f) {
     if (!f->do_bend) return;
     // The fringe kick changes sign between the two faces, a property of the
@@ -361,7 +363,7 @@ void MagnetFace_bend_fringe_single_particle(LocalParticle* part, const MagnetFac
     }
 }
 
-GPUFUN
+GPUFUN XT_INLINE
 void MagnetFace_mult_fringe_single_particle(LocalParticle* part, const MagnetFace* f) {
     if (!f->do_mult) return;
     const MagnetField* field = f->field;
@@ -380,7 +382,7 @@ void MagnetFace_mult_fringe_single_particle(LocalParticle* part, const MagnetFac
     );
 }
 
-GPUFUN
+GPUFUN XT_INLINE
 void MagnetFace_qsad_fringe_single_particle(LocalParticle* part, const MagnetFace* f) {
     if (!f->do_qsad) return;
     MagnetEdge_qsad_fringe_single_particle(
@@ -388,13 +390,13 @@ void MagnetFace_qsad_fringe_single_particle(LocalParticle* part, const MagnetFac
     );
 }
 
-GPUFUN
+GPUFUN XT_INLINE
 void MagnetFace_quad_wedge_single_particle(LocalParticle* part, const MagnetFace* f) {
     if (!f->do_quad_wedge) return;
     Quad_wedge_single_particle(part, f->wedge_angle, f->field->knorm[1]);
 }
 
-GPUFUN
+GPUFUN XT_INLINE
 void MagnetFace_wedge_single_particle(LocalParticle* part, const MagnetFace* f) {
     if (!f->do_wedge) return;
     // sin, cos and tan of wedge_angle are those of the face rotation
@@ -406,7 +408,7 @@ void MagnetFace_wedge_single_particle(LocalParticle* part, const MagnetFace* f) 
 
 // Cross a face from the drift into the field (the order at the top of this
 // file)
-GPUFUN
+GPUFUN XT_INLINE
 void MagnetFace_enter_single_particle(LocalParticle* part, const MagnetFace* f) {
     MagnetFace_patch_single_particle(part, f, 1);
     MagnetFace_vector_potential_single_particle(part, f, 1);
@@ -421,7 +423,7 @@ void MagnetFace_enter_single_particle(LocalParticle* part, const MagnetFace* f) 
 
 
 // Cross a face from the field into the drift: the same sub-maps in reverse
-GPUFUN
+GPUFUN XT_INLINE
 void MagnetFace_leave_single_particle(LocalParticle* part, const MagnetFace* f) {
     MagnetFace_wedge_single_particle(part, f);
     MagnetFace_quad_wedge_single_particle(part, f);

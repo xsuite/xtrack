@@ -105,6 +105,24 @@
 #endif  // XO_CONTEXT_CL
 
 
+// Inlining, on GPU only (on CPU the compiler decides: the per-particle maps
+// take precomputed values, so a call costs little there)
+// - XT_INLINE: setup and control code. Each GPU thread tracks one particle and
+//   so runs the setup of every element for it; inlined, its structs stay in
+//   registers (passed by pointer to an out-of-line function they would live
+//   in local memory).
+// - XT_NOINLINE: large maps called from many places (drift, kick), compiled
+//   once, not at every call site (compile time). They take scalars, which are
+//   passed in registers.
+#ifdef XO_CONTEXT_CUDA
+    #define XT_INLINE __forceinline__
+    #define XT_NOINLINE __noinline__
+#else
+    #define XT_INLINE
+    #define XT_NOINLINE
+#endif
+
+
 #ifndef START_PER_PARTICLE_BLOCK
 #error "Unknown context or missing XO_CONTEXT_* flag. Try updating Xobjects?"
 #endif

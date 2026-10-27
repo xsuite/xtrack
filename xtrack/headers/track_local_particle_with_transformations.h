@@ -78,10 +78,11 @@
 #endif
 
 
-/* If transformations are enabled for an element, we define a function that
-   handles the misalignments and then calls the local tracking function.
-   This function already assumes that the transformations are
-   (1) possible for the element and (2) non-zero.
+/* If transformations are enabled for an element, this applies them on one
+   side of it: before the element (at_exit = 0) or after it (at_exit = 1), in
+   the direction of travel. It assumes that the transformations are
+   (1) possible for the element and (2) non-zero. Returns 0 if the particles
+   were lost (and the element must not be tracked).
 */
 #ifdef ALLOW_ROT_AND_SHIFT
 
@@ -89,9 +90,10 @@ GPUFUN
 #ifdef XO_CONTEXT_CL
     __attribute__((noinline))
 #endif
-void CONCAT(ELEMENT_NAME, _track_local_particle_with_nonzero_transformations)(
+int8_t CONCAT(ELEMENT_NAME, _apply_transformations)(
     ELEMENT_DATA el,
-    LocalParticle* part0
+    LocalParticle* part0,
+    int8_t at_exit
 ) {
     // Retrieve the weight
     const double weight = GET_WEIGHT(el);
@@ -123,11 +125,11 @@ void CONCAT(ELEMENT_NAME, _track_local_particle_with_nonzero_transformations)(
     double anchor = GET_PARAM(el, rot_shift_anchor);
 
     #ifdef THIN_SLICE_OF_CURVED_ELEMENT
-        if (rot_x_rad != 0.0 || rot_y_rad != 0.0 || rot_s_rad_no_frame != 0.0) {
+        if (!at_exit && (rot_x_rad != 0.0 || rot_y_rad != 0.0 || rot_s_rad_no_frame != 0.0)) {
             START_PER_PARTICLE_BLOCK(part0, part);
                 LocalParticle_set_state(part, XT_INVALID_THIN_SLICE_TRANSFORM);
             END_PER_PARTICLE_BLOCK;
-            return;
+            return 0;
         }
     #endif
 
@@ -138,27 +140,21 @@ void CONCAT(ELEMENT_NAME, _track_local_particle_with_nonzero_transformations)(
         anchor = anchor - slice_offset;
     #endif
 
-    if (!backtrack) {
+    // Backtracking crosses the exit side first
+    if (at_exit == backtrack) {
         TRACK_MISALIGN_ENTRY;
     } else {
         TRACK_MISALIGN_EXIT;
     }
-
-    // Track the particle in the local frame
-    CONCAT(ELEMENT_NAME, _track_local_particle)(el, part0);
-
-    if (!backtrack) {
-        TRACK_MISALIGN_EXIT;
-    } else {
-        TRACK_MISALIGN_ENTRY;
-    }
+    return 1;
 }
 
 #endif /* ALLOW_ROT_AND_SHIFT */
 
-/* This is the main function defined in this file. It checks whether
-   transformations are enabled for the element, and calls either the
-   standard local tracking function or the one that handles transformations.
+/* This is the main function defined in this file. It tracks the element in
+   its local frame, with the transformations before and after it if they are
+   enabled and non-zero. The element is called from one place only, so that
+   its code appears once in the kernel.
 */
 GPUFUN
 #ifdef XO_CONTEXT_CL
@@ -168,30 +164,26 @@ void CONCAT(ELEMENT_NAME, _track_local_particle_with_transformations)(
     ELEMENT_DATA el,
     LocalParticle* part0
 ) {
-    #ifndef ALLOW_ROT_AND_SHIFT
-        CONCAT(ELEMENT_NAME, _track_local_particle)(el, part0);
-    #else
-        double const shift_x = GET_PARAM(el, shift_x);
-        double const shift_y = GET_PARAM(el, shift_y);
-        double const shift_s = GET_PARAM(el, shift_s);
-        double const rot_x_rad = GET_PARAM(el, rot_x_rad);
-        double const rot_y_rad = GET_PARAM(el, rot_y_rad);
-        double const rot_s_rad = GET_PARAM(el, rot_s_rad);
-        double const rot_s_rad_no_frame = GET_PARAM(el, rot_s_rad_no_frame);
+    #ifdef ALLOW_ROT_AND_SHIFT
+        const int64_t rot_shift_active =
+            NONZERO(GET_PARAM(el, shift_x)) ||
+            NONZERO(GET_PARAM(el, shift_y)) ||
+            NONZERO(GET_PARAM(el, shift_s)) ||
+            NONZERO(GET_PARAM(el, rot_x_rad)) ||
+            NONZERO(GET_PARAM(el, rot_y_rad)) ||
+            NONZERO(GET_PARAM(el, rot_s_rad)) ||
+            NONZERO(GET_PARAM(el, rot_s_rad_no_frame));
 
-        const int64_t rot_shift_active = \
-            NONZERO(shift_x) ||
-            NONZERO(shift_y) ||
-            NONZERO(shift_s) ||
-            NONZERO(rot_x_rad) ||
-            NONZERO(rot_y_rad) ||
-            NONZERO(rot_s_rad) ||
-            NONZERO(rot_s_rad_no_frame);
+        if (rot_shift_active && !CONCAT(ELEMENT_NAME, _apply_transformations)(el, part0, 0)) {
+            return;
+        }
+    #endif
 
+    CONCAT(ELEMENT_NAME, _track_local_particle)(el, part0);
+
+    #ifdef ALLOW_ROT_AND_SHIFT
         if (rot_shift_active) {
-            CONCAT(ELEMENT_NAME, _track_local_particle_with_nonzero_transformations)(el, part0);
-        } else {
-            CONCAT(ELEMENT_NAME, _track_local_particle)(el, part0);
+            CONCAT(ELEMENT_NAME, _apply_transformations)(el, part0, 1);
         }
     #endif
 }

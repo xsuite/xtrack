@@ -44,8 +44,10 @@ void track_magnet_kick_path_correction_single_particle_h0(
 
 // The kick, called through MagnetKick_apply. The values of the prepared
 // MagnetKick are passed one by one: on GPU, a struct given by pointer (a copy
-// by value too) to a function that is not inlined lives in local memory.
-GPUFUN
+// by value too) to a function that is not inlined lives in local memory,
+// and the kick is not inlined, as it is called from many places in the
+// integrators (compile time).
+GPUFUN XT_NOINLINE
 void track_magnet_kick_single_particle(
     LocalParticle* part,
     double kick_weight,
@@ -140,7 +142,7 @@ void track_magnet_kick_single_particle(
 
 
 // Apply a prepared kick, with kick_weight the fraction of the body it covers
-GPUFUN
+GPUFUN XT_INLINE
 void MagnetKick_apply(LocalParticle* part, const MagnetKick* kick, double kick_weight) {
     track_magnet_kick_single_particle(
         part,

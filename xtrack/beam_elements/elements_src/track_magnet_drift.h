@@ -536,7 +536,7 @@ void track_solenoid_single_particle(
 
 
 
-GPUFUN
+GPUFUN XT_NOINLINE
 void track_magnet_drift_single_particle(
     LocalParticle* part,  // LocalParticle to track
     const double length,  // length of the element
@@ -625,7 +625,7 @@ void track_magnet_drift_single_particle(
 
 
 
-GPUFUN
+GPUFUN XT_INLINE
 void MagnetDrift_apply(LocalParticle* part, const MagnetDrift* drift, double length) {
     track_magnet_drift_single_particle(
         part,

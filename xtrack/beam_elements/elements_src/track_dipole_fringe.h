@@ -73,7 +73,7 @@ void DipoleFringe_coefficients(
 // relation is explicit in the outgoing y, so backtracking subtracts the same
 // increments instead of adding them; only the coefficients, which the forward
 // map evaluates at the incoming py, have to be recovered first.
-GPUFUN
+GPUFUN XT_NOINLINE
 void DipoleFringe_track_single_particle(
     LocalParticle* part,      // LocalParticle to track
     const double fint,        // Fringe field integral
@@ -163,7 +163,7 @@ void DipoleFringe_track_single_particle(
 // Uses the same corrected finite-gap angle and derivatives as the default map.
 
 // The PTC fringe has no closed-form inverse, so backtracking is not supported.
-GPUFUN
+GPUFUN XT_NOINLINE
 void DipoleFringe_track_single_particle(
     LocalParticle* part,      // LocalParticle to track
     const double fint,        // Fringe field integral

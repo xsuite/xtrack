@@ -9,6 +9,8 @@
 #define H_TOLERANCE (1e-8)
 
 
+// Not XT_INLINE (nor MagnetKick_prepare): forced, the inlining grows the
+// element frame on GPU and slows it (solenoid +6 %); the compiler inlines it
 GPUFUN
 MagnetSplit configure_tracking_model(
     int64_t model,

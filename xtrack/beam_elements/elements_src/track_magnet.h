@@ -95,7 +95,7 @@ void magnet_total_multipoles(
 // coordinates before it (old_*) and after it (the particle). The body's
 // fields come as values: a pointer to the body would keep it out of
 // registers in every magnet class (GPU).
-GPUFUN
+GPUFUN XT_NOINLINE
 void magnet_body_spin_radiation(
     LocalParticle* part,
     const MagnetField* field,
@@ -167,7 +167,7 @@ void magnet_body_spin_radiation(
 #endif
 
 
-GPUFUN
+GPUFUN XT_INLINE
 void track_magnet_body_single_particle(
     LocalParticle* part,
     const MagnetBody* body,
@@ -191,7 +191,8 @@ void track_magnet_body_single_particle(
             code;                    \
         }
     #else
-        // Spin and radiation of a step, after it: one shared function
+        // Spin and radiation of a step, after it: one shared copy (not
+        // inlined), not one per integrator step and magnet class
         #define WITH_RADIATION(ll, code) \
         { \
             double const old_x = LocalParticle_get_x(part); \
@@ -360,7 +361,7 @@ void MagnetKick_prepare(
 // Derive the integration of the body from its settings and the field of the
 // element (the strengths of the faces, see track_magnet_edge.h; they need not
 // be prepared).
-GPUFUN
+GPUFUN XT_INLINE
 void MagnetBody_prepare(
     MagnetBody* body,
     const MagnetField* field,
@@ -475,14 +476,14 @@ void MagnetBody_prepare(
 
 // The model or integrator of an element: 0 selects the default of the
 // element type (default_magnet_config.h)
-GPUFUN
+GPUFUN XT_INLINE
 int8_t magnet_or_default(int8_t value, int8_t default_value) {
     return value == 0 ? default_value : value;
 }
 
 
 // The radiation flag of a slice: 10 takes that of the parent element
-GPUFUN
+GPUFUN XT_INLINE
 int64_t magnet_radiation_flag(int64_t flag, int64_t parent_flag) {
     return flag == 10 ? parent_flag : flag;
 }
@@ -538,7 +539,7 @@ void MagnetSettings_init_default(MagnetSettings* s) {
 // Track a magnet, or a slice of it (weight: its fraction of the length),
 // through its first face, its body and its second face, in the order of the
 // direction of travel. The faces are given in the element frame.
-GPUFUN
+GPUFUN XT_INLINE
 void track_magnet_particles(
     LocalParticle* part0,
     const MagnetSettings* settings,

@@ -98,7 +98,7 @@ void MultFringe_evaluate(
     }
 }
 
-GPUFUN
+GPUFUN XT_NOINLINE
 void MultFringe_track_single_particle(
     LocalParticle* part,
     const xt_float_or_tpsa* kn,  // strengths, orders 0 ... k_order
