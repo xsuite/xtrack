@@ -66,3 +66,18 @@ def test_spin_fixed_point_all_components(axis):
     np.testing.assert_allclose(np.linalg.norm(spin, axis=1), 1., atol=1e-12, rtol=0)
     np.testing.assert_allclose(spin[-1], spin[0], atol=1e-12, rtol=0)
     np.testing.assert_allclose(abs(np.dot(spin[0], expected)), 1., atol=1e-10, rtol=0)
+
+
+@pytest.mark.parametrize('radiation', [None, 'mean'])
+def test_configure_spin_boolean(radiation):
+    line = xt.Line(elements=[xt.Bend(length=1., angle=0.1, k0=0.1)])
+    line.configure_radiation(model=radiation)
+    for value, expected in [(True, 'auto'), (False, None), ('auto', 'auto'),
+                            (None, None)]:
+        line.configure_spin(value)
+        assert line._spin_model == expected
+        assert line.config.get('XTRACK_MULTIPOLE_NO_SYNRAD', False) == (
+            expected is None and radiation is None)
+    for value in ['True', 'False', 'invalid']:
+        with pytest.raises(ValueError, match='spin_model'):
+            line.configure_spin(value)
