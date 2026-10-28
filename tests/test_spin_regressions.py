@@ -81,3 +81,37 @@ def test_configure_spin_boolean(radiation):
     for value in ['True', 'False', 'invalid']:
         with pytest.raises(ValueError, match='spin_model'):
             line.configure_spin(value)
+
+
+def _spin_test_ring(ks=0., p0c=5e9, mass0=xt.ELECTRON_MASS_EV,
+                    anomalous_magnetic_moment=0.00115965218128, qs=None, angle=0.1):
+    longitudinal = ({} if qs is None else dict(
+        longitudinal_mode='linear_fixed_qs', qs=qs, bets=10.))
+    line = xt.Line(elements=[
+        xt.LineSegmentMap(qx=0.2, qy=0.3, betx=1., bety=1., length=10.,
+                          **longitudinal),
+        xt.Bend(length=1., angle=angle, k0=angle),
+        xt.UniformSolenoid(length=0.1, ks=ks)])
+    line.particle_ref = xt.Particles(
+        p0c=p0c, mass0=mass0,
+        anomalous_magnetic_moment=anomalous_magnetic_moment)
+    return line
+
+
+def test_polarization_4d_planar_limit():
+    # The energy eigenvalue is one, so the unconstrained 3D spin solve is
+    # singular. The derivative should be zero in the planar limit and vary
+    # continuously as a weak solenoid is introduced.
+    derivatives = []
+    for ks in [0., 1e-8, 0.01]:
+        line = _spin_test_ring(ks=ks, angle=0.01)
+        tw = line.twiss4d(polarization_analysis=True)
+        n0 = np.array([tw.spin_x, tw.spin_y, tw.spin_z]).T
+        dn = tw.spin_n_matrix[:, :, 5]
+        assert np.all(np.isfinite(dn))
+        np.testing.assert_allclose(dn[-1], dn[0], atol=1e-7, rtol=0)
+        np.testing.assert_allclose(np.sum(n0 * dn, axis=1), 0., atol=1e-7, rtol=0)
+        derivatives.append(dn[0])
+    np.testing.assert_allclose(derivatives[0], 0., atol=1e-10, rtol=0)
+    np.testing.assert_allclose(derivatives[1], derivatives[0], atol=1e-7, rtol=0)
+    assert np.linalg.norm(derivatives[2]) > 1e-5
