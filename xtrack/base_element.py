@@ -7,13 +7,14 @@ from functools import partial
 from pathlib import Path
 
 import numpy as np
-
 import xobjects as xo
-import xtrack as xt
 from madng_tpsa import Tpsa, ffi
 from xobjects.context import Source
 from xobjects.general import Print
 from xobjects.hybrid_class import _build_xofields_dict
+
+import xtrack as xt
+
 from .general import _pkg_root
 from .internal_record import RecordIdentifier, RecordIndex, generate_get_record
 from .particles import Particles
@@ -256,10 +257,14 @@ def _generate_track_local_particle_with_transformations(
     isthick,
     xofields,
     is_thin_slice,
+    magnet_plan,
 ):
     options = {
         'ELEMENT_NAME': element_name,
     }
+
+    if magnet_plan:
+        options['MAGNET_PLAN'] = 1
 
     if allow_rot_and_shift:
         options['ALLOW_ROT_AND_SHIFT'] = 1
@@ -487,6 +492,9 @@ class MetaBeamElement(xo.MetaHybridClass):
                     xofields=xofields,
                     is_thin_slice=(
                         '_ThinSliceElementBase' in (base.__name__ for base in bases)),
+                    # Magnets: a class with `_magnet_plan = True` is tracked
+                    # through a MagnetPlan (track_magnet.h, tracker.py)
+                    magnet_plan=data.get('_magnet_plan', False),
                 )
             )
 
@@ -656,6 +664,7 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
 
     def compile_tpsa_kernels(self, only_if_needed=True):
         from madng_tpsa.paths import core_library
+
         from xtrack.tpsa.particles import TpsaParticleData
 
         context = self._buffer.context

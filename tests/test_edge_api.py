@@ -22,9 +22,9 @@ def _new(cls, **kw):
         (xt.Bend, BEND_MODELS, 'linear', 1),
         (xt.RBend, BEND_MODELS, 'linear', 1),
         (xt.Magnet, BEND_MODELS, 'linear', 1),
-        (xt.Quadrupole, STRAIGHT_MODELS, 'full', 0),
-        (xt.Sextupole, STRAIGHT_MODELS, 'full', 0),
-        (xt.Octupole, STRAIGHT_MODELS, 'full', 0),
+        (xt.Quadrupole, STRAIGHT_MODELS, 'suppressed', 1),
+        (xt.Sextupole, STRAIGHT_MODELS, 'suppressed', 1),
+        (xt.Octupole, STRAIGHT_MODELS, 'suppressed', 1),
         (xt.UniformSolenoid, STRAIGHT_MODELS, 'suppressed', 1),
     ],
 )
@@ -127,11 +127,13 @@ def test_dipole_only_is_deprecated_name_of_no_mult():
 def _magnet_with_gradient(cls, **kw):
     """A magnet of each kind with a k1 (from knl) and a sextupole component,
     both faces active"""
-    geo = dict(length_straight=1) if cls is xt.RBend else dict(length=1)
+    geo = {'length_straight': 1} if cls is xt.RBend else {'length': 1}
     if cls in (xt.Bend, xt.RBend):
         geo['angle'] = 0.1
     if cls is xt.UniformSolenoid:
         geo['ks'] = 0.1
+    if cls not in (xt.Bend, xt.RBend):  # straight magnets: fringes are off by default
+        kw = {'edge_entry_model': 'full', 'edge_exit_model': 'full', **kw}
     return cls(
         **geo, knl=[0, 0.3, 0.5], edge_entry_active=True, edge_exit_active=True, **kw
     )
@@ -145,10 +147,10 @@ SOFT_QUAD_MAGNETS = [
 
 @pytest.mark.parametrize('cls', SOFT_QUAD_MAGNETS)
 def test_soft_quadrupole_fringe_on_all_magnets(cls):
-    qint = dict(
-        edge_entry_qint1=0.2, edge_entry_qint2=0.1,
-        edge_exit_qint1=0.15, edge_exit_qint2=-0.05,
-    )
+    qint = {
+        'edge_entry_qint1': 0.2, 'edge_entry_qint2': 0.1,
+        'edge_exit_qint1': 0.15, 'edge_exit_qint2': -0.05,
+    }
 
     def track(model, **kw):
         return _track(_magnet_with_gradient(
@@ -179,7 +181,7 @@ def test_soft_quadrupole_fringe_reversed_line():
     from xtrack.environment import _reverse_element
 
     env = xt.Environment(particle_ref=xt.Particles(p0c=1e9))
-    faces = dict(edge_entry_active=True, edge_exit_active=True)
+    faces = {'edge_entry_model': 'full', 'edge_exit_model': 'full'}
     line = env.new_line(components=[
         env.new('qf', xt.Quadrupole, length=0.4, k1=1.2, k1s=0.05, **faces,
                 edge_entry_qint1=0.1, edge_entry_qint2=0.03,
@@ -253,33 +255,33 @@ def _check_edge_slices(line, name):
 @pytest.mark.parametrize(
     'cls, model, kw, equivalent',
     [
-        (xt.Bend, 'linear', dict(k1=0.2), xt.DipoleEdge),
-        (xt.Bend, 'no-mult', dict(k1=0.2), xt.DipoleEdge),
+        (xt.Bend, 'linear', {'k1': 0.2}, xt.DipoleEdge),
+        (xt.Bend, 'no-mult', {'k1': 0.2}, xt.DipoleEdge),
         (
             xt.Bend,
             'no-mult',
-            dict(k1=0.2, edge_entry_qint1=0.2, edge_exit_qint1=0.2),
+            {'k1': 0.2, 'edge_entry_qint1': 0.2, 'edge_exit_qint1': 0.2},
             xt.MagnetEdge,
         ),
         (
             xt.Bend,
             'full',
-            dict(edge_entry_qint2=0.1, edge_exit_qint2=0.1),
+            {'edge_entry_qint2': 0.1, 'edge_exit_qint2': 0.1},
             xt.MagnetEdge,
         ),
-        (xt.Bend, 'full', dict(), xt.DipoleEdge),
-        (xt.Bend, 'full', dict(k1=0.2), xt.MagnetEdge),
+        (xt.Bend, 'full', {}, xt.DipoleEdge),
+        (xt.Bend, 'full', {'k1': 0.2}, xt.MagnetEdge),
         (
             xt.Bend,
             'full',
-            dict(k0=0.12, k2=0.5, knl=[0.01, 0, 0.3], knl_rel=[0, 0, 0.1]),
+            {'k0': 0.12, 'k2': 0.5, 'knl': [0.01, 0, 0.3], 'knl_rel': [0, 0, 0.1]},
             xt.MagnetEdge,
         ),
-        (xt.RBend, 'full', dict(k1=0.2), xt.MagnetEdge),
+        (xt.RBend, 'full', {'k1': 0.2}, xt.MagnetEdge),
     ],
 )
 def test_bend_edge_slice_equivalent_element(cls, model, kw, equivalent):
-    geo = dict(length_straight=1) if cls is xt.RBend else dict(length=1)
+    geo = {'length_straight': 1} if cls is xt.RBend else {'length': 1}
     bend = cls(
         **geo,
         angle=0.1,
@@ -301,12 +303,12 @@ def test_bend_edge_slice_equivalent_element(cls, model, kw, equivalent):
 @pytest.mark.parametrize(
     'kw',
     [
-        dict(),
-        dict(edge_entry_qint1=0.2, edge_entry_qint2=0.1),
-        dict(edge_entry_model='no-mult', edge_entry_qint1=0.2, edge_entry_qint2=0.1),
-        dict(edge_entry_model='no-mult'),
-        dict(edge_entry_model='no-mult', knl=[0.01, 0, 0.3]),
-        dict(edge_entry_qint1=0.2, k1s=0.1, knl=[0, 0, 0.3]),
+        {},
+        {'edge_entry_qint1': 0.2, 'edge_entry_qint2': 0.1},
+        {'edge_entry_model': 'no-mult', 'edge_entry_qint1': 0.2, 'edge_entry_qint2': 0.1},
+        {'edge_entry_model': 'no-mult'},
+        {'edge_entry_model': 'no-mult', 'knl': [0.01, 0, 0.3]},
+        {'edge_entry_qint1': 0.2, 'k1s': 0.1, 'knl': [0, 0, 0.3]},
     ],
 )
 def test_quadrupole_edge_slice_equivalent_element(kw):
@@ -319,22 +321,22 @@ def test_quadrupole_edge_slice_equivalent_element(kw):
         }
     )
     quad = xt.Quadrupole(
-        length=1, k1=0.5, edge_entry_active=True, edge_exit_active=True, **kw
+        length=1, k1=0.5, **{'edge_entry_model': 'full', 'edge_exit_model': 'full', **kw}
     )
     line = _sliced_line('q', quad)
     _check_edge_slices(line, 'q')
 
 
-MIXED_BEAM = dict(
-    x=[1e-3, -2e-3, 0, 3e-3, 2e-3],
-    px=[2e-4, 1e-4, 0, -3e-4, 1e-4],
-    y=[-1e-3, 2e-3, 0, 1e-3, -2e-3],
-    py=[1e-4, -2e-4, 0, 2e-4, 3e-4],
-    zeta=[1e-3, -1e-3, 0, 2e-3, 0],
-    delta=[1e-3, -2e-3, 0, 5e-3, -1e-2],
-    charge_ratio=[1, 1, 0.5, 2, -1],
-    mass_ratio=[1, 1, 0.25, 3, 1],
-)
+MIXED_BEAM = {
+    'x': [1e-3, -2e-3, 0, 3e-3, 2e-3],
+    'px': [2e-4, 1e-4, 0, -3e-4, 1e-4],
+    'y': [-1e-3, 2e-3, 0, 1e-3, -2e-3],
+    'py': [1e-4, -2e-4, 0, 2e-4, 3e-4],
+    'zeta': [1e-3, -1e-3, 0, 2e-3, 0],
+    'delta': [1e-3, -2e-3, 0, 5e-3, -1e-2],
+    'charge_ratio': [1, 1, 0.5, 2, -1],
+    'mass_ratio': [1, 1, 0.25, 3, 1],
+}
 COORDS = ['x', 'px', 'y', 'py', 'zeta', 'delta', 'state']
 
 
@@ -374,13 +376,13 @@ COORDS = ['x', 'px', 'y', 'py', 'zeta', 'delta', 'state']
             k1=0.5,
             k1s=0.1,
             knl_rel=[0, 0, 0.2],
-            edge_entry_active=True,
-            edge_exit_active=True,
+            edge_entry_model='full',
+            edge_exit_model='full',
             edge_entry_qint1=0.2,
             edge_entry_qint2=0.1,
         ),
         lambda: xt.Sextupole(
-            length=0.5, k2=3.0, edge_entry_active=True, edge_exit_active=True
+            length=0.5, k2=3.0, edge_entry_model='full', edge_exit_model='full'
         ),
         lambda: xt.UniformSolenoid(length=1, ks=0.4),
     ],

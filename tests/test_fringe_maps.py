@@ -33,8 +33,8 @@ def _quad_qsad(**kw):
         k1=1.2,
         k1s=0.3,
         knl=[0, 0, 0.5],
-        edge_entry_active=True,
-        edge_exit_active=True,
+        edge_entry_model='full',
+        edge_exit_model='full',
         edge_entry_qint1=0.2,
         edge_entry_qint2=0.1,
         edge_exit_qint1=0.2,
@@ -54,7 +54,7 @@ def _line(element, context=None):
 
 
 def _particles(line, **coords):
-    defaults = dict(x=2e-3, px=-1e-4, y=-1.5e-3, py=2e-4, zeta=1e-3, delta=5e-4)
+    defaults = {'x': 2e-3, 'px': -1e-4, 'y': -1.5e-3, 'py': 2e-4, 'zeta': 1e-3, 'delta': 5e-4}
     defaults.update(coords)
     num = max(np.size(vv) for vv in defaults.values())
     return line.build_particles(
@@ -114,9 +114,9 @@ def _quad(model, active=True, **kw):
     )
 
 
-QINT = dict(
-    edge_entry_qint1=0.2, edge_entry_qint2=0.1, edge_exit_qint1=0.2, edge_exit_qint2=0.1
-)
+QINT = {
+    'edge_entry_qint1': 0.2, 'edge_entry_qint2': 0.1, 'edge_exit_qint1': 0.2, 'edge_exit_qint2': 0.1
+}
 
 
 def test_quadrupole_soft_fringe_models():
@@ -138,7 +138,7 @@ def test_quadrupole_soft_fringe_models():
 @pytest.mark.parametrize('fringe', [False, True])
 def test_mult_fringe_includes_knl_rel(fringe):
     # knl_rel is relative to k1 * length: both magnets have the same field
-    common = dict(length=0.8, k1=1.2, edge_entry_active=fringe, edge_exit_active=fringe)
+    common = {'length': 0.8, 'k1': 1.2, 'edge_entry_active': fringe, 'edge_exit_active': fringe}
     rel = _track_once(
         xt.Quadrupole(knl_rel=[0, 0, 0.5], ksl_rel=[0, 0, -0.2], **common)
     )

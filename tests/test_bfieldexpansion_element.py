@@ -1,8 +1,9 @@
-import xtrack as xt
 import numpy as np
-import xobjects as xo
 import pytest
+import xobjects as xo
 from xobjects.test_helpers import for_all_test_contexts
+
+import xtrack as xt
 
 
 @for_all_test_contexts(excluding='ContextCpu')
@@ -1392,7 +1393,7 @@ def test_bfieldexpansion_tpsa(h, pkin_const):
     line = xt.Line(elements=[element])
     line.particle_ref = xt.Particles(p0c=1e9, mass0=xt.PROTON_MASS_EV)
     line.build_tracker()
-    x0 = dict(x=3e-3, px=1e-3, y=-2e-3, py=5e-4, zeta=1e-3, delta=1e-2)
+    x0 = {'x': 3e-3, 'px': 1e-3, 'y': -2e-3, 'py': 5e-4, 'zeta': 1e-3, 'delta': 1e-2}
 
     def orbit(coords):
         p = line.build_particles(**coords)

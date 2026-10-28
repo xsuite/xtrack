@@ -156,6 +156,7 @@ class Magnet(_BendCommon, BeamElement):
         (= 1 / radius), computed as ``angle / length`` for nonzero length.
         Set ``length`` and ``angle`` instead of passing or assigning ``h``.
     """
+    _magnet_plan = True
     isthick = True
     has_backtrack = True
 

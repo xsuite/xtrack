@@ -134,6 +134,20 @@ class _HasEdges:
 
     _edge_models = None
 
+    # Model of an edge that earlier versions wrote as active without a model
+    # (the default model then); None if the default model did not change
+    _edge_model_of_active_legacy_dict = None
+
+    @classmethod
+    def from_dict(cls, dct, **kwargs):
+        legacy_model = cls._edge_model_of_active_legacy_dict
+        if legacy_model is not None:
+            dct = dct.copy()
+            for face in FACES:
+                if dct.get(f'edge_{face}_active') and f'edge_{face}_model' not in dct:
+                    dct[f'edge_{face}_model'] = legacy_model
+        return super().from_dict(dct, **kwargs)
+
     @classmethod
     def get_available_edge_models(cls):
         """List of the edge models of this element."""

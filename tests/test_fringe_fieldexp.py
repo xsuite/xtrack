@@ -115,8 +115,8 @@ def test_qsad_fringe_vs_field_expansion():
             quad = xt.Quadrupole(
                 length=LENGTH + ell,
                 k1=k,
-                edge_entry_active=True,
-                edge_exit_active=True,
+                edge_entry_model='full',
+                edge_exit_model='full',
                 edge_entry_qint1=qint1,
                 edge_exit_qint1=qint1,
                 model='mat-kick-mat-exact',
@@ -139,9 +139,9 @@ def test_bend_fringe_gap_vs_field_expansion():
         face = {
             f'edge_{ff}_{kk}': vv
             for ff in ('entry', 'exit')
-            for kk, vv in dict(
-                model='no-mult', active=fringe, fint=0.5, hgap=2 * fint_hgap
-            ).items()
+            for kk, vv in {
+                'model': 'no-mult', 'active': fringe, 'fint': 0.5, 'hgap': 2 * fint_hgap
+            }.items()
         }
 
         def build(k):

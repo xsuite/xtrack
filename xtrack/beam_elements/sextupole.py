@@ -22,11 +22,18 @@ from ._common import (
     _HasKnlKsl,
     _HasModelStraight,
 )
-from ._edge import STRAIGHT_EDGE_MODELS, STRAIGHT_EDGE_PARAMS, _HasEdges, edge_xofields
+from ._edge import (
+    EDGE_ACTIVE,
+    STRAIGHT_EDGE_MODELS,
+    STRAIGHT_EDGE_PARAMS,
+    _HasEdges,
+    edge_xofields,
+)
 
 
 class Sextupole(_HasEdges, _HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
 
+    _magnet_plan = True
     _docstring_start = \
     """
     Sextupole element.
@@ -66,6 +73,8 @@ class Sextupole(_HasEdges, _HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamEl
     allow_loss_refinement = True
 
     _edge_models = STRAIGHT_EDGE_MODELS
+    # Dicts of earlier versions: an active edge without a model was "full"
+    _edge_model_of_active_legacy_dict = 'full'
 
     _xofields={
         'k2': FloatOrTpsa,
@@ -79,7 +88,10 @@ class Sextupole(_HasEdges, _HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamEl
         'ksl_rel': xo.Float64[:],
         'main_is_skew': xo.Int32,
         # Model "full", not active
-        **edge_xofields(STRAIGHT_EDGE_MODELS['full'], STRAIGHT_EDGE_PARAMS),
+        # Active, model "suppressed": no fringe map
+        **edge_xofields(
+            EDGE_ACTIVE | STRAIGHT_EDGE_MODELS['suppressed'], STRAIGHT_EDGE_PARAMS
+        ),
         'num_multipole_kicks': xo.Int64,
         'model': xo.Int64,
         'integrator': xo.Int64,

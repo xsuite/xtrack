@@ -70,16 +70,16 @@ def _fringe_effect(mad, ng_element, xt_element, frngmax=2):
 
 
 def _faces(model):
-    return dict(
-        edge_entry_model=model,
-        edge_exit_model=model,
-        edge_entry_angle=0.02,
-        edge_exit_angle=-0.015,
-        edge_entry_fint=0.5,
-        edge_exit_fint=0.4,
-        edge_entry_hgap=0.03,
-        edge_exit_hgap=0.03,
-    )
+    return {
+        'edge_entry_model': model,
+        'edge_exit_model': model,
+        'edge_entry_angle': 0.02,
+        'edge_exit_angle': -0.015,
+        'edge_entry_fint': 0.5,
+        'edge_exit_fint': 0.4,
+        'edge_entry_hgap': 0.03,
+        'edge_exit_hgap': 0.03,
+    }
 
 
 NG_BEND = 'l=2, angle=0.05, e1=0.02, e2=-0.015, fint=0.5, fintx=0.4, hgap=0.03'
@@ -128,7 +128,7 @@ def test_bend_fringe_large_edge_angle_vs_madng(mad):
     face = {
         f'edge_{ff}_{kk}': vv
         for ff in ('entry', 'exit')
-        for kk, vv in dict(model='no-mult', angle=ang, fint=0.9, hgap=0.025).items()
+        for kk, vv in {'model': 'no-mult', 'angle': ang, 'fint': 0.9, 'hgap': 0.025}.items()
     }
     out_ng = _madng_track(
         mad,
@@ -143,7 +143,7 @@ def test_quadrupole_fringe_vs_madng(mad):
     d_xt, d_ng = _fringe_effect(
         mad,
         "quadrupole 'q' {at=0, l=1, k1=0.3, fringe=2}",
-        xt.Quadrupole(length=1, k1=0.3, edge_entry_active=True, edge_exit_active=True),
+        xt.Quadrupole(length=1, k1=0.3, edge_entry_model='full', edge_exit_model='full'),
     )
     assert np.max(np.abs(d_ng)) > 1e-10
     np.testing.assert_allclose(d_xt, d_ng, rtol=0, atol=1e-6 * np.max(np.abs(d_ng)))
@@ -166,19 +166,19 @@ def _ng_quad(strengths, f1, f2, faces='both'):
 @pytest.mark.parametrize(
     'strengths, xt_strengths, f1, f2',
     [
-        ('k1=0.3', dict(k1=0.3), 0.2, 0.1),
-        ('k1=0.3', dict(k1=0.3), 0, 0.1),
-        ('k1=0.3', dict(k1=0.3), -0.2, 0),
-        ('k1=-0.3', dict(k1=-0.3), 0.2, 0.1),
+        ('k1=0.3', {'k1': 0.3}, 0.2, 0.1),
+        ('k1=0.3', {'k1': 0.3}, 0, 0.1),
+        ('k1=0.3', {'k1': 0.3}, -0.2, 0),
+        ('k1=-0.3', {'k1': -0.3}, 0.2, 0.1),
         # The skew gradient is not integrated exactly in the body: enough
         # kicks to bring the body below the soft fringe tolerance
         (
             'k1=0.2, k1s=0.15',
-            dict(k1=0.2, k1s=0.15, num_multipole_kicks=1000),
+            {'k1': 0.2, 'k1s': 0.15, 'num_multipole_kicks': 1000},
             0.2,
             0.1,
         ),
-        ('k1=0.3', dict(k1=0.3), (0.2, 0.05), (0.1, -0.03)),
+        ('k1=0.3', {'k1': 0.3}, (0.2, 0.05), (0.1, -0.03)),
     ],
 )
 def test_qsad_fringe_vs_madng(mad, strengths, xt_strengths, f1, f2):
@@ -195,8 +195,8 @@ def test_qsad_fringe_vs_madng(mad, strengths, xt_strengths, f1, f2):
     def quad(**qint):
         return xt.Quadrupole(
             length=1,
-            edge_entry_active=True,
-            edge_exit_active=True,
+            edge_entry_model='full',
+            edge_exit_model='full',
             **xt_strengths,
             **qint,
         )
@@ -219,7 +219,7 @@ def test_sextupole_fringe_vs_madng(mad):
     d_xt, d_ng = _fringe_effect(
         mad,
         "sextupole 's' {at=0, l=0.5, k2=20, frngmax=3, fringe=2}",
-        xt.Sextupole(length=0.5, k2=20, edge_entry_active=True, edge_exit_active=True),
+        xt.Sextupole(length=0.5, k2=20, edge_entry_model='full', edge_exit_model='full'),
         frngmax=3,
     )
     assert np.max(np.abs(d_ng)) > 1e-12

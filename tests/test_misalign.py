@@ -518,8 +518,8 @@ def test_thick_slice_misaligned_quad():
         rot_s_rad_no_frame=psi,
         rot_s_rad=tilt,
         rot_shift_anchor=anchor,
-        edge_entry_active=True,
-        edge_exit_active=True,
+        edge_entry_model='full',
+        edge_exit_model='full',
     )
     line_test = xt.Line(elements=[quad], element_names=['quad'])
     line_test.slice_thick_elements([xt.Strategy(slicing=xt.Teapot(n_slices, mode='thick'))])

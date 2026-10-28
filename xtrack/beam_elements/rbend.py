@@ -3,29 +3,33 @@
 # Copyright (c) CERN, 2025.                 #
 # ######################################### #
 
-from ..base_element import BeamElement
 import numpy as np
 import xobjects as xo
+
 import xtrack as xt
+
+from ..base_element import BeamElement
 from ..random import (
     RandomExponential,
     RandomUniformAccurate,
 )
 from ._common import (
-    SynchrotronRadiationRecord,
-    _BendCommon,
-    _HasIntegrator,
-    _HasKnlKsl,
-    _HasModelCurved,
     _INDEX_TO_RBEND_MODEL,
     _NOEXPR_FIELDS,
     _RBEND_MODEL_TO_INDEX,
+    SynchrotronRadiationRecord,
+    _BendCommon,
     _docstring_general_notes,
     _for_docstring_alignment,
     _for_docstring_edge_bend,
+    _HasIntegrator,
+    _HasKnlKsl,
+    _HasModelCurved,
 )
 
+
 class RBend(_BendCommon, BeamElement):
+    _magnet_plan = True
     _docstring_start = \
     """Rectangular bending magnet element.
 

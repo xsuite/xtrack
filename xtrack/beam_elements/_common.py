@@ -123,12 +123,12 @@ _for_docstring_edge_qint = '''
 
 _for_docstring_edge_straight = ('''
     edge_entry_active : bool
-        Fringe field at the entrance edge is active if True. Default is False.
-        See :ref:`edge_label`.
+        The entrance edge is active if True. Default is True. The fringe maps
+        applied are those of ``edge_entry_model``. See :ref:`edge_label`.
     edge_exit_active : bool
-        Fringe field at the exit edge is active if True. Default is False.
+        The exit edge is active if True. Default is True.
     edge_entry_model : str
-        "full" (default), "no-mult" or "suppressed".
+        "suppressed" (default, no fringe map), "full" or "no-mult".
     edge_exit_model : str
         As ``edge_entry_model``.
     ''').strip() + '\n    ' + _for_docstring_edge_qint

@@ -10,9 +10,12 @@
 #include "xtrack/beam_elements/elements_src/track_magnet.h"
 #include "xtrack/beam_elements/elements_src/default_magnet_config.h"
 
+// The magnet, as a plan for track_magnet_particles (the misalignment is
+// added by VariableSolenoid_prepare_plan, track_local_particle_with_transformations.h)
 GPUFUN
-void VariableSolenoid_track_local_particle(
+void VariableSolenoid_prepare_magnet(
         VariableSolenoidData el,
+        MagnetPlan* plan,
         LocalParticle* part0
 ) {
     double ks_entry = VariableSolenoidData_get_ks_profile(el, 0);
@@ -71,7 +74,7 @@ void VariableSolenoid_track_local_particle(
     //     rbend_compensate_sagitta, rbend_shift, rbend_angle_diff,
     //     length_straight, body_active
     // clang-format on
-    track_magnet_particles(part0, &magnet, &entry_face, &exit_face);
+    MagnetPlan_prepare(plan, &magnet, &entry_face, &exit_face, part0);
 
     START_PER_PARTICLE_BLOCK(part0, part);
         // Update ax and ay (Wolsky Eq. 3.114 and Eq. 2.74)

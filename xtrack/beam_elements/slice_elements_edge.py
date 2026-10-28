@@ -1,12 +1,8 @@
-import xobjects as xo
 import numpy as np
+import xobjects as xo
 
-from ..general import _pkg_root
 from ..base_element import BeamElement
-from .slice_base import (
-    _SliceBase, COMMON_SLICE_XO_FIELDS,
-    _raise_if_parent_has_transverse_rotation,
-)
+from ..general import _pkg_root
 from .bend import Bend
 from .dipole_edge import DipoleEdge
 from .magnet_edge import MagnetEdge
@@ -16,7 +12,13 @@ from .octupole import Octupole
 from .quadrupole import Quadrupole
 from .rbend import RBend
 from .sextupole import Sextupole
+from .slice_base import (
+    COMMON_SLICE_XO_FIELDS,
+    _raise_if_parent_has_transverse_rotation,
+    _SliceBase,
+)
 from .uniform_solenoid import UniformSolenoid
+
 
 def _parent_total_kn_ks(parent):
     if parent.length == 0:
@@ -178,6 +180,7 @@ class _ThinSliceMultipoleEdgeBase:
 
 
 class ThinSliceBendEntry(_ThinSliceEdgeBase, _ThinSliceDipoleEdgeBase, BeamElement):
+    _magnet_plan = True
     _face = 'entry'
 
     _xofields = {'_parent': xo.Ref(Bend), **COMMON_SLICE_XO_FIELDS}
@@ -191,6 +194,7 @@ class ThinSliceBendEntry(_ThinSliceEdgeBase, _ThinSliceDipoleEdgeBase, BeamEleme
 
 class ThinSliceBendExit(_ThinSliceEdgeBase, _ThinSliceDipoleEdgeBase, BeamElement):
 
+    _magnet_plan = True
     _face = 'exit'
 
     _xofields = {'_parent': xo.Ref(Bend), **COMMON_SLICE_XO_FIELDS}
@@ -203,6 +207,7 @@ class ThinSliceBendExit(_ThinSliceEdgeBase, _ThinSliceDipoleEdgeBase, BeamElemen
 class ThinSliceQuadrupoleEntry(
     _ThinSliceEdgeBase, _ThinSliceMultipoleEdgeBase, BeamElement
 ):
+    _magnet_plan = True
     _face = 'entry'
 
     _xofields = {'_parent': xo.Ref(Quadrupole), **COMMON_SLICE_XO_FIELDS}
@@ -215,6 +220,7 @@ class ThinSliceQuadrupoleEntry(
 class ThinSliceQuadrupoleExit(
     _ThinSliceEdgeBase, _ThinSliceMultipoleEdgeBase, BeamElement
 ):
+    _magnet_plan = True
     _face = 'exit'
 
     _xofields = {'_parent': xo.Ref(Quadrupole), **COMMON_SLICE_XO_FIELDS}
@@ -227,6 +233,7 @@ class ThinSliceQuadrupoleExit(
 class ThinSliceSextupoleEntry(
     _ThinSliceEdgeBase, _ThinSliceMultipoleEdgeBase, BeamElement
 ):
+    _magnet_plan = True
     _face = 'entry'
 
     _xofields = {'_parent': xo.Ref(Sextupole), **COMMON_SLICE_XO_FIELDS}
@@ -239,6 +246,7 @@ class ThinSliceSextupoleEntry(
 class ThinSliceSextupoleExit(
     _ThinSliceEdgeBase, _ThinSliceMultipoleEdgeBase, BeamElement
 ):
+    _magnet_plan = True
     _face = 'exit'
 
     _xofields = {'_parent': xo.Ref(Sextupole), **COMMON_SLICE_XO_FIELDS}
@@ -251,6 +259,7 @@ class ThinSliceSextupoleExit(
 class ThinSliceOctupoleEntry(
     _ThinSliceEdgeBase, _ThinSliceMultipoleEdgeBase, BeamElement
 ):
+    _magnet_plan = True
     _face = 'entry'
 
     _xofields = {'_parent': xo.Ref(Octupole), **COMMON_SLICE_XO_FIELDS}
@@ -263,6 +272,7 @@ class ThinSliceOctupoleEntry(
 class ThinSliceOctupoleExit(
     _ThinSliceEdgeBase, _ThinSliceMultipoleEdgeBase, BeamElement
 ):
+    _magnet_plan = True
     _face = 'exit'
 
     _xofields = {'_parent': xo.Ref(Octupole), **COMMON_SLICE_XO_FIELDS}
@@ -273,6 +283,7 @@ class ThinSliceOctupoleExit(
 
 class ThinSliceUniformSolenoidEntry(_ThinSliceEdgeBase, BeamElement):
 
+    _magnet_plan = True
     _xofields = {'_parent': xo.Ref(UniformSolenoid), **COMMON_SLICE_XO_FIELDS}
 
     _extra_c_sources = [
@@ -282,6 +293,7 @@ class ThinSliceUniformSolenoidEntry(_ThinSliceEdgeBase, BeamElement):
 
 class ThinSliceUniformSolenoidExit(_ThinSliceEdgeBase, BeamElement):
 
+    _magnet_plan = True
     _xofields = {'_parent': xo.Ref(UniformSolenoid), **COMMON_SLICE_XO_FIELDS}
 
     _extra_c_sources = [
@@ -290,6 +302,7 @@ class ThinSliceUniformSolenoidExit(_ThinSliceEdgeBase, BeamElement):
 
 
 class ThinSliceRBendEntry(_ThinSliceEdgeBase, _ThinSliceDipoleEdgeBase, BeamElement):
+    _magnet_plan = True
     _face = 'entry'
 
     _xofields = {'_parent': xo.Ref(RBend), **COMMON_SLICE_XO_FIELDS}
@@ -377,6 +390,7 @@ class ThinSliceRBendEntry(_ThinSliceEdgeBase, _ThinSliceDipoleEdgeBase, BeamElem
                         * np.sin(self._parent.rot_s_rad))
 
 class ThinSliceRBendExit(_ThinSliceEdgeBase, _ThinSliceDipoleEdgeBase, BeamElement):
+    _magnet_plan = True
     _face = 'exit'
 
     _xofields = {'_parent': xo.Ref(RBend), **COMMON_SLICE_XO_FIELDS}

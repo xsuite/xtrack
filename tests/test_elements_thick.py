@@ -2587,8 +2587,8 @@ def test_multipole_fringe(test_context, element, kn_param_name):
             elements=[
                 element_class(
                     length=length,
-                    edge_entry_active=has_fringe,
-                    edge_exit_active=has_fringe,
+                    edge_entry_model='full' if has_fringe else 'suppressed',
+                    edge_exit_model='full' if has_fringe else 'suppressed',
                     **{kn_param_name: knl / length},
                 ),
             ],
@@ -2853,18 +2853,25 @@ def test_configure_model():
     assert line['q1'].model == 'drift-kick-drift-expanded'
     assert line['q1'].edge_entry_active == True
     assert line['q1'].edge_exit_active == True
+    assert line['q1'].edge_entry_model == 'full'
+    assert line['q1'].edge_exit_model == 'full'
     assert line['q1'].integrator == 'uniform'
     assert line['q1'].num_multipole_kicks == 5
 
     assert line['s1'].model == 'drift-kick-drift-exact'
     assert line['s1'].edge_entry_active == True
     assert line['s1'].edge_exit_active == True
+    assert line['s1'].edge_entry_model == 'full'
+    assert line['s1'].edge_exit_model == 'full'
     assert line['s1'].integrator == 'yoshida-6'
     assert line['s1'].num_multipole_kicks == 6
 
     assert line['o1'].model == 'mat-kick-mat'
-    assert line['o1'].edge_entry_active == False
-    assert line['o1'].edge_exit_active == False
+    # edge=None leaves the defaults: active, no fringe map
+    assert line['o1'].edge_entry_active == True
+    assert line['o1'].edge_exit_active == True
+    assert line['o1'].edge_entry_model == 'suppressed'
+    assert line['o1'].edge_exit_model == 'suppressed'
     assert line['o1'].integrator == 'uniform'
     assert line['o1'].num_multipole_kicks == 7
 

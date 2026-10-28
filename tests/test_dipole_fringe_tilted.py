@@ -106,9 +106,9 @@ def test_dipole_fringe_tilted_symplectic_and_reversible(py0):
     line.set_particle_ref('proton', p0c=1e9)
     line.build_tracker()
 
-    centre = dict(
-        x=1e-3, px=np.sin(np.deg2rad(42)), y=2e-3, py=py0, zeta=1e-3, delta=0.03
-    )
+    centre = {
+        'x': 1e-3, 'px': np.sin(np.deg2rad(42)), 'y': 2e-3, 'py': py0, 'zeta': 1e-3, 'delta': 0.03
+    }
     c0 = _coords(line.build_particles(**{k: [v] for k, v in centre.items()}))[:, 0]
     assert_symplectic(fd_jacobian(line, c0))
 

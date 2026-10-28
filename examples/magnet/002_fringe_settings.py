@@ -19,15 +19,15 @@ def px_after(el):
 
 
 # --- Quadrupole ---
-# - Edges are off by default.
-# - Models: "full" (default), "no-mult", "suppressed".
+# - Edges are active by default, with model "suppressed" (no fringe map).
+# - Models: "suppressed" (default), "full", "no-mult".
 quad = xt.Quadrupole(k1=0.1, length=1.0)
 print('quadrupole models:', quad.get_available_edge_models())
 
 # - Switch on the hard-edge fringe at both faces.
 hard = quad.copy()
-hard.edge_entry_active = True
-hard.edge_exit_active = True
+hard.edge_entry_model = 'full'
+hard.edge_exit_model = 'full'
 
 # - Add the SAD soft fringe: set qint1, qint2.
 soft = hard.copy()

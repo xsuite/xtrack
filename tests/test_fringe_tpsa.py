@@ -9,7 +9,7 @@ import xtrack.tpsa as xtpsa
 P0C = 7e12
 MASS0 = xt.PROTON_MASS_EV
 COORDS = ('x', 'px', 'y', 'py', 'zeta', 'delta')
-X0 = dict(x=1e-3, px=1.5e-4, y=-1e-3, py=1e-4, zeta=1e-3, delta=2e-3)
+X0 = {'x': 1e-3, 'px': 1.5e-4, 'y': -1e-3, 'py': 1e-4, 'zeta': 1e-3, 'delta': 2e-3}
 
 
 def _faces(**kw):

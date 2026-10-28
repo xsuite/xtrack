@@ -3,26 +3,30 @@
 # Copyright (c) CERN, 2025.                 #
 # ######################################### #
 
-from ..base_element import BeamElement
 import xobjects as xo
+
 import xtrack as xt
+
+from ..base_element import BeamElement
 from ..random import (
     RandomExponential,
     RandomUniformAccurate,
 )
 from ._common import (
-    SynchrotronRadiationRecord,
-    _HasIntegrator,
-    _HasKnlKsl,
-    _HasModelStraight,
     _NOEXPR_FIELDS,
+    SynchrotronRadiationRecord,
     _docstring_general_notes,
     _for_docstring_alignment,
     _handle_knl_ksl_rel_kwargs,
+    _HasIntegrator,
+    _HasKnlKsl,
+    _HasModelStraight,
 )
+
 
 class Multipole(_HasKnlKsl, _HasModelStraight, _HasIntegrator, BeamElement):
 
+    _magnet_plan = True
     _docstring_start = \
     """Beam element modeling a magnetic multipole.
 

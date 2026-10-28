@@ -3,14 +3,17 @@
 # Copyright (c) CERN, 2025.                 #
 # ######################################### #
 
+from ..aperture.structures import (
+    ApertureEnvStruct,
+    LineApertureModel,
+    Polygon,
+    Profile,
+    SurveyData,
+)
 from ..beam_elements import *
 from ..monitors import *
 from ..multisetter import MultiSetter
 from ..random import *
-from ..aperture.structures import (
-    ApertureEnvStruct, LineApertureModel, Profile, Polygon, SurveyData,
-)
-
 
 ONLY_XTRACK_ELEMENTS = [
     Drift,

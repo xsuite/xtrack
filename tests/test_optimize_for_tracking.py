@@ -122,7 +122,7 @@ def test_optimize_thin_slices_use_total_knl_ksl(element_factory):
 def test_optimize_edges_use_total_knl_ksl():
     quad = xt.Quadrupole(
         length=2, k1=0.3, k1s=0.2,
-        edge_entry_active=True, edge_exit_active=True,
+        edge_entry_model='full', edge_exit_model='full',
         knl=[0.01, 0.02, 0.03],
         ksl=[0.04, 0.05, 0.06],
         knl_rel=[0.1, 0.2, 0.3],

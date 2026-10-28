@@ -33,7 +33,15 @@ public:
 
     explicit xt_tpsa_lifted_array(const double* values, int64_t size)
     {
-        if (values == nullptr || size <= 0) return;
+        lift(values, size);
+    }
+
+    // Empty, lifted later (a member of a struct filled in place)
+    xt_tpsa_lifted_array() {}
+
+    void lift(const double* values, int64_t size)
+    {
+        if (values == nullptr || size <= 0 || this->size > 0) return;
 
         storage = new storage_t[size];
         data = reinterpret_cast<value_t*>(storage);

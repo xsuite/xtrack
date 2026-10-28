@@ -14,6 +14,9 @@
 // struct tag works in all, including the drift-only users of this file.
 typedef GPUGLMEM struct SynchrotronRadiationRecordData_s* MagnetRadiationRecord;
 
+// Highest multipole order of a magnet (as in MAD-X), checked in Python
+#define MAGNET_MAX_MULTIPOLE_ORDER 20
+
 // The data of the magnet kernel, in the order it is derived:
 // MagnetSettings (filled by the element) -> MagnetDrift and MagnetSplit (the
 // tracking model) -> MagnetField, MagnetFace (the faces) -> MagnetKick,
@@ -153,6 +156,7 @@ typedef struct MagnetFace_s {
     // direction of travel
     const MagnetField* field;
     uint8_t backtrack;
+    uint8_t has_work;  // set by MagnetFace_prepare: the face applies something
     uint8_t do_patch, do_vector_potential, do_linear;
     uint8_t do_rotate, do_bend, do_mult, do_qsad, do_quad_wedge, do_wedge;
     double patch_sin, patch_cos, patch_tan;
@@ -214,5 +218,43 @@ typedef struct MagnetBody_s {
     int64_t radiation_flag;
     MagnetRadiationRecord radiation_record;
 } MagnetBody;
+
+
+// Misalignment of a magnet, read from the element by X_prepare_plan
+// (track_local_particle_with_transformations.h); length and angle are those
+// of the slice
+typedef struct MagnetTransform_s {
+    uint8_t active;   // a shift or a rotation is nonzero
+    uint8_t invalid;  // rotated thin slice of a curved element: particles are lost
+    uint8_t curved;
+    double shift_x, shift_y, shift_s;
+    double rot_x_rad, rot_y_rad, rot_s_rad, rot_s_rad_no_frame;
+    double anchor;
+    double length, angle, h;
+} MagnetTransform;
+
+
+// A magnet, or a slice of it, prepared once per element (MagnetPlan_prepare)
+// for one direction of travel: track_magnet_particles only applies it. The
+// pointers in it (field, multipoles) point into the plan or the element.
+typedef struct MagnetPlan_s {
+    MagnetField field;
+    MagnetFace first_face, second_face;  // in the order they are crossed
+    MagnetBody body;
+    uint8_t first_active, second_active;
+    uint8_t body_active;
+    uint8_t correct_s;  // straight-body RBend: path length on the curved reference
+    double ds_curved;
+    uint8_t is_thick;   // the global aperture is checked after it
+    MagnetTransform transform;
+    // knl + rel_ref_strength * knl_rel (same for ksl), formed only with
+    // relative components; otherwise the field uses the element's arrays
+#ifdef XTRACK_TPSA_TRACK
+    xt_tpsa_lifted_array knl_tot, ksl_tot;
+#else
+    double knl_tot[MAGNET_MAX_MULTIPOLE_ORDER + 1];
+    double ksl_tot[MAGNET_MAX_MULTIPOLE_ORDER + 1];
+#endif
+} MagnetPlan;
 
 #endif // XTRACK_TRACK_MAGNET_STRUCTS_H

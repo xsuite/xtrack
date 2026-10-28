@@ -31,6 +31,7 @@ from ._edge import (
 
 class UniformSolenoid(_HasEdges, _HasKnlKsl, _HasIntegrator, BeamElement):
 
+    _magnet_plan = True
     _docstring_start = \
     """
     Uniform solenoid element with hard-edge fringe field. The axis of the

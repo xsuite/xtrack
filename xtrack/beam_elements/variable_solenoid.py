@@ -3,23 +3,26 @@
 # Copyright (c) CERN, 2025.                 #
 # ######################################### #
 
-from ..base_element import BeamElement
 import xobjects as xo
+
+from ..base_element import BeamElement
 from ..random import (
     RandomExponential,
     RandomUniformAccurate,
 )
 from ._common import (
-    SynchrotronRadiationRecord,
-    _HasIntegrator,
-    _HasKnlKsl,
     _NOEXPR_FIELDS,
+    SynchrotronRadiationRecord,
     _docstring_general_notes,
     _for_docstring_alignment,
+    _HasIntegrator,
+    _HasKnlKsl,
 )
+
 
 class VariableSolenoid(_HasKnlKsl, _HasIntegrator, BeamElement):
 
+    _magnet_plan = True
     _docstring_start = \
     """
     Solenoid with linearly varying longitudinal field. The transverse fields

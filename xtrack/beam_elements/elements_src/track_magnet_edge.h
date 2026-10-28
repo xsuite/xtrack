@@ -210,6 +210,17 @@ uint8_t MagnetFace_uses_field(const MagnetFace* face) {
 }
 
 
+// Whether crossing a face applies anything: the face is active and has a
+// sub-map (a model other than "suppressed"), a patch or a solenoid field. An
+// active face without them is treated like an inactive one. Needs field->ks.
+GPUFUN XT_INLINE
+uint8_t MagnetFace_needs_work(const MagnetFace* face, const MagnetField* field) {
+    if (!(face->flags & EDGE_ACTIVE)) return 0;
+    return (face->flags & (EDGE_LINEAR | EDGE_BEND | EDGE_MULT | EDGE_QSAD))
+           || face->has_patch || xt_float_or_tpsa_const_part(field->ks) != 0.;
+}
+
+
 // Derive the sub-maps of a face for the direction of travel. The field must
 // have been prepared (MagnetField_prepare) if MagnetFace_uses_field.
 GPUFUN XT_INLINE
@@ -220,7 +231,8 @@ void MagnetFace_prepare(MagnetFace* face, MagnetField* field, const uint8_t back
 
     face->field = field;
     face->backtrack = backtrack;
-    if (!(flags & EDGE_ACTIVE)) {
+    face->has_work = MagnetFace_needs_work(face, field);
+    if (!face->has_work) {
         face->do_patch = 0;
         face->do_vector_potential = 0;
         face->do_linear = 0;

@@ -25,6 +25,7 @@ from ._common import (
 
 class Bend(_BendCommon, BeamElement):
 
+    _magnet_plan = True
     _docstring_start = \
     """Bending magnet element, sector-bend type.
 

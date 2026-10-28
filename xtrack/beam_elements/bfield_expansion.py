@@ -9,7 +9,6 @@ import xobjects as xo
 from ..base_element import BeamElement
 from ._common import _for_docstring_alignment
 
-
 _FIELD_VALUE_NAMES = (
     'phi',
     'Bx', 'By', 'Bs',

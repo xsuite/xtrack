@@ -10,6 +10,8 @@
    - IS_THICK_DYNAMIC: Whether the element has an isthick parameter
    - THIN_SLICE_OF_CURVED_ELEMENT: Special handling for thin slices of curved
      elements where we disallow some transformations.
+   - MAGNET_PLAN: The element is a magnet, prepared as a MagnetPlan by
+     ELEMENT_NAME_prepare_magnet and tracked by track_magnet_particles.
 */
 
 #ifndef ELEMENT_NAME
@@ -77,6 +79,85 @@
     #define TRACK_MISALIGN_EXIT track_misalignment_exit_straight(MISALIGN_FUNCTION_ARGS)
 #endif
 
+
+#ifdef MAGNET_PLAN
+
+/* The plan of a magnet: the magnet (ELEMENT_NAME_prepare_magnet) and its
+   misalignment, applied by track_magnet_particles. Not inlined: the classes
+   prepared in one switch (prepare_magnet_plan) would add up their frames.
+*/
+GPUFUN XT_NOINLINE
+void CONCAT(ELEMENT_NAME, _prepare_plan)(
+    ELEMENT_DATA el,
+    MagnetPlan* plan,
+    LocalParticle* part0
+) {
+    CONCAT(ELEMENT_NAME, _prepare_magnet)(el, plan, part0);
+
+    #ifdef IS_THICK
+        plan->is_thick = 1;
+    #endif
+
+    #ifdef ALLOW_ROT_AND_SHIFT
+        MagnetTransform* tr = &plan->transform;
+        tr->shift_x = GET_PARAM(el, shift_x);
+        tr->shift_y = GET_PARAM(el, shift_y);
+        tr->shift_s = GET_PARAM(el, shift_s);
+        tr->rot_x_rad = GET_PARAM(el, rot_x_rad);
+        tr->rot_y_rad = GET_PARAM(el, rot_y_rad);
+        tr->rot_s_rad = GET_PARAM(el, rot_s_rad);
+        tr->rot_s_rad_no_frame = GET_PARAM(el, rot_s_rad_no_frame);
+        tr->active = NONZERO(tr->shift_x) || NONZERO(tr->shift_y) || NONZERO(tr->shift_s)
+                     || NONZERO(tr->rot_x_rad) || NONZERO(tr->rot_y_rad)
+                     || NONZERO(tr->rot_s_rad) || NONZERO(tr->rot_s_rad_no_frame);
+        if (!tr->active) return;
+
+        const double weight = GET_WEIGHT(el);
+        #if defined(IS_THICK_DYNAMIC)
+            const double length = GET_PARAM(el, isthick) ? GET_PARAM(el, length) : 0.0;
+        #elif defined(IS_THICK)
+            const double length = GET_PARAM(el, length);
+        #else
+            const double length = 0.0;
+        #endif
+        tr->length = length * weight;
+        #ifdef CURVED
+            tr->curved = 1;
+            tr->angle = GET_PARAM(el, angle) * weight;
+            tr->h = GET_PARAM(el, h);
+        #else
+            tr->curved = 0;
+            tr->angle = 0.;
+            tr->h = 0.;
+        #endif
+
+        tr->anchor = GET_PARAM(el, rot_shift_anchor);
+        #ifdef IS_SLICE
+            tr->anchor -= ELEMENT_GET(el, slice_offset);
+        #endif
+
+        tr->invalid = 0;
+        #ifdef THIN_SLICE_OF_CURVED_ELEMENT
+            tr->invalid = tr->rot_x_rad != 0.0 || tr->rot_y_rad != 0.0
+                          || tr->rot_s_rad_no_frame != 0.0;
+        #endif
+    #endif
+}
+
+/* Tracking of the element on its own (element.track(), TPSA): its plan is
+   made here, for the particles at hand.
+*/
+GPUFUN
+void CONCAT(ELEMENT_NAME, _track_local_particle_with_transformations)(
+    ELEMENT_DATA el,
+    LocalParticle* part0
+) {
+    MagnetPlan plan;
+    CONCAT(ELEMENT_NAME, _prepare_plan)(el, &plan, part0);
+    track_magnet_particles(part0, &plan);
+}
+
+#else /* MAGNET_PLAN */
 
 /* If transformations are enabled for an element, this applies them on one
    side of it: before the element (at_exit = 0) or after it (at_exit = 1), in
@@ -165,14 +246,22 @@ void CONCAT(ELEMENT_NAME, _track_local_particle_with_transformations)(
     LocalParticle* part0
 ) {
     #ifdef ALLOW_ROT_AND_SHIFT
+        double const shift_x = GET_PARAM(el, shift_x);
+        double const shift_y = GET_PARAM(el, shift_y);
+        double const shift_s = GET_PARAM(el, shift_s);
+        double const rot_x_rad = GET_PARAM(el, rot_x_rad);
+        double const rot_y_rad = GET_PARAM(el, rot_y_rad);
+        double const rot_s_rad = GET_PARAM(el, rot_s_rad);
+        double const rot_s_rad_no_frame = GET_PARAM(el, rot_s_rad_no_frame);
+
         const int64_t rot_shift_active =
-            NONZERO(GET_PARAM(el, shift_x)) ||
-            NONZERO(GET_PARAM(el, shift_y)) ||
-            NONZERO(GET_PARAM(el, shift_s)) ||
-            NONZERO(GET_PARAM(el, rot_x_rad)) ||
-            NONZERO(GET_PARAM(el, rot_y_rad)) ||
-            NONZERO(GET_PARAM(el, rot_s_rad)) ||
-            NONZERO(GET_PARAM(el, rot_s_rad_no_frame));
+            NONZERO(shift_x) ||
+            NONZERO(shift_y) ||
+            NONZERO(shift_s) ||
+            NONZERO(rot_x_rad) ||
+            NONZERO(rot_y_rad) ||
+            NONZERO(rot_s_rad) ||
+            NONZERO(rot_s_rad_no_frame);
 
         if (rot_shift_active && !CONCAT(ELEMENT_NAME, _apply_transformations)(el, part0, 0)) {
             return;
@@ -187,6 +276,9 @@ void CONCAT(ELEMENT_NAME, _track_local_particle_with_transformations)(
         }
     #endif
 }
+
+
+#endif /* MAGNET_PLAN */
 
 
 #undef ELEMENT_DATA

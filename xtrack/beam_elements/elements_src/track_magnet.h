@@ -13,14 +13,13 @@
 #include "xtrack/beam_elements/elements_src/edge_flags.h"
 #include "xtrack/beam_elements/elements_src/track_magnet_configure.h"
 #include "xtrack/beam_elements/elements_src/integrator.h"
+#include "xtrack/beam_elements/elements_src/track_misalignments.h"
 
 #ifndef XTRACK_MULTIPOLE_NO_SYNRAD
 #include "xtrack/beam_elements/elements_src/track_magnet_radiation.h"
 #endif
 
 #define H_TOLERANCE (1e-8)
-// Highest multipole order of a magnet (as in MAD-X), checked in Python
-#define MAGNET_MAX_MULTIPOLE_ORDER 20
 
 
 // Order of knl + rel_ref_strength * knl_rel: the order of knl, or the highest
@@ -536,15 +535,20 @@ void MagnetSettings_init_default(MagnetSettings* s) {
 }
 
 
-// Track a magnet, or a slice of it (weight: its fraction of the length),
-// through its first face, its body and its second face, in the order of the
-// direction of travel. The faces are given in the element frame.
-GPUFUN XT_INLINE
-void track_magnet_particles(
-    LocalParticle* part0,
+// Prepare a magnet, or a slice of it (weight: its fraction of the length),
+// for track_magnet_particles: its first face, its body and its second face, in
+// the order of the direction of travel. The faces are given in the element
+// frame. The misalignment is set by the caller (X_prepare_plan). Reads only
+// the track flags of part0 and, when tapering, the momentum of its particle.
+// Runs once per element (prepare_magnet_plans), not per particle: not
+// inlined, so the kernel holds one copy, not one per magnet class.
+GPUFUN XT_NOINLINE
+void MagnetPlan_prepare(
+    MagnetPlan* plan,
     const MagnetSettings* settings,
     const MagnetFace* entry_face_in,
-    const MagnetFace* exit_face_in
+    const MagnetFace* exit_face_in,
+    LocalParticle* part0
 ) {
     // Values changed below (RBend, backtracking, tapering) are local copies;
     // the rest is read from settings
@@ -559,20 +563,23 @@ void track_magnet_particles(
 
     const uint8_t backtrack = LocalParticle_check_track_flag(part0, XS_FLAG_BACKTRACK);
 
+    plan->transform.active = 0;
+    plan->is_thick = 0;
+
     // Field of the body and the faces (the multipoles are added below)
-    MagnetField field;
-    field.knorm[0] = settings->k0;
-    field.knorm[1] = settings->k1;
-    field.knorm[2] = settings->k2;
-    field.knorm[3] = settings->k3;
-    field.kskew[0] = settings->k0s;
-    field.kskew[1] = settings->k1s;
-    field.kskew[2] = settings->k2s;
-    field.kskew[3] = settings->k3s;
-    field.k_order = MAGNET_K_ORDER;
-    field.ks = settings->ks;
-    field.x0_solenoid = settings->x0_solenoid;
-    field.y0_solenoid = settings->y0_solenoid;
+    MagnetField* field = &plan->field;
+    field->knorm[0] = settings->k0;
+    field->knorm[1] = settings->k1;
+    field->knorm[2] = settings->k2;
+    field->knorm[3] = settings->k3;
+    field->kskew[0] = settings->k0s;
+    field->kskew[1] = settings->k1s;
+    field->kskew[2] = settings->k2s;
+    field->kskew[3] = settings->k3s;
+    field->k_order = MAGNET_K_ORDER;
+    field->ks = settings->ks;
+    field->x0_solenoid = settings->x0_solenoid;
+    field->y0_solenoid = settings->y0_solenoid;
 
     // Faces, in the element frame; the RBend changes their angles or adds
     // patches
@@ -619,7 +626,6 @@ void track_magnet_particles(
         knl_scale_body = weight;
     }
 
-
     // Tapering: all strengths scale with 1 + delta_taper
     double taper = 1.0;
 #ifndef XTRACK_TPSA_TRACK
@@ -638,47 +644,43 @@ void track_magnet_particles(
             knl_scale_body *= (1. + delta_taper);
             taper = 1. + delta_taper;
             for (int ii = 0; ii <= MAGNET_K_ORDER; ii++) {
-                field.knorm[ii] *= (1 + delta_taper);
-                field.kskew[ii] *= (1 + delta_taper);
+                field->knorm[ii] *= (1 + delta_taper);
+                field->kskew[ii] *= (1 + delta_taper);
             }
         }
     #endif
 
-        // Multipoles of the body and the faces, formed once here (a local copy:
-        // a few entries per element call)
-        const int64_t order_tot = magnet_multipole_order(
-            settings->order, settings->order_rel, settings->knl_rel, settings->ksl_rel
-        );
-        double inv_factorial_order_tot = settings->inv_factorial_order;
-        for (int64_t ii = settings->order + 1; ii <= order_tot; ii++) {
-            inv_factorial_order_tot /= ii;
-        }
+    // Multipoles of the body and the faces
+    const int64_t order_tot = magnet_multipole_order(
+        settings->order, settings->order_rel, settings->knl_rel, settings->ksl_rel
+    );
+    double inv_factorial_order_tot = settings->inv_factorial_order;
+    for (int64_t ii = settings->order + 1; ii <= order_tot; ii++) {
+        inv_factorial_order_tot /= ii;
+    }
 #ifdef XTRACK_TPSA_TRACK
-        // The TPSA type has no default constructor: lift zero-initialised storage
-        const double zeros[MAGNET_MAX_MULTIPOLE_ORDER + 1] = {0};
-        xt_tpsa_lifted_array knl_lifted(zeros, order_tot + 1);
-        xt_tpsa_lifted_array ksl_lifted(zeros, order_tot + 1);
-        xt_float_or_tpsa* knl_tot = knl_lifted.mutable_ptr();
-        xt_float_or_tpsa* ksl_tot = ksl_lifted.mutable_ptr();
-        magnet_total_multipoles(
-            settings->order,
-            settings->knl,
-            settings->ksl,
-            settings->order_rel,
-            settings->knl_rel,
-            settings->ksl_rel,
-            settings->rel_ref_strength,
-            order_tot,
-            knl_tot,
-            ksl_tot
-        );
+    // The TPSA type has no default constructor: lift zero-initialised storage
+    const double zeros[MAGNET_MAX_MULTIPOLE_ORDER + 1] = {0};
+    plan->knl_tot.lift(zeros, order_tot + 1);
+    plan->ksl_tot.lift(zeros, order_tot + 1);
+    magnet_total_multipoles(
+        settings->order,
+        settings->knl,
+        settings->ksl,
+        settings->order_rel,
+        settings->knl_rel,
+        settings->ksl_rel,
+        settings->rel_ref_strength,
+        order_tot,
+        plan->knl_tot.mutable_ptr(),
+        plan->ksl_tot.mutable_ptr()
+    );
+    field->knl = plan->knl_tot.ptr();
+    field->ksl = plan->ksl_tot.ptr();
 #else
-    // Without a relative component the element's own arrays are used (no
-    // per-call copy: on GPU it would be per particle, in local memory)
-    double knl_buf[MAGNET_MAX_MULTIPOLE_ORDER + 1];
-    double ksl_buf[MAGNET_MAX_MULTIPOLE_ORDER + 1];
-    const double* knl_tot = settings->knl;
-    const double* ksl_tot = settings->ksl;
+    // Without a relative component the element's own arrays are used
+    field->knl = settings->knl;
+    field->ksl = settings->ksl;
     if (magnet_has_rel(settings->order_rel, settings->knl_rel, settings->ksl_rel)) {
         magnet_total_multipoles(
             settings->order,
@@ -689,84 +691,151 @@ void track_magnet_particles(
             settings->ksl_rel,
             settings->rel_ref_strength,
             order_tot,
-            knl_buf,
-            ksl_buf
+            plan->knl_tot,
+            plan->ksl_tot
         );
-        knl_tot = knl_buf;
-        ksl_tot = ksl_buf;
+        field->knl = plan->knl_tot;
+        field->ksl = plan->ksl_tot;
     }
 #endif
+    field->kl_order = order_tot;
+    field->knl_scale = taper;
+    field->length = length;
 
-        // Faces, in the order they are crossed: the particle enters the field at
-        // the first and leaves it at the second, in both directions of travel
-        field.knl = knl_tot;
-        field.ksl = ksl_tot;
-        field.kl_order = order_tot;
-        field.knl_scale = taper;
-        field.length = length;
+    // Faces, in the order they are crossed: the particle enters the field at
+    // the first and leaves it at the second, in both directions of travel
+    plan->first_face = backtrack ? exit_face : entry_face;
+    plan->second_face = backtrack ? entry_face : exit_face;
+    if (MagnetFace_uses_field(&entry_face) || MagnetFace_uses_field(&exit_face)) {
+        MagnetField_prepare(field);
+    }
+    MagnetFace_prepare(&plan->first_face, field, backtrack);
+    MagnetFace_prepare(&plan->second_face, field, backtrack);
+    // A face that does nothing is skipped as a whole, not sub-map by sub-map
+    plan->first_active = plan->first_face.has_work;
+    plan->second_active = plan->second_face.has_work;
 
-        // Selected by value: through a pointer chosen at run time, both faces
-        // would stay in memory (on GPU, local memory per thread)
-        MagnetFace first_face = backtrack ? exit_face : entry_face;
-        MagnetFace second_face = backtrack ? entry_face : exit_face;
-        if (MagnetFace_uses_field(&entry_face) || MagnetFace_uses_field(&exit_face)) {
-            MagnetField_prepare(&field);
+    // Faces only (edge slices)
+    plan->body_active = settings->body_active != 0;
+    if (!plan->body_active) return;
+
+    // Body
+    MagnetBody* body = &plan->body;
+    body->length = body_length;
+    body->inv_factorial_order = inv_factorial_order_tot;
+    body->factor_knl_ksl = knl_scale_body;
+    body->dks_ds = settings->dks_ds;
+    body->radiation_flag = radiation_flag;
+    body->radiation_record = settings->radiation_record;
+    MagnetBody_prepare(
+        body,
+        field,
+        settings->model,
+        settings->integrator,
+        settings->num_multipole_kicks,
+        weight,
+        h,
+        hxl
+    );
+
+    // Straight body: the path length is measured on the curved reference
+    // (not for the kick only model)
+    plan->correct_s = rbend_model == RBEND_MODEL_STRAIGHT_BODY
+                      && settings->model != MODEL_KICK_ONLY;
+    plan->ds_curved = body_length_curved - body_length;
+}
+
+
+// Misalignment on one side of a magnet: before it (at_exit = 0) or after it
+// (at_exit = 1), in the direction of travel. Returns 0 if the particles were
+// lost (and the magnet must not be tracked).
+GPUFUN
+int8_t magnet_transform(LocalParticle* part0, const MagnetTransform* tr, int8_t at_exit) {
+    if (!at_exit && tr->invalid) {
+        START_PER_PARTICLE_BLOCK(part0, part);
+            LocalParticle_set_state(part, XT_INVALID_THIN_SLICE_TRANSFORM);
+        END_PER_PARTICLE_BLOCK;
+        return 0;
+    }
+    int8_t const backtrack = LocalParticle_check_track_flag(part0, XS_FLAG_BACKTRACK);
+    // Backtracking crosses the exit side first
+    uint8_t const entry_side = at_exit == backtrack;
+    if (tr->curved) {
+        if (entry_side) {
+            track_misalignment_entry_curved(
+                part0, tr->shift_x, tr->shift_y, tr->shift_s, tr->rot_y_rad, tr->rot_x_rad,
+                tr->rot_s_rad_no_frame, tr->anchor, tr->length, tr->angle, tr->h,
+                tr->rot_s_rad, backtrack
+            );
         }
-        MagnetFace_prepare(&first_face, &field, backtrack);
-        MagnetFace_prepare(&second_face, &field, backtrack);
-        // An inactive face is skipped as a whole, not sub-map by sub-map
-        const uint8_t first_active = (first_face.flags & EDGE_ACTIVE) != 0;
-        const uint8_t second_active = (second_face.flags & EDGE_ACTIVE) != 0;
-
-        // Faces only (edge slices)
-        if (!settings->body_active) {
-            START_PER_PARTICLE_BLOCK(part0, part)
-                ;
-                if (first_active) MagnetFace_enter_single_particle(part, &first_face);
-                if (second_active) MagnetFace_leave_single_particle(part, &second_face);
-            END_PER_PARTICLE_BLOCK;
-            return;
+        else {
+            track_misalignment_exit_curved(
+                part0, tr->shift_x, tr->shift_y, tr->shift_s, tr->rot_y_rad, tr->rot_x_rad,
+                tr->rot_s_rad_no_frame, tr->anchor, tr->length, tr->angle, tr->h,
+                tr->rot_s_rad, backtrack
+            );
         }
+    }
+    else {
+        if (entry_side) {
+            track_misalignment_entry_straight(
+                part0, tr->shift_x, tr->shift_y, tr->shift_s, tr->rot_y_rad, tr->rot_x_rad,
+                tr->rot_s_rad_no_frame, tr->anchor, tr->length, tr->rot_s_rad, backtrack
+            );
+        }
+        else {
+            track_misalignment_exit_straight(
+                part0, tr->shift_x, tr->shift_y, tr->shift_s, tr->rot_y_rad, tr->rot_x_rad,
+                tr->rot_s_rad_no_frame, tr->anchor, tr->length, tr->rot_s_rad, backtrack
+            );
+        }
+    }
+    return 1;
+}
 
-        // Body
-        MagnetBody body;
-        body.length = body_length;
-        body.inv_factorial_order = inv_factorial_order_tot;
-        body.factor_knl_ksl = knl_scale_body;
-        body.dks_ds = settings->dks_ds;
-        body.radiation_flag = radiation_flag;
-        body.radiation_record = settings->radiation_record;
-        MagnetBody_prepare(
-            &body,
-            &field,
-            settings->model,
-            settings->integrator,
-            settings->num_multipole_kicks,
-            weight,
-            h,
-            hxl
-        );
 
-        // Straight body: the path length is measured on the curved reference
-        // (not for the kick only model)
-        const uint8_t correct_s = rbend_model == RBEND_MODEL_STRAIGHT_BODY
-                                  && settings->model != MODEL_KICK_ONLY;
-        const double ds_curved = body_length_curved - body_length;
+// Track a magnet, or a slice of it, from its plan: the misalignment, the
+// first face, the body, the second face. Every magnet class is tracked by
+// this one function, called from one place in track_line, where it is
+// inlined (faster than a call on GPU, with NVRTC and clang).
+GPUFUN XT_INLINE
+void track_magnet_particles(LocalParticle* part0, const MagnetPlan* plan) {
+    const MagnetTransform* transform = &plan->transform;
+    if (transform->active && !magnet_transform(part0, transform, 0)) {
+        return;
+    }
 
+    const uint8_t first_active = plan->first_active;
+    const uint8_t second_active = plan->second_active;
+    if (plan->body_active) {
+        const uint8_t correct_s = plan->correct_s;
+        const double ds_curved = plan->ds_curved;
         double dp_record_exit, dpx_record_exit, dpy_record_exit;
-
         START_PER_PARTICLE_BLOCK(part0, part)
             ;
-            if (first_active) MagnetFace_enter_single_particle(part, &first_face);
+            if (first_active) MagnetFace_enter_single_particle(part, &plan->first_face);
             track_magnet_body_single_particle(
-                part, &body, &dp_record_exit, &dpx_record_exit, &dpy_record_exit
+                part, &plan->body, &dp_record_exit, &dpx_record_exit, &dpy_record_exit
             );
             if (correct_s) {
                 LocalParticle_add_to_s(part, ds_curved);
                 LocalParticle_add_to_zeta(part, ds_curved);
             }
-            if (second_active) MagnetFace_leave_single_particle(part, &second_face);
+            if (second_active) MagnetFace_leave_single_particle(part, &plan->second_face);
         END_PER_PARTICLE_BLOCK;
+    }
+    else {
+        // Faces only (edge slices)
+        START_PER_PARTICLE_BLOCK(part0, part)
+            ;
+            if (first_active) MagnetFace_enter_single_particle(part, &plan->first_face);
+            if (second_active) MagnetFace_leave_single_particle(part, &plan->second_face);
+        END_PER_PARTICLE_BLOCK;
+    }
+
+    if (transform->active) {
+        magnet_transform(part0, transform, 1);
+    }
 }
 
 #endif

@@ -1,13 +1,13 @@
 import pathlib
+
+import madng_tpsa
 import numpy as np
 import pytest
-
 import xobjects as xo
-import madng_tpsa
-import xtrack as xt
-import xtrack.tpsa as xtpsa
 from xobjects.test_helpers import allow_kernel_compilation
 
+import xtrack as xt
+import xtrack.tpsa as xtpsa
 from xtrack._temp import lhc_match as lm
 from xtrack.tpsa._knobs import KnobParameters
 from xtrack.twiss.twiss_init import _6d_w_matrix

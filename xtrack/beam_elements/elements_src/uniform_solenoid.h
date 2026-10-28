@@ -11,9 +11,12 @@
 #include "xtrack/beam_elements/elements_src/edge_load.h"
 #include "xtrack/beam_elements/elements_src/default_magnet_config.h"
 
+// The magnet, as a plan for track_magnet_particles (the misalignment is
+// added by UniformSolenoid_prepare_plan, track_local_particle_with_transformations.h)
 GPUFUN
-void UniformSolenoid_track_local_particle(
+void UniformSolenoid_prepare_magnet(
         UniformSolenoidData el,
+        MagnetPlan* plan,
         LocalParticle* part0
 ) {
 
@@ -47,17 +50,7 @@ void UniformSolenoid_track_local_particle(
     //     rbend_compensate_sagitta, rbend_shift, rbend_angle_diff,
     //     length_straight, body_active
     // clang-format on
-    // The default faces (vector potential only) get their own call, in which
-    // the compiler knows that the fringe maps are off. In the general call
-    // their code costs about 20 % of a solenoid on GPU, even when unused.
-    if (((entry_face.flags | exit_face.flags) & ~EDGE_ACTIVE) == 0) {
-        entry_face.flags &= EDGE_ACTIVE;
-        exit_face.flags &= EDGE_ACTIVE;
-        track_magnet_particles(part0, &magnet, &entry_face, &exit_face);
-    }
-    else {
-        track_magnet_particles(part0, &magnet, &entry_face, &exit_face);
-    }
+    MagnetPlan_prepare(plan, &magnet, &entry_face, &exit_face, part0);
 }
 
 #endif // XTRACK_UNIFORM_SOLENOID_H

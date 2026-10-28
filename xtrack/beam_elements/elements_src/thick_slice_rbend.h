@@ -15,10 +15,13 @@
 #include "xtrack/beam_elements/elements_src/edge_load.h"
 #include "xtrack/beam_elements/elements_src/default_magnet_config.h"
 
+// The magnet, as a plan for track_magnet_particles (the misalignment is
+// added by ThickSliceRBend_prepare_plan, track_local_particle_with_transformations.h)
 GPUFUN
-void ThickSliceRBend_track_local_particle(
-    ThickSliceRBendData el,
-    LocalParticle* part0
+void ThickSliceRBend_prepare_magnet(
+        ThickSliceRBendData el,
+        MagnetPlan* plan,
+        LocalParticle* part0
 ) {
 
     MagnetFace entry_face = MagnetFace_empty(0);
@@ -56,7 +59,7 @@ void ThickSliceRBend_track_local_particle(
     //     radiation_record, hxl, k3, k0s, k1s, k2s, k3s, ks, dks_ds,
     //     x0_solenoid, y0_solenoid, body_active
     // clang-format on
-    track_magnet_particles(part0, &magnet, &entry_face, &exit_face);
+    MagnetPlan_prepare(plan, &magnet, &entry_face, &exit_face, part0);
 }
 
 #endif // XTRACK_THICK_SLICE_RBEND_H
