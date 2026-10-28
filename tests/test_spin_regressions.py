@@ -115,3 +115,35 @@ def test_polarization_4d_planar_limit():
     np.testing.assert_allclose(derivatives[0], 0., atol=1e-10, rtol=0)
     np.testing.assert_allclose(derivatives[1], derivatives[0], atol=1e-7, rtol=0)
     assert np.linalg.norm(derivatives[2]) > 1e-5
+
+
+@pytest.mark.parametrize('p0c', [5e8, 2e9, 1e12])
+def test_spin_polarization_energy_coordinates(p0c):
+    line = _spin_test_ring(
+        ks=0.01, p0c=p0c, mass0=xt.PROTON_MASS_EV,
+        anomalous_magnetic_moment=1.79284734463, qs=0.05)
+    tw = line.twiss(polarization_analysis=True)
+    n0 = np.array([tw.spin_x, tw.spin_y, tw.spin_z]).T
+    dn = tw.spin_n_matrix[:, :, 5]
+    np.testing.assert_allclose(dn[-1], dn[0], atol=1e-7, rtol=0)
+    np.testing.assert_allclose(np.sum(n0 * dn, axis=1), 0., atol=1e-7, rtol=0)
+
+
+def test_spin_dn_ddelta_off_momentum():
+    line = _spin_test_ring(
+        ks=0.01, p0c=5e8, mass0=xt.PROTON_MASS_EV,
+        anomalous_magnetic_moment=1.79284734463)
+    delta0 = 0.1
+    step = 1e-5
+    tw = line.twiss4d(delta0=delta0, polarization_analysis=True)
+    plus = line.twiss4d(delta0=delta0 + step, spin=True)
+    minus = line.twiss4d(delta0=delta0 - step, spin=True)
+    d_orbit = np.array([(plus[k][0] - minus[k][0]) / (2 * step)
+                        for k in ['x', 'px', 'y', 'py']])
+    d_spin = np.array([(plus[k][0] - minus[k][0]) / (2 * step)
+                       for k in ['spin_x', 'spin_y', 'spin_z']])
+    # Varying the closed-orbit energy also changes the transverse orbit.
+    # Include that contribution when comparing to independent spin solutions.
+    predicted = tw.spin_n_matrix[0, :, :4] @ d_orbit + np.array([
+        tw.spin_dn_ddelta_x[0], tw.spin_dn_ddelta_y[0], tw.spin_dn_ddelta_z[0]])
+    np.testing.assert_allclose(predicted, d_spin, atol=2e-7, rtol=2e-5)
