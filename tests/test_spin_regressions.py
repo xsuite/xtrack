@@ -147,3 +147,111 @@ def test_spin_dn_ddelta_off_momentum():
     predicted = tw.spin_n_matrix[0, :, :4] @ d_orbit + np.array([
         tw.spin_dn_ddelta_x[0], tw.spin_dn_ddelta_y[0], tw.spin_dn_ddelta_z[0]])
     np.testing.assert_allclose(predicted, d_spin, atol=2e-7, rtol=2e-5)
+
+
+def _spin_field_tracking_errors(line, tw, offsets, nn):
+    coordinates = ['x', 'px', 'y', 'py', 'zeta', 'pzeta']
+    co = np.array([tw[key][0] for key in coordinates])
+    n0 = np.array([tw.spin_x[0], tw.spin_y[0], tw.spin_z[0]])
+    spin = n0 + offsets @ nn.T
+    spin /= np.linalg.norm(spin, axis=1)[:, None]
+    particles = line.build_particles(
+        particle_ref=tw.particle_on_co, mode='set',
+        **{key: co[i] + offsets[:, i] for i, key in enumerate(coordinates)},
+        spin_x=spin[:, 0], spin_y=spin[:, 1], spin_z=spin[:, 2])
+
+    # Track the same dynamics as Twiss. Particle zero is on the closed orbit
+    # and supplies the common radiation kicks when using kick_as_co.
+    with xt.line._preserve_config(line), xt.line._preserve_track_flags(line):
+        line.config.XTRACK_MULTIPOLE_NO_SYNRAD = False
+        line.tracker.track_flags.XS_FLAG_KILL_CAVITY_KICK = tw.method == '4d'
+        line.tracker.track_flags.XS_FLAG_SR_KICK_SAME_AS_FIRST = (
+            tw.radiation_method == 'kick_as_co')
+        line.track(particles)
+    np.testing.assert_array_equal(particles.state, 1)
+    tracked_spin = np.array([
+        particles.spin_x, particles.spin_y, particles.spin_z]).T
+    np.testing.assert_allclose(
+        np.linalg.norm(tracked_spin, axis=1), 1., atol=1e-12, rtol=0)
+
+    # Use the actual final orbit, not its linear approximation R @ offsets.
+    # After a full turn, predict spin with the INITIAL n0 and NN at the same
+    # azimuth. Using the propagated end-point NN would weaken this invariance
+    # check by reusing the eigenvector propagation that we want to validate.
+    final_offsets = np.array([
+        getattr(particles, key) for key in coordinates]).T - co
+    predicted_spin = n0 + final_offsets @ nn.T
+    predicted_spin /= np.linalg.norm(predicted_spin, axis=1)[:, None]
+    return np.linalg.norm(tracked_spin - predicted_spin, axis=1)
+
+
+def _check_linear_spin_field_tracking(line, tw, scales, max_control_error):
+    # For a correct linear invariant spin field n_lin(u) = normalize(n0 + NN u),
+    # tracking n_lin(u) must agree with n_lin(u_final) through first order.
+    # The omitted nonlinear terms give an O(epsilon**2) error: halving every
+    # orbital offset should reduce this error by four. A wrong NN instead
+    # generally leaves an O(epsilon) error, which only decreases by two.
+    # Probe each coordinate separately, both signs, and a mixed displacement.
+    directions = np.vstack([np.eye(6), [1., -0.7, 0.4, 0.9, -0.5, 0.8]])
+    offsets = scales * np.vstack([np.zeros((2, 6)), directions, -directions])
+    amplitudes = [1., 0.5, 0.25]
+    nn = tw.spin_n_matrix[0]
+    errors = np.array([
+        _spin_field_tracking_errors(line, tw, amplitude * offsets, nn)
+        for amplitude in amplitudes])
+
+    # Two unperturbed controls distinguish closure error (particle zero) from
+    # the numerical floor affecting the other particles. In kick_as_co, the
+    # first particle's energy update and applying its copied kick have slightly
+    # different roundoff, which can accumulate over a long electron ring.
+    np.testing.assert_allclose(errors[:, 0], 0., atol=1e-11, rtol=0)
+    np.testing.assert_allclose(errors[:, 1], 0., atol=max_control_error, rtol=0)
+    floor = max(2e-12, 2 * np.max(errors[:, 1]))
+    assert np.all(errors[1:, 2:] <= 0.30 * errors[:-1, 2:] + floor)
+    peak_errors = np.max(errors[:, 2:], axis=1)
+    assert peak_errors[-1] > 3 * floor  # Resolve the nonlinear error above noise.
+    np.testing.assert_allclose(
+        peak_errors[1:] / peak_errors[:-1], 0.25, atol=0.04, rtol=0)
+
+    # Negative control: an intentionally incorrect field must exhibit the
+    # linear error that the quadratic-convergence assertion above rejects.
+    wrong_errors = np.array([
+        _spin_field_tracking_errors(line, tw, amplitude * offsets, 0.9 * nn)
+        for amplitude in amplitudes])
+    wrong_peaks = np.max(wrong_errors[:, 2:], axis=1)
+    np.testing.assert_allclose(
+        wrong_peaks[1:] / wrong_peaks[:-1], 0.5, atol=0.05, rtol=0)
+    assert np.any(wrong_errors[1:, 2:] > 0.30 * wrong_errors[:-1, 2:] + floor)
+
+
+@pytest.mark.parametrize('method', ['4d', '6d'])
+@pytest.mark.parametrize('species', ['electron', 'proton'])
+def test_linear_spin_field_tracking(method, species):
+    kwargs = ({} if species == 'electron' else dict(
+        p0c=5e8, mass0=xt.PROTON_MASS_EV,
+        anomalous_magnetic_moment=1.79284734463))
+    line = _spin_test_ring(ks=0.01, qs=0.05 if method == '6d' else None, **kwargs)
+    tw = line.twiss(method=method, polarization_analysis=True)
+    # x, px, y, py, zeta, pzeta: small finite amplitudes, deliberately larger
+    # than the finite-difference steps used internally to calculate NN.
+    scales = np.array([1e-3, 2e-4, 1.2e-3, 3e-4, 2e-3, 1e-3])
+    _check_linear_spin_field_tracking(line, tw, scales, max_control_error=2e-12)
+
+
+@pytest.mark.filterwarnings('ignore::FutureWarning')
+def test_linear_spin_field_tracking_with_radiation():
+    from pathlib import Path
+
+    line = xt.load(Path(__file__).parent
+                   / '../test_data/spin_refs_bmad/lep_lattice_to_bmad.json')
+    for ip in [2, 4, 6, 8]:
+        line[f'on_sol.{ip}'] = 1
+        for knob in ['on_spin_bump', 'on_coupl_sol', 'on_coupl_sol_bump']:
+            line[f'{knob}.{ip}'] = 0
+    line.configure_radiation(model='mean')
+    line.compensate_radiation_energy_loss()
+    tw = line.twiss(polarization_analysis=True)
+    assert tw.radiation_method == 'kick_as_co'
+    # Keep the quadratic error above the roundoff floor of the long ring.
+    scales = 4 * np.array([1e-5, 1e-7, 1e-5, 1e-7, 1e-4, 1e-5])
+    _check_linear_spin_field_tracking(line, tw, scales, max_control_error=5e-8)
