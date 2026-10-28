@@ -100,7 +100,7 @@ def _add_spin_polarization(tw, line, method):
 
         # Use the initial perturbation, as in the orbital response matrix.
         # The energy separation can change during the turn (e.g. with RF).
-        dpzeta = float(mon_r_ebe.ptau[6, 0] - mon_r_ebe.ptau[12, 0])/2/part.beta0[0]
+        dpzeta = float(mon_r_ebe.pzeta[6, 0] - mon_r_ebe.pzeta[12, 0]) / 2
 
         temp_mat = np.zeros((3, len(part.spin_x)))
         temp_mat[0, :] = part.spin_x
@@ -194,7 +194,7 @@ def _add_spin_polarization(tw, line, method):
             particle_data = {}
             # Radiation modes that reuse the first particle's kicks or scaling
             # require the closed-orbit particle at the head of the batch.
-            for ii, key in enumerate(['x', 'px', 'y', 'py', 'zeta', 'ptau',
+            for ii, key in enumerate(['x', 'px', 'y', 'py', 'zeta', 'pzeta',
                                     'spin_x', 'spin_y', 'spin_z']):
                 particle_data[key] = tw[key][0] + np.array(
                     [0.] + list(eee_trk_re[ii, :]) + list(eee_trk_im[ii, :])
@@ -209,7 +209,7 @@ def _add_spin_polarization(tw, line, method):
 
             ee_ebe = np.zeros((len(tw), 9, n_eigen), dtype=complex)
 
-            for ii, key in enumerate(['x', 'px', 'y', 'py', 'zeta', 'ptau',
+            for ii, key in enumerate(['x', 'px', 'y', 'py', 'zeta', 'pzeta',
                                     'spin_x', 'spin_y', 'spin_z']):
                 mon_vv = getattr(mon_ebe, key)
                 for iee in range(n_eigen):
@@ -250,7 +250,9 @@ def _add_spin_polarization(tw, line, method):
         if method == '4d':
             # Add a dummy col 4 in NN
             NN = np.insert(NN, 4, 0, axis=2)
-        dn_ddelta = NN[:, :, 5]
+        # d(pzeta)/d(delta) = beta / beta0, including off-momentum orbits.
+        rvv = (1 + tw.delta) / (1 + tw.beta0 * tw.ptau)
+        dn_ddelta = NN[:, :, 5] * rvv[:, None]
 
         dn_ddelta_mod = np.sqrt(dn_ddelta[:, 0]**2
                                     + dn_ddelta[:, 1]**2
