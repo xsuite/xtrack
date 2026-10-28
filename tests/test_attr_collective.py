@@ -109,6 +109,8 @@ def test_buffered_collective_attributes(test_context, element_class, kwargs):
     actual = line.get_table(attr=True)
     expected = reference.get_table(attr=True)
     for name in line.attr.keys():
+        if name == 'angle_rad':
+            continue  # Deprecated alias, already covered by `angle`.
         np.testing.assert_allclose(actual[name], expected[name], rtol=0, atol=1e-14)
     np.testing.assert_allclose(line.survey().XYZ, reference.survey().XYZ,
                                rtol=0, atol=1e-14)
