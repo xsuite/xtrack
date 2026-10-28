@@ -8353,6 +8353,7 @@ class LineAttrItem:
         setter_names = []
         self._python_properties = []
         self._python_methods = []
+        is_collective_line = line.tracker.iscollective
         for ii, nn, ee in has_nn0:
             has_name = True
             if isinstance(name, str):
@@ -8386,6 +8387,21 @@ class LineAttrItem:
                 if index is not None and index >= len(getattr(inner_obj, inner_name)):
                     continue
                 self._python_properties.append((ii, inner_obj, inner_name))
+            elif has_name and is_collective_line and _is_collective(ee, line):
+                # Read collective attributes from the original element: the
+                # MultiSetter sees replacement drifts in the tracker buffer.
+                if hasattr(inner_obj, '_xobject'):
+                    if inner_name not in inner_obj._xofields:
+                        continue
+                    # Match MultiSetter's numeric storage access. For example,
+                    # a Bend's element.k0 can return 'from_h', whereas
+                    # element._xobject.k0 contains the stored numeric value.
+                    inner_obj = inner_obj._xobject
+                if not hasattr(inner_obj, inner_name):
+                    continue
+                if index is not None and index >= len(getattr(inner_obj, inner_name)):
+                    continue
+                self._python_properties.append((ii, inner_obj, inner_name))
             elif has_name and hasattr(inner_obj, '_xofields') and inner_name in inner_obj._xofields:
                 if index is not None:
                     this_len = cache_len.get(tuple(name)+(nn,), None)
@@ -8403,6 +8419,12 @@ class LineAttrItem:
         self.names = setter_names
         self._multisetter = multisetter
         self._mask = mask
+        # Field presence also includes values read outside the tracker buffer.
+        self._mask_has_field = mask
+        if is_collective_line and (self._python_properties or self._python_methods):
+            self._mask_has_field = mask.copy()
+            for item in self._python_properties + self._python_methods:
+                self._mask_has_field[item[0]] = True
 
     @property
     def multisetter(self):
@@ -8921,7 +8943,8 @@ def _main_strength_from_attr(attr):
 
     main_order = attr['_own_main_order'] + attr['_parent_main_order']
 
-    mask_take_main_order = attr._cache['_own_main_order']._mask | attr._cache['_parent_main_order']._mask
+    mask_take_main_order = (attr._cache['_own_main_order']._mask_has_field
+                           | attr._cache['_parent_main_order']._mask_has_field)
 
     _main_strength_normal = np.zeros(len(main_order), dtype=np.float64)
     _main_strength_skew = np.zeros(len(main_order), dtype=np.float64)
