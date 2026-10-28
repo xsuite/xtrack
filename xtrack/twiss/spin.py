@@ -241,9 +241,13 @@ def _add_spin_polarization(tw, line, method):
         fltr = np.eye(EE_orb.shape[1]) # for now
 
         NN = np.real(EE_spin @ fltr @ np.linalg.inv(EE_orb))
-        # Differencing nearly equal spin components introduces a spurious
-        # longitudinal component. Enforce the unit-spin constraint locally,
-        # as well as in the initial eigenvector solve.
+        # NN describes n(u) = n0 + NN @ u to first order in orbital offsets u.
+        # Differentiating n(u) . n(u) = 1 gives n0.T @ NN = 0: every derivative
+        # column must be perpendicular to n0. At each lattice location, apply
+        # NN <- (I - n0 @ n0.T) @ NN, removing each column's component along n0.
+        # This numerical cleanup assumes that the remaining parallel component
+        # comes from finite-difference error. It enforces perpendicularity but
+        # does not establish one-turn closure of the spin field or derivatives.
         n0_ebe = np.array([tw.spin_x, tw.spin_y, tw.spin_z]).T
         n0_ebe /= np.linalg.norm(n0_ebe, axis=1)[:, None]
         NN -= n0_ebe[:, :, None] * (n0_ebe[:, None, :] @ NN)
