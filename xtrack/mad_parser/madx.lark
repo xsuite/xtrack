@@ -90,8 +90,10 @@ array: "{" sum ( "," sum )* "}"  -> build_list
 ?power: atom
     | power "^" exponent -> op_pow
 
-// Preserve signed exponents and left-associative powers, while unary
-// signs on the base apply after exponentiation: -a^2 means -(a^2).
+// MAD-X convention: ^ is left-associative, so a^b^c == (a^b)^c.
+// Exponentiation must take precedence over unary signs: -a^2 == -(a^2).
+// To keep both, the right operand can't be `unary`, which can expand back
+// to `power`. `exponent` repeats the sign rules but only wraps an `atom`.
 ?exponent: atom
     | "-" exponent      -> op_neg
     | "+" exponent      -> op_pos
