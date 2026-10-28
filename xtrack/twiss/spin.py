@@ -3,57 +3,69 @@
 # Copyright (c) CERN, 2021.                 #
 # ######################################### #
 
-from functools import partial
-
 import numpy as np
 from scipy.constants import c as clight
 from scipy.constants import e as qe
 from scipy.constants import hbar
 
-import xdeps as xd
-
 import xtrack as xt  # To avoid circular imports
+
+
+def _compute_spin_rotation_matrix(line, particle_on_co):
+    # Track each basis spin on an exact copy of the closed-orbit particle.
+    # In kick_as_co mode the first particle's energy update and the copied
+    # kicks differ slightly in roundoff; separate tracks keep the orbit
+    # identical for all three columns, including at each radiation kick.
+    rotation = np.empty((3, 3))
+    for column, component in enumerate(['spin_x', 'spin_y', 'spin_z']):
+        particle = particle_on_co.copy()
+        particle.spin_x = 0.
+        particle.spin_y = 0.
+        particle.spin_z = 0.
+        setattr(particle, component, 1.)
+        line.track(particle)
+        if particle.state[0] <= 0:
+            raise ValueError('Particle lost while computing the spin rotation matrix')
+        rotation[:, column] = [particle.spin_x[0], particle.spin_y[0],
+                               particle.spin_z[0]]
+    return rotation
 
 
 def _find_spin_fixed_point(line, particle_on_co):
 
     with xt.line._preserve_config(line):
-        # Spin is behind the same compile flag as synchrotron radiation
+        # Spin is behind the same compile flag as synchrotron radiation.
         line.config.XTRACK_MULTIPOLE_NO_SYNRAD = False
-        opt = xd.Optimize.from_callable(
-            partial(_errfun_spin, particle_on_co=particle_on_co, line=line),
-            x0=(0., 0.),
-            steps=[1e-4, 1e-4],
-            tar=[0., 0.],
-            limits=[(-1, 1), (-1, 1)],
-            tols=[1e-12, 1e-12],
-            show_call_counter=False,
-            _printer=xt._print)
-        opt.solve(verbose=False)
+        rotation = _compute_spin_rotation_matrix(line, particle_on_co)
+        if np.max(np.abs(rotation - np.eye(3))) < 1e-13:
+            # The identity has no distinguished axis. Retain a supplied spin
+            # direction, or use the vertical direction when none is supplied.
+            n0 = np.array([particle_on_co.spin_x[0], particle_on_co.spin_y[0],
+                           particle_on_co.spin_z[0]])
+            if np.linalg.norm(n0) == 0:
+                n0 = np.array([0., 1., 0.])
+        else:
+            eigenvalues, eigenvectors = np.linalg.eig(rotation)
+            n0 = eigenvectors[:, np.argmin(np.abs(eigenvalues - 1))].real
+        n0 /= np.linalg.norm(n0)
 
-    sx_opt = opt.get_knob_values()[0]
-    sz_opt = opt.get_knob_values()[1]
-    sy_opt = np.sqrt(1 - sx_opt**2 - sz_opt**2)
+        # Keep the usual positive vertical orientation. For a horizontal axis,
+        # use its largest component to choose a deterministic sign.
+        sign_component = 1 if abs(n0[1]) > 1e-12 else np.argmax(np.abs(n0))
+        if n0[sign_component] < 0:
+            n0 *= -1
 
-    return (sx_opt, sy_opt, sz_opt)
+        # Check actual tracking in all three components, including the one
+        # omitted by the former two-target optimizer.
+        check = particle_on_co.copy()
+        check.spin_x, check.spin_y, check.spin_z = n0
+        line.track(check)
+        spin_end = np.array([check.spin_x[0], check.spin_y[0], check.spin_z[0]])
+        if (check.state[0] <= 0 or not np.all(np.isfinite(spin_end))
+                or np.max(np.abs(spin_end - n0)) > 1e-10):
+            raise ValueError('Spin fixed point does not close after one turn')
 
-
-def _errfun_spin(s, line, particle_on_co):
-    pp = particle_on_co.copy()
-
-    sx = s[0]
-    sz = s[1]
-    sy = np.sqrt(1 - sx**2 - sz**2)
-
-    pp.spin_x = sx
-    pp.spin_z = sz
-    pp.spin_y = sy
-
-    line.track(pp)
-
-    return np.array([pp.spin_x[0] - sx,
-                        pp.spin_y[0] - sy,
-                        pp.spin_z[0] - sz])
+    return tuple(n0)
 
 
 def _add_spin_polarization(tw, line, method):
@@ -109,24 +121,7 @@ def _add_spin_polarization(tw, line, method):
         ds = 1e-5
 
         import xpart as xp
-        p_test = xp.build_particles(particle_ref=tw.particle_on_co, mode='shift',
-                                    x=[0,0,0,0,0,0])
-        p_test.spin_x = [ds, 0, 0, -ds, 0, 0]
-        p_test.spin_y = [0, ds, 0, 0, -ds, 0]
-        p_test.spin_z = [0, 0, ds, 0, 0, -ds]
-
-        line.track(p_test)
-
-        A = np.zeros((3, 3))
-        A[0, 0] = (p_test.spin_x[0] - p_test.spin_x[3])/(2*ds)
-        A[0, 1] = (p_test.spin_x[1] - p_test.spin_x[4])/(2*ds)
-        A[0, 2] = (p_test.spin_x[2] - p_test.spin_x[5])/(2*ds)
-        A[1, 0] = (p_test.spin_y[0] - p_test.spin_y[3])/(2*ds)
-        A[1, 1] = (p_test.spin_y[1] - p_test.spin_y[4])/(2*ds)
-        A[1, 2] = (p_test.spin_y[2] - p_test.spin_y[5])/(2*ds)
-        A[2, 0] = (p_test.spin_z[0] - p_test.spin_z[3])/(2*ds)
-        A[2, 1] = (p_test.spin_z[1] - p_test.spin_z[4])/(2*ds)
-        A[2, 2] = (p_test.spin_z[2] - p_test.spin_z[5])/(2*ds)
+        A = _compute_spin_rotation_matrix(line, tw.particle_on_co)
 
         RR[6:, 6:] = A
 
