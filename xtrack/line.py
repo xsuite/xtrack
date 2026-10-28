@@ -8615,9 +8615,19 @@ class EnergyProgram:
         # (E1-E0)/a = dt*(P0+P1)/(E0+E1). This is exact, avoids
         # subtracting nearly equal energies, and also holds for constant P or
         # acceleration from rest. Only the original knots need to be stored.
-        delta_turns = (clight / self._circumference * np.diff(times)
-                       * (momentum[:-1] + momentum[1:]) / (energy[:-1] + energy[1:]))
-        self._i_turn_at_t_s = np.concatenate(([0.], np.cumsum(delta_turns)))
+        turn_increments = (clight / self._circumference * np.diff(times)
+                           * (momentum[:-1] + momentum[1:]) / (energy[:-1] + energy[1:]))
+        # Kahan summation keeps rounding errors from accumulating with the
+        # number of ramp samples. Errors in this table shift the reference
+        # clock and therefore zeta, even for a constant-momentum program.
+        self._i_turn_at_t_s = np.zeros(len(times))
+        total = correction = 0.
+        for ii, turn_increment in enumerate(turn_increments):
+            increment = turn_increment - correction
+            updated = total + increment
+            correction = (updated - total) - increment
+            total = updated
+            self._i_turn_at_t_s[ii + 1] = total
 
     def get_turn_at_t_s(self, t_s):
         """Accumulated reference turns, integrating the linear momentum ramp.
