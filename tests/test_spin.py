@@ -540,6 +540,11 @@ def test_polarization_6d_periodic_with_radiation():
     # kick_as_co also requires the closed orbit first in every tracking batch.
     tw = line.twiss(method='6d', polarization_analysis=True)
     assert tw.radiation_method == 'kick_as_co'
+    n0 = np.array([tw.spin_x, tw.spin_y, tw.spin_z]).T
+    dn = np.array([tw.spin_dn_ddelta_x, tw.spin_dn_ddelta_y,
+                   tw.spin_dn_ddelta_z]).T
+    xo.assert_allclose(n0[-1], n0[0], atol=1e-10, rtol=0)
+    xo.assert_allclose(np.sum(n0 * dn, axis=1), 0., atol=1e-10, rtol=0)
     for component in ['x', 'y', 'z']:
         dn_ddelta = tw[f'spin_dn_ddelta_{component}']
         xo.assert_allclose(dn_ddelta[-1], dn_ddelta[0], atol=2e-5, rtol=0)

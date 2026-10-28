@@ -152,21 +152,22 @@ def _add_spin_polarization(tw, line, method):
         if method == '4d':
             EE_orb = np.insert(EE_orb, 4, 0, axis=0)
 
+        # A derivative of a unit spin is perpendicular to n0. Solve in that
+        # two-dimensional plane: in 4D the energy mode has eigenvalue one,
+        # making the unconstrained 3D system singular along n0.
+        n0 = np.array([tw.spin_x[0], tw.spin_y[0], tw.spin_z[0]])
+        _, _, vh = np.linalg.svd(n0[None, :], full_matrices=True)
+        spin_basis = vh[1:, :].T
+        A_perp = spin_basis.T @ A @ spin_basis
+        DD_perp = spin_basis.T @ DD
         EE_spin = np.zeros((3, n_eigen), dtype=complex)
         for ii in range(n_eigen):
-            EE_spin[:, ii] = np.linalg.inv(eival[ii] * np.eye(3) - A) @ DD @ EE_orb[:, ii]
+            EE_spin[:, ii] = spin_basis @ np.linalg.solve(
+                eival[ii] * np.eye(2) - A_perp, DD_perp @ EE_orb[:, ii])
 
         eee = np.zeros((9, n_eigen), dtype=complex)
         eee[:6, :] = EE_orb
         eee[6:, :] = EE_spin
-
-        # Identify eigenvector with eigenvalue 1 and remove n0 component
-        # This happens because also n0 is an eigenvector associated to
-        # the eigenvalue 1
-        if method == '4d':
-            i_eigen_one = np.argmin(np.abs(eival - 1))
-            n0 = np.array([tw.spin_x[0], tw.spin_y[0], tw.spin_z[0]])
-            eee[6:, i_eigen_one] -= np.dot(eee[6:, i_eigen_one], n0) * n0
 
         # Scale and track eigenvectors
         def get_scale(e):
@@ -240,6 +241,15 @@ def _add_spin_polarization(tw, line, method):
         fltr = np.eye(EE_orb.shape[1]) # for now
 
         NN = np.real(EE_spin @ fltr @ np.linalg.inv(EE_orb))
+        # NN describes n(u) = n0 + NN @ u to first order in orbital offsets u.
+        # Differentiating n(u) . n(u) = 1 gives n0.T @ NN = 0: every derivative
+        # column must be perpendicular to n0. At each lattice location, apply
+        # NN <- (I - n0 @ n0.T) @ NN, removing each column's component along n0.
+        # This numerical cleanup assumes that the remaining parallel component
+        # comes from finite-difference error.
+        n0_ebe = np.array([tw.spin_x, tw.spin_y, tw.spin_z]).T
+        n0_ebe /= np.linalg.norm(n0_ebe, axis=1)[:, None]
+        NN -= n0_ebe[:, :, None] * (n0_ebe[:, None, :] @ NN)
         if method == '4d':
             # Add a dummy col 4 in NN
             NN = np.insert(NN, 4, 0, axis=2)
