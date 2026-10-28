@@ -86,7 +86,9 @@ def _add_spin_polarization(tw, line, method):
         dzeta = steps_R_matrix["dzeta"]
         ddelta = steps_R_matrix["ddelta"]
 
-        dpzeta = float(part.ptau[6] - part.ptau[12])/2/part.beta0[0]
+        # Use the initial perturbation, as in the orbital response matrix.
+        # The energy separation can change during the turn (e.g. with RF).
+        dpzeta = float(mon_r_ebe.ptau[6, 0] - mon_r_ebe.ptau[12, 0])/2/part.beta0[0]
 
         temp_mat = np.zeros((3, len(part.spin_x)))
         temp_mat[0, :] = part.spin_x
@@ -194,10 +196,12 @@ def _add_spin_polarization(tw, line, method):
             eee_trk_im = side * eee_scaled.imag
 
             particle_data = {}
+            # Radiation modes that reuse the first particle's kicks or scaling
+            # require the closed-orbit particle at the head of the batch.
             for ii, key in enumerate(['x', 'px', 'y', 'py', 'zeta', 'ptau',
                                     'spin_x', 'spin_y', 'spin_z']):
                 particle_data[key] = tw[key][0] + np.array(
-                    list(eee_trk_re[ii, :]) + list(eee_trk_im[ii, :])
+                    [0.] + list(eee_trk_re[ii, :]) + list(eee_trk_im[ii, :])
                 )
 
             par_track = xp.build_particles(
@@ -213,8 +217,8 @@ def _add_spin_polarization(tw, line, method):
                                     'spin_x', 'spin_y', 'spin_z']):
                 mon_vv = getattr(mon_ebe, key)
                 for iee in range(n_eigen):
-                    ee_ebe[:, ii, iee] = side *((mon_vv[iee, :] - tw[key])
-                                    + 1j * (mon_vv[n_eigen + iee, :] - tw[key]))
+                    ee_ebe[:, ii, iee] = side *((mon_vv[1 + iee, :] - tw[key])
+                                    + 1j * (mon_vv[1 + n_eigen + iee, :] - tw[key]))
 
             # Rephase
             for ii in range(n_eigen):
