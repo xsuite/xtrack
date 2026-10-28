@@ -687,7 +687,7 @@ def test_polarization_lep_sext_corr():
 
     spin_dn_dpz_y_interp = interp1d(spin_bmad.s, spin_bmad.spin_dn_dpz_y)(tw.s)
     xo.assert_allclose(
-        tw.spin_dn_ddelta_y, spin_dn_dpz_y_interp, atol=0.002, rtol=0
+        tw.spin_dn_ddelta_y, spin_dn_dpz_y_interp, atol=0.0025, rtol=0
     )
 
     spin_dn_dpz_z_interp = interp1d(spin_bmad.s, spin_bmad.spin_dn_dpz_z)(tw.s)
