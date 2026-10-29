@@ -700,10 +700,10 @@ def _compute_periodic_twiss_init(twiss_config):
         _complete_steps_r_matrix_with_default(
             periodic_init_kwargs['steps_R_matrix']))
 
-    (init, R_matrix, steps_R_matrix, eigenvalues, Rot, RR_ebe, spin_rotation_matrix
+    (init, R_matrix, steps_R_matrix, eigenvalues, Rot, RR_ebe
      ) = _find_periodic_solution(**periodic_init_kwargs)
 
-    periodic_init_data = {
+    return {
         'init': init,
         'R_matrix': R_matrix,
         'steps_R_matrix': steps_R_matrix,
@@ -711,4 +711,3 @@ def _compute_periodic_twiss_init(twiss_config):
         'Rot': Rot,
         'RR_ebe': RR_ebe,
     }
-    return periodic_init_data, spin_rotation_matrix

@@ -444,11 +444,8 @@ def twiss_line(line, particle_ref=None, method=None,
             # Standard periodic Twiss, for the full line or a closed range.
             result_init = twiss_config['init']
             _clear_twiss_init_input_fields(twiss_config)
-            periodic_init_data, spin_rotation_matrix = (
-                _compute_periodic_twiss_init(twiss_config))
-            twiss_config.update(periodic_init_data)
-            twiss_res = _compute_base_twiss(
-                twiss_config, spin_rotation_matrix=spin_rotation_matrix)
+            twiss_config.update(_compute_periodic_twiss_init(twiss_config))
+            twiss_res = _compute_base_twiss(twiss_config)
 
         elif route == 'open':
             # Standard open Twiss from supplied init data.
@@ -473,12 +470,10 @@ def twiss_line(line, particle_ref=None, method=None,
             one_turn_kwargs['start'] = None
             result_init = one_turn_kwargs['init']
             _clear_twiss_init_input_fields(one_turn_kwargs)
-            periodic_init_data, spin_rotation_matrix = (
+            one_turn_kwargs.update(
                 _compute_periodic_twiss_init(one_turn_kwargs))
-            one_turn_kwargs.update(periodic_init_data)
 
-            full_twiss = _compute_base_twiss(
-                one_turn_kwargs, spin_rotation_matrix=spin_rotation_matrix)
+            full_twiss = _compute_base_twiss(one_turn_kwargs)
             first_part = full_twiss.rows[requested_start:]
             second_part = full_twiss.rows[:requested_start]
             twiss_res = TwissTable.concatenate([first_part, second_part])
@@ -511,11 +506,9 @@ def twiss_line(line, particle_ref=None, method=None,
                 periodic_mode='periodic',
             )
             _clear_twiss_init_input_fields(periodic_kwargs)
-            periodic_init_data, spin_rotation_matrix = (
+            periodic_kwargs.update(
                 _compute_periodic_twiss_init(periodic_kwargs))
-            periodic_kwargs.update(periodic_init_data)
-            full_periodic_twiss = _compute_base_twiss(
-                periodic_kwargs, spin_rotation_matrix=spin_rotation_matrix)
+            full_periodic_twiss = _compute_base_twiss(periodic_kwargs)
 
             twiss_config['init'] = full_periodic_twiss.get_twiss_init(
                 twiss_config['init_at'] or twiss_config['start'])
@@ -566,7 +559,7 @@ def twiss_line(line, particle_ref=None, method=None,
         return twiss_res
 
 
-def _compute_base_twiss(twiss_config, spin_rotation_matrix=None):
+def _compute_base_twiss(twiss_config):
     """Propagate from a concrete init and finish one non-composed result."""
 
     twiss_config = twiss_config.copy()
@@ -636,8 +629,7 @@ def _compute_base_twiss(twiss_config, spin_rotation_matrix=None):
     twiss_res = twpc._set_twiss_result_values_at(twiss_config, twiss_res)
     twpc._add_strengths_and_radiation_integrals_to_twiss_result(
         twiss_config, twiss_res)
-    twpc._add_spin_polarization_to_twiss_result(
-        twiss_config, twiss_res, spin_rotation_matrix=spin_rotation_matrix)
+    twpc._add_spin_polarization_to_twiss_result(twiss_config, twiss_res)
     twpc._add_edwards_teng_coupling_to_twiss_result(twiss_config, twiss_res)
     twpc._add_base_twiss_metadata(twiss_config, twiss_res)
 

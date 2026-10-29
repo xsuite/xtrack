@@ -66,9 +66,6 @@ def find_closed_orbit_line(line, co_guess=None, particle_ref=None,
             start=co_search_at, end=co_search_at,
             **kwargs)
         line.track(p_co_at_ele_co_search, ele_start=co_search_at, ele_stop=0)
-        # The particle has moved to a different reference location.
-        if hasattr(p_co_at_ele_co_search, '_spin_rotation_matrix'):
-            del p_co_at_ele_co_search._spin_rotation_matrix
         return p_co_at_ele_co_search
 
     if isinstance(start, str):
@@ -177,9 +174,7 @@ def find_closed_orbit_line(line, co_guess=None, particle_ref=None,
 
     if spin:
         from .spin import _find_spin_fixed_point
-        (spin_x, spin_y, spin_z), rotation = _find_spin_fixed_point(
-            line, particle_on_co, return_rotation=True)
-        particle_on_co._spin_rotation_matrix = rotation
+        spin_x, spin_y, spin_z = _find_spin_fixed_point(line, particle_on_co)
         particle_on_co.spin_x = spin_x
         particle_on_co.spin_y = spin_y
         particle_on_co.spin_z = spin_z
