@@ -435,3 +435,21 @@ def test_edge_bits_from_c_header():
     assert sorted(_edge._EDGE_BITS.values()) == [1 << ii for ii in range(5)]
     for name, value in _edge._EDGE_BITS.items():
         assert getattr(_edge, name) == value
+
+
+@pytest.mark.parametrize('cls', [xt.Quadrupole, xt.Sextupole, xt.Octupole])
+def test_straight_magnet_dict_of_earlier_versions(cls):
+    # Earlier versions wrote only `edge_<face>_active` for a magnet with
+    # fringes: the model, "full", was the default
+    dct = {'__class__': cls.__name__, 'length': 1.0, 'edge_entry_active': 1}
+    el = cls.from_dict(dct)
+    assert el.edge_entry_active and el.edge_entry_model == 'full'
+    assert el.edge_exit_active and el.edge_exit_model == 'suppressed'
+    # An explicit model is kept, and a dict without the keys has no fringes
+    dct['edge_entry_model'] = 'no-mult'
+    assert cls.from_dict(dct).edge_entry_model == 'no-mult'
+    el = cls.from_dict({'__class__': cls.__name__, 'length': 1.0})
+    assert el.edge_entry_model == el.edge_exit_model == 'suppressed'
+    # The new dict has no `edge_*_active` and the model of the fringes
+    full = cls(length=1.0, edge_entry_model='full', edge_exit_model='full').to_dict()
+    assert full['edge_entry_model'] == 'full' and 'edge_entry_active' not in full

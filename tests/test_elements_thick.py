@@ -3377,3 +3377,55 @@ def test_delta_dipole_fringe():
     deg1 = np.polyfit(p1.delta, p1.py, 1)
 
     assert np.allclose(deg0/deg1, 1, rtol=1e-2)
+
+
+@for_all_test_contexts
+def test_variable_solenoid_in_line(test_context):
+    # In a line the plans of the magnets are made before tracking, without
+    # the particles: the vector potential is set by the faces. A chain of
+    # variable solenoids in a line tracks as the elements one by one, leaves
+    # the vector potential of the field at each element end, and backtracking
+    # returns to the start.
+    def elements():
+        return [
+            xt.VariableSolenoid(length=0.5, ks_profile=[0.0, 0.2], knl=[0, 0.01]),
+            xt.VariableSolenoid(length=1.0, ks_profile=[0.2, 0.2], ksl=[0, 0.02]),
+            xt.Drift(length=0.3),
+            xt.VariableSolenoid(length=0.5, ks_profile=[0.2, 0.0], x0=1e-4),
+        ]
+
+    p0 = xt.Particles(
+        p0c=1e9, x=[1e-3, -2e-3], px=[1e-4, 0], y=[2e-3, 1e-3], py=[0, -1e-4],
+        zeta=[0, 1e-3], delta=[0, 1e-3], _context=test_context,
+    )
+    p_elements = p0.copy()
+    for element in elements():
+        element.move(_context=test_context)
+        element.track(p_elements)
+
+    line = xt.Line(elements=elements())
+    line.particle_ref = xt.Particles(p0c=1e9)
+    line.build_tracker(_context=test_context)
+    p_line = p0.copy()
+    line.track(p_line, ele_stop=1)
+    # After the first element: the vector potential of ks = 0.2
+    p_line.move(_context=xo.context_default)
+    xo.assert_allclose(p_line.ax, -0.5 * 0.2 * p_line.y, rtol=1e-15, atol=0)
+    xo.assert_allclose(p_line.ay, 0.5 * 0.2 * p_line.x, rtol=1e-15, atol=0)
+    p_line.move(_context=test_context)
+    line.track(p_line, ele_start=1)
+
+    p_elements.move(_context=xo.context_default)
+    p_line.move(_context=xo.context_default)
+    for name in ('x', 'px', 'y', 'py', 'zeta', 'delta'):
+        xo.assert_allclose(getattr(p_line, name), getattr(p_elements, name), rtol=0, atol=1e-15)
+    # The field ends at zero: no vector potential is left
+    xo.assert_allclose(p_line.ax, 0, rtol=0, atol=0)
+    xo.assert_allclose(p_line.ay, 0, rtol=0, atol=0)
+
+    p_line.move(_context=test_context)
+    line.track(p_line, backtrack=True)
+    p_line.move(_context=xo.context_default)
+    p0.move(_context=xo.context_default)
+    for name in ('x', 'px', 'y', 'py', 'zeta', 'delta'):
+        xo.assert_allclose(getattr(p_line, name), getattr(p0, name), rtol=0, atol=1e-14)

@@ -192,6 +192,8 @@ MagnetFace MagnetFace_empty(const uint8_t is_exit_face) {
     face.hgap = 0;
     face.f1 = 0;
     face.f2 = 0;
+    face.has_ks = 0;
+    face.ks = 0;
     face.has_patch = 0;
     face.patch_angle = 0;
     face.patch_dx = 0;
@@ -210,14 +212,26 @@ uint8_t MagnetFace_uses_field(const MagnetFace* face) {
 }
 
 
+// Solenoid strength of the vector potential at a face: its own, or the one
+// of the field
+GPUFUN XT_INLINE
+xt_float_or_tpsa MagnetFace_ks(const MagnetFace* face, const MagnetField* field) {
+    if (face->has_ks) return face->ks;
+    return field->ks;
+}
+
+
 // Whether crossing a face applies anything: the face is active and has a
 // sub-map (a model other than "suppressed"), a patch or a solenoid field. An
 // active face without them is treated like an inactive one. Needs field->ks.
+// A face with its own ks always sets the vector potential, also to zero: the
+// other face of the element can have a different one.
 GPUFUN XT_INLINE
 uint8_t MagnetFace_needs_work(const MagnetFace* face, const MagnetField* field) {
     if (!(face->flags & EDGE_ACTIVE)) return 0;
     return (face->flags & (EDGE_LINEAR | EDGE_BEND | EDGE_MULT | EDGE_QSAD))
-           || face->has_patch || xt_float_or_tpsa_const_part(field->ks) != 0.;
+           || face->has_patch || face->has_ks
+           || xt_float_or_tpsa_const_part(field->ks) != 0.;
 }
 
 
@@ -335,10 +349,12 @@ void MagnetFace_vector_potential_single_particle(
     const uint8_t entering
 ) {
     if (!f->do_vector_potential) return;
+    // A face with its own ks (VariableSolenoid) is not the end of the field:
+    // the vector potential of its ks is set when leaving too
     MagnetEdge_vector_potential_single_particle(
         part,
-        /*is_leaving_magnet*/ !entering,
-        f->field->ks,
+        /*is_leaving_magnet*/ !entering && !f->has_ks,
+        MagnetFace_ks(f, f->field),
         f->field->x0_solenoid,
         f->field->y0_solenoid
     );

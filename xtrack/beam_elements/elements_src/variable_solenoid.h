@@ -8,6 +8,7 @@
 
 #include "xtrack/headers/track.h"
 #include "xtrack/beam_elements/elements_src/track_magnet.h"
+#include "xtrack/beam_elements/elements_src/edge_flags.h"
 #include "xtrack/beam_elements/elements_src/default_magnet_config.h"
 
 // The magnet, as a plan for track_magnet_particles (the misalignment is
@@ -18,16 +19,14 @@ void VariableSolenoid_prepare_magnet(
         MagnetPlan* plan,
         LocalParticle* part0
 ) {
-    double ks_entry = VariableSolenoidData_get_ks_profile(el, 0);
-    double ks_exit = VariableSolenoidData_get_ks_profile(el, 1);
+    double const ks_entry = VariableSolenoidData_get_ks_profile(el, 0);
+    double const ks_exit = VariableSolenoidData_get_ks_profile(el, 1);
     double const length = VariableSolenoidData_get_length(el);
     double const x0 = VariableSolenoidData_get_x0(el);
     double const y0 = VariableSolenoidData_get_y0(el);
 
-    if (LocalParticle_check_track_flag(part0, XS_FLAG_BACKTRACK)) {
-        VSWAP(ks_entry, ks_exit);
-    }
-
+    // Mean strength and gradient, in the element frame (the body reverses the
+    // gradient when backtracking)
     double ks, dks_ds;
     if (length != 0){
         ks = 0.5 * (ks_exit + ks_entry);
@@ -38,16 +37,16 @@ void VariableSolenoid_prepare_magnet(
         dks_ds = 0.;
     }
 
-    START_PER_PARTICLE_BLOCK(part0, part);
-        // Update ax and ay (Wolsky Eq. 3.114 and Eq. 2.74)
-        double const new_ax = -0.5 * ks_entry * (LocalParticle_get_y(part) - y0);
-        double const new_ay = 0.5 * ks_entry * (LocalParticle_get_x(part) - x0);
-        LocalParticle_set_ax(part, new_ax);
-        LocalParticle_set_ay(part, new_ay);
-    END_PER_PARTICLE_BLOCK;
-
+    // Each face sets the vector potential of the field at its end, entering
+    // and leaving (Wolsky Eq. 3.114 and Eq. 2.74)
     MagnetFace entry_face = MagnetFace_empty(0);
+    entry_face.flags = EDGE_ACTIVE;
+    entry_face.has_ks = 1;
+    entry_face.ks = ks_entry;
     MagnetFace exit_face = MagnetFace_empty(1);
+    exit_face.flags = EDGE_ACTIVE;
+    exit_face.has_ks = 1;
+    exit_face.ks = ks_exit;
 
     // Settings aligned by hand: not formatted
     // clang-format off
@@ -75,14 +74,6 @@ void VariableSolenoid_prepare_magnet(
     //     length_straight, body_active
     // clang-format on
     MagnetPlan_prepare(plan, &magnet, &entry_face, &exit_face, part0);
-
-    START_PER_PARTICLE_BLOCK(part0, part);
-        // Update ax and ay (Wolsky Eq. 3.114 and Eq. 2.74)
-        double const new_ax = -0.5 * ks_exit * (LocalParticle_get_y(part) - y0);
-        double const new_ay = 0.5 * ks_exit * (LocalParticle_get_x(part) - x0);
-        LocalParticle_set_ax(part, new_ax);
-        LocalParticle_set_ay(part, new_ay);
-    END_PER_PARTICLE_BLOCK;
 }
 
 #endif

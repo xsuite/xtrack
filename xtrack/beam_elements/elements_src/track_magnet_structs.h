@@ -147,6 +147,12 @@ typedef struct MagnetFace_s {
     double fint;           // fringe field integral
     double hgap;           // half gap
     double f1, f2;         // quadrupole fringe of SAD
+    // Solenoid strength at the face, when it is not the one of the field
+    // (VariableSolenoid: ks varies along the body). The vector potential of
+    // this ks is set both when entering and when leaving: the field goes on
+    // past the face
+    uint8_t has_ks;
+    double ks;
     // Patch between the drift and the frame of the magnet (straight-body
     // RBend): a y-rotation by patch_angle and a shift by patch_dx
     uint8_t has_patch;

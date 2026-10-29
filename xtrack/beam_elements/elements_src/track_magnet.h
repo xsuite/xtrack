@@ -724,7 +724,7 @@ void MagnetPlan_prepare(
     body->length = body_length;
     body->inv_factorial_order = inv_factorial_order_tot;
     body->factor_knl_ksl = knl_scale_body;
-    body->dks_ds = settings->dks_ds;
+    body->dks_ds = backtrack ? -settings->dks_ds : settings->dks_ds;
     body->radiation_flag = radiation_flag;
     body->radiation_record = settings->radiation_record;
     MagnetBody_prepare(

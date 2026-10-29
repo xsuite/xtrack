@@ -1805,7 +1805,7 @@ class Tracker:
         else:
             plan_start, plan_stop = ele_start, ele_start + num_elements_first_turn
         self._magnet_plans.prepare(
-            track_kernel.prepare_magnet_plans, tracker_data, self.io_buffer.buffer,
+            track_kernel, tracker_data, self.io_buffer.buffer,
             track_flags, plan_start, plan_stop)
 
         # First turn
@@ -2465,13 +2465,15 @@ class _MagnetPlans:
         self.elements_ctx = context.nparray_to_context_array(
             np.concatenate([self.elements, [0]]))
 
-    def prepare(self, kernel, tracker_data, io_buffer, track_flags,
+    def prepare(self, track_kernel, tracker_data, io_buffer, track_flags,
                 ele_start, ele_stop):
-        """Prepare the plans of the magnets in [ele_start, ele_stop)."""
+        """Prepare the plans of the magnets in [ele_start, ele_stop), with
+        the prepare kernel carried by the track kernel (read only if there
+        are magnets)."""
         first, stop = np.searchsorted(self.elements, [ele_start, ele_stop])
         if stop <= first:
             return
-        kernel(
+        track_kernel.prepare_magnet_plans(
             buffer=tracker_data._buffer.buffer,
             tracker_data=tracker_data._element_ref_data,
             magnet_plans=self.plans,
