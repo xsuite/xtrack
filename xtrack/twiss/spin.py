@@ -3,57 +3,75 @@
 # Copyright (c) CERN, 2021.                 #
 # ######################################### #
 
-from functools import partial
-
 import numpy as np
 from scipy.constants import c as clight
 from scipy.constants import e as qe
 from scipy.constants import hbar
 
-import xdeps as xd
-
 import xtrack as xt  # To avoid circular imports
+
+
+_SPIN_EIGENVALUE_TOL = 1e-3
+_SPIN_ROTATION_IDENTITY_TOL = 1e-13
+_SPIN_AXIS_SIGN_TOL = 1e-12
+
+
+def _compute_spin_rotation_matrix(line, particle_on_co):
+    # Track each basis spin on an exact copy of the closed-orbit particle.
+    # In kick_as_co mode the first particle's energy update and the copied
+    # kicks differ slightly in roundoff; separate tracks keep the orbit
+    # identical for all three columns, including at each radiation kick.
+    rotation = np.empty((3, 3))
+    for column, component in enumerate(['spin_x', 'spin_y', 'spin_z']):
+        particle = particle_on_co.copy()
+        particle.spin_x = 0.
+        particle.spin_y = 0.
+        particle.spin_z = 0.
+        setattr(particle, component, 1.)
+        line.track(particle)
+        if particle.state[0] <= 0:
+            raise ValueError('Particle lost while computing the spin rotation matrix')
+        rotation[:, column] = [particle.spin_x[0], particle.spin_y[0],
+                               particle.spin_z[0]]
+    return rotation
 
 
 def _find_spin_fixed_point(line, particle_on_co):
 
     with xt.line._preserve_config(line):
-        # Spin is behind the same compile flag as synchrotron radiation
+        # Spin is behind the same compile flag as synchrotron radiation.
         line.config.XTRACK_MULTIPOLE_NO_SYNRAD = False
-        opt = xd.Optimize.from_callable(
-            partial(_errfun_spin, particle_on_co=particle_on_co, line=line),
-            x0=(0., 0.),
-            steps=[1e-4, 1e-4],
-            tar=[0., 0.],
-            limits=[(-1, 1), (-1, 1)],
-            tols=[1e-12, 1e-12],
-            show_call_counter=False,
-            _printer=xt._print)
-        opt.solve(verbose=False)
+        rotation = _compute_spin_rotation_matrix(line, particle_on_co)
+        if np.max(np.abs(rotation - np.eye(3))) < _SPIN_ROTATION_IDENTITY_TOL:
+            # The identity has no distinguished axis. Retain a supplied spin
+            # direction, or use the vertical direction when none is supplied.
+            n0 = np.array([particle_on_co.spin_x[0], particle_on_co.spin_y[0],
+                           particle_on_co.spin_z[0]])
+            # Check for exact zero: it means no initial spin direction was
+            # supplied. Any nonzero vector provides an axis to normalize.
+            if np.linalg.norm(n0) == 0:
+                n0 = np.array([0., 1., 0.])
+        else:
+            # The invariant spin direction n0 is the eigenvector of the
+            # one-turn spin rotation matrix with eigenvalue one: R @ n0 = n0.
+            eigenvalues, eigenvectors = np.linalg.eig(rotation)
+            i_fixed = np.argmin(np.abs(eigenvalues - 1))
+            if abs(eigenvalues[i_fixed] - 1) > _SPIN_EIGENVALUE_TOL:
+                raise ValueError(
+                    'Spin rotation matrix has no eigenvalue sufficiently close '
+                    f'to one (closest: {eigenvalues[i_fixed]}, '
+                    f'tolerance: {_SPIN_EIGENVALUE_TOL})')
+            n0 = eigenvectors[:, i_fixed].real
+        n0 /= np.linalg.norm(n0)
 
-    sx_opt = opt.get_knob_values()[0]
-    sz_opt = opt.get_knob_values()[1]
-    sy_opt = np.sqrt(1 - sx_opt**2 - sz_opt**2)
+        # Keep the usual positive vertical orientation. For a horizontal axis,
+        # use its largest component to choose a deterministic sign.
+        sign_component = (1 if abs(n0[1]) > _SPIN_AXIS_SIGN_TOL
+                          else np.argmax(np.abs(n0)))
+        if n0[sign_component] < 0:
+            n0 *= -1
 
-    return (sx_opt, sy_opt, sz_opt)
-
-
-def _errfun_spin(s, line, particle_on_co):
-    pp = particle_on_co.copy()
-
-    sx = s[0]
-    sz = s[1]
-    sy = np.sqrt(1 - sx**2 - sz**2)
-
-    pp.spin_x = sx
-    pp.spin_z = sz
-    pp.spin_y = sy
-
-    line.track(pp)
-
-    return np.array([pp.spin_x[0] - sx,
-                        pp.spin_y[0] - sy,
-                        pp.spin_z[0] - sz])
+    return tuple(n0)
 
 
 def _add_spin_polarization(tw, line, method):
@@ -86,7 +104,9 @@ def _add_spin_polarization(tw, line, method):
         dzeta = steps_R_matrix["dzeta"]
         ddelta = steps_R_matrix["ddelta"]
 
-        dpzeta = float(part.ptau[6] - part.ptau[12])/2/part.beta0[0]
+        # Use the initial perturbation, as in the orbital response matrix.
+        # The energy separation can change during the turn (e.g. with RF).
+        dpzeta = float(mon_r_ebe.pzeta[6, 0] - mon_r_ebe.pzeta[12, 0]) / 2
 
         temp_mat = np.zeros((3, len(part.spin_x)))
         temp_mat[0, :] = part.spin_x
@@ -107,24 +127,7 @@ def _add_spin_polarization(tw, line, method):
         ds = 1e-5
 
         import xpart as xp
-        p_test = xp.build_particles(particle_ref=tw.particle_on_co, mode='shift',
-                                    x=[0,0,0,0,0,0])
-        p_test.spin_x = [ds, 0, 0, -ds, 0, 0]
-        p_test.spin_y = [0, ds, 0, 0, -ds, 0]
-        p_test.spin_z = [0, 0, ds, 0, 0, -ds]
-
-        line.track(p_test)
-
-        A = np.zeros((3, 3))
-        A[0, 0] = (p_test.spin_x[0] - p_test.spin_x[3])/(2*ds)
-        A[0, 1] = (p_test.spin_x[1] - p_test.spin_x[4])/(2*ds)
-        A[0, 2] = (p_test.spin_x[2] - p_test.spin_x[5])/(2*ds)
-        A[1, 0] = (p_test.spin_y[0] - p_test.spin_y[3])/(2*ds)
-        A[1, 1] = (p_test.spin_y[1] - p_test.spin_y[4])/(2*ds)
-        A[1, 2] = (p_test.spin_y[2] - p_test.spin_y[5])/(2*ds)
-        A[2, 0] = (p_test.spin_z[0] - p_test.spin_z[3])/(2*ds)
-        A[2, 1] = (p_test.spin_z[1] - p_test.spin_z[4])/(2*ds)
-        A[2, 2] = (p_test.spin_z[2] - p_test.spin_z[5])/(2*ds)
+        A = _compute_spin_rotation_matrix(line, tw.particle_on_co)
 
         RR[6:, 6:] = A
 
@@ -155,21 +158,22 @@ def _add_spin_polarization(tw, line, method):
         if method == '4d':
             EE_orb = np.insert(EE_orb, 4, 0, axis=0)
 
+        # A derivative of a unit spin is perpendicular to n0. Solve in that
+        # two-dimensional plane: in 4D the energy mode has eigenvalue one,
+        # making the unconstrained 3D system singular along n0.
+        n0 = np.array([tw.spin_x[0], tw.spin_y[0], tw.spin_z[0]])
+        _, _, vh = np.linalg.svd(n0[None, :], full_matrices=True)
+        spin_basis = vh[1:, :].T
+        A_perp = spin_basis.T @ A @ spin_basis
+        DD_perp = spin_basis.T @ DD
         EE_spin = np.zeros((3, n_eigen), dtype=complex)
         for ii in range(n_eigen):
-            EE_spin[:, ii] = np.linalg.inv(eival[ii] * np.eye(3) - A) @ DD @ EE_orb[:, ii]
+            EE_spin[:, ii] = spin_basis @ np.linalg.solve(
+                eival[ii] * np.eye(2) - A_perp, DD_perp @ EE_orb[:, ii])
 
         eee = np.zeros((9, n_eigen), dtype=complex)
         eee[:6, :] = EE_orb
         eee[6:, :] = EE_spin
-
-        # Identify eigenvector with eigenvalue 1 and remove n0 component
-        # This happens because also n0 is an eigenvector associated to
-        # the eigenvalue 1
-        if method == '4d':
-            i_eigen_one = np.argmin(np.abs(eival - 1))
-            n0 = np.array([tw.spin_x[0], tw.spin_y[0], tw.spin_z[0]])
-            eee[6:, i_eigen_one] -= np.dot(eee[6:, i_eigen_one], n0) * n0
 
         # Scale and track eigenvectors
         def get_scale(e):
@@ -194,10 +198,12 @@ def _add_spin_polarization(tw, line, method):
             eee_trk_im = side * eee_scaled.imag
 
             particle_data = {}
-            for ii, key in enumerate(['x', 'px', 'y', 'py', 'zeta', 'ptau',
+            # Radiation modes that reuse the first particle's kicks or scaling
+            # require the closed-orbit particle at the head of the batch.
+            for ii, key in enumerate(['x', 'px', 'y', 'py', 'zeta', 'pzeta',
                                     'spin_x', 'spin_y', 'spin_z']):
                 particle_data[key] = tw[key][0] + np.array(
-                    list(eee_trk_re[ii, :]) + list(eee_trk_im[ii, :])
+                    [0.] + list(eee_trk_re[ii, :]) + list(eee_trk_im[ii, :])
                 )
 
             par_track = xp.build_particles(
@@ -209,12 +215,12 @@ def _add_spin_polarization(tw, line, method):
 
             ee_ebe = np.zeros((len(tw), 9, n_eigen), dtype=complex)
 
-            for ii, key in enumerate(['x', 'px', 'y', 'py', 'zeta', 'ptau',
+            for ii, key in enumerate(['x', 'px', 'y', 'py', 'zeta', 'pzeta',
                                     'spin_x', 'spin_y', 'spin_z']):
                 mon_vv = getattr(mon_ebe, key)
                 for iee in range(n_eigen):
-                    ee_ebe[:, ii, iee] = side *((mon_vv[iee, :] - tw[key])
-                                    + 1j * (mon_vv[n_eigen + iee, :] - tw[key]))
+                    ee_ebe[:, ii, iee] = side *((mon_vv[1 + iee, :] - tw[key])
+                                    + 1j * (mon_vv[1 + n_eigen + iee, :] - tw[key]))
 
             # Rephase
             for ii in range(n_eigen):
@@ -241,10 +247,21 @@ def _add_spin_polarization(tw, line, method):
         fltr = np.eye(EE_orb.shape[1]) # for now
 
         NN = np.real(EE_spin @ fltr @ np.linalg.inv(EE_orb))
+        # NN describes n(u) = n0 + NN @ u to first order in orbital offsets u.
+        # Differentiating n(u) . n(u) = 1 gives n0.T @ NN = 0: every derivative
+        # column must be perpendicular to n0. At each lattice location, apply
+        # NN <- (I - n0 @ n0.T) @ NN, removing each column's component along n0.
+        # This numerical cleanup assumes that the remaining parallel component
+        # comes from finite-difference error.
+        n0_ebe = np.array([tw.spin_x, tw.spin_y, tw.spin_z]).T
+        n0_ebe /= np.linalg.norm(n0_ebe, axis=1)[:, None]
+        NN -= n0_ebe[:, :, None] * (n0_ebe[:, None, :] @ NN)
         if method == '4d':
             # Add a dummy col 4 in NN
             NN = np.insert(NN, 4, 0, axis=2)
-        dn_ddelta = NN[:, :, 5]
+        # d(pzeta)/d(delta) = beta / beta0, including off-momentum orbits.
+        rvv = (1 + tw.delta) / (1 + tw.beta0 * tw.ptau)
+        dn_ddelta = NN[:, :, 5] * rvv[:, None]
 
         dn_ddelta_mod = np.sqrt(dn_ddelta[:, 0]**2
                                     + dn_ddelta[:, 1]**2
@@ -306,7 +323,10 @@ def _add_spin_polarization(tw, line, method):
 
         t_pol_component_s = 1 / one_over_t_pol_component_s
         t_pol_buildup_s = 1 / one_over_t_pol_buildup_s
-        t_depol_component_s = 1 / one_over_t_depol_component_s
+        # A zero depolarization rate corresponds to an infinite lifetime,
+        # as in the planar limit. Handle it explicitly to avoid dividing by zero.
+        t_depol_component_s = (np.inf if one_over_t_depol_component_s == 0
+                               else 1 / one_over_t_depol_component_s)
 
         cols = {
             'spin_dn_ddelta_x': dn_ddelta[:, 0],

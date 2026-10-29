@@ -5117,16 +5117,17 @@ class Line:
 
         Parameters
         ----------
-        spin_model: str
+        spin_model: bool or str, optional
             Spin model to use. Can be None, 'auto', True, False.
         """
         self._method_incompatible_with_compose()
 
-        assert spin_model in [None, 'auto', 'True', 'False']
         if spin_model is False:
             spin_model = None
-        if spin_model is True:
+        elif spin_model is True:
             spin_model = 'auto'
+        elif spin_model not in (None, 'auto'):
+            raise ValueError("spin_model must be None, 'auto', True, or False")
 
         self._spin_model = spin_model
 
