@@ -11,6 +11,11 @@ from scipy.constants import hbar
 import xtrack as xt  # To avoid circular imports
 
 
+_SPIN_FIXED_POINT_TOL = 1e-10
+_SPIN_ROTATION_IDENTITY_TOL = 1e-13
+_SPIN_AXIS_SIGN_TOL = 1e-12
+
+
 def _compute_spin_rotation_matrix(line, particle_on_co):
     # Track each basis spin on an exact copy of the closed-orbit particle.
     # In kick_as_co mode the first particle's energy update and the copied
@@ -37,7 +42,7 @@ def _find_spin_fixed_point(line, particle_on_co):
         # Spin is behind the same compile flag as synchrotron radiation.
         line.config.XTRACK_MULTIPOLE_NO_SYNRAD = False
         rotation = _compute_spin_rotation_matrix(line, particle_on_co)
-        if np.max(np.abs(rotation - np.eye(3))) < 1e-13:
+        if np.max(np.abs(rotation - np.eye(3))) < _SPIN_ROTATION_IDENTITY_TOL:
             # The identity has no distinguished axis. Retain a supplied spin
             # direction, or use the vertical direction when none is supplied.
             n0 = np.array([particle_on_co.spin_x[0], particle_on_co.spin_y[0],
@@ -45,13 +50,22 @@ def _find_spin_fixed_point(line, particle_on_co):
             if np.linalg.norm(n0) == 0:
                 n0 = np.array([0., 1., 0.])
         else:
+            # The invariant spin direction n0 is the eigenvector of the
+            # one-turn spin rotation matrix with eigenvalue one: R @ n0 = n0.
             eigenvalues, eigenvectors = np.linalg.eig(rotation)
-            n0 = eigenvectors[:, np.argmin(np.abs(eigenvalues - 1))].real
+            i_fixed = np.argmin(np.abs(eigenvalues - 1))
+            if abs(eigenvalues[i_fixed] - 1) > _SPIN_FIXED_POINT_TOL:
+                raise ValueError(
+                    'Spin rotation matrix has no eigenvalue sufficiently close '
+                    f'to one (closest: {eigenvalues[i_fixed]}, '
+                    f'tolerance: {_SPIN_FIXED_POINT_TOL})')
+            n0 = eigenvectors[:, i_fixed].real
         n0 /= np.linalg.norm(n0)
 
         # Keep the usual positive vertical orientation. For a horizontal axis,
         # use its largest component to choose a deterministic sign.
-        sign_component = 1 if abs(n0[1]) > 1e-12 else np.argmax(np.abs(n0))
+        sign_component = (1 if abs(n0[1]) > _SPIN_AXIS_SIGN_TOL
+                          else np.argmax(np.abs(n0)))
         if n0[sign_component] < 0:
             n0 *= -1
 
@@ -62,7 +76,7 @@ def _find_spin_fixed_point(line, particle_on_co):
         line.track(check)
         spin_end = np.array([check.spin_x[0], check.spin_y[0], check.spin_z[0]])
         if (check.state[0] <= 0 or not np.all(np.isfinite(spin_end))
-                or np.max(np.abs(spin_end - n0)) > 1e-10):
+                or np.max(np.abs(spin_end - n0)) > _SPIN_FIXED_POINT_TOL):
             raise ValueError('Spin fixed point does not close after one turn')
 
     return tuple(n0)

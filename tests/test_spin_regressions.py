@@ -68,6 +68,19 @@ def test_spin_fixed_point_all_components(axis):
     np.testing.assert_allclose(abs(np.dot(spin[0], expected)), 1., atol=1e-10, rtol=0)
 
 
+def test_spin_fixed_point_rejects_missing_unit_eigenvalue(monkeypatch):
+    from xtrack.twiss import spin as spin_module
+
+    line = xt.Line(elements=[xt.Drift(length=1.)])
+    particle = xt.Particles(p0c=5e9, mass0=xt.ELECTRON_MASS_EV)
+    # The actual drift preserves any spin. Supply an invalid rotation matrix
+    # to check that it is rejected before merely tracking its nearest axis.
+    monkeypatch.setattr(spin_module, '_compute_spin_rotation_matrix',
+                        lambda line, particle_on_co: np.diag([0.5, 0.8, 0.99]))
+    with pytest.raises(ValueError, match='no eigenvalue sufficiently close to one'):
+        spin_module._find_spin_fixed_point(line, particle)
+
+
 @pytest.mark.parametrize('radiation', [None, 'mean'])
 def test_configure_spin_boolean(radiation):
     line = xt.Line(elements=[xt.Bend(length=1., angle=0.1, k0=0.1)])
