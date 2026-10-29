@@ -335,6 +335,32 @@ def test_set_element_attributes_from_table(container_type, table_source):
 
 
 @pytest.mark.parametrize('container_type', ['env', 'line'])
+def test_set_element_attributes_from_table_with_repeated_elements(container_type):
+    env = xt.Environment()
+    env['strength'] = 2.
+    env.new('d1', xt.Drift, length=1.)
+    env.new('q1', xt.Quadrupole, length=.5)
+    env.new('q2', xt.Quadrupole, length=.5)
+    line = env.new_line(['d1', 'q1', 'd1', 'q1', 'q2'])
+    target = env if container_type == 'env' else line
+    tt = line.get_table()
+
+    drifts = tt.rows[tt.element_type == 'Drift']
+    assert list(drifts.name) == ['d1::0', 'd1::1']
+    target.set(drifts, model='exact')
+    assert env['d1'].model == 'exact'
+
+    quads = tt.rows[tt.env_name == 'q1']
+    target.set(quads, k1='3*strength', integrator='yoshida-4')
+    target.set('strength', 4.)
+    assert env['q1'].k1 == 12.
+    assert env['q1'].integrator == 'yoshida-4'
+    assert env['q2'].k1 == 0.
+
+    target.set(tt.rows[tt.element_type == 'Bend'], model='exact')
+
+
+@pytest.mark.parametrize('container_type', ['env', 'line'])
 @pytest.mark.parametrize('input_type', ['dict', 'mapping', 'table', 'xdeps_table'])
 def test_set_mapping_or_table(container_type, input_type):
     env = xt.Environment()
