@@ -116,6 +116,7 @@ def _spin_test_ring(ks=0., p0c=5e9, mass0=xt.ELECTRON_MASS_EV,
     return line
 
 
+@pytest.mark.filterwarnings('error::RuntimeWarning')
 def test_polarization_4d_planar_limit():
     # The energy eigenvalue is one, so the unconstrained 3D spin solve is
     # singular. The derivative should be zero in the planar limit and vary
@@ -124,6 +125,11 @@ def test_polarization_4d_planar_limit():
     for ks in [0., 1e-8, 0.01]:
         line = _spin_test_ring(ks=ks, angle=0.01)
         tw = line.twiss4d(polarization_analysis=True)
+        if ks == 0:
+            assert np.isposinf(tw.spin_t_depol_component_s)
+        elif ks == 0.01:
+            assert np.isfinite(tw.spin_t_depol_component_s)
+            assert tw.spin_t_depol_component_s > 0
         n0 = np.array([tw.spin_x, tw.spin_y, tw.spin_z]).T
         dn = tw.spin_n_matrix[:, :, 5]
         assert np.all(np.isfinite(dn))

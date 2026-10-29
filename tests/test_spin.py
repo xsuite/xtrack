@@ -627,6 +627,7 @@ def test_polarization_lep_spin_bump():
 
 
 @pytest.mark.filterwarnings('ignore::FutureWarning')
+@pytest.mark.filterwarnings('error::RuntimeWarning')
 def test_polarization_lep_sext_corr():
     line = xt.load(BMAD_REF_FILES / 'lep_lattice_to_bmad.json')
 

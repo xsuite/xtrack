@@ -323,7 +323,10 @@ def _add_spin_polarization(tw, line, method):
 
         t_pol_component_s = 1 / one_over_t_pol_component_s
         t_pol_buildup_s = 1 / one_over_t_pol_buildup_s
-        t_depol_component_s = 1 / one_over_t_depol_component_s
+        # A zero depolarization rate corresponds to an infinite lifetime,
+        # as in the planar limit. Handle it explicitly to avoid dividing by zero.
+        t_depol_component_s = (np.inf if one_over_t_depol_component_s == 0
+                               else 1 / one_over_t_depol_component_s)
 
         cols = {
             'spin_dn_ddelta_x': dn_ddelta[:, 0],
