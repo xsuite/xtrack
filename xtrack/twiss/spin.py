@@ -36,7 +36,7 @@ def _compute_spin_rotation_matrix(line, particle_on_co):
     return rotation
 
 
-def _find_spin_fixed_point(line, particle_on_co):
+def _find_spin_fixed_point(line, particle_on_co, return_rotation=False):
 
     with xt.line._preserve_config(line):
         # Spin is behind the same compile flag as synchrotron radiation.
@@ -71,10 +71,12 @@ def _find_spin_fixed_point(line, particle_on_co):
         if n0[sign_component] < 0:
             n0 *= -1
 
+    if return_rotation:
+        return tuple(n0), rotation
     return tuple(n0)
 
 
-def _add_spin_polarization(tw, line, method):
+def _add_spin_polarization(tw, line, method, spin_rotation_matrix=None):
 
     with xt.line._preserve_config(line):
 
@@ -127,7 +129,11 @@ def _add_spin_polarization(tw, line, method):
         ds = 1e-5
 
         import xpart as xp
-        A = _compute_spin_rotation_matrix(line, tw.particle_on_co)
+        # Reuse the matrix from this Twiss call's closed-orbit search. A supplied
+        # orbit or init needs a fresh matrix, since the line may have changed.
+        A = spin_rotation_matrix
+        if A is None:
+            A = _compute_spin_rotation_matrix(line, tw.particle_on_co)
 
         RR[6:, 6:] = A
 

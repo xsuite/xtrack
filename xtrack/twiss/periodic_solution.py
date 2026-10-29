@@ -37,6 +37,7 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
     eigenvalues = None
     Rot = None
     RR_ebe = None
+    spin_rotation_matrix = None
 
     assert periodic_mode in ['periodic', 'periodic_symmetric']
 
@@ -88,6 +89,10 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
                                 symmetrize=False,
                                 include_collective=include_collective
                                 )
+        # Only reuse a matrix computed by this search, never one carried by a
+        # user-supplied particle from an earlier lattice configuration.
+        if spin:
+            spin_rotation_matrix = getattr(part_on_co, '_spin_rotation_matrix', None)
     if only_orbit:
         W_matrix = np.eye(6)
 
@@ -209,4 +214,4 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
                            ay_chrom=None, by_chrom=None,
                            reference_frame='proper')
 
-    return init, RR, steps_R_matrix, eigenvalues, Rot, RR_ebe
+    return init, RR, steps_R_matrix, eigenvalues, Rot, RR_ebe, spin_rotation_matrix

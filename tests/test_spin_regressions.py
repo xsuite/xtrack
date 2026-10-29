@@ -116,6 +116,46 @@ def _spin_test_ring(ks=0., p0c=5e9, mass0=xt.ELECTRON_MASS_EV,
     return line
 
 
+@pytest.mark.parametrize('method', ['4d', '6d'])
+def test_spin_rotation_matrix_reused_in_polarization(monkeypatch, method):
+    from xtrack.twiss import spin as spin_module
+
+    line = _spin_test_ring(ks=0.01, qs=0.05 if method == '6d' else None)
+    compute_rotation = spin_module._compute_spin_rotation_matrix
+    rotations = []
+
+    def record_rotation(line, particle_on_co):
+        rotation = compute_rotation(line, particle_on_co)
+        rotations.append(rotation.copy())
+        return rotation
+
+    monkeypatch.setattr(spin_module, '_compute_spin_rotation_matrix', record_rotation)
+
+    # Finding the spin axis already tracks three basis spins. Polarization
+    # must reuse that matrix instead of tracking the same three spins again.
+    tw = line.twiss(method=method, polarization_analysis=True)
+    assert len(rotations) == 1
+
+    # A supplied orbit skips the fixed-point search and needs a fresh matrix.
+    # Ignore any old matrix attached to it: the lattice may have changed.
+    particle_on_co = tw.particle_on_co.copy()
+    particle_on_co._spin_rotation_matrix = np.full((3, 3), np.nan)
+    tw_supplied = line.twiss(method=method, polarization_analysis=True,
+                             particle_on_co=particle_on_co)
+    assert len(rotations) == 2
+    np.testing.assert_allclose(rotations[1], rotations[0], atol=1e-14, rtol=0)
+    np.testing.assert_allclose(tw_supplied.spin_tune_fractional,
+                               tw.spin_tune_fractional, atol=1e-14, rtol=0)
+    np.testing.assert_allclose(tw_supplied.spin_n_matrix, tw.spin_n_matrix,
+                               atol=1e-10, rtol=0)
+
+    # Reuse is confined to one Twiss call, not cached on the line.
+    line.elements[-1].ks *= 2
+    line.twiss(method=method, polarization_analysis=True)
+    assert len(rotations) == 3
+    assert np.max(np.abs(rotations[2] - rotations[0])) > 1e-5
+
+
 def test_polarization_4d_planar_limit():
     # The energy eigenvalue is one, so the unconstrained 3D spin solve is
     # singular. The derivative should be zero in the planar limit and vary

@@ -179,7 +179,7 @@ def _add_radiation_analysis_to_twiss_result(twiss_config, twiss_res):
         with xt.line._preserve_track_flags(line):
             line.tracker.track_flags.XS_FLAG_SR_KICK_SAME_AS_FIRST = False
             line.config.XTRACK_SYNRAD_SCALE_SAME_AS_FIRST = False
-            _, RR, _, _, _, RR_ebe = _find_periodic_solution(
+            _, RR, _, _, _, RR_ebe, _ = _find_periodic_solution(
                 line=line,
                 particle_ref=None,
                 method='6d',
@@ -258,7 +258,8 @@ def _add_spin_polarization_to_twiss_result(twiss_config, twiss_res):
 
     if twiss_config['polarization_analysis']:
         _add_spin_polarization(
-            twiss_res, twiss_config['line'], twiss_config['method'])
+            twiss_res, twiss_config['line'], twiss_config['method'],
+            spin_rotation_matrix=twiss_config.get('_spin_rotation_matrix'))
 
 
 def _add_edwards_teng_coupling_to_twiss_result(twiss_config, twiss_res):
