@@ -254,12 +254,13 @@ def _add_strengths_and_radiation_integrals_to_twiss_result(twiss_config, twiss_r
         twiss_res._get_radiation_integrals(add_to_tw=True)
 
 
-def _add_spin_polarization_to_twiss_result(twiss_config, twiss_res):
+def _add_spin_polarization_to_twiss_result(
+        twiss_config, twiss_res, spin_rotation_matrix=None):
 
     if twiss_config['polarization_analysis']:
         _add_spin_polarization(
             twiss_res, twiss_config['line'], twiss_config['method'],
-            spin_rotation_matrix=twiss_config.get('_spin_rotation_matrix'))
+            spin_rotation_matrix=spin_rotation_matrix)
 
 
 def _add_edwards_teng_coupling_to_twiss_result(twiss_config, twiss_res):
