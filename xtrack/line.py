@@ -6784,8 +6784,8 @@ class Line:
             expression strings) broadcast to all names. With an override, a table
             needs only the ``name`` column. Mapping inputs accept no keyword
             arguments. With a table, keyword arguments set attributes of the
-            elements in its ``name`` column and cannot be combined with a
-            positional value.
+            elements in its ``env_name`` column (falling back to ``name`` if
+            absent) and cannot be combined with a positional value.
         **kwargs, float or str
             Attributes to set. Can be provided only if the name is associated
             to an element.

@@ -1975,8 +1975,8 @@ class Environment:
             expression strings) broadcast to all names. With an override, a table
             needs only the ``name`` column. Mapping inputs accept no keyword
             arguments. With a table, keyword arguments set attributes of the
-            elements in its ``name`` column and cannot be combined with a
-            positional value.
+            elements in its ``env_name`` column (falling back to ``name`` if
+            absent) and cannot be combined with a positional value.
         **kwargs : float or str
             Attributes to set. Can be provided only if the name is associated
             to an element.
@@ -2002,7 +2002,8 @@ class Environment:
         if isinstance(name, xd.Table) and kwargs and not args:
             if 'name' not in name._col_names:
                 raise ValueError('Table must have a name column')
-            return self.set(name['name'], **kwargs)
+            column = 'env_name' if 'env_name' in name._col_names else 'name'
+            return self.set(name[column], **kwargs)
 
         if isinstance(name, (Mapping, xd.Table)):
             if len(args) > 1 or kwargs:
