@@ -48,6 +48,8 @@ def _find_spin_fixed_point(line, particle_on_co):
             # direction, or use the vertical direction when none is supplied.
             n0 = np.array([particle_on_co.spin_x[0], particle_on_co.spin_y[0],
                            particle_on_co.spin_z[0]])
+            # Check for exact zero: it means no initial spin direction was
+            # supplied. Any nonzero vector provides an axis to normalize.
             if np.linalg.norm(n0) == 0:
                 n0 = np.array([0., 1., 0.])
         else:
