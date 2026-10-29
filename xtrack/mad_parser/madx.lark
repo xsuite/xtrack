@@ -111,7 +111,7 @@ array: "{" sum ( "," sum )* "}"  -> build_list
 
 string_literal: STRING
 
-ignored: if | return | select | remove | assign | use
+ignored: if | return | select | remove | assign | use | option
 
 beta0_stmt: name_or_string ":" _BETA0 command_arglist ";" -> ignored_beta0
 
@@ -121,6 +121,7 @@ beta0_stmt: name_or_string ":" _BETA0 command_arglist ";" -> ignored_beta0
 !remove: "remove"i /[^\n]+/
 !assign: "assign"i /[^\n]+/
 !use: "use"i /[^;]*;/
+!option: "option"i /[^;]*;/
 
 SEQUENCE: "sequence"i
 NAME: /[A-Za-z_\\.][A-Za-z0-9_\\.%]*/

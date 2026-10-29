@@ -216,6 +216,29 @@ def test_simple_parser():
     assert expected == result
 
 
+@pytest.mark.parametrize('option', [
+    'option;',
+    'option, -echo, -warn, info;',
+    'OPTION, ECHO=0, WARN=0;',
+    'option, -echo,\n        -warn;',
+    'option, -echo, &\n        -warn;',
+])
+def test_ignore_option(option, tmp_path, capsys):
+    path = tmp_path / 'options.madx'
+    path.write_text(f'''
+        before = 1;
+        {option} after = 2;
+        d: drift, l=before + after;
+        seq: line=(d);
+    ''')
+    env = xt.load(path, format='madx')
+
+    assert env['before'] == 1
+    assert env['after'] == 2
+    assert env.seq['d'].length == 3
+    assert 'Ignoring statement:' in capsys.readouterr().out
+
+
 def test_parse_linac4_beta0_sequence(capsys):
     sequence = """
     ! Minimal reproduction of the LINAC4 BETA0 initial-Twiss block pattern.
