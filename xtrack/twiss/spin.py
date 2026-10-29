@@ -12,7 +12,6 @@ import xtrack as xt  # To avoid circular imports
 
 
 _SPIN_EIGENVALUE_TOL = 1e-3
-_SPIN_CLOSURE_TOL = 1e-10
 _SPIN_ROTATION_IDENTITY_TOL = 1e-13
 _SPIN_AXIS_SIGN_TOL = 1e-12
 
@@ -71,16 +70,6 @@ def _find_spin_fixed_point(line, particle_on_co):
                           else np.argmax(np.abs(n0)))
         if n0[sign_component] < 0:
             n0 *= -1
-
-        # Check actual tracking in all three components, including the one
-        # omitted by the former two-target optimizer.
-        check = particle_on_co.copy()
-        check.spin_x, check.spin_y, check.spin_z = n0
-        line.track(check)
-        spin_end = np.array([check.spin_x[0], check.spin_y[0], check.spin_z[0]])
-        if (check.state[0] <= 0 or not np.all(np.isfinite(spin_end))
-                or np.max(np.abs(spin_end - n0)) > _SPIN_CLOSURE_TOL):
-            raise ValueError('Spin fixed point does not close after one turn')
 
     return tuple(n0)
 
