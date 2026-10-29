@@ -11,7 +11,8 @@ from scipy.constants import hbar
 import xtrack as xt  # To avoid circular imports
 
 
-_SPIN_FIXED_POINT_TOL = 1e-10
+_SPIN_EIGENVALUE_TOL = 1e-3
+_SPIN_CLOSURE_TOL = 1e-10
 _SPIN_ROTATION_IDENTITY_TOL = 1e-13
 _SPIN_AXIS_SIGN_TOL = 1e-12
 
@@ -54,11 +55,11 @@ def _find_spin_fixed_point(line, particle_on_co):
             # one-turn spin rotation matrix with eigenvalue one: R @ n0 = n0.
             eigenvalues, eigenvectors = np.linalg.eig(rotation)
             i_fixed = np.argmin(np.abs(eigenvalues - 1))
-            if abs(eigenvalues[i_fixed] - 1) > _SPIN_FIXED_POINT_TOL:
+            if abs(eigenvalues[i_fixed] - 1) > _SPIN_EIGENVALUE_TOL:
                 raise ValueError(
                     'Spin rotation matrix has no eigenvalue sufficiently close '
                     f'to one (closest: {eigenvalues[i_fixed]}, '
-                    f'tolerance: {_SPIN_FIXED_POINT_TOL})')
+                    f'tolerance: {_SPIN_EIGENVALUE_TOL})')
             n0 = eigenvectors[:, i_fixed].real
         n0 /= np.linalg.norm(n0)
 
@@ -76,7 +77,7 @@ def _find_spin_fixed_point(line, particle_on_co):
         line.track(check)
         spin_end = np.array([check.spin_x[0], check.spin_y[0], check.spin_z[0]])
         if (check.state[0] <= 0 or not np.all(np.isfinite(spin_end))
-                or np.max(np.abs(spin_end - n0)) > _SPIN_FIXED_POINT_TOL):
+                or np.max(np.abs(spin_end - n0)) > _SPIN_CLOSURE_TOL):
             raise ValueError('Spin fixed point does not close after one turn')
 
     return tuple(n0)
