@@ -79,16 +79,26 @@ array: "{" sum ( "," sum )* "}"  -> build_list
     | sum "+" product   -> op_add
     | sum "-" product   -> op_sub
 
-?product: power
-    | product "*" power -> op_mul
-    | product "/" power -> op_div
+?product: unary
+    | product "*" unary -> op_mul
+    | product "/" unary -> op_div
+
+?unary: power
+    | "-" unary         -> op_neg
+    | "+" unary         -> op_pos
 
 ?power: atom
-    | power "^" atom    -> op_pow
+    | power "^" exponent -> op_pow
+
+// MAD-X convention: ^ is left-associative, so a^b^c == (a^b)^c.
+// Exponentiation must take precedence over unary signs: -a^2 == -(a^2).
+// To keep both, the right operand can't be `unary`, which can expand back
+// to `power`. `exponent` repeats the sign rules but only wraps an `atom`.
+?exponent: atom
+    | "-" exponent      -> op_neg
+    | "+" exponent      -> op_pos
 
 ?atom: NUMBER           -> number
-    | "-" atom          -> op_neg
-    | "+" atom          -> op_pos
     | NAME              -> name_atom
     | NAME "->" NAME    -> op_arrow
     | function "(" sum ("," sum)* ")" -> call
@@ -101,7 +111,7 @@ array: "{" sum ( "," sum )* "}"  -> build_list
 
 string_literal: STRING
 
-ignored: if | return | select | remove | assign | use
+ignored: if | return | select | remove | assign | use | option
 
 beta0_stmt: name_or_string ":" _BETA0 command_arglist ";" -> ignored_beta0
 
@@ -111,6 +121,7 @@ beta0_stmt: name_or_string ":" _BETA0 command_arglist ";" -> ignored_beta0
 !remove: "remove"i /[^\n]+/
 !assign: "assign"i /[^\n]+/
 !use: "use"i /[^;]*;/
+!option: "option"i /[^;]*;/
 
 SEQUENCE: "sequence"i
 NAME: /[A-Za-z_\\.][A-Za-z0-9_\\.%]*/

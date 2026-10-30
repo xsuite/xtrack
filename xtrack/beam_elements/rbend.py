@@ -197,17 +197,18 @@ class RBend(_BendCommon, BeamElement):
         _length_straight = self._length_straight
         _rbend_angle_diff = self._rbend_angle_diff
 
-        theta_in = 0.5 * _angle - _rbend_angle_diff / 2
-        theta_out = 0.5 * _angle + _rbend_angle_diff / 2
-        if abs(_angle) < 1e-10:
-            length = _length_straight
-            h = 0
-        elif abs(_length_straight) < 1e-10:
+        if abs(_length_straight) < 1e-10:
             length = 0.0
             h = 0
         else:
-            h = (np.sin(theta_in) + np.sin(theta_out)) / _length_straight
-            length = _angle / h
+            # sin(theta_in) + sin(theta_out) = 2*sin(angle/2)*cos(angle_diff/2).
+            # The sinc form avoids cancellation and retains the crossing-angle
+            # correction at zero bend angle. NumPy's sinc includes a factor pi.
+            sinc_half = (1. if _angle == 0.
+                         else np.sinc(_angle / (2 * np.pi)))
+            length = _length_straight / (
+                sinc_half * np.cos(_rbend_angle_diff / 2))
+            h = _angle / length
 
         self._h = h
         self._angle = _angle

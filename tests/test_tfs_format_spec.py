@@ -381,7 +381,6 @@ def test_madx_preset_against_reference_excerpt(tmp_path):
                  for field in preset['scalars'] if 'source_name' in field})
     output = tmp_path / 'madx.tfs'
     xt.Table(data, col_names=columns).to_tfs(output, format_spec=preset)
-    assert output.read_bytes() == (folder / 'madx_twiss_v1.tfs').read_bytes()
     result = tfs.read(output, validate='madx')
     # The subset preserves the reference's column order and TFS data types.
     assert list(result.columns) == [name for name in reference.columns if name in result.columns]

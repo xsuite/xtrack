@@ -830,6 +830,11 @@ class Line:
         -------
         out : dict
             Dictionary representation of the line.
+
+        Raises
+        ------
+        TypeError
+            If an element to be serialized has no callable ``to_dict`` method.
         '''
 
         out = {}
@@ -839,7 +844,8 @@ class Line:
             out["xtrack_version"] = xt.__version__
 
         if include_element_dict:
-            out["elements"] = {k: el.to_dict() for k, el in self._element_dict.items()}
+            out["elements"] = {k: _serialize_element(el, k)
+                               for k, el in self._element_dict.items()}
             if include_aperture and (
                 len(self.env.aperture.profiles) or len(self.env.aperture.pipes)
             ):
@@ -5129,16 +5135,17 @@ class Line:
 
         Parameters
         ----------
-        spin_model: str
+        spin_model: bool or str, optional
             Spin model to use. Can be None, 'auto', True, False.
         """
         self._method_incompatible_with_compose()
 
-        assert spin_model in [None, 'auto', 'True', 'False']
         if spin_model is False:
             spin_model = None
-        if spin_model is True:
+        elif spin_model is True:
             spin_model = 'auto'
+        elif spin_model not in (None, 'auto'):
+            raise ValueError("spin_model must be None, 'auto', True, or False")
 
         self._spin_model = spin_model
 
@@ -6781,11 +6788,22 @@ class Line:
 
         Parameters
         ----------
-        name : str or iterable of str
-            Name or names of the variable(s) or element(s).
-        value : float or str
-            Value or expression of the variable to set. Can be provided only
-            if the name is associated to a variable.
+        name : str, iterable of str, mapping or Table
+            Name or names of the variable(s) or element(s). A mapping supplies
+            variable names and values. A table supplies variable names from its
+            ``name`` column and values from its ``value`` column.
+        value : float, str or iterable, optional
+            Value or expression of the variable to set. For multiple variable
+            names, an iterable supplies one value or expression per name and
+            must have the same length. A scalar is applied to every name.
+            Can be provided only if the names are associated to variables.
+            For a mapping or table, an explicit positional value overrides the
+            stored values. Iterables follow key or row order; scalars (including
+            expression strings) broadcast to all names. With an override, a table
+            needs only the ``name`` column. Mapping inputs accept no keyword
+            arguments. With a table, keyword arguments set attributes of the
+            elements in its ``env_name`` column (falling back to ``name`` if
+            absent) and cannot be combined with a positional value.
         **kwargs, float or str
             Attributes to set. Can be provided only if the name is associated
             to an element.
@@ -6798,6 +6816,14 @@ class Line:
         >>> line.set(['quad1', 'quad2'], k1=0.1, k2='3*a')
         >>> line.set(['c', 'd'], 0.1)
         >>> line.set(['e', 'f'], '3*a')
+        >>> line.set(['c', 'd'], [0.1, 0.2])
+        >>> line.set(['e', 'f'], ['3*a', '4*a'])
+        >>> line.set({'c': 0.1, 'd': '2*a'})
+        >>> line.set({'c': 0.1, 'd': 0.2}, 0.)
+        >>> line.set(table)  # table with name and value columns
+        >>> line.set(table, [0.1, 0.2])  # table with two rows
+        >>> line.set(table, 0.)
+        >>> line.set(element_table, k1='3*a')
 
         '''
         self.env.set(name, *args, **kwargs)
@@ -6805,17 +6831,18 @@ class Line:
     @doc_group("Inspection, Variables and Configuration")
     def get(self, key):
         '''
-        Get an element or the value of a variable.
+        Get elements or variable values by name.
 
         Parameters
         ----------
-        key : str
-            Name of the element or variable.
+        key : str or iterable of str
+            Name or names of the elements or variables.
 
         Returns
         -------
-        element : Element or float
-            Element or value of the variable.
+        result : Element, float or list
+            Element or variable value for a single name. For multiple names,
+            a list of results in the requested order.
 
         Examples
         --------
@@ -6834,6 +6861,9 @@ class Line:
 
             line.get('a')
             # 3.0
+
+            line.get(['a', 'qf'])
+            # [3.0, Quadrupole(...)]
         '''
         return self.env.get(key)
 
@@ -7950,6 +7980,16 @@ class LineTable(Table):
                       + DEPRECATION_INFO_PREP_1_0),
     }
 
+def _serialize_element(element, name):
+    to_dict = getattr(element, 'to_dict', None)
+    if not callable(to_dict):
+        raise TypeError(
+            f"Cannot serialize element {name!r} "
+            f"(type {type(element).__name__}): "
+            "the element does not provide a callable to_dict() method.")
+    return to_dict()
+
+
 def _deserialize_element(el, class_dict, _buffer):
     eldct = el.copy()
     eltype = class_dict[eldct.pop('__class__')]
@@ -8348,6 +8388,7 @@ class LineAttrItem:
         setter_names = []
         self._python_properties = []
         self._python_methods = []
+        is_collective_line = line.tracker.iscollective
         for ii, nn, ee in has_nn0:
             has_name = True
             if isinstance(name, str):
@@ -8381,6 +8422,21 @@ class LineAttrItem:
                 if index is not None and index >= len(getattr(inner_obj, inner_name)):
                     continue
                 self._python_properties.append((ii, inner_obj, inner_name))
+            elif has_name and is_collective_line and _is_collective(ee, line):
+                # Read collective attributes from the original element: the
+                # MultiSetter sees replacement drifts in the tracker buffer.
+                if hasattr(inner_obj, '_xobject'):
+                    if inner_name not in inner_obj._xofields:
+                        continue
+                    # Match MultiSetter's numeric storage access. For example,
+                    # a Bend's element.k0 can return 'from_h', whereas
+                    # element._xobject.k0 contains the stored numeric value.
+                    inner_obj = inner_obj._xobject
+                if not hasattr(inner_obj, inner_name):
+                    continue
+                if index is not None and index >= len(getattr(inner_obj, inner_name)):
+                    continue
+                self._python_properties.append((ii, inner_obj, inner_name))
             elif has_name and hasattr(inner_obj, '_xofields') and inner_name in inner_obj._xofields:
                 if index is not None:
                     this_len = cache_len.get(tuple(name)+(nn,), None)
@@ -8398,6 +8454,12 @@ class LineAttrItem:
         self.names = setter_names
         self._multisetter = multisetter
         self._mask = mask
+        # Field presence also includes values read outside the tracker buffer.
+        self._mask_has_field = mask
+        if is_collective_line and (self._python_properties or self._python_methods):
+            self._mask_has_field = mask.copy()
+            for item in self._python_properties + self._python_methods:
+                self._mask_has_field[item[0]] = True
 
     @property
     def multisetter(self):
@@ -8610,9 +8672,19 @@ class EnergyProgram:
         # (E1-E0)/a = dt*(P0+P1)/(E0+E1). This is exact, avoids
         # subtracting nearly equal energies, and also holds for constant P or
         # acceleration from rest. Only the original knots need to be stored.
-        delta_turns = (clight / self._circumference * np.diff(times)
-                       * (momentum[:-1] + momentum[1:]) / (energy[:-1] + energy[1:]))
-        self._i_turn_at_t_s = np.concatenate(([0.], np.cumsum(delta_turns)))
+        turn_increments = (clight / self._circumference * np.diff(times)
+                           * (momentum[:-1] + momentum[1:]) / (energy[:-1] + energy[1:]))
+        # Kahan summation keeps rounding errors from accumulating with the
+        # number of ramp samples. Errors in this table shift the reference
+        # clock and therefore zeta, even for a constant-momentum program.
+        self._i_turn_at_t_s = np.zeros(len(times))
+        total = correction = 0.
+        for ii, turn_increment in enumerate(turn_increments):
+            increment = turn_increment - correction
+            updated = total + increment
+            correction = (updated - total) - increment
+            total = updated
+            self._i_turn_at_t_s[ii + 1] = total
 
     def get_turn_at_t_s(self, t_s):
         """Accumulated reference turns, integrating the linear momentum ramp.
@@ -8906,7 +8978,8 @@ def _main_strength_from_attr(attr):
 
     main_order = attr['_own_main_order'] + attr['_parent_main_order']
 
-    mask_take_main_order = attr._cache['_own_main_order']._mask | attr._cache['_parent_main_order']._mask
+    mask_take_main_order = (attr._cache['_own_main_order']._mask_has_field
+                           | attr._cache['_parent_main_order']._mask_has_field)
 
     _main_strength_normal = np.zeros(len(main_order), dtype=np.float64)
     _main_strength_skew = np.zeros(len(main_order), dtype=np.float64)

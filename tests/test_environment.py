@@ -209,6 +209,249 @@ def test_vars_and_element_access_modes(container_type):
         assert str(env.ref[nn].k1.xdeps.expr) == "(3.0 * vars['x0'])"
 
 
+@pytest.mark.parametrize('container_type', ['env', 'line'])
+@pytest.mark.parametrize('sequence', [list, tuple, np.array, iter])
+def test_get_multiple_names(container_type, sequence):
+    env = xt.Environment()
+    env['a'] = 2.
+    env['b'] = '3*a'
+    env.new('q', xt.Quadrupole, k1='a')
+    line = env.new_line(['q'])
+    target = env if container_type == 'env' else line
+
+    assert target.get(sequence(['b', 'a', 'b'])) == [6., 2., 6.]
+    result = target.get(sequence(['q', 'a']))
+    assert isinstance(result, list)
+    assert result[0] is env.get('q') and result[1] == 2.
+    target.set('a', 4.)
+    assert target.get(sequence(['a', 'b'])) == [4., 12.]
+    assert target.get('a') == 4.
+    assert target.get('q') is result[0]
+    assert target.get(sequence([])) == []
+    with pytest.raises(KeyError, match='missing'):
+        target.get(sequence(['a', 'missing']))
+
+
+@pytest.mark.parametrize('container_type', ['env', 'line'])
+@pytest.mark.parametrize('sequence', [list, tuple, np.array, iter])
+def test_set_paired_variable_values(container_type, sequence):
+    env = xt.Environment()
+    line = env.new_line([])
+    target = env if container_type == 'env' else line
+    env['a'] = 1.
+    env['b'] = 2.
+    env['sum'] = 'a + b'
+    env.new('q', xt.Quadrupole, k1='a + b')
+
+    target.set(sequence(['a', 'b']), sequence([3., 4.]))
+    assert env['a'] == 3. and env['b'] == 4.
+    assert env['sum'] == 7. and env['q'].k1 == 7.
+
+    target.set(sequence(['c', 'd']), sequence(['2*a', '3*b']))
+    target.set(['a', 'b'], [5., 6.])
+    assert env['c'] == 10. and env['d'] == 18.
+    assert env['sum'] == 11. and env['q'].k1 == 11.
+
+    target.set(['c', 'd'], [env.ref['a'] + 1, 0.])
+    target.set('a', 8.)
+    assert env['c'] == 9. and env['d'] == 0.
+    target.set([], [])
+
+
+@pytest.mark.parametrize('container_type', ['env', 'line'])
+@pytest.mark.parametrize('values', [[3.], [3., 4., 5.]])
+def test_set_paired_variable_length_mismatch(container_type, values):
+    env = xt.Environment()
+    line = env.new_line([])
+    target = env if container_type == 'env' else line
+    env['a'] = 1.
+    with pytest.raises(ValueError, match='same length'):
+        target.set(iter(['a', 'new_variable']), iter(values))
+    assert env['a'] == 1.
+    assert 'new_variable' not in env.vars
+
+
+@pytest.mark.parametrize('container_type', ['env', 'line'])
+@pytest.mark.parametrize('invalid_name', ['q', 'my_line'])
+def test_set_paired_values_rejects_elements_and_lines(container_type, invalid_name):
+    env = xt.Environment()
+    env.new('q', xt.Quadrupole, k1=1.)
+    line = env.new_line(['q'], name='my_line')
+    target = env if container_type == 'env' else line
+    env['a'] = 1.
+    with pytest.raises(ValueError):
+        target.set(['a', invalid_name], [2., 3.])
+    assert env['a'] == 1. and env['q'].k1 == 1.
+
+
+@pytest.mark.parametrize('container_type', ['env', 'line'])
+def test_set_broadcasting_unchanged(container_type):
+    env = xt.Environment()
+    line = env.new_line([])
+    target = env if container_type == 'env' else line
+    target.set(['a', 'b'], 2.)
+    assert env['a'] == env['b'] == 2.
+    target.set(['c', 'd'], '3*a')
+    target.set('a', 4.)
+    assert env['c'] == env['d'] == 12.
+    target.set(['a', 'b'], np.array(5.))
+    assert env['a'] == env['b'] == 5.
+
+    env.new('m1', xt.Multipole, knl=[0., 0.])
+    env.new('m2', xt.Multipole, knl=[0., 0.])
+    target.set(['m1', 'm2'], knl=[1., '2*a'])
+    target.set('a', 6.)
+    for name in ['m1', 'm2']:
+        np.testing.assert_allclose(env[name].knl, [1., 12.])
+
+
+@pytest.mark.parametrize('container_type', ['env', 'line'])
+@pytest.mark.parametrize('table_source', ['elements', 'line', 'xdeps'])
+def test_set_element_attributes_from_table(container_type, table_source):
+    env = xt.Environment()
+    env['strength'] = 2.
+    for name in ['q1', 'q2', 'q3']:
+        env.new(name, xt.Quadrupole, k1=0., length=1.)
+    line = env.new_line(['q1', 'q2', 'q3'])
+    target = env if container_type == 'env' else line
+    if table_source == 'elements':
+        selected = env.elements.get_table().rows[['q1', 'q2']]
+    elif table_source == 'line':
+        selected = line.get_table().rows[['q1', 'q2']]
+    else:
+        selected = xd.Table({'name': np.array(['q1', 'q2'])})
+
+    target.set(selected, k1='3*strength', length=2.)
+    target.set('strength', 4.)
+    for name in ['q1', 'q2']:
+        assert env[name].k1 == 12.
+        assert env[name].length == 2.
+    assert env['q3'].k1 == 0.
+    assert env['q3'].length == 1.
+    with pytest.raises(ValueError):
+        target.set(selected, 0., k1=1.)
+    with pytest.raises(ValueError, match='name column'):
+        target.set(xd.Table({'value': np.array([1.])}, index=None), k1=1.)
+
+
+@pytest.mark.parametrize('container_type', ['env', 'line'])
+def test_set_element_attributes_from_table_with_repeated_elements(container_type):
+    env = xt.Environment()
+    env['strength'] = 2.
+    env.new('d1', xt.Drift, length=1.)
+    env.new('q1', xt.Quadrupole, length=.5)
+    env.new('q2', xt.Quadrupole, length=.5)
+    line = env.new_line(['d1', 'q1', 'd1', 'q1', 'q2'])
+    target = env if container_type == 'env' else line
+    tt = line.get_table()
+
+    drifts = tt.rows[tt.element_type == 'Drift']
+    assert list(drifts.name) == ['d1::0', 'd1::1']
+    target.set(drifts, model='exact')
+    assert env['d1'].model == 'exact'
+
+    quads = tt.rows[tt.env_name == 'q1']
+    target.set(quads, k1='3*strength', integrator='yoshida-4')
+    target.set('strength', 4.)
+    assert env['q1'].k1 == 12.
+    assert env['q1'].integrator == 'yoshida-4'
+    assert env['q2'].k1 == 0.
+
+    target.set(tt.rows[tt.element_type == 'Bend'], model='exact')
+
+
+@pytest.mark.parametrize('container_type', ['env', 'line'])
+@pytest.mark.parametrize('input_type', ['dict', 'mapping', 'table', 'xdeps_table'])
+def test_set_mapping_or_table(container_type, input_type):
+    env = xt.Environment()
+    line = env.new_line([])
+    target = env if container_type == 'env' else line
+    env['source'] = 2.
+    env['a'] = env['b'] = 0.
+    env['sum'] = 'a + b'
+    env.new('q', xt.Quadrupole, k1='a + b')
+    # Deliberately use non-alphabetic order for overrides.
+    data = {'b': '3*source', 'a': 1.}
+    if input_type == 'dict':
+        assignments = data
+    elif input_type == 'mapping':
+        assignments = types.MappingProxyType(data)
+    else:
+        table_class = xt.Table if input_type == 'table' else xd.Table
+        assignments = table_class({
+            'name': np.array(list(data)),
+            'value': np.array(list(data.values()), dtype=object)})
+    target.set(assignments)
+    assert target.get(['a', 'b', 'sum']) == [1., 6., 7.]
+    target.set('source', 4.)
+    assert env['b'] == 12. and env['q'].k1 == 13.
+
+    target.set(assignments, [5., 7.])
+    assert target.get(['a', 'b', 'sum']) == [7., 5., 12.]
+    target.set(assignments, iter([8., 9.]))
+    assert target.get(['a', 'b']) == [9., 8.]
+    for scalar in (0., np.array(2.), '2*source'):
+        target.set(assignments, scalar)
+        expected = 8. if isinstance(scalar, str) else float(scalar)
+        assert env['a'] == env['b'] == expected
+        assert env['q'].k1 == 2 * expected
+    target.set('source', 6.)
+    assert env['a'] == env['b'] == 12.
+
+    with pytest.raises(ValueError, match='same length'):
+        target.set(assignments, [1.])
+    with pytest.raises(ValueError, match='at most one'):
+        target.set(assignments, 1., 2.)
+    message = ('no keyword arguments' if input_type in ('dict', 'mapping')
+               else 'Only a single value is allowed when setting variable')
+    with pytest.raises(ValueError, match=message):
+        target.set(assignments, k1=1.)
+    assert env['a'] == env['b'] == 12.
+
+
+@pytest.mark.parametrize('container_type', ['env', 'line'])
+def test_set_table_columns_and_variable_table(container_type):
+    env = xt.Environment()
+    line = env.new_line([])
+    target = env if container_type == 'env' else line
+    target.set({'a': 1., 'b': 2.})
+    saved = target.vars.get_table().rows[['b', 'a']]
+    target.set(saved, 0.)
+    assert target.get(['a', 'b']) == [0., 0.]
+    target.set(saved)
+    assert target.get(['a', 'b']) == [1., 2.]
+
+    names_only = xt.Table({'name': np.array(['b', 'a'])})
+    with pytest.raises(ValueError, match='value column'):
+        target.set(names_only)
+    target.set(names_only, [3., 4.])
+    assert target.get(['a', 'b']) == [4., 3.]
+    with pytest.raises(ValueError, match='name column'):
+        target.set(xt.Table({'value': np.array([1.])}, index=None), 0.)
+    target.set({})
+    target.set(xt.Table({'name': np.array([], dtype=str)}), 0.)
+    assert target.get(['a', 'b']) == [4., 3.]
+
+
+@pytest.mark.parametrize('container_type', ['env', 'line'])
+@pytest.mark.parametrize('input_type', ['dict', 'table'])
+@pytest.mark.parametrize('invalid_name', ['q', 'my_line'])
+@pytest.mark.parametrize('override', [(), (0.,)])
+def test_set_mapping_or_table_rejects_elements_before_mutation(
+        container_type, input_type, invalid_name, override):
+    env = xt.Environment()
+    env['a'] = 1.
+    env.new('q', xt.Quadrupole, k1=1.)
+    line = env.new_line(['q'], name='my_line')
+    target = env if container_type == 'env' else line
+    data = {'a': 2., invalid_name: 3.}
+    if input_type == 'table':
+        data = xt.Table({'name': np.array(list(data)), 'value': np.array(list(data.values()))})
+    with pytest.raises(ValueError):
+        target.set(data, *override)
+    assert env['a'] == 1. and env['q'].k1 == 1.
+
+
 def test_element_placing_at_s():
 
     env = xt.Environment()

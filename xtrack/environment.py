@@ -3,7 +3,7 @@ import json
 import re
 import uuid
 from collections import Counter, UserDict
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from contextlib import contextmanager
 from copy import deepcopy
 from pathlib import Path
@@ -1109,6 +1109,11 @@ class Environment:
         -------
         dict
             Serialized environment data.
+
+        Raises
+        ------
+        TypeError
+            If an element to be serialized has no callable ``to_dict`` method.
         """
 
         out = {}
@@ -1117,7 +1122,8 @@ class Environment:
         if include_version:
             out["xtrack_version"] = xt.__version__
 
-        out["elements"] = {k: el.to_dict() for k, el in self._element_dict.items()}
+        out["elements"] = {k: xt.line._serialize_element(el, k)
+                           for k, el in self._element_dict.items()}
 
         if self._particle_ref is not None:
             if isinstance(self._particle_ref, str):
@@ -1955,11 +1961,22 @@ class Environment:
 
         Parameters
         ----------
-        name : str or iterable of str
-            Name or names of the variable(s) or element(s).
-        value : float or str
-            Value or expression of the variable to set. Can be provided only
-            if the name is associated to a variable.
+        name : str, iterable of str, mapping or Table
+            Name or names of the variable(s) or element(s). A mapping supplies
+            variable names and values. A table supplies variable names from its
+            ``name`` column and values from its ``value`` column.
+        value : float, str or iterable, optional
+            Value or expression of the variable to set. For multiple variable
+            names, an iterable supplies one value or expression per name and
+            must have the same length. A scalar is applied to every name.
+            Can be provided only if the names are associated to variables.
+            For a mapping or table, an explicit positional value overrides the
+            stored values. Iterables follow key or row order; scalars (including
+            expression strings) broadcast to all names. With an override, a table
+            needs only the ``name`` column. Mapping inputs accept no keyword
+            arguments. With a table, keyword arguments set attributes of the
+            elements in its ``env_name`` column (falling back to ``name`` if
+            absent) and cannot be combined with a positional value.
         **kwargs : float or str
             Attributes to set. Can be provided only if the name is associated
             to an element.
@@ -1972,14 +1989,63 @@ class Environment:
         >>> line.set(['quad1', 'quad2'], k1=0.1, k2='3*a')
         >>> line.set(['c', 'd'], 0.1)
         >>> line.set(['e', 'f'], '3*a')
+        >>> line.set(['c', 'd'], [0.1, 0.2])
+        >>> line.set(['e', 'f'], ['3*a', '4*a'])
+        >>> line.set({'c': 0.1, 'd': '2*a'})
+        >>> line.set({'c': 0.1, 'd': 0.2}, 0.)
+        >>> line.set(table)  # table with name and value columns
+        >>> line.set(table, [0.1, 0.2])  # table with two rows
+        >>> line.set(table, 0.)
+        >>> line.set(element_table, k1='3*a')
 
         '''
+        if isinstance(name, xd.Table) and kwargs and not args:
+            if 'name' not in name._col_names:
+                raise ValueError('Table must have a name column')
+            column = 'env_name' if 'env_name' in name._col_names else 'name'
+            return self.set(name[column], **kwargs)
+
+        if isinstance(name, (Mapping, xd.Table)):
+            if len(args) > 1 or kwargs:
+                raise ValueError('Mapping or table input accepts at most one value override '
+                                 'and no keyword arguments')
+            if isinstance(name, Mapping):
+                names = list(name.keys())
+                values = args[0] if args else name.values()
+            else:
+                if 'name' not in name._col_names:
+                    raise ValueError('Table must have a name column')
+                if not args and 'value' not in name._col_names:
+                    raise ValueError('Table must have a value column when no override is supplied')
+                names = name['name']
+                values = args[0] if args else name['value']
+            if (not isinstance(values, Iterable) or isinstance(values, (str, bytes))
+                    or (isinstance(values, np.ndarray) and values.ndim == 0)):
+                values = [values] * len(names)
+            return self.set(names, values)
+
         if hasattr(name, 'env_name'):
             name = name.env_name
         elif hasattr(name, 'name'):
             name = name.name
 
         if isinstance(name, Iterable) and not isinstance(name, str):
+            if (len(args) == 1 and not kwargs
+                    and isinstance(args[0], Iterable)
+                    and not isinstance(args[0], (str, bytes))
+                    and not (isinstance(args[0], np.ndarray) and args[0].ndim == 0)):
+                # xdeps variable references use Python string keys.
+                names = [str(nn) if isinstance(nn, np.str_) else nn for nn in name]
+                values = list(args[0])
+                if len(names) != len(values):
+                    raise ValueError('Names and values must have the same length')
+                for nn in names:
+                    if nn in self.lines:
+                        raise ValueError('Cannot set a line')
+                    if nn in self.elements:
+                        raise ValueError('Only kwargs are allowed when setting element attributes')
+                self.vars.update(dict(zip(names, values)))
+                return
             for nn in name:
                 self.set(nn, *args, **kwargs)
             return
@@ -2024,17 +2090,18 @@ class Environment:
     @doc_group("Editing, Inspection, Variables and Configuration")
     def get(self, key):
         '''
-        Get an element or the value of a variable.
+        Get elements or variable values by name.
 
         Parameters
         ----------
-        key : str
-            Name of the element or variable.
+        key : str or iterable of str
+            Name or names of the elements or variables.
 
         Returns
         -------
-        element : Element or float
-            Element or value of the variable.
+        result : Element, float or list
+            Element or variable value for a single name. For multiple names,
+            a list of results in the requested order.
 
         Examples
         --------
@@ -2050,7 +2117,13 @@ class Environment:
             value = env.get('kq')
 
             # element is the Quadrupole object; value is 0.2
+
+            env.get(['kq', 'qf'])
+            # [0.2, Quadrupole(...)]
         '''
+
+        if isinstance(key, Iterable) and not isinstance(key, (str, bytes)):
+            return [self.get(name) for name in key]
 
         if key in self._element_dict:
             return self._element_dict[key]

@@ -395,8 +395,10 @@ def twiss_line(line, particle_ref=None, method=None,
         - `spin_t_pol_buildup_s`: polarization buildup time in seconds
         - `spin_t_pol_component_s`: polarization component of the buildup time in seconds
         - `spin_t_depol_component_s`: depolarization component of the buildup time in seconds
-        - `spin_n_matrix`: invariant spin field matrix in local frame (ebe)
-        - `spin_eigenvectors`: eigenvectors of the spin one-turn matrix (ebe)
+        - `spin_n_matrix`: invariant spin field derivatives in the local frame,
+          with columns ordered as x, px, y, py, zeta, pzeta (ebe)
+        - `spin_eigenvectors`: orbital-spin eigenvectors, with rows ordered as
+          x, px, y, py, zeta, pzeta, spin_x, spin_y, spin_z (ebe)
         - `spin_dn_ddelta_x`, `spin_dn_ddelta_y`, `spin_dn_ddelta_z`: derivatives of
           the invariant spin field w.r.t. delta (ebe)
         - `spin_n0_iv`, `spin_n0_ib`: projections of equilibrium spin along the

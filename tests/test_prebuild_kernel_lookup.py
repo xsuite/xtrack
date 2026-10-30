@@ -62,10 +62,13 @@ def _write_metadata(
 
 
 @pytest.fixture(autouse=True)
-def _restore_kernel_compilation_settings(monkeypatch):
-    monkeypatch.setattr(xo.settings, 'allow_kernel_compilation', False)
-    monkeypatch.setattr(xo.settings, 'force_kernel_compilation', False)
-    monkeypatch.setattr(xo.settings, 'show_kernel_diagnostics', False)
+def _restore_kernel_compilation_settings():
+    with xo.settings.override(
+        allow_kernel_compilation=False,
+        force_kernel_compilation=False,
+        show_kernel_diagnostics=False,
+    ):
+        yield
 
 
 @pytest.fixture
@@ -294,12 +297,11 @@ def test_closest_kernel_prefers_missing_class_over_config_mismatch(
 
 
 def test_get_suitable_kernel_returns_none_when_setting_allows_compilation(
-    monkeypatch,
     kernel_location,
 ):
-    monkeypatch.setattr(xo.settings, 'allow_kernel_compilation', True)
-
-    assert xsprebkern.get_suitable_kernel({}, [], [], context=xo.ContextCpu()) is None
+    with xo.settings.override(allow_kernel_compilation=True):
+        assert xsprebkern.get_suitable_kernel(
+            {}, [], [], context=xo.ContextCpu()) is None
 
 
 def test_get_suitable_kernel_uses_configured_print(
@@ -317,15 +319,14 @@ def test_get_suitable_kernel_uses_configured_print(
 
 
 def test_get_suitable_kernel_skipped_when_compilation_is_forced(
-    monkeypatch, kernel_location, capsys,
+    kernel_location, capsys,
 ):
     module_name = 'test_kernel_cpu_serial'
     _write_metadata(kernel_location, module_name=module_name)
     xsprebkern._kernel_binary_file(module_name, kernel_location).touch()
-    monkeypatch.setattr(xo.settings, 'force_kernel_compilation', True)
-
-    assert xsprebkern.get_suitable_kernel(
-        {}, [], [], context=xo.ContextCpu(), verbose=True) is None
+    with xo.settings.override(force_kernel_compilation=True):
+        assert xsprebkern.get_suitable_kernel(
+            {}, [], [], context=xo.ContextCpu(), verbose=True) is None
 
     message = capsys.readouterr().out
     assert 'xobjects.settings.force_kernel_compilation' in message
@@ -391,11 +392,11 @@ def test_missing_xsuite_allows_jit_when_setting_allows_compilation(
     monkeypatch,
     missing_xsuite,
 ):
-    monkeypatch.setattr(xo.settings, 'allow_kernel_compilation', True)
     context = xo.ContextCpu()
     add_kernel_calls = _patch_add_kernels(monkeypatch, context)
 
-    DummyStruct.compile_class_kernels(context, only_if_needed=False)
+    with xo.settings.override(allow_kernel_compilation=True):
+        DummyStruct.compile_class_kernels(context, only_if_needed=False)
 
     assert len(add_kernel_calls) == 1
 
@@ -404,11 +405,11 @@ def test_missing_xsuite_allows_jit_when_compilation_is_forced(
     monkeypatch,
     missing_xsuite,
 ):
-    monkeypatch.setattr(xo.settings, 'force_kernel_compilation', True)
     context = xo.ContextCpu()
     add_kernel_calls = _patch_add_kernels(monkeypatch, context)
 
-    DummyStruct.compile_class_kernels(context, only_if_needed=False)
+    with xo.settings.override(force_kernel_compilation=True):
+        DummyStruct.compile_class_kernels(context, only_if_needed=False)
 
     assert len(add_kernel_calls) == 1
 
