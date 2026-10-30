@@ -32,7 +32,7 @@ IR8_VARY = [
     "kqt13.r8b1",
 ]
 HERE = Path(__file__).resolve().parent
-XTRACK_ROOT = HERE.parents[1]
+XTRACK_ROOT = HERE.parents[2]
 LHC_JSON = XTRACK_ROOT / "test_data" / "hllhc15_thick" / "hllhc15_collider_thick.json"
 LHC_MADX = XTRACK_ROOT / "test_data" / "hllhc15_thick" / "opt_round_150_1500.madx"
 OUT_JSON = HERE / "002_ir8_benchmark_results.json"
