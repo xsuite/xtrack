@@ -90,3 +90,11 @@ def rel_diff(coeffs, reference):
 
 def slope(ells, errs):
     return np.polyfit(np.log(ells), np.log(errs), 1)[0]
+
+
+def landau_to_symmetric(ks):
+    """Thin element changing the canonical momenta from the Landau gauge of
+    BFieldExpansion (A = (-ks y, 0)) to the symmetric gauge of the solenoid
+    faces (A = ks/2 (-y, x)): px += ks/2 y, py += ks/2 x, a thin skew
+    quadrupole. landau_to_symmetric(-ks) is the inverse."""
+    return xt.Multipole(knl=[0, 0], ksl=[0, ks / 2])

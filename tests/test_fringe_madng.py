@@ -181,7 +181,7 @@ def _ng_quad(strengths, f1, f2, faces='both'):
         ('k1=0.3', {'k1': 0.3}, (0.2, 0.05), (0.1, -0.03)),
     ],
 )
-def test_qsad_fringe_vs_madng(mad, strengths, xt_strengths, f1, f2):
+def test_quad_lw_fringe_vs_madng(mad, strengths, xt_strengths, f1, f2):
     # Effect of the soft fringe alone (qint on - qint off, at the full
     # model) in both codes. The particles are off momentum.
     faces = 'both' if np.isscalar(f1) else 'different'

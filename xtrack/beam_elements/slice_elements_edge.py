@@ -7,6 +7,7 @@ from .bend import Bend
 from .dipole_edge import DipoleEdge
 from .magnet_edge import MagnetEdge
 from .marker import Marker
+from .multipole import Multipole
 from .multipole_edge import MultipoleEdge
 from .octupole import Octupole
 from .quadrupole import Quadrupole
@@ -116,7 +117,7 @@ class _ThinSliceDipoleEdgeBase:
         model = getattr(parent, f'edge_{face}_model')
         has_mult = np.any(kn[1:] != 0) or np.any(ks[1:] != 0)
         if (model == 'full' and has_mult) or (
-            model in ('full', 'no-mult') and _has_qint(parent, face)
+            model != 'suppressed' and _has_qint(parent, face)
         ):
             # The DipoleEdge has neither the multipole fringe nor the soft
             # quadrupole fringe
@@ -160,12 +161,15 @@ class _ThinSliceMultipoleEdgeBase:
         if not getattr(parent, f'edge_{face}_active') or model == 'suppressed':
             return Marker(_buffer=self._buffer)
 
-        # The MultipoleEdge has neither the dipole fringe nor the soft
-        # quadrupole fringe
-        if model == 'no-mult' or _has_qint(parent, face):
+        # The MultipoleEdge has neither the dipole fringe (of knl[0]) nor the
+        # soft quadrupole fringe
+        kn, _ = _parent_total_kn_ks(parent)
+        if model == 'no-mult' or _has_qint(parent, face) or kn[0] != 0:
             return _magnet_edge_from_parent(
                 self,
                 model,
+                half_gap=getattr(parent, f'edge_{face}_hgap'),
+                fringe_integral=getattr(parent, f'edge_{face}_fint'),
                 qint1=getattr(parent, f'edge_{face}_qint1'),
                 qint2=getattr(parent, f'edge_{face}_qint2'),
             )
@@ -280,6 +284,28 @@ class ThinSliceOctupoleExit(
     _extra_c_sources = [
         '#include "xtrack/beam_elements/elements_src/thin_slice_octupole_exit.h"'
     ]
+
+class ThinSliceMultipoleEntry(
+    _ThinSliceEdgeBase, _ThinSliceMultipoleEdgeBase, BeamElement
+):
+    _magnet_plan = True
+    _face = 'entry'
+    _xofields = {'_parent': xo.Ref(Multipole), **COMMON_SLICE_XO_FIELDS}
+    _extra_c_sources = [
+        '#include "xtrack/beam_elements/elements_src/thin_slice_multipole_entry.h"'
+    ]
+
+
+class ThinSliceMultipoleExit(
+    _ThinSliceEdgeBase, _ThinSliceMultipoleEdgeBase, BeamElement
+):
+    _magnet_plan = True
+    _face = 'exit'
+    _xofields = {'_parent': xo.Ref(Multipole), **COMMON_SLICE_XO_FIELDS}
+    _extra_c_sources = [
+        '#include "xtrack/beam_elements/elements_src/thin_slice_multipole_exit.h"'
+    ]
+
 
 class ThinSliceUniformSolenoidEntry(_ThinSliceEdgeBase, BeamElement):
 

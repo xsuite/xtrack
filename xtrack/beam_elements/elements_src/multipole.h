@@ -9,6 +9,7 @@
 #include "xtrack/headers/track.h"
 #include "xtrack/headers/factorial.h"
 #include "xtrack/beam_elements/elements_src/track_magnet.h"
+#include "xtrack/beam_elements/elements_src/edge_load.h"
 #include "xtrack/beam_elements/elements_src/default_magnet_config.h"
 
 
@@ -23,6 +24,9 @@ void Multipole_prepare_magnet(
 
     MagnetFace entry_face = MagnetFace_empty(0);
     MagnetFace exit_face = MagnetFace_empty(1);
+    // The faces (none on a thin multipole), one line each for the slice generator
+    if (MultipoleData_get_isthick(el)) EDGE_LOAD_STRAIGHT(entry_face, MultipoleData_get_, el, entry);
+    if (MultipoleData_get_isthick(el)) EDGE_LOAD_STRAIGHT(exit_face, MultipoleData_get_, el, exit);
 
     // Settings aligned by hand: not formatted
     // clang-format off

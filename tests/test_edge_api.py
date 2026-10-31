@@ -26,6 +26,8 @@ def _new(cls, **kw):
         (xt.Sextupole, STRAIGHT_MODELS, 'suppressed', 1),
         (xt.Octupole, STRAIGHT_MODELS, 'suppressed', 1),
         (xt.UniformSolenoid, STRAIGHT_MODELS, 'suppressed', 1),
+        (xt.VariableSolenoid, STRAIGHT_MODELS, 'suppressed', 1),
+        (xt.Multipole, STRAIGHT_MODELS, 'suppressed', 1),
     ],
 )
 def test_edge_models_round_trip(cls, models, default_model, default_active):
@@ -132,6 +134,8 @@ def _magnet_with_gradient(cls, **kw):
         geo['angle'] = 0.1
     if cls is xt.UniformSolenoid:
         geo['ks'] = 0.1
+    if cls is xt.VariableSolenoid:
+        geo['ks_profile'] = [0.05, 0.1]
     if cls not in (xt.Bend, xt.RBend):  # straight magnets: fringes are off by default
         kw = {'edge_entry_model': 'full', 'edge_exit_model': 'full', **kw}
     return cls(
@@ -141,7 +145,7 @@ def _magnet_with_gradient(cls, **kw):
 
 SOFT_QUAD_MAGNETS = [
     xt.Bend, xt.RBend, xt.Magnet, xt.Quadrupole, xt.Sextupole, xt.Octupole,
-    xt.UniformSolenoid,
+    xt.UniformSolenoid, xt.VariableSolenoid,
 ]
 
 
@@ -156,17 +160,19 @@ def test_soft_quadrupole_fringe_on_all_magnets(cls):
         return _track(_magnet_with_gradient(
             cls, edge_entry_model=model, edge_exit_model=model, **kw))
 
-    # The soft fringe acts with the models full and no-mult only
+    # The soft fringe acts with every model but suppressed, linear included
+    # (it has no linear version)
     np.testing.assert_array_equal(
         track('suppressed', **qint), track('suppressed'))
-    for model in ('full', 'no-mult'):
+    models = [mm for mm in cls.get_available_edge_models() if mm != 'suppressed']
+    for model in models:
         assert np.max(np.abs(track(model, **qint) - track(model))) > 1e-10
     # no-mult has no hard multipole fringe
     assert np.max(np.abs(track('full') - track('no-mult'))) > 1e-10
 
-    if cls in (xt.Magnet, xt.UniformSolenoid):
-        return  # thick slicing only: no edge slices
-    for model in ('full', 'no-mult'):
+    if cls in (xt.Magnet, xt.UniformSolenoid, xt.VariableSolenoid):
+        return  # thick slicing only, or none: no edge slices
+    for model in models:
         el = _magnet_with_gradient(
             cls, edge_entry_model=model, edge_exit_model=model, **qint)
         assert el.to_dict()['edge_exit_qint2'] == -0.05
@@ -385,8 +391,13 @@ COORDS = ['x', 'px', 'y', 'py', 'zeta', 'delta', 'state']
             length=0.5, k2=3.0, edge_entry_model='full', edge_exit_model='full'
         ),
         lambda: xt.UniformSolenoid(length=1, ks=0.4),
+        lambda: xt.VariableSolenoid(
+            length=1, ks_profile=[0.1, 0.4], knl=[0, 0.2],
+            edge_entry_model='full', edge_exit_model='full', edge_exit_qint2=0.05,
+        ),
     ],
-    ids=['bend_full', 'bend_linear', 'rbend_straight', 'quad', 'sext', 'solenoid'],
+    ids=['bend_full', 'bend_linear', 'rbend_straight', 'quad', 'sext', 'solenoid',
+         'variable_solenoid'],
 )
 def test_mixed_beam_tracks_as_single_particles(make, backtrack):
     # The maps of the faces and the body are prepared once per element: each
@@ -430,7 +441,7 @@ def test_edge_bits_from_c_header():
         'EDGE_LINEAR',
         'EDGE_BEND',
         'EDGE_MULT',
-        'EDGE_QSAD',
+        'EDGE_QUAD_LW',
     }
     assert sorted(_edge._EDGE_BITS.values()) == [1 << ii for ii in range(5)]
     for name, value in _edge._EDGE_BITS.items():
@@ -453,3 +464,158 @@ def test_straight_magnet_dict_of_earlier_versions(cls):
     # The new dict has no `edge_*_active` and the model of the fringes
     full = cls(length=1.0, edge_entry_model='full', edge_exit_model='full').to_dict()
     assert full['edge_entry_model'] == 'full' and 'edge_entry_active' not in full
+
+
+def _track_face(line, name, face):
+    p = line.build_particles(
+        x=[1e-3, -2e-3], px=[1e-4, 2e-4], y=[2e-3, 1e-3], py=[-1e-4, 3e-4],
+        delta=[1e-3, -2e-3],
+    )
+    line.element_dict[f'{name}..{face}_map'].track(p)
+    return np.array([p.x, p.px, p.y, p.py, p.zeta])
+
+
+@pytest.mark.parametrize('cls', [xt.Quadrupole, xt.Sextupole, xt.Octupole])
+@pytest.mark.parametrize('model', ['full', 'no-mult'])
+def test_straight_magnet_soft_dipole_fringe(cls, model):
+    # A straight magnet's knl[0] has the dipole fringe of a bend: with fint and
+    # hgap it is the soft one, the same map as the face of a straight bend
+    length, k0 = 0.8, 0.02
+    fringe = dict(edge_entry_fint=0.5, edge_entry_hgap=0.03,
+                  edge_exit_fint=0.4, edge_exit_hgap=0.02)
+    kw = dict(length=length, knl=[k0 * length],
+              edge_entry_model=model, edge_exit_model=model)
+
+    soft = _track(cls(**kw, **fringe))
+    hard = _track(cls(**kw))
+    assert np.max(np.abs(soft - hard)) > 1e-12
+    np.testing.assert_array_equal(
+        _track(cls(**kw, **fringe, edge_entry_active=False, edge_exit_active=False)),
+        _track(cls(**{**kw, 'edge_entry_model': 'suppressed',
+                      'edge_exit_model': 'suppressed'})))
+
+    # Face by face: the edge slices match those of a straight bend
+    magnet = _sliced_line('m', cls(**kw, **fringe))
+    bend = _sliced_line('b', xt.Bend(length=length, k0=k0, angle=0, **{
+        **fringe, 'edge_entry_model': model, 'edge_exit_model': model}))
+    for face in ('entry', 'exit'):
+        np.testing.assert_array_equal(
+            _track_face(magnet, 'm', face), _track_face(bend, 'b', face))
+
+    # The equivalent elements keep the fringe
+    for eq in _check_edge_slices(magnet, 'm'):
+        assert isinstance(eq, xt.MagnetEdge)
+    assert cls(**kw, **fringe).to_dict()['edge_entry_fint'] == 0.5
+
+
+def test_variable_solenoid_faces():
+    # The exit face sets the vector potential of the field at the end (px is
+    # canonical: only ax, ay change); without it, the potential is the one of
+    # the body's last step. The fringe maps follow the model
+    def track(**kw):
+        return _track(xt.VariableSolenoid(
+            length=1, ks_profile=[0.1, 0.3], knl=[0, 0.2], **kw))
+
+    def vector_potential(**kw):
+        line = xt.Line(elements=[xt.VariableSolenoid(
+            length=1, ks_profile=[0.1, 0.3], knl=[0, 0.2], **kw)])
+        line.set_particle_ref('proton', p0c=1e9)
+        line.build_tracker()
+        p = line.build_particles(x=[1e-3], y=[2e-3])
+        line.track(p)
+        return p.ax[0], p.ay[0], p.x[0], p.y[0]
+
+    default = track()
+    np.testing.assert_array_equal(
+        track(edge_entry_qint1=0.2, edge_exit_qint2=0.05), default)
+    ax, ay, x, y = vector_potential()
+    np.testing.assert_allclose([ax, ay], [-0.15 * y, 0.15 * x], rtol=1e-14)
+    ax, ay, x, y = vector_potential(edge_exit_active=False)
+    assert abs(ax + 0.15 * y) > 1e-6 * abs(ax)
+    fringe = dict(edge_entry_model='full', edge_exit_model='full')
+    assert np.max(np.abs(track(**fringe) - default)) > 1e-10
+    assert np.max(np.abs(
+        track(**fringe, edge_entry_qint1=0.2) - track(**fringe))) > 1e-10
+
+
+def test_thick_multipole_faces():
+    # A thick multipole has the faces of the other straight magnets; a thin
+    # one has none, whatever its edge settings
+    knl = [0.01, 0.2, 0.5]
+    fringe = dict(edge_entry_model='full', edge_exit_model='full',
+                  edge_entry_qint1=0.2, edge_exit_qint2=0.05,
+                  edge_entry_fint=0.5, edge_entry_hgap=0.03)
+
+    def multipole(isthick, **kw):
+        return xt.Multipole(knl=knl, length=0.8, isthick=isthick, **kw)
+
+    thick = _track(multipole(True))
+    assert np.max(np.abs(_track(multipole(True, **fringe)) - thick)) > 1e-10
+    np.testing.assert_array_equal(
+        _track(multipole(False, **fringe)), _track(multipole(False)))
+
+    # The faces are those of a quadrupole with the same fields
+    sliced = _sliced_line('m', multipole(True, **fringe))
+    quad = _sliced_line('q', xt.Quadrupole(length=0.8, knl=knl, **fringe))
+    for face in ('entry', 'exit'):
+        np.testing.assert_array_equal(
+            _track_face(sliced, 'm', face), _track_face(quad, 'q', face))
+    for eq in _check_edge_slices(sliced, 'm'):
+        assert isinstance(eq, xt.MagnetEdge)
+
+    # The default faces do nothing
+    np.testing.assert_array_equal(
+        _track(multipole(True, edge_entry_active=False, edge_exit_active=False)),
+        thick)
+
+
+def test_reversed_line_with_one_face_active():
+    # Only the entry face of qf is active: once reversed, only its exit face
+    # is, and the reversed line has the optics of the forward one read
+    # backwards
+    from xtrack.environment import _reverse_element
+
+    env = xt.Environment(particle_ref=xt.Particles(p0c=1e9))
+    line = env.new_line(components=[
+        env.new('qf', xt.Quadrupole, length=0.4, k1=1.2, knl=[0, 0, 0.3],
+                edge_entry_model='full', edge_exit_model='full',
+                edge_entry_qint1=0.1, edge_entry_qint2=0.03,
+                edge_exit_active=False),
+        env.new('d1', xt.Drift, length=2),
+        env.new('qd', xt.Quadrupole, length=0.4, k1=-1.1),
+        env.new('d2', xt.Drift, length=2.5),
+    ])
+    reversed_line = line.copy()
+    for nn in reversed_line.element_names:
+        _reverse_element(reversed_line, nn)
+    reversed_line.element_names = reversed_line.element_names[::-1]
+    qf = reversed_line['qf']
+    assert (qf.edge_entry_active, qf.edge_exit_active) == (0, 1)
+    assert (qf.edge_entry_qint1, qf.edge_exit_qint1) == (0, 0.1)
+
+    tw = line.twiss4d()
+    tw_rev = reversed_line.twiss4d()
+    for forward, backward, sign in (
+        (tw.betx, tw_rev.bety, 1), (tw.bety, tw_rev.betx, 1),
+        (tw.alfx, tw_rev.alfy, -1), (tw.alfy, tw_rev.alfx, -1),
+    ):
+        np.testing.assert_allclose(
+            sign * backward[::-1], forward, rtol=0, atol=1e-7)
+    # The fringe of the one active face matters
+    tw_off = line.copy()
+    tw_off['qf'].edge_entry_active = False
+    assert np.max(np.abs(tw_off.twiss4d().betx - tw.betx)) > 1e-4
+
+
+def test_straight_soft_dipole_fringe_not_exported_to_mad():
+    from xtrack.mad_writer import to_madng_sequence
+
+    env = xt.Environment()
+    line = env.new_line(components=[
+        env.new('q1', xt.Quadrupole, length=1, k1=0.1, knl=[0.001],
+                edge_entry_model='full', edge_entry_fint=0.5, edge_entry_hgap=0.02),
+        env.new('b1', xt.Bend, length=1, angle=0.01, edge_entry_fint=0.5),
+    ])
+    for to_mad in (line.to_madx_sequence, to_madng_sequence):
+        with pytest.warns(UserWarning, match=r"straight magnets: 1 magnets have one, e.g. \['q1'\]"):
+            to_mad(line)

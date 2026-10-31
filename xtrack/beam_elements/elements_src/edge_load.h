@@ -16,19 +16,22 @@
 #define EDGE_FLAGS(GET, el, side)        GET##_edge_##side##_flags(el)
 #define EDGE_PARAM(GET, el, side, param) GET##edge_##side##_##param(el)
 
-// Straight magnets: mask and the SAD soft quadrupole fringe integrals (f1, f2)
-#define EDGE_LOAD_STRAIGHT(face, GET, el, side)   \
-    (face).flags = EDGE_FLAGS(GET, el, side);     \
-    (face).f1 = EDGE_PARAM(GET, el, side, qint1); \
-    (face).f2 = EDGE_PARAM(GET, el, side, qint2)
+// Straight magnets: mask, soft dipole fringe (fringe integral, half gap) and
+// the integrals of the soft quadrupole fringe (Lee-Whiting), f1 and f2
+// (one statement each: they can follow an if)
+#define EDGE_LOAD_STRAIGHT(face, GET, el, side) do {    \
+    (face).flags = EDGE_FLAGS(GET, el, side);           \
+    (face).fint = EDGE_PARAM(GET, el, side, fint);      \
+    (face).hgap = EDGE_PARAM(GET, el, side, hgap);      \
+    (face).f1 = EDGE_PARAM(GET, el, side, qint1);       \
+    (face).f2 = EDGE_PARAM(GET, el, side, qint2);       \
+} while (0)
 
-// Bends and magnets: as straight magnets, plus face angle, linear feed-down,
-// fringe integral, half gap
-#define EDGE_LOAD_BEND(face, GET, el, side)                      \
+// Bends and magnets: as straight magnets, plus face angle and linear feed-down
+#define EDGE_LOAD_BEND(face, GET, el, side) do {                 \
     EDGE_LOAD_STRAIGHT(face, GET, el, side);                     \
     (face).angle = EDGE_PARAM(GET, el, side, angle);             \
     (face).angle_fdown = EDGE_PARAM(GET, el, side, angle_fdown); \
-    (face).fint = EDGE_PARAM(GET, el, side, fint);               \
-    (face).hgap = EDGE_PARAM(GET, el, side, hgap)
+} while (0)
 
 #endif  // XTRACK_EDGE_LOAD_H

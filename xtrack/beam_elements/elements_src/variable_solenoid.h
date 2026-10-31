@@ -8,7 +8,7 @@
 
 #include "xtrack/headers/track.h"
 #include "xtrack/beam_elements/elements_src/track_magnet.h"
-#include "xtrack/beam_elements/elements_src/edge_flags.h"
+#include "xtrack/beam_elements/elements_src/edge_load.h"
 #include "xtrack/beam_elements/elements_src/default_magnet_config.h"
 
 // The magnet, as a plan for track_magnet_particles (the misalignment is
@@ -37,14 +37,14 @@ void VariableSolenoid_prepare_magnet(
         dks_ds = 0.;
     }
 
-    // Each face sets the vector potential of the field at its end, entering
-    // and leaving (Wolsky Eq. 3.114 and Eq. 2.74)
+    // Each active face also sets the vector potential of the field at its end,
+    // entering and leaving (Wolsky Eq. 3.114 and Eq. 2.74)
     MagnetFace entry_face = MagnetFace_empty(0);
-    entry_face.flags = EDGE_ACTIVE;
+    EDGE_LOAD_STRAIGHT(entry_face, VariableSolenoidData_get_, el, entry);
     entry_face.has_ks = 1;
     entry_face.ks = ks_entry;
     MagnetFace exit_face = MagnetFace_empty(1);
-    exit_face.flags = EDGE_ACTIVE;
+    EDGE_LOAD_STRAIGHT(exit_face, VariableSolenoidData_get_, el, exit);
     exit_face.has_ks = 1;
     exit_face.ks = ks_exit;
 

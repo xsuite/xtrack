@@ -24,17 +24,15 @@ EDGE_ACTIVE = _EDGE_BITS['EDGE_ACTIVE']
 EDGE_LINEAR = _EDGE_BITS['EDGE_LINEAR']
 EDGE_BEND = _EDGE_BITS['EDGE_BEND']
 EDGE_MULT = _EDGE_BITS['EDGE_MULT']
-EDGE_QSAD = _EDGE_BITS['EDGE_QSAD']
+EDGE_QUAD_LW = _EDGE_BITS['EDGE_QUAD_LW']
 
 FACES = ('entry', 'exit')
 
-# Parameters of the edges of each kind of magnet
-# The knl[0] of a straight magnet gets the hard-edge dipole fringe only.
-# Open question: should straight magnets also have fint, hgap (the soft dipole
-# fringe, quadratic in k0)? Then they would use BEND_EDGE_PARAMS' fint, hgap and
-# load with EDGE_LOAD_BEND (edge_load.h).
-STRAIGHT_EDGE_PARAMS = ('qint1', 'qint2')
-BEND_EDGE_PARAMS = ('angle', 'angle_fdown', 'fint', 'hgap', *STRAIGHT_EDGE_PARAMS)
+# Parameters of the edges of each kind of magnet: the soft dipole fringe
+# (fint, hgap: of the knl[0] of a straight magnet) and the soft quadrupole
+# fringe (qint1, qint2) on all; the face angles on bends only
+STRAIGHT_EDGE_PARAMS = ('fint', 'hgap', 'qint1', 'qint2')
+BEND_EDGE_PARAMS = ('angle', 'angle_fdown', *STRAIGHT_EDGE_PARAMS)
 
 # Deprecated: index stored in the `edge_*_model` field (`model` for
 # MagnetEdge) of earlier versions; still read from old dicts and accepted by
@@ -55,12 +53,14 @@ _DEPRECATED_EDGE_MODELS = {
 # is set by `edge_*_active`). Each fringe map acts only if its field is there:
 # the dipole fringe if k0 != 0, the multipole fringe if a multipole of order
 # >= 1 is nonzero, the soft quadrupole fringe if qint1 or qint2 != 0.
+#   linear: the linear dipole edge instead of the dipole fringe; the soft
+#       quadrupole fringe as in the other models (it has no linear version)
 #   full: all the fringe maps
 #   no-mult: all but the hard-edge multipole fringe
 BEND_EDGE_MODELS = {
-    'linear': EDGE_LINEAR,
-    'full': EDGE_BEND | EDGE_MULT | EDGE_QSAD,
-    'no-mult': EDGE_BEND | EDGE_QSAD,
+    'linear': EDGE_LINEAR | EDGE_QUAD_LW,
+    'full': EDGE_BEND | EDGE_MULT | EDGE_QUAD_LW,
+    'no-mult': EDGE_BEND | EDGE_QUAD_LW,
     'suppressed': 0,
 }
 # Straight magnets (no face angle, fint, hgap): no linear model

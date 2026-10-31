@@ -27,7 +27,7 @@ def _bend_full(**kw):
     )
 
 
-def _quad_qsad(**kw):
+def _quad_lw(**kw):
     return xt.Quadrupole(
         length=0.8,
         k1=1.2,
@@ -43,7 +43,24 @@ def _quad_qsad(**kw):
     )
 
 
-ELEMENTS = {'bend': _bend_full, 'quad': _quad_qsad}
+def _solenoid_quad_lw(**kw):
+    # The Lee-Whiting fringe inside the solenoid field: on the kinetic momenta
+    return xt.UniformSolenoid(
+        length=0.8,
+        ks=0.6,
+        knl=[0, 0.9, 0.4],
+        ksl=[0, 0.2],
+        edge_entry_model='full',
+        edge_exit_model='full',
+        edge_entry_qint1=0.2,
+        edge_entry_qint2=0.1,
+        edge_exit_qint1=-0.15,
+        edge_exit_qint2=0.05,
+        **kw,
+    )
+
+
+ELEMENTS = {'bend': _bend_full, 'quad': _quad_lw, 'solenoid_quad': _solenoid_quad_lw}
 
 
 def _line(element, context=None):
@@ -146,3 +163,19 @@ def test_mult_fringe_includes_knl_rel(fringe):
         xt.Quadrupole(knl=[0, 0, 0.5 * 0.96], ksl=[0, 0, -0.2 * 0.96], **common)
     )
     np.testing.assert_allclose(rel, absolute, rtol=1e-14, atol=1e-16)
+
+
+def test_lee_whiting_fringe_continuous_in_solenoid_strength():
+    # Inside a solenoid field the Lee-Whiting fringe acts on the kinetic
+    # momenta (another code path): its limit at ks -> 0 is the map without
+    # the field, and the field changes it
+    def track(ks, qint=1):
+        return _track_once(xt.UniformSolenoid(
+            length=0.8, ks=ks, knl=[0, 0.9], edge_entry_model='no-mult',
+            edge_exit_model='no-mult',
+            edge_entry_qint1=0.2 * qint, edge_entry_qint2=0.1 * qint,
+            edge_exit_qint1=-0.15 * qint, edge_exit_qint2=0.05 * qint))
+
+    np.testing.assert_allclose(track(1e-12), track(0.), rtol=0, atol=1e-14)
+    effect = {ks: track(ks) - track(ks, qint=0) for ks in (0., 0.6)}
+    assert np.max(np.abs(effect[0.6] - effect[0.])) > 1e-8

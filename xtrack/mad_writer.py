@@ -693,9 +693,10 @@ def element_to_mad_str(
     return ', '.join(tokens)
 
 def _warn_soft_fringe(line):
-    """The soft quadrupole fringe (qint1, qint2) is not exported: warn once,
+    """The soft quadrupole fringe (qint1, qint2), and the soft dipole fringe
+    (fint, hgap) of straight magnets, are not exported: warn once per kind,
     naming the magnets that have one (slices by their magnet)."""
-    names = {}
+    names = {'qint': {}, 'fint': {}}
     for nn in line.element_names:
         el = line._element_dict[nn]
         while isinstance(el, xt.Replica):
@@ -705,13 +706,22 @@ def _warn_soft_fringe(line):
             nn, el = el.parent_name, el._parent
         if any(getattr(el, f'edge_{face}_qint{ii}', 0)
                for face in ('entry', 'exit') for ii in (1, 2)):
-            names[nn] = None
-    if names:
-        names = list(names)
-        warnings.warn(
-            'The MAD-X and MAD-NG export does not include the soft quadrupole '
-            f'fringe (qint1, qint2): {len(names)} magnets have one, e.g. '
-            f'{names[:3]}.')
+            names['qint'][nn] = None
+        # Bends (the ones with face angles) export fint, hgap
+        if not hasattr(el, 'edge_entry_angle') and any(
+                getattr(el, f'edge_{face}_{pp}', 0)
+                for face in ('entry', 'exit') for pp in ('fint', 'hgap')):
+            names['fint'][nn] = None
+    what = {
+        'qint': 'the soft quadrupole fringe (qint1, qint2)',
+        'fint': 'the soft dipole fringe (fint, hgap) of straight magnets',
+    }
+    for kind, nn in names.items():
+        if nn:
+            nn = list(nn)
+            warnings.warn(
+                f'The MAD-X and MAD-NG export does not include {what[kind]}: '
+                f'{len(nn)} magnets have one, e.g. {nn[:3]}.')
 
 def to_madx_sequence(line, name='seq', mode='sequence'):
 

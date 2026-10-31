@@ -17,7 +17,6 @@ from ._common import (
 )
 from ._edge import (
     EDGE_ACTIVE,
-    EDGE_LINEAR,
     MAGNET_EDGE_MODELS,
     edge_bits_to_model,
     edge_model_to_bits,
@@ -28,7 +27,7 @@ class MagnetEdge(_HasKnlKsl, BeamElement):
     """Beam element modeling one face of a magnet, with any edge model.
 
     It applies the same fringe maps as the faces of the magnet elements
-    (dipole, multipole and SAD soft quadrupole fringe), so it can be used in
+    (dipole, multipole and soft quadrupole (Lee-Whiting) fringe), so it can be used in
     lattices for faces that a magnet element does not provide, e.g. those of a
     thick ``Multipole``.
 
@@ -70,7 +69,7 @@ class MagnetEdge(_HasKnlKsl, BeamElement):
     fringe_integral : float
         Fringe integral.
     qint1, qint2 : float
-        SAD soft quadrupole fringe integrals f1 (m), f2 (m^3), used by the
+        soft quadrupole fringe (Lee-Whiting) integrals f1 (m), f2 (m^3), used by the
         models "full" and "no-mult".
     """
     isthick = True
@@ -78,7 +77,7 @@ class MagnetEdge(_HasKnlKsl, BeamElement):
 
     _xofields = {
         # Fringe mask of the face (edge_flags.h)
-        '_flags': xo.Field(xo.Int64, default=EDGE_ACTIVE | EDGE_LINEAR),
+        '_flags': xo.Field(xo.Int64, default=EDGE_ACTIVE | MAGNET_EDGE_MODELS['linear']),
         'is_exit': xo.Int64,
         'kn': xo.Float64[:],
         'ks': xo.Float64[:],

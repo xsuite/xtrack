@@ -22,14 +22,14 @@ FULL = _faces(model='full', angle=0.05, fint=0.5, hgap=0.02)
 LINEAR = _faces(angle=0.05, fint=0.5, hgap=0.02)
 # The fringes of straight magnets need a model: the default is "suppressed"
 QUAD_HARD = _faces(model='full')
-QSAD = _faces(model='full', qint1=0.1, qint2=0.05)
+QUAD_LW = _faces(model='full', qint1=0.1, qint2=0.05)
 
 ELEMENTS = {
     'bend_full': lambda: xt.Bend(
         length=1, angle=0.05, k1=0.02, knl=[0, 0, 0.01], **FULL
     ),
     'bend_linear': lambda: xt.Bend(length=1, angle=0.05),
-    'quad_qsad': lambda: xt.Quadrupole(length=1, k1=0.1, **QSAD),
+    'quad_lw': lambda: xt.Quadrupole(length=1, k1=0.1, **QUAD_LW),
     'rbend_straight': lambda: xt.RBend(
         length_straight=1, angle=0.05, rbend_model='straight-body', **FULL
     ),
@@ -78,7 +78,7 @@ SENSITIVITY_CASES = {
     'bend_k0_full': (lambda v: xt.Bend(length=1, angle=0.05, k0=v, **FULL), 'k0'),
     'bend_k0_linear': (lambda v: xt.Bend(length=1, angle=0.05, k0=v, **LINEAR), 'k0'),
     'quad_k1_mult': (lambda v: xt.Quadrupole(length=1, k1=v, **QUAD_HARD), 'k1'),
-    'quad_k1_qsad': (lambda v: xt.Quadrupole(length=1, k1=v, **QSAD), 'k1'),
+    'quad_k1_lw': (lambda v: xt.Quadrupole(length=1, k1=v, **QUAD_LW), 'k1'),
     # knl_rel is relative to k1 * length, in the body and in the fringes
     'quad_k1_knl_rel': (
         lambda v: xt.Quadrupole(

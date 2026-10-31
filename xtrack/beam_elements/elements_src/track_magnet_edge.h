@@ -21,15 +21,17 @@
 // (strex_fringe). Going from the drift into the field the order is
 //
 //     patch -> vector potential -> y-rotation -> bend fringe -> mult fringe
-//         -> qsad fringe -> quad wedge -> wedge
+//         -> Lee-Whiting fringe -> quad wedge -> wedge
 //
 // and going from the field into the drift it is the reverse. Every sub-map
 // is written as the forward map of its face, in the element frame, and
 // applies its exact inverse when backtracking, so that backtracking crosses
 // the faces in the reverse order and undoes them one by one.
 //
-// EDGE_LINEAR replaces the magnet fringe (y-rotation to wedge) with the
-// r21/r43 linear edge. A face without EDGE_ACTIVE is skipped altogether.
+// EDGE_LINEAR replaces the dipole and multipole fringes and the face geometry
+// (y-rotation, wedges) with the r21/r43 linear edge; the Lee-Whiting fringe,
+// which has no linear version, is not affected. A face without EDGE_ACTIVE is
+// skipped altogether.
 // MagnetFace_prepare turns the mask and the parameters into one do_* switch
 // per sub-map (off for zero parameters), and every sub-map returns at once
 // when its switch is off.
@@ -85,23 +87,30 @@ void MagnetEdge_cosh_sinhc(
 }
 
 
-// Quadrupole fringe of SAD (MAD-NG qsad_fringe): Lee-Whiting formula,
-// E. Forest ch 13.2.3, eq 13.33. MAD-NG evaluates it in the frame rotated by
-// -atan2(k1s, k1)/2, which is singular at k1 = k1s = 0. Here the rotation is
-// absorbed into the matrix K = [[k1, -k1s], [-k1s, -k1]] (= b2 times the
-// reflection in that frame, K^2 = b2^2), so that the exponentials become
+// Lee-Whiting soft quadrupole fringe. Sources:
+//   - the map: E. Forest, ch. 13.2.3, eq. 13.33;
+//   - its use in production: SAD, subroutine tqlfre (bz = 0 branch):
+//     https://github.com/KatsOide/SAD/blob/d082c7c5161ea111132e12c0cf9288fb892c23ba/src/tqlfre.f#L18
+//   - the implementation followed here, MAD-NG qsad_fringe ([FRINGE2QUAD],
+//     marked "unchecked" there):
+//     https://github.com/MethodicalAcceleratorDesign/MAD/blob/d3cabd9cdebde62ebedb51bab61ac033b9159489/src/madl_dynmap.mad#L1928
+//     with the sign conventions (lw, sdir) of strex_fringe (#L1594).
+// MAD-NG evaluates it in the frame rotated by -atan2(k1s, k1)/2, which is
+// singular at k1 = k1s = 0. Here the rotation is absorbed into the matrix
+// K = [[k1, -k1s], [-k1s, -k1]] (= b2 times the reflection in that frame,
+// K^2 = b2^2), so that the exponentials become
 // cosh(f) + sinh(f)/f f K/b2, with f = c1 b2, functions of f^2 = c1^2 (k1^2 +
 // k1s^2). The map is then regular at zero strength, with TPSA derivatives.
 // g1 carries MAD-NG's lw (+1 on the face crossed first, -1 on the other) and g2
 // the direction sdir, so that each backtracking call inverts the forward one
 // (as in MAD-NG's strex_fringe).
 GPUFUN XT_NOINLINE
-void MagnetEdge_qsad_fringe_single_particle(
+void MagnetEdge_quad_lw_fringe_single_particle(
     LocalParticle* part,
     xt_float_or_tpsa_arg k1,   // total quadrupole strength
     xt_float_or_tpsa_arg k1s,  // total skew quadrupole strength
     const double g1,
-    const double g2
+    xt_float_or_tpsa_arg g2
 ) {
     const double chi = LocalParticle_get_chi(part);
     const double beta0 = LocalParticle_get_beta0(part);
@@ -141,6 +150,85 @@ void MagnetEdge_qsad_fringe_single_particle(
     LocalParticle_set_px(part, cosh_f * px - sinhc_f * c1 * kp_x);
     LocalParticle_set_py(part, cosh_f * py - sinhc_f * c1 * kp_y);
     LocalParticle_set_zeta(part, t * beta0);
+}
+
+
+
+// The Lee-Whiting fringe at a face inside a solenoid field bz: the map acts on
+// the kinetic momenta. Ported from SAD, subroutine tqlfre, bz != 0 branch:
+//     https://github.com/KatsOide/SAD/blob/d082c7c5161ea111132e12c0cf9288fb892c23ba/src/tqlfre.f#L83
+// SAD solves the implicit relation of the map on the kinetic momenta in closed
+// form (the factor f below), so that it stays symplectic in the canonical
+// variables; at bz = 0 it is MagnetEdge_quad_lw_fringe_single_particle. Its
+// inverse (backtracking) is the same map with g1 and g2 flipped, as there.
+// Adapted to xtrack:
+//   - SAD's frame is that of an upright quadrupole: a skew gradient rotates
+//     the coordinates by theta = atan2(k1s, k1) / 2 (cos and sin from the half
+//     angle) to the frame where the gradient is b2 = (k1^2 + k1s^2)^(1/2), and
+//     back. An upright quadrupole (k1s = 0) is not rotated, and keeps the sign
+//     of k1: regular at k1 = 0, also for TPSA. The vector potential bz/2 (-y, x)
+//     does not change under the rotation.
+//   - The momenta are canonical in the symmetric gauge of the solenoid faces,
+//     centred on the solenoid axis (x0, y0): shifting p by the constant
+//     bz/2 (-y0, x0) (canonical) centres it on the magnet axis, as in SAD.
+//   - SAD's z is zeta * rvv (conjugate to delta): zeta changes by dz / rvv.
+//   - SAD's ak/al f1 |f1| / 24 and ak/al f2 are chi b2 g1 and chi b2 g2, with
+//     g1, g2 as for MagnetEdge_quad_lw_fringe_single_particle (signed for the
+//     face and the direction of travel).
+GPUFUN XT_NOINLINE
+void MagnetEdge_quad_lw_fringe_solenoid_single_particle(
+    LocalParticle* part,
+    xt_float_or_tpsa_arg k1,   // total quadrupole strength
+    xt_float_or_tpsa_arg k1s,  // total skew quadrupole strength
+    const double g1,
+    xt_float_or_tpsa_arg g2,
+    xt_float_or_tpsa_arg bz,   // solenoid strength at the face
+    const double x0,
+    const double y0
+) {
+    const double chi = LocalParticle_get_chi(part);
+    const xt_float_or_tpsa rvv = LocalParticle_get_rvv(part);
+    const xt_float_or_tpsa p = 1 + LocalParticle_get_delta(part);
+    const xt_float_or_tpsa x_in = LocalParticle_get_x(part);
+    const xt_float_or_tpsa y_in = LocalParticle_get_y(part);
+    const xt_float_or_tpsa px_in = LocalParticle_get_px(part) - bz / 2 * y0;
+    const xt_float_or_tpsa py_in = LocalParticle_get_py(part) + bz / 2 * x0;
+
+    // Frame of the quadrupole: rotation by theta
+    xt_float_or_tpsa b2 = k1, c = 1., s = 0.;
+    if (!xt_float_or_tpsa_is_zero(k1s)) {
+        b2 = sqrt(POW2(k1) + POW2(k1s));
+        c = sqrt((1 + k1 / b2) / 2);
+        s = k1s / (2 * b2 * c);
+    }
+    const xt_float_or_tpsa x = c * x_in - s * y_in;
+    const xt_float_or_tpsa y = s * x_in + c * y_in;
+    const xt_float_or_tpsa px = c * px_in - s * py_in;
+    const xt_float_or_tpsa py = s * px_in + c * py_in;
+
+    // SAD tqlfre
+    const xt_float_or_tpsa a = chi * b2 * g1 / p;
+    const xt_float_or_tpsa bp = chi * b2 * g2 / POW2(p);
+    const xt_float_or_tpsa ea = exp(a);
+    const xt_float_or_tpsa bzph = bz / 2;
+    const xt_float_or_tpsa bb = bp * bzph;
+    const xt_float_or_tpsa f = 1 / ((1 - bb) * (1 + bb));
+    const xt_float_or_tpsa xf = (ea * x + bp * (px + bzph * y / ea - bb * py)) * f;
+    const xt_float_or_tpsa yf = (y / ea - bp * (py - bzph * x * ea - bb * px)) * f;
+    const xt_float_or_tpsa pxf = (px + bzph * yf) / ea;
+    const xt_float_or_tpsa pyf = (py - bzph * xf) * ea;
+    const xt_float_or_tpsa dz =
+        -((a * ea * x + bp * ea * (1 + 0.5 * a) * pxf) * pxf
+          - (a * y / ea + bp / ea * (1 - 0.5 * a) * pyf) * pyf) / p;
+    const xt_float_or_tpsa px_out = pxf - bzph * y;
+    const xt_float_or_tpsa py_out = pyf + bzph * x;
+
+    // Back to the frame of the magnet
+    LocalParticle_set_x(part, c * xf + s * yf);
+    LocalParticle_set_y(part, -s * xf + c * yf);
+    LocalParticle_set_px(part, c * px_out + s * py_out + bz / 2 * y0);
+    LocalParticle_set_py(part, -s * px_out + c * py_out - bz / 2 * x0);
+    LocalParticle_add_to_zeta(part, dz / rvv);
 }
 
 
@@ -208,7 +296,7 @@ MagnetFace MagnetFace_empty(const uint8_t is_exit_face) {
 GPUFUN XT_INLINE
 uint8_t MagnetFace_uses_field(const MagnetFace* face) {
     return (face->flags & EDGE_ACTIVE)
-           && (face->flags & (EDGE_LINEAR | EDGE_BEND | EDGE_MULT | EDGE_QSAD));
+           && (face->flags & (EDGE_LINEAR | EDGE_BEND | EDGE_MULT | EDGE_QUAD_LW));
 }
 
 
@@ -229,7 +317,7 @@ xt_float_or_tpsa MagnetFace_ks(const MagnetFace* face, const MagnetField* field)
 GPUFUN XT_INLINE
 uint8_t MagnetFace_needs_work(const MagnetFace* face, const MagnetField* field) {
     if (!(face->flags & EDGE_ACTIVE)) return 0;
-    return (face->flags & (EDGE_LINEAR | EDGE_BEND | EDGE_MULT | EDGE_QSAD))
+    return (face->flags & (EDGE_LINEAR | EDGE_BEND | EDGE_MULT | EDGE_QUAD_LW))
            || face->has_patch || face->has_ks
            || xt_float_or_tpsa_const_part(field->ks) != 0.;
 }
@@ -253,7 +341,7 @@ void MagnetFace_prepare(MagnetFace* face, MagnetField* field, const uint8_t back
         face->do_rotate = 0;
         face->do_bend = 0;
         face->do_mult = 0;
-        face->do_qsad = 0;
+        face->do_quad_lw = 0;
         face->do_quad_wedge = 0;
         face->do_wedge = 0;
         return;
@@ -288,7 +376,7 @@ void MagnetFace_prepare(MagnetFace* face, MagnetField* field, const uint8_t back
 
     // Magnet fringes; no geometric sub-map without a fringe map
     const uint8_t fringe =
-        !(flags & EDGE_LINEAR) && (flags & (EDGE_BEND | EDGE_MULT | EDGE_QSAD));
+        !(flags & EDGE_LINEAR) && (flags & (EDGE_BEND | EDGE_MULT | EDGE_QUAD_LW));
     // A fringe of a vanishing field is the identity: skipped (the dipole
     // fringe uses the threshold of DipoleFringe_track_single_particle)
     face->do_bend = fringe && (flags & EDGE_BEND)
@@ -297,9 +385,10 @@ void MagnetFace_prepare(MagnetFace* face, MagnetField* field, const uint8_t back
     face->do_rotate = fringe && fabs(face->angle) > EDGE_ANGLE_EPS;
     face->do_wedge = face->do_rotate && (field->k_order >= 0);
     face->do_quad_wedge = face->do_mult && face->do_rotate && (field->k_order >= 1);
-    // Soft quadrupole fringe of SAD, with or without the hard-edge one
-    face->do_qsad =
-        fringe && (flags & EDGE_QSAD) && (face->f1 != 0 || face->f2 != 0)
+    // Soft quadrupole fringe (Lee-Whiting), with or without the hard-edge one,
+    // and with the linear edge too
+    face->do_quad_lw =
+        (flags & EDGE_QUAD_LW) && (face->f1 != 0 || !xt_float_or_tpsa_is_zero(face->f2))
         && !(xt_float_or_tpsa_is_zero(field->k1) && xt_float_or_tpsa_is_zero(field->k1s));
 
     double sin_ = 0, cos_ = 1, tan_ = 0;
@@ -315,8 +404,8 @@ void MagnetFace_prepare(MagnetFace* face, MagnetField* field, const uint8_t back
 
     // +1 on the face crossed first, -1 on the other (MAD-NG lw)
     const uint8_t entering = (face->is_exit_face == backtrack);
-    face->qsad_g1 = (entering ? 1. : -1.) * (fabs(face->f1) * face->f1 / -24);
-    face->qsad_g2 = face->f2 * (backtrack ? -1. : 1.);
+    face->quad_lw_g1 = (entering ? 1. : -1.) * (fabs(face->f1) * face->f1 / -24);
+    face->quad_lw_g2 = face->f2 * (backtrack ? -1. : 1.);
 }
 
 
@@ -411,11 +500,20 @@ void MagnetFace_mult_fringe_single_particle(LocalParticle* part, const MagnetFac
 }
 
 GPUFUN XT_INLINE
-void MagnetFace_qsad_fringe_single_particle(LocalParticle* part, const MagnetFace* f) {
-    if (!f->do_qsad) return;
-    MagnetEdge_qsad_fringe_single_particle(
-        part, f->field->k1, f->field->k1s, f->qsad_g1, f->qsad_g2
-    );
+void MagnetFace_quad_lw_fringe_single_particle(LocalParticle* part, const MagnetFace* f) {
+    if (!f->do_quad_lw) return;
+    const xt_float_or_tpsa bz = MagnetFace_ks(f, f->field);
+    if (xt_float_or_tpsa_is_zero(bz)) {
+        MagnetEdge_quad_lw_fringe_single_particle(
+            part, f->field->k1, f->field->k1s, f->quad_lw_g1, f->quad_lw_g2
+        );
+    }
+    else {
+        MagnetEdge_quad_lw_fringe_solenoid_single_particle(
+            part, f->field->k1, f->field->k1s, f->quad_lw_g1, f->quad_lw_g2, bz,
+            f->field->x0_solenoid, f->field->y0_solenoid
+        );
+    }
 }
 
 GPUFUN XT_INLINE
@@ -444,7 +542,7 @@ void MagnetFace_enter_single_particle(LocalParticle* part, const MagnetFace* f) 
     MagnetFace_rotation_single_particle(part, f);
     MagnetFace_bend_fringe_single_particle(part, f);
     MagnetFace_mult_fringe_single_particle(part, f);
-    MagnetFace_qsad_fringe_single_particle(part, f);
+    MagnetFace_quad_lw_fringe_single_particle(part, f);
     MagnetFace_quad_wedge_single_particle(part, f);
     MagnetFace_wedge_single_particle(part, f);
 }
@@ -455,7 +553,7 @@ GPUFUN XT_INLINE
 void MagnetFace_leave_single_particle(LocalParticle* part, const MagnetFace* f) {
     MagnetFace_wedge_single_particle(part, f);
     MagnetFace_quad_wedge_single_particle(part, f);
-    MagnetFace_qsad_fringe_single_particle(part, f);
+    MagnetFace_quad_lw_fringe_single_particle(part, f);
     MagnetFace_mult_fringe_single_particle(part, f);
     MagnetFace_bend_fringe_single_particle(part, f);
     MagnetFace_rotation_single_particle(part, f);

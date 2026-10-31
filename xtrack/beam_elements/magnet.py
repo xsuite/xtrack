@@ -15,7 +15,7 @@ from ._common import (
     _BendCommon,
     _HasKnlKsl,
 )
-from ._edge import BEND_EDGE_PARAMS, EDGE_ACTIVE, EDGE_LINEAR, edge_xofields
+from ._edge import BEND_EDGE_MODELS, BEND_EDGE_PARAMS, EDGE_ACTIVE, edge_xofields
 
 
 class Magnet(_BendCommon, BeamElement):
@@ -178,7 +178,7 @@ class Magnet(_BendCommon, BeamElement):
         'angle': xo.Float64,
         'h': xo.Float64,
         'k0_from_h': xo.Field(xo.UInt64, default=1),
-        **edge_xofields(EDGE_ACTIVE | EDGE_LINEAR, BEND_EDGE_PARAMS),
+        **edge_xofields(EDGE_ACTIVE | BEND_EDGE_MODELS['linear'], BEND_EDGE_PARAMS),
         'model': xo.Int64,
         'integrator': xo.Int64,
         'radiation_flag': xo.Int64,

@@ -144,7 +144,7 @@ to_do = [
     ("Multipole", "multipole.h")
 ]
 
-no_edge_for = ["Cavity", "CrabCavity", "Multipole"]
+no_edge_for = ["Cavity", "CrabCavity"]
 
 for td in to_do:
 
@@ -213,19 +213,13 @@ for td in to_do:
         out_lines = out_content.splitlines()
 
         # Disable the faces a slice does not have: their MagnetFace keeps
-        # MagnetFace_empty, so the face does nothing
-        keep_entry = generating == 'entry_slice'
-        keep_exit = generating == 'exit_slice'
-        new_lines = []
-        for line in out_lines:
-            stripped = line.strip()
-            if ((stripped.startswith('EDGE_LOAD_') and '(entry_face,' in stripped
-                    and not keep_entry)
-                    or (stripped.startswith('EDGE_LOAD_') and '(exit_face,' in stripped
-                    and not keep_exit)):
-                continue
-            new_lines.append(line)
-        out_lines = new_lines
+        # MagnetFace_empty, so the face does nothing. Each face is loaded on
+        # one line (EDGE_LOAD_..., possibly after an if)
+        removed_faces = [face for face, slice_type in (('entry', 'entry_slice'), ('exit', 'exit_slice'))
+                         if generating != slice_type]
+        out_lines = [line for line in out_lines
+                     if not ('EDGE_LOAD_' in line
+                             and any(f'({face}_face,' in line for face in removed_faces))]
 
         if _INIT_DEFAULT in out_content:
             # Magnets: set or reset the fields a slice changes
