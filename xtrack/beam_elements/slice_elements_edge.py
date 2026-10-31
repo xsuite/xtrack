@@ -1,21 +1,25 @@
-import xobjects as xo
 import numpy as np
+import xobjects as xo
 
-from ..general import _pkg_root
 from ..base_element import BeamElement
-from .slice_base import (
-    _SliceBase, COMMON_SLICE_XO_FIELDS,
-    _raise_if_parent_has_transverse_rotation,
-)
+from ..general import _pkg_root
 from .bend import Bend
 from .dipole_edge import DipoleEdge
+from .magnet_edge import MagnetEdge
 from .marker import Marker
+from .multipole import Multipole
 from .multipole_edge import MultipoleEdge
 from .octupole import Octupole
 from .quadrupole import Quadrupole
 from .rbend import RBend
 from .sextupole import Sextupole
+from .slice_base import (
+    COMMON_SLICE_XO_FIELDS,
+    _raise_if_parent_has_transverse_rotation,
+    _SliceBase,
+)
 from .uniform_solenoid import UniformSolenoid
+
 
 def _parent_total_kn_ks(parent):
     if parent.length == 0:
@@ -31,6 +35,60 @@ def _parent_total_kn_ks_for_multipole_edge(parent):
     return kn, ks
 
 
+def _has_qint(parent, face):
+    return any(getattr(parent, f'edge_{face}_{qq}') != 0 for qq in ('qint1', 'qint2'))
+
+
+def _alignment_from_parent(edge_slice):
+    parent = edge_slice._parent
+    return {
+        'shift_x': parent.shift_x,
+        'shift_y': parent.shift_y,
+        'shift_s': parent.shift_s,
+        'rot_s_rad': parent.rot_s_rad,
+        '_buffer': edge_slice._buffer,
+    }
+
+
+def _magnet_edge_from_parent(edge_slice, model, **face):
+    """MagnetEdge of a face of the parent of an edge slice: same maps as the
+    face. The wedges act on the thick strengths only: k0...k3 go to kn, ks,
+    the rest of the total strengths to knl, ksl."""
+    parent = edge_slice._parent
+    k_thick = np.zeros(4)
+    ks_thick = np.zeros(4)
+    for ii in range(4):
+        # The k0 of a bend may read 'from_h': its value is _k0
+        name = '_k0' if ii == 0 and hasattr(parent, '_k0') else f'k{ii}'
+        k_thick[ii] = getattr(parent, name, 0.0)
+        ks_thick[ii] = getattr(parent, f'k{ii}s', 0.0)
+    knl, ksl = parent.get_total_knl_ksl()
+    knl = np.array(knl, dtype=float)
+    ksl = np.array(ksl, dtype=float)
+    nn = min(4, len(knl))
+    knl[:nn] -= k_thick[:nn] * parent.length
+    ksl[:nn] -= ks_thick[:nn] * parent.length
+    return MagnetEdge(
+        model=model,
+        is_exit=edge_slice._face == 'exit',
+        kn=k_thick,
+        ks=ks_thick,
+        knl=knl,
+        ksl=ksl,
+        length=parent.length,
+        **_alignment_from_parent(edge_slice),
+        **face,
+    )
+
+
+_DIPOLE_EDGE_MODEL = {
+    'linear': 'linear',
+    'full': 'full',
+    'no-mult': 'full',
+    'suppressed': 'suppressed',
+}
+
+
 class _ThinSliceEdgeBase(_SliceBase):
 
     rot_and_shift_from_parent = True
@@ -38,7 +96,96 @@ class _ThinSliceEdgeBase(_SliceBase):
     isthick=False
     _inherit_strengths = False
 
-class ThinSliceBendEntry(_ThinSliceEdgeBase, BeamElement):
+class _ThinSliceDipoleEdgeBase:
+    """Edge slice of a bend; ``_face`` is 'entry' or 'exit'."""
+
+    _face = None
+
+    def _face_angle_offset(self):
+        return 0.0
+
+    def get_equivalent_element(self):
+
+        _raise_if_parent_has_transverse_rotation(self._parent)
+
+        parent, face = self._parent, self._face
+        if not getattr(parent, f'edge_{face}_active'):
+            return Marker(_buffer=self._buffer)
+
+        kn, ks = _parent_total_kn_ks(parent)
+        extra = {'delta_taper': self.delta_taper} if face == 'exit' else {}
+        model = getattr(parent, f'edge_{face}_model')
+        has_mult = np.any(kn[1:] != 0) or np.any(ks[1:] != 0)
+        if (model == 'full' and has_mult) or (
+            model != 'suppressed' and _has_qint(parent, face)
+        ):
+            # The DipoleEdge has neither the multipole fringe nor the soft
+            # quadrupole fringe
+            return _magnet_edge_from_parent(
+                self,
+                model,
+                face_angle=(
+                    getattr(parent, f'edge_{face}_angle') + self._face_angle_offset()
+                ),
+                face_angle_feed_down=getattr(parent, f'edge_{face}_angle_fdown'),
+                half_gap=getattr(parent, f'edge_{face}_hgap'),
+                fringe_integral=getattr(parent, f'edge_{face}_fint'),
+                qint1=getattr(parent, f'edge_{face}_qint1'),
+                qint2=getattr(parent, f'edge_{face}_qint2'),
+            )
+        return DipoleEdge(
+            k=kn[0],
+            e1=getattr(parent, f'edge_{face}_angle') + self._face_angle_offset(),
+            e1_fd=getattr(parent, f'edge_{face}_angle_fdown'),
+            hgap=getattr(parent, f'edge_{face}_hgap'),
+            fint=getattr(parent, f'edge_{face}_fint'),
+            # The DipoleEdge has the dipole fringe only: its "full" model is
+            # the "no-mult" one of the bend
+            model=_DIPOLE_EDGE_MODEL[model],
+            **extra,
+            side=face,
+            **_alignment_from_parent(self),
+        )
+
+
+class _ThinSliceMultipoleEdgeBase:
+    """Edge slice of a straight magnet; ``_face`` is 'entry' or 'exit'."""
+
+    _face = None
+
+    def get_equivalent_element(self):
+        _raise_if_parent_has_transverse_rotation(self._parent)
+
+        parent, face = self._parent, self._face
+        model = getattr(parent, f'edge_{face}_model')
+        if not getattr(parent, f'edge_{face}_active') or model == 'suppressed':
+            return Marker(_buffer=self._buffer)
+
+        # The MultipoleEdge has neither the dipole fringe (of knl[0]) nor the
+        # soft quadrupole fringe
+        kn, _ = _parent_total_kn_ks(parent)
+        if model == 'no-mult' or _has_qint(parent, face) or kn[0] != 0:
+            return _magnet_edge_from_parent(
+                self,
+                model,
+                half_gap=getattr(parent, f'edge_{face}_hgap'),
+                fringe_integral=getattr(parent, f'edge_{face}_fint'),
+                qint1=getattr(parent, f'edge_{face}_qint1'),
+                qint2=getattr(parent, f'edge_{face}_qint2'),
+            )
+
+        kn, ks = _parent_total_kn_ks_for_multipole_edge(parent)
+        return MultipoleEdge(
+            kn=kn,
+            ks=ks,
+            is_exit=face == 'exit',
+            **_alignment_from_parent(self),
+        )
+
+
+class ThinSliceBendEntry(_ThinSliceEdgeBase, _ThinSliceDipoleEdgeBase, BeamElement):
+    _magnet_plan = True
+    _face = 'entry'
 
     _xofields = {'_parent': xo.Ref(Bend), **COMMON_SLICE_XO_FIELDS}
 
@@ -48,30 +195,11 @@ class ThinSliceBendEntry(_ThinSliceEdgeBase, BeamElement):
         '#include "xtrack/beam_elements/elements_src/thin_slice_bend_entry.h"'
     ]
 
-    def get_equivalent_element(self):
 
-        _raise_if_parent_has_transverse_rotation(self._parent)
+class ThinSliceBendExit(_ThinSliceEdgeBase, _ThinSliceDipoleEdgeBase, BeamElement):
 
-        if self._parent.edge_entry_active:
-            kn, _ = _parent_total_kn_ks(self._parent)
-            return DipoleEdge(
-                k=kn[0],
-                e1=self._parent.edge_entry_angle,
-                e1_fd=self._parent.edge_entry_angle_fdown,
-                hgap=self._parent.edge_entry_hgap,
-                fint=self._parent.edge_entry_fint,
-                model=self._parent.edge_entry_model,
-                side='entry',
-                shift_x=self._parent.shift_x,
-                shift_y=self._parent.shift_y,
-                shift_s=self._parent.shift_s,
-                rot_s_rad=self._parent.rot_s_rad,
-                _buffer=self._buffer
-            )
-        else:
-            return Marker(_buffer=self._buffer)
-
-class ThinSliceBendExit(_ThinSliceEdgeBase, BeamElement):
+    _magnet_plan = True
+    _face = 'exit'
 
     _xofields = {'_parent': xo.Ref(Bend), **COMMON_SLICE_XO_FIELDS}
 
@@ -79,31 +207,12 @@ class ThinSliceBendExit(_ThinSliceEdgeBase, BeamElement):
         '#include "xtrack/beam_elements/elements_src/thin_slice_bend_exit.h"'
     ]
 
-    def get_equivalent_element(self):
 
-        _raise_if_parent_has_transverse_rotation(self._parent)
-
-        if self._parent.edge_exit_active:
-            kn, _ = _parent_total_kn_ks(self._parent)
-            return DipoleEdge(
-                k=kn[0],
-                e1=self._parent.edge_exit_angle,
-                e1_fd=self._parent.edge_exit_angle_fdown,
-                hgap=self._parent.edge_exit_hgap,
-                fint=self._parent.edge_exit_fint,
-                model=self._parent.edge_exit_model,
-                delta_taper=self.delta_taper,
-                side='exit',
-                shift_x=self._parent.shift_x,
-                shift_y=self._parent.shift_y,
-                shift_s=self._parent.shift_s,
-                rot_s_rad=self._parent.rot_s_rad,
-                _buffer=self._buffer
-            )
-        else:
-            return Marker(_buffer=self._buffer)
-
-class ThinSliceQuadrupoleEntry(_ThinSliceEdgeBase, BeamElement):
+class ThinSliceQuadrupoleEntry(
+    _ThinSliceEdgeBase, _ThinSliceMultipoleEdgeBase, BeamElement
+):
+    _magnet_plan = True
+    _face = 'entry'
 
     _xofields = {'_parent': xo.Ref(Quadrupole), **COMMON_SLICE_XO_FIELDS}
 
@@ -111,25 +220,12 @@ class ThinSliceQuadrupoleEntry(_ThinSliceEdgeBase, BeamElement):
         '#include "xtrack/beam_elements/elements_src/thin_slice_quadrupole_entry.h"'
     ]
 
-    def get_equivalent_element(self):
-        _raise_if_parent_has_transverse_rotation(self._parent)
 
-        if self._parent.edge_entry_active:
-            kn, ks = _parent_total_kn_ks_for_multipole_edge(self._parent)
-            return MultipoleEdge(
-                kn=kn,
-                ks=ks,
-                is_exit=False,
-                shift_x=self._parent.shift_x,
-                shift_y=self._parent.shift_y,
-                shift_s=self._parent.shift_s,
-                rot_s_rad=self._parent.rot_s_rad,
-                _buffer=self._buffer
-            )
-        else:
-            return Marker(_buffer=self._buffer)
-
-class ThinSliceQuadrupoleExit(_ThinSliceEdgeBase, BeamElement):
+class ThinSliceQuadrupoleExit(
+    _ThinSliceEdgeBase, _ThinSliceMultipoleEdgeBase, BeamElement
+):
+    _magnet_plan = True
+    _face = 'exit'
 
     _xofields = {'_parent': xo.Ref(Quadrupole), **COMMON_SLICE_XO_FIELDS}
 
@@ -137,25 +233,12 @@ class ThinSliceQuadrupoleExit(_ThinSliceEdgeBase, BeamElement):
         '#include "xtrack/beam_elements/elements_src/thin_slice_quadrupole_exit.h"'
     ]
 
-    def get_equivalent_element(self):
-        _raise_if_parent_has_transverse_rotation(self._parent)
 
-        if self._parent.edge_exit_active:
-            kn, ks = _parent_total_kn_ks_for_multipole_edge(self._parent)
-            return MultipoleEdge(
-                kn=kn,
-                ks=ks,
-                is_exit=True,
-                shift_x=self._parent.shift_x,
-                shift_y=self._parent.shift_y,
-                shift_s=self._parent.shift_s,
-                rot_s_rad=self._parent.rot_s_rad,
-                _buffer=self._buffer
-            )
-        else:
-            return Marker(_buffer=self._buffer)
-
-class ThinSliceSextupoleEntry(_ThinSliceEdgeBase, BeamElement):
+class ThinSliceSextupoleEntry(
+    _ThinSliceEdgeBase, _ThinSliceMultipoleEdgeBase, BeamElement
+):
+    _magnet_plan = True
+    _face = 'entry'
 
     _xofields = {'_parent': xo.Ref(Sextupole), **COMMON_SLICE_XO_FIELDS}
 
@@ -163,25 +246,12 @@ class ThinSliceSextupoleEntry(_ThinSliceEdgeBase, BeamElement):
         '#include "xtrack/beam_elements/elements_src/thin_slice_sextupole_entry.h"'
     ]
 
-    def get_equivalent_element(self):
-        _raise_if_parent_has_transverse_rotation(self._parent)
 
-        if self._parent.edge_entry_active:
-            kn, ks = _parent_total_kn_ks_for_multipole_edge(self._parent)
-            return MultipoleEdge(
-                kn=kn,
-                ks=ks,
-                is_exit=False,
-                shift_x=self._parent.shift_x,
-                shift_y=self._parent.shift_y,
-                shift_s=self._parent.shift_s,
-                rot_s_rad=self._parent.rot_s_rad,
-                _buffer=self._buffer
-            )
-        else:
-            return Marker(_buffer=self._buffer)
-
-class ThinSliceSextupoleExit(_ThinSliceEdgeBase, BeamElement):
+class ThinSliceSextupoleExit(
+    _ThinSliceEdgeBase, _ThinSliceMultipoleEdgeBase, BeamElement
+):
+    _magnet_plan = True
+    _face = 'exit'
 
     _xofields = {'_parent': xo.Ref(Sextupole), **COMMON_SLICE_XO_FIELDS}
 
@@ -189,25 +259,12 @@ class ThinSliceSextupoleExit(_ThinSliceEdgeBase, BeamElement):
         '#include "xtrack/beam_elements/elements_src/thin_slice_sextupole_exit.h"'
     ]
 
-    def get_equivalent_element(self):
-        _raise_if_parent_has_transverse_rotation(self._parent)
 
-        if self._parent.edge_exit_active:
-            kn, ks = _parent_total_kn_ks_for_multipole_edge(self._parent)
-            return MultipoleEdge(
-                kn=kn,
-                ks=ks,
-                is_exit=True,
-                shift_x=self._parent.shift_x,
-                shift_y=self._parent.shift_y,
-                shift_s=self._parent.shift_s,
-                rot_s_rad=self._parent.rot_s_rad,
-                _buffer=self._buffer
-            )
-        else:
-            return Marker(_buffer=self._buffer)
-
-class ThinSliceOctupoleEntry(_ThinSliceEdgeBase, BeamElement):
+class ThinSliceOctupoleEntry(
+    _ThinSliceEdgeBase, _ThinSliceMultipoleEdgeBase, BeamElement
+):
+    _magnet_plan = True
+    _face = 'entry'
 
     _xofields = {'_parent': xo.Ref(Octupole), **COMMON_SLICE_XO_FIELDS}
 
@@ -215,25 +272,12 @@ class ThinSliceOctupoleEntry(_ThinSliceEdgeBase, BeamElement):
         '#include "xtrack/beam_elements/elements_src/thin_slice_octupole_entry.h"'
     ]
 
-    def get_equivalent_element(self):
-        _raise_if_parent_has_transverse_rotation(self._parent)
 
-        if self._parent.edge_entry_active:
-            kn, ks = _parent_total_kn_ks_for_multipole_edge(self._parent)
-            return MultipoleEdge(
-                kn=kn,
-                ks=ks,
-                is_exit=False,
-                shift_x=self._parent.shift_x,
-                shift_y=self._parent.shift_y,
-                shift_s=self._parent.shift_s,
-                rot_s_rad=self._parent.rot_s_rad,
-                _buffer=self._buffer
-            )
-        else:
-            return Marker(_buffer=self._buffer)
-
-class ThinSliceOctupoleExit(_ThinSliceEdgeBase, BeamElement):
+class ThinSliceOctupoleExit(
+    _ThinSliceEdgeBase, _ThinSliceMultipoleEdgeBase, BeamElement
+):
+    _magnet_plan = True
+    _face = 'exit'
 
     _xofields = {'_parent': xo.Ref(Octupole), **COMMON_SLICE_XO_FIELDS}
 
@@ -241,26 +285,31 @@ class ThinSliceOctupoleExit(_ThinSliceEdgeBase, BeamElement):
         '#include "xtrack/beam_elements/elements_src/thin_slice_octupole_exit.h"'
     ]
 
-    def get_equivalent_element(self):
-        _raise_if_parent_has_transverse_rotation(self._parent)
+class ThinSliceMultipoleEntry(
+    _ThinSliceEdgeBase, _ThinSliceMultipoleEdgeBase, BeamElement
+):
+    _magnet_plan = True
+    _face = 'entry'
+    _xofields = {'_parent': xo.Ref(Multipole), **COMMON_SLICE_XO_FIELDS}
+    _extra_c_sources = [
+        '#include "xtrack/beam_elements/elements_src/thin_slice_multipole_entry.h"'
+    ]
 
-        if self._parent.edge_exit_active:
-            kn, ks = _parent_total_kn_ks_for_multipole_edge(self._parent)
-            return MultipoleEdge(
-                kn=kn,
-                ks=ks,
-                is_exit=True,
-                shift_x=self._parent.shift_x,
-                shift_y=self._parent.shift_y,
-                shift_s=self._parent.shift_s,
-                rot_s_rad=self._parent.rot_s_rad,
-                _buffer=self._buffer
-            )
-        else:
-            return Marker(_buffer=self._buffer)
+
+class ThinSliceMultipoleExit(
+    _ThinSliceEdgeBase, _ThinSliceMultipoleEdgeBase, BeamElement
+):
+    _magnet_plan = True
+    _face = 'exit'
+    _xofields = {'_parent': xo.Ref(Multipole), **COMMON_SLICE_XO_FIELDS}
+    _extra_c_sources = [
+        '#include "xtrack/beam_elements/elements_src/thin_slice_multipole_exit.h"'
+    ]
+
 
 class ThinSliceUniformSolenoidEntry(_ThinSliceEdgeBase, BeamElement):
 
+    _magnet_plan = True
     _xofields = {'_parent': xo.Ref(UniformSolenoid), **COMMON_SLICE_XO_FIELDS}
 
     _extra_c_sources = [
@@ -270,19 +319,26 @@ class ThinSliceUniformSolenoidEntry(_ThinSliceEdgeBase, BeamElement):
 
 class ThinSliceUniformSolenoidExit(_ThinSliceEdgeBase, BeamElement):
 
+    _magnet_plan = True
     _xofields = {'_parent': xo.Ref(UniformSolenoid), **COMMON_SLICE_XO_FIELDS}
 
     _extra_c_sources = [
         '#include "xtrack/beam_elements/elements_src/thin_slice_uniform_solenoid_exit.h"'
     ]
 
-class ThinSliceRBendEntry(_ThinSliceEdgeBase, BeamElement):
+
+class ThinSliceRBendEntry(_ThinSliceEdgeBase, _ThinSliceDipoleEdgeBase, BeamElement):
+    _magnet_plan = True
+    _face = 'entry'
 
     _xofields = {'_parent': xo.Ref(RBend), **COMMON_SLICE_XO_FIELDS}
 
     _extra_c_sources = [
         '#include "xtrack/beam_elements/elements_src/thin_slice_rbend_entry.h"'
     ]
+
+    def _face_angle_offset(self):
+        return self._parent.angle / 2
 
     def get_equivalent_element(self):
 
@@ -292,24 +348,7 @@ class ThinSliceRBendEntry(_ThinSliceEdgeBase, BeamElement):
             return self # No replacement possible (not yet supported), element
                         # left where it is
 
-        if self._parent.edge_entry_active:
-            kn, _ = _parent_total_kn_ks(self._parent)
-            return DipoleEdge(
-                k=kn[0],
-                e1=self._parent.edge_entry_angle + self._parent.angle / 2,
-                e1_fd=self._parent.edge_entry_angle_fdown,
-                hgap=self._parent.edge_entry_hgap,
-                fint=self._parent.edge_entry_fint,
-                model=self._parent.edge_entry_model,
-                side='entry',
-                shift_x=self._parent.shift_x,
-                shift_y=self._parent.shift_y,
-                shift_s=self._parent.shift_s,
-                rot_s_rad=self._parent.rot_s_rad,
-                _buffer=self._buffer
-            )
-        else:
-            return Marker(_buffer=self._buffer)
+        return _ThinSliceDipoleEdgeBase.get_equivalent_element(self)
 
     def _survey_start_end_elem(
             self,
@@ -376,13 +415,18 @@ class ThinSliceRBendEntry(_ThinSliceEdgeBase, BeamElement):
                         -self._parent._x0_in
                         * np.sin(self._parent.rot_s_rad))
 
-class ThinSliceRBendExit(_ThinSliceEdgeBase, BeamElement):
+class ThinSliceRBendExit(_ThinSliceEdgeBase, _ThinSliceDipoleEdgeBase, BeamElement):
+    _magnet_plan = True
+    _face = 'exit'
 
     _xofields = {'_parent': xo.Ref(RBend), **COMMON_SLICE_XO_FIELDS}
 
     _extra_c_sources = [
         '#include "xtrack/beam_elements/elements_src/thin_slice_rbend_exit.h"'
     ]
+
+    def _face_angle_offset(self):
+        return self._parent.angle / 2
 
     def get_equivalent_element(self):
 
@@ -392,24 +436,7 @@ class ThinSliceRBendExit(_ThinSliceEdgeBase, BeamElement):
             return self # No replacement possible (not yet supported), element
                         # left where it is
 
-        if self._parent.edge_exit_active:
-            kn, _ = _parent_total_kn_ks(self._parent)
-            return DipoleEdge(
-                k=kn[0],
-                e1=self._parent.edge_exit_angle + self._parent.angle / 2,
-                e1_fd=self._parent.edge_exit_angle_fdown,
-                hgap=self._parent.edge_exit_hgap,
-                fint=self._parent.edge_exit_fint,
-                model=self._parent.edge_exit_model,
-                side='exit',
-                shift_x=self._parent.shift_x,
-                shift_y=self._parent.shift_y,
-                shift_s=self._parent.shift_s,
-                rot_s_rad=self._parent.rot_s_rad,
-                _buffer=self._buffer
-            )
-        else:
-            return Marker(_buffer=self._buffer)
+        return _ThinSliceDipoleEdgeBase.get_equivalent_element(self)
 
     def _survey_start_end_elem(
             self,

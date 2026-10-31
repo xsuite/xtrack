@@ -9,25 +9,34 @@
 
 
 GPUFUN
-void compute_dipole_edge_linear_coefficients(double const k, double const e1,
-                    double const e1_fd, double const hgap, double const fint,
-                    double* r21, double* r43){
+void compute_dipole_edge_linear_coefficients(
+    xt_float_or_tpsa_arg k,
+    double const e1,
+    double const e1_fd,
+    double const hgap,
+    double const fint,
+    xt_float_or_tpsa* r21,
+    xt_float_or_tpsa* r43
+) {
 
-    double const corr = 2.0 * k * hgap * fint;
-    double const r21_out = k * tan(e1);
+    xt_float_or_tpsa const corr = 2.0 * k * hgap * fint;
+    xt_float_or_tpsa const r21_out = k * tan(e1);
 
     double const e1_v = e1 + e1_fd;
     double const sin_e1_v = sin(e1_v);
-    double const temp = corr / cos(e1_v) * (1.0 + sin_e1_v * sin_e1_v);
-    double const r43_out = -k * tan(e1_v - temp);
+    xt_float_or_tpsa const temp = corr / cos(e1_v) * (1.0 + sin_e1_v * sin_e1_v);
+    xt_float_or_tpsa const r43_out = -k * tan(e1_v - temp);
 
     *r21 = r21_out;
     *r43 = r43_out;
-
 }
 
 GPUFUN
-void DipoleEdgeLinear_single_particle(LocalParticle* part, double r21, double r43){
+void DipoleEdgeLinear_single_particle(
+    LocalParticle* part,
+    xt_float_or_tpsa_arg r21,
+    xt_float_or_tpsa_arg r43
+) {
 
     xt_float_or_tpsa const x = LocalParticle_get_x(part);
     xt_float_or_tpsa const y = LocalParticle_get_y(part);
@@ -35,7 +44,6 @@ void DipoleEdgeLinear_single_particle(LocalParticle* part, double r21, double r4
 
     LocalParticle_add_to_px(part, chi * r21*x);
     LocalParticle_add_to_py(part, chi * r43*y);
-
 }
 
 #endif

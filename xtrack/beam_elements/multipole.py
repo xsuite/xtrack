@@ -3,28 +3,39 @@
 # Copyright (c) CERN, 2025.                 #
 # ######################################### #
 
-from ..base_element import BeamElement
 import xobjects as xo
+
 import xtrack as xt
+
+from ..base_element import BeamElement
 from ..random import (
     RandomExponential,
     RandomUniformAccurate,
 )
 from ._common import (
+    _NOEXPR_FIELDS,
     SynchrotronRadiationRecord,
+    _docstring_general_notes,
+    _for_docstring_alignment,
+    _for_docstring_edge_straight,
+    _handle_knl_ksl_rel_kwargs,
     _HasIntegrator,
     _HasKnlKsl,
     _HasModelStraight,
-    _NOEXPR_FIELDS,
-    _docstring_general_notes,
-    _for_docstring_alignment,
-    _handle_knl_ksl_rel_kwargs,
+)
+from ._edge import (
+    EDGE_ACTIVE,
+    STRAIGHT_EDGE_MODELS,
+    STRAIGHT_EDGE_PARAMS,
+    _HasEdges,
+    edge_xofields,
 )
 
-class Multipole(_HasKnlKsl, _HasModelStraight, _HasIntegrator, BeamElement):
 
-    _docstring_start = \
-    """Beam element modeling a magnetic multipole.
+class Multipole(_HasEdges, _HasKnlKsl, _HasModelStraight, _HasIntegrator, BeamElement):
+
+    _magnet_plan = True
+    _docstring_start = """Beam element modeling a magnetic multipole.
 
     Parameters
     ----------
@@ -43,7 +54,8 @@ class Multipole(_HasKnlKsl, _HasModelStraight, _HasIntegrator, BeamElement):
         Length of the originating thick multipole. Default is ``0``.
     isthick : bool
         Whether the multipole is to be treated as thick (True) or thin (False).
-        Default is ``False``.
+        Default is ``False``. Only a thick multipole has faces: the ``edge_*``
+        parameters below act on thick multipoles only.
     """.strip()
 
     _docstring_knl_rel_ksl_rel = \
@@ -64,17 +76,27 @@ class Multipole(_HasKnlKsl, _HasModelStraight, _HasIntegrator, BeamElement):
         `knl_rel` and `ksl_rel` is skew (True) or normal (False). Default is ``False``.
     """.strip()
 
-    __doc__ = '\n    '.join([_docstring_start, _docstring_knl_rel_ksl_rel,
-                             _HasModelStraight._for_docstring,
-                             _HasIntegrator._for_docstring,
-                             _for_docstring_alignment, '\n',
-                             _docstring_general_notes, '\n\n'])
+    __doc__ = '\n    '.join(
+        [
+            _docstring_start,
+            _docstring_knl_rel_ksl_rel,
+            _HasModelStraight._for_docstring,
+            _HasIntegrator._for_docstring,
+            _for_docstring_edge_straight,
+            _for_docstring_alignment,
+            '\n',
+            _docstring_general_notes,
+            '\n\n',
+        ]
+    )
 
     #isthick can be changed dynamically for this element
 
     has_backtrack = True
 
-    _xofields={
+    _edge_models = STRAIGHT_EDGE_MODELS
+
+    _xofields = {
         'order': xo.Int64,
         'inv_factorial_order': xo.Float64,
         'length': xo.Float64,
@@ -91,7 +113,12 @@ class Multipole(_HasKnlKsl, _HasModelStraight, _HasIntegrator, BeamElement):
         'num_multipole_kicks': xo.Int64,
         'model': xo.Int64,
         'integrator': xo.Int64,
-        }
+        # Faces of a thick multipole (a thin one has none). Active, model
+        # "suppressed": no fringe map
+        **edge_xofields(
+            EDGE_ACTIVE | STRAIGHT_EDGE_MODELS['suppressed'], STRAIGHT_EDGE_PARAMS
+        ),
+    }
 
     _rename = {
         'order': '_order',
@@ -153,6 +180,7 @@ class Multipole(_HasKnlKsl, _HasModelStraight, _HasIntegrator, BeamElement):
             assert kwargs['hyl'] == 0.0, 'hyl is not supported anymore'
 
         _handle_knl_ksl_rel_kwargs(kwargs)
+        kwargs = self._edge_kwargs_to_flags(kwargs)
 
         self.xoinitialize(**kwargs)
 
@@ -193,6 +221,14 @@ class Multipole(_HasKnlKsl, _HasModelStraight, _HasIntegrator, BeamElement):
     @property
     def _drift_slice_class(self):
         return xt.DriftSliceMultipole
+
+    @property
+    def _entry_slice_class(self):
+        return xt.ThinSliceMultipoleEntry
+
+    @property
+    def _exit_slice_class(self):
+        return xt.ThinSliceMultipoleExit
 
     @property
     def main_is_skew(self):

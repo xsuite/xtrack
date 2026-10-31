@@ -12,53 +12,64 @@
 GPUFUN
 void MagnetEdge_track_local_particle(MagnetEdgeData el, LocalParticle* part0)
 {
-    const int8_t model = MagnetEdgeData_get_model(el);
+    const int64_t flags = MagnetEdgeData_get__flags(el);
     const uint8_t is_exit = MagnetEdgeData_get_is_exit(el);
-    const double half_gap = MagnetEdgeData_get_half_gap(el);
-    const double* knorm = MagnetEdgeData_getp1_kn(el, 0);
-    const double* kskew = MagnetEdgeData_getp1_ks(el, 0);
+    const double* kn = MagnetEdgeData_getp1_kn(el, 0);
+    const double* ks = MagnetEdgeData_getp1_ks(el, 0);
     const int64_t k_order = MagnetEdgeData_get_k_order(el);
     const double* knl = MagnetEdgeData_getp1_knl(el, 0);
     const double* ksl = MagnetEdgeData_getp1_ksl(el, 0);
     const int64_t kl_order = MagnetEdgeData_get_kl_order(el);
-    const double ks = 0.; // Not supported yet in MagnetEdge
     const double length = MagnetEdgeData_get_length(el);
-    const double face_angle = MagnetEdgeData_get_face_angle(el);
-    const double face_angle_feed_down = MagnetEdgeData_get_face_angle_feed_down(el);
-    const double fringe_integral = MagnetEdgeData_get_fringe_integral(el);
+    const uint8_t backtrack = LocalParticle_check_track_flag(part0, XS_FLAG_BACKTRACK);
 
-    double factor_for_backtrack;
-    if (LocalParticle_check_track_flag(part0, XS_FLAG_BACKTRACK)) {
-        factor_for_backtrack = -1;
-    } else {
-        factor_for_backtrack = 1;
+    // The strengths of the faces are xt_float_or_tpsa
+    xt_float_or_tpsa knorm[MAGNET_K_ORDER + 1] = {0., 0., 0., 0.};
+    xt_float_or_tpsa kskew[MAGNET_K_ORDER + 1] = {0., 0., 0., 0.};
+    for (int64_t ii = 0; ii <= k_order && ii <= MAGNET_K_ORDER; ii++) {
+        knorm[ii] = kn[ii];
+        kskew[ii] = ks[ii];
     }
 
-    track_magnet_edge_particles(
-        part0,
-        model,
-        is_exit,
-        half_gap,
-        knorm,
-        kskew,
-        k_order,
-        knl,
-        ksl,
-        /* factor_knl_ksl */ 1,
-        kl_order,
-        NULL, // knl_rel not supported yet in MagnetEdge
-        NULL, // ksl_rel not supported yet in MagnetEdge
-        /* factor_knl_ksl_rel */ 0,
-        -1, // order_rel not supported yet in MagnetEdge
-        ks,
-        0., // x0_solenoid
-        0., // y0_solenoid
-        length,
-        face_angle,
-        face_angle_feed_down,
-        fringe_integral,
-        factor_for_backtrack // -1 for backtracking, 1 for forward tracking
-    );
+    MagnetFace face = MagnetFace_empty(is_exit);
+    face.flags = flags;
+    face.angle = MagnetEdgeData_get_face_angle(el);
+    face.angle_fdown = MagnetEdgeData_get_face_angle_feed_down(el);
+    face.fint = MagnetEdgeData_get_fringe_integral(el);
+    face.hgap = MagnetEdgeData_get_half_gap(el);
+    face.f1 = MagnetEdgeData_get_qint1(el);
+    face.f2 = MagnetEdgeData_get_qint2(el);
+
+    const xt_float_or_tpsa zero = 0.;
+    MagnetField field;
+    for (int ii = 0; ii <= MAGNET_K_ORDER; ii++) {
+        field.knorm[ii] = knorm[ii];
+        field.kskew[ii] = kskew[ii];
+    }
+    field.k_order = k_order <= MAGNET_K_ORDER ? k_order : MAGNET_K_ORDER;
+#ifdef XTRACK_TPSA_TRACK
+    xt_tpsa_lifted_array knl_lifted(knl, kl_order + 1);
+    xt_tpsa_lifted_array ksl_lifted(ksl, kl_order + 1);
+    field.knl = knl_lifted.ptr();
+    field.ksl = ksl_lifted.ptr();
+#else
+    field.knl = knl;
+    field.ksl = ksl;
+#endif
+    field.kl_order = kl_order;
+    field.knl_scale = 1;
+    field.length = length;
+    field.ks = zero;  // ks: not supported yet in MagnetEdge
+    field.x0_solenoid = 0.;
+    field.y0_solenoid = 0.;
+
+    MagnetField_prepare(&field);
+    MagnetFace_prepare(&face, &field, backtrack);
+
+    START_PER_PARTICLE_BLOCK(part0, part)
+        ;
+        MagnetFace_track_single_particle(part, &face);
+    END_PER_PARTICLE_BLOCK;
 }
 
 #endif // XTRACK_MAGNET_EDGE_H

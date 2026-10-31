@@ -36,9 +36,14 @@ from . import json as json_utils
 from .api_categorization import GroupedAPICollector, doc_group, property_with_doc_group
 from .beam_elements import BeamElement, Drift, Marker, Multipole, element_classes
 from .beam_elements._common import (
-    _EDGE_MODEL_TO_INDEX,
     _MODEL_TO_INDEX_CURVED,
     _MODEL_TO_INDEX_DRIFT,
+)
+from .beam_elements._edge import (
+    BEND_EDGE_MODELS,
+    STRAIGHT_EDGE_MODELS,
+    edge_bits_to_model,
+    edge_model_to_bits,
 )
 from .beam_elements.slice_base import ID_RADIATION_FROM_PARENT
 from .composer.composer import (
@@ -4826,7 +4831,8 @@ class Line:
             'drift-kick-drift-exact', or 'drift-kick-drift-expanded'.
         edge: str
             Model to be used for the bend edges. Can be 'linear', 'full',
-            'dipole-only' or 'suppressed'.
+            'no-mult' or 'suppressed' ('dipole-only': deprecated name of
+            'no-mult').
         num_multipole_kicks: int
             Number of multipole kicks to consider.
         integrator: str
@@ -4839,15 +4845,18 @@ class Line:
         if core is not None and core not in _MODEL_TO_INDEX_CURVED:
             raise ValueError(f'Unknown bend model {core}')
 
-        if edge is not None and edge not in _EDGE_MODEL_TO_INDEX:
-            raise ValueError(f'Unknown bend edge model {edge}')
+        if edge is not None:
+            # Validates the name, and warns for a deprecated one
+            edge = edge_bits_to_model(
+                BEND_EDGE_MODELS, edge_model_to_bits(BEND_EDGE_MODELS, edge, 'bends')
+            )
 
         for ee in self._element_dict.values():
             if core is not None and isinstance(ee, (xt.Bend, xt.RBend)):
                 ee.model = core
 
             if edge is not None and isinstance(ee, xt.DipoleEdge):
-                ee.model = edge if not edge == 'dipole-only' else 'full'
+                ee.model = edge if edge != 'no-mult' else 'full'
 
             if edge is not None and isinstance(ee, (xt.Bend, xt.RBend)):
                 ee.edge_entry_model = edge
@@ -4863,7 +4872,7 @@ class Line:
             self,
             element_type,
             model=None,
-            edge: Optional[Literal['full']] = None,
+            edge: Optional[Literal['full', 'no-mult', 'suppressed']] = None,
             num_multipole_kicks: Optional[int] = None,
             integrator: Optional[str] = None,
     ):
@@ -4872,7 +4881,9 @@ class Line:
         Parameters
         ----------
         edge: str
-            None or 'suppressed' to disable, 'full' to enable.
+            Edge model of both faces: 'suppressed' (no fringe map), 'full' or
+            'no-mult'. A model other than 'suppressed' also activates the
+            edges. None leaves the edges unchanged.
         num_multipole_kicks: int
             Number of multipole kicks to consider.
         integrator: str
@@ -4882,18 +4893,22 @@ class Line:
 
         self._method_incompatible_with_compose()
 
-        if edge not in [None, 'full', 'suppressed']:
-            raise ValueError(f'Unknown edge model {edge}: only None, '
-                             f'"full" or "suppressed" are supported.')
-
-        enable_fringes = edge == 'full'
+        if edge is not None:
+            # Validates the name, and warns for a deprecated one
+            edge = edge_bits_to_model(
+                STRAIGHT_EDGE_MODELS,
+                edge_model_to_bits(STRAIGHT_EDGE_MODELS, edge, 'straight magnets'),
+            )
 
         for ee in self._element_dict.values():
             if not isinstance(ee, element_type):
                 continue
             if edge is not None:
-                ee.edge_entry_active = enable_fringes
-                ee.edge_exit_active = enable_fringes
+                ee.edge_entry_model = edge
+                ee.edge_exit_model = edge
+                if edge != 'suppressed':
+                    ee.edge_entry_active = True
+                    ee.edge_exit_active = True
             if num_multipole_kicks is not None:
                 ee.num_multipole_kicks = num_multipole_kicks
             if integrator is not None:
@@ -4904,7 +4919,7 @@ class Line:
     @doc_group("Magnet Model Configuration")
     def configure_quadrupole_model(self,
             model: Optional[str] = None,
-            edge: Optional[Literal['full']] = None,
+            edge: Optional[Literal['full', 'no-mult', 'suppressed']] = None,
             num_multipole_kicks: Optional[int] = None,
             integrator: Optional[str] = None,
     ):
@@ -4915,9 +4930,10 @@ class Line:
         ----------
         model : str, optional
             Magnet model to assign to all quadrupole elements.
-        edge : {'full', None}, optional
-            Edge-fringe configuration. Use ``'full'`` to enable fringes and
-            ``None`` to leave edge settings unchanged.
+        edge : {'full', 'no-mult', 'suppressed', None}, optional
+            Edge model of both faces: ``'full'`` (or ``'no-mult'``) enables
+            the fringes, ``'suppressed'`` removes them (the default of the
+            elements) and ``None`` leaves the edge settings unchanged.
         num_multipole_kicks : int, optional
             Number of multipole kicks to assign to quadrupole elements.
         integrator : str, optional
@@ -4942,7 +4958,7 @@ class Line:
     def configure_sextupole_model(
             self,
             model: Optional[str] = None,
-            edge: Optional[Literal['full']] = None,
+            edge: Optional[Literal['full', 'no-mult', 'suppressed']] = None,
             num_multipole_kicks: Optional[int] = None,
             integrator: Optional[str] = None,
     ):
@@ -4953,9 +4969,10 @@ class Line:
         ----------
         model : str, optional
             Magnet model to assign to all sextupole elements.
-        edge : {'full', None}, optional
-            Edge-fringe configuration. Use ``'full'`` to enable fringes and
-            ``None`` to leave edge settings unchanged.
+        edge : {'full', 'no-mult', 'suppressed', None}, optional
+            Edge model of both faces: ``'full'`` (or ``'no-mult'``) enables
+            the fringes, ``'suppressed'`` removes them (the default of the
+            elements) and ``None`` leaves the edge settings unchanged.
         num_multipole_kicks : int, optional
             Number of multipole kicks to assign to sextupole elements.
         integrator : str, optional
@@ -4979,7 +4996,7 @@ class Line:
     def configure_octupole_model(
             self,
             model: Optional[str] = None,
-            edge: Optional[Literal['full']] = None,
+            edge: Optional[Literal['full', 'no-mult', 'suppressed']] = None,
             num_multipole_kicks: Optional[int] = None,
             integrator: Optional[str] = None,
     ):
@@ -4990,9 +5007,10 @@ class Line:
         ----------
         model : str, optional
             Magnet model to assign to all octupole elements.
-        edge : {'full', None}, optional
-            Edge-fringe configuration. Use ``'full'`` to enable fringes and
-            ``None`` to leave edge settings unchanged.
+        edge : {'full', 'no-mult', 'suppressed', None}, optional
+            Edge model of both faces: ``'full'`` (or ``'no-mult'``) enables
+            the fringes, ``'suppressed'`` removes them (the default of the
+            elements) and ``None`` leaves the edge settings unchanged.
         num_multipole_kicks : int, optional
             Number of multipole kicks to assign to octupole elements.
         integrator : str, optional

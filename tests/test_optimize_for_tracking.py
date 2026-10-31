@@ -120,18 +120,22 @@ def test_optimize_thin_slices_use_total_knl_ksl(element_factory):
 
 
 def test_optimize_edges_use_total_knl_ksl():
-    quad = xt.Quadrupole(
-        length=2, k1=0.3, k1s=0.2,
-        edge_entry_active=True, edge_exit_active=True,
-        knl=[0.01, 0.02, 0.03],
-        ksl=[0.04, 0.05, 0.06],
-        knl_rel=[0.1, 0.2, 0.3],
-        ksl_rel=[0.4, 0.5, 0.6])
-    line = _optimize_after_thin_slicing(quad)
+    def quad(knl0):
+        return xt.Quadrupole(
+            length=2, k1=0.3, k1s=0.2,
+            edge_entry_model='full', edge_exit_model='full',
+            knl=[knl0, 0.02, 0.03],
+            ksl=[0.04, 0.05, 0.06],
+            knl_rel=[10 * knl0, 0.2, 0.3],
+            ksl_rel=[0.4, 0.5, 0.6])
 
-    kn, ks = quad.get_total_knl_ksl()
-    kn = kn / quad.length
-    ks = ks / quad.length
+    # Without a dipole component (knl[0] and knl_rel[0] zero): MultipoleEdge
+    # (no dipole fringe)
+    element = quad(0)
+    line = _optimize_after_thin_slicing(element)
+    kn, ks = element.get_total_knl_ksl()
+    kn = kn / element.length
+    ks = ks / element.length
     kn[0] = 0
     ks[0] = 0
 
@@ -140,6 +144,21 @@ def test_optimize_edges_use_total_knl_ksl():
     for edge in edges:
         np.testing.assert_allclose(edge.kn, kn)
         np.testing.assert_allclose(edge.ks, ks)
+
+    # With knl[0]: MagnetEdge, which has the dipole fringe of knl[0]; it keeps
+    # k0...k3 in kn, ks and the rest of the total strengths in knl, ksl
+    element = quad(0.01)
+    line = _optimize_after_thin_slicing(element)
+    knl, ksl = element.get_total_knl_ksl()
+
+    edges = [ee for ee in line.elements if isinstance(ee, xt.MagnetEdge)]
+    assert len(edges) == 2
+    for edge in edges:
+        nn = len(edge.kn)
+        np.testing.assert_allclose(edge.kn * edge.length + edge.knl[:nn], knl[:nn])
+        np.testing.assert_allclose(edge.ks * edge.length + edge.ksl[:nn], ksl[:nn])
+        np.testing.assert_allclose(edge.knl[nn:], knl[nn:])
+        np.testing.assert_allclose(edge.ksl[nn:], ksl[nn:])
 
     bend = xt.Bend(
         length=2, angle=0.2,

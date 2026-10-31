@@ -11,12 +11,11 @@ from ..random import (
     RandomUniformAccurate,
 )
 from ._common import (
-    _EDGE_MODEL_TO_INDEX,
-    _INDEX_TO_EDGE_MODEL,
     SynchrotronRadiationRecord,
     _BendCommon,
     _HasKnlKsl,
 )
+from ._edge import BEND_EDGE_MODELS, BEND_EDGE_PARAMS, EDGE_ACTIVE, edge_xofields
 
 
 class Magnet(_BendCommon, BeamElement):
@@ -109,14 +108,16 @@ class Magnet(_BendCommon, BeamElement):
         in the middle for straight magnets, or ~2 kicks/mrad otherwise.
     edge_entry_active : bool, optional
         Whether to include the edge effect at entry. Enabled by default.
+        See :ref:`edge_label` for all edge parameters.
     edge_exit_active : bool, optional
         Whether to include the edge effect at exit. Enabled by default.
     edge_entry_model : str, optional
         Edge model at magnet entry. The options are:
 
             - ``linear``: use a linear model for the edge.
-            - ``full``: include all multipolar terms.
-            - ``dipole-only``: ``full`` but includes only the dipolar terms.
+            - ``full``: include all the fringe maps.
+            - ``no-mult``: ``full`` without the hard-edge multipole fringe
+              (``dipole-only``: deprecated name).
             - ``suppressed``: ignore the edge effect.
     edge_exit_model : str, optional
         Edge model at magnet exit. See ``edge_entry_model`` for the options.
@@ -155,6 +156,7 @@ class Magnet(_BendCommon, BeamElement):
         (= 1 / radius), computed as ``angle / length`` for nonzero length.
         Set ``length`` and ``angle`` instead of passing or assigning ``h``.
     """
+    _magnet_plan = True
     isthick = True
     has_backtrack = True
 
@@ -176,18 +178,7 @@ class Magnet(_BendCommon, BeamElement):
         'angle': xo.Float64,
         'h': xo.Float64,
         'k0_from_h': xo.Field(xo.UInt64, default=1),
-        'edge_entry_active': xo.Field(xo.Int64, default=1),
-        'edge_exit_active': xo.Field(xo.Int64, default=1),
-        'edge_entry_model': xo.Int64,
-        'edge_exit_model': xo.Int64,
-        'edge_entry_angle': xo.Float64,
-        'edge_exit_angle': xo.Float64,
-        'edge_entry_angle_fdown': xo.Float64,
-        'edge_exit_angle_fdown': xo.Float64,
-        'edge_entry_fint': xo.Float64,
-        'edge_exit_fint': xo.Float64,
-        'edge_entry_hgap': xo.Float64,
-        'edge_exit_hgap': xo.Float64,
+        **edge_xofields(EDGE_ACTIVE | BEND_EDGE_MODELS['linear'], BEND_EDGE_PARAMS),
         'model': xo.Int64,
         'integrator': xo.Int64,
         'radiation_flag': xo.Int64,
@@ -197,8 +188,6 @@ class Magnet(_BendCommon, BeamElement):
     _rename = {
         'order': '_order',
         'model': '_model',
-        'edge_entry_model': '_edge_entry_model',
-        'edge_exit_model': '_edge_exit_model',
         'k0': '_k0',
         'k0_from_h': '_k0_from_h',
         'angle': '_angle',
@@ -226,8 +215,7 @@ class Magnet(_BendCommon, BeamElement):
                                 "Set `length` and `angle` instead.")
 
         to_be_set_with_properties = []
-        for nn in ['length', 'angle', 'k0_from_h', 'edge_entry_model',
-                   'edge_exit_model', 'k0']:
+        for nn in ['length', 'angle', 'k0_from_h', 'k0']:
             if nn in kwargs:
                 to_be_set_with_properties.append((nn, kwargs.pop(nn)))
 
@@ -236,24 +224,3 @@ class Magnet(_BendCommon, BeamElement):
         for nn, val in to_be_set_with_properties:
             setattr(self, nn, val)
 
-    @property
-    def edge_entry_model(self):
-        return _INDEX_TO_EDGE_MODEL[self._edge_entry_model]
-
-    @edge_entry_model.setter
-    def edge_entry_model(self, value):
-        try:
-            self._edge_entry_model = _EDGE_MODEL_TO_INDEX[value]
-        except KeyError:
-            raise ValueError(f'Invalid edge model: {value}')
-
-    @property
-    def edge_exit_model(self):
-        return _INDEX_TO_EDGE_MODEL[self._edge_exit_model]
-
-    @edge_exit_model.setter
-    def edge_exit_model(self, value):
-        try:
-            self._edge_exit_model = _EDGE_MODEL_TO_INDEX[value]
-        except KeyError:
-            raise ValueError(f'Invalid edge model: {value}')

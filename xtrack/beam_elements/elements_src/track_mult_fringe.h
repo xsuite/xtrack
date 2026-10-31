@@ -16,16 +16,17 @@ GPUFUN
 void MultFringe_evaluate(
     xt_float_or_tpsa_arg x,
     xt_float_or_tpsa_arg y,
-    const double* kn,
-    const double* ks,
+    const xt_float_or_tpsa* kn,  // strengths, orders 0 ... k_order
+    const xt_float_or_tpsa* ks,
     int64_t k_order,
-    const double* knl,
-    const double* ksl,
+    const xt_float_or_tpsa* knl,
+    const xt_float_or_tpsa* ksl,
     int64_t kl_order,
+    const double kl_factor,
     const double length,
     const double chi,
     const double direction,
-    uint64_t min_order,
+    int64_t min_order,
     xt_float_or_tpsa* fx,
     xt_float_or_tpsa* fxx,
     xt_float_or_tpsa* fxy,
@@ -42,47 +43,46 @@ void MultFringe_evaluate(
     *fyx = 0.;
     *fyy = 0.;
 
-    uint32_t order = (k_order > kl_order) ? k_order : kl_order;
+    const int64_t order = (k_order > kl_order) ? k_order : kl_order;
+    // knl / length, divided once; the integrated strengths are not used for
+    // length = 0
+    const double kl_scale = (length != 0.) ? kl_factor / length : 0.;
     double inv_factorial = 1.;
 
-    for (uint32_t ii = 0; ii <= order; ii++) {
+    for (int64_t ii = 0; ii <= order; ii++) {
         if (ii > 1) inv_factorial /= ii;
         const double component = ii + 1;
         const xt_float_or_tpsa drx = rx;
         const xt_float_or_tpsa dix = ix;
         rx = drx * x - dix * y;
         ix = drx * y + dix * x;
+        if (ii < min_order) continue;
 
-        double kn_total = 0.;
-        double ks_total = 0.;
-        if (ii >= min_order) {
-            if (ii <= k_order) {
-                kn_total += kn[ii] * inv_factorial;
-                ks_total += ks[ii] * inv_factorial;
-            }
-            if (ii <= kl_order && length != 0.) {
-                kn_total += knl[ii] / length * inv_factorial;
-                ks_total += ksl[ii] / length * inv_factorial;
-            }
+        xt_float_or_tpsa kn_total = 0.;
+        xt_float_or_tpsa ks_total = 0.;
+        if (ii <= k_order) {
+            kn_total += kn[ii];
+            ks_total += ks[ii];
         }
+        if (ii <= kl_order && kl_scale != 0.) {
+            kn_total += kl_scale * knl[ii];
+            ks_total += kl_scale * ksl[ii];
+        }
+        // A vanishing component adds nothing; the normal dipole gives no
+        // multipole fringe
+        if ((ii == 0 || xt_float_or_tpsa_is_zero(kn_total))
+            && xt_float_or_tpsa_is_zero(ks_total))
+            continue;
 
         const double nj = -direction / (4 * (component + 1));
         const double nf = (component + 2) / component;
-        const double kj = kn_total * chi;
-        const double ksj = ks_total * chi;
-        xt_float_or_tpsa u = 0.0, v = 0.0, du = 0.0, dv = 0.0;
+        const xt_float_or_tpsa kj = (ii == 0 ? 0. : chi * inv_factorial) * kn_total;
+        const xt_float_or_tpsa ksj = (chi * inv_factorial) * ks_total;
 
-        if (ii == 0) {
-            u = nj * (-ksj * ix);
-            v = nj * (ksj * rx);
-            du = nj * (-ksj * dix);
-            dv = nj * (ksj * drx);
-        } else {
-            u = nj * (kj * rx - ksj * ix);
-            v = nj * (kj * ix + ksj * rx);
-            du = nj * (kj * drx - ksj * dix);
-            dv = nj * (kj * dix + ksj * drx);
-        }
+        const xt_float_or_tpsa u = nj * (kj * rx - ksj * ix);
+        const xt_float_or_tpsa v = nj * (kj * ix + ksj * rx);
+        const xt_float_or_tpsa du = nj * (kj * drx - ksj * dix);
+        const xt_float_or_tpsa dv = nj * (kj * dix + ksj * drx);
 
         const xt_float_or_tpsa dux = component * du;
         const xt_float_or_tpsa dvx = component * dv;
@@ -98,22 +98,25 @@ void MultFringe_evaluate(
     }
 }
 
-GPUFUN
+GPUFUN XT_NOINLINE
 void MultFringe_track_single_particle(
     LocalParticle* part,
-    const double* kn,
-    const double* ks,
+    const xt_float_or_tpsa* kn,  // strengths, orders 0 ... k_order
+    const xt_float_or_tpsa* ks,
     int64_t k_order,
-    const double* knl,
-    const double* ksl,
+    // Integrated strengths, kn += kl_factor * knl / length; not used for
+    // length = 0
+    const xt_float_or_tpsa* knl,
+    const xt_float_or_tpsa* ksl,
     int64_t kl_order,
+    const double kl_factor,
     const double length,
     // Which face of the element is being crossed: the fringe kick changes sign
     // between the entry and the exit face. This labels the face, not the
     // direction of travel, so backtracking inverts the map selected here
     // rather than selecting the other one.
     const uint8_t is_element_exit,
-    uint64_t min_order
+    int64_t min_order
 ) {
     if (k_order == -1 && kl_order == -1) return;
 
@@ -136,17 +139,35 @@ void MultFringe_track_single_particle(
     xt_float_or_tpsa fy = 0., fyx = 0., fyy = 0.;
 
     // The kick and its derivatives at (X, Y).
-    #define MULT_FRINGE_EVALUATE(X, Y) \
-        MultFringe_evaluate((X), (Y), kn, ks, k_order, knl, ksl, kl_order, \
-            length, chi, direction, min_order, \
-            &fx, &fxx, &fxy, &fy, &fyx, &fyy)
+#define MULT_FRINGE_EVALUATE(X, Y) \
+    MultFringe_evaluate(           \
+        (X),                       \
+        (Y),                       \
+        kn,                        \
+        ks,                        \
+        k_order,                   \
+        knl,                       \
+        ksl,                       \
+        kl_order,                  \
+        kl_factor,                 \
+        length,                    \
+        chi,                       \
+        direction,                 \
+        min_order,                 \
+        &fx,                       \
+        &fxx,                      \
+        &fxy,                      \
+        &fy,                       \
+        &fyx,                      \
+        &fyy                       \
+    )
 
-    // Jacobian of the forward coordinate map, from the derivatives above.
-    #define MULT_FRINGE_JACOBIAN \
-        const xt_float_or_tpsa a = 1 - fxx * rpp; \
-        const xt_float_or_tpsa b = -fyx * rpp; \
-        const xt_float_or_tpsa c = -fxy * rpp; \
-        const xt_float_or_tpsa d = 1 - fyy * rpp
+// Jacobian of the forward coordinate map, from the derivatives above.
+#define MULT_FRINGE_JACOBIAN                  \
+    const xt_float_or_tpsa a = 1 - fxx * rpp; \
+    const xt_float_or_tpsa b = -fyx * rpp;    \
+    const xt_float_or_tpsa c = -fxy * rpp;    \
+    const xt_float_or_tpsa d = 1 - fyy * rpp
 
     MULT_FRINGE_EVALUATE(x, y);
 
@@ -163,15 +184,13 @@ void MultFringe_track_single_particle(
                 (d * residual_x - c * residual_y) / det;
             const xt_float_or_tpsa next_y = y -
                 (a * residual_y - b * residual_x) / det;
-            const double step_x = fabs(xt_float_or_tpsa_const_part(next_x - x));
-            const double step_y = fabs(xt_float_or_tpsa_const_part(next_y - y));
-            const double tol_x = 1e-13 * fabs(xt_float_or_tpsa_const_part(next_x)) + XT_FRINGE_TOL_FLOOR;
-            const double tol_y = 1e-13 * fabs(xt_float_or_tpsa_const_part(next_y)) + XT_FRINGE_TOL_FLOOR;
+            const uint8_t done = XT_FRINGE_STEP_CONVERGED(x, next_x)
+                                 && XT_FRINGE_STEP_CONVERGED(y, next_y);
             x = next_x;
             y = next_y;
             MULT_FRINGE_EVALUATE(x, y);
 
-            if ((step_x <= tol_x && step_y <= tol_y)) {
+            if (done) {
                 converged = 1;
                 break;
             }
@@ -191,9 +210,9 @@ void MultFringe_track_single_particle(
         new_px = a * px + b * py;
         new_py = c * px + d * py;
     } else {
-        const xt_float_or_tpsa det = a * d - b * c;
-        new_px = (d * px - b * py) / det;
-        new_py = (a * py - c * px) / det;
+        const xt_float_or_tpsa inv_det = 1. / (a * d - b * c);
+        new_px = (d * px - b * py) * inv_det;
+        new_py = (a * py - c * px) * inv_det;
     }
 
     // Both directions use the momentum on the downstream side of the forward

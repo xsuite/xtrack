@@ -1,13 +1,13 @@
 import pathlib
+
+import madng_tpsa
 import numpy as np
 import pytest
-
 import xobjects as xo
-import madng_tpsa
-import xtrack as xt
-import xtrack.tpsa as xtpsa
 from xobjects.test_helpers import allow_kernel_compilation
 
+import xtrack as xt
+import xtrack.tpsa as xtpsa
 from xtrack._temp import lhc_match as lm
 from xtrack.tpsa._knobs import KnobParameters
 from xtrack.twiss.twiss_init import _6d_w_matrix
@@ -1561,3 +1561,28 @@ def test_action_tpsa_track_rejects_unsupported_targets():
             line, ["kqf"],
             targets=[xt.TargetRelPhaseAdvance("dqx", value=0.0,
                                             start="qf0", end="qd2")], **kwargs)
+
+
+def test_tpsa_map_lost_at_global_aperture():
+    # The orbit of the map (its constant part) is checked against the global
+    # aperture after thick elements, as for a scalar particle
+    line = xt.Line(elements=[xt.Drift(length=10.0)], element_names=['d'])
+    line.build_tracker()
+
+    part = xt.Particles(px=0.2, p0c=7e12, mass0=xt.PROTON_MASS_EV)
+    line.track(part)
+    assert part.state[0] == -1
+
+    m = xtpsa.ParticlesTpsa(
+        order=1,
+        x=0.0,
+        px=0.2,
+        y=0.0,
+        py=0.0,
+        zeta=0.0,
+        delta=0.0,
+        p0c=7e12,
+        mass0=xt.PROTON_MASS_EV,
+    )
+    with pytest.raises(RuntimeError, match='TPSA map lost at element index 0'):
+        line.track(m)

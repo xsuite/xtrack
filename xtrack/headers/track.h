@@ -32,17 +32,27 @@
 */
 
 #ifdef XO_CONTEXT_CPU_SERIAL
-    // We are on CPU, without OpenMP
+    // We are on CPU, without OpenMP. The LocalParticle is copied once per block,
+    // not once per particle: only ipart changes from one particle to the next.
+    //
+    // Invariant (CPU contexts): code inside a block writes only the per-particle
+    // arrays (through the LocalParticle_set_* / add_to_* accessors), never a
+    // field of the LocalParticle struct itself. Such a write would go to the
+    // block's copy, be seen by the following particles of the block and be lost
+    // at its end. Fields that must change (time_s, reference_turns, the counts
+    // of active and lost particles) are written on SRC_PART outside a block
+    // (local_particle_common.h, check_is_active).
 
-    #define START_PER_PARTICLE_BLOCK(SRC_PART, DEST_PART) { \
-            const int64_t XT_part_block_start_idx = 0; \
-            const int64_t XT_part_block_end_idx = \
+    #define START_PER_PARTICLE_BLOCK(SRC_PART, DEST_PART)            \
+        {                                                            \
+            const int64_t XT_part_block_start_idx = 0;               \
+            const int64_t XT_part_block_end_idx =                    \
                 LocalParticle_get__num_active_particles((SRC_PART)); \
+            LocalParticle lpart = *(SRC_PART);                       \
+            LocalParticle* DEST_PART = &lpart;                       \
             for (int64_t XT_part_block_ii = XT_part_block_start_idx; \
-                 XT_part_block_ii < XT_part_block_end_idx; XT_part_block_ii++) \
-            { \
-                LocalParticle lpart = *(SRC_PART); \
-                LocalParticle* DEST_PART = &lpart; \
+                 XT_part_block_ii < XT_part_block_end_idx;           \
+                 XT_part_block_ii++) {                               \
                 (DEST_PART)->ipart = XT_part_block_ii;
 
     #define END_PER_PARTICLE_BLOCK \
@@ -53,16 +63,17 @@
 #ifdef XO_CONTEXT_CPU_OPENMP
     // We are on CPU with the OpenMP context switched on
 
-    #define START_PER_PARTICLE_BLOCK(SRC_PART, DEST_PART) { \
+    #define START_PER_PARTICLE_BLOCK(SRC_PART, DEST_PART)            \
+        {                                                            \
             const int64_t _part_block_start_idx = (SRC_PART)->ipart; \
             const int64_t _part_block_end_idx = (SRC_PART)->endpart; \
-            for (int64_t _part_block_idx = _part_block_start_idx; \
-                 _part_block_idx < _part_block_end_idx; _part_block_idx++) \
-            { \
-                LocalParticle lpart = *(SRC_PART); \
-                LocalParticle* DEST_PART = &lpart; \
-                (DEST_PART)->ipart = _part_block_idx; \
-                \
+            LocalParticle lpart = *(SRC_PART);                       \
+            LocalParticle* DEST_PART = &lpart;                       \
+            for (int64_t _part_block_idx = _part_block_start_idx;    \
+                 _part_block_idx < _part_block_end_idx;              \
+                 _part_block_idx++) {                                \
+                (DEST_PART)->ipart = _part_block_idx;                \
+                                                                     \
                 if (LocalParticle_get_state(DEST_PART) > 0) {
 
     #define END_PER_PARTICLE_BLOCK \
@@ -92,6 +103,24 @@
     #define END_PER_PARTICLE_BLOCK \
             }
 #endif  // XO_CONTEXT_CL
+
+
+// Inlining, on GPU only (on CPU the compiler decides: the per-particle maps
+// take precomputed values, so a call costs little there)
+// - XT_INLINE: setup and control code. Each GPU thread tracks one particle and
+//   so runs the setup of every element for it; inlined, its structs stay in
+//   registers (passed by pointer to an out-of-line function they would live
+//   in local memory).
+// - XT_NOINLINE: large maps called from many places (drift, kick), compiled
+//   once, not at every call site (compile time). They take scalars, which are
+//   passed in registers.
+#ifdef XO_CONTEXT_CUDA
+    #define XT_INLINE __forceinline__
+    #define XT_NOINLINE __noinline__
+#else
+    #define XT_INLINE
+    #define XT_NOINLINE
+#endif
 
 
 #ifndef START_PER_PARTICLE_BLOCK

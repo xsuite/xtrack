@@ -3,14 +3,17 @@
 # Copyright (c) CERN, 2025.                 #
 # ######################################### #
 
+from ..aperture.structures import (
+    ApertureEnvStruct,
+    LineApertureModel,
+    Polygon,
+    Profile,
+    SurveyData,
+)
 from ..beam_elements import *
 from ..monitors import *
 from ..multisetter import MultiSetter
 from ..random import *
-from ..aperture.structures import (
-    ApertureEnvStruct, LineApertureModel, Profile, Polygon, SurveyData,
-)
-
 
 ONLY_XTRACK_ELEMENTS = [
     Drift,
@@ -93,6 +96,8 @@ ONLY_XTRACK_ELEMENTS = [
     ThinSliceUniformSolenoidExit,
     ThinSliceOctupoleEntry,
     ThinSliceOctupoleExit,
+    ThinSliceMultipoleEntry,
+    ThinSliceMultipoleExit,
     # Transformations
     Rotation,
     Translation,
@@ -146,6 +151,7 @@ TPSA_SUPPORTED_ELEMENTS = [
     CrabCavity,
     RFMultipole,
     UniformSolenoid,
+    BFieldExpansion,
     Translation,
     Rotation,
     XYShift,

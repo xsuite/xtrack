@@ -3,23 +3,34 @@
 # Copyright (c) CERN, 2025.                 #
 # ######################################### #
 
-from ..base_element import BeamElement
 import xobjects as xo
+
+from ..base_element import BeamElement
 from ..random import (
     RandomExponential,
     RandomUniformAccurate,
 )
 from ._common import (
-    SynchrotronRadiationRecord,
-    _HasIntegrator,
-    _HasKnlKsl,
     _NOEXPR_FIELDS,
+    SynchrotronRadiationRecord,
     _docstring_general_notes,
     _for_docstring_alignment,
+    _for_docstring_edge_straight,
+    _HasIntegrator,
+    _HasKnlKsl,
+)
+from ._edge import (
+    EDGE_ACTIVE,
+    STRAIGHT_EDGE_MODELS,
+    STRAIGHT_EDGE_PARAMS,
+    _HasEdges,
+    edge_xofields,
 )
 
-class VariableSolenoid(_HasKnlKsl, _HasIntegrator, BeamElement):
 
+class VariableSolenoid(_HasEdges, _HasKnlKsl, _HasIntegrator, BeamElement):
+
+    _magnet_plan = True
     _docstring_start = \
     """
     Solenoid with linearly varying longitudinal field. The transverse fields
@@ -40,11 +51,14 @@ class VariableSolenoid(_HasKnlKsl, _HasIntegrator, BeamElement):
     """.strip()
 
     __doc__ = '\n    '.join([_docstring_start, _HasKnlKsl._for_docstring,
-        _HasIntegrator._for_docstring, _for_docstring_alignment, '\n',
-        _docstring_general_notes, '\n\n'])
+        _HasIntegrator._for_docstring, _for_docstring_edge_straight,
+        _for_docstring_alignment, '\n', _docstring_general_notes, '\n\n'])
 
     isthick = True
     has_backtrack = True
+
+    # The faces also set the vector potential of ks_profile (when active)
+    _edge_models = STRAIGHT_EDGE_MODELS
 
     _xofields={
         'ks_profile': xo.Float64[2],
@@ -56,6 +70,10 @@ class VariableSolenoid(_HasKnlKsl, _HasIntegrator, BeamElement):
         'knl': xo.Float64[:],
         'ksl': xo.Float64[:],
         'num_multipole_kicks': xo.Int64,
+        # Active, model "suppressed": no fringe map
+        **edge_xofields(
+            EDGE_ACTIVE | STRAIGHT_EDGE_MODELS['suppressed'], STRAIGHT_EDGE_PARAMS
+        ),
         'integrator': xo.Int64,
         'radiation_flag': xo.Int64,
         'delta_taper': xo.Float64,

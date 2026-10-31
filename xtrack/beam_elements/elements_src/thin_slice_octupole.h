@@ -12,69 +12,48 @@
 #include "xtrack/headers/track.h"
 #include "xtrack/headers/factorial.h"
 #include "xtrack/beam_elements/elements_src/track_magnet.h"
+#include "xtrack/beam_elements/elements_src/edge_load.h"
 #include "xtrack/beam_elements/elements_src/default_magnet_config.h"
 
+// The magnet, as a plan for track_magnet_particles (the misalignment is
+// added by ThinSliceOctupole_prepare_plan, track_local_particle_with_transformations.h)
 GPUFUN
-void ThinSliceOctupole_track_local_particle(
+void ThinSliceOctupole_prepare_magnet(
         ThinSliceOctupoleData el,
+        MagnetPlan* plan,
         LocalParticle* part0
 ) {
 
-    track_magnet_particles(
-        /*weight*/                ThinSliceOctupoleData_get_weight(el),
-        /*part0*/                 part0,
-        /*length*/                ThinSliceOctupoleData_get__parent_length(el),
-        /*order*/                 ThinSliceOctupoleData_get__parent_order(el),
-        /*inv_factorial_order*/   ThinSliceOctupoleData_get__parent_inv_factorial_order(el),
-        /*knl*/                   ThinSliceOctupoleData_getp1__parent_knl(el, 0),
-        /*ksl*/                   ThinSliceOctupoleData_getp1__parent_ksl(el, 0),
-        /*order_rel*/             ThinSliceOctupoleData_len__parent_knl_rel(el) - 1, // order_rel is derived from the length of knl_rel and ksl_rel arrays
-      /*inv_factorial_order_rel*/ one_over_factorial(ThinSliceOctupoleData_len__parent_knl_rel(el) - 1), // 1 / (order_rel)!
-        /*knl_rel*/               ThinSliceOctupoleData_getp1__parent_knl_rel(el, 0),
-        /*ksl_rel*/               ThinSliceOctupoleData_getp1__parent_ksl_rel(el, 0),
-        /*rel_ref_strength*/      ThinSliceOctupoleData_get__parent_length(el) * ((ThinSliceOctupoleData_get__parent_main_is_skew(el)) ? ThinSliceOctupoleData_get__parent_k3s(el) : ThinSliceOctupoleData_get__parent_k3(el)),
-        /*num_multipole_kicks*/   1, // kick only
-        /*model*/                 -1, // kick only
-        /*default_model*/         OCTUPOLE_DEFAULT_MODEL,
-        /*integrator*/            3, // uniform
-        /*default_integrator*/    OCTUPOLE_DEFAULT_INTEGRATOR,
-        /*radiation_flag*/        ThinSliceOctupoleData_get_radiation_flag(el),
-        /*radiation_flag_parent*/ ThinSliceOctupoleData_get__parent_radiation_flag(el),
-        /*radiation_record*/      NULL,
-        /*delta_taper*/           ThinSliceOctupoleData_get_delta_taper(el),
-        /*h*/                     0.,
-        /*hxl*/                   0.,
-        /*k0*/                    0.,
-        /*k1*/                    0.,
-        /*k2*/                    0.,
-        /*k3*/                    ThinSliceOctupoleData_get__parent_k3(el),
-        /*k0s*/                   0.,
-        /*k1s*/                   0.,
-        /*k2s*/                   0.,
-        /*k3s*/                   ThinSliceOctupoleData_get__parent_k3s(el),
-        /*ks*/                    0.,
-        /*dks_ds*/                0.,
-        /*x0_solenoid*/           0.,
-        /*y0_solenoid*/           0.,
-        /*rbend_model*/           -1, // not rbend
-     /*rbend_compensate_sagitta*/ 0,  // not rbend
-        /*rbend_shift*/           0., // not rbend
-        /*rbend_angle_diff*/      0., // not rbend
-        /*length_straight*/       0., // not rbend
-        /*body_active*/           1,
-        /*edge_entry_active*/     0,
-        /*edge_exit_active*/      0,
-        /*edge_entry_model*/      0,
-        /*edge_exit_model*/       0,
-        /*edge_entry_angle*/      0.,
-        /*edge_exit_angle*/       0.,
-        /*edge_entry_angle_fdown*/0.,
-        /*edge_exit_angle_fdown*/ 0.,
-        /*edge_entry_fint*/       0.,
-        /*edge_exit_fint*/        0.,
-        /*edge_entry_hgap*/       0.,
-        /*edge_exit_hgap*/        0.
-    );
+    MagnetFace entry_face = MagnetFace_empty(0);
+    MagnetFace exit_face = MagnetFace_empty(1);
+
+    // Settings aligned by hand: not formatted
+    // clang-format off
+    MagnetSettings magnet;
+    MagnetSettings_init_default(&magnet);
+    magnet.weight                   = ThinSliceOctupoleData_get_weight(el);
+    magnet.length                   = ThinSliceOctupoleData_get__parent_length(el);
+    magnet.order                    = ThinSliceOctupoleData_get__parent_order(el);
+    magnet.inv_factorial_order      = ThinSliceOctupoleData_get__parent_inv_factorial_order(el);
+    magnet.knl                      = ThinSliceOctupoleData_getp1__parent_knl(el, 0);
+    magnet.ksl                      = ThinSliceOctupoleData_getp1__parent_ksl(el, 0);
+    magnet.order_rel                = ThinSliceOctupoleData_len__parent_knl_rel(el) - 1;  // order_rel is derived from the length of knl_rel and ksl_rel arrays
+    magnet.knl_rel                  = ThinSliceOctupoleData_getp1__parent_knl_rel(el, 0);
+    magnet.ksl_rel                  = ThinSliceOctupoleData_getp1__parent_ksl_rel(el, 0);
+    magnet.rel_ref_strength         = ThinSliceOctupoleData_get__parent_length(el) * ((ThinSliceOctupoleData_get__parent_main_is_skew(el)) ? ThinSliceOctupoleData_get__parent_k3s(el) : ThinSliceOctupoleData_get__parent_k3(el));
+    magnet.num_multipole_kicks      = 1;
+    magnet.model                    = MODEL_KICK_ONLY;
+    magnet.integrator               = INTEGRATOR_UNIFORM;
+    magnet.radiation_flag           = magnet_radiation_flag(ThinSliceOctupoleData_get_radiation_flag(el), ThinSliceOctupoleData_get__parent_radiation_flag(el));
+    magnet.delta_taper              = ThinSliceOctupoleData_get_delta_taper(el);
+    magnet.k3                       = ThinSliceOctupoleData_get__parent_k3(el);
+    magnet.k3s                      = ThinSliceOctupoleData_get__parent_k3s(el);
+    // Kept at default (MagnetSettings_init_default):
+    //     radiation_record, h, hxl, k0, k1, k2, k0s, k1s, k2s, ks, dks_ds,
+    //     x0_solenoid, y0_solenoid, rbend_model, rbend_compensate_sagitta,
+    //     rbend_shift, rbend_angle_diff, length_straight, body_active
+    // clang-format on
+    MagnetPlan_prepare(plan, &magnet, &entry_face, &exit_face, part0);
 }
 
 #endif // XTRACK_THIN_SLICE_OCTUPOLE_H

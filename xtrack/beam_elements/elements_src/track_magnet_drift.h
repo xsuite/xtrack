@@ -6,6 +6,8 @@
 #define XTRACK_TRACK_MAGNET_DRIFT_H
 
 #include "xtrack/headers/track.h"
+#include "xtrack/beam_elements/elements_src/track_magnet_structs.h"
+#include "xtrack/beam_elements/elements_src/default_magnet_config.h"
 
 #ifdef XTRACK_TPSA_TRACK
 #include <tuple>
@@ -534,7 +536,7 @@ void track_solenoid_single_particle(
 
 
 
-GPUFUN
+GPUFUN XT_NOINLINE
 void track_magnet_drift_single_particle(
     LocalParticle* part,  // LocalParticle to track
     const double length,  // length of the element
@@ -547,19 +549,16 @@ void track_magnet_drift_single_particle(
     const int64_t drift_model      // drift model
 ) {
 
-    // drift_model = 0 : drift expanded (caller has ensured k0=0, k1=0, h=0)
-    // drift_model = 1 : drift exact (caller has ensured k0=0, k1=0, h=0)
-    // drift_model = 2 : polar drift (caller has ensured k0=0, k1=0, h!=0)
-    // drift_model = 3 : k0, k1, h expanded map (this is general for all possible values)
-    // drift_model = 4 : bend with h (caller has ensured k1=0, h!=0)
-    // drift_model = 5 : bend without h (caller has ensured k1=0, h=0)
-    // drift_model = 6 : solenoid (caller has ensured k0=0, k1=0, h=0, ks!=0)
-    // drift_model = 7 : bend (h!=0 + k0) modeled with 4th order Yoshida
-    //                   integrator (rot-kick_from_k0-rot)
-    // drift_model = 8 : bend (h!=0 + k0) modeled with 6th order Yoshida
-    //                   integrator (rot-kick_from_k0-rot)
+    // The maps (DRIFT_MAP_*, default_magnet_config.h) and the strengths each
+    // uses, the others being zero (configure_tracking_model):
+    // - EXPANDED, EXACT: none
+    // - POLAR: h
+    // - DIPOLE_QUAD_EXPANDED: k0, k1, h
+    // - BEND: k0, h; BEND_STRAIGHT: k0
+    // - SOLENOID: ks
+    // - BEND_YOSHIDA4, BEND_YOSHIDA6: k0, h (rot-kick_from_k0-rot)
 
-    if (drift_model == -1) {
+    if (drift_model == DRIFT_MAP_NONE) {
         return;
     }
 
@@ -567,28 +566,28 @@ void track_magnet_drift_single_particle(
         return;
     }
     switch (drift_model) {
-        case 0:
+        case DRIFT_MAP_EXPANDED:
             track_expanded_drift_single_particle(part, length);
             break;
-        case 1:
+        case DRIFT_MAP_EXACT:
             track_exact_drift_single_particle(part, length);
             break;
-        case 2:
+        case DRIFT_MAP_POLAR:
             track_polar_drift_single_particle(part, length, h);
             break;
-        case 3:
+        case DRIFT_MAP_DIPOLE_QUAD_EXPANDED:
             track_expanded_combined_dipole_quad_single_particle(part, length, k0, k1, h);
             break;
-        case 4:
+        case DRIFT_MAP_BEND:
             track_curved_exact_bend_single_particle(part, length, k0, h);
             break;
-        case 5:
+        case DRIFT_MAP_BEND_STRAIGHT:
             track_straight_exact_bend_single_particle(part, length, k0);
             break;
-        case 6:
+        case DRIFT_MAP_SOLENOID:
             track_solenoid_single_particle(part, length, ks, x0_solenoid, y0_solenoid);
             break;
-        case 7:
+        case DRIFT_MAP_BEND_YOSHIDA4:
             // 4th order Yoshida integrator for a curved bend (h and k0 only)
             // (integrator coefficients from MAD-NG)
             track_polar_drift_single_particle(part, 0.6756035959798289 * length, h);
@@ -599,7 +598,7 @@ void track_magnet_drift_single_particle(
             LocalParticle_set_px(part, LocalParticle_get_px(part) - 1.3512071919596578 * k0 * LocalParticle_get_chi(part) * length);
             track_polar_drift_single_particle(part, 0.6756035959798289 * length, h);
             break;
-        case 8:
+        case DRIFT_MAP_BEND_YOSHIDA6:
             // // Sixth order Yoshida integrator for a curved bend (h and k0 only)
             // // (integrator coefficients from MAD-NG)
             track_polar_drift_single_particle(part, 3.922568052387799819591407413100e-01 * length, h);
@@ -622,6 +621,23 @@ void track_magnet_drift_single_particle(
             break;
     }
 
+}
+
+
+
+GPUFUN XT_INLINE
+void MagnetDrift_apply(LocalParticle* part, const MagnetDrift* drift, double length) {
+    track_magnet_drift_single_particle(
+        part,
+        length,
+        drift->k0,
+        drift->k1,
+        drift->ks,
+        drift->h,
+        drift->x0_solenoid,
+        drift->y0_solenoid,
+        drift->model
+    );
 }
 
 #undef IS_ZERO

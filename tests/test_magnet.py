@@ -1691,8 +1691,8 @@ def test_magnet_and_edge_nonlinear_both_edges(test_context):
 @for_all_test_contexts
 def test_magnet_and_edge_quadrupole_nonlinear_fringes(test_context):
     qq = xt.Quadrupole(k1=0.11, length=3, _context=test_context)
-    qq.edge_entry_active = 1
-    qq.edge_exit_active = 1
+    qq.edge_entry_model = 'full'
+    qq.edge_exit_model = 'full'
 
     mm = Magnet(
         k0=0, k1=0.11, length=3,
@@ -1726,8 +1726,8 @@ def test_magnet_and_edge_quadrupole_nonlinear_fringes(test_context):
 @for_all_test_contexts
 def test_magnet_and_edge_sextupole_nonlinear_fringes(test_context):
     ss = xt.Sextupole(k2=0.11 + 0.03 / 3., k2s=0.12 - 0.04 / 3, length=3, _context=test_context)
-    ss.edge_entry_active = 1
-    ss.edge_exit_active = 1
+    ss.edge_entry_model = 'full'
+    ss.edge_exit_model = 'full'
 
     mm = Magnet(
         k0=0, k2=0.11, k2s=0.12, length=3,
@@ -1764,10 +1764,8 @@ def test_magnet_and_edge_sextupole_nonlinear_fringes(test_context):
 @for_all_test_contexts
 def test_magnet_and_edge_octupole_nonlinear_fringes(test_context):
     oo = xt.Octupole(k3=0.3 + 0.02 / 3., k3s=0.4 - 0.07 / 3, length=3, _context=test_context)
-    oo.edge_entry_active = 1
-    oo.edge_exit_active = 1
-    oo.edge_entry_active = 1
-    oo.edge_exit_active = 1
+    oo.edge_entry_model = 'full'
+    oo.edge_exit_model = 'full'
 
     mm = Magnet(
         k0=0, k3=0.3, k3s=0.4, length=3,

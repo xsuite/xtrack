@@ -33,9 +33,9 @@ void CrabCavity_track_local_particle(CrabCavityData el, LocalParticle* part0)
         /*phase_s*/               NULL,
         /*num_kicks*/             CrabCavityData_get_num_kicks(el),
         /*model*/                 CrabCavityData_get_model(el),
-        /*default_model*/         6, // drift-kick-drift-expanded
+        /*default_model*/         MODEL_DRIFT_KICK_DRIFT_EXPANDED,
         /*integrator*/            CrabCavityData_get_integrator(el),
-        /*default_integrator*/    3, // Uniform
+        /*default_integrator*/    INTEGRATOR_UNIFORM,
         /*radiation_flag*/        0, // not used here
         /*radiation_flag_parent*/ 0, // not used here
         /*lag_taper*/             CrabCavityData_get_lag_taper(el),
