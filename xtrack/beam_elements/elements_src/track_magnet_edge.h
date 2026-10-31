@@ -110,7 +110,7 @@ void MagnetEdge_quad_lw_fringe_single_particle(
     xt_float_or_tpsa_arg k1,   // total quadrupole strength
     xt_float_or_tpsa_arg k1s,  // total skew quadrupole strength
     const double g1,
-    xt_float_or_tpsa_arg g2
+    const double g2
 ) {
     const double chi = LocalParticle_get_chi(part);
     const double beta0 = LocalParticle_get_beta0(part);
@@ -181,7 +181,7 @@ void MagnetEdge_quad_lw_fringe_solenoid_single_particle(
     xt_float_or_tpsa_arg k1,   // total quadrupole strength
     xt_float_or_tpsa_arg k1s,  // total skew quadrupole strength
     const double g1,
-    xt_float_or_tpsa_arg g2,
+    const double g2,
     xt_float_or_tpsa_arg bz,   // solenoid strength at the face
     const double x0,
     const double y0
@@ -388,7 +388,7 @@ void MagnetFace_prepare(MagnetFace* face, MagnetField* field, const uint8_t back
     // Soft quadrupole fringe (Lee-Whiting), with or without the hard-edge one,
     // and with the linear edge too
     face->do_quad_lw =
-        (flags & EDGE_QUAD_LW) && (face->f1 != 0 || !xt_float_or_tpsa_is_zero(face->f2))
+        (flags & EDGE_QUAD_LW) && (face->f1 != 0 || face->f2 != 0)
         && !(xt_float_or_tpsa_is_zero(field->k1) && xt_float_or_tpsa_is_zero(field->k1s));
 
     double sin_ = 0, cos_ = 1, tan_ = 0;

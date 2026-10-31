@@ -146,11 +146,7 @@ typedef struct MagnetFace_s {
     double angle_fdown;    // feed-down angle of the linear model
     double fint;           // fringe field integral
     double hgap;           // half gap
-    // Soft quadrupole fringe (Lee-Whiting). f2 can be a TPSA parameter; f1, fint
-    // and hgap cannot, as the maps are not regular in them at zero (_edge.py,
-    // TPSA_EDGE_PARAMS)
-    double f1;
-    xt_float_or_tpsa f2;
+    double f1, f2;         // soft quadrupole fringe (Lee-Whiting)
     // Solenoid strength at the face, when it is not the one of the field
     // (VariableSolenoid: ks varies along the body). The vector potential of
     // this ks is set both when entering and when leaving: the field goes on
@@ -172,12 +168,7 @@ typedef struct MagnetFace_s {
     double patch_sin, patch_cos, patch_tan;
     double rot_sin, rot_cos, rot_tan;  // y-rotation by the face angle
     double wedge_angle;
-    double quad_lw_g1;
-    xt_float_or_tpsa quad_lw_g2;
-#ifdef XTRACK_TPSA_TRACK
-    // The TPSA type has no default constructor
-    MagnetFace_s() : f2(0.), quad_lw_g2(0.) {}
-#endif
+    double quad_lw_g1, quad_lw_g2;
 } MagnetFace;
 
 
