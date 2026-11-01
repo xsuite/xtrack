@@ -117,6 +117,9 @@
 #ifdef XO_CONTEXT_CUDA
     #define XT_INLINE __forceinline__
     #define XT_NOINLINE __noinline__
+#elif defined(XO_CONTEXT_CL)
+    #define XT_INLINE inline __attribute__((always_inline))
+    #define XT_NOINLINE __attribute__((noinline))
 #else
     #define XT_INLINE
     #define XT_NOINLINE
