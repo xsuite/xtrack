@@ -271,8 +271,8 @@ def _propagate_twiss_from_init(
     twiss_res._data['particle_on_co'] = particle_on_co.copy(_context=xo.context_default)
 
     line_length = line.tracker._tracker_data_base.line_length
-    twiss_res._data['line_length'] = line_length
-    twiss_res._data['circumference'] = line_length # deprecated
+    twiss_res._data['line_length'] = float(line_length)
+    twiss_res._data['circumference'] = float(line_length) # deprecated
     twiss_res._data['_orientation'] = twiss_orientation
 
     return twiss_res

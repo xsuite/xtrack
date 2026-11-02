@@ -16,6 +16,43 @@ test_data_folder = pathlib.Path(
     __file__).parent.joinpath('../test_data').absolute()
 
 
+@pytest.mark.parametrize('method', ['4d', '6d'])
+@pytest.mark.parametrize('reverse', [False, True])
+def test_twiss_stores_python_float_scalars(method, reverse):
+    line = xt.Line(
+        elements=[xt.LineSegmentMap(
+            length=1., qx=0.31, qy=0.32, qs=0.01, bets=1.,
+            dqx=2., dqy=3.)],
+        element_names=['map'],
+        particle_ref=xt.Particles(p0c=1e9))
+    tw = line.twiss(method=method, reverse=reverse)
+
+    for table in [tw, tw._copy(), tw.rows[:], tw.reverse()]:
+        for name in ['qx', 'qy', 'qs', 'dqx', 'dqy', 'ddqx', 'ddqy',
+                     'c_minus', 'c_minus_re_0', 'c_minus_im_0', 'bets0',
+                     'line_length', 't_rev0', 'gamma0', 'beta0', 'p0c',
+                     'slip_factor', 'momentum_compaction_factor',
+                     'slip_factor_dzeta_ddelta']:
+            assert type(table._data[name]) is float, name
+            assert type(getattr(table, name)) is float, name
+            assert type(table[name]) is float, name
+        assert not any(isinstance(value, np.floating)
+                       for value in table._data.values())
+        assert isinstance(table.betx, np.ndarray)
+        assert isinstance(table.W_matrix, np.ndarray)
+
+    xo.assert_allclose(tw.qx, 0.31, atol=1e-12, rtol=0)
+    xo.assert_allclose(tw.qy, 0.32, atol=1e-12, rtol=0)
+    xo.assert_allclose(tw.dqx, 2., atol=1e-7, rtol=0)
+    xo.assert_allclose(tw.dqy, 3., atol=1e-7, rtol=0)
+
+    tw_open = line.twiss(method=method, reverse=reverse,
+                         init=tw.get_twiss_init('map'))
+    assert type(tw_open._data['line_length']) is float
+    assert not any(isinstance(value, np.floating)
+                   for value in tw_open._data.values())
+
+
 def test_twiss_table_to_pandas_columns():
     tw = xt.TwissTable({
         'name': np.array(['a', 'b'], dtype=object),

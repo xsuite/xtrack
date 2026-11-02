@@ -43,6 +43,9 @@ class TwissTable(Table):
     produced by Twiss calculations. Typical columns include longitudinal
     position, beta functions, alpha functions, dispersion, phase advances,
     coordinates, momenta, and element strengths when requested.
+
+    Global floating-point quantities produced by Twiss calculations are stored
+    as Python floats. Columns and matrices are NumPy arrays.
     """
 
     # Messages to be shown when accessing deprecated fields
@@ -1137,7 +1140,7 @@ class TwissTable(Table):
 
         if 'qs' in self.keys() and self.qs == 0:
             # 4d calculation
-            out.qs = 0
+            out.qs = 0.
             out.muzeta[:] = 0
 
         if 'spin_x' in self.keys():
