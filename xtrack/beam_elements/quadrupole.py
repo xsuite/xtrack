@@ -23,7 +23,6 @@ from ._common import (
     _HasModelStraight,
 )
 from ._edge import (
-    EDGE_ACTIVE,
     STRAIGHT_EDGE_MODELS,
     STRAIGHT_EDGE_PARAMS,
     _HasEdges,
@@ -74,8 +73,6 @@ class Quadrupole(_HasEdges, _HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamE
     allow_loss_refinement = True
 
     _edge_models = STRAIGHT_EDGE_MODELS
-    # Dicts of earlier versions: an active edge without a model was "full"
-    _edge_model_of_active_legacy_dict = 'full'
 
     _xofields = {
         'k1': FloatOrTpsa,
@@ -89,11 +86,8 @@ class Quadrupole(_HasEdges, _HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamE
         'knl_rel': xo.Float64[:],
         'ksl_rel': xo.Float64[:],
         'main_is_skew': xo.Int32,
-        # Model "full", not active
-        # Active, model "suppressed": no fringe map
-        **edge_xofields(
-            EDGE_ACTIVE | STRAIGHT_EDGE_MODELS['suppressed'], STRAIGHT_EDGE_PARAMS
-        ),
+        # Not active, model "full" (as on main)
+        **edge_xofields(STRAIGHT_EDGE_MODELS['full'], STRAIGHT_EDGE_PARAMS),
         'model': xo.Int64,
         'integrator': xo.Int64,
         'radiation_flag': xo.Int64,

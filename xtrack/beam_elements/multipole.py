@@ -24,7 +24,6 @@ from ._common import (
     _HasModelStraight,
 )
 from ._edge import (
-    EDGE_ACTIVE,
     STRAIGHT_EDGE_MODELS,
     STRAIGHT_EDGE_PARAMS,
     _HasEdges,
@@ -113,11 +112,9 @@ class Multipole(_HasEdges, _HasKnlKsl, _HasModelStraight, _HasIntegrator, BeamEl
         'num_multipole_kicks': xo.Int64,
         'model': xo.Int64,
         'integrator': xo.Int64,
-        # Faces of a thick multipole (a thin one has none). Active, model
-        # "suppressed": no fringe map
-        **edge_xofields(
-            EDGE_ACTIVE | STRAIGHT_EDGE_MODELS['suppressed'], STRAIGHT_EDGE_PARAMS
-        ),
+        # Faces of a thick multipole (a thin one has none). Not active,
+        # model "full"
+        **edge_xofields(STRAIGHT_EDGE_MODELS['full'], STRAIGHT_EDGE_PARAMS),
     }
 
     _rename = {

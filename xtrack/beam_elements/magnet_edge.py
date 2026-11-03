@@ -34,8 +34,8 @@ class MagnetEdge(_HasKnlKsl, BeamElement):
     Parameters
     ----------
     model : str
-        "linear", "full", "no-mult" or "suppressed" ("dipole-only":
-        deprecated name of "no-mult"). See :ref:`edge_label`.
+        "linear", "full", "dipole-only" or "suppressed". See
+        :ref:`edge_label`.
     is_exit : bool
         If False, the edge is the entrance edge. If True, the edge is an exit edge.
     kn : list of floats
@@ -70,7 +70,7 @@ class MagnetEdge(_HasKnlKsl, BeamElement):
         Fringe integral.
     qint1, qint2 : float
         soft quadrupole fringe (Lee-Whiting) integrals f1 (m), f2 (m^3), used by the
-        models "full" and "no-mult".
+        models "full" and "dipole-only".
     """
     isthick = True
     has_backtrack = True

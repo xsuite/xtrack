@@ -4,12 +4,9 @@
 # ######################################### #
 
 import re
-import warnings
 from pathlib import Path
 
 import xobjects as xo
-
-from ..general import DEPRECATION_INFO_PREP_1_0
 
 # Bits of the per-face edge mask, read from edge_flags.h (the one place they
 # are defined); a bit missing there fails here, at import
@@ -41,31 +38,25 @@ _EDGE_MODEL_INDEX_TO_NAME = {
     -1: 'suppressed',
     0: 'linear',
     1: 'full',
-    2: 'no-mult',
-}
-
-# Deprecated model names -> current name
-_DEPRECATED_EDGE_MODELS = {
-    'dipole-only': 'no-mult',
+    2: 'dipole-only',
 }
 
 # Edge models of the magnets: name -> mask bits (without EDGE_ACTIVE, which
 # is set by `edge_*_active`). Each fringe map acts only if its field is there:
 # the dipole fringe if k0 != 0, the multipole fringe if a multipole of order
 # >= 1 is nonzero, the soft quadrupole fringe if qint1 or qint2 != 0.
-#   linear: the linear dipole edge instead of the dipole fringe; the soft
-#       quadrupole fringe as in the other models (it has no linear version)
+#   linear: the linear dipole edge only
 #   full: all the fringe maps
-#   no-mult: all but the hard-edge multipole fringe
+#   dipole-only: all but the hard-edge multipole fringe
 BEND_EDGE_MODELS = {
-    'linear': EDGE_LINEAR | EDGE_QUAD_LW,
+    'linear': EDGE_LINEAR,
     'full': EDGE_BEND | EDGE_MULT | EDGE_QUAD_LW,
-    'no-mult': EDGE_BEND | EDGE_QUAD_LW,
+    'dipole-only': EDGE_BEND | EDGE_QUAD_LW,
     'suppressed': 0,
 }
-# Straight magnets (no face angle, fint, hgap): no linear model
+# Straight magnets: all the fringe maps or none
 STRAIGHT_EDGE_MODELS = {
-    name: bits for name, bits in BEND_EDGE_MODELS.items() if name != 'linear'
+    name: BEND_EDGE_MODELS[name] for name in ('full', 'suppressed')
 }
 # The standalone MagnetEdge has the models of the bends
 MAGNET_EDGE_MODELS = BEND_EDGE_MODELS
@@ -76,14 +67,6 @@ def edge_model_to_bits(models, model, owner):
     table ``models``."""
     if not isinstance(model, str):
         model = _EDGE_MODEL_INDEX_TO_NAME.get(int(model), model)
-    elif model in _DEPRECATED_EDGE_MODELS:
-        warnings.warn(
-            f'Edge model "{model}" is deprecated, use '
-            f'"{_DEPRECATED_EDGE_MODELS[model]}".'
-            + DEPRECATION_INFO_PREP_1_0,
-            FutureWarning,
-        )
-        model = _DEPRECATED_EDGE_MODELS[model]
     try:
         return models[model]
     except KeyError:
@@ -133,20 +116,6 @@ class _HasEdges:
     """
 
     _edge_models = None
-
-    # Model of an edge that earlier versions wrote as active without a model
-    # (the default model then); None if the default model did not change
-    _edge_model_of_active_legacy_dict = None
-
-    @classmethod
-    def from_dict(cls, dct, **kwargs):
-        legacy_model = cls._edge_model_of_active_legacy_dict
-        if legacy_model is not None:
-            dct = dct.copy()
-            for face in FACES:
-                if dct.get(f'edge_{face}_active') and f'edge_{face}_model' not in dct:
-                    dct[f'edge_{face}_model'] = legacy_model
-        return super().from_dict(dct, **kwargs)
 
     @classmethod
     def get_available_edge_models(cls):

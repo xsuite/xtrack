@@ -84,7 +84,7 @@ def _magnet_edge_from_parent(edge_slice, model, **face):
 _DIPOLE_EDGE_MODEL = {
     'linear': 'linear',
     'full': 'full',
-    'no-mult': 'full',
+    'dipole-only': 'full',
     'suppressed': 'suppressed',
 }
 
@@ -117,7 +117,7 @@ class _ThinSliceDipoleEdgeBase:
         model = getattr(parent, f'edge_{face}_model')
         has_mult = np.any(kn[1:] != 0) or np.any(ks[1:] != 0)
         if (model == 'full' and has_mult) or (
-            model != 'suppressed' and _has_qint(parent, face)
+            model in ('full', 'dipole-only') and _has_qint(parent, face)
         ):
             # The DipoleEdge has neither the multipole fringe nor the soft
             # quadrupole fringe
@@ -140,7 +140,7 @@ class _ThinSliceDipoleEdgeBase:
             hgap=getattr(parent, f'edge_{face}_hgap'),
             fint=getattr(parent, f'edge_{face}_fint'),
             # The DipoleEdge has the dipole fringe only: its "full" model is
-            # the "no-mult" one of the bend
+            # the "dipole-only" one of the bend
             model=_DIPOLE_EDGE_MODEL[model],
             **extra,
             side=face,
@@ -164,7 +164,7 @@ class _ThinSliceMultipoleEdgeBase:
         # The MultipoleEdge has neither the dipole fringe (of knl[0]) nor the
         # soft quadrupole fringe
         kn, _ = _parent_total_kn_ks(parent)
-        if model == 'no-mult' or _has_qint(parent, face) or kn[0] != 0:
+        if _has_qint(parent, face) or kn[0] != 0:
             return _magnet_edge_from_parent(
                 self,
                 model,

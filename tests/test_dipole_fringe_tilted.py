@@ -36,7 +36,7 @@ def _edge(fint):
     return xt.Bend(
         length=0,
         k0=B0,
-        edge_entry_model='no-mult',
+        edge_entry_model='dipole-only',
         edge_entry_fint=fint,
         edge_entry_hgap=HGAP,
         edge_exit_active=False,

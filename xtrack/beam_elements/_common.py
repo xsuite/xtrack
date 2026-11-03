@@ -115,8 +115,8 @@ _RBEND_MODEL_TO_INDEX = {k: v for v, k in _INDEX_TO_RBEND_MODEL.items()}
 
 _for_docstring_edge_qint = """
     edge_entry_qint1, edge_exit_qint1 : float
-        Integral f1 (m) of the soft quadrupole fringe (Lee-Whiting), applied in
-        every edge model but "suppressed". Default is ``0``.
+        Integral f1 (m) of the soft quadrupole fringe (Lee-Whiting), applied
+        in the "full" and "dipole-only" edge models. Default is ``0``.
     edge_entry_qint2, edge_exit_qint2 : float
         Integral f2 (m^3) of the soft quadrupole fringe (Lee-Whiting). Default
         is ``0``.
@@ -126,12 +126,14 @@ _for_docstring_edge_straight = (
     (
         """
     edge_entry_active : bool
-        The entrance edge is active if True. Default is True. The fringe maps
-        applied are those of ``edge_entry_model``. See :ref:`edge_label`.
+        Fringe field at the entrance edge is active if True. Default is False.
+        The fringe maps applied are those of ``edge_entry_model``. See
+        :ref:`edge_label`.
     edge_exit_active : bool
-        The exit edge is active if True. Default is True.
+        Fringe field at the exit edge is active if True. Default is False.
     edge_entry_model : str
-        "suppressed" (default, no fringe map), "full" or "no-mult".
+        "full" (default, all the fringe maps) or "suppressed" (no fringe
+        map).
     edge_exit_model : str
         As ``edge_entry_model``.
     edge_entry_fint, edge_exit_fint : float
@@ -156,15 +158,12 @@ _for_docstring_edge_bend = (
         Edge effects at the exit edge are active if True. Default is True.
     edge_entry_model : str
         Model used for the entrance edge. Available models are: "suppressed",
-        "linear", "full", "no-mult" ("dipole-only": deprecated name of
-        "no-mult"). Default is "linear". "linear" applies the linear dipole
-        edge instead of the dipole and multipole fringes; the soft quadrupole
-        fringe (``qint1``, ``qint2``) is dependant on these two values and will
-        be applied in all models but "suppressed".
+        "linear", "full", "dipole-only". Default is "linear". "linear"
+        applies the linear dipole edge only; "dipole-only" is "full" without
+        the hard-edge multipole fringe.
     edge_exit_model : str
         Model used for the exit edge. Available models are: "suppressed",
-        "linear", "full", "no-mult" ("dipole-only": deprecated name of
-        "no-mult"). Default is "linear".
+        "linear", "full", "dipole-only". Default is "linear".
     edge_entry_angle : float
         Entrance edge angle in radians. Default is ``0``.
     edge_exit_angle : float
@@ -177,10 +176,10 @@ _for_docstring_edge_bend = (
         when `edge_exit_model` is "linear". Default is ``0``.
     edge_entry_fint : float
         Fringe field integral at the entrance edge. Used with the "linear",
-        "full", and "no-mult" edge models. Default is ``0``.
+        "full", and "dipole-only" edge models. Default is ``0``.
     edge_exit_fint : float
         Fringe field integral at the exit edge. Used with the "linear",
-        "full", and "no-mult" edge models. Default is ``0``.
+        "full", and "dipole-only" edge models. Default is ``0``.
     edge_entry_hgap : float
         Magnet half-gap at the entrance edge in meters. Used together with
         ``edge_entry_fint`` in the fringe field calculation. Default is ``0``.

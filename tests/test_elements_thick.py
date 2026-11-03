@@ -68,7 +68,7 @@ def test_combined_function_dipole_against_ptc(
     line_thick = ml.make_line()
     line_thick.configure_drift_model('exact')  # to be consistent with madx
     line_thick.build_tracker(_context=test_context)
-    line_thick.configure_bend_model(core=model, edge='no-mult')
+    line_thick.configure_bend_model(core=model, edge='dipole-only')
 
     if use_multipole:
         line_thick['b'].knl[1] = k1 * length
@@ -2587,8 +2587,8 @@ def test_multipole_fringe(test_context, element, kn_param_name):
             elements=[
                 element_class(
                     length=length,
-                    edge_entry_model='full' if has_fringe else 'suppressed',
-                    edge_exit_model='full' if has_fringe else 'suppressed',
+                    edge_entry_active=has_fringe,
+                    edge_exit_active=has_fringe,
                     **{kn_param_name: knl / length},
                 ),
             ],
@@ -2816,7 +2816,7 @@ def test_configure_model():
 
     line.configure_bend_model(
         core='drift-kick-drift-exact',
-        edge='no-mult',
+        edge='dipole-only',
         integrator='teapot',
         num_multipole_kicks=4,
     )
@@ -2839,14 +2839,14 @@ def test_configure_model():
     assert line['b1'].model == 'drift-kick-drift-exact'
     assert line['b1'].edge_entry_active == True
     assert line['b1'].edge_exit_active == True
-    assert line['b1'].edge_entry_model == 'no-mult'
-    assert line['b1'].edge_exit_model == 'no-mult'
+    assert line['b1'].edge_entry_model == 'dipole-only'
+    assert line['b1'].edge_exit_model == 'dipole-only'
     assert line['b1'].integrator == 'teapot'
     assert line['b1'].num_multipole_kicks == 4
 
     assert line['r1'].model == 'drift-kick-drift-exact'
-    assert line['r1'].edge_entry_model == 'no-mult'
-    assert line['r1'].edge_exit_model == 'no-mult'
+    assert line['r1'].edge_entry_model == 'dipole-only'
+    assert line['r1'].edge_exit_model == 'dipole-only'
     assert line['r1'].integrator == 'teapot'
     assert line['r1'].num_multipole_kicks == 4
 
@@ -2867,11 +2867,10 @@ def test_configure_model():
     assert line['s1'].num_multipole_kicks == 6
 
     assert line['o1'].model == 'mat-kick-mat'
-    # edge=None leaves the defaults: active, no fringe map
-    assert line['o1'].edge_entry_active == True
-    assert line['o1'].edge_exit_active == True
-    assert line['o1'].edge_entry_model == 'suppressed'
-    assert line['o1'].edge_exit_model == 'suppressed'
+    assert line['o1'].edge_entry_active == False
+    assert line['o1'].edge_exit_active == False
+    assert line['o1'].edge_entry_model == 'full'
+    assert line['o1'].edge_exit_model == 'full'
     assert line['o1'].integrator == 'uniform'
     assert line['o1'].num_multipole_kicks == 7
 

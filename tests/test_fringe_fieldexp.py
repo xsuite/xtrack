@@ -129,8 +129,8 @@ def test_quad_lw_fringe_vs_field_expansion():
             quad = xt.Quadrupole(
                 length=LENGTH + ell,
                 k1=k,
-                edge_entry_model='full',
-                edge_exit_model='full',
+                edge_entry_active=True,
+                edge_exit_active=True,
                 edge_entry_qint1=qint1,
                 edge_exit_qint1=qint1,
                 model='mat-kick-mat-exact',
@@ -152,7 +152,7 @@ def test_bend_fringe_gap_vs_field_expansion():
             f'edge_{ff}_{kk}': vv
             for ff in ('entry', 'exit')
             for kk, vv in {
-                'model': 'no-mult', 'active': fringe, 'fint': 0.5, 'hgap': 2 * _fint_hgap(ell)
+                'model': 'dipole-only', 'active': fringe, 'fint': 0.5, 'hgap': 2 * _fint_hgap(ell)
             }.items()
         }
 
@@ -191,8 +191,8 @@ def test_quad_lw_fringe_in_solenoid_vs_field_expansion():
 
             body = solenoid(
                 LENGTH + ell, knl=[0, k * (LENGTH + ell)], integrator='yoshida-6',
-                num_multipole_kicks=50, edge_entry_model='no-mult',
-                edge_exit_model='no-mult', edge_entry_qint1=qint1,
+                num_multipole_kicks=50, edge_entry_model='full',
+                edge_exit_model='full', edge_entry_qint1=qint1,
                 edge_exit_qint1=qint1)
             return fe.make_line([solenoid(ell / 2), body, solenoid(ell / 2)])
 

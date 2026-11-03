@@ -6,8 +6,10 @@ import xobjects as xo
 
 import xtrack as xt
 
-BEND_MODELS = ['linear', 'full', 'no-mult', 'suppressed']
-STRAIGHT_MODELS = ['full', 'no-mult', 'suppressed']
+BEND_MODELS = ['linear', 'full', 'dipole-only', 'suppressed']
+STRAIGHT_MODELS = ['full', 'suppressed']
+# Edges of a straight magnet, switched on (they are off by default)
+ACTIVE = {'edge_entry_active': True, 'edge_exit_active': True}
 
 
 def _new(cls, **kw):
@@ -22,12 +24,12 @@ def _new(cls, **kw):
         (xt.Bend, BEND_MODELS, 'linear', 1),
         (xt.RBend, BEND_MODELS, 'linear', 1),
         (xt.Magnet, BEND_MODELS, 'linear', 1),
-        (xt.Quadrupole, STRAIGHT_MODELS, 'suppressed', 1),
-        (xt.Sextupole, STRAIGHT_MODELS, 'suppressed', 1),
-        (xt.Octupole, STRAIGHT_MODELS, 'suppressed', 1),
+        (xt.Quadrupole, STRAIGHT_MODELS, 'full', 0),
+        (xt.Sextupole, STRAIGHT_MODELS, 'full', 0),
+        (xt.Octupole, STRAIGHT_MODELS, 'full', 0),
         (xt.UniformSolenoid, STRAIGHT_MODELS, 'suppressed', 1),
         (xt.VariableSolenoid, STRAIGHT_MODELS, 'suppressed', 1),
-        (xt.Multipole, STRAIGHT_MODELS, 'suppressed', 1),
+        (xt.Multipole, STRAIGHT_MODELS, 'full', 0),
     ],
 )
 def test_edge_models_round_trip(cls, models, default_model, default_active):
@@ -73,7 +75,7 @@ def test_old_bend_dict_with_model_index():
             'edge_exit_active': 0,
         }
     )
-    assert el.edge_entry_model == 'no-mult'
+    assert el.edge_entry_model == 'dipole-only'
     assert el.edge_exit_model == 'suppressed'
     assert el.edge_exit_active == 0
 
@@ -106,24 +108,32 @@ def test_solenoid_multipole_fringe_only_if_full():
     assert np.max(np.abs(default - full)) > 1e-12
 
 
-def test_dipole_only_is_deprecated_name_of_no_mult():
-    def bend(model):
-        return xt.Bend(
-            length=1, angle=0.1, k1=0.2, knl=[0, 0, 0.3], edge_entry_angle=0.05,
-            edge_entry_fint=0.5, edge_entry_hgap=0.03,
-            edge_entry_model=model, edge_exit_model=model,
-        )
+def test_configure_bend_model_dipole_only():
+    line = xt.Line(
+        elements={'b': xt.Bend(length=1, angle=0.1, k1=0.2)}, element_names=['b']
+    )
+    line.configure_bend_model(edge='dipole-only')
+    assert line['b'].edge_entry_model == line['b'].edge_exit_model == 'dipole-only'
+    assert line['b'].to_dict()['edge_entry_model'] == 'dipole-only'
 
-    with pytest.warns(FutureWarning, match='no-mult'):
-        old = bend('dipole-only')
-    assert old.edge_entry_model == 'no-mult'
-    assert old.to_dict()['edge_entry_model'] == 'no-mult'
-    np.testing.assert_array_equal(_track(old), _track(bend('no-mult')))
 
-    line = xt.Line(elements={'b': bend('linear')}, element_names=['b'])
-    with pytest.warns(FutureWarning, match='no-mult'):
-        line.configure_bend_model(edge='dipole-only')
-    assert line['b'].edge_entry_model == 'no-mult'
+@pytest.mark.parametrize(
+    'method', ['configure_quadrupole_model', 'configure_sextupole_model',
+               'configure_octupole_model'])
+def test_configure_straight_edge_toggles_active(method):
+    # As on main: "full" switches the edges on, "suppressed" off; the model
+    # stays the default "full"
+    cls = {'configure_quadrupole_model': xt.Quadrupole,
+           'configure_sextupole_model': xt.Sextupole,
+           'configure_octupole_model': xt.Octupole}[method]
+    line = xt.Line(elements={'m': cls(length=1)}, element_names=['m'])
+    getattr(line, method)(edge='full')
+    assert line['m'].edge_entry_active and line['m'].edge_exit_active
+    assert line['m'].edge_entry_model == 'full'
+    getattr(line, method)(edge='suppressed')
+    assert not line['m'].edge_entry_active and not line['m'].edge_exit_active
+    with pytest.raises(ValueError):
+        getattr(line, method)(edge='dipole-only')
 
 
 def _magnet_with_gradient(cls, **kw):
@@ -160,15 +170,17 @@ def test_soft_quadrupole_fringe_on_all_magnets(cls):
         return _track(_magnet_with_gradient(
             cls, edge_entry_model=model, edge_exit_model=model, **kw))
 
-    # The soft fringe acts with every model but suppressed, linear included
-    # (it has no linear version)
-    np.testing.assert_array_equal(
-        track('suppressed', **qint), track('suppressed'))
-    models = [mm for mm in cls.get_available_edge_models() if mm != 'suppressed']
+    # The soft fringe acts with "full" and "dipole-only" only
+    for model in ('suppressed', 'linear'):
+        if model in cls.get_available_edge_models():
+            np.testing.assert_array_equal(track(model, **qint), track(model))
+    models = [mm for mm in cls.get_available_edge_models()
+              if mm in ('full', 'dipole-only')]
     for model in models:
         assert np.max(np.abs(track(model, **qint) - track(model))) > 1e-10
-    # no-mult has no hard multipole fringe
-    assert np.max(np.abs(track('full') - track('no-mult'))) > 1e-10
+    if 'dipole-only' in models:
+        # dipole-only has no hard multipole fringe
+        assert np.max(np.abs(track('full') - track('dipole-only'))) > 1e-10
 
     if cls in (xt.Magnet, xt.UniformSolenoid, xt.VariableSolenoid):
         return  # thick slicing only, or none: no edge slices
@@ -187,7 +199,7 @@ def test_soft_quadrupole_fringe_reversed_line():
     from xtrack.environment import _reverse_element
 
     env = xt.Environment(particle_ref=xt.Particles(p0c=1e9))
-    faces = {'edge_entry_model': 'full', 'edge_exit_model': 'full'}
+    faces = ACTIVE
     line = env.new_line(components=[
         env.new('qf', xt.Quadrupole, length=0.4, k1=1.2, k1s=0.05, **faces,
                 edge_entry_qint1=0.1, edge_entry_qint2=0.03,
@@ -262,10 +274,16 @@ def _check_edge_slices(line, name):
     'cls, model, kw, equivalent',
     [
         (xt.Bend, 'linear', {'k1': 0.2}, xt.DipoleEdge),
-        (xt.Bend, 'no-mult', {'k1': 0.2}, xt.DipoleEdge),
         (
             xt.Bend,
-            'no-mult',
+            'linear',
+            {'k1': 0.2, 'edge_entry_qint1': 0.2, 'edge_exit_qint1': 0.2},
+            xt.DipoleEdge,
+        ),
+        (xt.Bend, 'dipole-only', {'k1': 0.2}, xt.DipoleEdge),
+        (
+            xt.Bend,
+            'dipole-only',
             {'k1': 0.2, 'edge_entry_qint1': 0.2, 'edge_exit_qint1': 0.2},
             xt.MagnetEdge,
         ),
@@ -311,9 +329,7 @@ def test_bend_edge_slice_equivalent_element(cls, model, kw, equivalent):
     [
         {},
         {'edge_entry_qint1': 0.2, 'edge_entry_qint2': 0.1},
-        {'edge_entry_model': 'no-mult', 'edge_entry_qint1': 0.2, 'edge_entry_qint2': 0.1},
-        {'edge_entry_model': 'no-mult'},
-        {'edge_entry_model': 'no-mult', 'knl': [0.01, 0, 0.3]},
+        {'knl': [0.01, 0, 0.3]},
         {'edge_entry_qint1': 0.2, 'k1s': 0.1, 'knl': [0, 0, 0.3]},
     ],
 )
@@ -326,9 +342,7 @@ def test_quadrupole_edge_slice_equivalent_element(kw):
             if kk.startswith('edge_entry_')
         }
     )
-    quad = xt.Quadrupole(
-        length=1, k1=0.5, **{'edge_entry_model': 'full', 'edge_exit_model': 'full', **kw}
-    )
+    quad = xt.Quadrupole(length=1, k1=0.5, **ACTIVE, **kw)
     line = _sliced_line('q', quad)
     _check_edge_slices(line, 'q')
 
@@ -382,13 +396,12 @@ COORDS = ['x', 'px', 'y', 'py', 'zeta', 'delta', 'state']
             k1=0.5,
             k1s=0.1,
             knl_rel=[0, 0, 0.2],
-            edge_entry_model='full',
-            edge_exit_model='full',
+            **ACTIVE,
             edge_entry_qint1=0.2,
             edge_entry_qint2=0.1,
         ),
         lambda: xt.Sextupole(
-            length=0.5, k2=3.0, edge_entry_model='full', edge_exit_model='full'
+            length=0.5, k2=3.0, **ACTIVE
         ),
         lambda: xt.UniformSolenoid(length=1, ks=0.4),
         lambda: xt.VariableSolenoid(
@@ -450,20 +463,18 @@ def test_edge_bits_from_c_header():
 
 @pytest.mark.parametrize('cls', [xt.Quadrupole, xt.Sextupole, xt.Octupole])
 def test_straight_magnet_dict_of_earlier_versions(cls):
-    # Earlier versions wrote only `edge_<face>_active` for a magnet with
-    # fringes: the model, "full", was the default
+    # Earlier versions wrote only `edge_<face>_active`: the model is the
+    # default, "full"
     dct = {'__class__': cls.__name__, 'length': 1.0, 'edge_entry_active': 1}
     el = cls.from_dict(dct)
     assert el.edge_entry_active and el.edge_entry_model == 'full'
-    assert el.edge_exit_active and el.edge_exit_model == 'suppressed'
-    # An explicit model is kept, and a dict without the keys has no fringes
-    dct['edge_entry_model'] = 'no-mult'
-    assert cls.from_dict(dct).edge_entry_model == 'no-mult'
+    assert not el.edge_exit_active and el.edge_exit_model == 'full'
+    # The new dict is the same: no model key at the default
+    assert cls(length=1.0, edge_entry_active=True).to_dict() == cls.from_dict(
+        dct).to_dict()
+    assert 'edge_entry_model' not in el.to_dict()
     el = cls.from_dict({'__class__': cls.__name__, 'length': 1.0})
-    assert el.edge_entry_model == el.edge_exit_model == 'suppressed'
-    # The new dict has no `edge_*_active` and the model of the fringes
-    full = cls(length=1.0, edge_entry_model='full', edge_exit_model='full').to_dict()
-    assert full['edge_entry_model'] == 'full' and 'edge_entry_active' not in full
+    assert not el.edge_entry_active and not el.edge_exit_active
 
 
 def _track_face(line, name, face):
@@ -476,21 +487,21 @@ def _track_face(line, name, face):
 
 
 @pytest.mark.parametrize('cls', [xt.Quadrupole, xt.Sextupole, xt.Octupole])
-@pytest.mark.parametrize('model', ['full', 'no-mult'])
-def test_straight_magnet_soft_dipole_fringe(cls, model):
+def test_straight_magnet_soft_dipole_fringe(cls):
+    model = 'full'
     # A straight magnet's knl[0] has the dipole fringe of a bend: with fint and
     # hgap it is the soft one, the same map as the face of a straight bend
     length, k0 = 0.8, 0.02
     fringe = dict(edge_entry_fint=0.5, edge_entry_hgap=0.03,
                   edge_exit_fint=0.4, edge_exit_hgap=0.02)
-    kw = dict(length=length, knl=[k0 * length],
-              edge_entry_model=model, edge_exit_model=model)
+    kw = dict(length=length, knl=[k0 * length], **ACTIVE)
 
     soft = _track(cls(**kw, **fringe))
     hard = _track(cls(**kw))
     assert np.max(np.abs(soft - hard)) > 1e-12
     np.testing.assert_array_equal(
-        _track(cls(**kw, **fringe, edge_entry_active=False, edge_exit_active=False)),
+        _track(cls(**{**kw, **fringe, 'edge_entry_active': False,
+                     'edge_exit_active': False})),
         _track(cls(**{**kw, 'edge_entry_model': 'suppressed',
                       'edge_exit_model': 'suppressed'})))
 
@@ -542,7 +553,7 @@ def test_thick_multipole_faces():
     # A thick multipole has the faces of the other straight magnets; a thin
     # one has none, whatever its edge settings
     knl = [0.01, 0.2, 0.5]
-    fringe = dict(edge_entry_model='full', edge_exit_model='full',
+    fringe = dict(**ACTIVE,
                   edge_entry_qint1=0.2, edge_exit_qint2=0.05,
                   edge_entry_fint=0.5, edge_entry_hgap=0.03)
 
@@ -563,9 +574,10 @@ def test_thick_multipole_faces():
     for eq in _check_edge_slices(sliced, 'm'):
         assert isinstance(eq, xt.MagnetEdge)
 
-    # The default faces do nothing
+    # The default faces are off: as active faces without fringe maps
     np.testing.assert_array_equal(
-        _track(multipole(True, edge_entry_active=False, edge_exit_active=False)),
+        _track(multipole(True, **ACTIVE, edge_entry_model='suppressed',
+                         edge_exit_model='suppressed')),
         thick)
 
 
@@ -578,9 +590,8 @@ def test_reversed_line_with_one_face_active():
     env = xt.Environment(particle_ref=xt.Particles(p0c=1e9))
     line = env.new_line(components=[
         env.new('qf', xt.Quadrupole, length=0.4, k1=1.2, knl=[0, 0, 0.3],
-                edge_entry_model='full', edge_exit_model='full',
-                edge_entry_qint1=0.1, edge_entry_qint2=0.03,
-                edge_exit_active=False),
+                edge_entry_active=True,
+                edge_entry_qint1=0.1, edge_entry_qint2=0.03),
         env.new('d1', xt.Drift, length=2),
         env.new('qd', xt.Quadrupole, length=0.4, k1=-1.1),
         env.new('d2', xt.Drift, length=2.5),
@@ -613,7 +624,7 @@ def test_straight_soft_dipole_fringe_not_exported_to_mad():
     env = xt.Environment()
     line = env.new_line(components=[
         env.new('q1', xt.Quadrupole, length=1, k1=0.1, knl=[0.001],
-                edge_entry_model='full', edge_entry_fint=0.5, edge_entry_hgap=0.02),
+                edge_entry_active=True, edge_entry_fint=0.5, edge_entry_hgap=0.02),
         env.new('b1', xt.Bend, length=1, angle=0.01, edge_entry_fint=0.5),
     ])
     for to_mad in (line.to_madx_sequence, to_madng_sequence):

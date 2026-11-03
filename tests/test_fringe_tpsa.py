@@ -20,9 +20,9 @@ def _faces(**kw):
 
 FULL = _faces(model='full', angle=0.05, fint=0.5, hgap=0.02)
 LINEAR = _faces(angle=0.05, fint=0.5, hgap=0.02)
-# The fringes of straight magnets need a model: the default is "suppressed"
-QUAD_HARD = _faces(model='full')
-QUAD_LW = _faces(model='full', qint1=0.1, qint2=0.05)
+# The edges of straight magnets are off by default
+QUAD_HARD = _faces(active=True)
+QUAD_LW = _faces(active=True, qint1=0.1, qint2=0.05)
 
 ELEMENTS = {
     'bend_full': lambda: xt.Bend(

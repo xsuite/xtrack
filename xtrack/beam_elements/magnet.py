@@ -116,8 +116,8 @@ class Magnet(_BendCommon, BeamElement):
 
             - ``linear``: use a linear model for the edge.
             - ``full``: include all the fringe maps.
-            - ``no-mult``: ``full`` without the hard-edge multipole fringe
-              (``dipole-only``: deprecated name).
+            - ``dipole-only``: ``full`` without the hard-edge multipole
+              fringe.
             - ``suppressed``: ignore the edge effect.
     edge_exit_model : str, optional
         Edge model at magnet exit. See ``edge_entry_model`` for the options.

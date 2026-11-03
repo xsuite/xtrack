@@ -33,8 +33,8 @@ def _quad_lw(**kw):
         k1=1.2,
         k1s=0.3,
         knl=[0, 0, 0.5],
-        edge_entry_model='full',
-        edge_exit_model='full',
+        edge_entry_active=True,
+        edge_exit_active=True,
         edge_entry_qint1=0.2,
         edge_entry_qint2=0.1,
         edge_exit_qint1=0.2,
@@ -141,15 +141,14 @@ def test_quadrupole_soft_fringe_models():
     none = _track_once(_quad('full', active=False))
     assert np.max(np.abs(hard - none)) > 1e-10
 
-    # qint = 0: the soft fringe does nothing
-    np.testing.assert_array_equal(_track_once(_quad('no-mult')), none)
+    # qint = 0 is the hard edge; suppressed has no fringe
     np.testing.assert_array_equal(_track_once(_quad('suppressed', **QINT)), none)
+    np.testing.assert_array_equal(
+        _track_once(_quad('full', active=False, **QINT)), none)
 
-    soft = _track_once(_quad('no-mult', **QINT))
+    # The soft fringe adds to the hard one
     full = _track_once(_quad('full', **QINT))
-    assert np.max(np.abs(soft - none)) > 1e-10
     assert np.max(np.abs(full - hard)) > 1e-10
-    assert np.max(np.abs(full - soft)) > 1e-10
 
 
 @pytest.mark.parametrize('fringe', [False, True])
@@ -171,8 +170,8 @@ def test_lee_whiting_fringe_continuous_in_solenoid_strength():
     # the field, and the field changes it
     def track(ks, qint=1):
         return _track_once(xt.UniformSolenoid(
-            length=0.8, ks=ks, knl=[0, 0.9], edge_entry_model='no-mult',
-            edge_exit_model='no-mult',
+            length=0.8, ks=ks, knl=[0, 0.9], edge_entry_model='full',
+            edge_exit_model='full',
             edge_entry_qint1=0.2 * qint, edge_entry_qint2=0.1 * qint,
             edge_exit_qint1=-0.15 * qint, edge_exit_qint2=0.05 * qint))
 

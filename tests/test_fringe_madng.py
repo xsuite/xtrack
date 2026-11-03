@@ -88,7 +88,7 @@ NG_BEND = 'l=2, angle=0.05, e1=0.02, e2=-0.015, fint=0.5, fintx=0.4, hgap=0.03'
 @pytest.mark.parametrize(
     'ng_fringe, xt_model',
     [
-        (1, 'no-mult'),
+        (1, 'dipole-only'),
         (3, 'full'),
     ],
 )
@@ -102,7 +102,7 @@ def test_bend_fringe_vs_madng(mad, ng_fringe, xt_model):
 
 def test_hard_edge_bend_fringe_vs_madng(mad):
     # fint = 0: the hard-edge dipole fringe
-    faces = _faces('no-mult')
+    faces = _faces('dipole-only')
     faces.update(edge_entry_fint=0, edge_exit_fint=0)
     out_ng = _madng_track(
         mad,
@@ -128,7 +128,7 @@ def test_bend_fringe_large_edge_angle_vs_madng(mad):
     face = {
         f'edge_{ff}_{kk}': vv
         for ff in ('entry', 'exit')
-        for kk, vv in {'model': 'no-mult', 'angle': ang, 'fint': 0.9, 'hgap': 0.025}.items()
+        for kk, vv in {'model': 'dipole-only', 'angle': ang, 'fint': 0.9, 'hgap': 0.025}.items()
     }
     out_ng = _madng_track(
         mad,
@@ -143,7 +143,7 @@ def test_quadrupole_fringe_vs_madng(mad):
     d_xt, d_ng = _fringe_effect(
         mad,
         "quadrupole 'q' {at=0, l=1, k1=0.3, fringe=2}",
-        xt.Quadrupole(length=1, k1=0.3, edge_entry_model='full', edge_exit_model='full'),
+        xt.Quadrupole(length=1, k1=0.3, edge_entry_active=True, edge_exit_active=True),
     )
     assert np.max(np.abs(d_ng)) > 1e-10
     np.testing.assert_allclose(d_xt, d_ng, rtol=0, atol=1e-6 * np.max(np.abs(d_ng)))
@@ -195,8 +195,8 @@ def test_quad_lw_fringe_vs_madng(mad, strengths, xt_strengths, f1, f2):
     def quad(**qint):
         return xt.Quadrupole(
             length=1,
-            edge_entry_model='full',
-            edge_exit_model='full',
+            edge_entry_active=True,
+            edge_exit_active=True,
             **xt_strengths,
             **qint,
         )
@@ -219,7 +219,7 @@ def test_sextupole_fringe_vs_madng(mad):
     d_xt, d_ng = _fringe_effect(
         mad,
         "sextupole 's' {at=0, l=0.5, k2=20, frngmax=3, fringe=2}",
-        xt.Sextupole(length=0.5, k2=20, edge_entry_model='full', edge_exit_model='full'),
+        xt.Sextupole(length=0.5, k2=20, edge_entry_active=True, edge_exit_active=True),
         frngmax=3,
     )
     assert np.max(np.abs(d_ng)) > 1e-12
