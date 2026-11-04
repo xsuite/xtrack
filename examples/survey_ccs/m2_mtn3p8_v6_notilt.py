@@ -582,140 +582,220 @@ line.end_compose()
 # APERTURE MODEL
 #==============================================================================
 
-# Native profiles are the source of aperture geometry. Dimensions are in metres:
-# radii/semi-axes or rectangular half-widths, as in the MAD-X APERTURE attribute.
-# Only the relevant entries of the MAD-X arrays are retained (the sequence often
-# repeats them). Names below are the expert prototypes used by the placed elements.
-aperture_definitions = {
-    'mbh.x0610026_bend1h': ('Rectangle', {'max_x': 0.175, 'max_y': 0.03}),
-    'mbh.x0610031_bend1h': ('Rectangle', {'max_x': 0.175, 'max_y': 0.03}),
-    'mbh.x0610035_bend1h': ('Rectangle', {'max_x': 0.175, 'max_y': 0.03}),
-    'mqd.x0610009_quad2d': ('Circle', {'radius': 0.04}),
-    'mqf.x0610012_quad3f': ('Circle', {'radius': 0.04}),
-    'mqf.x0610016_quad4f': ('Circle', {'radius': 0.04}),
-    'mqd.x0610019_quad5d': ('Circle', {'radius': 0.04}),
-    'mqd.x0610023_quad6d': ('Circle', {'radius': 0.04}),
-    'mqd.x0610005_quad1d': ('Circle', {'radius': 0.025}),
-    'xtax.x0610052_xtax1': ('Rectangle', {'max_x': 0.12, 'max_y': 0.016}),
-    'xtax.x0610054_xtax2': ('Rectangle', {'max_x': 0.12, 'max_y': 0.016}),
-    'mbh.x0611101_bend7h': ('Rectangle', {'max_x': 0.26, 'max_y': 0.07}),
-    'mbv.x0611111_bend8v': ('Rectangle', {'max_x': 0.26, 'max_y': 0.07}),
-    'mbh.x0611115_bend9h': ('Rectangle', {'max_x': 0.26, 'max_y': 0.055}),
-    'mbh.x0610109_bend3h': ('Rectangle', {'max_x': 0.125, 'max_y': 0.03}),
-    'mbv.x0610706_bend5v': ('Racetrack', {'max_x': 0.125, 'max_y': 0.03, 'a': 0.125, 'b': 0.03}),
-    'mbv.x0611027_bend6v': ('Racetrack', {'max_x': 0.125, 'max_y': 0.03, 'a': 0.125, 'b': 0.03}),
-    'mbv.x0611033_bend6v': ('Racetrack', {'max_x': 0.125, 'max_y': 0.03, 'a': 0.125, 'b': 0.03}),
-    'mbv.x0611039_bend6v': ('Racetrack', {'max_x': 0.125, 'max_y': 0.03, 'a': 0.125, 'b': 0.03}),
-    'mbv.x0610693_bend4v': ('RectEllipse', {'max_x': 0.06, 'max_y': 0.035, 'a': 0.095, 'b': 0.035}),
-    'mbv.x0610697_bend4v': ('RectEllipse', {'max_x': 0.06, 'max_y': 0.035, 'a': 0.095, 'b': 0.035}),
-    'mbv.x0610701_bend4v': ('RectEllipse', {'max_x': 0.06, 'max_y': 0.035, 'a': 0.095, 'b': 0.035}),
-    'mbv.x0610061_bend2v': ('Rectangle', {'max_x': 0.16, 'max_y': 0.054}),
-    'mbv.x0610064_bend2v': ('Rectangle', {'max_x': 0.16, 'max_y': 0.054}),
-    'mbv.x0610067_bend2v': ('Rectangle', {'max_x': 0.16, 'max_y': 0.054}),
-    'mcbh.x0610074_trim1h': ('Rectangle', {'max_x': 0.07, 'max_y': 0.05}),
-    'mcbv.x0610098_trim2v': ('Rectangle', {'max_x': 0.07, 'max_y': 0.05}),
-    'mcbv.x0610651_trim4v': ('Rectangle', {'max_x': 0.2, 'max_y': 0.1025}),
-    'mcbh.x0610650_trim3h': ('Ellipse', {'a': 0.0775, 'b': 0.0415}),
-    'mcbh.x0610854_trim5h': ('Ellipse', {'a': 0.0775, 'b': 0.0415}),
-    'mcbh.x0610988_trim6h': ('Ellipse', {'a': 0.0775, 'b': 0.0415}),
-    'mcbv.x0610989_trim7v': ('Ellipse', {'a': 0.0775, 'b': 0.0415}),
-    'mqd.x0610112_quad12d': ('Circle', {'radius': 0.1}),
-    'mqf.x0610148_quad13f': ('Circle', {'radius': 0.1}),
-    'mqd.x0610184_quad14d': ('Circle', {'radius': 0.1}),
-    'mqf.x0610220_quad13f': ('Circle', {'radius': 0.1}),
-    'mqd.x0610256_quad14d': ('Circle', {'radius': 0.1}),
-    'mqf.x0610292_quad13f': ('Circle', {'radius': 0.1}),
-    'mqd.x0610328_quad14d': ('Circle', {'radius': 0.1}),
-    'mqf.x0610364_quad15f': ('Circle', {'radius': 0.1}),
-    'mqd.x0610400_quad16d': ('Circle', {'radius': 0.1}),
-    'mqf.x0610436_quad15f': ('Circle', {'radius': 0.1}),
-    'mqd.x0610472_quad16d': ('Circle', {'radius': 0.1}),
-    'mqf.x0610508_quad15f': ('Circle', {'radius': 0.1}),
-    'mqd.x0610544_quad16d': ('Circle', {'radius': 0.1}),
-    'mqf.x0610580_quad17f': ('Circle', {'radius': 0.1}),
-    'mqd.x0610616_quad18d': ('Circle', {'radius': 0.1}),
-    'mqf.x0610652_quad17f': ('Circle', {'radius': 0.1}),
-    'mqd.x0610654_quad19d': ('Circle', {'radius': 0.1}),
-    'mqd.x0610745_quad24d': ('Circle', {'radius': 0.1}),
-    'mqd.x0610748_quad25d': ('Circle', {'radius': 0.1}),
-    'mqf.x0610784_quad25f_inv': ('Circle', {'radius': 0.1}),
-    'mqd.x0610820_quad25d': ('Circle', {'radius': 0.1}),
-    'mqf.x0610856_quad26f': ('Circle', {'radius': 0.1}),
-    'mqd.x0610900_quad27d': ('Circle', {'radius': 0.1}),
-    'mqf.x0610945_quad27f_inv': ('Circle', {'radius': 0.1}),
-    'mqd.x0610990_quad27d': ('Circle', {'radius': 0.1}),
-    'mqd.x0610992_quad28d': ('Circle', {'radius': 0.1}),
-    'mqd.x0611072_quad33d': ('Circle', {'radius': 0.1}),
-    'mqd.x0611074_quad33d': ('Circle', {'radius': 0.1}),
-    'mqd.x0611077_quad33d': ('Circle', {'radius': 0.1}),
-    'mqd.x0611095_quad34d': ('Circle', {'radius': 0.1}),
-    'mqd.x0611097_quad34d': ('Circle', {'radius': 0.1}),
-    'mqf.x0610056_quad7f': ('Circle', {'radius': 0.05}),
-    'mqf.x0610072_quad8f': ('Circle', {'radius': 0.05}),
-    'mqd.x0610080_quad9d': ('Circle', {'radius': 0.05}),
-    'mqd.x0610096_quad10d': ('Circle', {'radius': 0.05}),
-    'mqf.x0610104_quad11f': ('Circle', {'radius': 0.05}),
-    'mqf.x0610677_quad20f': ('Circle', {'radius': 0.05}),
-    'mqd.x0610690_quad21d': ('Circle', {'radius': 0.05}),
-    'mqd.x0610710_quad22d': ('Circle', {'radius': 0.05}),
-    'mqf.x0610723_quad23f': ('Circle', {'radius': 0.05}),
-    'mqf.x0611011_quad29f': ('Circle', {'radius': 0.05}),
-    'mqd.x0611023_quad30d': ('Circle', {'radius': 0.05}),
-    'mqd.x0611043_quad31d': ('Circle', {'radius': 0.05}),
-    'mqf.x0611056_quad32f': ('Circle', {'radius': 0.05}),
-    'mqf.x0611105_quad35f': ('Circle', {'radius': 0.05}),
-    'mqf.x0611108_quad35f': ('Circle', {'radius': 0.05}),
-    'mqd.x0611118_quad36d': ('Circle', {'radius': 0.05}),
-    'mqd.x0611122_quad36d': ('Circle', {'radius': 0.05}),
-    'xcbv.x0610858_coll5': ('Rectangle', {'max_x': 0.175, 'max_y': 'kxcbv.x0610858_coll5v'}),
-    'xchv.x0610058_coll1_2': ('Rectangle', {'max_x': 'kxchv.x0610058_coll1_2xh', 'max_y': 'kxchv.x0610058_coll1_2yv'}),
-    'xchv.x0610070_coll3_4': ('Rectangle', {'max_x': 'kxchv.x0610070_coll3_4xh', 'max_y': 'kxchv.x0610070_coll3_4yv'}),
-    'xchv.x0610288_coll10_11': ('Rectangle', {'max_x': 'kxchv.x0610288_coll10_11xh', 'max_y': 'kxchv.x0610288_coll10_11yv'}),
-    'xchv.x0611013_coll6_7': ('Rectangle', {'max_x': 'kxchv.x0611013_coll6_7xh', 'max_y': 'kxchv.x0611013_coll6_7yv'}),
-    'xchv.x0611054_coll8_9': ('Rectangle', {'max_x': 'kxchv.x0611054_coll8_9xh', 'max_y': 'kxchv.x0611054_coll8_9yv'}),
-    'xcmh.x0610727_scr3h': ('Rectangle', {'max_x': 'kxcmh.x0610727_scr3h_coll1h', 'max_y': 0.175}),
-    'xcmh.x0610752_scr6h': ('Rectangle', {'max_x': 'kxcmh.x0610752_scr6h_coll2h', 'max_y': 0.175}),
-    'xcmh.x0610845_scr7h': ('Rectangle', {'max_x': 'kxcmh.x0610845_scr7h_coll3h', 'max_y': 0.175}),
-    'xcm.x0610765_mib2': ('Rectangle', {'max_x': 0.1, 'max_y': 0.1}),
-    'xcm.x0610767_mib2': ('Rectangle', {'max_x': 0.1, 'max_y': 0.1}),
-    'xcm.x0611061_mib4': ('Rectangle', {'max_x': 0.1, 'max_y': 0.1}),
-    'xcm.x0611063_mib4': ('Rectangle', {'max_x': 0.1, 'max_y': 0.1}),
-    'xcm.x0611065_mib3': ('Rectangle', {'max_x': 0.1, 'max_y': 0.1}),
-    'xcm.x0611066_mib3': ('Rectangle', {'max_x': 0.1, 'max_y': 0.1}),
-    'xcm.x0611068_mib3': ('Rectangle', {'max_x': 0.1, 'max_y': 0.1}),
-    'xcm.x0610226_mib1': ('Rectangle', {'max_x': 0.1, 'max_y': 0.1}),
-    'xcm.x0610862_mib3': ('Rectangle', {'max_x': 0.1, 'max_y': 0.1}),
-    'xcmv.x0610190_scr1v': ('Rectangle', {'max_x': 0.175, 'max_y': 'kxcmv.x0610190_scr1v_coll4v'}),
-    'xcmv.x0610715_scr2v': ('Rectangle', {'max_x': 0.175, 'max_y': 'kxcmv.x0610715_scr2v_coll5v'}),
-    'xcmv.x0610733_scr4v': ('Rectangle', {'max_x': 0.175, 'max_y': 'kxcmv.x0610733_scr4v_coll6v'}),
-    'xcmv.x0610741_scr5v': ('Rectangle', {'max_x': 0.175, 'max_y': 'kxcmv.x0610741_scr5v_coll7v'}),
-    'xcmv.x0610997_scr8v': ('Rectangle', {'max_x': 0.175, 'max_y': 'kxcmv.x0610997_scr8v_coll8v'}),
-    'xcmv.x0611050_scr9v': ('Rectangle', {'max_x': 0.175, 'max_y': 'kxcmv.x0611050_scr9v_coll9v'}),
-}
-
-# Aperture dimensions use the same expression manager as the optics knobs.
-# Queries refresh changed profiles and their bounds on demand.
+# Profiles: dimensions are in metres, as in the MAD-X APERTURE attribute.
+# Expression strings use the same variables as the optics knobs; changed
+# polygons and bounds are regenerated on demand.
 line.aperture.num_profile_points = 1024
-for name in line.element_names:
-    element = env[name]
-    prototype = getattr(element, 'prototype', None)
-    if prototype not in aperture_definitions:
-        continue
-    shape, parameters = aperture_definitions[prototype]
-    profile_name = f'm2.{name}'
-    profile = env.aperture.new_profile(profile_name, shape, **parameters)
+env.aperture.new_profile('m2.qnrb.x0610005', 'Circle', radius=0.025)
+env.aperture.new_profile('m2.qnlb.x0610009', 'Circle', radius=0.04)
+env.aperture.new_profile('m2.qnlb.x0610012', 'Circle', radius=0.04)
+env.aperture.new_profile('m2.qnlb.x0610016', 'Circle', radius=0.04)
+env.aperture.new_profile('m2.qnlb.x0610019', 'Circle', radius=0.04)
+env.aperture.new_profile('m2.qnlb.x0610023', 'Circle', radius=0.04)
+env.aperture.new_profile('m2.mbsa.x0610026', 'Rectangle', max_x=0.175, max_y=0.03)
+env.aperture.new_profile('m2.mbsa.x0610031', 'Rectangle', max_x=0.175, max_y=0.03)
+env.aperture.new_profile('m2.mbsa.x0610035', 'Rectangle', max_x=0.175, max_y=0.03)
+env.aperture.new_profile('m2.xtax.x0610052', 'Rectangle', max_x=0.12, max_y=0.016)
+env.aperture.new_profile('m2.xtax.x0610054', 'Rectangle', max_x=0.12, max_y=0.016)
+env.aperture.new_profile('m2.qwl.x0610056', 'Circle', radius=0.05)
+env.aperture.new_profile('m2.xchv.x0610058', 'Rectangle', max_x='kxchv.x0610058_coll1_2xh', max_y='kxchv.x0610058_coll1_2yv')
+env.aperture.new_profile('m2.mbxha.x0610061', 'Rectangle', max_x=0.16, max_y=0.054)
+env.aperture.new_profile('m2.mbxha.x0610064', 'Rectangle', max_x=0.16, max_y=0.054)
+env.aperture.new_profile('m2.mbxha.x0610067', 'Rectangle', max_x=0.16, max_y=0.054)
+env.aperture.new_profile('m2.xchv.x0610070', 'Rectangle', max_x='kxchv.x0610070_coll3_4xh', max_y='kxchv.x0610070_coll3_4yv')
+env.aperture.new_profile('m2.qwl.x0610072', 'Circle', radius=0.05)
+env.aperture.new_profile('m2.mcxca.x0610074', 'Rectangle', max_x=0.07, max_y=0.05)
+env.aperture.new_profile('m2.qwl.x0610080', 'Circle', radius=0.05)
+env.aperture.new_profile('m2.qwl.x0610096', 'Circle', radius=0.05)
+env.aperture.new_profile('m2.mcxca.x0610098', 'Rectangle', max_x=0.07, max_y=0.05)
+env.aperture.new_profile('m2.qwl.x0610104', 'Circle', radius=0.05)
+env.aperture.new_profile('m2.mbnh.x0610109', 'Rectangle', max_x=0.125, max_y=0.03)
+env.aperture.new_profile('m2.mqnee.x0610112', 'Circle', radius=0.1)
+env.aperture.new_profile('m2.mqnfb.x0610148', 'Circle', radius=0.1)
+env.aperture.new_profile('m2.mqnfb.x0610184', 'Circle', radius=0.1)
+env.aperture.new_profile('m2.xcmv.x0610190', 'Rectangle', max_x=0.175, max_y='kxcmv.x0610190_scr1v_coll4v')
+env.aperture.new_profile('m2.mqnfb.x0610220', 'Circle', radius=0.1)
+env.aperture.new_profile('m2.xcmib.x0610226', 'Rectangle', max_x=0.1, max_y=0.1)
+env.aperture.new_profile('m2.mqnfb.x0610256', 'Circle', radius=0.1)
+env.aperture.new_profile('m2.xchv.x0610288', 'Rectangle', max_x='kxchv.x0610288_coll10_11xh', max_y='kxchv.x0610288_coll10_11yv')
+env.aperture.new_profile('m2.mqnfb.x0610292', 'Circle', radius=0.1)
+env.aperture.new_profile('m2.mqnfb.x0610328', 'Circle', radius=0.1)
+env.aperture.new_profile('m2.mqnfb.x0610364', 'Circle', radius=0.1)
+env.aperture.new_profile('m2.mqnfb.x0610400', 'Circle', radius=0.1)
+env.aperture.new_profile('m2.mqnfb.x0610436', 'Circle', radius=0.1)
+env.aperture.new_profile('m2.mqnfb.x0610472', 'Circle', radius=0.1)
+env.aperture.new_profile('m2.mqnfb.x0610508', 'Circle', radius=0.1)
+env.aperture.new_profile('m2.mqnfb.x0610544', 'Circle', radius=0.1)
+env.aperture.new_profile('m2.mqnfb.x0610580', 'Circle', radius=0.1)
+env.aperture.new_profile('m2.mqnfb.x0610616', 'Circle', radius=0.1)
+env.aperture.new_profile('m2.mdpx.x0610650', 'Ellipse', a=0.0775, b=0.0415)
+env.aperture.new_profile('m2.mcxcd.x0610651', 'Rectangle', max_x=0.2, max_y=0.1025)
+env.aperture.new_profile('m2.mqnfb.x0610652', 'Circle', radius=0.1)
+env.aperture.new_profile('m2.mqnfb.x0610654', 'Circle', radius=0.1)
+env.aperture.new_profile('m2.qwl.x0610677', 'Circle', radius=0.05)
+env.aperture.new_profile('m2.qwl.x0610690', 'Circle', radius=0.05)
+env.aperture.new_profile('m2.mbxgd.x0610693', 'RectEllipse', max_x=0.06, max_y=0.035, a=0.095, b=0.035)
+env.aperture.new_profile('m2.mbxgd.x0610697', 'RectEllipse', max_x=0.06, max_y=0.035, a=0.095, b=0.035)
+env.aperture.new_profile('m2.mbxgd.x0610701', 'RectEllipse', max_x=0.06, max_y=0.035, a=0.095, b=0.035)
+env.aperture.new_profile('m2.mbnv.x0610706', 'Racetrack', max_x=0.125, max_y=0.03, a=0.125, b=0.03)
+env.aperture.new_profile('m2.qwl.x0610710', 'Circle', radius=0.05)
+env.aperture.new_profile('m2.xcmv.x0610715', 'Rectangle', max_x=0.175, max_y='kxcmv.x0610715_scr2v_coll5v')
+env.aperture.new_profile('m2.qwl.x0610723', 'Circle', radius=0.05)
+env.aperture.new_profile('m2.xcmh.x0610727', 'Rectangle', max_x='kxcmh.x0610727_scr3h_coll1h', max_y=0.175)
+env.aperture.new_profile('m2.xcmv.x0610733', 'Rectangle', max_x=0.175, max_y='kxcmv.x0610733_scr4v_coll6v')
+env.aperture.new_profile('m2.xcmv.x0610741', 'Rectangle', max_x=0.175, max_y='kxcmv.x0610741_scr5v_coll7v')
+env.aperture.new_profile('m2.mqnfb.x0610745', 'Circle', radius=0.1)
+env.aperture.new_profile('m2.mqnfb.x0610748', 'Circle', radius=0.1)
+env.aperture.new_profile('m2.xcmh.x0610752', 'Rectangle', max_x='kxcmh.x0610752_scr6h_coll2h', max_y=0.175)
+env.aperture.new_profile('m2.xcmib.x0610765', 'Rectangle', max_x=0.1, max_y=0.1)
+env.aperture.new_profile('m2.xcmib.x0610767', 'Rectangle', max_x=0.1, max_y=0.1)
+env.aperture.new_profile('m2.mqnfb.x0610784', 'Circle', radius=0.1)
+env.aperture.new_profile('m2.mqnfb.x0610820', 'Circle', radius=0.1)
+env.aperture.new_profile('m2.xcmh.x0610845', 'Rectangle', max_x='kxcmh.x0610845_scr7h_coll3h', max_y=0.175)
+env.aperture.new_profile('m2.mdpx.x0610854', 'Ellipse', a=0.0775, b=0.0415)
+env.aperture.new_profile('m2.mqnfb.x0610856', 'Circle', radius=0.1)
+env.aperture.new_profile('m2.xcbv.x0610858', 'Rectangle', max_x=0.175, max_y='kxcbv.x0610858_coll5v')
+env.aperture.new_profile('m2.xcmib.x0610862', 'Rectangle', max_x=0.1, max_y=0.1)
+env.aperture.new_profile('m2.mqnfb.x0610900', 'Circle', radius=0.1)
+env.aperture.new_profile('m2.mqnfb.x0610945', 'Circle', radius=0.1)
+env.aperture.new_profile('m2.mdpx.x0610988', 'Ellipse', a=0.0775, b=0.0415)
+env.aperture.new_profile('m2.mdpx.x0610989', 'Ellipse', a=0.0775, b=0.0415)
+env.aperture.new_profile('m2.mqnfb.x0610990', 'Circle', radius=0.1)
+env.aperture.new_profile('m2.mqnfb.x0610992', 'Circle', radius=0.1)
+env.aperture.new_profile('m2.xcmv.x0610997', 'Rectangle', max_x=0.175, max_y='kxcmv.x0610997_scr8v_coll8v')
+env.aperture.new_profile('m2.qwl.x0611011', 'Circle', radius=0.05)
+env.aperture.new_profile('m2.xchv.x0611013', 'Rectangle', max_x='kxchv.x0611013_coll6_7xh', max_y='kxchv.x0611013_coll6_7yv')
+env.aperture.new_profile('m2.qwl.x0611023', 'Circle', radius=0.05)
+env.aperture.new_profile('m2.mbnv.x0611027', 'Racetrack', max_x=0.125, max_y=0.03, a=0.125, b=0.03)
+env.aperture.new_profile('m2.mbnv.x0611033', 'Racetrack', max_x=0.125, max_y=0.03, a=0.125, b=0.03)
+env.aperture.new_profile('m2.mbnv.x0611039', 'Racetrack', max_x=0.125, max_y=0.03, a=0.125, b=0.03)
+env.aperture.new_profile('m2.qwl.x0611043', 'Circle', radius=0.05)
+env.aperture.new_profile('m2.xcmv.x0611050', 'Rectangle', max_x=0.175, max_y='kxcmv.x0611050_scr9v_coll9v')
+env.aperture.new_profile('m2.xchv.x0611054', 'Rectangle', max_x='kxchv.x0611054_coll8_9xh', max_y='kxchv.x0611054_coll8_9yv')
+env.aperture.new_profile('m2.qwl.x0611056', 'Circle', radius=0.05)
+env.aperture.new_profile('m2.xcmib.x0611061', 'Rectangle', max_x=0.1, max_y=0.1)
+env.aperture.new_profile('m2.xcmib.x0611063', 'Rectangle', max_x=0.1, max_y=0.1)
+env.aperture.new_profile('m2.xcmib.x0611065', 'Rectangle', max_x=0.1, max_y=0.1)
+env.aperture.new_profile('m2.xcmib.x0611066', 'Rectangle', max_x=0.1, max_y=0.1)
+env.aperture.new_profile('m2.xcmib.x0611068', 'Rectangle', max_x=0.1, max_y=0.1)
+env.aperture.new_profile('m2.mqnfb.x0611072', 'Circle', radius=0.1)
+env.aperture.new_profile('m2.mqnfb.x0611074', 'Circle', radius=0.1)
+env.aperture.new_profile('m2.mqnfb.x0611077', 'Circle', radius=0.1)
+env.aperture.new_profile('m2.mqnfb.x0611095', 'Circle', radius=0.1)
+env.aperture.new_profile('m2.mqnfb.x0611097', 'Circle', radius=0.1)
+env.aperture.new_profile('m2.mbhhe.x0611101', 'Rectangle', max_x=0.26, max_y=0.07)
+env.aperture.new_profile('m2.qwl.x0611105', 'Circle', radius=0.05)
+env.aperture.new_profile('m2.qwl.x0611108', 'Circle', radius=0.05)
+env.aperture.new_profile('m2.mbhhe.x0611111', 'Rectangle', max_x=0.26, max_y=0.07)
+env.aperture.new_profile('m2.mbhhe.x0611115', 'Rectangle', max_x=0.26, max_y=0.055)
+env.aperture.new_profile('m2.qwl.x0611118', 'Circle', radius=0.05)
+env.aperture.new_profile('m2.qwl.x0611122', 'Circle', radius=0.05)
 
-    # Follow the MAD-X reference arc, using arc length also for RBends. All
-    # APER_TILT values in this sequence are zero: the bend-plane roll rotates
-    # the pipe trajectory, while the opposite profile roll keeps aperture axes
-    # aligned with the local reference frame. Straight correctors need no roll.
-    curvature = getattr(element, 'h', 0.)
-    tilt = element.rot_s_rad if curvature else 0.
-    pipe = env.aperture.new_pipe(profile_name, curvature=curvature, positions=[
-        profile.place(at=0., rot_s_rad=-tilt),
-        profile.place(at=element.length, rot_s_rad=-tilt),
-    ])
-    line.aperture.place_pipe(name, pipe, at=name, rot_z_rad=tilt)
+# Pipes: install the profiles along their elements using MAD-X conventions.
+line.aperture.new_element_pipe('qnrb.x0610005', 'm2.qnrb.x0610005')
+line.aperture.new_element_pipe('qnlb.x0610009', 'm2.qnlb.x0610009')
+line.aperture.new_element_pipe('qnlb.x0610012', 'm2.qnlb.x0610012')
+line.aperture.new_element_pipe('qnlb.x0610016', 'm2.qnlb.x0610016')
+line.aperture.new_element_pipe('qnlb.x0610019', 'm2.qnlb.x0610019')
+line.aperture.new_element_pipe('qnlb.x0610023', 'm2.qnlb.x0610023')
+line.aperture.new_element_pipe('mbsa.x0610026', 'm2.mbsa.x0610026')
+line.aperture.new_element_pipe('mbsa.x0610031', 'm2.mbsa.x0610031')
+line.aperture.new_element_pipe('mbsa.x0610035', 'm2.mbsa.x0610035')
+line.aperture.new_element_pipe('xtax.x0610052', 'm2.xtax.x0610052')
+line.aperture.new_element_pipe('xtax.x0610054', 'm2.xtax.x0610054')
+line.aperture.new_element_pipe('qwl.x0610056', 'm2.qwl.x0610056')
+line.aperture.new_element_pipe('xchv.x0610058', 'm2.xchv.x0610058')
+line.aperture.new_element_pipe('mbxha.x0610061', 'm2.mbxha.x0610061')
+line.aperture.new_element_pipe('mbxha.x0610064', 'm2.mbxha.x0610064')
+line.aperture.new_element_pipe('mbxha.x0610067', 'm2.mbxha.x0610067')
+line.aperture.new_element_pipe('xchv.x0610070', 'm2.xchv.x0610070')
+line.aperture.new_element_pipe('qwl.x0610072', 'm2.qwl.x0610072')
+line.aperture.new_element_pipe('mcxca.x0610074', 'm2.mcxca.x0610074')
+line.aperture.new_element_pipe('qwl.x0610080', 'm2.qwl.x0610080')
+line.aperture.new_element_pipe('qwl.x0610096', 'm2.qwl.x0610096')
+line.aperture.new_element_pipe('mcxca.x0610098', 'm2.mcxca.x0610098')
+line.aperture.new_element_pipe('qwl.x0610104', 'm2.qwl.x0610104')
+line.aperture.new_element_pipe('mbnh.x0610109', 'm2.mbnh.x0610109')
+line.aperture.new_element_pipe('mqnee.x0610112', 'm2.mqnee.x0610112')
+line.aperture.new_element_pipe('mqnfb.x0610148', 'm2.mqnfb.x0610148')
+line.aperture.new_element_pipe('mqnfb.x0610184', 'm2.mqnfb.x0610184')
+line.aperture.new_element_pipe('xcmv.x0610190', 'm2.xcmv.x0610190')
+line.aperture.new_element_pipe('mqnfb.x0610220', 'm2.mqnfb.x0610220')
+line.aperture.new_element_pipe('xcmib.x0610226', 'm2.xcmib.x0610226')
+line.aperture.new_element_pipe('mqnfb.x0610256', 'm2.mqnfb.x0610256')
+line.aperture.new_element_pipe('xchv.x0610288', 'm2.xchv.x0610288')
+line.aperture.new_element_pipe('mqnfb.x0610292', 'm2.mqnfb.x0610292')
+line.aperture.new_element_pipe('mqnfb.x0610328', 'm2.mqnfb.x0610328')
+line.aperture.new_element_pipe('mqnfb.x0610364', 'm2.mqnfb.x0610364')
+line.aperture.new_element_pipe('mqnfb.x0610400', 'm2.mqnfb.x0610400')
+line.aperture.new_element_pipe('mqnfb.x0610436', 'm2.mqnfb.x0610436')
+line.aperture.new_element_pipe('mqnfb.x0610472', 'm2.mqnfb.x0610472')
+line.aperture.new_element_pipe('mqnfb.x0610508', 'm2.mqnfb.x0610508')
+line.aperture.new_element_pipe('mqnfb.x0610544', 'm2.mqnfb.x0610544')
+line.aperture.new_element_pipe('mqnfb.x0610580', 'm2.mqnfb.x0610580')
+line.aperture.new_element_pipe('mqnfb.x0610616', 'm2.mqnfb.x0610616')
+line.aperture.new_element_pipe('mdpx.x0610650', 'm2.mdpx.x0610650')
+line.aperture.new_element_pipe('mcxcd.x0610651', 'm2.mcxcd.x0610651')
+line.aperture.new_element_pipe('mqnfb.x0610652', 'm2.mqnfb.x0610652')
+line.aperture.new_element_pipe('mqnfb.x0610654', 'm2.mqnfb.x0610654')
+line.aperture.new_element_pipe('qwl.x0610677', 'm2.qwl.x0610677')
+line.aperture.new_element_pipe('qwl.x0610690', 'm2.qwl.x0610690')
+line.aperture.new_element_pipe('mbxgd.x0610693', 'm2.mbxgd.x0610693')
+line.aperture.new_element_pipe('mbxgd.x0610697', 'm2.mbxgd.x0610697')
+line.aperture.new_element_pipe('mbxgd.x0610701', 'm2.mbxgd.x0610701')
+line.aperture.new_element_pipe('mbnv.x0610706', 'm2.mbnv.x0610706')
+line.aperture.new_element_pipe('qwl.x0610710', 'm2.qwl.x0610710')
+line.aperture.new_element_pipe('xcmv.x0610715', 'm2.xcmv.x0610715')
+line.aperture.new_element_pipe('qwl.x0610723', 'm2.qwl.x0610723')
+line.aperture.new_element_pipe('xcmh.x0610727', 'm2.xcmh.x0610727')
+line.aperture.new_element_pipe('xcmv.x0610733', 'm2.xcmv.x0610733')
+line.aperture.new_element_pipe('xcmv.x0610741', 'm2.xcmv.x0610741')
+line.aperture.new_element_pipe('mqnfb.x0610745', 'm2.mqnfb.x0610745')
+line.aperture.new_element_pipe('mqnfb.x0610748', 'm2.mqnfb.x0610748')
+line.aperture.new_element_pipe('xcmh.x0610752', 'm2.xcmh.x0610752')
+line.aperture.new_element_pipe('xcmib.x0610765', 'm2.xcmib.x0610765')
+line.aperture.new_element_pipe('xcmib.x0610767', 'm2.xcmib.x0610767')
+line.aperture.new_element_pipe('mqnfb.x0610784', 'm2.mqnfb.x0610784')
+line.aperture.new_element_pipe('mqnfb.x0610820', 'm2.mqnfb.x0610820')
+line.aperture.new_element_pipe('xcmh.x0610845', 'm2.xcmh.x0610845')
+line.aperture.new_element_pipe('mdpx.x0610854', 'm2.mdpx.x0610854')
+line.aperture.new_element_pipe('mqnfb.x0610856', 'm2.mqnfb.x0610856')
+line.aperture.new_element_pipe('xcbv.x0610858', 'm2.xcbv.x0610858')
+line.aperture.new_element_pipe('xcmib.x0610862', 'm2.xcmib.x0610862')
+line.aperture.new_element_pipe('mqnfb.x0610900', 'm2.mqnfb.x0610900')
+line.aperture.new_element_pipe('mqnfb.x0610945', 'm2.mqnfb.x0610945')
+line.aperture.new_element_pipe('mdpx.x0610988', 'm2.mdpx.x0610988')
+line.aperture.new_element_pipe('mdpx.x0610989', 'm2.mdpx.x0610989')
+line.aperture.new_element_pipe('mqnfb.x0610990', 'm2.mqnfb.x0610990')
+line.aperture.new_element_pipe('mqnfb.x0610992', 'm2.mqnfb.x0610992')
+line.aperture.new_element_pipe('xcmv.x0610997', 'm2.xcmv.x0610997')
+line.aperture.new_element_pipe('qwl.x0611011', 'm2.qwl.x0611011')
+line.aperture.new_element_pipe('xchv.x0611013', 'm2.xchv.x0611013')
+line.aperture.new_element_pipe('qwl.x0611023', 'm2.qwl.x0611023')
+line.aperture.new_element_pipe('mbnv.x0611027', 'm2.mbnv.x0611027')
+line.aperture.new_element_pipe('mbnv.x0611033', 'm2.mbnv.x0611033')
+line.aperture.new_element_pipe('mbnv.x0611039', 'm2.mbnv.x0611039')
+line.aperture.new_element_pipe('qwl.x0611043', 'm2.qwl.x0611043')
+line.aperture.new_element_pipe('xcmv.x0611050', 'm2.xcmv.x0611050')
+line.aperture.new_element_pipe('xchv.x0611054', 'm2.xchv.x0611054')
+line.aperture.new_element_pipe('qwl.x0611056', 'm2.qwl.x0611056')
+line.aperture.new_element_pipe('xcmib.x0611061', 'm2.xcmib.x0611061')
+line.aperture.new_element_pipe('xcmib.x0611063', 'm2.xcmib.x0611063')
+line.aperture.new_element_pipe('xcmib.x0611065', 'm2.xcmib.x0611065')
+line.aperture.new_element_pipe('xcmib.x0611066', 'm2.xcmib.x0611066')
+line.aperture.new_element_pipe('xcmib.x0611068', 'm2.xcmib.x0611068')
+line.aperture.new_element_pipe('mqnfb.x0611072', 'm2.mqnfb.x0611072')
+line.aperture.new_element_pipe('mqnfb.x0611074', 'm2.mqnfb.x0611074')
+line.aperture.new_element_pipe('mqnfb.x0611077', 'm2.mqnfb.x0611077')
+line.aperture.new_element_pipe('mqnfb.x0611095', 'm2.mqnfb.x0611095')
+line.aperture.new_element_pipe('mqnfb.x0611097', 'm2.mqnfb.x0611097')
+line.aperture.new_element_pipe('mbhhe.x0611101', 'm2.mbhhe.x0611101')
+line.aperture.new_element_pipe('qwl.x0611105', 'm2.qwl.x0611105')
+line.aperture.new_element_pipe('qwl.x0611108', 'm2.qwl.x0611108')
+line.aperture.new_element_pipe('mbhhe.x0611111', 'm2.mbhhe.x0611111')
+line.aperture.new_element_pipe('mbhhe.x0611115', 'm2.mbhhe.x0611115')
+line.aperture.new_element_pipe('qwl.x0611118', 'm2.qwl.x0611118')
+line.aperture.new_element_pipe('qwl.x0611122', 'm2.qwl.x0611122')
 
 # Leave the aperture unbuilt: undefined opening knobs are zero until settings
 # are loaded. No Limit elements are installed here. Tracking limits are sampled

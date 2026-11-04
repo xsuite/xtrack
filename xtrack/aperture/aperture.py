@@ -108,6 +108,7 @@ def _split_wrapped_s_interval(
 
 
 _aperture_doc_groups = GroupedAPICollector([
+    "Construction",
     "Loading and Serialization",
     "Aperture Computation",
     "Introspection",
@@ -261,15 +262,67 @@ class LineAperture:
         """Return the pipe collection view."""
         return self.line.env.aperture.pipes
 
+    @doc_group("Construction")
     def new_profile(self, name, shape, **shape_params):
         """Create a profile in the line's aperture environment."""
         return self.line.env.aperture.new_profile(name, shape, **shape_params)
 
+    @doc_group("Construction")
     def new_pipe(self, name, curvature=0.0, positions=None):
         """Create a pipe in the line's aperture environment."""
         return self.line.env.aperture.new_pipe(
             name, curvature=curvature, positions=positions,
         )
+
+    @doc_group("Construction")
+    def new_element_pipe(self, name, profile):
+        """Create and install an element aperture using MAD-X conventions.
+
+        Parameters
+        ----------
+        name : str
+            Element in this line. Occurrence names such as ``bend::1`` are
+            accepted for repeated elements. The pipe is named ``{name}_pipe``
+            and its placement is named ``name``.
+        profile : str or ProfileView
+            Profile registered in this environment, used at both ends of a
+            thick element or once at a thin element.
+
+        Returns
+        -------
+        PipeView
+            The new pipe, already placed at the element entrance.
+
+        Notes
+        -----
+        Uses the element's current length, curvature and roll. Bends follow
+        the reference arc, using arc length also for RBends. Their pipe is
+        rolled into the bend plane, with the opposite profile rotation keeping
+        aperture axes aligned with the local reference frame (zero APER_TILT).
+        Straight elements have no aperture roll. Aperture offsets and
+        tolerances default to zero and can be edited on the returned pipe.
+        Profile expressions remain linked to the environment variables.
+        """
+        if self.is_built:
+            raise RuntimeError("Cannot place pipes after the line aperture is built.")
+        if name in self._pipe_position_name_to_index:
+            raise ValueError(f"Pipe position `{name}` already exists.")
+
+        table = self.line.get_table()
+        index = table.rows.get_index(name)
+        element = self.line[table.env_name[index]]
+        profile_index = self.line.env.aperture.profile_index(profile)
+        profile = self.profiles[profile_index]
+
+        length = element.length if getattr(element, 'isthick', False) else 0.0
+        curvature = getattr(element, 'h', 0.0) if length else 0.0
+        tilt = getattr(element, 'rot_s_rad', 0.0) if curvature else 0.0
+        positions = [profile.place(at=0.0, rot_s_rad=-tilt)]
+        if length:
+            positions.append(profile.place(at=length, rot_s_rad=-tilt))
+        pipe = self.new_pipe(f'{name}_pipe', curvature=curvature, positions=positions)
+        self.place_pipe(name, pipe, at=table.name[index], rot_z_rad=tilt)
+        return pipe
 
     @property
     def is_built(self):
@@ -316,6 +369,7 @@ class LineAperture:
         interpolated = survey_data.resample([anchor_s]).pose.to_nplike()
         return interpolated[0]
 
+    @doc_group("Construction")
     def place_pipe(
         self,
         name,
