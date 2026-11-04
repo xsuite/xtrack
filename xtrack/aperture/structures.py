@@ -1,3 +1,4 @@
+import operator
 from typing import Collection, List, Union, get_args
 
 import numpy as np
@@ -19,8 +20,51 @@ def _nonzero_tolerances_repr(position) -> str:
     )
 
 
+def _polygon_output(len_points, out_poly):
+    len_points = operator.index(len_points)
+    if not 3 <= len_points <= np.iinfo(np.uint32).max:
+        raise ValueError('len_points must be between 3 and UINT32_MAX.')
+    if out_poly is None:
+        return np.empty((len_points, 2), dtype=FloatType._dtype)
+    if (not isinstance(out_poly, np.ndarray)
+            or out_poly.shape != (len_points, 2)
+            or out_poly.dtype != FloatType._dtype
+            or not out_poly.flags.c_contiguous
+            or not out_poly.flags.writeable):
+        raise ValueError('out_poly must be a writable, C-contiguous float64 array '
+                         'with shape (len_points, 2).')
+    return out_poly
+
+
 class Circle(xo.Struct):
+    _extra_c_sources = ['#include "xtrack/aperture/headers/profile.h"']
+    _kernels = {
+        'build_circle_polygon': xo.Kernel(
+            c_name='build_circle_polygon',
+            args=[
+                xo.Arg(FloatType, pointer=True, name='points'),
+                xo.Arg(xo.UInt32, name='len_points'),
+                xo.Arg(FloatType, name='radius'),
+            ],
+        ),
+    }
+
     radius = FloatType
+
+    def build_polygon(self, len_points: int, out_poly=None) -> np.ndarray:
+        """Return a closed, CCW polygon sampled uniformly in boundary arc length.
+
+        The last point repeats the first. Write into and return ``out_poly``
+        when supplied.
+        """
+        points = _polygon_output(len_points, out_poly)
+        self.compile_kernels(only_if_needed=True)
+        self._context.kernels.build_circle_polygon(
+            points=points,
+            len_points=len(points),
+            radius=self.radius,
+        )
+        return points
 
     def __repr__(self):
         return f'Circle(radius={self.radius})'
@@ -32,8 +76,37 @@ class Circle(xo.Struct):
 class Rectangle(xo.Struct):
     """Centred rectangle with bounds ``±max_x`` and ``±max_y`` [m]."""
 
+    _extra_c_sources = ['#include "xtrack/aperture/headers/profile.h"']
+    _kernels = {
+        'build_rectangle_polygon': xo.Kernel(
+            c_name='build_rectangle_polygon',
+            args=[
+                xo.Arg(FloatType, pointer=True, name='points'),
+                xo.Arg(xo.UInt32, name='len_points'),
+                xo.Arg(FloatType, name='max_x'),
+                xo.Arg(FloatType, name='max_y'),
+            ],
+        ),
+    }
+
     max_x = FloatType
     max_y = FloatType
+
+    def build_polygon(self, len_points: int, out_poly=None) -> np.ndarray:
+        """Return a closed, CCW polygon sampled uniformly in boundary arc length.
+
+        The last point repeats the first. Write into and return ``out_poly``
+        when supplied.
+        """
+        points = _polygon_output(len_points, out_poly)
+        self.compile_kernels(only_if_needed=True)
+        self._context.kernels.build_rectangle_polygon(
+            points=points,
+            len_points=len(points),
+            max_x=self.max_x,
+            max_y=self.max_y,
+        )
+        return points
 
     def __repr__(self):
         return f'Rectangle(max_x={self.max_x}, max_y={self.max_y})'
@@ -45,8 +118,37 @@ class Rectangle(xo.Struct):
 class Ellipse(xo.Struct):
     """Centred ellipse with horizontal semi-axis ``a`` and vertical semi-axis ``b`` [m]."""
 
+    _extra_c_sources = ['#include "xtrack/aperture/headers/profile.h"']
+    _kernels = {
+        'build_ellipse_polygon': xo.Kernel(
+            c_name='build_ellipse_polygon',
+            args=[
+                xo.Arg(FloatType, pointer=True, name='points'),
+                xo.Arg(xo.UInt32, name='len_points'),
+                xo.Arg(FloatType, name='a'),
+                xo.Arg(FloatType, name='b'),
+            ],
+        ),
+    }
+
     a = FloatType
     b = FloatType
+
+    def build_polygon(self, len_points: int, out_poly=None) -> np.ndarray:
+        """Return a closed, CCW polygon sampled uniformly in boundary arc length.
+
+        The last point repeats the first. Write into and return ``out_poly``
+        when supplied.
+        """
+        points = _polygon_output(len_points, out_poly)
+        self.compile_kernels(only_if_needed=True)
+        self._context.kernels.build_ellipse_polygon(
+            points=points,
+            len_points=len(points),
+            a=self.a,
+            b=self.b,
+        )
+        return points
 
     def __repr__(self):
         return f'Ellipse(a={self.a}, b={self.b})'
@@ -62,10 +164,43 @@ class RectEllipse(xo.Struct):
     and ``b`` are the horizontal and vertical ellipse semi-axes [m].
     """
 
+    _extra_c_sources = ['#include "xtrack/aperture/headers/profile.h"']
+    _kernels = {
+        'build_rect_ellipse_polygon': xo.Kernel(
+            c_name='build_rect_ellipse_polygon',
+            args=[
+                xo.Arg(FloatType, pointer=True, name='points'),
+                xo.Arg(xo.UInt32, name='len_points'),
+                xo.Arg(FloatType, name='max_x'),
+                xo.Arg(FloatType, name='max_y'),
+                xo.Arg(FloatType, name='a'),
+                xo.Arg(FloatType, name='b'),
+            ],
+        ),
+    }
+
     max_x = FloatType
     max_y = FloatType
     a = FloatType
     b = FloatType
+
+    def build_polygon(self, len_points: int, out_poly=None) -> np.ndarray:
+        """Return a closed, CCW polygon sampled uniformly in boundary arc length.
+
+        The last point repeats the first. Write into and return ``out_poly``
+        when supplied.
+        """
+        points = _polygon_output(len_points, out_poly)
+        self.compile_kernels(only_if_needed=True)
+        self._context.kernels.build_rect_ellipse_polygon(
+            points=points,
+            len_points=len(points),
+            max_x=self.max_x,
+            max_y=self.max_y,
+            a=self.a,
+            b=self.b,
+        )
+        return points
 
     def __repr__(self):
         return (f'RectEllipse(max_x={self.max_x}, max_y={self.max_y}, '
@@ -82,10 +217,43 @@ class Racetrack(xo.Struct):
     ``b`` are the horizontal and vertical semi-axes of the corner ellipses [m].
     """
 
+    _extra_c_sources = ['#include "xtrack/aperture/headers/profile.h"']
+    _kernels = {
+        'build_racetrack_polygon': xo.Kernel(
+            c_name='build_racetrack_polygon',
+            args=[
+                xo.Arg(FloatType, pointer=True, name='points'),
+                xo.Arg(xo.UInt32, name='len_points'),
+                xo.Arg(FloatType, name='max_x'),
+                xo.Arg(FloatType, name='max_y'),
+                xo.Arg(FloatType, name='a'),
+                xo.Arg(FloatType, name='b'),
+            ],
+        ),
+    }
+
     max_x = FloatType
     max_y = FloatType
     a = FloatType
     b = FloatType
+
+    def build_polygon(self, len_points: int, out_poly=None) -> np.ndarray:
+        """Return a closed, CCW polygon sampled uniformly in boundary arc length.
+
+        The last point repeats the first. Write into and return ``out_poly``
+        when supplied.
+        """
+        points = _polygon_output(len_points, out_poly)
+        self.compile_kernels(only_if_needed=True)
+        self._context.kernels.build_racetrack_polygon(
+            points=points,
+            len_points=len(points),
+            max_x=self.max_x,
+            max_y=self.max_y,
+            a=self.a,
+            b=self.b,
+        )
+        return points
 
     def __repr__(self):
         return (f'Racetrack(max_x={self.max_x}, max_y={self.max_y}, '
@@ -103,9 +271,40 @@ class Octagon(xo.Struct):
     which impose ``abs(x) + abs(y) <= sqrt(2) * max_diagonal``.
     """
 
+    _extra_c_sources = ['#include "xtrack/aperture/headers/profile.h"']
+    _kernels = {
+        'build_octagon_polygon': xo.Kernel(
+            c_name='build_octagon_polygon',
+            args=[
+                xo.Arg(FloatType, pointer=True, name='points'),
+                xo.Arg(xo.UInt32, name='len_points'),
+                xo.Arg(FloatType, name='max_x'),
+                xo.Arg(FloatType, name='max_y'),
+                xo.Arg(FloatType, name='max_diagonal'),
+            ],
+        ),
+    }
+
     max_x = FloatType
     max_y = FloatType
     max_diagonal = FloatType
+
+    def build_polygon(self, len_points: int, out_poly=None) -> np.ndarray:
+        """Return a closed, CCW polygon sampled uniformly in boundary arc length.
+
+        The last point repeats the first. Write into and return ``out_poly``
+        when supplied.
+        """
+        points = _polygon_output(len_points, out_poly)
+        self.compile_kernels(only_if_needed=True)
+        self._context.kernels.build_octagon_polygon(
+            points=points,
+            len_points=len(points),
+            max_x=self.max_x,
+            max_y=self.max_y,
+            max_diagonal=self.max_diagonal,
+        )
+        return points
 
     def __repr__(self):
         return f'Octagon(max_x={self.max_x}, max_y={self.max_y}, max_diagonal={self.max_diagonal})'
@@ -119,9 +318,20 @@ class Polygon(xo.Struct):
 
     _extra_c_sources = [
         '#include "xtrack/aperture/headers/polygon.h"',
+        '#include "xtrack/aperture/headers/profile.h"',
     ]
 
     _kernels = {
+        'build_polygon_polygon': xo.Kernel(
+            c_name='build_polygon_polygon',
+            args=[
+                xo.Arg(FloatType, pointer=True, name='points'),
+                xo.Arg(xo.UInt32, name='len_points'),
+                xo.Arg(FloatType, pointer=True, const=True, name='vertices'),
+                xo.Arg(xo.UInt32, name='len_vertices'),
+            ],
+            ret=xo.Arg(xo.Int8),
+        ),
         'is_point_inside_polygon': xo.Kernel(
             c_name='is_point_inside_polygon',
             args=[
@@ -140,6 +350,22 @@ class Polygon(xo.Struct):
             ret=xo.Arg(xo.Int8),
         ),
     }
+
+    def build_polygon(self, len_points: int, out_poly=None) -> np.ndarray:
+        """Return a closed, CCW polygon sampled uniformly in boundary arc length.
+
+        Write into and return ``out_poly`` when supplied. Vertices are passed
+        as a buffer view; temporary arrays remain local to the C builder.
+        """
+        points = _polygon_output(len_points, out_poly)
+        vertices = self.vertices.to_nplike()
+        self.compile_kernels(only_if_needed=True)
+        kernels = self._context.kernels
+        if not kernels.build_polygon_polygon(
+                points=points, len_points=len(points), vertices=vertices,
+                len_vertices=len(vertices)):
+            raise ValueError('Polygon has no non-degenerate boundary.')
+        return points
 
     def __repr__(self):
         return f'<Polygon: {self.vertices._shape[0]} vertices>'
@@ -171,7 +397,63 @@ class Polygon(xo.Struct):
 
 
 class SVGShape(xo.Struct):
+    """Parametric aperture defined by a single closed SVG 1.1 path.
+
+    ``scale`` converts SVG units to metres (default 0.001, mm to m). The
+    SVG y axis is inverted to physical y-up coordinates. ``resolution`` is
+    nominal average sampling distance in metres for curved segments (default
+    1e-4 m), not a geometric error bound. Straight segments use endpoints only.
+
+    Geometry is approximated on demand, then resampled uniformly along the
+    intermediate polygon at the requested point count. Smaller resolution
+    refines the SVG approximation independently of the final point count.
+    Path editor: https://acc-models.web.cern.ch/svg-path-editor/
+    """
+
     svg_data = xo.String
+    scale = FloatType
+    resolution = FloatType
+
+    def __init__(self, svg_data=None, scale=0.001, resolution=1e-4, **kwargs):
+        # UnionRef supplies a dictionary on rehydration, or an existing shape
+        # when copying it to a different buffer.
+        if isinstance(svg_data, SVGShape):
+            svg_data = svg_data._to_dict()
+        if isinstance(svg_data, dict):
+            fields = dict(svg_data)
+            svg_data = fields.pop('svg_data')
+            scale = fields.pop('scale', scale)
+            resolution = fields.pop('resolution', resolution)
+            kwargs = {**fields, **kwargs}
+        from xtrack.svgutils import svg_to_points_by_resolution
+        svg_to_points_by_resolution(svg_data, resolution=resolution, scale=scale)
+        super().__init__(svg_data=svg_data, scale=scale, resolution=resolution, **kwargs)
+
+    def valid(self):
+        from xtrack.svgutils import svg_to_points_by_resolution
+        try:
+            svg_to_points_by_resolution(str(self.svg_data), self.resolution, self.scale)
+        except (ValueError, TypeError, OverflowError):
+            return False
+        return True
+
+    def build_polygon(self, len_points: int, out_poly=None) -> np.ndarray:
+        """Return a closed, CCW polygon with ``len_points`` including closure.
+
+        Arc-length sampling is uniform along the intermediate polygon;
+        ``resolution`` independently controls its SVG approximation.
+        Write into and return ``out_poly`` when supplied.
+        """
+        from xtrack.svgutils import svg_to_points_by_resolution
+        points = _polygon_output(len_points, out_poly)
+        vertices = svg_to_points_by_resolution(
+            str(self.svg_data), resolution=self.resolution, scale=self.scale)
+        polygon = Polygon(vertices=vertices, _context=self._context)
+        return polygon.build_polygon(len_points, out_poly=points)
+
+    def __repr__(self):
+        return (f'SVGShape(scale={self.scale}, resolution={self.resolution}, '
+                f'path={str(self.svg_data)[:40]!r}...)')
 
 
 ShapeTypes = Union[Circle, Rectangle, Ellipse, RectEllipse, Racetrack, Octagon, Polygon, SVGShape]
@@ -191,33 +473,9 @@ class Profile(xo.Struct):
     """
     shape = Shape
 
-    _extra_c_sources = [
-        '#include "xtrack/aperture/headers/profile.h"',
-    ]
-
-    _kernels = {
-        'build_polygon_for_profile': xo.Kernel(
-            c_name='build_polygon_for_profile',
-            args=[
-                xo.Arg(FloatType, pointer=True, name='points'),
-                xo.Arg(xo.UInt32, name='len_points'),
-                xo.Arg(xo.ThisClass, name='profile'),
-                xo.Arg(xo.Int8, pointer=True, name='out_is_convex'),
-            ],
-        ),
-    }
-
-    def build_polygon(self, len_points: int) -> np.ndarray:
-        points = np.empty((len_points, 2), dtype=FloatType._dtype)
-        is_convex = np.zeros(1, dtype=np.int8)
-        self.compile_kernels(only_if_needed=True)
-        self._context.kernels.build_polygon_for_profile(
-            points=points,
-            len_points=len_points,
-            profile=self,
-            out_is_convex=is_convex,
-        )
-        return points
+    def build_polygon(self, len_points: int, out_poly=None) -> np.ndarray:
+        """Delegate closed, CCW boundary sampling to the profile shape."""
+        return self.shape.build_polygon(len_points, out_poly=out_poly)
 
     def __repr__(self):
         return f'Profile({self.shape!r})'
@@ -621,8 +879,8 @@ class LineApertureModel(xo.Struct):
     ]
 
     _kernels = {
-        'build_profile_polygons': xo.Kernel(
-            c_name='build_profile_polygons',
+        'build_aperture_bounds': xo.Kernel(
+            c_name='build_aperture_bounds',
             args=[
                 xo.Arg(xo.ThisClass, name='model'),
                 xo.Arg(ApertureEnvStruct, name='aperture_env'),
@@ -818,10 +1076,10 @@ class LineApertureModel(xo.Struct):
     def from_dict(cls, src: dict, context: XContext = None) -> 'LineApertureModel':
         return cls(**src, _context=context)
 
-    def build_profile_polygons(self, aperture_env=None, **kwargs) -> None:
+    def build_aperture_bounds(self, aperture_env=None, **kwargs) -> None:
         aperture_env = aperture_env or self._aperture_env
         self.compile_kernels(only_if_needed=True)
-        self._context.kernels.build_profile_polygons(
+        self._context.kernels.build_aperture_bounds(
             model=self, aperture_env=aperture_env, **kwargs)
 
     def cross_sections_at_s(

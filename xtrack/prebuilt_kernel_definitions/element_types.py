@@ -8,7 +8,8 @@ from ..monitors import *
 from ..multisetter import MultiSetter
 from ..random import *
 from ..aperture.structures import (
-    ApertureEnvStruct, LineApertureModel, Profile, Polygon, SurveyData,
+    ApertureEnvStruct, LineApertureModel, Circle, Rectangle, Ellipse, RectEllipse,
+    Racetrack, Octagon, Polygon, SurveyData,
 )
 
 
@@ -163,7 +164,12 @@ NON_TRACKING_ELEMENTS = [
     MultiSetter,
     ApertureEnvStruct,
     LineApertureModel,
-    Profile,
+    Circle,
+    Rectangle,
+    Ellipse,
+    RectEllipse,
+    Racetrack,
+    Octagon,
     SurveyData,
     Polygon,
 ]

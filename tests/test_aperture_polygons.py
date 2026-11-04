@@ -5,7 +5,7 @@ from scipy.special import ellipe
 import xobjects as xo
 from xtrack.aperture import structures
 from xtrack.aperture.structures import (
-    Circle, Ellipse, FloatType, Octagon, Polygon, Profile, Racetrack, Rectangle,
+    Circle, Ellipse, Octagon, Polygon, Racetrack, Rectangle,
     RectEllipse, ShapeTypes
 )
 
@@ -14,35 +14,16 @@ from xtrack.aperture.structures import (
 def context():
     # This is to avoid recompilation for every test
     context = xo.ContextCpu()
-    Profile.compile_class_kernels(context, only_if_needed=True)
     return context
 
 
 @pytest.fixture(scope="module")
 def build_polygon_for_profile(context):
     def _build_polygon_for_profile(profile: ShapeTypes, len_points: int):
-        profile = Profile(shape=profile, _context=context)
-        return profile.build_polygon(len_points=len_points)
+        shape = type(profile)(profile._to_dict(), _context=context)
+        return shape.build_polygon(len_points=len_points)
 
     return _build_polygon_for_profile
-
-
-@pytest.fixture(scope="module")
-def build_polygon_for_profile_with_convexity(context):
-    def _build_polygon_for_profile_with_convexity(profile: ShapeTypes, len_points: int):
-        profile = Profile(shape=profile, _context=context)
-        points = np.empty((len_points, 2), dtype=FloatType._dtype)
-        is_convex = np.zeros(1, dtype=np.int8)
-        profile.compile_kernels(only_if_needed=True)
-        context.kernels.build_polygon_for_profile(
-            points=points,
-            len_points=len_points,
-            profile=profile,
-            out_is_convex=is_convex,
-        )
-        return points, bool(is_convex[0])
-
-    return _build_polygon_for_profile_with_convexity
 
 
 def ellipse_circumference(a: float, b: float) -> float:
@@ -352,38 +333,22 @@ def test_polygon_correctness_and_uniformity(build_polygon_for_profile):
     assert_polygon_boundary_and_uniformity(pts, vertices)
 
 
-@pytest.mark.parametrize("shape_class,params", [
-    ('Circle', {'radius': 1.0}),
-    ('Rectangle', {'max_x': 1.0, 'max_y': 0.5}),
-    ('Ellipse', {'a': 1.5, 'b': 1.0}),
-    ('RectEllipse', {'max_x': 1.0, 'max_y': 0.5, 'a': 1.2, 'b': 0.8}),
-    ('Racetrack', {'max_x': 1.0, 'max_y': 0.5, 'a': 0.3, 'b': 0.2}),
-    ('Octagon', {'max_x': 1.0, 'max_y': 0.8, 'max_diagonal': 0.8}),
-])
-def test_builtin_shapes_emit_convexity_true(build_polygon_for_profile_with_convexity, shape_class, params):
-    profile = getattr(structures, shape_class)(**params)
-    pts, is_convex = build_polygon_for_profile_with_convexity(profile, 64)
-    assert_polyline(pts)
-    assert is_convex is True
-
-
-def test_polygon_convexity_and_orientation(build_polygon_for_profile_with_convexity):
+def test_polygon_clockwise_orientation(build_polygon_for_profile):
     cw_vertices = np.array([
         [-3.0, -1.0],
         [-3.0, 2.0],
         [3.0, 2.0],
         [3.0, -1.0],
     ])
-    pts, is_convex = build_polygon_for_profile_with_convexity(Polygon(vertices=cw_vertices), 37)
+    pts = build_polygon_for_profile(Polygon(vertices=cw_vertices), 37)
 
     assert pts.shape == (37, 2)
     assert_polyline(pts)
     assert_polygon_boundary_and_uniformity(pts, cw_vertices[::-1])
-    assert is_convex is True
     assert polygon_signed_area(pts) > 0
 
 
-def test_polygon_concave_emits_false_convexity(build_polygon_for_profile_with_convexity):
+def test_polygon_concave_boundary(build_polygon_for_profile):
     concave_vertices = np.array([
         [-3.0, -1.0],
         [0.0, -1.0],
@@ -392,9 +357,8 @@ def test_polygon_concave_emits_false_convexity(build_polygon_for_profile_with_co
         [3.0, 2.0],
         [-3.0, 2.0],
     ])
-    pts, is_convex = build_polygon_for_profile_with_convexity(Polygon(vertices=concave_vertices), 61)
+    pts = build_polygon_for_profile(Polygon(vertices=concave_vertices), 61)
 
     assert pts.shape == (61, 2)
     assert_polyline(pts)
     assert_polygon_boundary_and_uniformity(pts, concave_vertices)
-    assert is_convex is False

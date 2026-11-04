@@ -308,7 +308,6 @@ def test_rot_y_pi_projection_reverses_polygon_order_and_breaks_cyclic_matching()
 
 @pytest.fixture(scope="module")
 def kernels(context):
-    Profile.compile_class_kernels(context, only_if_needed=True)
     Polygon.compile_class_kernels(context, only_if_needed=True)
     SurveyData.compile_class_kernels(context, only_if_needed=True)
     ApertureModel.compile_class_kernels(context, only_if_needed=True)

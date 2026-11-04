@@ -5,7 +5,7 @@ import numpy as np
 
 from xtrack.aperture.structures import (
     Circle, Ellipse, Octagon, Polygon, Racetrack, Rectangle, RectEllipse,
-    ShapeTypes
+    ShapeTypes, SVGShape
 )
 from xtrack.beam_elements.limit_ellipse import LimitEllipse
 from xtrack.beam_elements.limit_polygon import LimitPolygon
@@ -87,6 +87,10 @@ def _profile_from_limit_racetrack(element: LimitRacetrack) -> Tuple[ShapeTypes, 
 
 @profile_from_limit_element.register
 def _profile_from_limit_polygon(element: LimitPolygon) -> Tuple[ShapeTypes, float, float]:
+    """Preserve SVG parameters; resolution and final point count replace step counts."""
+    if element.svg is not None:
+        return SVGShape(svg_data=element.svg['path'],
+                        scale=element.svg.get('scale', 0.001)), 0, 0
     xs = np.asarray(element.x_closed)
     ys = np.asarray(element.y_closed)
     polygon = Polygon(vertices=np.column_stack([xs, ys]))
