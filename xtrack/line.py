@@ -844,7 +844,7 @@ class Line:
             if include_aperture and (
                 len(self.env.aperture.profiles) or len(self.env.aperture.pipes)
             ):
-                out['aperture_environment'] = self.env.aperture.to_dict(include_line_models=False)
+                out['aperture_environment'] = self.env.aperture.to_dict(include_line_models=False, include_expressions=include_var_management)
         out["element_names"] = self.element_names[:]
         out['config'] = self.config.data.copy()
         out['_extra_config'] = self._extra_config.copy()
@@ -868,7 +868,7 @@ class Line:
                     'To save also the deferred expressions please save the '
                     'entire multiline.\n ')
 
-            out.update(self.env._var_management_to_dict())
+            out.update(self.env._var_management_to_dict(include_aperture=include_aperture))
 
         out['env_particles'] = {k: pp.to_dict() for k, pp in self.env._particles.items()}
 
@@ -944,6 +944,8 @@ class Line:
     def __setstate__(self, state):
         self.__dict__.update(state)
         self.aperture._line_ref = ref(self)
+        if hasattr(self.env, '_lines_weakrefs'):
+            self.env._lines_weakrefs.add(self)
 
     @doc_group("Constructors and Serialization")
     def to_json(self, file, indent=1, **kwargs):

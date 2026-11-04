@@ -10,7 +10,8 @@ Line-by-line port of ``M2_MTN3p8_v6_notilt.seq`` (MAD-X sequence generated the
   (HKICK -> knl=[-hkick]), RBEND -> xt.RBend (L -> length_straight),
   TILT -> rot_s_rad, YROTATION -> xt.Rotation (ANGLE -> rot_y_rad),
   TRANSLATION -> xt.Translation (DX -> shift_x, DS -> shift_s);
-- APERTYPE/APERTURE definitions are not ported (for now);
+- APERTYPE/APERTURE definitions populate the native aperture model; aperture
+  expressions follow the settings, with geometry refreshed on demand;
 - ``slot_id`` is stored in ``element.extra``;
 - variables not defined in the file (e.g. quadrupole and corrector strengths)
   are zero, as in MAD-X.
@@ -577,3 +578,145 @@ line.new('xsci.x0611185', 'm2_bxsci', at=1185.5281, extra={'slot_id': 57829759})
 line.end_compose()
 
 
+#==============================================================================
+# APERTURE MODEL
+#==============================================================================
+
+# Native profiles are the source of aperture geometry. Dimensions are in metres:
+# radii/semi-axes or rectangular half-widths, as in the MAD-X APERTURE attribute.
+# Only the relevant entries of the MAD-X arrays are retained (the sequence often
+# repeats them). Names below are the expert prototypes used by the placed elements.
+aperture_definitions = {
+    'mbh.x0610026_bend1h': ('Rectangle', {'max_x': 0.175, 'max_y': 0.03}),
+    'mbh.x0610031_bend1h': ('Rectangle', {'max_x': 0.175, 'max_y': 0.03}),
+    'mbh.x0610035_bend1h': ('Rectangle', {'max_x': 0.175, 'max_y': 0.03}),
+    'mqd.x0610009_quad2d': ('Circle', {'radius': 0.04}),
+    'mqf.x0610012_quad3f': ('Circle', {'radius': 0.04}),
+    'mqf.x0610016_quad4f': ('Circle', {'radius': 0.04}),
+    'mqd.x0610019_quad5d': ('Circle', {'radius': 0.04}),
+    'mqd.x0610023_quad6d': ('Circle', {'radius': 0.04}),
+    'mqd.x0610005_quad1d': ('Circle', {'radius': 0.025}),
+    'xtax.x0610052_xtax1': ('Rectangle', {'max_x': 0.12, 'max_y': 0.016}),
+    'xtax.x0610054_xtax2': ('Rectangle', {'max_x': 0.12, 'max_y': 0.016}),
+    'mbh.x0611101_bend7h': ('Rectangle', {'max_x': 0.26, 'max_y': 0.07}),
+    'mbv.x0611111_bend8v': ('Rectangle', {'max_x': 0.26, 'max_y': 0.07}),
+    'mbh.x0611115_bend9h': ('Rectangle', {'max_x': 0.26, 'max_y': 0.055}),
+    'mbh.x0610109_bend3h': ('Rectangle', {'max_x': 0.125, 'max_y': 0.03}),
+    'mbv.x0610706_bend5v': ('Racetrack', {'max_x': 0.125, 'max_y': 0.03, 'a': 0.125, 'b': 0.03}),
+    'mbv.x0611027_bend6v': ('Racetrack', {'max_x': 0.125, 'max_y': 0.03, 'a': 0.125, 'b': 0.03}),
+    'mbv.x0611033_bend6v': ('Racetrack', {'max_x': 0.125, 'max_y': 0.03, 'a': 0.125, 'b': 0.03}),
+    'mbv.x0611039_bend6v': ('Racetrack', {'max_x': 0.125, 'max_y': 0.03, 'a': 0.125, 'b': 0.03}),
+    'mbv.x0610693_bend4v': ('RectEllipse', {'max_x': 0.06, 'max_y': 0.035, 'a': 0.095, 'b': 0.035}),
+    'mbv.x0610697_bend4v': ('RectEllipse', {'max_x': 0.06, 'max_y': 0.035, 'a': 0.095, 'b': 0.035}),
+    'mbv.x0610701_bend4v': ('RectEllipse', {'max_x': 0.06, 'max_y': 0.035, 'a': 0.095, 'b': 0.035}),
+    'mbv.x0610061_bend2v': ('Rectangle', {'max_x': 0.16, 'max_y': 0.054}),
+    'mbv.x0610064_bend2v': ('Rectangle', {'max_x': 0.16, 'max_y': 0.054}),
+    'mbv.x0610067_bend2v': ('Rectangle', {'max_x': 0.16, 'max_y': 0.054}),
+    'mcbh.x0610074_trim1h': ('Rectangle', {'max_x': 0.07, 'max_y': 0.05}),
+    'mcbv.x0610098_trim2v': ('Rectangle', {'max_x': 0.07, 'max_y': 0.05}),
+    'mcbv.x0610651_trim4v': ('Rectangle', {'max_x': 0.2, 'max_y': 0.1025}),
+    'mcbh.x0610650_trim3h': ('Ellipse', {'a': 0.0775, 'b': 0.0415}),
+    'mcbh.x0610854_trim5h': ('Ellipse', {'a': 0.0775, 'b': 0.0415}),
+    'mcbh.x0610988_trim6h': ('Ellipse', {'a': 0.0775, 'b': 0.0415}),
+    'mcbv.x0610989_trim7v': ('Ellipse', {'a': 0.0775, 'b': 0.0415}),
+    'mqd.x0610112_quad12d': ('Circle', {'radius': 0.1}),
+    'mqf.x0610148_quad13f': ('Circle', {'radius': 0.1}),
+    'mqd.x0610184_quad14d': ('Circle', {'radius': 0.1}),
+    'mqf.x0610220_quad13f': ('Circle', {'radius': 0.1}),
+    'mqd.x0610256_quad14d': ('Circle', {'radius': 0.1}),
+    'mqf.x0610292_quad13f': ('Circle', {'radius': 0.1}),
+    'mqd.x0610328_quad14d': ('Circle', {'radius': 0.1}),
+    'mqf.x0610364_quad15f': ('Circle', {'radius': 0.1}),
+    'mqd.x0610400_quad16d': ('Circle', {'radius': 0.1}),
+    'mqf.x0610436_quad15f': ('Circle', {'radius': 0.1}),
+    'mqd.x0610472_quad16d': ('Circle', {'radius': 0.1}),
+    'mqf.x0610508_quad15f': ('Circle', {'radius': 0.1}),
+    'mqd.x0610544_quad16d': ('Circle', {'radius': 0.1}),
+    'mqf.x0610580_quad17f': ('Circle', {'radius': 0.1}),
+    'mqd.x0610616_quad18d': ('Circle', {'radius': 0.1}),
+    'mqf.x0610652_quad17f': ('Circle', {'radius': 0.1}),
+    'mqd.x0610654_quad19d': ('Circle', {'radius': 0.1}),
+    'mqd.x0610745_quad24d': ('Circle', {'radius': 0.1}),
+    'mqd.x0610748_quad25d': ('Circle', {'radius': 0.1}),
+    'mqf.x0610784_quad25f_inv': ('Circle', {'radius': 0.1}),
+    'mqd.x0610820_quad25d': ('Circle', {'radius': 0.1}),
+    'mqf.x0610856_quad26f': ('Circle', {'radius': 0.1}),
+    'mqd.x0610900_quad27d': ('Circle', {'radius': 0.1}),
+    'mqf.x0610945_quad27f_inv': ('Circle', {'radius': 0.1}),
+    'mqd.x0610990_quad27d': ('Circle', {'radius': 0.1}),
+    'mqd.x0610992_quad28d': ('Circle', {'radius': 0.1}),
+    'mqd.x0611072_quad33d': ('Circle', {'radius': 0.1}),
+    'mqd.x0611074_quad33d': ('Circle', {'radius': 0.1}),
+    'mqd.x0611077_quad33d': ('Circle', {'radius': 0.1}),
+    'mqd.x0611095_quad34d': ('Circle', {'radius': 0.1}),
+    'mqd.x0611097_quad34d': ('Circle', {'radius': 0.1}),
+    'mqf.x0610056_quad7f': ('Circle', {'radius': 0.05}),
+    'mqf.x0610072_quad8f': ('Circle', {'radius': 0.05}),
+    'mqd.x0610080_quad9d': ('Circle', {'radius': 0.05}),
+    'mqd.x0610096_quad10d': ('Circle', {'radius': 0.05}),
+    'mqf.x0610104_quad11f': ('Circle', {'radius': 0.05}),
+    'mqf.x0610677_quad20f': ('Circle', {'radius': 0.05}),
+    'mqd.x0610690_quad21d': ('Circle', {'radius': 0.05}),
+    'mqd.x0610710_quad22d': ('Circle', {'radius': 0.05}),
+    'mqf.x0610723_quad23f': ('Circle', {'radius': 0.05}),
+    'mqf.x0611011_quad29f': ('Circle', {'radius': 0.05}),
+    'mqd.x0611023_quad30d': ('Circle', {'radius': 0.05}),
+    'mqd.x0611043_quad31d': ('Circle', {'radius': 0.05}),
+    'mqf.x0611056_quad32f': ('Circle', {'radius': 0.05}),
+    'mqf.x0611105_quad35f': ('Circle', {'radius': 0.05}),
+    'mqf.x0611108_quad35f': ('Circle', {'radius': 0.05}),
+    'mqd.x0611118_quad36d': ('Circle', {'radius': 0.05}),
+    'mqd.x0611122_quad36d': ('Circle', {'radius': 0.05}),
+    'xcbv.x0610858_coll5': ('Rectangle', {'max_x': 0.175, 'max_y': 'kxcbv.x0610858_coll5v'}),
+    'xchv.x0610058_coll1_2': ('Rectangle', {'max_x': 'kxchv.x0610058_coll1_2xh', 'max_y': 'kxchv.x0610058_coll1_2yv'}),
+    'xchv.x0610070_coll3_4': ('Rectangle', {'max_x': 'kxchv.x0610070_coll3_4xh', 'max_y': 'kxchv.x0610070_coll3_4yv'}),
+    'xchv.x0610288_coll10_11': ('Rectangle', {'max_x': 'kxchv.x0610288_coll10_11xh', 'max_y': 'kxchv.x0610288_coll10_11yv'}),
+    'xchv.x0611013_coll6_7': ('Rectangle', {'max_x': 'kxchv.x0611013_coll6_7xh', 'max_y': 'kxchv.x0611013_coll6_7yv'}),
+    'xchv.x0611054_coll8_9': ('Rectangle', {'max_x': 'kxchv.x0611054_coll8_9xh', 'max_y': 'kxchv.x0611054_coll8_9yv'}),
+    'xcmh.x0610727_scr3h': ('Rectangle', {'max_x': 'kxcmh.x0610727_scr3h_coll1h', 'max_y': 0.175}),
+    'xcmh.x0610752_scr6h': ('Rectangle', {'max_x': 'kxcmh.x0610752_scr6h_coll2h', 'max_y': 0.175}),
+    'xcmh.x0610845_scr7h': ('Rectangle', {'max_x': 'kxcmh.x0610845_scr7h_coll3h', 'max_y': 0.175}),
+    'xcm.x0610765_mib2': ('Rectangle', {'max_x': 0.1, 'max_y': 0.1}),
+    'xcm.x0610767_mib2': ('Rectangle', {'max_x': 0.1, 'max_y': 0.1}),
+    'xcm.x0611061_mib4': ('Rectangle', {'max_x': 0.1, 'max_y': 0.1}),
+    'xcm.x0611063_mib4': ('Rectangle', {'max_x': 0.1, 'max_y': 0.1}),
+    'xcm.x0611065_mib3': ('Rectangle', {'max_x': 0.1, 'max_y': 0.1}),
+    'xcm.x0611066_mib3': ('Rectangle', {'max_x': 0.1, 'max_y': 0.1}),
+    'xcm.x0611068_mib3': ('Rectangle', {'max_x': 0.1, 'max_y': 0.1}),
+    'xcm.x0610226_mib1': ('Rectangle', {'max_x': 0.1, 'max_y': 0.1}),
+    'xcm.x0610862_mib3': ('Rectangle', {'max_x': 0.1, 'max_y': 0.1}),
+    'xcmv.x0610190_scr1v': ('Rectangle', {'max_x': 0.175, 'max_y': 'kxcmv.x0610190_scr1v_coll4v'}),
+    'xcmv.x0610715_scr2v': ('Rectangle', {'max_x': 0.175, 'max_y': 'kxcmv.x0610715_scr2v_coll5v'}),
+    'xcmv.x0610733_scr4v': ('Rectangle', {'max_x': 0.175, 'max_y': 'kxcmv.x0610733_scr4v_coll6v'}),
+    'xcmv.x0610741_scr5v': ('Rectangle', {'max_x': 0.175, 'max_y': 'kxcmv.x0610741_scr5v_coll7v'}),
+    'xcmv.x0610997_scr8v': ('Rectangle', {'max_x': 0.175, 'max_y': 'kxcmv.x0610997_scr8v_coll8v'}),
+    'xcmv.x0611050_scr9v': ('Rectangle', {'max_x': 0.175, 'max_y': 'kxcmv.x0611050_scr9v_coll9v'}),
+}
+
+# Aperture dimensions use the same expression manager as the optics knobs.
+# Queries refresh changed profiles and their bounds on demand.
+line.aperture.num_profile_points = 1024
+for name in line.element_names:
+    element = env[name]
+    prototype = getattr(element, 'prototype', None)
+    if prototype not in aperture_definitions:
+        continue
+    shape, parameters = aperture_definitions[prototype]
+    profile_name = f'm2.{name}'
+    profile = env.aperture.new_profile(profile_name, shape, **parameters)
+
+    # Follow the MAD-X reference arc, using arc length also for RBends. All
+    # APER_TILT values in this sequence are zero: the bend-plane roll rotates
+    # the pipe trajectory, while the opposite profile roll keeps aperture axes
+    # aligned with the local reference frame. Straight correctors need no roll.
+    curvature = getattr(element, 'h', 0.)
+    tilt = element.rot_s_rad if curvature else 0.
+    pipe = env.aperture.new_pipe(profile_name, curvature=curvature, positions=[
+        profile.place(at=0., rot_s_rad=-tilt),
+        profile.place(at=element.length, rot_s_rad=-tilt),
+    ])
+    line.aperture.place_pipe(name, pipe, at=name, rot_z_rad=tilt)
+
+# Leave the aperture unbuilt: undefined opening knobs are zero until settings
+# are loaded. No Limit elements are installed here. Tracking limits are sampled
+# on demand from the aperture model, within the explicitly specified pipes.

@@ -114,6 +114,8 @@ class Environment:
         self._particles = {}
         self.particle_ref = particle_ref
 
+        from xtrack.aperture.environment import EnvAperture
+        self.aperture = EnvAperture(self)
         self._init_var_management(dct=_var_management_dct)
         self._line_vars = EnvVars(self)
 
@@ -129,8 +131,6 @@ class Environment:
         self._enable_name_clash_check = True
         self._last_context = None
         self._drift_cache = {}
-        from xtrack.aperture.environment import EnvAperture
-        self.aperture = EnvAperture(self)
 
         for nn, ee in self._element_dict.items():
             if nn.startswith('||drift_') and isinstance(ee, xt.Drift):
@@ -169,6 +169,7 @@ class Environment:
         self._var_management = _make_var_management(
             element_dict=self._element_dict,
             particles=self._particles,
+            aperture=self.aperture,
             dct=dct)
 
     def __repr__(self):
@@ -196,7 +197,7 @@ class Environment:
 
     def __setstate__(self, state):
         self.__dict__.update(state)
-        self._lines_weakrefs = WeakSet()
+        self._lines_weakrefs = WeakSet(self.lines.values())
         self._line_composers = WeakKeyDictionary()
         self.aperture._env_ref = ref(self)
 
@@ -1138,7 +1139,7 @@ class Environment:
                     'To save also the deferred expressions please save the '
                     'entire multiline.\n ')
 
-            out.update(self._var_management_to_dict())
+            out.update(self._var_management_to_dict(include_aperture=include_aperture))
 
         if hasattr(self, '_bb_config') and self._bb_config is not None:
             out['_bb_config'] = {}
@@ -1156,7 +1157,7 @@ class Environment:
         out["metadata"] = deepcopy(self.metadata)
 
         if include_aperture and (len(self.aperture.profiles) or len(self.aperture.pipes)):
-            out['aperture'] = self.aperture.to_dict(include_line_models=False)
+            out['aperture'] = self.aperture.to_dict(include_line_models=False, include_expressions=include_var_management)
 
         out['xsuite_data_type'] = 'Environment'
 
@@ -2342,14 +2343,22 @@ class Environment:
         """
         return self._xdeps_manager
 
-    def _var_management_to_dict(self):
+    def _var_management_to_dict(self, include_aperture=True):
         out = {}
         out['_var_management_data'] = deepcopy(self._var_management['data'])
         for kk in out['_var_management_data'].keys():
             if hasattr(out['_var_management_data'][kk], 'to_dict'):
                 out['_var_management_data'][kk] = (
                     out['_var_management_data'][kk].to_dict())
-        out['_var_manager'] = self._var_management['manager'].dump()
+        manager = self._var_management['manager']
+        out['_var_manager'] = manager.dump()
+        if not include_aperture:
+            out['_var_manager'] = [(lhs, rhs) for lhs, rhs in out['_var_manager']
+                                   if not lhs.startswith('aperture.')]
+            if any(not str(task.taskid).startswith('aperture.') and
+                   any(str(dep).startswith('aperture.') for dep in task.dependencies)
+                   for task in manager.tasks.values()):
+                raise ValueError('Expressions depend on aperture data; use include_aperture=True.')
         return out
 
     def _check_name_clashes(self, name, check_vars=True):
@@ -3334,7 +3343,7 @@ def _deserialize_elements(dct, classes, _buffer, _context,
 
     return elements
 
-def _make_var_management(element_dict, particles, dct=None):
+def _make_var_management(element_dict, particles, dct=None, aperture=None):
 
     from collections import defaultdict
 
@@ -3348,6 +3357,8 @@ def _make_var_management(element_dict, particles, dct=None):
     _fref = manager.ref(functions, 'f')
     _lref = manager.ref(element_dict, 'element_refs')
     _pref = manager.ref(particles, 'particles')
+    if aperture is not None:
+        manager.ref(aperture._ref_data, 'aperture')
 
     _var_management = {}
     _var_management['data'] = {}

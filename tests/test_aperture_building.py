@@ -388,10 +388,6 @@ def test_views_follow_authoritative_representation_and_build_refreshes_geometry(
 
     before = line.aperture.get_cross_sections_at_s([0.5]).cross_section[0]
     profile.shape.radius = 2.0
-    stale = line.aperture.get_cross_sections_at_s([0.5]).cross_section[0]
-    xo.assert_allclose(stale, before, atol=1e-14, rtol=0)
-
-    line.aperture.build_model()
     refreshed = line.aperture.get_cross_sections_at_s([0.5]).cross_section[0]
     xo.assert_allclose(
         np.max(np.linalg.norm(refreshed, axis=1)), 2.0, atol=1e-12, rtol=0)

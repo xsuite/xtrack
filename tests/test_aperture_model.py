@@ -741,7 +741,7 @@ def test_aperture_model_views(test_context):
     assert list(name for name, _ in profiles.items()) == ['circ0', 'rect0']
     assert list(type(profile.raw.shape).__name__ for profile in [profiles[0], profiles[1]]) == ['Circle', 'Rectangle']
     assert [profile.name for profile in profiles.values()] == ['circ0', 'rect0']
-    assert [type(profile.shape).__name__ for profile in profiles.values()] == ['Circle', 'Rectangle']
+    assert [profile.shape.__class__.__name__ for profile in profiles.values()] == ['Circle', 'Rectangle']
 
     xo.assert_allclose(positions[1].tol_r, 0.1, atol=1e-15, rtol=0)
     xo.assert_allclose(positions[1].tol_x, 0.2, atol=1e-15, rtol=0)

@@ -17,6 +17,8 @@ from xtrack.aperture.structures import (
     ShapeTypes,
 )
 from xtrack.aperture.views import PipesView, ProfilesView
+from xtrack.aperture.expressions import ApertureRefRoot, expression_value
+from xtrack.view import View
 
 
 SHAPE_CLASSES = get_args(ShapeTypes)
@@ -32,6 +34,8 @@ _env_aperture_doc_groups = GroupedAPICollector([
 
 def _shape_from_input(shape, **shape_params):
     """Create an aperture shape from a name, class, or existing shape."""
+    if isinstance(shape, View):
+        shape = shape._get_viewed_object()
     if isinstance(shape, str):
         shape_cls = SHAPE_CLASSES_BY_NAME.get(shape)
     elif shape in SHAPE_CLASSES:
@@ -90,6 +94,31 @@ class EnvAperture:
         self._struct = None
         self._profiles = ProfilesView(self)
         self._pipes = PipesView(self)
+        self._ref_data = ApertureRefRoot(self)
+        self._profile_versions = {}
+        self._pipe_versions = {}
+        self._position_versions = {}
+
+    @property
+    def ref(self):
+        """Xdeps references to named profiles and pipes."""
+        return self.env.ref_manager.containers['aperture']
+
+    def _touch(self, kind, name, field, path=()):
+        if field in ('tol_r', 'tol_x', 'tol_y'):
+            return  # Tolerances are read directly by the query kernels.
+        if kind == 'pipe' and len(path) >= 2 and path[0] == (False, 'positions'):
+            key = (name, path[1][1])
+            self._position_versions[key] = self._position_versions.get(key, 0) + 1
+            return
+        versions = getattr(self, f'_{kind}_versions')
+        versions[name] = versions.get(name, 0) + 1
+
+    def _remove_expressions(self, prefix='aperture.'):
+        manager = self.env.ref_manager
+        for target in list(manager.tasks):
+            if str(target).startswith(prefix):
+                manager.unregister(target)
 
     def __repr__(self):
         return f'<EnvAperture: {len(self.pipes)} pipes, {len(self.profiles)} profiles>'
@@ -132,10 +161,22 @@ class EnvAperture:
         return self._pipes
 
     def __getstate__(self):
-        """Leave the owner reference to be restored by the environment."""
+        """Pickle definitions, leaving ownership restoration to the environment."""
         state = self.__dict__.copy()
         state.pop('_env_ref')
+        state['_pickle_definitions'] = self.to_dict(
+            include_line_models=False, include_expressions=False)
+        state['_struct'] = None
+        state['_profiles_unbuilt'] = None
+        state['_pipes_unbuilt'] = None
         return state
+
+    def __setstate__(self, state):
+        definitions = state.pop('_pickle_definitions', None)
+        self.__dict__.update(state)
+        if definitions is not None:
+            self._profiles_unbuilt = [Profile(**data) for data in definitions['profiles']]
+            self._pipes_unbuilt = [Pipe(**data) for data in definitions['pipes']]
 
     @property_with_doc_group("Introspection")
     def is_built(self):
@@ -192,7 +233,9 @@ class EnvAperture:
             Alternative to ``at``; do not specify both.
         **kwargs
             Additional ``ProfilePosition`` fields: transverse shifts,
-            rotations, and aperture tolerances.
+            rotations, and aperture tolerances. Scalar values, including
+            ``at`` and ``shift_s``, can be expression strings or Xdeps references.
+            Their bindings are installed when the position is added to a pipe.
 
         Returns
         -------
@@ -205,11 +248,14 @@ class EnvAperture:
 
             at = shift_s
 
-        return ProfilePosition(
-            profile_index=self.profile_index(profile),
-            shift_s=at,
-            **kwargs,
-        )
+        values, expressions = {}, {}
+        for key, value in dict(shift_s=at, **kwargs).items():
+            values[key], expression = expression_value(self.env, value)
+            if expression is not None:
+                expressions[key] = expression
+        position = ProfilePosition(profile_index=self.profile_index(profile), **values)
+        position._expressions = expressions
+        return position
 
     @doc_group("Introspection")
     def pipe_index(self, pipe):
@@ -246,6 +292,9 @@ class EnvAperture:
             copied; shape parameters cannot be supplied with an instance.
         **shape_params
             Constructor arguments for the selected shape, such as ``radius``.
+            Scalar fields accept numbers, expression strings, or Xdeps references
+            using the environment's variables. The returned shape View also
+            supports expression assignments (including polygon vertices).
 
         Returns
         -------
@@ -265,12 +314,21 @@ class EnvAperture:
         if name in self._profile_name_to_index:
             raise ValueError(f"Profile `{name}` already exists.")
 
-        profile = Profile(
-            shape=_shape_from_input(shape, **shape_params),
-        )
+        values, expressions = {}, {}
+        for key, value in shape_params.items():
+            if key == 'svg_data':
+                values[key] = value
+                continue
+            values[key], expression = expression_value(self.env, value)
+            if expression is not None:
+                expressions[key] = expression
+        profile = Profile(shape=_shape_from_input(shape, **values))
         index = len(self._profile_name_to_index)
         self._profiles_unbuilt.append(profile)
         self._profile_name_to_index[name] = index
+        self._profile_versions[name] = 0
+        for key, expression in expressions.items():
+            setattr(self.ref.profiles[name].shape, key, expression)
 
         return self.profiles[name]
 
@@ -283,10 +341,12 @@ class EnvAperture:
         name : str
             Unique pipe name within this environment aperture.
         curvature : float, optional
-            Horizontal curvature of the pipe axis [1/m]. Defaults to zero.
+            Horizontal curvature of the pipe axis [1/m]. Defaults to zero;
+            also accepts an expression string or Xdeps reference.
         positions : sequence of ProfilePosition, optional
             Profile positions created with :meth:`place_profile` or
-            ``ProfileView.place()``. They are sorted longitudinally on build.
+            ``ProfileView.place()``. They are sorted longitudinally at creation;
+            subsequent edits must preserve their order so references stay valid.
 
         Returns
         -------
@@ -307,10 +367,20 @@ class EnvAperture:
         if name in self._pipe_name_to_index:
             raise ValueError(f"Pipe `{name}` already exists.")
 
-        pipe = Pipe(curvature=curvature, positions=positions or [])
+        curvature, curvature_expr = expression_value(self.env, curvature)
+        # Sort once, before references are assigned. Position indices remain
+        # stable across packing; subsequent edits must retain longitudinal order.
+        positions = sorted(positions or [], key=lambda position: position.shift_s)
+        pipe = Pipe(curvature=curvature, positions=positions)
         index = len(self._pipe_name_to_index)
         self._pipes_unbuilt.append(pipe)
         self._pipe_name_to_index[name] = index
+        self._pipe_versions[name] = 0
+        if curvature_expr is not None:
+            self.ref.pipes[name].curvature = curvature_expr
+        for ii, position in enumerate(positions):
+            for key, expression in getattr(position, '_expressions', {}).items():
+                setattr(self.ref.pipes[name].positions[ii], key, expression)
 
         return self.pipes[name]
 
@@ -319,9 +389,9 @@ class EnvAperture:
         """Freeze profiles and pipes into one shared packed representation.
 
         Building prevents adding profiles or pipes. Existing views still
-        allow scalar edits. Such edits are not tracked automatically; call
-        ``line.aperture.build_model()`` to refresh the line's derived polygons
-        and bounds when needed.
+        allow scalar edits and deferred expressions. Aperture queries refresh
+        affected polygons and bounds on demand. Direct edits through ``raw``
+        bypass change tracking; call ``line.aperture.build_model()`` afterwards.
 
         Parameters
         ----------
@@ -335,8 +405,7 @@ class EnvAperture:
         ApertureEnvStruct
             Shared kernel representation, also built implicitly by
             ``line.aperture.build_model()``. Profile positions within each
-            pipe are sorted by longitudinal position; profile and pipe indices
-            retain their insertion order.
+            pipe retain their indices, as do profiles and pipes.
         """
         if self._struct is None:
             # Profile positions need to be longitudinally ordered for the
@@ -344,8 +413,9 @@ class EnvAperture:
             pipes = []
             for pipe in self._pipes_unbuilt:
                 data = pipe._to_dict()
-                data['positions'] = sorted(
-                    data['positions'], key=lambda position: position['shift_s'])
+                shifts = [position['shift_s'] for position in data['positions']]
+                if shifts != sorted(shifts):
+                    raise ValueError('Profile positions must remain ordered along the pipe.')
                 pipes.append(data)
 
             self._struct = ApertureEnvStruct(
@@ -407,10 +477,14 @@ class EnvAperture:
         self._pipe_name_to_index = {}
         self._profiles_unbuilt = []
         self._pipes_unbuilt = []
+        self._profile_versions = {}
+        self._pipe_versions = {}
+        self._position_versions = {}
+        self._remove_expressions()
         return self
 
     @doc_group("Loading and Serialization")
-    def to_dict(self, include_line_models=True):
+    def to_dict(self, include_line_models=True, include_expressions=True):
         """Serialise shared aperture definitions, optionally including line models.
 
         Parameters
@@ -418,6 +492,10 @@ class EnvAperture:
         include_line_models : bool, optional
             Include named lines' placements and settings. If False, export only
             shared definitions. Unnamed lines are always omitted.
+        include_expressions : bool, optional
+            Preserve aperture expression bindings (default True). False exports
+            current numeric values only. Variables and functions are excluded;
+            use ``env.to_dict(include_aperture=True)`` to include their definitions.
 
         Returns
         -------
@@ -443,6 +521,11 @@ class EnvAperture:
                 'pipe_names': list(self._pipe_name_to_index),
             }
 
+        if include_expressions:
+            expressions = [(lhs, rhs) for lhs, rhs in self.env.ref_manager.dump()
+                           if lhs.startswith('aperture.')]
+            if expressions:
+                definitions['expressions'] = expressions
         if not include_line_models:
             return definitions
 
@@ -523,6 +606,8 @@ class EnvAperture:
             names = definitions[f'{kind}_names']
             if len(names) != len(set(names)):
                 raise ValueError(f"Duplicate {kind} names in aperture data.")
+        definitions = dict(definitions)
+        expressions = definitions.pop('expressions', [])
         struct = ApertureEnvStruct(**definitions, _context=context)
         self._struct = struct
         self._profile_name_to_index = {
@@ -533,6 +618,9 @@ class EnvAperture:
         }
         self._profiles_unbuilt = None
         self._pipes_unbuilt = None
+        self._profile_versions = dict.fromkeys(self._profile_name_to_index, 0)
+        self._pipe_versions = dict.fromkeys(self._pipe_name_to_index, 0)
+        self.env.ref_manager.load(expressions)
         for name, aperture in lines.items():
             self.env.lines[name].aperture.from_dict(aperture, context=context)
         return self
