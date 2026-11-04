@@ -30,6 +30,7 @@ from .twiss import (
     twiss_line,
 )
 from .twiss_init import TwissInit
+from .multibunch import MultiBunchTwiss, twiss_line_multibunch
 from .twiss_table import CYCLICAL_QUANTITIES, DEFAULT_COL_ORDER, TwissTable
 from .transfer_matrices import (
     compute_R_matrix,
@@ -42,6 +43,7 @@ __all__ = [
     'AT_TURN_FOR_TWISS',
     'CYCLICAL_QUANTITIES',
     'ClosedOrbitSearchError',
+    'MultiBunchTwiss',
     'DEFAULT_CO_SEARCH_TOL',
     'DEFAULT_COL_ORDER',
     'DEFAULT_MATRIX_RESPONSIVENESS_TOL',
@@ -64,4 +66,5 @@ __all__ = [
     'get_non_linear_chromaticity',
     'trapz',
     'twiss_line',
+    'twiss_line_multibunch',
 ]
