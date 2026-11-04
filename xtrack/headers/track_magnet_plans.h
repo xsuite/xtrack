@@ -14,36 +14,10 @@
 
    This header is inlined in the track kernel source right after the switch
    prepare_magnet_plan, which Python generates because it depends on the type
-   ids of the build. With no magnets in the build, Python defines
-   XTRACK_NO_MAGNET_PLANS instead, and only an empty kernel is defined.
-   TPSA tracking uses no plans.
+   ids of the build. A build with no magnets has neither.
+   In TPSA tracking, only the switch and track_magnet_tapered are used: the
+   plans are made at the magnets (magnet_plans.py).
 */
-
-#if !defined(XTRACK_TPSA_TRACK) && defined(XTRACK_NO_MAGNET_PLANS)
-
-// No magnets in this build: the kernel is called, and does nothing
-/*gpukern*/
-void prepare_magnet_plans(
-    /*gpuglmem*/ int8_t* buffer,
-    ElementRefData elem_ref_data,
-    /*gpuglmem*/ int8_t* magnet_plans,
-    /*gpuglmem*/ int64_t* magnet_plan_elements,
-    int64_t first_plan,
-    int64_t num_plans,
-    /*gpuglmem*/ int8_t* io_buffer,
-    uint64_t track_flags
-) {
-}
-
-#elif !defined(XTRACK_TPSA_TRACK)
-
-    // The plans are MAGNET_PLAN_BYTES apart (set in magnet_plans.py)
-    #if defined(__cplusplus)
-static_assert(sizeof(MagnetPlan) <= MAGNET_PLAN_BYTES, "MAGNET_PLAN_BYTES too small");
-    #elif !defined(XO_CONTEXT_CL)  // OpenCL C has no static assertion
-_Static_assert(sizeof(MagnetPlan) <= MAGNET_PLAN_BYTES, "MAGNET_PLAN_BYTES too small");
-    #endif
-
 
 /* Track through a magnet with tapering. The plan depends on the energy of the
    particle at the element, so it is made here, at the element, instead of
@@ -60,6 +34,15 @@ void track_magnet_tapered(
     prepare_magnet_plan(el, elem_type, &plan, part);
     track_magnet_particles(part, &plan);
 }
+
+#ifndef XTRACK_TPSA_TRACK
+
+    // The plans are MAGNET_PLAN_BYTES apart (set in magnet_plans.py)
+    #if defined(__cplusplus)
+static_assert(sizeof(MagnetPlan) <= MAGNET_PLAN_BYTES, "MAGNET_PLAN_BYTES too small");
+    #elif !defined(XO_CONTEXT_CL)  // OpenCL C has no static assertion
+_Static_assert(sizeof(MagnetPlan) <= MAGNET_PLAN_BYTES, "MAGNET_PLAN_BYTES too small");
+    #endif
 
 
 /* Fill the plans in the slots [first_plan, first_plan + num_plans), one

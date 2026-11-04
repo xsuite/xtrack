@@ -830,7 +830,9 @@ class Tracker:
         magnet_classes = _mp.magnet_classes(kernel_element_classes)
 
         src_lines = []
-        src_lines.append(_mp.plan_source(magnet_classes))
+        src_lines.append(_mp.plan_source(
+            magnet_classes,
+            check_layout=config.get('XTRACK_CHECK_MAGNET_PLAN_LAYOUT', False)))
         src_lines.append(
             r"""
             /*gpukern*/
@@ -1001,9 +1003,9 @@ class Tracker:
 
         magnet_ids = [ii for ii, _ in magnet_classes]
         for ii, cc in enumerate(kernel_element_classes):
-            ccnn = cc.__name__.replace("Data", "")
             if ii in magnet_ids:
-                src_lines.append("\n#ifdef XTRACK_TPSA_TRACK")
+                continue  # track_line_cases
+            ccnn = cc.__name__.replace("Data", "")
             src_lines.append(
                 f"""
                         case {ii}:
@@ -1032,8 +1034,6 @@ class Tracker:
                 """
                             break;"""
             )
-            if ii in magnet_ids:
-                src_lines.append("#endif")
 
         src_lines.append(_mp.track_line_cases(magnet_ids))
 
@@ -1245,8 +1245,9 @@ class Tracker:
         if particle_data_class is xt.Particles._XoStruct:
             # Magnets are tracked from plans (magnet_plans.py)
             kernel_descriptions['track_line'].args += _mp.track_line_args()
-            kernel_descriptions['prepare_magnet_plans'] = (
-                _mp.prepare_kernel_description(tdata_type))
+            if _mp.magnet_classes(kernel_element_classes):
+                kernel_descriptions['prepare_magnet_plans'] = (
+                    _mp.prepare_kernel_description(tdata_type))
 
         if include_auxiliary_kernels:
             # Random number generator init kernel
@@ -2015,6 +2016,35 @@ class Tracker:
         mask_twiss[:-1] = tt.element_type == 'Marker'
         self._tracker_data_base.mask_markers_for_twiss = mask_twiss
         return mask_twiss
+
+    def get_magnet_plan(self, name, backtrack=False):
+        """Return the plan of a magnet, as ``track`` prepares it, as a nested
+        dict (see ``magnet_plans.PLAN_DTYPE`` for the fields).
+
+        The plan is prepared from the current values of the attributes of the
+        element, for backward tracking if ``backtrack``. Pointers are given as
+        addresses, for information only.
+        """
+        if self.iscollective:
+            raise NotImplementedError(
+                'get_magnet_plan is not available for collective lines')
+        if self.config.XTRACK_TPSA_TRACK:
+            raise NotImplementedError(
+                'TPSA tracking makes its plans at the magnets')
+
+        idx = self.line.element_names.index(name)
+        track_kernel, tracker_data = (
+            self.get_track_kernel_and_data_for_present_config())
+        if self._magnet_plans is None:
+            self._magnet_plans = _mp.MagnetPlans(tracker_data, self._context)
+
+        with xt.line._preserve_track_flags(self.line):
+            self.track_flags.XS_FLAG_BACKTRACK = backtrack
+            track_flags = self.track_flags.get_flags_register()
+        self._magnet_plans.prepare(track_kernel, tracker_data,
+                                   self.io_buffer.buffer, track_flags,
+                                   idx, idx + 1)
+        return _mp.plan_to_dict(self._magnet_plans.read(self._context, idx))
 
     def get_track_kernel_and_data_for_present_config(self):
 
