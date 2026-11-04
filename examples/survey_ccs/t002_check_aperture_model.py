@@ -17,6 +17,7 @@ from job_use_aperture import make_tracking_line
 here = Path(__file__).resolve().parent
 env = xt.load(here / 'm2_mtn3p8_v6_notilt.py')
 line = env['m2']
+assert len(env.aperture.profiles) == 31
 assert len(line.aperture.pipe_positions) == 104
 assert not line.aperture.is_built
 assert not any(type(line.element_dict[name]).__name__.startswith('Limit')
@@ -46,7 +47,7 @@ table = line.get_table()
 for name, element in reference.items():
     params = element.aperture[:parameter_counts[element.apertype]]
     expected = profile_from_madx_aperture(element.apertype, params)
-    actual = env.aperture.profiles[f'm2.{name}'].shape
+    actual = line.aperture.pipe_positions[name].pipe[0].profile.shape
     assert isinstance(actual, type(expected)), name
     for field, value in expected._to_dict().items():
         np.testing.assert_allclose(getattr(actual, field), value, rtol=0, atol=1e-14)
@@ -64,7 +65,7 @@ extents = line.aperture.get_extents_at_s(samples)
 for actual, expected in ((extents.max_x, expected_x), (-extents.min_x, expected_x),
                          (extents.max_y, expected_y), (-extents.min_y, expected_y)):
     np.testing.assert_allclose(actual, expected, rtol=0, atol=5e-6)
-print('All 104 aperture profiles and sampled axis intercepts agree with MAD-X')
+print('All 104 installed apertures and sampled axis intercepts agree with MAD-X')
 
 knob = 'kxcmh.x0610727_scr3h_coll1h'
 scraper = 'xcmh.x0610727'
