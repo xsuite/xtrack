@@ -232,6 +232,65 @@ def test_place_pipe_accepts_transform_or_components():
             "invalid", pipe, at="drift", transformation=matrix, shift_x=1.0)
 
 
+@pytest.mark.parametrize('element_type, parameters', [
+    ('Drift', {'length': 1.0}),
+    ('Quadrupole', {'length': 1.0, 'rot_s_rad': 0.3}),
+    ('Bend', {'length': 2.0, 'angle': 0.2, 'rot_s_rad': 0.3}),
+    ('RBend', {'length_straight': 2.0, 'angle': 0.2, 'rot_s_rad': -0.3}),
+    ('Marker', {}),
+    ('Quadrupole', {'length': 0.0}),
+])
+@pytest.mark.parametrize('use_name', [False, True])
+def test_new_element_pipe(element_type, parameters, use_name):
+    env = xt.Environment()
+    env['gap'] = 0.02
+    element = env.new('element', element_type, **parameters)
+    line = env.new_line(components=[element])
+    profile = env.aperture.new_profile('jaw', 'Rectangle', max_x='gap', max_y=0.1)
+
+    pipe = line.aperture.new_element_pipe('element', 'jaw' if use_name else profile)
+
+    assert pipe.name == 'element_pipe'
+    placement = line.aperture.pipe_positions['element']
+    assert placement.pipe.name == pipe.name
+    assert placement.survey_reference_name == 'element'
+    length = getattr(env['element'], 'length', 0.0)
+    curvature = getattr(env['element'], 'h', 0.0) if length else 0.0
+    tilt = parameters.get('rot_s_rad', 0.0) if curvature else 0.0
+    assert pipe.curvature == curvature
+    assert len(pipe) == (2 if length else 1)
+    assert pipe[0].shift_s == 0.0
+    if length:
+        assert pipe[1].shift_s == length  # Arc length, including for RBends.
+    for position in pipe:
+        assert position.profile.name == 'jaw'
+        assert position.rot_s_rad == -tilt
+    xo.assert_allclose(placement.transformation, transform_matrix(rot_z_rad=tilt),
+                       atol=1e-14, rtol=0)
+    env['gap'] = 0.04
+    assert pipe[0].profile.shape.max_x == 0.04
+
+
+def test_new_element_pipe_occurrences_and_invalid_requests():
+    env = xt.Environment()
+    env.new('d', 'Drift', length=1.0)
+    env.new('unused', 'Drift', length=1.0)
+    line = env.new_line(components=['d', 'd'])
+    profile = env.aperture.new_profile('round', 'Circle', radius=0.1)
+    pipe = line.aperture.new_element_pipe('d::1', profile)
+    assert pipe.name == 'd::1_pipe'
+    assert line.aperture.pipe_positions['d::1'].survey_reference_name == 'd::1'
+
+    with pytest.raises(ValueError, match='already exists'):
+        line.aperture.new_element_pipe('d::1', profile)
+    with pytest.raises(KeyError):
+        line.aperture.new_element_pipe('unused', profile)
+    with pytest.raises(KeyError):
+        line.aperture.new_element_pipe('d::0', 'missing')
+    assert env.aperture.pipes.keys() == ['d::1_pipe']
+    assert line.aperture.pipe_positions.keys() == ['d::1']
+
+
 def test_place_pipe_at_anchor_and_sequence_names():
     env = xt.Environment()
     line = env.new_line(
@@ -388,10 +447,6 @@ def test_views_follow_authoritative_representation_and_build_refreshes_geometry(
 
     before = line.aperture.get_cross_sections_at_s([0.5]).cross_section[0]
     profile.shape.radius = 2.0
-    stale = line.aperture.get_cross_sections_at_s([0.5]).cross_section[0]
-    xo.assert_allclose(stale, before, atol=1e-14, rtol=0)
-
-    line.aperture.build_model()
     refreshed = line.aperture.get_cross_sections_at_s([0.5]).cross_section[0]
     xo.assert_allclose(
         np.max(np.linalg.norm(refreshed, axis=1)), 2.0, atol=1e-12, rtol=0)

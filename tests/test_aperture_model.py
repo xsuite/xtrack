@@ -741,7 +741,7 @@ def test_aperture_model_views(test_context):
     assert list(name for name, _ in profiles.items()) == ['circ0', 'rect0']
     assert list(type(profile.raw.shape).__name__ for profile in [profiles[0], profiles[1]]) == ['Circle', 'Rectangle']
     assert [profile.name for profile in profiles.values()] == ['circ0', 'rect0']
-    assert [type(profile.shape).__name__ for profile in profiles.values()] == ['Circle', 'Rectangle']
+    assert [profile.shape.__class__.__name__ for profile in profiles.values()] == ['Circle', 'Rectangle']
 
     xo.assert_allclose(positions[1].tol_r, 0.1, atol=1e-15, rtol=0)
     xo.assert_allclose(positions[1].tol_x, 0.2, atol=1e-15, rtol=0)
@@ -841,7 +841,11 @@ def test_aperture_model_views(test_context):
 
 
 def test_get_limit_elements(monkeypatch):
-    ap = Aperture.__new__(Aperture)
+    env = xt.Environment()
+    line = env.new_line(components=[env.new('d', 'Drift', length=4.)])
+    profile = env.aperture.new_profile('profile', 'Circle', radius=1.)
+    line.aperture.new_element_pipe('d', profile)
+    ap = line.aperture
     cross_sections = np.array(
         [
             [[0.0, 0.0], [1.0, 0.0], [0.0, 1.0], [0.0, 0.0]],
@@ -858,7 +862,7 @@ def test_get_limit_elements(monkeypatch):
     )
     monkeypatch.setattr(ap, 'get_cross_sections_at_s', lambda s_positions: table)
 
-    out = ap.get_limit_elements_at_s([1.5, 3.5])
+    out = ap.get_limit_elements_at_s([1.5, 3.5], prefer_native=False)
 
     assert list(out) == [1.5, 3.5]
     assert all(isinstance(value, xt.LimitPolygon) for value in out.values())

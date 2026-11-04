@@ -29,7 +29,9 @@ void build_profile_polygons(
     const ApertureEnvStruct,
     const ProfilePolygons,
     const ApertureBounds,
-    const SurveyData survey);
+    const SurveyData survey,
+    const int8_t* profile_mask,
+    const int8_t* bounds_mask);
 int64_t cross_section_at_s(
     const SurveyData survey_at_s,
     const uint32_t idx_cross_section,
@@ -126,7 +128,9 @@ void build_profile_polygons(
     const ApertureEnvStruct aperture_env,
     const ProfilePolygons profile_polygons,
     const ApertureBounds aperture_bounds,
-    const SurveyData survey
+    const SurveyData survey,
+    const int8_t* profile_mask,
+    const int8_t* bounds_mask
 )
     /*
       Based on the aperture model and cross section location data, generate
@@ -140,6 +144,7 @@ void build_profile_polygons(
     /* First generate polygons for profiles */
     for (uint32_t idx = 0; idx < num_profiles; idx++)
     {
+        if (profile_mask != NULL && !profile_mask[idx]) continue;
         const Profile profile = ApertureEnvStruct_getp1_profiles(aperture_env, idx);
         float_type *const points = ProfilePolygons_getp3_points(profile_polygons, idx, 0, 0);
         const uint32_t len_points = ProfilePolygons_get_len_points(profile_polygons);
@@ -154,6 +159,7 @@ void build_profile_polygons(
      */
     for (uint32_t idx = 0; idx < num_cross_sections; idx++)
     {
+        if (bounds_mask != NULL && !bounds_mask[idx]) continue;
         const uint32_t pipe_pos_idx = ApertureBounds_get_pipe_position_indices(aperture_bounds, idx);
         const uint32_t profile_pos_idx = ApertureBounds_get_profile_position_indices(aperture_bounds, idx);
 

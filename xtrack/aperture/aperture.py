@@ -2,13 +2,12 @@ from __future__ import annotations
 
 import re
 from collections.abc import Collection, Iterable
-from typing import Literal, cast, get_args
+from typing import Literal, get_args
 from weakref import ref
 
 import numpy as np
 
 import xobjects as xo
-from xtrack.beam_elements.limit_polygon import LimitPolygon
 from xdeps.table import Table
 from xobjects.context import XContext
 from xtrack.twiss import TwissInit, TwissTable
@@ -108,6 +107,7 @@ def _split_wrapped_s_interval(
 
 
 _aperture_doc_groups = GroupedAPICollector([
+    "Construction",
     "Loading and Serialization",
     "Aperture Computation",
     "Introspection",
@@ -162,7 +162,15 @@ class LineAperture:
         self._survey_data = None
         self.num_profile_points = num_profile_points
         self._aperture_bounds: ApertureBounds | None = None
+        self._bounds_layout = None
+        self._bounds_s_tol = None
         self._profile_polygons: ProfilePolygons | None = None
+        self._profile_versions = {}
+        self._pipe_versions = {}
+        self._position_versions = {}
+        self._placement_versions = {}
+        self._built_placement_versions = {}
+        self._updating_geometry = False
         self._with_progress = with_progress
 
         if halo_params is not None:
@@ -177,10 +185,26 @@ class LineAperture:
         return self._line_ref()
 
     def __getstate__(self):
-        """Leave the owner reference to be restored by the line after unpickling."""
+        """Pickle placements; derived geometry is rebuilt after loading."""
         state = self.__dict__.copy()
         state.pop('_line_ref')
+        positions = (self._model.pipe_positions if self.is_built
+                     else self._pipe_positions_unbuilt)
+        state['_pickle_positions'] = [position._to_dict() for position in positions]
+        state['_pipe_positions_unbuilt'] = None
+        for key in ('_model', 'survey', 'is_ring', '_survey_data',
+                    '_aperture_bounds', '_profile_polygons', '_bounds_layout', '_bounds_s_tol'):
+            state[key] = None
+        for key in ('_profile_versions', '_pipe_versions', '_position_versions',
+                    '_built_placement_versions'):
+            state[key] = {}
         return state
+
+    def __setstate__(self, state):
+        positions = state.pop('_pickle_positions', None)
+        self.__dict__.update(state)
+        if positions is not None:
+            self._pipe_positions_unbuilt = [PipePosition(**data) for data in positions]
 
     @classmethod
     def _generate_doc_rst(cls, *, include_summary_table=True):
@@ -237,20 +261,83 @@ class LineAperture:
         """Return the pipe collection view."""
         return self.line.env.aperture.pipes
 
+    @doc_group("Construction")
     def new_profile(self, name, shape, **shape_params):
         """Create a profile in the line's aperture environment."""
         return self.line.env.aperture.new_profile(name, shape, **shape_params)
 
+    @doc_group("Construction")
     def new_pipe(self, name, curvature=0.0, positions=None):
         """Create a pipe in the line's aperture environment."""
         return self.line.env.aperture.new_pipe(
             name, curvature=curvature, positions=positions,
         )
 
+    @doc_group("Construction")
+    def new_element_pipe(self, name, profile):
+        """Create and install an element aperture using MAD-X conventions.
+
+        Parameters
+        ----------
+        name : str
+            Element in this line. Occurrence names such as ``bend::1`` are
+            accepted for repeated elements. The pipe is named ``{name}_pipe``
+            and its placement is named ``name``.
+        profile : str or ProfileView
+            Profile registered in this environment, used at both ends of a
+            thick element or once at a thin element.
+
+        Returns
+        -------
+        PipeView
+            The new pipe, already placed at the element entrance.
+
+        Notes
+        -----
+        Uses the element's current length, curvature and roll. Bends follow
+        the reference arc, using arc length also for RBends. Their pipe is
+        rolled into the bend plane, with the opposite profile rotation keeping
+        aperture axes aligned with the local reference frame (zero APER_TILT).
+        Straight elements have no aperture roll. Aperture offsets and
+        tolerances default to zero and can be edited on the returned pipe.
+        Profile expressions remain linked to the environment variables.
+        """
+        if self.is_built:
+            raise RuntimeError("Cannot place pipes after the line aperture is built.")
+        if name in self._pipe_position_name_to_index:
+            raise ValueError(f"Pipe position `{name}` already exists.")
+
+        table = self.line.get_table()
+        index = table.rows.get_index(name)
+        element = self.line[table.env_name[index]]
+        profile_index = self.line.env.aperture.profile_index(profile)
+        profile = self.profiles[profile_index]
+
+        length = element.length if getattr(element, 'isthick', False) else 0.0
+        curvature = getattr(element, 'h', 0.0) if length else 0.0
+        tilt = getattr(element, 'rot_s_rad', 0.0) if curvature else 0.0
+        positions = [profile.place(at=0.0, rot_s_rad=-tilt)]
+        if length:
+            positions.append(profile.place(at=length, rot_s_rad=-tilt))
+        pipe = self.new_pipe(f'{name}_pipe', curvature=curvature, positions=positions)
+        self.place_pipe(name, pipe, at=table.name[index], rot_z_rad=tilt)
+        return pipe
+
     @property
     def is_built(self):
         """Whether pipe placements are stored in a packed line model."""
         return self._model is not None
+
+    def _touch_placement(self, name):
+        self._placement_versions[name] = self._placement_versions.get(name, 0) + 1
+
+    def _ensure_geometry(self):
+        if self._updating_geometry:
+            return
+        if not self.is_built:
+            self.build_model()
+        else:
+            self._refresh_geometry()
 
     def _resolve_pipe_position(self, name):
         index = self._pipe_position_name_to_index[name]
@@ -281,6 +368,7 @@ class LineAperture:
         interpolated = survey_data.resample([anchor_s]).pose.to_nplike()
         return interpolated[0]
 
+    @doc_group("Construction")
     def place_pipe(
         self,
         name,
@@ -383,6 +471,10 @@ class LineAperture:
         calls keep that model and survey, but rebuild profile polygons and
         aperture bounds from the current packed Xobjects.
 
+        Public View edits and expression updates invalidate only affected
+        geometry; queries regenerate it automatically. An explicit build also
+        refreshes edits made through ``raw``, which bypass change tracking.
+
         Parameters
         ----------
         _skip_validity_check : bool, optional
@@ -407,8 +499,7 @@ class LineAperture:
             if not _skip_validity_check:
                 self._check_model_validity()
 
-            self._build_aperture_bounds(
-                check_validity=not _skip_validity_check, with_progress=self._with_progress)
+            self._refresh_geometry(force=True, check_validity=not _skip_validity_check)
 
             return self
 
@@ -467,6 +558,11 @@ class LineAperture:
         self._survey_data = None
         self._aperture_bounds = None
         self._profile_polygons = None
+
+        self._profile_versions.clear()
+        self._pipe_versions.clear()
+        self._position_versions.clear()
+        self._built_placement_versions.clear()
 
         return self
 
@@ -596,6 +692,11 @@ class LineAperture:
         self._survey_data = None
         self._aperture_bounds = None
         self._profile_polygons = None
+        self._profile_versions.clear()
+        self._pipe_versions.clear()
+        self._position_versions.clear()
+        self._placement_versions.clear()
+        self._built_placement_versions.clear()
 
     @doc_group("Loading and Serialization")
     def from_madx_metadata(
@@ -1227,8 +1328,7 @@ class LineAperture:
         """
         if output_contact_points and method != 'rays':
             raise ValueError("Contact points are supported only for method='rays'")
-        if not self.is_built:
-            self.build_model()
+        self._ensure_geometry()
 
         num_slices = len(sliced_twiss.s)
         twiss_at_s = TwissData.from_twiss_table(self.line.particle_ref, sliced_twiss)
@@ -1384,8 +1484,7 @@ class LineAperture:
         sliced_twiss : xtrack.TwissTable
             Twiss table sampled at the requested positions.
         """
-        if not self.is_built:
-            self.build_model()
+        self._ensure_geometry()
 
         sliced_twiss = self._get_sliced_twiss_at_s(
             s_positions=s_positions, twiss_init=twiss_init,
@@ -1570,8 +1669,7 @@ class LineAperture:
             - ``min_y`` and ``max_y``: vertical extents, included when
               ``extents`` is true.
         """
-        if not self.is_built:
-            self.build_model()
+        self._ensure_geometry()
 
         num_slices = len(sliced_twiss.s)
         twiss_at_s = TwissData.from_twiss_table(self.line.particle_ref, sliced_twiss)
@@ -1690,8 +1788,7 @@ class LineAperture:
             - ``pose``: 4-by-4 homogeneous matrix transforming the local survey
               frame to the global survey frame.
         """
-        if not self.is_built:
-            self.build_model()
+        self._ensure_geometry()
 
         s_positions = np.array(s_positions, dtype=FloatType._dtype)
         sv_resampled = self._survey_data.resample(s_positions)
@@ -1795,19 +1892,42 @@ class LineAperture:
         return self.get_cross_sections_at_s(s_positions, extents=True, polygons=False)
 
     @doc_group("Aperture Computation")
-    def get_limit_elements_at_s(self, s_positions: list[float]) -> dict[float, LimitElement]:
-        """Obtain interpolated cross-sections as limit beam elements."""
-        cross_sections_table = self.get_cross_sections_at_s(s_positions)
-        limit_elements = {}
-        for s, row in zip(s_positions, cross_sections_table.rows):
-            cross_section = row.cross_section
-            limit_poly = LimitPolygon(
-                x_vertices=cross_section[:-1, 0],
-                y_vertices=cross_section[:-1, 1],
-            )
-            limit_elements[s] = limit_poly
+    def get_limit_elements_at_s(self, s_positions: list[float], *, names=None,
+                                prefer_native=True) -> dict[float, LimitElement]:
+        """Convert aperture sections to tracking limits, retaining native shapes.
 
-        return limit_elements
+        Perpendicular sections through equal profiles use native rectangles,
+        ellipses, rectellipses or racetracks. Circles with interpolated radii
+        remain ellipses. Polygon vertices and ordinary octagon corners are
+        retained exactly. Other sections use sampled ``LimitPolygon`` elements.
+
+        Parameters
+        ----------
+        s_positions : sequence of float
+            Longitudinal sample positions [m].
+        names : sequence of str, optional
+            Register the limits under these names in the line's environment and
+            translate supported shape and transverse-placement expressions.
+            Without names, return standalone numeric snapshots. A warning lists
+            any expression that could not be translated, including geometry and
+            tolerance expressions. Registration does not insert limits in the line.
+        prefer_native : bool, optional
+            Default True. False always samples polygons, as in earlier versions.
+
+        Returns
+        -------
+        dict
+            Sample position to limit element. Named limits share the environment's
+            variables, and their bindings survive line/environment copying and JSON.
+
+        Notes
+        -----
+        Sampling positions, pipe topology and the survey remain fixed. Regenerate
+        limits after geometry changes that invalidate the selected section type.
+        Mechanical tolerances are not applied to the tracking boundaries.
+        """
+        from .limit_converters import limit_elements_at_s
+        return limit_elements_at_s(self, s_positions, names=names, prefer_native=prefer_native)
 
     @doc_group("Visualization")
     def plot_extents(
@@ -2186,56 +2306,124 @@ class LineAperture:
         return np.asarray(s_positions, dtype=FloatType._dtype)
 
     def _build_aperture_bounds(self, check_validity=True, with_progress=True):
-        # Pre-allocate the cross-sections with the correct sizes
+        self._refresh_geometry(force=True, check_validity=check_validity)
+
+    def _refresh_geometry(self, force=False, check_validity=True):
+        """Refresh changed profiles and their installed bounds, retaining the survey."""
+        if self._updating_geometry:
+            return
+        environment = self.line.env.aperture
         num_points = self.num_profile_points
-        num_cross_sections = sum(len(self._model.pipe_for_position(pipe_pos).positions) for pipe_pos in self._model.pipe_positions)
-        self._aperture_bounds = ApertureBounds(
-            count=num_cross_sections,
-            pipe_position_indices=num_cross_sections,
-            profile_position_indices=num_cross_sections,
-            s_positions=num_cross_sections,
-            s_start=num_cross_sections,
-            s_end=num_cross_sections,
-            _context=self.context,
-        )
+        num_profiles = len(self._model.profiles)
+        layout = tuple(len(self._model.pipe_for_position(pos).positions)
+                       for pos in self._model.pipe_positions)
+        count = sum(layout)
+        new_bounds = self._aperture_bounds is None or self._bounds_layout != layout
+        new_polygons = (self._profile_polygons is None
+                        or self._profile_polygons.count != num_profiles
+                        or self._profile_polygons.len_points != num_points)
+        if new_bounds:
+            self._bounds_layout = layout
+            self._aperture_bounds = ApertureBounds(
+                count=count, pipe_position_indices=count, profile_position_indices=count,
+                s_positions=count, s_start=count, s_end=count, _context=self.context)
+            idx = 0
+            for ii, pos in enumerate(self._model.pipe_positions):
+                for jj in range(len(self._model.pipe_for_position(pos).positions)):
+                    self._aperture_bounds.pipe_position_indices[idx] = ii
+                    self._aperture_bounds.profile_position_indices[idx] = jj
+                    idx += 1
+        if new_polygons:
+            self._profile_versions.clear()
+            self._profile_polygons = ProfilePolygons(
+                count=num_profiles, len_points=num_points,
+                points=(num_profiles, num_points), _context=self.context)
 
-        # Pre-allocate the profile polygons (generate once, so that we only need to compute transformations on them)
-        num_profile_polys = len(self._model.profiles)
-        self._profile_polygons = ProfilePolygons(
-            count=num_profile_polys,
-            len_points=num_points,
-            points=(num_profile_polys, num_points),
-            _context=self.context,
-        )
+        profiles = list(environment.profiles.keys())
+        pipes = list(environment.pipes.keys())
+        placements = list(self._pipe_position_name_to_index)
+        profile_mask = np.zeros(num_profiles, dtype=np.int8)
+        bounds_mask = np.zeros(count, dtype=np.int8)
+        used_pipes = set()
+        for idx in range(count):
+            ii = int(self._aperture_bounds.pipe_position_indices[idx])
+            jj = int(self._aperture_bounds.profile_position_indices[idx])
+            pos = self._model.pipe_positions[ii]
+            pipe = self._model.pipe_for_position(pos)
+            profile_idx = int(pipe.positions[jj].profile_index)
+            profile_name = profiles[profile_idx]
+            pipe_name = pipes[int(pos.pipe_index)]
+            used_pipes.add(pipe_name)
+            placement_name = placements[ii]
+            profile_changed = (force or new_polygons or
+                self._profile_versions.get(profile_name, -1) !=
+                environment._profile_versions.get(profile_name, 0))
+            profile_mask[profile_idx] |= profile_changed
+            bounds_mask[idx] = (profile_changed or new_bounds or
+                self._pipe_versions.get(pipe_name, -1) != environment._pipe_versions.get(pipe_name, 0) or
+                self._position_versions.get((pipe_name, jj), 0) !=
+                environment._position_versions.get((pipe_name, jj), 0) or
+                self._built_placement_versions.get(placement_name, -1) !=
+                self._placement_versions.get(placement_name, 0))
 
-        cross_section_indices = range(num_cross_sections)
-        if with_progress:
-            cross_section_indices = progress(
-                cross_section_indices, desc='Building cross-sections',
-                total=num_cross_sections)
-        cross_section_idx_iter = iter(cross_section_indices)
-
-        for pipe_pos_idx, pipe_pos in enumerate(cast(Iterable[PipePosition], self._model.pipe_positions)):
-            pipe = self._model.pipe_for_position(pipe_pos)
-            for profile_pos_idx, profile_pos in enumerate(cast(Iterable[ProfilePosition], pipe.positions)):
-                idx = next(cross_section_idx_iter)
-                self._aperture_bounds.pipe_position_indices[idx] = pipe_pos_idx
-                self._aperture_bounds.profile_position_indices[idx] = profile_pos_idx
-
-        self._model.build_profile_polygons(
-            profile_polygons=self._profile_polygons,
-            aperture_bounds=self._aperture_bounds,
-            survey=self._survey_data,
-        )
-        self._aperture_bounds.sort_by_s()
-        self._aperture_bounds.reorder_for_tolerated_pipe_overlaps(
-            s_tol=self.s_tol,
-            is_ring=self.is_ring,
-            line_length=self.line.get_length(),
-        )
-
-        if check_validity:
-            self._check_pipe_bounds_validity()
+        tolerance_changed = self._bounds_s_tol != self.s_tol
+        if not np.any(profile_mask) and not np.any(bounds_mask) and not tolerance_changed:
+            return
+        self._updating_geometry = True
+        try:
+            for name, ii in self._pipe_position_name_to_index.items():
+                if (force or self._built_placement_versions.get(name, -1) !=
+                        self._placement_versions.get(name, 0)):
+                    position = self._model.pipe_positions[ii]
+                    matches = np.flatnonzero(self.survey.name == position.survey_reference_name)
+                    if not len(matches):
+                        raise ValueError(f'Unknown survey reference `{position.survey_reference_name}`.')
+                    position.survey_index = int(matches[0])
+            if check_validity:
+                for idx in np.flatnonzero(profile_mask):
+                    shape = self._model.profiles[idx].shape
+                    try:
+                        valid = shape.valid() if hasattr(shape, 'valid') else True
+                    except NotImplementedError:
+                        valid = True
+                    if not valid:
+                        raise ValueError(f'Invalid aperture profile `{profiles[idx]}`: {shape}')
+            # Stable position identities are required by expressions and Views.
+            changed_pipes = {name for (name, ii), version in environment._position_versions.items()
+                             if name in used_pipes and
+                             version != self._position_versions.get((name, ii), 0)}
+            for name in changed_pipes:
+                pipe = environment._resolve_pipe(name)
+                shifts = [pos.shift_s for pos in pipe.positions]
+                if shifts != sorted(shifts):
+                    raise ValueError('Profile positions must remain ordered along the pipe.')
+            if np.any(profile_mask) or np.any(bounds_mask):
+                self._model.build_profile_polygons(
+                    profile_polygons=self._profile_polygons,
+                    aperture_bounds=self._aperture_bounds, survey=self._survey_data,
+                    profile_mask=self.context.nparray_to_context_array(profile_mask),
+                    bounds_mask=self.context.nparray_to_context_array(bounds_mask))
+            if np.any(bounds_mask) or tolerance_changed:
+                self._aperture_bounds.sort_by_s()
+                self._aperture_bounds.reorder_for_tolerated_pipe_overlaps(
+                    s_tol=self.s_tol, is_ring=self.is_ring,
+                    line_length=self.line.get_length())
+                if check_validity:
+                    self._check_pipe_bounds_validity()
+            self._bounds_s_tol = self.s_tol
+            # Unused profiles have no polygon yet, even if their definition is
+            # already present. They may be selected by a later placement edit.
+            for idx in np.flatnonzero(profile_mask):
+                name = profiles[idx]
+                self._profile_versions[name] = environment._profile_versions.get(name, 0)
+            self._pipe_versions = {name: environment._pipe_versions.get(name, 0) for name in pipes}
+            self._position_versions.update({
+                key: value for key, value in environment._position_versions.items()
+                if key[0] in used_pipes})
+            self._built_placement_versions = {name: self._placement_versions.get(name, 0)
+                                              for name in placements}
+        finally:
+            self._updating_geometry = False
 
     def _check_model_validity(self):
         for ii, pipe_pos in enumerate(self._model.pipe_positions):
@@ -2310,8 +2498,7 @@ class LineAperture:
             - ``shape``: profile shape name
             - ``shape_param``: dictionary of profile shape parameters
         """
-        if not self.is_built:
-            self.build_model()
+        self._ensure_geometry()
 
         ap_bounds = self._aperture_bounds
         table_size = ap_bounds.count
@@ -2393,8 +2580,7 @@ class LineAperture:
         np.ndarray
             Sorted, unique ``s`` positions clipped to the line extent.
         """
-        if not self.is_built:
-            self.build_model()
+        self._ensure_geometry()
 
         line_length = float(self.line.get_length())
         tol = self.s_tol if tol is None else float(tol)
@@ -2458,8 +2644,7 @@ class LineAperture:
         result contains two non-wrapping segments. For non-ring apertures, the
         interval is returned unchanged.
         """
-        if not self.is_built:
-            self.build_model()
+        self._ensure_geometry()
 
         return _split_wrapped_s_interval(
             start,
@@ -2491,8 +2676,7 @@ class LineAperture:
             For rings, wrapped intervals are represented with ``s_start > s_end``
             and likewise for ``s_span_start > s_span_end``.
         """
-        if not self.is_built:
-            self.build_model()
+        self._ensure_geometry()
 
         table_size = len(self._model.pipe_positions)
 
