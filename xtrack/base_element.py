@@ -493,7 +493,7 @@ class MetaBeamElement(xo.MetaHybridClass):
                     is_thin_slice=(
                         '_ThinSliceElementBase' in (base.__name__ for base in bases)),
                     # Magnets: a class with `_magnet_plan = True` is tracked
-                    # through a MagnetPlan (track_magnet.h, tracker.py)
+                    # through a MagnetPlan (magnet_plans.py)
                     magnet_plan=data.get('_magnet_plan', False),
                 )
             )

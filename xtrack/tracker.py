@@ -19,6 +19,7 @@ from .beam_elements import Drift
 from .general import DEPRECATION_INFO_PREP_1_0, _pkg_root
 from .internal_record import new_io_buffer
 from .line import Line, _is_collective, _is_thick
+from . import magnet_plans as _mp
 from .line import freeze_longitudinal as _freeze_longitudinal
 from .pipeline import PipelineStatus
 from .progress_indicator import progress
@@ -132,7 +133,7 @@ class Tracker:
         self._track_kernel = track_kernel or {}
         self._tracker_data_cache = {}
         self._tracker_data_cache[None] = tracker_data_base
-        self._magnet_plans = None  # built at the first track call
+        self._magnet_plans = None  # MagnetPlans, built at the first track call
 
         self._get_twiss_mask_markers() # to cache it
 
@@ -767,7 +768,7 @@ class Tracker:
                     preload_libraries=preload_libraries,
                 )
                 self._context.kernels.update(kernels)
-                return _with_prepare_kernel(kernels)
+                return _mp.attach_prepare_kernel(kernels)
 
         kernel_info = self._compile_kernel_from_classes(
             context=self._tracker_data_base._buffer.context,
@@ -825,12 +826,11 @@ class Tracker:
         headers.append(_pkg_root.joinpath("headers/constants.h"))
         headers.append(TrackFlags.c_header_flag_mapping)
 
-        magnet_classes = [
-            (ii, cc) for ii, cc in enumerate(kernel_element_classes)
-            if vars(cc._DressingClass).get('_magnet_plan', False)]
+        # Magnets are tracked from plans (magnet_plans.py)
+        magnet_classes = _mp.magnet_classes(kernel_element_classes)
 
         src_lines = []
-        src_lines.append(_magnet_plan_source(magnet_classes))
+        src_lines.append(_mp.plan_source(magnet_classes))
         src_lines.append(
             r"""
             /*gpukern*/
@@ -1035,28 +1035,7 @@ class Tracker:
             if ii in magnet_ids:
                 src_lines.append("#endif")
 
-        if magnet_ids:
-            case_labels = "\n".join(
-                f"                        case {ii}:" for ii in magnet_ids)
-            src_lines.append(f"""
-#ifndef XTRACK_TPSA_TRACK
-{case_labels}
-                        {{
-                            /*gpuglmem*/ const MagnetPlan* plan = (/*gpuglmem*/ const MagnetPlan*) (
-                                magnet_plans + MAGNET_PLAN_BYTES * magnet_plan_slots[elem_idx]);
-                            if (LocalParticle_check_track_flag(&lpart, XS_FLAG_SR_TAPER)) {{
-                                track_magnet_tapered(&lpart, el, elem_type);
-                            }}
-                            else {{
-                                track_magnet_particles(&lpart, plan);
-                            }}
-                            #ifdef XTRACK_GLOBAL_XY_LIMIT
-                            if (plan->is_thick) global_aperture_check(&lpart);
-                            #endif
-                            break;
-                        }}
-#endif
-""")
+        src_lines.append(_mp.track_line_cases(magnet_ids))
 
         src_lines.append(
             r"""
@@ -1211,7 +1190,7 @@ class Tracker:
 
         out_kernels = context.build_kernels(**build_kwargs)
         return {
-            'kernel': _with_prepare_kernel(out_kernels),
+            'kernel': _mp.attach_prepare_kernel(out_kernels),
             'tracker_element_classes': kernel_element_classes,
             'all_classes': all_classes,
         }
@@ -1264,25 +1243,10 @@ class Tracker:
         }
 
         if particle_data_class is xt.Particles._XoStruct:
-            # Magnets are tracked from plans (track_magnet.h)
-            kernel_descriptions['track_line'].args += [
-                xo.Arg(xo.Int8, pointer=True, name="magnet_plans"),
-                xo.Arg(xo.Int64, pointer=True, name="magnet_plan_slots"),
-            ]
-            kernel_descriptions['prepare_magnet_plans'] = xo.Kernel(
-                c_name='prepare_magnet_plans',
-                args=[
-                    xo.Arg(xo.Int8, pointer=True, name="buffer"),
-                    xo.Arg(tdata_type, name="tracker_data"),
-                    xo.Arg(xo.Int8, pointer=True, name="magnet_plans"),
-                    xo.Arg(xo.Int64, pointer=True, name="magnet_plan_elements"),
-                    xo.Arg(xo.Int64, name="first_plan"),
-                    xo.Arg(xo.Int64, name="num_plans"),
-                    xo.Arg(xo.Int8, pointer=True, name="io_buffer"),
-                    xo.Arg(xo.UInt64, name="track_flags"),
-                ],
-                n_threads='num_plans',
-            )
+            # Magnets are tracked from plans (magnet_plans.py)
+            kernel_descriptions['track_line'].args += _mp.track_line_args()
+            kernel_descriptions['prepare_magnet_plans'] = (
+                _mp.prepare_kernel_description(tdata_type))
 
         if include_auxiliary_kernels:
             # Random number generator init kernel
@@ -1799,7 +1763,7 @@ class Tracker:
 
         # The plans of the magnets tracked by this call
         if self._magnet_plans is None:
-            self._magnet_plans = _MagnetPlans(tracker_data, self._context)
+            self._magnet_plans = _mp.MagnetPlans(tracker_data, self._context)
         if num_middle_turns > 0 or num_elements_last_turn > 0:
             plan_start, plan_stop = 0, self.num_elements
         else:
@@ -1828,8 +1792,7 @@ class Tracker:
             offset_multi_element_monitor=offset_multi_element_monitor,
             io_buffer=self.io_buffer.buffer,
             track_flags=track_flags,
-            magnet_plans=self._magnet_plans.plans,
-            magnet_plan_slots=self._magnet_plans.slots,
+            **self._magnet_plans.track_args(),
         )
 
         self._advance_particle_time_s_and_reference_turns(
@@ -1856,8 +1819,7 @@ class Tracker:
                 offset_multi_element_monitor=offset_multi_element_monitor,
                 io_buffer=self.io_buffer.buffer,
                 track_flags=track_flags,
-                magnet_plans=self._magnet_plans.plans,
-                magnet_plan_slots=self._magnet_plans.slots,
+                **self._magnet_plans.track_args(),
             )
 
             self._advance_particle_time_s_and_reference_turns(
@@ -1884,8 +1846,7 @@ class Tracker:
                 offset_multi_element_monitor=offset_multi_element_monitor,
                 io_buffer=self.io_buffer.buffer,
                 track_flags=track_flags,
-                magnet_plans=self._magnet_plans.plans,
-                magnet_plan_slots=self._magnet_plans.slots,
+                **self._magnet_plans.track_args(),
             )
 
         self.record_last_track = monitor
@@ -2344,142 +2305,3 @@ class Log(dict):
 
 def _is_resume_within_turn(tt, tt_resume):
     return tt_resume is not None and tt == tt_resume
-
-
-# Magnet plans (track_magnet.h): every magnet is prepared once per track call
-# into a plan, MAGNET_PLAN_BYTES apart (at least sizeof(MagnetPlan), checked
-# in C), and tracked from it by one function, track_magnet_particles.
-MAGNET_PLAN_BYTES = 1536
-
-
-def _magnet_plan_source(magnet_classes):
-    if not magnet_classes:
-        return """
-#ifndef XTRACK_TPSA_TRACK
-/*gpukern*/
-void prepare_magnet_plans(
-    /*gpuglmem*/ int8_t* buffer,
-                 ElementRefData elem_ref_data,
-    /*gpuglmem*/ int8_t* magnet_plans,
-    /*gpuglmem*/ int64_t* magnet_plan_elements,
-                 int64_t first_plan,
-                 int64_t num_plans,
-    /*gpuglmem*/ int8_t* io_buffer,
-                 uint64_t track_flags
-) {}
-#endif
-"""
-    prepare_cases = "\n".join(
-        f"""        case {ii}:
-            {cc.__name__.replace("Data", "")}_prepare_plan(
-                ({cc.__name__}) el, plan, part);
-            break;"""
-        for ii, cc in magnet_classes)
-    return f"""
-#ifndef XTRACK_TPSA_TRACK
-#define MAGNET_PLAN_BYTES ({MAGNET_PLAN_BYTES})
-#if defined(__cplusplus)
-static_assert(sizeof(MagnetPlan) <= MAGNET_PLAN_BYTES, "MAGNET_PLAN_BYTES too small");
-#elif !defined(XO_CONTEXT_CL)  // OpenCL C has no static assertion
-_Static_assert(sizeof(MagnetPlan) <= MAGNET_PLAN_BYTES, "MAGNET_PLAN_BYTES too small");
-#endif
-
-// The plan of the magnet el, of type elem_type
-GPUFUN
-void prepare_magnet_plan(
-    /*gpuglmem*/ void* el,
-    int64_t elem_type,
-    MagnetPlan* plan,
-    LocalParticle* part
-) {{
-    switch (elem_type) {{
-{prepare_cases}
-    }}
-}}
-
-// Tapering follows the energy of the particle along the line: the plan is
-// made at the element
-GPUFUN XT_NOINLINE
-void track_magnet_tapered(
-    LocalParticle* part,
-    /*gpuglmem*/ void* el,
-    int64_t elem_type
-) {{
-    MagnetPlan plan;
-    prepare_magnet_plan(el, elem_type, &plan, part);
-    track_magnet_particles(part, &plan);
-}}
-
-/*gpukern*/
-void prepare_magnet_plans(
-    /*gpuglmem*/ int8_t* buffer,
-                 ElementRefData elem_ref_data,
-    /*gpuglmem*/ int8_t* magnet_plans,
-    /*gpuglmem*/ int64_t* magnet_plan_elements,
-                 int64_t first_plan,
-                 int64_t num_plans,
-    /*gpuglmem*/ int8_t* io_buffer,
-                 uint64_t track_flags
-) {{
-    // A plan reads only the track flags of the particle (the direction of
-    // travel); tapering makes its plans at the elements (track_magnet_tapered)
-    LocalParticle lpart;
-    lpart.io_buffer = io_buffer;
-    lpart.track_flags = track_flags & ~(((uint64_t) 1) << XS_FLAG_SR_TAPER);
-
-    VECTORIZE_OVER(ii, num_plans);
-        const int64_t slot = first_plan + ii;
-        const int64_t elem_idx = magnet_plan_elements[slot];
-        /*gpuglmem*/ void* el = ElementRefData_member_elements(elem_ref_data, elem_idx);
-        MagnetPlan* plan = (MagnetPlan*) (magnet_plans + MAGNET_PLAN_BYTES * slot);
-        prepare_magnet_plan(
-            el, ElementRefData_typeid_elements(elem_ref_data, elem_idx), plan, &lpart);
-    END_VECTORIZE;
-}}
-#endif
-"""
-
-
-def _with_prepare_kernel(kernels):
-    # The track kernel carries the prepare kernel of its build: the kernel
-    # cache is shared between trackers, and the type ids are those of the build
-    track_line = kernels['track_line']
-    track_line.prepare_magnet_plans = kernels.get('prepare_magnet_plans')
-    return track_line
-
-
-class _MagnetPlans:
-    """The plans of the magnets of a line: a buffer of MAGNET_PLAN_BYTES per
-    magnet, the slot of each element (-1: not a magnet) and the element of
-    each slot, in the order of the line."""
-
-    def __init__(self, tracker_data, context):
-        is_magnet = [getattr(el, '_magnet_plan', False)
-                     for el in tracker_data.elements]
-        self.elements = np.flatnonzero(is_magnet).astype(np.int64)
-        slots = np.full(len(is_magnet), -1, dtype=np.int64)
-        slots[self.elements] = np.arange(len(self.elements))
-        num = max(len(self.elements), 1)  # no empty arrays
-        self.plans = context.zeros(num * MAGNET_PLAN_BYTES, dtype=np.int8)
-        self.slots = context.nparray_to_context_array(slots)
-        self.elements_ctx = context.nparray_to_context_array(
-            np.concatenate([self.elements, [0]]))
-
-    def prepare(self, track_kernel, tracker_data, io_buffer, track_flags,
-                ele_start, ele_stop):
-        """Prepare the plans of the magnets in [ele_start, ele_stop), with
-        the prepare kernel carried by the track kernel (read only if there
-        are magnets)."""
-        first, stop = np.searchsorted(self.elements, [ele_start, ele_stop])
-        if stop <= first:
-            return
-        track_kernel.prepare_magnet_plans(
-            buffer=tracker_data._buffer.buffer,
-            tracker_data=tracker_data._element_ref_data,
-            magnet_plans=self.plans,
-            magnet_plan_elements=self.elements_ctx,
-            first_plan=int(first),
-            num_plans=int(stop - first),
-            io_buffer=io_buffer,
-            track_flags=track_flags,
-        )
