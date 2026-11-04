@@ -5,6 +5,7 @@ optics and survey equivalence; this check uses MAD-X as the aperture reference.
 """
 
 from pathlib import Path
+import warnings
 
 import numpy as np
 from cpymad.madx import Madx
@@ -74,7 +75,11 @@ snapshots = []
 for gap in (0.010, 0.028, 0.050):
     env[knob] = gap
     line.aperture.get_pipe_table()
-    limit = line.aperture.get_limit_elements_at_s([center])[center]
+    with warnings.catch_warnings(record=True) as messages:
+        warnings.simplefilter('always')
+        limit = line.aperture.get_limit_elements_at_s([center])[center]
+    assert any('not translated' in str(message.message) for message in messages)
+    assert isinstance(limit, xt.LimitRect)
     particles = xt.Particles(p0c=160e9, x=[0, .99*gap, 1.01*gap, -.99*gap, -1.01*gap])
     limit.track(particles)
     order = np.argsort(particles.particle_id)
@@ -86,17 +91,25 @@ for gap in (0.010, 0.028, 0.050):
 
 # Old limits and optics stay at their own setting after the source knob changes.
 for gap, limit in snapshots:
-    np.testing.assert_allclose([min(limit.x_vertices), max(limit.x_vertices)],
+    np.testing.assert_allclose([limit.min_x, limit.max_x],
                                [-gap, gap], rtol=0, atol=1e-10)
 assert tracking_line.env[knob] == .028
 np.testing.assert_allclose(tracking_line[scraper].k1, saved_k1, rtol=0, atol=1e-14)
 np.testing.assert_allclose(tracking_line.get_length(), line.get_length(), rtol=0, atol=1e-10)
 
-limit_table = tracking_line.get_table().rows.match(element_type='LimitPolygon')
+limit_table = tracking_line.get_table().rows.match(element_type='Limit.*')
 pipes = line.aperture.get_pipe_table()
 for s in limit_table.s:
     assert np.any((pipes.s_start < s) & (s < pipes.s_end)), s
 assert len(limit_table) >= 2 * len(pipes)
 assert not any(type(line.element_dict[name]).__name__.startswith('Limit')
                for name in line.element_names)
-print('Knob scan, particle survival, independent snapshots and aperture coverage checked')
+tracking_line.env[knob] = .035
+scraper_start = table['s', scraper]
+scraper_end = scraper_start + line[scraper].length
+for name, s in zip(limit_table.name, limit_table.s):
+    if scraper_start < s < scraper_end:
+        assert isinstance(tracking_line.element_dict[name], xt.LimitRect)
+        np.testing.assert_allclose(tracking_line[name].max_x, .035, atol=1e-14)
+assert env[knob] == .050
+print('Knob scan, particle survival, independent copies, live limit expressions and coverage checked')

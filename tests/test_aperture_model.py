@@ -841,7 +841,11 @@ def test_aperture_model_views(test_context):
 
 
 def test_get_limit_elements(monkeypatch):
-    ap = Aperture.__new__(Aperture)
+    env = xt.Environment()
+    line = env.new_line(components=[env.new('d', 'Drift', length=4.)])
+    profile = env.aperture.new_profile('profile', 'Circle', radius=1.)
+    line.aperture.new_element_pipe('d', profile)
+    ap = line.aperture
     cross_sections = np.array(
         [
             [[0.0, 0.0], [1.0, 0.0], [0.0, 1.0], [0.0, 0.0]],
@@ -858,7 +862,7 @@ def test_get_limit_elements(monkeypatch):
     )
     monkeypatch.setattr(ap, 'get_cross_sections_at_s', lambda s_positions: table)
 
-    out = ap.get_limit_elements_at_s([1.5, 3.5])
+    out = ap.get_limit_elements_at_s([1.5, 3.5], prefer_native=False)
 
     assert list(out) == [1.5, 3.5]
     assert all(isinstance(value, xt.LimitPolygon) for value in out.values())

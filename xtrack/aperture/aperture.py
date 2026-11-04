@@ -8,7 +8,6 @@ from weakref import ref
 import numpy as np
 
 import xobjects as xo
-from xtrack.beam_elements.limit_polygon import LimitPolygon
 from xdeps.table import Table
 from xobjects.context import XContext
 from xtrack.twiss import TwissInit, TwissTable
@@ -1893,19 +1892,42 @@ class LineAperture:
         return self.get_cross_sections_at_s(s_positions, extents=True, polygons=False)
 
     @doc_group("Aperture Computation")
-    def get_limit_elements_at_s(self, s_positions: list[float]) -> dict[float, LimitElement]:
-        """Obtain interpolated cross-sections as limit beam elements."""
-        cross_sections_table = self.get_cross_sections_at_s(s_positions)
-        limit_elements = {}
-        for s, row in zip(s_positions, cross_sections_table.rows):
-            cross_section = row.cross_section
-            limit_poly = LimitPolygon(
-                x_vertices=cross_section[:-1, 0],
-                y_vertices=cross_section[:-1, 1],
-            )
-            limit_elements[s] = limit_poly
+    def get_limit_elements_at_s(self, s_positions: list[float], *, names=None,
+                                prefer_native=True) -> dict[float, LimitElement]:
+        """Convert aperture sections to tracking limits, retaining native shapes.
 
-        return limit_elements
+        Perpendicular sections through equal profiles use native rectangles,
+        ellipses, rectellipses or racetracks. Circles with interpolated radii
+        remain ellipses. Polygon vertices and ordinary octagon corners are
+        retained exactly. Other sections use sampled ``LimitPolygon`` elements.
+
+        Parameters
+        ----------
+        s_positions : sequence of float
+            Longitudinal sample positions [m].
+        names : sequence of str, optional
+            Register the limits under these names in the line's environment and
+            translate supported shape and transverse-placement expressions.
+            Without names, return standalone numeric snapshots. A warning lists
+            any expression that could not be translated, including geometry and
+            tolerance expressions. Registration does not insert limits in the line.
+        prefer_native : bool, optional
+            Default True. False always samples polygons, as in earlier versions.
+
+        Returns
+        -------
+        dict
+            Sample position to limit element. Named limits share the environment's
+            variables, and their bindings survive line/environment copying and JSON.
+
+        Notes
+        -----
+        Sampling positions, pipe topology and the survey remain fixed. Regenerate
+        limits after geometry changes that invalidate the selected section type.
+        Mechanical tolerances are not applied to the tracking boundaries.
+        """
+        from .limit_converters import limit_elements_at_s
+        return limit_elements_at_s(self, s_positions, names=names, prefer_native=prefer_native)
 
     @doc_group("Visualization")
     def plot_extents(

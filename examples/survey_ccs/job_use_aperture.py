@@ -2,8 +2,9 @@
 
 Run with ``python job_use_aperture.py`` (or ``%run job_use_aperture.py``).
 ``lines_by_gap`` contains independent tracking lines, keyed by half-gap in metres.
-The native aperture model is the source of geometry; LimitPolygon elements are
-generated snapshots. Regenerate them after changing the settings or geometry.
+The aperture model supplies native tracking limits where possible, with sampled
+polygons for other sections. Supported expressions remain live in each copied
+line; regenerate limits after changes to the pipe geometry or sampling positions.
 Use ``line.to_json(path, include_aperture=True)`` to save the native model and
 its expression bindings together with the line and variables.
 """
@@ -23,7 +24,9 @@ def make_tracking_line(line, max_step=1.0):
     """
     if not np.isfinite(max_step) or max_step <= 0:
         raise ValueError('max_step must be positive and finite.')
-    aperture = line.aperture
+    # Copy first so translated expressions use this scan point's own variables.
+    tracking_line = line.copy()
+    aperture = tracking_line.aperture
     samples = []
     for pipe in aperture.get_pipe_table().rows:
         start, end = float(pipe.s_start), float(pipe.s_end)
@@ -32,15 +35,11 @@ def make_tracking_line(line, max_step=1.0):
         count = max(2, int(np.ceil((end - start) / max_step)) + 1)
         samples.extend(np.linspace(start + margin, end - margin, count))
 
-    limits = aperture.get_limit_elements_at_s(np.unique(samples))
-    # A deep copy freezes both optics knobs and geometry for this scan point.
-    tracking_line = line.copy()
-    insertions = []
-    for index, (s, limit) in enumerate(limits.items()):
-        name = f'm2_aperture_{index:04d}'
-        tracking_line.env.elements[name] = limit
-        insertions.append(tracking_line.env.place(name, at=s))
-    tracking_line.insert(insertions)
+    samples = np.unique(samples)
+    names = [f'm2_aperture_{index:04d}' for index in range(len(samples))]
+    aperture.get_limit_elements_at_s(samples, names=names)
+    tracking_line.insert([tracking_line.env.place(name, at=s)
+                          for name, s in zip(names, samples)])
     return tracking_line
 
 
@@ -64,8 +63,7 @@ def main():
         lines_by_gap[gap] = tracking_line
 
         extents = line.aperture.get_extents_at_element(scraper, resolution=None)
-        count = sum(isinstance(tracking_line.element_dict[name], xt.LimitPolygon)
-                    for name in tracking_line.element_names)
+        count = sum(name.startswith('m2_aperture_') for name in tracking_line.element_names)
         print(f'{gap * 1e3:13.1f}  {line[scraper].k1:12.6g}  '
               f'[{extents.min_x[0] * 1e3:7.2f}, '
               f'{extents.max_x[0] * 1e3:7.2f}]  {count:8d}')
