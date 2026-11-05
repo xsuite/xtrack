@@ -1871,6 +1871,9 @@ class Particles(xo.HybridClass):
             scale_pxpy = old_p0c[mask] / new_p0c[mask]
             self.px[mask] *= scale_pxpy
             self.py[mask] *= scale_pxpy
+            # ax/ay carry q*A/p0 in the same normalization as px/py.
+            self.ax[mask] *= scale_pxpy
+            self.ay[mask] *= scale_pxpy
 
 
 def _mask_to_where(mask, ctx):
