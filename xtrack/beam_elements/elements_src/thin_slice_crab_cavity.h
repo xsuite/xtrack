@@ -36,9 +36,9 @@ void ThinSliceCrabCavity_track_local_particle(ThinSliceCrabCavityData el, LocalP
         /*phase_s*/               NULL,
         /*num_kicks*/             1, // kick only
         /*model*/                 -1, // kick only
-        /*default_model*/         6, // drift-kick-drift-expanded
+        /*default_model*/         MODEL_DRIFT_KICK_DRIFT_EXPANDED,
         /*integrator*/            3, // uniform
-        /*default_integrator*/    3, // Uniform
+        /*default_integrator*/    INTEGRATOR_UNIFORM,
         /*radiation_flag*/        0, // not used here
         /*radiation_flag_parent*/ 0, // not used here
         /*lag_taper*/             ThinSliceCrabCavityData_get__parent_lag_taper(el),

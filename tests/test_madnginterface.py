@@ -353,6 +353,8 @@ def test_madng_slices():
         'ThickSliceUniformSolenoid',
         'ThinSliceBendEntry',
         'ThinSliceBendExit',
+        'ThinSliceMultipoleEntry',
+        'ThinSliceMultipoleExit',
         'ThinSliceOctupoleEntry',
         'ThinSliceOctupoleExit',
         'ThinSliceQuadrupoleEntry',

@@ -1,0 +1,38 @@
+# Style of the C kernels (xtrack/**/elements_src, headers). Applied to the
+# changed lines only: git clang-format upstream/main
+BasedOnStyle: LLVM
+IndentWidth: 4
+ContinuationIndentWidth: 4
+ColumnLimit: 90
+PointerAlignment: Left
+BreakBeforeBraces: Custom
+BraceWrapping:
+  BeforeElse: true
+  BeforeCatch: true
+# Two blank lines separate the functions
+MaxEmptyLinesToKeep: 2
+AllowShortFunctionsOnASingleLine: InlineOnly
+AllowShortIfStatementsOnASingleLine: WithoutElse
+AllowShortLoopsOnASingleLine: true
+# Long parameter and argument lists: one per line, closing parenthesis on
+# its own line
+AlignAfterOpenBracket: BlockIndent
+BinPackParameters: OnePerLine
+BinPackArguments: false
+AllowAllParametersOfDeclarationOnNextLine: false
+AlignConsecutiveMacros: Consecutive
+AlignTrailingComments: true
+BreakBeforeBinaryOperators: NonAssignment
+SpacesBeforeTrailingComments: 2
+SpaceBeforeParens: ControlStatements
+# Preprocessor blocks inside functions keep their indentation; backslashes
+# of multi-line macros right after the code
+IndentPPDirectives: BeforeHash
+AlignEscapedNewlines: Left
+# The include order matters (headers rely on earlier ones)
+SortIncludes: Never
+# Per-particle loops open and close a block
+MacroBlockBegin: '^START_PER_PARTICLE_BLOCK$'
+MacroBlockEnd: '^END_PER_PARTICLE_BLOCK$'
+# Function qualifier on its own line, before the return type
+StatementMacros: [GPUFUN, GPUKERN]

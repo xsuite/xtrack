@@ -83,21 +83,29 @@ def test_thick_hkicker_cpymad_loader():
     # _end_point             3                       False     False
 
     assert np.all(tt_slice_thick.name == np.array([
-        'ss$start', 'drift_0', 'hk1_entry', 'hk1..0', 'hk1..1', 'hk1..2',
-        'hk1_exit', 'drift_1', 'ss$end', '_end_point'
+        'ss$start', 'drift_0', 'hk1_entry', 'hk1..entry_map', 'hk1..0',
+        'hk1..1', 'hk1..2', 'hk1..exit_map', 'hk1_exit', 'drift_1',
+        'ss$end', '_end_point'
     ]))
     xo.assert_allclose(tt_slice_thick.s, np.array([
-        0, 0, 0.5, 0.5, 0.83333333, 1.16666667, 1.5, 1.5, 3, 3
+        0, 0, 0.5, 0.5, 0.5,
+        0.83333333, 1.16666667, 1.5, 1.5, 1.5,
+        3, 3
     ]), rtol=0, atol=1e-7)
     assert np.all(tt_slice_thick.element_type == np.array([
-        'Marker', 'Drift', 'Marker', 'ThickSliceMultipole', 'ThickSliceMultipole',
-        'ThickSliceMultipole', 'Marker', 'Drift', 'Marker', ''
+        'Marker', 'Drift', 'Marker', 'ThinSliceMultipoleEntry', 'ThickSliceMultipole',
+        'ThickSliceMultipole', 'ThickSliceMultipole', 'ThinSliceMultipoleExit', 'Marker', 'Drift',
+        'Marker', ''
     ]))
     assert np.all(tt_slice_thick.isthick == np.array([
-        False, True, False, True, True, True, False, True, False, False
+        False, True, False, False, True,
+        True, True, False, False, True,
+        False, False
     ]))
     assert np.allclose(tt_slice_thick.hkick, np.array([
-        0., 0., 0., 0.001/3, 0.001/3, 0.001/3, 0., 0., 0., 0.
+        0., 0., 0., 0., 0.001/3,
+        0.001/3, 0.001/3, 0., 0., 0.,
+        0., 0.
     ]))
     xo.assert_allclose(tw_slice_thick.px[-1], tw_mad.px[-1], rtol=0, atol=1e-14)
     xo.assert_allclose(tw_slice_thick.py[-1], tw_mad.py[-1], rtol=0, atol=1e-14)
@@ -131,23 +139,34 @@ def test_thick_hkicker_cpymad_loader():
     # _end_point               3                       False     False
 
     assert np.all(tt_slice_thin.name == np.array([
-        'ss$start', 'drift_0', 'hk1_entry', 'drift_hk1..0', 'hk1..3', 'drift_hk1..1',
-        'hk1..4', 'drift_hk1..2', 'hk1..5', 'drift_hk1..3', 'hk1_exit', 'drift_1',
-        'ss$end', '_end_point'
+        'ss$start', 'drift_0', 'hk1_entry', 'hk1..entry_map_0', 'drift_hk1..0',
+        'hk1..3', 'drift_hk1..1', 'hk1..4', 'drift_hk1..2', 'hk1..5',
+        'drift_hk1..3', 'hk1..exit_map_0', 'hk1_exit', 'drift_1', 'ss$end',
+        '_end_point'
     ]))
     xo.assert_allclose(tt_slice_thin.s, np.array([
-        0, 0, 0.5, 0.5, 0.75, 0.75, 1.0, 1.0, 1.25, 1.25, 1.5, 1.5, 3, 3
+        0, 0, 0.5, 0.5, 0.5,
+        0.75, 0.75, 1.0, 1.0, 1.25,
+        1.25, 1.5, 1.5, 1.5, 3,
+        3
     ]), rtol=0, atol=1e-7)
     assert np.all(tt_slice_thin.element_type == np.array([
-        'Marker', 'Drift', 'Marker', 'DriftSliceMultipole', 'ThinSliceMultipole',
-        'DriftSliceMultipole', 'ThinSliceMultipole', 'DriftSliceMultipole',
-        'ThinSliceMultipole', 'DriftSliceMultipole', 'Marker', 'Drift', 'Marker', ''
+        'Marker', 'Drift', 'Marker', 'ThinSliceMultipoleEntry', 'DriftSliceMultipole',
+        'ThinSliceMultipole', 'DriftSliceMultipole', 'ThinSliceMultipole', 'DriftSliceMultipole', 'ThinSliceMultipole',
+        'DriftSliceMultipole', 'ThinSliceMultipoleExit', 'Marker', 'Drift', 'Marker',
+        ''
     ]))
     assert np.all(tt_slice_thin.isthick == np.array([
-        False, True, False, True, False, True, False, True, False, True, False, True, False, False
+        False, True, False, False, True,
+        False, True, False, True, False,
+        True, False, False, True, False,
+        False
     ]))
     assert np.allclose(tt_slice_thin.hkick, np.array([
-        0., 0., 0., 0., 0.001/3, 0., 0.001/3, 0., 0.001/3, 0., 0., 0., 0., 0.
+        0., 0., 0., 0., 0.,
+        0.001/3, 0., 0.001/3, 0., 0.001/3,
+        0., 0., 0., 0., 0.,
+        0.
     ]))
     xo.assert_allclose(tw_slice_thin.px[-1], tw_mad.px[-1], rtol=0, atol=1e-14)
     xo.assert_allclose(tw_slice_thin.py[-1], tw_mad.py[-1], rtol=0, atol=1e-14)
@@ -229,20 +248,24 @@ def test_thick_hkicker_native_loader():
     # _end_point             3                       False     False
 
     assert np.all(tt_slice_thick.name == np.array([
-        '||drift_1', 'hk1_entry', 'hk1..0', 'hk1..1', 'hk1..2', 'hk1_exit',
-        '||drift_2', '_end_point']))
+        '||drift_1', 'hk1_entry', 'hk1..entry_map', 'hk1..0', 'hk1..1',
+        'hk1..2', 'hk1..exit_map', 'hk1_exit', '||drift_2', '_end_point'
+    ]))
     xo.assert_allclose(tt_slice_thick.s, np.array([
-        0, 0.5, 0.5, 0.83333333, 1.16666667, 1.5, 1.5, 3
+        0, 0.5, 0.5, 0.5, 0.83333333,
+        1.16666667, 1.5, 1.5, 1.5, 3
     ]), rtol=0, atol=1e-7)
     assert np.all(tt_slice_thick.element_type == np.array([
-        'Drift', 'Marker', 'ThickSliceMultipole', 'ThickSliceMultipole',
-        'ThickSliceMultipole', 'Marker', 'Drift', ''
+        'Drift', 'Marker', 'ThinSliceMultipoleEntry', 'ThickSliceMultipole', 'ThickSliceMultipole',
+        'ThickSliceMultipole', 'ThinSliceMultipoleExit', 'Marker', 'Drift', ''
     ]))
     assert np.all(tt_slice_thick.isthick == np.array([
-        True, False, True, True, True, False, True, False
+        True, False, False, True, True,
+        True, False, False, True, False
     ]))
     assert np.allclose(tt_slice_thick.hkick, np.array([
-        0., 0., 0.001/3, 0.001/3, 0.001/3, 0., 0., 0.
+        0., 0., 0., 0.001/3, 0.001/3,
+        0.001/3, 0., 0., 0., 0.
     ]))
     xo.assert_allclose(tw_slice_thick.px[-1], tw_mad.px[-1], rtol=0, atol=1e-14)
     xo.assert_allclose(tw_slice_thick.py[-1], tw_mad.py[-1], rtol=0, atol=1e-14)
@@ -274,22 +297,29 @@ def test_thick_hkicker_native_loader():
     # _end_point               3                       False     False
 
     assert np.all(tt_slice_thin.name == np.array([
-        '||drift_1', 'hk1_entry', 'drift_hk1..0', 'hk1..3', 'drift_hk1..1',
-       'hk1..4', 'drift_hk1..2', 'hk1..5', 'drift_hk1..3', 'hk1_exit',
-       '||drift_2', '_end_point']))
+        '||drift_1', 'hk1_entry', 'hk1..entry_map_0', 'drift_hk1..0', 'hk1..3',
+        'drift_hk1..1', 'hk1..4', 'drift_hk1..2', 'hk1..5', 'drift_hk1..3',
+        'hk1..exit_map_0', 'hk1_exit', '||drift_2', '_end_point'
+    ]))
     xo.assert_allclose(tt_slice_thin.s, np.array([
-        0, 0.5, 0.5, 0.75, 0.75, 1.0, 1.0, 1.25, 1.25, 1.5, 1.5, 3
+        0, 0.5, 0.5, 0.5, 0.75,
+        0.75, 1.0, 1.0, 1.25, 1.25,
+        1.5, 1.5, 1.5, 3
     ]), rtol=0, atol=1e-7)
     assert np.all(tt_slice_thin.element_type == np.array([
-        'Drift', 'Marker', 'DriftSliceMultipole', 'ThinSliceMultipole',
-        'DriftSliceMultipole', 'ThinSliceMultipole', 'DriftSliceMultipole',
-        'ThinSliceMultipole', 'DriftSliceMultipole', 'Marker', 'Drift', ''
+        'Drift', 'Marker', 'ThinSliceMultipoleEntry', 'DriftSliceMultipole', 'ThinSliceMultipole',
+        'DriftSliceMultipole', 'ThinSliceMultipole', 'DriftSliceMultipole', 'ThinSliceMultipole', 'DriftSliceMultipole',
+        'ThinSliceMultipoleExit', 'Marker', 'Drift', ''
     ]))
     assert np.all(tt_slice_thin.isthick == np.array([
-        True, False, True, False, True, False, True, False, True, False, True, False
+        True, False, False, True, False,
+        True, False, True, False, True,
+        False, False, True, False
     ]))
     assert np.allclose(tt_slice_thin.hkick, np.array([
-        0., 0., 0., 0.001/3, 0., 0.001/3, 0., 0.001/3, 0., 0., 0., 0.
+        0., 0., 0., 0., 0.001/3,
+        0., 0.001/3, 0., 0.001/3, 0.,
+        0., 0., 0., 0.
     ]))
     xo.assert_allclose(tw_slice_thin.px[-1], tw_mad.px[-1], rtol=0, atol=1e-14)
     xo.assert_allclose(tw_slice_thin.py[-1], tw_mad.py[-1], rtol=0, atol=1e-14)
@@ -418,21 +448,29 @@ def test_thick_vkicker_cpymad_loader():
     # _end_point             3                       False     False
 
     assert np.all(tt_slice_thick.name == np.array([
-        'ss$start', 'drift_0', 'vk1_entry', 'vk1..0', 'vk1..1', 'vk1..2',
-        'vk1_exit', 'drift_1', 'ss$end', '_end_point'
+        'ss$start', 'drift_0', 'vk1_entry', 'vk1..entry_map', 'vk1..0',
+        'vk1..1', 'vk1..2', 'vk1..exit_map', 'vk1_exit', 'drift_1',
+        'ss$end', '_end_point'
     ]))
     xo.assert_allclose(tt_slice_thick.s, np.array([
-        0, 0, 0.5, 0.5, 0.83333333, 1.16666667, 1.5, 1.5, 3, 3
+        0, 0, 0.5, 0.5, 0.5,
+        0.83333333, 1.16666667, 1.5, 1.5, 1.5,
+        3, 3
     ]), rtol=0, atol=1e-7)
     assert np.all(tt_slice_thick.element_type == np.array([
-        'Marker', 'Drift', 'Marker', 'ThickSliceMultipole', 'ThickSliceMultipole',
-        'ThickSliceMultipole', 'Marker', 'Drift', 'Marker', ''
+        'Marker', 'Drift', 'Marker', 'ThinSliceMultipoleEntry', 'ThickSliceMultipole',
+        'ThickSliceMultipole', 'ThickSliceMultipole', 'ThinSliceMultipoleExit', 'Marker', 'Drift',
+        'Marker', ''
     ]))
     assert np.all(tt_slice_thick.isthick == np.array([
-        False, True, False, True, True, True, False, True, False, False
+        False, True, False, False, True,
+        True, True, False, False, True,
+        False, False
     ]))
     xo.assert_allclose(tt_slice_thick.vkick, np.array([
-        0., 0., 0., 0.001/3, 0.001/3, 0.001/3, 0., 0., 0., 0.
+        0., 0., 0., 0., 0.001/3,
+        0.001/3, 0.001/3, 0., 0., 0.,
+        0., 0.
     ]))
     xo.assert_allclose(tw_slice_thick.px[-1], tw_mad.px[-1], rtol=0, atol=1e-14)
     xo.assert_allclose(tw_slice_thick.py[-1], tw_mad.py[-1], rtol=0, atol=1e-14)
@@ -466,23 +504,34 @@ def test_thick_vkicker_cpymad_loader():
     # _end_point               3                       False     False
 
     assert np.all(tt_slice_thin.name == np.array([
-        'ss$start', 'drift_0', 'vk1_entry', 'drift_vk1..0', 'vk1..3', 'drift_vk1..1',
-        'vk1..4', 'drift_vk1..2', 'vk1..5', 'drift_vk1..3', 'vk1_exit', 'drift_1',
-        'ss$end', '_end_point'
+        'ss$start', 'drift_0', 'vk1_entry', 'vk1..entry_map_0', 'drift_vk1..0',
+        'vk1..3', 'drift_vk1..1', 'vk1..4', 'drift_vk1..2', 'vk1..5',
+        'drift_vk1..3', 'vk1..exit_map_0', 'vk1_exit', 'drift_1', 'ss$end',
+        '_end_point'
     ]))
     xo.assert_allclose(tt_slice_thin.s, np.array([
-        0, 0, 0.5, 0.5, 0.75, 0.75, 1.0, 1.0, 1.25, 1.25, 1.5, 1.5, 3, 3
+        0, 0, 0.5, 0.5, 0.5,
+        0.75, 0.75, 1.0, 1.0, 1.25,
+        1.25, 1.5, 1.5, 1.5, 3,
+        3
     ]), rtol=0, atol=1e-7)
     assert np.all(tt_slice_thin.element_type == np.array([
-        'Marker', 'Drift', 'Marker', 'DriftSliceMultipole', 'ThinSliceMultipole',
-        'DriftSliceMultipole', 'ThinSliceMultipole', 'DriftSliceMultipole',
-        'ThinSliceMultipole', 'DriftSliceMultipole', 'Marker', 'Drift', 'Marker', ''
+        'Marker', 'Drift', 'Marker', 'ThinSliceMultipoleEntry', 'DriftSliceMultipole',
+        'ThinSliceMultipole', 'DriftSliceMultipole', 'ThinSliceMultipole', 'DriftSliceMultipole', 'ThinSliceMultipole',
+        'DriftSliceMultipole', 'ThinSliceMultipoleExit', 'Marker', 'Drift', 'Marker',
+        ''
     ]))
     assert np.all(tt_slice_thin.isthick == np.array([
-        False, True, False, True, False, True, False, True, False, True, False, True, False, False
+        False, True, False, False, True,
+        False, True, False, True, False,
+        True, False, False, True, False,
+        False
     ]))
     xo.assert_allclose(tt_slice_thin.vkick, np.array([
-        0., 0., 0., 0., 0.001/3, 0., 0.001/3, 0., 0.001/3, 0., 0., 0., 0., 0.
+        0., 0., 0., 0., 0.,
+        0.001/3, 0., 0.001/3, 0., 0.001/3,
+        0., 0., 0., 0., 0.,
+        0.
     ]))
     xo.assert_allclose(tw_slice_thin.px[-1], tw_mad.px[-1], rtol=0, atol=1e-14)
     xo.assert_allclose(tw_slice_thin.py[-1], tw_mad.py[-1], rtol=0, atol=1e-14)
@@ -562,20 +611,24 @@ def test_thick_vkicker_native_loader():
     # _end_point             3                       False     False
 
     assert np.all(tt_slice_thick.name == np.array([
-        '||drift_1', 'vk1_entry', 'vk1..0', 'vk1..1', 'vk1..2', 'vk1_exit',
-       '||drift_2', '_end_point']))
+        '||drift_1', 'vk1_entry', 'vk1..entry_map', 'vk1..0', 'vk1..1',
+        'vk1..2', 'vk1..exit_map', 'vk1_exit', '||drift_2', '_end_point'
+    ]))
     xo.assert_allclose(tt_slice_thick.s, np.array([
-        0, 0.5, 0.5, 0.83333333, 1.16666667, 1.5, 1.5, 3
+        0, 0.5, 0.5, 0.5, 0.83333333,
+        1.16666667, 1.5, 1.5, 1.5, 3
     ]), rtol=0, atol=1e-7)
     assert np.all(tt_slice_thick.element_type == np.array([
-        'Drift', 'Marker', 'ThickSliceMultipole', 'ThickSliceMultipole',
-        'ThickSliceMultipole', 'Marker', 'Drift', ''
+        'Drift', 'Marker', 'ThinSliceMultipoleEntry', 'ThickSliceMultipole', 'ThickSliceMultipole',
+        'ThickSliceMultipole', 'ThinSliceMultipoleExit', 'Marker', 'Drift', ''
     ]))
     assert np.all(tt_slice_thick.isthick == np.array([
-        True, False, True, True, True, False, True, False
+        True, False, False, True, True,
+        True, False, False, True, False
     ]))
     xo.assert_allclose(tt_slice_thick.vkick, np.array([
-        0., 0., 0.001/3, 0.001/3, 0.001/3, 0., 0., 0.
+        0., 0., 0., 0.001/3, 0.001/3,
+        0.001/3, 0., 0., 0., 0.
     ]))
     xo.assert_allclose(tw_slice_thick.px[-1], tw_mad.px[-1], rtol=0, atol=1e-14)
     xo.assert_allclose(tw_slice_thick.py[-1], tw_mad.py[-1], rtol=0, atol=1e-14)
@@ -606,22 +659,29 @@ def test_thick_vkicker_native_loader():
     # drift_2                1.5 Drift                  True     False
     # _end_point               3                       False     False
     assert np.all(tt_slice_thin.name == np.array([
-        '||drift_1', 'vk1_entry', 'drift_vk1..0', 'vk1..3', 'drift_vk1..1',
-       'vk1..4', 'drift_vk1..2', 'vk1..5', 'drift_vk1..3', 'vk1_exit',
-       '||drift_2', '_end_point']))
+        '||drift_1', 'vk1_entry', 'vk1..entry_map_0', 'drift_vk1..0', 'vk1..3',
+        'drift_vk1..1', 'vk1..4', 'drift_vk1..2', 'vk1..5', 'drift_vk1..3',
+        'vk1..exit_map_0', 'vk1_exit', '||drift_2', '_end_point'
+    ]))
     xo.assert_allclose(tt_slice_thin.s, np.array([
-        0, 0.5, 0.5, 0.75, 0.75, 1.0, 1.0, 1.25, 1.25, 1.5, 1.5, 3
+        0, 0.5, 0.5, 0.5, 0.75,
+        0.75, 1.0, 1.0, 1.25, 1.25,
+        1.5, 1.5, 1.5, 3
     ]), rtol=0, atol=1e-7)
     assert np.all(tt_slice_thin.element_type == np.array([
-        'Drift', 'Marker', 'DriftSliceMultipole', 'ThinSliceMultipole',
-        'DriftSliceMultipole', 'ThinSliceMultipole', 'DriftSliceMultipole',
-        'ThinSliceMultipole', 'DriftSliceMultipole', 'Marker', 'Drift', ''
+        'Drift', 'Marker', 'ThinSliceMultipoleEntry', 'DriftSliceMultipole', 'ThinSliceMultipole',
+        'DriftSliceMultipole', 'ThinSliceMultipole', 'DriftSliceMultipole', 'ThinSliceMultipole', 'DriftSliceMultipole',
+        'ThinSliceMultipoleExit', 'Marker', 'Drift', ''
     ]))
     assert np.all(tt_slice_thin.isthick == np.array([
-        True, False, True, False, True, False, True, False, True, False, True, False
+        True, False, False, True, False,
+        True, False, True, False, True,
+        False, False, True, False
     ]))
     xo.assert_allclose(tt_slice_thin.vkick, np.array([
-        0., 0., 0., 0.001/3, 0., 0.001/3, 0., 0.001/3, 0., 0., 0., 0.
+        0., 0., 0., 0., 0.001/3,
+        0., 0.001/3, 0., 0.001/3, 0.,
+        0., 0., 0., 0.
     ]))
     xo.assert_allclose(tw_slice_thin.px[-1], tw_mad.px[-1], rtol=0, atol=1e-14)
     xo.assert_allclose(tw_slice_thin.py[-1], tw_mad.py[-1], rtol=0, atol=1e-14)
@@ -748,24 +808,34 @@ def test_thick_kicker_cpymad_loader():
     # _end_point             3                       False     False
 
     assert np.all(tt_slice_thick.name == np.array([
-        'ss$start', 'drift_0', 'kk1_entry', 'kk1..0', 'kk1..1', 'kk1..2',
-        'kk1_exit', 'drift_1', 'ss$end', '_end_point'
+        'ss$start', 'drift_0', 'kk1_entry', 'kk1..entry_map', 'kk1..0',
+        'kk1..1', 'kk1..2', 'kk1..exit_map', 'kk1_exit', 'drift_1',
+        'ss$end', '_end_point'
     ]))
     xo.assert_allclose(tt_slice_thick.s, np.array([
-        0, 0, 0.5, 0.5, 0.83333333, 1.16666667, 1.5, 1.5, 3, 3
+        0, 0, 0.5, 0.5, 0.5,
+        0.83333333, 1.16666667, 1.5, 1.5, 1.5,
+        3, 3
     ]), rtol=0, atol=1e-7)
     assert np.all(tt_slice_thick.element_type == np.array([
-        'Marker', 'Drift', 'Marker', 'ThickSliceMultipole', 'ThickSliceMultipole',
-        'ThickSliceMultipole', 'Marker', 'Drift', 'Marker', ''
+        'Marker', 'Drift', 'Marker', 'ThinSliceMultipoleEntry', 'ThickSliceMultipole',
+        'ThickSliceMultipole', 'ThickSliceMultipole', 'ThinSliceMultipoleExit', 'Marker', 'Drift',
+        'Marker', ''
     ]))
     assert np.all(tt_slice_thick.isthick == np.array([
-        False, True, False, True, True, True, False, True, False, False
+        False, True, False, False, True,
+        True, True, False, False, True,
+        False, False
     ]))
     xo.assert_allclose(tt_slice_thick.hkick, np.array([
-        0., 0., 0., 0.001/3, 0.001/3, 0.001/3, 0., 0., 0., 0.
+        0., 0., 0., 0., 0.001/3,
+        0.001/3, 0.001/3, 0., 0., 0.,
+        0., 0.
     ]))
     xo.assert_allclose(tt_slice_thick.vkick, np.array([
-        0., 0., 0., 0.002/3, 0.002/3, 0.002/3, 0., 0., 0., 0.
+        0., 0., 0., 0., 0.002/3,
+        0.002/3, 0.002/3, 0., 0., 0.,
+        0., 0.
     ]))
     xo.assert_allclose(tw_slice_thick.px[-1], tw_mad.px[-1], rtol=0, atol=1e-14)
     xo.assert_allclose(tw_slice_thick.py[-1], tw_mad.py[-1], rtol=0, atol=1e-14)
@@ -799,26 +869,40 @@ def test_thick_kicker_cpymad_loader():
     # _end_point               3                       False     False
 
     assert np.all(tt_slice_thin.name == np.array([
-        'ss$start', 'drift_0', 'kk1_entry', 'drift_kk1..0', 'kk1..3', 'drift_kk1..1',
-        'kk1..4', 'drift_kk1..2', 'kk1..5', 'drift_kk1..3', 'kk1_exit', 'drift_1',
-        'ss$end', '_end_point'
+        'ss$start', 'drift_0', 'kk1_entry', 'kk1..entry_map_0', 'drift_kk1..0',
+        'kk1..3', 'drift_kk1..1', 'kk1..4', 'drift_kk1..2', 'kk1..5',
+        'drift_kk1..3', 'kk1..exit_map_0', 'kk1_exit', 'drift_1', 'ss$end',
+        '_end_point'
     ]))
     xo.assert_allclose(tt_slice_thin.s, np.array([
-        0, 0, 0.5, 0.5, 0.75, 0.75, 1.0, 1.0, 1.25, 1.25, 1.5, 1.5, 3, 3
+        0, 0, 0.5, 0.5, 0.5,
+        0.75, 0.75, 1.0, 1.0, 1.25,
+        1.25, 1.5, 1.5, 1.5, 3,
+        3
     ]), rtol=0, atol=1e-7)
     assert np.all(tt_slice_thin.element_type == np.array([
-        'Marker', 'Drift', 'Marker', 'DriftSliceMultipole', 'ThinSliceMultipole',
-        'DriftSliceMultipole', 'ThinSliceMultipole', 'DriftSliceMultipole',
-        'ThinSliceMultipole', 'DriftSliceMultipole', 'Marker', 'Drift', 'Marker', ''
+        'Marker', 'Drift', 'Marker', 'ThinSliceMultipoleEntry', 'DriftSliceMultipole',
+        'ThinSliceMultipole', 'DriftSliceMultipole', 'ThinSliceMultipole', 'DriftSliceMultipole', 'ThinSliceMultipole',
+        'DriftSliceMultipole', 'ThinSliceMultipoleExit', 'Marker', 'Drift', 'Marker',
+        ''
     ]))
     assert np.all(tt_slice_thin.isthick == np.array([
-        False, True, False, True, False, True, False, True, False, True, False, True, False, False
+        False, True, False, False, True,
+        False, True, False, True, False,
+        True, False, False, True, False,
+        False
     ]))
     assert np.allclose(tt_slice_thin.hkick, np.array([
-        0., 0., 0., 0., 0.001/3, 0., 0.001/3, 0., 0.001/3, 0., 0., 0., 0., 0.
+        0., 0., 0., 0., 0.,
+        0.001/3, 0., 0.001/3, 0., 0.001/3,
+        0., 0., 0., 0., 0.,
+        0.
     ]))
     assert np.allclose(tt_slice_thin.vkick, np.array([
-        0., 0., 0., 0., 0.002/3, 0., 0.002/3, 0., 0.002/3, 0., 0., 0., 0., 0.
+        0., 0., 0., 0., 0.,
+        0.002/3, 0., 0.002/3, 0., 0.002/3,
+        0., 0., 0., 0., 0.,
+        0.
     ]))
     xo.assert_allclose(tw_slice_thin.px[-1], tw_mad.px[-1], rtol=0, atol=1e-14)
     xo.assert_allclose(tw_slice_thin.py[-1], tw_mad.py[-1], rtol=0, atol=1e-14)
@@ -900,23 +984,28 @@ def test_thick_kicker_native_loader():
     # _end_point             3                       False     False
 
     assert np.all(tt_slice_thick.name == np.array([
-        '||drift_1', 'kk1_entry', 'kk1..0', 'kk1..1', 'kk1..2', 'kk1_exit',
-        '||drift_2', '_end_point']))
+        '||drift_1', 'kk1_entry', 'kk1..entry_map', 'kk1..0', 'kk1..1',
+        'kk1..2', 'kk1..exit_map', 'kk1_exit', '||drift_2', '_end_point'
+    ]))
     xo.assert_allclose(tt_slice_thick.s, np.array([
-        0, 0.5, 0.5, 0.83333333, 1.16666667, 1.5, 1.5, 3
+        0, 0.5, 0.5, 0.5, 0.83333333,
+        1.16666667, 1.5, 1.5, 1.5, 3
     ]), rtol=0, atol=1e-7)
     assert np.all(tt_slice_thick.element_type == np.array([
-        'Drift', 'Marker', 'ThickSliceMultipole', 'ThickSliceMultipole',
-        'ThickSliceMultipole', 'Marker', 'Drift', ''
+        'Drift', 'Marker', 'ThinSliceMultipoleEntry', 'ThickSliceMultipole', 'ThickSliceMultipole',
+        'ThickSliceMultipole', 'ThinSliceMultipoleExit', 'Marker', 'Drift', ''
     ]))
     assert np.all(tt_slice_thick.isthick == np.array([
-        True, False, True, True, True, False, True, False
+        True, False, False, True, True,
+        True, False, False, True, False
     ]))
     xo.assert_allclose(tt_slice_thick.hkick, np.array([
-        0., 0., 0.001/3, 0.001/3, 0.001/3, 0., 0., 0.
+        0., 0., 0., 0.001/3, 0.001/3,
+        0.001/3, 0., 0., 0., 0.
     ]))
     xo.assert_allclose(tt_slice_thick.vkick, np.array([
-        0., 0., 0.002/3, 0.002/3, 0.002/3, 0., 0., 0.
+        0., 0., 0., 0.002/3, 0.002/3,
+        0.002/3, 0., 0., 0., 0.
     ]))
     xo.assert_allclose(tw_slice_thick.px[-1], tw_mad.px[-1], rtol=0, atol=1e-14)
     xo.assert_allclose(tw_slice_thick.py[-1], tw_mad.py[-1], rtol=0, atol=1e-14)
@@ -947,25 +1036,34 @@ def test_thick_kicker_native_loader():
     # drift_2                1.5 Drift                  True     False
     # _end_point               3                       False     False
     assert np.all(tt_slice_thin.name == np.array([
-       '||drift_1', 'kk1_entry', 'drift_kk1..0', 'kk1..3', 'drift_kk1..1',
-       'kk1..4', 'drift_kk1..2', 'kk1..5', 'drift_kk1..3', 'kk1_exit',
-       '||drift_2', '_end_point']))
+        '||drift_1', 'kk1_entry', 'kk1..entry_map_0', 'drift_kk1..0', 'kk1..3',
+        'drift_kk1..1', 'kk1..4', 'drift_kk1..2', 'kk1..5', 'drift_kk1..3',
+        'kk1..exit_map_0', 'kk1_exit', '||drift_2', '_end_point'
+    ]))
     xo.assert_allclose(tt_slice_thin.s, np.array([
-        0, 0.5, 0.5, 0.75, 0.75, 1.0, 1.0, 1.25, 1.25, 1.5, 1.5, 3
+        0, 0.5, 0.5, 0.5, 0.75,
+        0.75, 1.0, 1.0, 1.25, 1.25,
+        1.5, 1.5, 1.5, 3
     ]), rtol=0, atol=1e-7)
     assert np.all(tt_slice_thin.element_type == np.array([
-        'Drift', 'Marker', 'DriftSliceMultipole', 'ThinSliceMultipole',
-        'DriftSliceMultipole', 'ThinSliceMultipole', 'DriftSliceMultipole',
-        'ThinSliceMultipole', 'DriftSliceMultipole', 'Marker', 'Drift', ''
+        'Drift', 'Marker', 'ThinSliceMultipoleEntry', 'DriftSliceMultipole', 'ThinSliceMultipole',
+        'DriftSliceMultipole', 'ThinSliceMultipole', 'DriftSliceMultipole', 'ThinSliceMultipole', 'DriftSliceMultipole',
+        'ThinSliceMultipoleExit', 'Marker', 'Drift', ''
     ]))
     assert np.all(tt_slice_thin.isthick == np.array([
-        True, False, True, False, True, False, True, False, True, False, True, False
+        True, False, False, True, False,
+        True, False, True, False, True,
+        False, False, True, False
     ]))
     assert np.allclose(tt_slice_thin.hkick, np.array([
-        0., 0., 0., 0.001/3, 0., 0.001/3, 0., 0.001/3, 0., 0., 0., 0.
+        0., 0., 0., 0., 0.001/3,
+        0., 0.001/3, 0., 0.001/3, 0.,
+        0., 0., 0., 0.
     ]))
     assert np.allclose(tt_slice_thin.vkick, np.array([
-        0., 0., 0., 0.002/3, 0., 0.002/3, 0., 0.002/3, 0., 0., 0., 0.
+        0., 0., 0., 0., 0.002/3,
+        0., 0.002/3, 0., 0.002/3, 0.,
+        0., 0., 0., 0.
     ]))
     xo.assert_allclose(tw_slice_thin.px[-1], tw_mad.px[-1], rtol=0, atol=1e-14)
     xo.assert_allclose(tw_slice_thin.py[-1], tw_mad.py[-1], rtol=0, atol=1e-14)
@@ -1089,24 +1187,34 @@ def test_thick_tkicker_cpymad_loader():
     # _end_point             3                       False     False
 
     assert np.all(tt_slice_thick.name == np.array([
-        'ss$start', 'drift_0', 'kk1_entry', 'kk1..0', 'kk1..1', 'kk1..2',
-        'kk1_exit', 'drift_1', 'ss$end', '_end_point'
+        'ss$start', 'drift_0', 'kk1_entry', 'kk1..entry_map', 'kk1..0',
+        'kk1..1', 'kk1..2', 'kk1..exit_map', 'kk1_exit', 'drift_1',
+        'ss$end', '_end_point'
     ]))
     xo.assert_allclose(tt_slice_thick.s, np.array([
-        0, 0, 0.5, 0.5, 0.83333333, 1.16666667, 1.5, 1.5, 3, 3
+        0, 0, 0.5, 0.5, 0.5,
+        0.83333333, 1.16666667, 1.5, 1.5, 1.5,
+        3, 3
     ]), rtol=0, atol=1e-7)
     assert np.all(tt_slice_thick.element_type == np.array([
-        'Marker', 'Drift', 'Marker', 'ThickSliceMultipole', 'ThickSliceMultipole',
-        'ThickSliceMultipole', 'Marker', 'Drift', 'Marker', ''
+        'Marker', 'Drift', 'Marker', 'ThinSliceMultipoleEntry', 'ThickSliceMultipole',
+        'ThickSliceMultipole', 'ThickSliceMultipole', 'ThinSliceMultipoleExit', 'Marker', 'Drift',
+        'Marker', ''
     ]))
     assert np.all(tt_slice_thick.isthick == np.array([
-        False, True, False, True, True, True, False, True, False, False
+        False, True, False, False, True,
+        True, True, False, False, True,
+        False, False
     ]))
     xo.assert_allclose(tt_slice_thick.hkick, np.array([
-        0., 0., 0., 0.001/3, 0.001/3, 0.001/3, 0., 0., 0., 0.
+        0., 0., 0., 0., 0.001/3,
+        0.001/3, 0.001/3, 0., 0., 0.,
+        0., 0.
     ]))
     xo.assert_allclose(tt_slice_thick.vkick, np.array([
-        0., 0., 0., 0.002/3, 0.002/3, 0.002/3, 0., 0., 0., 0.
+        0., 0., 0., 0., 0.002/3,
+        0.002/3, 0.002/3, 0., 0., 0.,
+        0., 0.
     ]))
     xo.assert_allclose(tw_slice_thick.px[-1], tw_mad.px[-1], rtol=0, atol=1e-14)
     xo.assert_allclose(tw_slice_thick.py[-1], tw_mad.py[-1], rtol=0, atol=1e-14)
@@ -1140,26 +1248,40 @@ def test_thick_tkicker_cpymad_loader():
     # _end_point               3                       False     False
 
     assert np.all(tt_slice_thin.name == np.array([
-        'ss$start', 'drift_0', 'kk1_entry', 'drift_kk1..0', 'kk1..3', 'drift_kk1..1',
-        'kk1..4', 'drift_kk1..2', 'kk1..5', 'drift_kk1..3', 'kk1_exit', 'drift_1',
-        'ss$end', '_end_point'
+        'ss$start', 'drift_0', 'kk1_entry', 'kk1..entry_map_0', 'drift_kk1..0',
+        'kk1..3', 'drift_kk1..1', 'kk1..4', 'drift_kk1..2', 'kk1..5',
+        'drift_kk1..3', 'kk1..exit_map_0', 'kk1_exit', 'drift_1', 'ss$end',
+        '_end_point'
     ]))
     xo.assert_allclose(tt_slice_thin.s, np.array([
-        0, 0, 0.5, 0.5, 0.75, 0.75, 1.0, 1.0, 1.25, 1.25, 1.5, 1.5, 3, 3
+        0, 0, 0.5, 0.5, 0.5,
+        0.75, 0.75, 1.0, 1.0, 1.25,
+        1.25, 1.5, 1.5, 1.5, 3,
+        3
     ]), rtol=0, atol=1e-7)
     assert np.all(tt_slice_thin.element_type == np.array([
-        'Marker', 'Drift', 'Marker', 'DriftSliceMultipole', 'ThinSliceMultipole',
-        'DriftSliceMultipole', 'ThinSliceMultipole', 'DriftSliceMultipole',
-        'ThinSliceMultipole', 'DriftSliceMultipole', 'Marker', 'Drift', 'Marker', ''
+        'Marker', 'Drift', 'Marker', 'ThinSliceMultipoleEntry', 'DriftSliceMultipole',
+        'ThinSliceMultipole', 'DriftSliceMultipole', 'ThinSliceMultipole', 'DriftSliceMultipole', 'ThinSliceMultipole',
+        'DriftSliceMultipole', 'ThinSliceMultipoleExit', 'Marker', 'Drift', 'Marker',
+        ''
     ]))
     assert np.all(tt_slice_thin.isthick == np.array([
-        False, True, False, True, False, True, False, True, False, True, False, True, False, False
+        False, True, False, False, True,
+        False, True, False, True, False,
+        True, False, False, True, False,
+        False
     ]))
     assert np.allclose(tt_slice_thin.hkick, np.array([
-        0., 0., 0., 0., 0.001/3, 0., 0.001/3, 0., 0.001/3, 0., 0., 0., 0., 0.
+        0., 0., 0., 0., 0.,
+        0.001/3, 0., 0.001/3, 0., 0.001/3,
+        0., 0., 0., 0., 0.,
+        0.
     ]))
     assert np.allclose(tt_slice_thin.vkick, np.array([
-        0., 0., 0., 0., 0.002/3, 0., 0.002/3, 0., 0.002/3, 0., 0., 0., 0., 0.
+        0., 0., 0., 0., 0.,
+        0.002/3, 0., 0.002/3, 0., 0.002/3,
+        0., 0., 0., 0., 0.,
+        0.
     ]))
     xo.assert_allclose(tw_slice_thin.px[-1], tw_mad.px[-1], rtol=0, atol=1e-14)
     xo.assert_allclose(tw_slice_thin.py[-1], tw_mad.py[-1], rtol=0, atol=1e-14)
@@ -1238,23 +1360,28 @@ def test_thick_tkicker_native_loader():
     # drift_2              1.5 Drift                  True     False
     # _end_point             3                       False     False
     assert np.all(tt_slice_thick.name == np.array([
-        '||drift_1', 'kk1_entry', 'kk1..0', 'kk1..1', 'kk1..2', 'kk1_exit',
-        '||drift_2', '_end_point']))
+        '||drift_1', 'kk1_entry', 'kk1..entry_map', 'kk1..0', 'kk1..1',
+        'kk1..2', 'kk1..exit_map', 'kk1_exit', '||drift_2', '_end_point'
+    ]))
     xo.assert_allclose(tt_slice_thick.s, np.array([
-        0, 0.5, 0.5, 0.83333333, 1.16666667, 1.5, 1.5, 3
+        0, 0.5, 0.5, 0.5, 0.83333333,
+        1.16666667, 1.5, 1.5, 1.5, 3
     ]), rtol=0, atol=1e-7)
     assert np.all(tt_slice_thick.element_type == np.array([
-        'Drift', 'Marker', 'ThickSliceMultipole', 'ThickSliceMultipole',
-        'ThickSliceMultipole', 'Marker', 'Drift', ''
+        'Drift', 'Marker', 'ThinSliceMultipoleEntry', 'ThickSliceMultipole', 'ThickSliceMultipole',
+        'ThickSliceMultipole', 'ThinSliceMultipoleExit', 'Marker', 'Drift', ''
     ]))
     assert np.all(tt_slice_thick.isthick == np.array([
-        True, False, True, True, True, False, True, False
+        True, False, False, True, True,
+        True, False, False, True, False
     ]))
     xo.assert_allclose(tt_slice_thick.hkick, np.array([
-        0., 0., 0.001/3, 0.001/3, 0.001/3, 0., 0., 0.
+        0., 0., 0., 0.001/3, 0.001/3,
+        0.001/3, 0., 0., 0., 0.
     ]))
     xo.assert_allclose(tt_slice_thick.vkick, np.array([
-        0., 0., 0.002/3, 0.002/3, 0.002/3, 0., 0., 0.
+        0., 0., 0., 0.002/3, 0.002/3,
+        0.002/3, 0., 0., 0., 0.
     ]))
     xo.assert_allclose(tw_slice_thick.px[-1], tw_mad.px[-1], rtol=0, atol=1e-14)
     xo.assert_allclose(tw_slice_thick.py[-1], tw_mad.py[-1], rtol=0, atol=1e-14)
@@ -1285,25 +1412,34 @@ def test_thick_tkicker_native_loader():
     # drift_2                1.5 Drift                  True     False
     # _end_point               3                       False     False
     assert np.all(tt_slice_thin.name == np.array([
-        '||drift_1', 'kk1_entry', 'drift_kk1..0', 'kk1..3', 'drift_kk1..1',
-       'kk1..4', 'drift_kk1..2', 'kk1..5', 'drift_kk1..3', 'kk1_exit',
-       '||drift_2', '_end_point']))
+        '||drift_1', 'kk1_entry', 'kk1..entry_map_0', 'drift_kk1..0', 'kk1..3',
+        'drift_kk1..1', 'kk1..4', 'drift_kk1..2', 'kk1..5', 'drift_kk1..3',
+        'kk1..exit_map_0', 'kk1_exit', '||drift_2', '_end_point'
+    ]))
     xo.assert_allclose(tt_slice_thin.s, np.array([
-        0, 0.5, 0.5, 0.75, 0.75, 1.0, 1.0, 1.25, 1.25, 1.5, 1.5, 3
+        0, 0.5, 0.5, 0.5, 0.75,
+        0.75, 1.0, 1.0, 1.25, 1.25,
+        1.5, 1.5, 1.5, 3
     ]), rtol=0, atol=1e-7)
     assert np.all(tt_slice_thin.element_type == np.array([
-        'Drift', 'Marker', 'DriftSliceMultipole', 'ThinSliceMultipole',
-        'DriftSliceMultipole', 'ThinSliceMultipole', 'DriftSliceMultipole',
-        'ThinSliceMultipole', 'DriftSliceMultipole', 'Marker', 'Drift', ''
+        'Drift', 'Marker', 'ThinSliceMultipoleEntry', 'DriftSliceMultipole', 'ThinSliceMultipole',
+        'DriftSliceMultipole', 'ThinSliceMultipole', 'DriftSliceMultipole', 'ThinSliceMultipole', 'DriftSliceMultipole',
+        'ThinSliceMultipoleExit', 'Marker', 'Drift', ''
     ]))
     assert np.all(tt_slice_thin.isthick == np.array([
-        True, False, True, False, True, False, True, False, True, False, True, False
+        True, False, False, True, False,
+        True, False, True, False, True,
+        False, False, True, False
     ]))
     assert np.allclose(tt_slice_thin.hkick, np.array([
-        0., 0., 0., 0.001/3, 0., 0.001/3, 0., 0.001/3, 0., 0., 0., 0.
+        0., 0., 0., 0., 0.001/3,
+        0., 0.001/3, 0., 0.001/3, 0.,
+        0., 0., 0., 0.
     ]))
     assert np.allclose(tt_slice_thin.vkick, np.array([
-        0., 0., 0., 0.002/3, 0., 0.002/3, 0., 0.002/3, 0., 0., 0., 0.
+        0., 0., 0., 0., 0.002/3,
+        0., 0.002/3, 0., 0.002/3, 0.,
+        0., 0., 0., 0.
     ]))
     xo.assert_allclose(tw_slice_thin.px[-1], tw_mad.px[-1], rtol=0, atol=1e-14)
     xo.assert_allclose(tw_slice_thin.py[-1], tw_mad.py[-1], rtol=0, atol=1e-14)

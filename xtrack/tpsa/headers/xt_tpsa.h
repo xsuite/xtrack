@@ -129,6 +129,12 @@ static inline int xt_float_or_tpsa_is_zero(xt_float_or_tpsa_arg value) {
     return value.isnul();
 }
 
+// Test whether a map driven by this value can be skipped: it is below tol and
+// carries no TPSA part (a zero-valued parameter still has a derivative).
+static inline int xt_float_or_tpsa_is_negligible(xt_float_or_tpsa_arg value, double tol) {
+    return fabs(value[0]) < tol && mad_tpsa_isval(value.ptr());
+}
+
 // Decode a scalar FloatOrTpsa slot stored as raw uint64_t bits.
 static inline double xt_float_or_tpsa_bits_to_double(uint64_t bits) {
     union { uint64_t u; double d; } value;

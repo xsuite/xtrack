@@ -18,14 +18,14 @@ import xobjects as xo
 
 import xtrack as xt
 
-from .functions import Functions
 from .api_categorization import GroupedAPICollector, doc_group, property_with_doc_group
+from .functions import Functions
+from .general import DEPRECATION_INFO_PREP_1_0, _print
 from .match import Action
 from .multiline_legacy.multiline_legacy import MultilineLegacy
 from .progress_indicator import progress
-from .view import View
-from .general import _print, DEPRECATION_INFO_PREP_1_0
 from .table import Table
+from .view import View
 
 ReferType = Literal['start', 'center', 'centre', 'end']
 
@@ -3300,10 +3300,13 @@ def _reverse_element(env, name):
             ee_ref.ksl[i] = -(ee_ref.ksl[i]._expr or ee_ref.ksl[i]._value)
 
     _exchange_fields('edge_entry_model', 'edge_exit_model')
+    _exchange_fields('edge_entry_active', 'edge_exit_active')
     _exchange_fields('edge_entry_angle', 'edge_exit_angle')
     _exchange_fields('edge_entry_angle_fdown', 'edge_exit_angle_fdown')
     _exchange_fields('edge_entry_fint', 'edge_exit_fint')
     _exchange_fields('edge_entry_hgap', 'edge_exit_hgap')
+    _exchange_fields('edge_entry_qint1', 'edge_exit_qint1')
+    _exchange_fields('edge_entry_qint2', 'edge_exit_qint2')
 
 
 

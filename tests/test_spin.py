@@ -3,13 +3,14 @@
 # Copyright (c) CERN, 2025.                 #
 # ######################################### #
 from pathlib import Path
-import xobjects as xo
-import xtrack as xt
+
 import numpy as np
-from scipy.constants import c as clight
 import pytest
+import xobjects as xo
+from scipy.constants import c as clight
 from scipy.interpolate import interp1d
 
+import xtrack as xt
 
 # Run the scripts in the following folder to regenerate the reference files
 BMAD_REF_FILES = Path(__file__).parent / '../test_data/spin_refs_bmad'

@@ -3,26 +3,36 @@
 # Copyright (c) CERN, 2025.                 #
 # ######################################### #
 
-from ..base_element import BeamElement, FloatOrTpsa
 import xobjects as xo
+
 import xtrack as xt
+
+from ..base_element import BeamElement, FloatOrTpsa
 from ..random import (
     RandomExponential,
     RandomUniformAccurate,
 )
 from ._common import (
-    SynchrotronRadiationRecord,
-    _HasIntegrator,
-    _HasKnlKsl,
-    _HasModelStraight,
     _NOEXPR_FIELDS,
+    SynchrotronRadiationRecord,
     _docstring_general_notes,
     _for_docstring_alignment,
     _for_docstring_edge_straight,
+    _HasIntegrator,
+    _HasKnlKsl,
+    _HasModelStraight,
+)
+from ._edge import (
+    STRAIGHT_EDGE_MODELS,
+    STRAIGHT_EDGE_PARAMS,
+    _HasEdges,
+    edge_xofields,
 )
 
-class Sextupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
 
+class Sextupole(_HasEdges, _HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
+
+    _magnet_plan = True
     _docstring_start = \
     """
     Sextupole element.
@@ -61,6 +71,8 @@ class Sextupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
     has_backtrack = True
     allow_loss_refinement = True
 
+    _edge_models = STRAIGHT_EDGE_MODELS
+
     _xofields={
         'k2': FloatOrTpsa,
         'k2s': FloatOrTpsa,
@@ -72,8 +84,8 @@ class Sextupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
         'knl_rel': xo.Float64[:],
         'ksl_rel': xo.Float64[:],
         'main_is_skew': xo.Int32,
-        'edge_entry_active': xo.Field(xo.UInt64, default=False),
-        'edge_exit_active': xo.Field(xo.UInt64, default=False),
+        # Not active, model "full" (as on main)
+        **edge_xofields(STRAIGHT_EDGE_MODELS['full'], STRAIGHT_EDGE_PARAMS),
         'num_multipole_kicks': xo.Int64,
         'model': xo.Int64,
         'integrator': xo.Int64,

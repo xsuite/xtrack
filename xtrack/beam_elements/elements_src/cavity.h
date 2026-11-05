@@ -33,9 +33,9 @@ void Cavity_track_local_particle(CavityData el, LocalParticle* part0)
         /*phase_s*/               NULL,
         /*num_kicks*/             CavityData_get_num_kicks(el),
         /*model*/                 CavityData_get_model(el),
-        /*default_model*/         6, // drift-kick-drift-expanded
+        /*default_model*/         MODEL_DRIFT_KICK_DRIFT_EXPANDED,
         /*integrator*/            CavityData_get_integrator(el),
-        /*default_integrator*/    3, // Uniform
+        /*default_integrator*/    INTEGRATOR_UNIFORM,
         /*radiation_flag*/        0, // not used here
         /*radiation_flag_parent*/ 0, // not used here
         /*lag_taper*/             CavityData_get_lag_taper(el),

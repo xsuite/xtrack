@@ -3,29 +3,33 @@
 # Copyright (c) CERN, 2025.                 #
 # ######################################### #
 
-from ..base_element import BeamElement
 import numpy as np
 import xobjects as xo
+
 import xtrack as xt
+
+from ..base_element import BeamElement
 from ..random import (
     RandomExponential,
     RandomUniformAccurate,
 )
 from ._common import (
-    SynchrotronRadiationRecord,
-    _BendCommon,
-    _HasIntegrator,
-    _HasKnlKsl,
-    _HasModelCurved,
     _INDEX_TO_RBEND_MODEL,
     _NOEXPR_FIELDS,
     _RBEND_MODEL_TO_INDEX,
+    SynchrotronRadiationRecord,
+    _BendCommon,
     _docstring_general_notes,
     _for_docstring_alignment,
     _for_docstring_edge_bend,
+    _HasIntegrator,
+    _HasKnlKsl,
+    _HasModelCurved,
 )
 
+
 class RBend(_BendCommon, BeamElement):
+    _magnet_plan = True
     _docstring_start = \
     """Rectangular bending magnet element.
 
@@ -132,8 +136,7 @@ class RBend(_BendCommon, BeamElement):
                              "Set `length_straight` instead.")
 
         to_be_set_with_properties = []
-        for nn in ['length_straight', 'angle', 'k0_from_h', 'edge_entry_model',
-                   'edge_exit_model', 'rbend_angle_diff', 'rbend_model', 'k0']:
+        for nn in ['length_straight', 'angle', 'k0_from_h', 'rbend_angle_diff', 'rbend_model', 'k0']:
             if nn in kwargs:
                 to_be_set_with_properties.append((nn, kwargs.pop(nn)))
 

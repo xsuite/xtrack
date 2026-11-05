@@ -2,30 +2,31 @@
 # This file is part of the Xtrack Package.  #
 # Copyright (c) CERN, 2021.                 #
 # ######################################### #
+import logging
+from collections import UserDict, defaultdict
 from time import perf_counter
 from typing import Literal, Union
-import logging
 from warnings import warn
-from collections import UserDict, defaultdict
-
-from scipy.constants import c as clight
 
 import numpy as np
 import xobjects as xo
+from scipy.constants import c as clight
+
 import xtrack as xt
 
 from .base_element import _handle_per_particle_blocks
 from .beam_elements import Drift
-from .general import _pkg_root, DEPRECATION_INFO_PREP_1_0
+from .general import DEPRECATION_INFO_PREP_1_0, _pkg_root
 from .internal_record import new_io_buffer
-from .line import Line, _is_thick, _is_collective
+from .line import Line, _is_collective, _is_thick
+from . import magnet_plans as _mp
 from .line import freeze_longitudinal as _freeze_longitudinal
 from .pipeline import PipelineStatus
 from .progress_indicator import progress
-from .tpsa import ParticlesTpsa
-from .tracker_data import TrackerData, _expand_element_classes_with_slice_classes
-from .track_flags import TrackFlags
 from .synctime import _SyncTimeController
+from .tpsa import ParticlesTpsa
+from .track_flags import TrackFlags
+from .tracker_data import TrackerData, _expand_element_classes_with_slice_classes
 
 logger = logging.getLogger(__name__)
 
@@ -132,6 +133,7 @@ class Tracker:
         self._track_kernel = track_kernel or {}
         self._tracker_data_cache = {}
         self._tracker_data_cache[None] = tracker_data_base
+        self._magnet_plans = None  # MagnetPlans, built at the first track call
 
         self._get_twiss_mask_markers() # to cache it
 
@@ -712,8 +714,8 @@ class Tracker:
         if use_prebuilt_kernels:
             try:
                 from xsuite import (
-                    get_suitable_kernel,
                     PREBUILT_KERNELS_LOCATION,
+                    get_suitable_kernel,
                 )
             except ImportError as err:
                 requested_classes = (
@@ -741,8 +743,9 @@ class Tracker:
                 particle_data_class = None
                 include_auxiliary_kernels = True
                 if self.config.XTRACK_TPSA_TRACK:
-                    from xtrack.tpsa.particles import TpsaParticleData
                     from madng_tpsa.paths import core_library
+
+                    from xtrack.tpsa.particles import TpsaParticleData
 
                     particle_data_class = TpsaParticleData
                     include_auxiliary_kernels = False
@@ -765,7 +768,7 @@ class Tracker:
                     preload_libraries=preload_libraries,
                 )
                 self._context.kernels.update(kernels)
-                return kernels['track_line']
+                return _mp.attach_prepare_kernel(kernels)
 
         kernel_info = self._compile_kernel_from_classes(
             context=self._tracker_data_base._buffer.context,
@@ -823,7 +826,13 @@ class Tracker:
         headers.append(_pkg_root.joinpath("headers/constants.h"))
         headers.append(TrackFlags.c_header_flag_mapping)
 
+        # Magnets are tracked from plans (magnet_plans.py)
+        magnet_classes = _mp.magnet_classes(kernel_element_classes)
+
         src_lines = []
+        src_lines.append(_mp.plan_source(
+            magnet_classes,
+            check_layout=config.get('XTRACK_CHECK_MAGNET_PLAN_LAYOUT', False)))
         src_lines.append(
             r"""
             /*gpukern*/
@@ -849,6 +858,11 @@ class Tracker:
                              int64_t offset_multi_element_monitor,
                 /*gpuglmem*/ int8_t* io_buffer,
                              uint64_t track_flags
+#ifndef XTRACK_TPSA_TRACK
+                             ,
+                /*gpuglmem*/ int8_t* magnet_plans,
+                /*gpuglmem*/ int64_t* magnet_plan_slots
+#endif
                              ){
 
 #ifndef XTRACK_TPSA_TRACK
@@ -987,7 +1001,10 @@ class Tracker:
         """
         )
 
+        magnet_ids = [ii for ii, _ in magnet_classes]
         for ii, cc in enumerate(kernel_element_classes):
+            if ii in magnet_ids:
+                continue  # track_line_cases
             ccnn = cc.__name__.replace("Data", "")
             src_lines.append(
                 f"""
@@ -1007,11 +1024,9 @@ class Tracker:
             if vars(cc._DressingClass).get('_isthick') is True:
                 src_lines.append(
                     """
-#ifndef XTRACK_TPSA_TRACK
                             #ifdef XTRACK_GLOBAL_XY_LIMIT
                             global_aperture_check(&lpart);
                             #endif
-#endif
 
                             """
                 )
@@ -1019,6 +1034,8 @@ class Tracker:
                 """
                             break;"""
             )
+
+        src_lines.append(_mp.track_line_cases(magnet_ids))
 
         src_lines.append(
             r"""
@@ -1173,7 +1190,7 @@ class Tracker:
 
         out_kernels = context.build_kernels(**build_kwargs)
         return {
-            'kernel': out_kernels['track_line'],
+            'kernel': _mp.attach_prepare_kernel(out_kernels),
             'tracker_element_classes': kernel_element_classes,
             'all_classes': all_classes,
         }
@@ -1224,6 +1241,13 @@ class Tracker:
                 ],
             )
         }
+
+        if particle_data_class is xt.Particles._XoStruct:
+            # Magnets are tracked from plans (magnet_plans.py)
+            kernel_descriptions['track_line'].args += _mp.track_line_args()
+            if _mp.magnet_classes(kernel_element_classes):
+                kernel_descriptions['prepare_magnet_plans'] = (
+                    _mp.prepare_kernel_description(tdata_type))
 
         if include_auxiliary_kernels:
             # Random number generator init kernel
@@ -1738,6 +1762,17 @@ class Tracker:
         track_kernel, tracker_data = self.get_track_kernel_and_data_for_present_config()
         track_kernel.description.n_threads = particles._capacity
 
+        # The plans of the magnets tracked by this call
+        if self._magnet_plans is None:
+            self._magnet_plans = _mp.MagnetPlans(tracker_data, self._context)
+        if num_middle_turns > 0 or num_elements_last_turn > 0:
+            plan_start, plan_stop = 0, self.num_elements
+        else:
+            plan_start, plan_stop = ele_start, ele_start + num_elements_first_turn
+        self._magnet_plans.prepare(
+            track_kernel, tracker_data, self.io_buffer.buffer,
+            track_flags, plan_start, plan_stop)
+
         # First turn
         assert num_elements_first_turn >= 0
         track_kernel(
@@ -1757,7 +1792,8 @@ class Tracker:
             buffer_multi_element_monitor=buffer_multi_element_monitor,
             offset_multi_element_monitor=offset_multi_element_monitor,
             io_buffer=self.io_buffer.buffer,
-            track_flags=track_flags
+            track_flags=track_flags,
+            **self._magnet_plans.track_args(),
         )
 
         self._advance_particle_time_s_and_reference_turns(
@@ -1783,7 +1819,8 @@ class Tracker:
                 buffer_multi_element_monitor=buffer_multi_element_monitor,
                 offset_multi_element_monitor=offset_multi_element_monitor,
                 io_buffer=self.io_buffer.buffer,
-                track_flags=track_flags
+                track_flags=track_flags,
+                **self._magnet_plans.track_args(),
             )
 
             self._advance_particle_time_s_and_reference_turns(
@@ -1809,7 +1846,8 @@ class Tracker:
                 buffer_multi_element_monitor=buffer_multi_element_monitor,
                 offset_multi_element_monitor=offset_multi_element_monitor,
                 io_buffer=self.io_buffer.buffer,
-                track_flags=track_flags
+                track_flags=track_flags,
+                **self._magnet_plans.track_args(),
             )
 
         self.record_last_track = monitor
@@ -1978,6 +2016,35 @@ class Tracker:
         mask_twiss[:-1] = tt.element_type == 'Marker'
         self._tracker_data_base.mask_markers_for_twiss = mask_twiss
         return mask_twiss
+
+    def get_magnet_plan(self, name, backtrack=False):
+        """Return the plan of a magnet, as ``track`` prepares it, as a nested
+        dict (see ``magnet_plans.PLAN_DTYPE`` for the fields).
+
+        The plan is prepared from the current values of the attributes of the
+        element, for backward tracking if ``backtrack``. Pointers are given as
+        addresses, for information only.
+        """
+        if self.iscollective:
+            raise NotImplementedError(
+                'get_magnet_plan is not available for collective lines')
+        if self.config.XTRACK_TPSA_TRACK:
+            raise NotImplementedError(
+                'TPSA tracking makes its plans at the magnets')
+
+        idx = self.line.element_names.index(name)
+        track_kernel, tracker_data = (
+            self.get_track_kernel_and_data_for_present_config())
+        if self._magnet_plans is None:
+            self._magnet_plans = _mp.MagnetPlans(tracker_data, self._context)
+
+        with xt.line._preserve_track_flags(self.line):
+            self.track_flags.XS_FLAG_BACKTRACK = backtrack
+            track_flags = self.track_flags.get_flags_register()
+        self._magnet_plans.prepare(track_kernel, tracker_data,
+                                   self.io_buffer.buffer, track_flags,
+                                   idx, idx + 1)
+        return _mp.plan_to_dict(self._magnet_plans.read(self._context, idx))
 
     def get_track_kernel_and_data_for_present_config(self):
 

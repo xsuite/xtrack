@@ -2,28 +2,24 @@
  * geometry, with no geometry dispatch inside the Runge-Kutta stages. */
 
 GPUFUN
-int HAMILTONIAN_FLOW(Expansion *f, const double beta0, const double chi,
-                     double s, const double z[6], HamiltonianFlow *flow) {
-    double delta1, delta, ddelta1;
-    double q, pix, piy, rad, root;
-
-    const HamiltonianFlow zero = {0};
-    *flow = zero;
+int HAMILTONIAN_FLOW(
+    Expansion* f,
+    const double beta0,
+    const double chi,
+    double s,
+    const xt_float_or_tpsa z[6],
+    HamiltonianFlow* flow
+) {
+    xt_float_or_tpsa delta1 = 0., delta = 0., ddelta1 = 0.;
 
     if (EVALUATE_EXPANSION(f, z[0], z[2], s, &flow->pot) != 0) return -1;
     delta_from_ptau(beta0, z[5], &delta, &delta1, &ddelta1);
-    q = 1.0 + f->h * z[0];
+    const xt_float_or_tpsa q = 1.0 + f->h * z[0];
     // Expansion potentials are normalized to the reference rigidity.
-    pix = z[1] - chi * flow->pot.Ax;
-    piy = z[3] - chi * flow->pot.Ay;  /* A_y is zero in this gauge. */
-    rad = delta1 * delta1 - pix * pix - piy * piy;
-    root = sqrt(rad);
-
-    flow->delta = delta;
-    flow->one_plus_delta = delta1;
-    flow->radicand = rad;
-    flow->root = root;
-    flow->H = z[5] / beta0 - q * (root + chi * flow->pot.As);
+    const xt_float_or_tpsa pix = z[1] - chi * flow->pot.Ax;
+    const xt_float_or_tpsa piy =
+        z[3] - chi * flow->pot.Ay; /* A_y is zero in this gauge. */
+    const xt_float_or_tpsa root = sqrt(delta1 * delta1 - pix * pix - piy * piy);
 
     flow->rhs[0] = q * pix / root;  // dx/ds = dH/dpx
     flow->rhs[2] = q * piy / root;  // dy/ds = dH/dpy
@@ -33,14 +29,6 @@ int HAMILTONIAN_FLOW(Expansion *f, const double beta0, const double chi,
         + q * chi * (pix * flow->pot.dAx_dx / root + flow->pot.dAs_dx);  // dpx/ds = -dH/dx
     flow->rhs[3] = q * chi * (pix * flow->pot.dAx_dy / root + flow->pot.dAs_dy);  // dpy/ds = -dH/dy
     flow->rhs[5] = 0.0;  // dptau/ds = -dH/dtau, H has no tau-dependence for these static fields.
-
-    flow->grad[0] = -flow->rhs[1];  // dH/dx
-    flow->grad[1] =  flow->rhs[0];  // dH/dpx
-    flow->grad[2] = -flow->rhs[3];  // dH/dy
-    flow->grad[3] =  flow->rhs[2];  // dH/dpy
-    flow->grad[4] = -flow->rhs[5];  // dH/dtau
-    flow->grad[5] =  flow->rhs[4];  // dH/dptau
-    flow->dH_ds = -q * chi * (pix * flow->pot.dAx_ds / root + flow->pot.dAs_ds);
     return 0;
 }
 
@@ -69,15 +57,16 @@ void TRACK_EXPANSION(
         const double beta0  = LocalParticle_get_beta0(part);
         const double chi    = LocalParticle_get_chi(part);
 
-        const double x      = LocalParticle_get_x(part);
-        const double px     = LocalParticle_get_px(part);
-        const double y      = LocalParticle_get_y(part);
-        const double py     = LocalParticle_get_py(part);
-        const double tau    = LocalParticle_get_zeta(part) / beta0;
-        const double ptau   = LocalParticle_get_ptau(part);
-        const double ax     = LocalParticle_get_ax(part);
-        const double ay     = LocalParticle_get_ay(part);
-        double z[6] = {x, px, y, py, tau, ptau};
+        const xt_float_or_tpsa ax = LocalParticle_get_ax(part);
+        const xt_float_or_tpsa ay = LocalParticle_get_ay(part);
+        xt_float_or_tpsa z[6] = {
+            LocalParticle_get_x(part),
+            LocalParticle_get_px(part),
+            LocalParticle_get_y(part),
+            LocalParticle_get_py(part),
+            LocalParticle_get_zeta(part) / beta0,
+            LocalParticle_get_ptau(part)
+        };
 
         // Momentum has to be continuous, vector potential discontinuous, update canonical momentum
         if (pkin_const) {
@@ -90,10 +79,14 @@ void TRACK_EXPANSION(
         }
 
         double s = s_start;
-        double ztmp[6];
+        // Stages of the RK4 steps, overwritten at every step (created once:
+        // a TPSA allocates)
+        xt_float_or_tpsa ztmp[6] = {0., 0., 0., 0., 0., 0.};
+        xt_float_or_tpsa k1[6] = {0., 0., 0., 0., 0., 0.};
+        xt_float_or_tpsa k2[6] = {0., 0., 0., 0., 0., 0.};
+        xt_float_or_tpsa k3[6] = {0., 0., 0., 0., 0., 0.};
+        xt_float_or_tpsa k4[6] = {0., 0., 0., 0., 0., 0.};
         for (int step = 0; valid && step < nstep; ++step) {
-            double k1[6], k2[6], k3[6], k4[6];
-
             if (HAMILTONIAN_FLOW(&f, beta0, chi, s, z, &flow) != 0) {
                 valid = 0;
                 break;

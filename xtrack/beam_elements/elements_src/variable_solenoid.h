@@ -8,23 +8,25 @@
 
 #include "xtrack/headers/track.h"
 #include "xtrack/beam_elements/elements_src/track_magnet.h"
+#include "xtrack/beam_elements/elements_src/edge_load.h"
 #include "xtrack/beam_elements/elements_src/default_magnet_config.h"
 
+// The magnet, as a plan for track_magnet_particles (the misalignment is
+// added by VariableSolenoid_prepare_plan, track_local_particle_with_transformations.h)
 GPUFUN
-void VariableSolenoid_track_local_particle(
+void VariableSolenoid_prepare_magnet(
         VariableSolenoidData el,
+        MagnetPlan* plan,
         LocalParticle* part0
 ) {
-    double ks_entry = VariableSolenoidData_get_ks_profile(el, 0);
-    double ks_exit = VariableSolenoidData_get_ks_profile(el, 1);
+    double const ks_entry = VariableSolenoidData_get_ks_profile(el, 0);
+    double const ks_exit = VariableSolenoidData_get_ks_profile(el, 1);
     double const length = VariableSolenoidData_get_length(el);
     double const x0 = VariableSolenoidData_get_x0(el);
     double const y0 = VariableSolenoidData_get_y0(el);
 
-    if (LocalParticle_check_track_flag(part0, XS_FLAG_BACKTRACK)) {
-        VSWAP(ks_entry, ks_exit);
-    }
-
+    // Mean strength and gradient, in the element frame (the body reverses the
+    // gradient when backtracking)
     double ks, dks_ds;
     if (length != 0){
         ks = 0.5 * (ks_exit + ks_entry);
@@ -35,77 +37,43 @@ void VariableSolenoid_track_local_particle(
         dks_ds = 0.;
     }
 
-    START_PER_PARTICLE_BLOCK(part0, part);
-        // Update ax and ay (Wolsky Eq. 3.114 and Eq. 2.74)
-        double const new_ax = -0.5 * ks_entry * (LocalParticle_get_y(part) - y0);
-        double const new_ay = 0.5 * ks_entry * (LocalParticle_get_x(part) - x0);
-        LocalParticle_set_ax(part, new_ax);
-        LocalParticle_set_ay(part, new_ay);
-    END_PER_PARTICLE_BLOCK;
+    // Each active face also sets the vector potential of the field at its end,
+    // entering and leaving (Wolsky Eq. 3.114 and Eq. 2.74)
+    MagnetFace entry_face = MagnetFace_empty(0);
+    EDGE_LOAD_STRAIGHT(entry_face, VariableSolenoidData_get_, el, entry);
+    entry_face.has_ks = 1;
+    entry_face.ks = ks_entry;
+    MagnetFace exit_face = MagnetFace_empty(1);
+    EDGE_LOAD_STRAIGHT(exit_face, VariableSolenoidData_get_, el, exit);
+    exit_face.has_ks = 1;
+    exit_face.ks = ks_exit;
 
-    track_magnet_particles(
-        /*weight*/                1.,
-        /*part0*/                 part0,
-        /*length*/                length,
-        /*order*/                 VariableSolenoidData_get_order(el),
-        /*inv_factorial_order*/   VariableSolenoidData_get_inv_factorial_order(el),
-        /*knl*/                   VariableSolenoidData_getp1_knl(el, 0),
-        /*ksl*/                   VariableSolenoidData_getp1_ksl(el, 0),
-        /*order_rel*/             -1,
-      /*inv_factorial_order_rel*/ 0,
-        /*knl_rel*/               NULL,
-        /*ksl_rel*/               NULL,
-        /*rel_ref_strength*/      0.,
-        /*num_multipole_kicks*/   VariableSolenoidData_get_num_multipole_kicks(el),
-        /*model*/                 -2, // sol-kick-sol
-        /*default_model*/         0, // unused
-        /*integrator*/            VariableSolenoidData_get_integrator(el),
-        /*default_integrator*/    SOLENOID_DEFAULT_INTEGRATOR,
-        /*radiation_flag*/        VariableSolenoidData_get_radiation_flag(el),
-        /*radiation_flag_parent*/ 0, // not used here
-        /*radiation_record*/      NULL,
-        /*delta_taper*/           VariableSolenoidData_get_delta_taper(el),
-        /*h*/                     0.,
-        /*hxl*/                   0.,
-        /*k0*/                    0.,
-        /*k1*/                    0.,
-        /*k2*/                    0.,
-        /*k3*/                    0.,
-        /*k0s*/                   0.,
-        /*k1s*/                   0.,
-        /*k2s*/                   0.,
-        /*k3s*/                   0.,
-        /*ks*/                    ks,
-        /*dks_ds*/                dks_ds,
-        /*x0_solenoid*/           x0,
-        /*y0_solenoid*/           y0,
-        /*rbend_model*/           -1, // not rbend
-     /*rbend_compensate_sagitta*/ 0,  // not rbend
-        /*rbend_shift*/           0., // not rbend
-        /*rbend_angle_diff*/      0., // not rbend
-        /*length_straight*/       0., // not rbend
-        /*body_active*/           1,
-        /*edge_entry_active*/     0,
-        /*edge_exit_active*/      0,
-        /*edge_entry_model*/      1,
-        /*edge_exit_model*/       1,
-        /*edge_entry_angle*/      0.,
-        /*edge_exit_angle*/       0.,
-        /*edge_entry_angle_fdown*/0.,
-        /*edge_exit_angle_fdown*/ 0.,
-        /*edge_entry_fint*/       0.,
-        /*edge_exit_fint*/        0.,
-        /*edge_entry_hgap*/       0.,
-        /*edge_exit_hgap*/        0.
-    );
-
-    START_PER_PARTICLE_BLOCK(part0, part);
-        // Update ax and ay (Wolsky Eq. 3.114 and Eq. 2.74)
-        double const new_ax = -0.5 * ks_exit * (LocalParticle_get_y(part) - y0);
-        double const new_ay = 0.5 * ks_exit * (LocalParticle_get_x(part) - x0);
-        LocalParticle_set_ax(part, new_ax);
-        LocalParticle_set_ay(part, new_ay);
-    END_PER_PARTICLE_BLOCK;
+    // Settings aligned by hand: not formatted
+    // clang-format off
+    MagnetSettings magnet;
+    MagnetSettings_init_default(&magnet);
+    magnet.length                   = length;
+    magnet.order                    = VariableSolenoidData_get_order(el);
+    magnet.inv_factorial_order      = VariableSolenoidData_get_inv_factorial_order(el);
+    magnet.knl                      = VariableSolenoidData_getp1_knl(el, 0);
+    magnet.ksl                      = VariableSolenoidData_getp1_ksl(el, 0);
+    magnet.num_multipole_kicks      = VariableSolenoidData_get_num_multipole_kicks(el);
+    magnet.model                    = MODEL_SOL_KICK_SOL;
+    magnet.integrator               = magnet_or_default(VariableSolenoidData_get_integrator(el), SOLENOID_DEFAULT_INTEGRATOR);
+    magnet.radiation_flag           = VariableSolenoidData_get_radiation_flag(el);
+    magnet.delta_taper              = VariableSolenoidData_get_delta_taper(el);
+    magnet.ks                       = ks;
+    magnet.dks_ds                   = dks_ds;
+    magnet.x0_solenoid              = x0;
+    magnet.y0_solenoid              = y0;
+    // Kept at default (MagnetSettings_init_default):
+    //     weight, order_rel, knl_rel, ksl_rel, rel_ref_strength,
+    //     radiation_record, h, hxl, k0,
+    //     k1, k2, k3, k0s, k1s, k2s, k3s, rbend_model,
+    //     rbend_compensate_sagitta, rbend_shift, rbend_angle_diff,
+    //     length_straight, body_active
+    // clang-format on
+    MagnetPlan_prepare(plan, &magnet, &entry_face, &exit_face, part0);
 }
 
 #endif

@@ -2,7 +2,6 @@ import numpy as np
 import xobjects as xo
 
 from ..base_element import BeamElement
-from .slice_base import _SliceBase, COMMON_SLICE_XO_FIELDS
 from .bend import Bend
 from .bfield_expansion import BFieldExpansion
 from .cavity import Cavity
@@ -13,8 +12,10 @@ from .octupole import Octupole
 from .quadrupole import Quadrupole
 from .rbend import RBend
 from .sextupole import Sextupole
+from .slice_base import COMMON_SLICE_XO_FIELDS, _SliceBase
 from .solenoid import Solenoid
 from .uniform_solenoid import UniformSolenoid
+
 
 class _ThickSliceElementBase(_SliceBase):
 
@@ -107,6 +108,7 @@ class ThickSliceBFieldExpansion(_ThickSliceElementBase, BeamElement):
 
 class ThickSliceBend(_ThickSliceElementBase, BeamElement):
 
+    _magnet_plan = True
     _xofields = {'_parent': xo.Ref(Bend), **COMMON_SLICE_XO_FIELDS}
 
     _extra_c_sources = [
@@ -115,6 +117,7 @@ class ThickSliceBend(_ThickSliceElementBase, BeamElement):
 
 class ThickSliceRBend(_ThickSliceElementBase, BeamElement):
 
+    _magnet_plan = True
     _xofields = {'_parent': xo.Ref(RBend), **COMMON_SLICE_XO_FIELDS}
 
     _extra_c_sources = [
@@ -139,6 +142,7 @@ class ThickSliceRBend(_ThickSliceElementBase, BeamElement):
 
 class ThickSliceQuadrupole(_ThickSliceElementBase, BeamElement):
 
+    _magnet_plan = True
     _xofields = {'_parent': xo.Ref(Quadrupole), **COMMON_SLICE_XO_FIELDS}
 
     _extra_c_sources = [
@@ -148,6 +152,7 @@ class ThickSliceQuadrupole(_ThickSliceElementBase, BeamElement):
 
 class ThickSliceSextupole(_ThickSliceElementBase, BeamElement):
 
+    _magnet_plan = True
     _xofields = {'_parent': xo.Ref(Sextupole), **COMMON_SLICE_XO_FIELDS}
 
     _extra_c_sources = [
@@ -156,6 +161,7 @@ class ThickSliceSextupole(_ThickSliceElementBase, BeamElement):
 
 class ThickSliceOctupole(_ThickSliceElementBase, BeamElement):
 
+    _magnet_plan = True
     _xofields = {'_parent': xo.Ref(Octupole), **COMMON_SLICE_XO_FIELDS}
 
     _extra_c_sources = [
@@ -180,6 +186,7 @@ class ThickSliceCrabCavity(_ThickSliceElementBase, BeamElement):
 
 class ThickSliceMultipole(_ThickSliceElementBase, BeamElement):
 
+    _magnet_plan = True
     _xofields = {'_parent': xo.Ref(Multipole), **COMMON_SLICE_XO_FIELDS}
 
     _extra_c_sources = [
@@ -188,6 +195,7 @@ class ThickSliceMultipole(_ThickSliceElementBase, BeamElement):
 
 class ThickSliceUniformSolenoid(_ThickSliceElementBase, BeamElement):
 
+    _magnet_plan = True
     _xofields = {'_parent': xo.Ref(UniformSolenoid), **COMMON_SLICE_XO_FIELDS}
 
     _extra_c_sources = [

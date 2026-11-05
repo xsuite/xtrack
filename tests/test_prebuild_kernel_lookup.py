@@ -468,7 +468,8 @@ def test_tracker_missing_xsuite_allows_jit_when_class_allows_compilation(
 ):
     tracker = xt.Tracker.__new__(xt.Tracker)
     context = xo.ContextCpu()
-    out_kernel = object()
+    # A kernel takes attributes (the tracker attaches the prepare kernel)
+    out_kernel = types.SimpleNamespace()
     build_kernel_calls = []
 
     def build_kernels(*args, **kwargs):

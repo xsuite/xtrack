@@ -1,11 +1,13 @@
-import numpy as np
-import xtrack as xt
+import warnings
 from enum import Enum
 
+import numpy as np
 from xdeps.refs import is_ref
-from xtrack.functions import Functions
-from .beam_elements._common import _get_expr as _ge
 
+import xtrack as xt
+from xtrack.functions import Functions
+
+from .beam_elements._common import _get_expr as _ge
 
 LUA_VARS_PER_CHUNK = 200
 
@@ -690,7 +692,40 @@ def element_to_mad_str(
 
     return ', '.join(tokens)
 
+def _warn_soft_fringe(line):
+    """The soft quadrupole fringe (qint1, qint2), and the soft dipole fringe
+    (fint, hgap) of straight magnets, are not exported: warn once per kind,
+    naming the magnets that have one (slices by their magnet)."""
+    names = {'qint': {}, 'fint': {}}
+    for nn in line.element_names:
+        el = line._element_dict[nn]
+        while isinstance(el, xt.Replica):
+            nn = el.parent_name
+            el = line._element_dict[nn]
+        if hasattr(el, '_parent'):
+            nn, el = el.parent_name, el._parent
+        if any(getattr(el, f'edge_{face}_qint{ii}', 0)
+               for face in ('entry', 'exit') for ii in (1, 2)):
+            names['qint'][nn] = None
+        # Bends (the ones with face angles) export fint, hgap
+        if not hasattr(el, 'edge_entry_angle') and any(
+                getattr(el, f'edge_{face}_{pp}', 0)
+                for face in ('entry', 'exit') for pp in ('fint', 'hgap')):
+            names['fint'][nn] = None
+    what = {
+        'qint': 'the soft quadrupole fringe (qint1, qint2)',
+        'fint': 'the soft dipole fringe (fint, hgap) of straight magnets',
+    }
+    for kind, nn in names.items():
+        if nn:
+            nn = list(nn)
+            warnings.warn(
+                f'The MAD-X and MAD-NG export does not include {what[kind]}: '
+                f'{len(nn)} magnets have one, e.g. {nn[:3]}.')
+
 def to_madx_sequence(line, name='seq', mode='sequence'):
+
+    _warn_soft_fringe(line)
 
     # build variables part
     vars_str = ""
@@ -750,6 +785,7 @@ def to_madx_sequence(line, name='seq', mode='sequence'):
     return mad_input
 
 def to_madng_sequence(line, name='seq'):
+    _warn_soft_fringe(line)
     code_str = ""
     chunk_start = "(function()\t -- Begin chunk\n"
     chunk_end = "end)();\t -- End chunk\n"
