@@ -236,6 +236,8 @@ void longitudinal_motion(LocalParticle *part0,
                 -0.5 * eta * slippage_length * LocalParticle_get_delta(part));
         END_PER_PARTICLE_BLOCK;
 
+        int64_t const absolute_time = LineSegmentMapData_get_absolute_time(el);
+        double const length = LineSegmentMapData_get_length(el);
         int64_t const n_rf = LineSegmentMapData_len_voltage_rf(el);
         for (int i_rf=0; i_rf<n_rf; i_rf++){
 
@@ -253,7 +255,12 @@ void longitudinal_motion(LocalParticle *part0,
                 double const   q      = fabs(LocalParticle_get_q0(part))
                                         * LocalParticle_get_charge_ratio(part);
                 double const   tau    = zeta / beta0;
-                double const   phase  = DEG2RAD  * lag_rf + phase_rf - K_FACTOR * f_rf * tau;
+                double         phase  = DEG2RAD  * lag_rf + phase_rf - K_FACTOR * f_rf * tau;
+                if (absolute_time) {
+                    // The kick sits at the middle of the segment, and s is updated at its end.
+                    phase += 2.0 * PI * f_rf * (LocalParticle_get_time_s(part)
+                        + (LocalParticle_get_s(part) + 0.5 * length) / (beta0 * C_LIGHT));
+                }
                 double const energy   = q * v_rf * sin(phase);
                 LocalParticle_add_to_energy(part, energy, 1);
             END_PER_PARTICLE_BLOCK;
