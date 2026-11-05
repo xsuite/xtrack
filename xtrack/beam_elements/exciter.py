@@ -27,6 +27,10 @@ class Exciter(BeamElement):
 
         i = floor( sampling_frequency * ( ( at_turn - start_turn ) / f_rev - zeta / beta0 / c0 ) )
 
+    With absolute_time, the index follows the shared clock instead:
+
+        i = floor( sampling_frequency * ( time_s - start_turn / f_rev + ( s - zeta ) / beta0 / c0 ) )
+
     where zeta=(s-beta0*c0*t) is the longitudinal coordinate of the particle, beta0 the
     relativistic beta factor of the particle, c0 is the speed of light, at_turn is the
     current turn number, f_rev is the revolution frequency, and sampling_frequency is the sampling
@@ -53,8 +57,9 @@ class Exciter(BeamElement):
         - samples (float array): Samples of excitation strength to scale knl and ksl as function of time.
         - nsamples (int): Number of samples. Pass this instead of samples to reserve memory for later initialisation.
         - sampling_frequency (float): Sampling frequency in Hz.
-        - frev (float): Revolution frequency in Hz of circulating beam (used to relate turn number to sample index). Required.
+        - frev (float): Revolution frequency in Hz of circulating beam (used to relate turn number to sample index). Required unless absolute_time is set: without it the turn clock has no time.
         - start_turn (int): Turn of the reference particle when to start excitation.
+        - absolute_time (bool): If True, the sample index follows the absolute arrival time, time_s + (s - zeta) / beta0 / c0, from the time start_turn / frev, so the excitation keeps its own clock while the reference energy changes. Default is False.
         - duration (float): Duration of excitation in s (defaults to nsamples/sampling_frequency). Repeats the waveform to fill the duration.
 
     Example:
@@ -88,13 +93,14 @@ class Exciter(BeamElement):
         'sampling_frequency': xo.Float64,
         'frev': xo.Float64,
         'start_turn': xo.Int64,
+        'absolute_time': xo.Int64,
         'nduration': xo.Int64,
         'knl': xo.Float64[:],
         'ksl': xo.Float64[:],
         'samples': xo.Float32[:],
         }
 
-    _rename = {'frev': '_frev'}
+    _rename = {'frev': '_frev', 'start_turn': '_start_turn', 'absolute_time': '_absolute_time'}
 
     has_backtrack = True
 
@@ -128,8 +134,10 @@ class Exciter(BeamElement):
             kwargs["order"] = n - 1
 
             # The turn clock divides by frev in the kernel, which is undefined at zero.
-            if (samples is not None or nsamples is not None) and not frev:
-                raise ValueError('`frev` relates the turn number to the samples: set it.')
+            if ((samples is not None or nsamples is not None) and not frev
+                    and (not kwargs.get('absolute_time') or start_turn)):
+                raise ValueError('`frev` relates the turn number to the samples: '
+                                 'set it, or use `absolute_time` with no `start_turn`.')
 
             # determine sample length or create empty samples for later initialisation
             if samples is not None:
@@ -160,9 +168,32 @@ class Exciter(BeamElement):
     @frev.setter
     def frev(self, value):
         # The turn clock divides by frev in the kernel, which is undefined at zero.
-        if not value:
-            raise ValueError('`frev` relates the turn number to the samples: set it.')
+        if not value and (not self.absolute_time or self.start_turn):
+            raise ValueError('`frev` relates the turn number to the samples: '
+                             'set it, or use `absolute_time` with no `start_turn`.')
         self._frev = value
+
+    @property
+    def start_turn(self):
+        return self._start_turn
+
+    @start_turn.setter
+    def start_turn(self, value):
+        # A start turn relates to time through frev, even on absolute time.
+        if value and not self.frev:
+            raise ValueError('`start_turn` needs `frev` to be set.')
+        self._start_turn = value
+
+    @property
+    def absolute_time(self):
+        return self._absolute_time
+
+    @absolute_time.setter
+    def absolute_time(self, value):
+        # The turn clock divides by frev in the kernel, which is undefined at zero.
+        if not value and not self.frev:
+            raise ValueError('The turn clock needs `frev` to be set.')
+        self._absolute_time = value
 
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
         ctx2np = self._buffer.context.nparray_from_context_array
@@ -173,4 +204,5 @@ class Exciter(BeamElement):
                               sampling_frequency=self.sampling_frequency,
                               frev=self.frev,
                               start_turn=self.start_turn,
+                              absolute_time=self.absolute_time,
                               _context=_context, _buffer=_buffer, _offset=_offset)
