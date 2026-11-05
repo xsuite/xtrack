@@ -15,25 +15,9 @@
    This header is inlined in the track kernel source right after the switch
    prepare_magnet_plan, which Python generates because it depends on the type
    ids of the build. A build with no magnets has neither.
-   In TPSA tracking, only the switch and track_magnet_tapered are used: the
-   plans are made at the magnets (magnet_plans.py).
+   In TPSA tracking, only the switch is used: the plans are made at the
+   magnets (magnet_plans.py).
 */
-
-/* Track through a magnet with tapering. The plan depends on the energy of the
-   particle at the element, so it is made here, at the element, instead of
-   once per track call.
-*/
-GPUFUN
-XT_NOINLINE
-void track_magnet_tapered(
-    LocalParticle* part,
-    /*gpuglmem*/ void* el,
-    int64_t elem_type
-) {
-    MagnetPlan plan;
-    prepare_magnet_plan(el, elem_type, &plan, part);
-    track_magnet_particles(part, &plan);
-}
 
 #ifndef XTRACK_TPSA_TRACK
 
@@ -61,10 +45,10 @@ void prepare_magnet_plans(
     uint64_t track_flags
 ) {
     // A plan reads only the track flags of the particle (the direction of
-    // travel). Tapering is cleared: its plans are made at the elements
+    // travel)
     LocalParticle lpart;
     lpart.io_buffer = io_buffer;
-    lpart.track_flags = track_flags & ~(((uint64_t)1) << XS_FLAG_SR_TAPER);
+    lpart.track_flags = track_flags;
 
     // clang-format off: VECTORIZE_OVER is expanded by xobjects, as written
     VECTORIZE_OVER(ii, num_plans);

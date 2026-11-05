@@ -51,6 +51,7 @@ GPUFUN XT_NOINLINE
 void track_magnet_kick_single_particle(
     LocalParticle* part,
     double kick_weight,
+    double taper,
     double const length,
     int64_t const order,
     double const inv_factorial_order,
@@ -75,6 +76,8 @@ void track_magnet_kick_single_particle(
     uint8_t const is_empty
 ) {
     double const length_of_this_kick = length * kick_weight;
+    // Tapers the field terms only
+    double const field_weight = taper * kick_weight;
 
     if (is_empty) {
         // Nothing to apply: skip the kick. For mat-kick-mat-exact the two
@@ -97,7 +100,7 @@ void track_magnet_kick_single_particle(
 
     // multipolar kick
     kick_simple_single_particle(
-        part, order, inv_factorial_order, knl, ksl, factor_knl_ksl, kick_weight
+        part, order, inv_factorial_order, knl, ksl, factor_knl_ksl, field_weight
     );
 
     // main kick; brace-init avoids default-constructing the
@@ -111,7 +114,7 @@ void track_magnet_kick_single_particle(
         knl_main,
         ksl_main,
         /* factor_knl_ksl */ 1.0,
-        kick_weight
+        field_weight
     );
 
     // Correct for the curvature
@@ -126,9 +129,9 @@ void track_magnet_kick_single_particle(
         dzeta += -rv0v * hl * x;
     }
 
-    dpx += -chi * k0_h_coeff * kick_weight * htot * x;
-    dpx += htot * chi * k1_h_coeff * kick_weight * (-x * x + 0.5 * y * y);
-    dpy += htot * chi * k1_h_coeff * kick_weight * x * y;
+    dpx += -chi * k0_h_coeff * field_weight * htot * x;
+    dpx += htot * chi * k1_h_coeff * field_weight * (-x * x + 0.5 * y * y);
+    dpy += htot * chi * k1_h_coeff * field_weight * x * y;
 
     LocalParticle_add_to_px(part, dpx);
     LocalParticle_add_to_py(part, dpy);
@@ -142,11 +145,18 @@ void track_magnet_kick_single_particle(
 
 
 // Apply a prepared kick, with kick_weight the fraction of the body it covers
+// and taper the factor of the strengths (tapering, 1 otherwise)
 GPUFUN XT_INLINE
-void MagnetKick_apply(LocalParticle* part, const MagnetKick* kick, double kick_weight) {
+void MagnetKick_apply(
+    LocalParticle* part,
+    const MagnetKick* kick,
+    double kick_weight,
+    double taper
+) {
     track_magnet_kick_single_particle(
         part,
         kick_weight,
+        taper,
         kick->length,
         kick->order,
         kick->inv_factorial_order,

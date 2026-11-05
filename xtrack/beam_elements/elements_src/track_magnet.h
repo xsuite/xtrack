@@ -98,6 +98,7 @@ GPUFUN XT_NOINLINE
 void magnet_body_spin_radiation(
     LocalParticle* part,
     const MagnetField* field,
+    double const taper,
     double const length,
     double const inv_factorial_order,
     double const factor_knl_ksl,
@@ -133,15 +134,15 @@ void magnet_body_spin_radiation(
         inv_factorial_order,
         field->knl,
         field->ksl,
-        factor_knl_ksl,
-        field->knorm[0],
-        field->knorm[1],
-        field->knorm[2],
-        field->knorm[3],
-        field->kskew[0],
-        field->kskew[1],
-        field->kskew[2],
-        field->kskew[3],
+        taper * factor_knl_ksl,
+        taper * field->knorm[0],
+        taper * field->knorm[1],
+        taper * field->knorm[2],
+        taper * field->knorm[3],
+        taper * field->kskew[0],
+        taper * field->kskew[1],
+        taper * field->kskew[2],
+        taper * field->kskew[3],
         ks,
         dks_ds,
         x0_solenoid,
@@ -170,6 +171,7 @@ GPUFUN XT_INLINE
 void track_magnet_body_single_particle(
     LocalParticle* part,
     const MagnetBody* body,
+    double taper,  // factor of the strengths (tapering, 1 otherwise)
     double* dp_record_exit,
     double* dpx_record_exit,
     double* dpy_record_exit
@@ -180,9 +182,9 @@ void track_magnet_body_single_particle(
 #define MAGNET_KICK(part, weight)                              \
     do {                                                       \
         if (!body->kick_is_noop)                               \
-            MagnetKick_apply(part, &body->kick, (weight));     \
+            MagnetKick_apply(part, &body->kick, (weight), taper); \
     } while (0)
-#define MAGNET_DRIFT(part, dlength) MagnetDrift_apply(part, &body->drift, (dlength))
+#define MAGNET_DRIFT(part, dlength) MagnetDrift_apply(part, &body->drift, (dlength), taper)
 
 #if defined(XTRACK_TPSA_TRACK) || defined(XTRACK_MULTIPOLE_NO_SYNRAD)
     #define WITH_RADIATION(ll, code) \
@@ -202,7 +204,7 @@ void track_magnet_body_single_particle(
             code; \
             if (length > 0) { /* spin always, radiation if radiation_flag */ \
                 magnet_body_spin_radiation( \
-                    part, body->field, length, body->inv_factorial_order, \
+                    part, body->field, taper, length, body->inv_factorial_order, \
                     body->factor_knl_ksl, body->drift.ks, body->dks_ds, \
                     body->drift.x0_solenoid, body->drift.y0_solenoid, \
                     body->h_radiation, body->radiation_flag, body->radiation_record, \
@@ -539,7 +541,7 @@ void MagnetSettings_init_default(MagnetSettings* s) {
 // for track_magnet_particles: its first face, its body and its second face, in
 // the order of the direction of travel. The faces are given in the element
 // frame. The misalignment is set by the caller (X_prepare_plan). Reads only
-// the track flags of part0 and, when tapering, the momentum of its particle.
+// the track flags of part0.
 // Runs once per element (prepare_magnet_plans), not per particle: not
 // inlined, so the kernel holds one copy, not one per magnet class.
 GPUFUN XT_NOINLINE
@@ -558,8 +560,6 @@ void MagnetPlan_prepare(
     double hxl = settings->hxl;
     const int64_t rbend_model = settings->rbend_model;
     const int64_t radiation_flag = settings->radiation_flag;
-    double delta_taper = settings->delta_taper;
-    (void)delta_taper;  // unused in the kernels without radiation
 
     const uint8_t backtrack = LocalParticle_check_track_flag(part0, XS_FLAG_BACKTRACK);
 
@@ -626,29 +626,16 @@ void MagnetPlan_prepare(
         knl_scale_body = weight;
     }
 
-    // Tapering: all strengths scale with 1 + delta_taper
-    double taper = 1.0;
-#ifndef XTRACK_TPSA_TRACK
-    // delta_taper is a double param, get_delta is xt_float_or_tpsa. Tapering is a radiation-
-    // adjacent double feature, so it is disabled for the TPSA flavor.
-    if (LocalParticle_check_track_flag(part0, XS_FLAG_SR_TAPER)){
-        part0->ipart = 0;
-        delta_taper = LocalParticle_get_delta(part0); // I can use part0 because
-                                                      // there is only one particle
-                                                      // when doing the tapering
+    // Tapering: applied when tracking (magnet_taper_factor); the plan holds
+    // the nominal strengths
+    plan->taper = 1.;
+    plan->taper_from_delta = 0;
+#if !defined(XTRACK_TPSA_TRACK) && !defined(XTRACK_MULTIPOLE_NO_SYNRAD)
+    if (radiation_flag) {
+        plan->taper = 1. + settings->delta_taper;
+        plan->taper_from_delta = LocalParticle_check_track_flag(part0, XS_FLAG_SR_TAPER);
     }
 #endif
-    #ifndef XTRACK_MULTIPOLE_NO_SYNRAD
-        if (radiation_flag){
-            // knl and ksl are scaled where they are used (knl_scale_body, taper)
-            knl_scale_body *= (1. + delta_taper);
-            taper = 1. + delta_taper;
-            for (int ii = 0; ii <= MAGNET_K_ORDER; ii++) {
-                field->knorm[ii] *= (1 + delta_taper);
-                field->kskew[ii] *= (1 + delta_taper);
-            }
-        }
-    #endif
 
     // Multipoles of the body and the faces
     const int64_t order_tot = magnet_multipole_order(
@@ -699,7 +686,7 @@ void MagnetPlan_prepare(
     }
 #endif
     field->kl_order = order_tot;
-    field->knl_scale = taper;
+    field->knl_scale = 1.;
     field->length = length;
 
     // Faces, in the order they are crossed: the particle enters the field at
@@ -794,6 +781,18 @@ int8_t magnet_transform(LocalParticle* part0, const MagnetTransform* tr, int8_t 
 }
 
 
+// The factor of the strengths of a magnet for a particle (tapering, 1
+// otherwise): that of the plan, or while compensating the radiation energy
+// loss 1 + delta of the particle at the entrance of the magnet
+GPUFUN XT_INLINE
+double magnet_taper_factor(LocalParticle* part, const MagnetPlan* plan) {
+#if !defined(XTRACK_TPSA_TRACK) && !defined(XTRACK_MULTIPOLE_NO_SYNRAD)
+    if (plan->taper_from_delta) return 1. + LocalParticle_get_delta(part);
+#endif
+    return plan->taper;
+}
+
+
 // Track a magnet, or a slice of it, from its plan: the misalignment, the
 // first face, the body, the second face. Every magnet class is tracked by
 // this one function, called from one place in track_line, where it is
@@ -813,23 +812,25 @@ void track_magnet_particles(LocalParticle* part0, const MagnetPlan* plan) {
         double dp_record_exit, dpx_record_exit, dpy_record_exit;
         START_PER_PARTICLE_BLOCK(part0, part)
             ;
-            if (first_active) MagnetFace_enter_single_particle(part, &plan->first_face);
+            const double taper = magnet_taper_factor(part, plan);
+            if (first_active) MagnetFace_enter_single_particle(part, &plan->first_face, taper);
             track_magnet_body_single_particle(
-                part, &plan->body, &dp_record_exit, &dpx_record_exit, &dpy_record_exit
+                part, &plan->body, taper, &dp_record_exit, &dpx_record_exit, &dpy_record_exit
             );
             if (correct_s) {
                 LocalParticle_add_to_s(part, ds_curved);
                 LocalParticle_add_to_zeta(part, ds_curved);
             }
-            if (second_active) MagnetFace_leave_single_particle(part, &plan->second_face);
+            if (second_active) MagnetFace_leave_single_particle(part, &plan->second_face, taper);
         END_PER_PARTICLE_BLOCK;
     }
     else {
         // Faces only (edge slices)
         START_PER_PARTICLE_BLOCK(part0, part)
             ;
-            if (first_active) MagnetFace_enter_single_particle(part, &plan->first_face);
-            if (second_active) MagnetFace_leave_single_particle(part, &plan->second_face);
+            const double taper = magnet_taper_factor(part, plan);
+            if (first_active) MagnetFace_enter_single_particle(part, &plan->first_face, taper);
+            if (second_active) MagnetFace_leave_single_particle(part, &plan->second_face, taper);
         END_PER_PARTICLE_BLOCK;
     }
 

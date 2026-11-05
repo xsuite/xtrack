@@ -46,8 +46,11 @@ the C struct (``layout_checks``); the tests do this.
 
 Exceptions
 ----------
-- Tapering: the plan depends on the energy of the particle at the magnet, so
-  it is made at the magnet, by ``track_magnet_tapered``.
+- Tapering: the plan holds the nominal strengths and the factor of the
+  element, ``1 + delta_taper``; the strengths are scaled when tracking
+  (``magnet_taper_factor``, track_magnet.h), so the same plan serves the
+  compensation of the radiation energy loss, where the factor comes from the
+  energy of the particle.
 - TPSA tracking: the plan holds TPSA values and cannot be stored, so it is
   made at the magnet, in the same branch of ``track_line``. Only where the
   plan comes from differs.
@@ -132,6 +135,7 @@ PLAN_DTYPE = _struct(
     ('first_active', _FLAG), ('second_active', _FLAG),
     ('body_active', _FLAG), ('correct_s', _FLAG),
     ('ds_curved', 'f8'), ('is_thick', _FLAG),
+    ('taper_from_delta', _FLAG), ('taper', 'f8'),
     ('transform', _TRANSFORM_DTYPE),
     ('knl_tot', ('f8', (21,))),  # MAGNET_MAX_MULTIPOLE_ORDER + 1
     ('ksl_tot', ('f8', (21,))),
@@ -245,9 +249,7 @@ def track_line_cases(magnet_ids):
 
     All magnets take the same branch: get the plan, then track the particles
     through it. Only where the plan comes from differs: its slot, or, in TPSA
-    tracking, a plan made at the magnet. With tapering (never in TPSA
-    tracking, which has no radiation) the plan is made at the magnet by
-    ``track_magnet_tapered``. The indentation matches
+    tracking, a plan made at the magnet. The indentation matches
     the generated ``track_line``.
     """
     if not magnet_ids:
@@ -267,12 +269,7 @@ def track_line_cases(magnet_ids):
                             /*gpuglmem*/ const MagnetPlan* plan = (/*gpuglmem*/ const MagnetPlan*) (
                                 magnet_plans + MAGNET_PLAN_BYTES * magnet_plan_slots[elem_idx]);
 #endif
-                            if (LocalParticle_check_track_flag(&lpart, XS_FLAG_SR_TAPER)) {{
-                                track_magnet_tapered(&lpart, el, elem_type);
-                            }}
-                            else {{
-                                track_magnet_particles(&lpart, plan);
-                            }}
+                            track_magnet_particles(&lpart, plan);
                             #ifdef XTRACK_GLOBAL_XY_LIMIT
                             if (plan->is_thick) global_aperture_check(&lpart);
                             #endif

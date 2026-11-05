@@ -40,6 +40,7 @@ void MultipoleEdge_track_local_particle(MultipoleEdgeData el, LocalParticle* par
             /* kl_order */ order,
             /* kl_factor */ 1,
             /* length */ 1,
+            /* k_factor */ 1,
             is_exit,
             /* min_order */ 0
         );

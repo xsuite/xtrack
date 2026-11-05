@@ -111,6 +111,7 @@ void MultFringe_track_single_particle(
     int64_t kl_order,
     const double kl_factor,
     const double length,
+    const double k_factor,  // factor of all the strengths (tapering)
     // Which face of the element is being crossed: the fringe kick changes sign
     // between the entry and the exit face. This labels the face, not the
     // direction of travel, so backtracking inverts the map selected here
@@ -131,7 +132,8 @@ void MultFringe_track_single_particle(
     const xt_float_or_tpsa t = LocalParticle_get_zeta(part) / beta0;
     const xt_float_or_tpsa pt = LocalParticle_get_ptau(part);
     const xt_float_or_tpsa rpp = LocalParticle_get_rpp(part);
-    const double chi = LocalParticle_get_chi(part);
+    // chi weights only the strengths
+    const double chi = k_factor * LocalParticle_get_chi(part);
 
     xt_float_or_tpsa x = output_x;
     xt_float_or_tpsa y = output_y;

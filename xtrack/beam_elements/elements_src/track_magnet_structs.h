@@ -252,6 +252,11 @@ typedef struct MagnetPlan_s {
     uint8_t correct_s;  // straight-body RBend: path length on the curved reference
     double ds_curved;
     uint8_t is_thick;   // the global aperture is checked after it
+    // Tapering: the strengths of the plan are nominal; when tracking they
+    // are scaled by taper, or with taper_from_delta by 1 + delta of the
+    // particle (magnet_taper_factor)
+    uint8_t taper_from_delta;
+    double taper;
     MagnetTransform transform;
     // knl + rel_ref_strength * knl_rel (same for ksl), formed only with
     // relative components; otherwise the field uses the element's arrays
