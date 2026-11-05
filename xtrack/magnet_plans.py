@@ -185,9 +185,10 @@ def magnet_classes(kernel_element_classes):
 
     Returns a list of ``(type_id, class)``, where ``type_id`` is the index of
     the class in ``kernel_element_classes``, i.e. its type id in the kernel.
+    The classes are xobjects structs or, from a prebuilt kernel, the elements.
     """
     return [(ii, cc) for ii, cc in enumerate(kernel_element_classes)
-            if vars(cc._DressingClass).get('_magnet_plan', False)]
+            if vars(getattr(cc, '_DressingClass', cc)).get('_magnet_plan', False)]
 
 
 def plan_source(magnet_classes, check_layout=False):

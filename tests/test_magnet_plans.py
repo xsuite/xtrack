@@ -55,3 +55,13 @@ def test_get_magnet_plan():
 
     with pytest.raises(ValueError):
         line.tracker.get_magnet_plan('m')
+
+
+def test_magnet_classes_of_structs_and_elements():
+    # A kernel lists xobjects structs; a prebuilt kernel's metadata lists the elements
+    elements = [xt.ACDipole, xt.Bend, xt.Drift, xt.Quadrupole]
+    expected = [(1, xt.Bend), (3, xt.Quadrupole)]
+    assert magnet_plans.magnet_classes(elements) == expected
+    structs = [cc._XoStruct for cc in elements]
+    assert magnet_plans.magnet_classes(structs) == [
+        (ii, cc._XoStruct) for ii, cc in expected]
