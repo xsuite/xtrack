@@ -53,7 +53,7 @@ class Exciter(BeamElement):
         - samples (float array): Samples of excitation strength to scale knl and ksl as function of time.
         - nsamples (int): Number of samples. Pass this instead of samples to reserve memory for later initialisation.
         - sampling_frequency (float): Sampling frequency in Hz.
-        - frev (float): Revolution frequency in Hz of circulating beam (used to relate turn number to sample index).
+        - frev (float): Revolution frequency in Hz of circulating beam (used to relate turn number to sample index). Required.
         - start_turn (int): Turn of the reference particle when to start excitation.
         - duration (float): Duration of excitation in s (defaults to nsamples/sampling_frequency). Repeats the waveform to fill the duration.
 
@@ -94,6 +94,8 @@ class Exciter(BeamElement):
         'samples': xo.Float32[:],
         }
 
+    _rename = {'frev': '_frev'}
+
     has_backtrack = True
 
     _extra_c_sources = ['#include "xtrack/beam_elements/elements_src/exciter.h"']
@@ -125,6 +127,10 @@ class Exciter(BeamElement):
                 nksl[:len(ksl)] = np.array(ksl)
             kwargs["order"] = n - 1
 
+            # The turn clock divides by frev in the kernel, which is undefined at zero.
+            if (samples is not None or nsamples is not None) and not frev:
+                raise ValueError('`frev` relates the turn number to the samples: set it.')
+
             # determine sample length or create empty samples for later initialisation
             if samples is not None:
                 if nsamples is not None and nsamples != len(samples):
@@ -146,6 +152,17 @@ class Exciter(BeamElement):
     @duration.setter
     def duration(self, duration):
         self.nduration = duration * self.sampling_frequency
+
+    @property
+    def frev(self):
+        return self._frev
+
+    @frev.setter
+    def frev(self, value):
+        # The turn clock divides by frev in the kernel, which is undefined at zero.
+        if not value:
+            raise ValueError('`frev` relates the turn number to the samples: set it.')
+        self._frev = value
 
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
         ctx2np = self._buffer.context.nparray_from_context_array
