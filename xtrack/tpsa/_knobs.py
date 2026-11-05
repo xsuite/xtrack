@@ -21,10 +21,11 @@ def _scalar_value(value: Any) -> float:
 class KnobParameters:
     """Line variables ``names`` held as parameters ``1..len(names)`` of ``descriptor``.
 
-    ``apply()`` puts the parameters in, ``refresh(values)`` moves them to new knob
-    values, ``teardown()`` puts plain doubles back everywhere.
+    ``apply()`` puts the parameters in, ``apply(values)`` moves them to new knob
+    values, ``teardown()`` puts plain doubles back in the variables and in the elements
+    they drive. An element that still depends on another parameter keeps its series.
 
-    While the parameters are in, the knobs must be moved with ``refresh``: assigning a
+    While the parameters are in, the knobs must be moved with ``apply``: assigning a
     float to ``line.vars`` re-propagates constants and drops the knob dependence.
     """
 
@@ -55,6 +56,8 @@ class KnobParameters:
         """Assign parameter ``k+1`` to knob ``k``, seeded at its current value."""
         if values is None:
             values = [_scalar_value(self.line[name]) for name in self.names]
+        if len(values) != len(self.names):
+            raise ValueError("one value is required for each knob")
         for index, (name, value) in enumerate(zip(self.names, values), start=1):
             self.line.vars[name] = self.descriptor.param(index, _scalar_value(value))
         self._applied = True
@@ -70,6 +73,8 @@ class KnobParameters:
 
     def apply_doubles(self, values: list[float]) -> None:
         """Set the knobs to floats and drop TPSA storage from the elements they drive."""
+        if len(values) != len(self.names):
+            raise ValueError("one value is required for each knob")
         for name, value in zip(self.names, values):
             self.line.vars[name] = _scalar_value(value)
         # xdeps re-propagates the new floats, but an enabled element stores them as
@@ -78,7 +83,9 @@ class KnobParameters:
         elements = self.line.element_dict
         for name in (self._reached if self._reached is not None else elements):
             element = elements[name]
-            if getattr(getattr(element, "_xobject", None), "_tpsa_enabled", 0):
+            if (getattr(getattr(element, "_xobject", None), "_tpsa_enabled", 0)
+                    and all(getattr(element, field).is_constant()
+                            for field in element._float_or_tpsa_fields)):
                 element.disable_tpsa()
         self._applied = False
 
