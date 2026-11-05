@@ -2222,7 +2222,18 @@ class LineAperture:
                 self._aperture_bounds.pipe_position_indices[idx] = pipe_pos_idx
                 self._aperture_bounds.profile_position_indices[idx] = profile_pos_idx
 
-        self._model.build_profile_polygons(
+        # Fill profile polygons before the bounds kernel reads them. On CPU,
+        # each slice is a contiguous numpy view; GPU support needs context arrays.
+        profile_indices = range(num_profile_polys)
+        if with_progress:
+            profile_indices = progress(
+                profile_indices, desc='Building profile polygons', total=num_profile_polys)
+        profile_points = self._profile_polygons.points.to_nplike()
+        for idx in profile_indices:
+            self._model.profiles[idx].build_polygon(
+                num_points, out_poly=profile_points[idx])
+
+        self._model.build_aperture_bounds(
             profile_polygons=self._profile_polygons,
             aperture_bounds=self._aperture_bounds,
             survey=self._survey_data,
