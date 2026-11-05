@@ -7,6 +7,7 @@ import xobjects as xo
 from xobjects.context import XContext
 from xtrack.particles import Particles
 from xtrack.survey import SurveyTable
+from xtrack.svgutils import svg_to_points_by_resolution
 from xtrack.twiss import TwissTable
 
 FloatType = xo.Float64
@@ -330,7 +331,6 @@ class Polygon(xo.Struct):
                 xo.Arg(FloatType, pointer=True, const=True, name='vertices'),
                 xo.Arg(xo.UInt32, name='len_vertices'),
             ],
-            ret=xo.Arg(xo.Int8),
         ),
         'is_point_inside_polygon': xo.Kernel(
             c_name='is_point_inside_polygon',
@@ -360,11 +360,12 @@ class Polygon(xo.Struct):
         points = _polygon_output(len_points, out_poly)
         vertices = self.vertices.to_nplike()
         self.compile_kernels(only_if_needed=True)
-        kernels = self._context.kernels
-        if not kernels.build_polygon_polygon(
-                points=points, len_points=len(points), vertices=vertices,
-                len_vertices=len(vertices)):
-            raise ValueError('Polygon has no non-degenerate boundary.')
+        self._context.kernels.build_polygon_polygon(
+            points=points,
+            len_points=len(points),
+            vertices=vertices,
+            len_vertices=len(vertices),
+        )
         return points
 
     def __repr__(self):
@@ -399,40 +400,20 @@ class Polygon(xo.Struct):
 class SVGShape(xo.Struct):
     """Parametric aperture defined by a single closed SVG 1.1 path.
 
-    ``scale`` converts SVG units to metres (default 0.001, mm to m). The
-    SVG y axis is inverted to physical y-up coordinates. ``resolution`` is
-    nominal average sampling distance in metres for curved segments (default
-    1e-4 m), not a geometric error bound. Straight segments use endpoints only.
-
-    Geometry is approximated on demand, then resampled uniformly along the
-    intermediate polygon at the requested point count. Smaller resolution
-    refines the SVG approximation independently of the final point count.
-    Path editor: https://acc-models.web.cern.ch/svg-path-editor/
+    ``svg_path`` is an SVG path string. ``scale`` converts its coordinate units
+    to metres (default 0.001, one SVG unit corresponds to 1 millimetre). The
+    SVG y-axis is inverted to physical y-up coordinates. The ``resolution``
+    defines the average sampling distance in metres, which will be used to
+    covert the path to a polygon, later used for uniform resampling.
     """
 
-    svg_data = xo.String
-    scale = FloatType
-    resolution = FloatType
-
-    def __init__(self, svg_data=None, scale=0.001, resolution=1e-4, **kwargs):
-        # UnionRef supplies a dictionary on rehydration, or an existing shape
-        # when copying it to a different buffer.
-        if isinstance(svg_data, SVGShape):
-            svg_data = svg_data._to_dict()
-        if isinstance(svg_data, dict):
-            fields = dict(svg_data)
-            svg_data = fields.pop('svg_data')
-            scale = fields.pop('scale', scale)
-            resolution = fields.pop('resolution', resolution)
-            kwargs = {**fields, **kwargs}
-        from xtrack.svgutils import svg_to_points_by_resolution
-        svg_to_points_by_resolution(svg_data, resolution=resolution, scale=scale)
-        super().__init__(svg_data=svg_data, scale=scale, resolution=resolution, **kwargs)
+    svg_path = xo.String
+    scale = xo.Field(FloatType, default=0.001)
+    resolution = xo.Field(FloatType, default=1e-4)
 
     def valid(self):
-        from xtrack.svgutils import svg_to_points_by_resolution
         try:
-            svg_to_points_by_resolution(str(self.svg_data), self.resolution, self.scale)
+            svg_to_points_by_resolution(self.svg_path, self.resolution, self.scale)
         except (ValueError, TypeError, OverflowError):
             return False
         return True
@@ -444,16 +425,15 @@ class SVGShape(xo.Struct):
         ``resolution`` independently controls its SVG approximation.
         Write into and return ``out_poly`` when supplied.
         """
-        from xtrack.svgutils import svg_to_points_by_resolution
         points = _polygon_output(len_points, out_poly)
         vertices = svg_to_points_by_resolution(
-            str(self.svg_data), resolution=self.resolution, scale=self.scale)
+            self.svg_path, resolution=self.resolution, scale=self.scale)
         polygon = Polygon(vertices=vertices, _context=self._context)
         return polygon.build_polygon(len_points, out_poly=points)
 
     def __repr__(self):
         return (f'SVGShape(scale={self.scale}, resolution={self.resolution}, '
-                f'path={str(self.svg_data)[:40]!r}...)')
+                f'svg_path={self.svg_path[:40]!r}...)')
 
 
 ShapeTypes = Union[Circle, Rectangle, Ellipse, RectEllipse, Racetrack, Octagon, Polygon, SVGShape]

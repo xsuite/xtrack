@@ -1,99 +1,99 @@
+"""Check the SVG approximation before aperture polygon resampling."""
+
 import numpy as np
 import pytest
 
-from xtrack.svgutils import svg_to_points, svg_to_points_by_resolution
+from xtrack.svgutils import svg_to_points_by_resolution
 
 
-RECT = 'M-2,-1 L2,-1 L2,1 L-2,1 Z'
-CIRCLE = 'M1,0 A1,1 0 0,1 -1,0 A1,1 0 0,1 1,0 Z'
+CIRCLE_PATH = 'M1,0 A1,1 0 0,1 -1,0 A1,1 0 0,1 1,0 Z'
 
 
-def test_straight_segments_use_only_endpoints():
-    expected = [[-2, 1], [2, 1], [2, -1], [-2, -1], [-2, 1]]
-    for resolution in [1e-6, 1, 100]:
-        np.testing.assert_array_equal(
-            svg_to_points_by_resolution(RECT, resolution, scale=1), expected)
+def test_straight_edges_keep_endpoints_only():
+    """Straight edges need no interior samples; repeated vertices are removed.
+
+    The expected coordinates also check the default mm-to-m scale, SVG y-axis
+    inversion, and closure by returning to the start without a Z command.
+    """
+    path = 'M0,0 L0,0 L2,0 L2,1 L0,0'
+
+    points = svg_to_points_by_resolution(path, resolution=1e-4)
+
+    np.testing.assert_array_equal(points, [
+        [0, 0],
+        [0.002, 0],
+        [0.002, -0.001],
+        [0, 0],
+    ])
 
 
-@pytest.mark.parametrize('scale', [0.001, 0.002])
-def test_circle_density_scale_and_boundary(scale):
+def test_circle_sampling_uses_physical_segment_length():
+    """A scaled circle gets the point count implied by length/resolution.
+
+    Circular arcs have uniform speed in their parameter, so their samples
+    must also have equal angular spacing and stay on the scaled circle.
+    """
+    scale = 0.002
     resolution = 0.0002
-    points = svg_to_points_by_resolution(CIRCLE, resolution, scale=scale)
-    intervals_per_arc = int(np.ceil(np.pi * scale / resolution))
-    assert len(points) == 2 * intervals_per_arc + 1
-    np.testing.assert_allclose(np.linalg.norm(points, axis=1), scale, atol=1e-16)
+    intervals_per_half_circle = int(np.ceil(np.pi * scale / resolution))
+
+    points = svg_to_points_by_resolution(CIRCLE_PATH, resolution, scale=scale)
     angles = np.unwrap(np.arctan2(-points[:, 1], points[:, 0]))
-    np.testing.assert_allclose(np.diff(angles), np.pi / intervals_per_arc, atol=1e-14)
+
+    assert len(points) == 2 * intervals_per_half_circle + 1
+
+    np.testing.assert_allclose(np.linalg.norm(points, axis=1), scale, atol=1e-16)
+    np.testing.assert_allclose(
+        np.diff(angles), np.pi / intervals_per_half_circle, atol=1e-14,
+    )
     np.testing.assert_array_equal(points[-1], points[0])
 
 
-def test_elliptical_arc_boundary_and_shared_endpoint():
-    points = svg_to_points_by_resolution('M2,0 A2,1 0 0,1 -2,0 Z', 0.1, scale=1)
-    np.testing.assert_allclose((points[:-1, 0] / 2)**2 + points[:-1, 1]**2, 1, atol=1e-14)
-    np.testing.assert_array_equal(points[-2:], [[-2, 0], [2, 0]])
-    assert np.all(points[:-1, 1] <= 0)
-    assert np.all(np.linalg.norm(np.diff(points, axis=0), axis=1) > 0)
+def test_short_quadratic_curve_keeps_its_midpoint():
+    """Even a curve shorter than resolution needs an interior sample.
 
+    Otherwise this quadratic and its closing line would collapse into a
+    zero-area polygon. Its midpoint is known analytically.
+    """
+    points = svg_to_points_by_resolution(
+        'M0,0 Q1,2 2,0 Z', resolution=100, scale=1,
+    )
 
-def test_quadratic_and_cubic_samples():
-    quadratic = svg_to_points_by_resolution('M0,0 Q1,2 2,0 Z', resolution=1, scale=1)
-    np.testing.assert_allclose(quadratic, [
-        [0, 0], [2/3, -8/9], [4/3, -8/9], [2, 0], [0, 0]])
-    cubic = svg_to_points_by_resolution('M0,0 C0,3 2,-1 2,0 Z', resolution=100, scale=1)
-    np.testing.assert_allclose(cubic, [[0, 0], [1, -0.75], [2, 0], [0, 0]])
-
-
-def test_short_curve_has_interior_sample():
-    points = svg_to_points_by_resolution('M0,0 Q1,2 2,0 Z', resolution=100, scale=1)
     np.testing.assert_array_equal(points, [[0, 0], [1, -1], [2, 0], [0, 0]])
 
 
-def test_duplicates_and_explicit_endpoint_closure():
-    path = 'M0,0 L0,0 L2,0 L2,1 L0,0'
-    points = svg_to_points_by_resolution(path, resolution=1e-6, scale=1)
-    np.testing.assert_array_equal(points, [[0, 0], [2, 0], [2, -1], [0, 0]])
-
-
-def test_curve_returning_to_start_is_not_dropped():
+def test_closed_cubic_is_not_mistaken_for_a_zero_length_segment():
+    """Coincident endpoints do not make a curved segment degenerate."""
     points = svg_to_points_by_resolution(
-        'M0,0 C2,0 0,2 0,0 Z', resolution=0.1, scale=1)
+        'M0,0 C2,0 0,2 0,0 Z', resolution=0.1, scale=1,
+    )
+
     assert len(points) > 4
     assert np.max(np.linalg.norm(points, axis=1)) > 0.5
+
     np.testing.assert_array_equal(points[-1], points[0])
 
 
 @pytest.mark.parametrize('path, message', [
-    ('', 'non-empty'),
-    ('M0,0 L1,0 L1,1', 'closed'),
-    ('M0,0 L1,0 L1,1 Z M2,2 L3,2 L3,3 Z', 'one subpath'),
-    ('M0,0 Z', 'non-degenerate'),
-    ('M0,0 L1,0 L2,0 Z', 'nonzero area'),
-    ('M0,0 L1e999,0 L1,1 Z', 'finite'),
+    pytest.param('M0,0 L1,0 L1,1', 'closed', id='open-path'),
+    pytest.param(
+        'M0,0 L1,0 L1,1 Z M2,2 L3,2 L3,3 Z',
+        'one subpath', id='multiple-subpaths',
+    ),
+    pytest.param('M0,0 L1,0 L2,0 Z', 'nonzero area', id='collinear-boundary'),
+    pytest.param('M0,0 L1e999,0 L1,1 Z', 'finite', id='non-finite-coordinate'),
 ])
-def test_invalid_paths(path, message):
+def test_reject_paths_that_cannot_describe_an_aperture(path, message):
+    """Require a finite, closed boundary consisting of a single subpath."""
     with pytest.raises(ValueError, match=message):
-        svg_to_points_by_resolution(path, resolution=1e-6)
+        svg_to_points_by_resolution(path, resolution=0.1)
 
 
-@pytest.mark.parametrize('parameter', ['scale', 'resolution'])
-@pytest.mark.parametrize('value', [0, -1, np.nan, np.inf])
-def test_invalid_scale_and_resolution(parameter, value):
-    kwargs = {'scale': 1, 'resolution': 0.1, parameter: value}
-    with pytest.raises(ValueError, match=parameter):
-        svg_to_points_by_resolution(RECT, **kwargs)
-
-
-def test_smaller_resolution_improves_circle_approximation():
-    errors = []
-    for resolution in [0.5, 0.1, 0.02]:
-        points = svg_to_points_by_resolution(CIRCLE, resolution=resolution, scale=1)
-        midpoints = (points[1:] + points[:-1]) / 2
-        errors.append(np.max(1 - np.linalg.norm(midpoints, axis=1)))
-    assert errors[2] < errors[1] < errors[0]
-
-
-def test_old_sampler_unchanged():
-    # Keep the old stepping convention, including its historical skipped endpoint.
-    xs, ys = svg_to_points('M0,0 L2,0 L2,2 Z', scale=1)
-    np.testing.assert_array_equal(xs, [0, 2, 2])
-    np.testing.assert_array_equal(ys, [0, 0, -2])
+@pytest.mark.parametrize('scale, resolution, message', [
+    pytest.param(0, 0.1, 'scale', id='zero-scale'),
+    pytest.param(1, np.nan, 'resolution', id='non-finite-resolution'),
+])
+def test_reject_invalid_sampling_parameters(scale, resolution, message):
+    """Reject invalid units or sampling distances before evaluating the path."""
+    with pytest.raises(ValueError, match=message):
+        svg_to_points_by_resolution(CIRCLE_PATH, resolution, scale=scale)

@@ -89,7 +89,7 @@ def _profile_from_limit_racetrack(element: LimitRacetrack) -> Tuple[ShapeTypes, 
 def _profile_from_limit_polygon(element: LimitPolygon) -> Tuple[ShapeTypes, float, float]:
     """Preserve SVG parameters; resolution and final point count replace step counts."""
     if element.svg is not None:
-        return SVGShape(svg_data=element.svg['path'],
+        return SVGShape(svg_path=element.svg['path'],
                         scale=element.svg.get('scale', 0.001)), 0, 0
     xs = np.asarray(element.x_closed)
     ys = np.asarray(element.y_closed)

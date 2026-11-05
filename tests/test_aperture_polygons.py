@@ -12,16 +12,17 @@ from xtrack.aperture.structures import (
 
 @pytest.fixture(scope="module")
 def context():
-    # This is to avoid recompilation for every test
-    context = xo.ContextCpu()
-    return context
+    """Reuse one CPU context for all polygon kernels in this module."""
+    return xo.ContextCpu()
 
 
 @pytest.fixture(scope="module")
 def build_polygon_for_profile(context):
-    def _build_polygon_for_profile(profile: ShapeTypes, len_points: int):
-        shape = type(profile)(profile._to_dict(), _context=context)
-        return shape.build_polygon(len_points=len_points)
+    """Build each shape on the shared context, using its public polygon API."""
+
+    def _build_polygon_for_profile(shape: ShapeTypes, len_points: int):
+        context_shape = type(shape)(shape._to_dict(), _context=context)
+        return context_shape.build_polygon(len_points=len_points)
 
     return _build_polygon_for_profile
 
@@ -334,21 +335,24 @@ def test_polygon_correctness_and_uniformity(build_polygon_for_profile):
 
 
 def test_polygon_clockwise_orientation(build_polygon_for_profile):
+    """Clockwise input must be resampled as a closed anticlockwise polygon."""
     cw_vertices = np.array([
         [-3.0, -1.0],
         [-3.0, 2.0],
         [3.0, 2.0],
         [3.0, -1.0],
     ])
-    pts = build_polygon_for_profile(Polygon(vertices=cw_vertices), 37)
 
-    assert pts.shape == (37, 2)
-    assert_polyline(pts)
-    assert_polygon_boundary_and_uniformity(pts, cw_vertices[::-1])
-    assert polygon_signed_area(pts) > 0
+    points = build_polygon_for_profile(Polygon(vertices=cw_vertices), 37)
+
+    assert points.shape == (37, 2)
+    assert_polyline(points)
+    assert_polygon_boundary_and_uniformity(points, cw_vertices[::-1])
+    assert polygon_signed_area(points) > 0
 
 
 def test_polygon_concave_boundary(build_polygon_for_profile):
+    """Resampling must preserve the indented boundary of a concave polygon."""
     concave_vertices = np.array([
         [-3.0, -1.0],
         [0.0, -1.0],
@@ -357,8 +361,9 @@ def test_polygon_concave_boundary(build_polygon_for_profile):
         [3.0, 2.0],
         [-3.0, 2.0],
     ])
-    pts = build_polygon_for_profile(Polygon(vertices=concave_vertices), 61)
 
-    assert pts.shape == (61, 2)
-    assert_polyline(pts)
-    assert_polygon_boundary_and_uniformity(pts, concave_vertices)
+    points = build_polygon_for_profile(Polygon(vertices=concave_vertices), 61)
+
+    assert points.shape == (61, 2)
+    assert_polyline(points)
+    assert_polygon_boundary_and_uniformity(points, concave_vertices)

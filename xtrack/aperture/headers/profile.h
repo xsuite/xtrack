@@ -73,17 +73,20 @@ static inline void build_octagon_polygon(float_type *const out_points, const uin
 }
 
 
-static inline int8_t build_polygon_polygon(
+static inline void build_polygon_polygon(
     float_type *const out_points,
     const uint32_t len_points,
     const float_type *const vertices,
     const uint32_t len_vertices
 )
+/*
+    Resample the input polygon into len_points closed, anticlockwise points.
+*/
 {
     Point2D *const points = (Point2D*) out_points;
     const Point2D *const polygon_vertices = (const Point2D*) vertices;
     if (len_vertices <= 0)
-        return 0;
+        return;
 
     const int is_closed = len_vertices > 1
         && point2d_distance(
@@ -92,7 +95,7 @@ static inline int8_t build_polygon_polygon(
         ) <= APER_PRECISION;
     const int num_unique_vertices = is_closed ? len_vertices - 1 : len_vertices;
     if (num_unique_vertices < 2)
-        return 0;
+        return;
 
     Point2D ordered_vertices[num_unique_vertices];
     Segment2D segments[num_unique_vertices];
@@ -106,9 +109,8 @@ static inline int8_t build_polygon_polygon(
     Path2D path = {.segments = segments, .len_segments = num_unique_vertices};
     segments_from_polygon(ordered_vertices, num_unique_vertices, segments, &path.len_segments);
     if (path.len_segments == 0)
-        return 0;
+        return;
     poly_get_n_uniform_points(&path, len_points, points);
-    return 1;
 }
 
 #endif /* XTRACK_PROFILE_H */
