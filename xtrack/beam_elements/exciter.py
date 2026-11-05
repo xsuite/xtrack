@@ -25,7 +25,7 @@ class Exciter(BeamElement):
     It is *not* assumed that the variations are slow compared to the revolution frequency
     and the particle arrival time is taken into account when determining the sample index:
 
-        i = sampling_frequency * ( ( at_turn - start_turn ) / f_rev - zeta / beta0 / c0 )
+        i = floor( sampling_frequency * ( ( at_turn - start_turn ) / f_rev - zeta / beta0 / c0 ) )
 
     where zeta=(s-beta0*c0*t) is the longitudinal coordinate of the particle, beta0 the
     relativistic beta factor of the particle, c0 is the speed of light, at_turn is the
