@@ -5,7 +5,7 @@
 import numpy as np
 import pytest
 from scipy.constants import c as clight
-from xobjects.test_helpers import allow_kernel_compilation
+from xobjects.test_helpers import allow_kernel_compilation, for_all_test_contexts
 
 import xtrack as xt
 import xobjects as xo
@@ -321,3 +321,39 @@ def test_energy0_setter():
     xo.assert_allclose(p.energy0, energy0_expected, rtol=1e-14, atol=1e-14)
     xo.assert_allclose(p.kinetic_energy0, kin_energy0_expected, rtol=1e-14, atol=1e-14)
     xo.assert_allclose(p.p0c, p0c_expected, rtol=1e-14, atol=1e-14)
+
+
+@for_all_test_contexts
+def test_kinetic_momentum_is_kept_through_a_reference_energy_increase(test_context):
+    # ax/ay carry q*A/p0, normalized like px/py, so kin_px * p0c does not change with p0c.
+    ctx2np = test_context.nparray_from_context_array
+    particles = xt.Particles(_context=test_context, p0c=1e10, px=1e-3, py=-2e-3, ax=4e-4, ay=-5e-4)
+
+    xt.ReferenceEnergyIncrease(Delta_p0c=1e10).track(particles)
+
+    xo.assert_allclose(ctx2np(particles.kin_px)[0] * 2e10, (1e-3 - 4e-4) * 1e10, rtol=1e-14)
+    xo.assert_allclose(ctx2np(particles.kin_py)[0] * 2e10, (-2e-3 + 5e-4) * 1e10, rtol=1e-14)
+
+
+def test_kinetic_momentum_is_kept_when_p0c_is_updated_from_python():
+    particles = xt.Particles(p0c=1e10, px=1e-3, py=-2e-3, ax=4e-4, ay=-5e-4)
+
+    particles.update_p0c_and_energy_deviations(p0c=2e10, update_pxpy=True)
+
+    xo.assert_allclose(particles.kin_px[0] * 2e10, (1e-3 - 4e-4) * 1e10, rtol=1e-14)
+    xo.assert_allclose(particles.kin_py[0] * 2e10, (-2e-3 + 5e-4) * 1e10, rtol=1e-14)
+
+
+def test_twiss_kinetic_momentum_is_kept_through_a_reference_energy_increase():
+    # A solenoid sets ax/ay, so kin_px differs from px at the reference step inside it.
+    line = xt.Line(elements={
+        'before_step': xt.UniformSolenoid(length=1., ks=.5, edge_exit_active=False),
+        'step': xt.ReferenceEnergyIncrease(Delta_p0c=1e8),
+        'after_step': xt.UniformSolenoid(length=1., ks=.5 / 1.1, edge_entry_active=False)})
+    line.particle_ref = xt.Particles(p0c=1e9)
+    line.build_tracker()
+
+    tw = line.twiss4d(betx=1, bety=1, x=1e-3, start='before_step', end='_end_point')
+
+    xo.assert_allclose(tw['kin_px', 'after_step'] * 1.1e9, tw['kin_px', 'step'] * 1e9, rtol=1e-12)
+    xo.assert_allclose(tw['kin_py', 'after_step'] * 1.1e9, tw['kin_py', 'step'] * 1e9, rtol=1e-12)
