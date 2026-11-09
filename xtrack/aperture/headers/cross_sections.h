@@ -5,7 +5,7 @@
 #include <stdlib.h>
 
 #include "base.h"
-#include "profile.h"
+#include "polygon_algs.h"
 #include "survey_tools.h"
 #include "zigzag_iterate.h"
 #include "convert_curvilinear.h"
@@ -24,7 +24,7 @@ typedef struct {
     float_type tol_y;  // vertical tolerance for point-in-aperture check
 } BeamApertureLocalData;
 
-void build_profile_polygons(
+void build_aperture_bounds(
     const LineApertureModel,
     const ApertureEnvStruct,
     const ProfilePolygons,
@@ -121,7 +121,7 @@ static inline Pose pose_from_pipe_position(const PipePosition pipe_pos)
 }
 
 
-void build_profile_polygons(
+void build_aperture_bounds(
     const LineApertureModel model,
     const ApertureEnvStruct aperture_env,
     const ProfilePolygons profile_polygons,
@@ -130,22 +130,11 @@ void build_profile_polygons(
 )
     /*
       Based on the aperture model and cross section location data, generate
-      the bounds for each installed profile.
+      the bounds for each installed profile. Profile polygons must already be filled.
     */
 {
     const int8_t is_ring = LineApertureModel_get_is_ring(model);
-    const uint32_t num_profiles = ProfilePolygons_get_count(profile_polygons);
     const uint32_t num_cross_sections = ApertureBounds_get_count(aperture_bounds);
-
-    /* First generate polygons for profiles */
-    for (uint32_t idx = 0; idx < num_profiles; idx++)
-    {
-        const Profile profile = ApertureEnvStruct_getp1_profiles(aperture_env, idx);
-        float_type *const points = ProfilePolygons_getp3_points(profile_polygons, idx, 0, 0);
-        const uint32_t len_points = ProfilePolygons_get_len_points(profile_polygons);
-
-        build_polygon_for_profile(points, len_points, profile, NULL);
-    }
 
     /*
         Pre-process all installed profiles: compute correct s-positions for:
