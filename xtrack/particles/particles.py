@@ -456,6 +456,37 @@ class Particles(xo.HybridClass):
         if 'name' in kwargs.keys():
             self.name = kwargs['name']
 
+    def copy(self, _context=None, _buffer=None, _offset=None):
+        """Copy particles, preparing CPU destinations for tracking.
+
+        When copying from a GPU context, or when the particle counts are
+        invalid, reorganize the CPU copy with active particles first. The
+        source particles are left unchanged.
+        """
+        particles = super().copy(
+            _context=_context, _buffer=_buffer, _offset=_offset)
+        particles._reorganize_after_transfer(self._context)
+        return particles
+
+    def move(self, _context=None, _buffer=None, _offset=None):
+        """Move particles, preparing CPU destinations for tracking.
+
+        When moving from a GPU context, or when the particle counts are
+        invalid, reorganize the particles on CPU with active particles first.
+        """
+        source_context = self._context
+        super().move(_context=_context, _buffer=_buffer, _offset=_offset)
+        self._reorganize_after_transfer(source_context)
+
+    def _reorganize_after_transfer(self, source_context):
+        if isinstance(self._context, xo.ContextCpu) and (
+                not isinstance(source_context, xo.ContextCpu)
+                or self._num_active_particles < 0
+                or self._num_lost_particles < 0):
+            # GPU tracking does not maintain these counts, even if they were
+            # populated on CPU before transferring the particles to the GPU.
+            self.reorganize()
+
     @classmethod
     def from_dict(cls, dct, load_rng_state=True, **kwargs):
 
