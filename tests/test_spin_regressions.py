@@ -125,6 +125,9 @@ def test_polarization_4d_planar_limit():
     for ks in [0., 1e-8, 0.01]:
         line = _spin_test_ring(ks=ks, angle=0.01)
         tw = line.twiss4d(polarization_analysis=True)
+        for name, value in tw._data.items():
+            if name.startswith('spin_') and name not in tw._col_names:
+                assert type(value) is float, name
         if ks == 0:
             assert np.isposinf(tw.spin_t_depol_component_s)
         elif ks == 0.01:

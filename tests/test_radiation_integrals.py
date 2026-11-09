@@ -24,10 +24,18 @@ def test_radiation_integrand_columns():
                     dx=0.2, dy=0.1, dpx=0.01, dpy=0.02,
                     radiation_integrals=True)
 
+    assert type(tw.rad_int_energy_loss) is float
+    assert type(tw['rad_int_energy_loss']) is float
+    for table in [tw, tw._get_radiation_integrals()]:
+        for name in table._data:
+            if name.startswith('rad_int_') and name not in table._col_names:
+                assert type(table._data[name]) is float, name
+
     for integral in ['i1x', 'i1y', 'i2', 'i3', 'i4', 'i4x', 'i4y', 'i5x', 'i5y']:
         scalar_name = f'rad_int_{integral}'
         column_name = f'{scalar_name}_integrand'
         assert column_name in tw._col_names
+        assert type(tw[scalar_name]) is float
         assert abs(tw[scalar_name]) > 1e-12  # Avoid trivial zero-equals-zero checks.
         np.testing.assert_allclose(
             np.sum(tw[column_name] * tw.length), tw[scalar_name],
@@ -151,6 +159,10 @@ def test_radiation_integrals_sls_combined_function_magnets():
 
     tw_rad = line.twiss(radiation_analysis=True, strengths=True,
                         radiation_method='full')
+
+    for name in ['energy_loss', 'eq_gemitt_x', 'eq_gemitt_y', 'eq_gemitt_zeta',
+                 'eq_nemitt_x', 'eq_nemitt_y', 'eq_nemitt_zeta']:
+        assert type(tw_rad._data[name]) is float, name
 
     tw_integrals = line.twiss(radiation_integrals=True)
 

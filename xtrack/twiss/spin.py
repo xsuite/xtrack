@@ -339,19 +339,19 @@ def _add_spin_polarization(tw, line, method):
         }
 
         other_data = {
-            'spin_tune_fractional': spin_tune_fractional,
-            'spin_polarization_eq': pol_eq,
-            'spin_t_pol_buildup_s': t_pol_buildup_s,
-            'spin_polarization_inf_no_depol': pol_inf,
-            'spin_alpha_plus_co': alpha_plus_co,
-            'spin_alpha_minus_co': alpha_minus_co,
-            'spin_alpha_plus': alpha_plus,
-            'spin_alpha_minus': alpha_minus,
-            'spin_int_kappa3_n0_ib': int_kappa3_n0_ib,
-            'spin_int_kappa3_dn_ddelta_ib': int_kappa3_dn_ddelta_ib,
-            'spin_int_kappa3_11_18_dn_ddelta_sq': int_kappa3_11_18_dn_ddelta_sq,
-            'spin_t_pol_component_s': t_pol_component_s,
-            'spin_t_depol_component_s': t_depol_component_s,
+            'spin_tune_fractional': float(spin_tune_fractional),
+            'spin_polarization_eq': float(pol_eq),
+            'spin_t_pol_buildup_s': float(t_pol_buildup_s),
+            'spin_polarization_inf_no_depol': float(pol_inf),
+            'spin_alpha_plus_co': float(alpha_plus_co),
+            'spin_alpha_minus_co': float(alpha_minus_co),
+            'spin_alpha_plus': float(alpha_plus),
+            'spin_alpha_minus': float(alpha_minus),
+            'spin_int_kappa3_n0_ib': float(int_kappa3_n0_ib),
+            'spin_int_kappa3_dn_ddelta_ib': float(int_kappa3_dn_ddelta_ib),
+            'spin_int_kappa3_11_18_dn_ddelta_sq': float(int_kappa3_11_18_dn_ddelta_sq),
+            'spin_t_pol_component_s': float(t_pol_component_s),
+            'spin_t_depol_component_s': float(t_depol_component_s),
 
             # For diagnostics
             '_spin_ee_side': EE_side,

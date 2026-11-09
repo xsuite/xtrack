@@ -92,7 +92,7 @@ def _get_chromatic_functions(
                   'ax_chrom': ax_chrom, 'ay_chrom': ay_chrom,
                   'wx_chrom': wx_chrom, 'wy_chrom': wy_chrom,
                   }
-    scalars_chrom = {'dqx': dqx, 'dqy': dqy}
+    scalars_chrom = {'dqx': float(dqx), 'dqy': float(dqy)}
 
     if on_momentum_twiss_res is not None:
 
@@ -141,7 +141,7 @@ def _get_chromatic_functions(
 
         cols_chrom.update({'ddx': ddx, 'ddpx': ddpx,
                            'ddy': ddy, 'ddpy': ddpy})
-        scalars_chrom.update({'ddqx': ddqx, 'ddqy': ddqy})
+        scalars_chrom.update({'ddqx': float(ddqx), 'ddqy': float(ddqy)})
 
     return cols_chrom, scalars_chrom
 
