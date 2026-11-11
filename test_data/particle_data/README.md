@@ -229,6 +229,10 @@ Automatic defaults apply only to the nominal species mass and charge; custom
 reference definitions retain zero unless an anomaly is supplied explicitly.
 Partially stripped ions are not inferred from fully stripped nuclear data.
 
+CPU spin calculations warn about zero anomaly, corresponding to `g = 2`,
+except for known spin-zero species. GPU diagnostics can check a CPU reference
+when available; they do not check particles stored on the device.
+
 These data support vector BMT precession where applicable. They do not
 implement higher-spin tensor polarization or extend electron/positron
 radiative-polarization formulae to nuclei.

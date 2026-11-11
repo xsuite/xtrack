@@ -1,5 +1,6 @@
 import numpy as np
 import pytest
+import warnings
 from scipy.spatial.transform import Rotation
 
 import xtrack as xt
@@ -311,3 +312,249 @@ def test_nuclear_moment_solenoid_precession(species, spin, moment):
     np.testing.assert_allclose(
         [particle.spin_x[0], particle.spin_y[0], particle.spin_z[0]],
         expected, atol=1e-12, rtol=0)
+
+
+@pytest.mark.parametrize('route', ['line', 'twiss'])
+def test_zero_anomaly_spin_warning(route):
+    if route == 'twiss':
+        line = _spin_test_ring(anomalous_magnetic_moment=0.)
+        with pytest.warns(UserWarning, match='anomalous_magnetic_moment=0'):
+            line.twiss4d(spin=True)
+    else:
+        particle = xt.Particles('electron', p0c=5e9, spin_y=1.,
+                                anomalous_magnetic_moment=0.)
+        line = xt.Line(elements=[xt.Drift(length=1.)])
+        line.configure_spin('auto')
+        with pytest.warns(UserWarning, match='anomalous_magnetic_moment=0'):
+            line.track(particle)
+
+
+def test_spin_diagnostic_once_per_batch_and_cycle(monkeypatch):
+    import gc
+    from weakref import ref
+
+    calls = 0
+    original = xt.Particles._warn_if_spin_anomaly_is_zero
+
+    def check(particle, **kwargs):
+        nonlocal calls
+        calls += 1
+        return original(particle, **kwargs)
+
+    monkeypatch.setattr(xt.Particles, '_warn_if_spin_anomaly_is_zero', check)
+    line = xt.Line(elements=[xt.Drift(length=1.)])
+    line.configure_spin('auto')
+    particle = xt.Particles('electron', p0c=5e9, spin_y=1.,
+                            anomalous_magnetic_moment=0.)
+    with pytest.warns(UserWarning, match='anomalous_magnetic_moment=0'):
+        line.track(particle)
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter('always')
+        line.track(particle)
+        line.track(particle)
+    assert not caught
+    assert calls == 1
+    line.configure_spin('auto')
+    with pytest.warns(UserWarning, match='anomalous_magnetic_moment=0'):
+        line.track(particle)
+    assert calls == 2
+    # The one-time check must not keep a particle batch or its buffer alive.
+    weak_particle = ref(particle)
+    del particle
+    gc.collect()
+    assert weak_particle() is None
+
+
+def test_spin_diagnostic_checks_alternating_batches_once(monkeypatch):
+    calls = []
+    original = xt.Particles._warn_if_spin_anomaly_is_zero
+
+    def check(particle, **kwargs):
+        calls.append(particle)
+        return original(particle, **kwargs)
+
+    monkeypatch.setattr(xt.Particles, '_warn_if_spin_anomaly_is_zero', check)
+    line = xt.Line(elements=[xt.Drift(length=1.)])
+    line.configure_spin('auto')
+    batches = [xt.Particles('electron', p0c=5e9, spin_y=1.),
+               xt.Particles('electron', p0c=5e9, spin_y=1.,
+                            anomalous_magnetic_moment=0.)]
+    line.track(batches[0])
+    with pytest.warns(UserWarning, match='anomalous_magnetic_moment=0'):
+        line.track(batches[1])
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter('always')
+        for particle in batches * 2:
+            line.track(particle)
+    assert not caught
+    assert calls == batches
+
+
+@pytest.mark.parametrize('route', ['co_guess', 'complete_init',
+                                 'particle_on_co', 'deferred_init'])
+def test_spin_diagnostic_uses_resolved_twiss_particle(route):
+    line = _spin_test_ring()
+    for anomaly in [0., line.particle_ref.anomalous_magnetic_moment[0]]:
+        actual = xt.Particles('electron', p0c=5e9,
+                              anomalous_magnetic_moment=anomaly, spin_y=1.)
+        ignored = xt.Particles('electron', p0c=5e9, spin_y=1.,
+                               anomalous_magnetic_moment=(0.01 if anomaly == 0 else 0.))
+        line.particle_ref = ignored
+        if route == 'co_guess':
+            kwargs = dict(co_guess={'particle_ref': actual}, particle_ref=ignored)
+        elif route == 'complete_init':
+            init = xt.TwissInit(particle_on_co=actual, W_matrix=np.eye(6),
+                                element_name=line.element_names[0])
+            kwargs = dict(start=line.element_names[0], end=line.element_names[-1],
+                          init=init, particle_on_co=ignored)
+        elif route == 'particle_on_co':
+            kwargs = dict(particle_on_co=actual)
+        else:
+            init = xt.TwissInit(betx=1., bety=1., spin_y=1.)
+            kwargs = dict(start=line.element_names[0], end=line.element_names[-1],
+                          init=init, particle_ref=actual)
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter('always')
+            result = line.twiss4d(spin=True, **kwargs)
+        messages = [item for item in caught
+                    if 'anomalous_magnetic_moment=0' in str(item.message)]
+        assert bool(messages) == (anomaly == 0)
+        assert result.particle_on_co.anomalous_magnetic_moment[0] == anomaly
+
+
+def test_bare_element_does_not_scan_spin_moments(monkeypatch):
+    def unexpected(*args, **kwargs):
+        raise AssertionError('No per-element diagnostic is allowed')
+
+    monkeypatch.setattr(xt.Particles, '_warn_if_spin_anomaly_is_zero', unexpected)
+    element = xt.Drift(length=1.)
+    particle = xt.Particles('electron', p0c=5e9, spin_y=1.,
+                            anomalous_magnetic_moment=0.)
+    element.track(particle)
+
+
+def test_spin_diagnostic_does_not_read_device_arrays():
+    class DeviceParticle:
+        _context = object()
+
+        def __getattr__(self, name):
+            raise AssertionError(f'Device particle field read: {name}')
+
+    xt.Particles._warn_if_spin_anomaly_is_zero(DeviceParticle())
+
+
+def test_gpu_spin_setup_checks_cpu_reference(monkeypatch):
+    line = xt.Line(elements=[xt.Drift(length=1.)])
+    line.particle_ref = xt.Particles('electron', p0c=5e9,
+                                    anomalous_magnetic_moment=0.)
+    # Exercise the setup boundary without requiring a GPU installation.
+    monkeypatch.setattr(xt.Line, '_context', property(lambda self: object()))
+    with pytest.warns(UserWarning, match='anomalous_magnetic_moment=0'):
+        line.configure_spin('auto')
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter('always')
+        line._check_spin_moment_at_gpu_setup()
+    assert not caught
+
+
+def test_gpu_spin_warning_as_error_preserves_configuration(monkeypatch):
+    line = xt.Line(elements=[xt.Drift(length=1.)])
+    line.particle_ref = xt.Particles('electron', p0c=5e9,
+                                    anomalous_magnetic_moment=0.)
+    line.config.XTRACK_MULTIPOLE_NO_SYNRAD = True
+    monkeypatch.setattr(xt.Line, '_context', property(lambda self: object()))
+    with warnings.catch_warnings():
+        warnings.simplefilter('error', UserWarning)
+        with pytest.raises(UserWarning, match='anomalous_magnetic_moment=0'):
+            line.configure_spin('auto')
+    assert line._spin_model == 'auto'
+    assert not line.config.get('XTRACK_MULTIPOLE_NO_SYNRAD', False)
+
+
+def test_unbuilt_cpu_line_defers_spin_diagnostic_to_tracking():
+    line = xt.Line(elements=[xt.Drift(length=1.)])
+    line.particle_ref = xt.Particles('electron', p0c=5e9,
+                                    anomalous_magnetic_moment=0.)
+    assert line._context is None
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter('always')
+        line.configure_spin('auto')
+    assert not caught
+    particle = xt.Particles('electron', p0c=5e9, spin_y=1.,
+                            anomalous_magnetic_moment=0.)
+    with pytest.warns(UserWarning, match='anomalous_magnetic_moment=0'):
+        line.track(particle)
+
+
+def test_spin_diagnostic_accepts_coordinate_guess_dict():
+    line = _spin_test_ring(anomalous_magnetic_moment=0.)
+    with pytest.warns(UserWarning, match='anomalous_magnetic_moment=0'):
+        line.twiss4d(spin=True, co_guess={'x': 0.})
+
+
+@pytest.mark.parametrize('tracked', [False, True])
+def test_spin_diagnostic_cache_not_serialized(tracked):
+    import pickle
+
+    line = xt.Line(elements=[xt.Drift(length=1.)])
+    line.configure_spin('auto')
+    if tracked:
+        particle = xt.Particles('electron', p0c=5e9)
+        line.track(particle)
+    restored = pickle.loads(pickle.dumps(line))
+    assert restored._spin_model == 'auto'
+    assert '_spin_moment_checked_particles' not in restored.__dict__
+
+
+@pytest.mark.parametrize('case', ['unpolarized', 'lost', 'physical', 'mixed',
+                                 'Pb208', 'O16'])
+def test_zero_anomaly_spin_warning_selects_live_spins(case):
+    # In 'mixed', zero anomaly and nonzero spin occur on different particles.
+    species = case if case in ['Pb208', 'O16'] else 'electron'
+    kwargs = {
+        'unpolarized': dict(anomalous_magnetic_moment=0.),
+        'lost': dict(anomalous_magnetic_moment=0., spin_y=1., state=-1),
+        'physical': dict(spin_y=1.),
+        'mixed': dict(anomalous_magnetic_moment=[0., 0.01], spin_y=[0., 1.]),
+        'Pb208': dict(spin_y=1.),
+        'O16': dict(spin_y=1.),
+    }[case]
+    particle = xt.Particles(species, p0c=5e9, **kwargs)
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter('always')
+        particle._warn_if_spin_anomaly_is_zero()
+    assert not caught
+
+
+def test_zero_anomaly_no_warning_with_spin_disabled(monkeypatch):
+    def unexpected(*args, **kwargs):
+        raise AssertionError('Spin-disabled tracking must skip the diagnostic')
+
+    monkeypatch.setattr(xt.Particles, '_warn_if_spin_anomaly_is_zero', unexpected)
+    line = xt.Line(elements=[xt.Drift(length=1.)])
+    line.configure_spin(None)
+    particle = xt.Particles('electron', p0c=5e9, spin_y=1.,
+                            anomalous_magnetic_moment=0.)
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter('always')
+        line.track(particle)
+    assert not [item for item in caught if
+                'anomalous_magnetic_moment=0' in str(item.message)]
+
+
+def test_zero_anomaly_diagnostic_covers_mass_catalogue():
+    from xtrack.particles import pdg
+
+    for pid, mass in pdg._get_mass_table().items():
+        data = pdg.get_spin_properties_from_pdg_id(pid)
+        if mass == 0 or data.anomalous_magnetic_moment is not None:
+            continue
+        particle = xt.Particles(pid, p0c=5e9, spin_y=1.)
+        if data.spin == 0:
+            with warnings.catch_warnings(record=True) as caught:
+                warnings.simplefilter('always')
+                particle._warn_if_spin_anomaly_is_zero()
+            assert not caught
+        else:
+            with pytest.warns(UserWarning, match='anomalous_magnetic_moment=0'):
+                particle._warn_if_spin_anomaly_is_zero()
