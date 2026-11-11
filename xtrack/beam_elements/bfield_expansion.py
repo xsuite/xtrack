@@ -318,16 +318,7 @@ class _BFieldExpansionGeometry:
             raise ValueError('num_phi is fixed at construction; create a new '
                              'BFieldExpansion to change the expansion order')
 
-    @staticmethod
-    def _check_spin_tracking(particles):
-        if particles is not None and hasattr(particles, 'spin_x'):
-            for name in ('spin_x', 'spin_y', 'spin_z'):
-                spin = particles._context.nparray_from_context_array(getattr(particles, name))
-                if np.any(spin != 0):
-                    raise NotImplementedError('BFieldExpansion does not support spin tracking.')
-
     def track(self, particles=None, increment_at_element=False):
-        self._check_spin_tracking(particles)
         return super().track(particles, increment_at_element=increment_at_element)
 
     @property
@@ -671,8 +662,8 @@ class BFieldExpansion(_BFieldExpansionGeometry, BeamElement):
     and their skew counterparts remain writable even when initially omitted.
     Updates rebuild the cached field expansion. NumPy
     conversions return detached copies. This element does not radiate yet,
-    even when radiation is enabled for the line. Spin tracking is not
-    supported and raises NotImplementedError.
+    even when radiation is enabled for the line. Spin tracking follows the
+    Thomas-BMT equation using the evaluated magnetic field.
 
     ``Environment.new`` and ``Environment.set`` accept coefficient matrices
     containing numbers or deferred expressions, without special handling.
@@ -722,6 +713,7 @@ class BFieldExpansion(_BFieldExpansionGeometry, BeamElement):
         'knl': ('get_total_knl_ksl', 0),
         'ksl': ('get_total_knl_ksl', 1),
     }
+    allows_spin = True
 
     _xofields = {
         "length" : xo.Float64,
