@@ -2,7 +2,7 @@
 
 This directory contains the saved source data and generation scripts for
 `xtrack/particles/masses.py` and `xtrack/particles/magnetic_moments.py`.
-Both describe fully stripped nuclei in their **nuclear ground state**.
+For ions, both use fully stripped nuclei in their **nuclear ground state**.
 The generated modules contain Python constants. Loading Xtrack does not read
 these source files or access the network.
 

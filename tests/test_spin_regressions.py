@@ -73,7 +73,7 @@ def test_spin_fixed_point_unit_eigenvalue_tolerance(monkeypatch, eigenvalue, rej
     from xtrack.twiss import spin as spin_module
 
     line = xt.Line(elements=[xt.Drift(length=1.)])
-    particle = xt.Particles(p0c=5e9, mass0=xt.ELECTRON_MASS_EV)
+    particle = xt.Particles('electron', p0c=5e9)
     # The actual drift preserves any spin. Perturb the supplied matrix to
     # distinguish an acceptable eigenvalue error from a missing unit eigenvalue.
     monkeypatch.setattr(spin_module, '_compute_spin_rotation_matrix',
