@@ -24,6 +24,7 @@ from .match import (Vary, Target, TargetList, VaryList, TargetInequality, Action
 from .targets import (TargetLuminosity, TargetSeparationOrthogonalToCrossing,
                       TargetSeparation)
 from .twiss import TwissInit, TwissTable
+from .twiss import twiss_line_multibunch, MultiBunchTwiss
 from .aperture import EnvAperture, LineAperture
 from .rdt import rdt_first_order_perturbation
 from .loss_location_refinement import LossLocationRefinement
