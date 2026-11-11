@@ -282,3 +282,32 @@ def test_linear_spin_field_tracking_with_radiation():
     # Keep the quadratic error above the roundoff floor of the long ring.
     scales = 4 * np.array([1e-5, 1e-7, 1e-5, 1e-7, 1e-4, 1e-5])
     _check_linear_spin_field_tracking(line, tw, scales, max_control_error=5e-8)
+
+
+@pytest.mark.parametrize('species, spin, moment', [
+    ('proton', 0.5, 2.79284734463),
+    ('deuteron', 1., 0.8574382335),
+    ('triton', 0.5, 2.9789624650),
+    ('He3', 0.5, -2.1276253498),
+])
+def test_nuclear_moment_solenoid_precession(species, spin, moment):
+    from scipy.constants import c, e
+
+    particle = xt.Particles(species, p0c=1e9, spin_x=1.)
+    length, field = 0.3, 1.
+    ks = field * c * particle.q0 / particle.p0c[0]
+    line = xt.Line(elements=[xt.UniformSolenoid(
+        length=length, ks=ks, edge_entry_active=False,
+        edge_exit_active=False)])
+    line.configure_spin('auto')
+    # On axis B_parallel is unchanged by the boost. Compare the rest-frame
+    # Larmor rotation -mu*B/(I*hbar) over proper time, independently of the
+    # tabulated BMT anomaly. CODATA moments are in nuclear magnetons.
+    proton_mass_kg = xt.PROTON_MASS_EV * e / c**2
+    proper_time = length / (particle.beta0[0] * particle.gamma0[0] * c)
+    phase = -moment / spin * e / (2 * proton_mass_kg) * field * proper_time
+    expected = Rotation.from_rotvec([0., 0., phase]).apply([1., 0., 0.])
+    line.track(particle)
+    np.testing.assert_allclose(
+        [particle.spin_x[0], particle.spin_y[0], particle.spin_z[0]],
+        expected, atol=1e-12, rtol=0)

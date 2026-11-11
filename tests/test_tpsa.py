@@ -757,6 +757,22 @@ def test_reference_algebra_matches_particles(kwargs):
         xo.assert_allclose(getattr(m, var), expected, rtol=1e-12, atol=0)
 
 
+@pytest.mark.parametrize('species', ['electron', 'positron', 'proton', 'Pb208', 'O16'])
+def test_named_species_magnetic_moment_matches_particles(species):
+    native = xt.Particles(species, p0c=5e9)
+    mapping = xtpsa.ParticlesTpsa(pdg_id_0=species, p0c=5e9)
+    for name in ['q0', 'mass0', 'anomalous_magnetic_moment']:
+        expected = float(np.asarray(getattr(native, name)).reshape(-1)[0])
+        assert getattr(mapping, name) == expected
+    assert mapping.to_particles().anomalous_magnetic_moment[0] == (
+        native.anomalous_magnetic_moment[0])
+
+
+def test_tpsa_custom_reference_keeps_anomaly_fallback():
+    mapping = xtpsa.ParticlesTpsa(pdg_id_0='electron', p0c=5e9, mass0=1e6)
+    assert mapping.anomalous_magnetic_moment == 0.
+
+
 def test_from_coords_view_shares_series():
     m = _offaxis_map(order=2)
     view = xtpsa.ParticlesTpsa._from_coords(m.coords)

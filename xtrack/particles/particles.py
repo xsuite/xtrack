@@ -17,7 +17,7 @@ from xobjects import BypassLinked
 
 from .masses import PROTON_MASS_EV
 from .pdg import get_pdg_id_from_name, get_properties_from_pdg_id, \
-                 get_mass_from_pdg_id
+                 get_mass_from_pdg_id, get_spin_properties_from_pdg_id
 from ..general import _print, DEPRECATION_INFO_PREP_1_0
 from ..track_flags import c_header_flag_mapping
 
@@ -151,6 +151,13 @@ class Particles(xo.HybridClass):
         ----------
         pdg_id_0 : int or str, optional
             Define reference mass and charge from PDG id or particle name.
+            Also supplies the evaluated magnetic-moment anomaly when a
+            signed moment and definite spin are available, unless explicitly
+            overridden. A custom mass or charge requires an explicit anomaly;
+            otherwise the zero fallback is retained. Does not initialize a
+            spin vector. See
+            ``xtrack.particles.pdg.get_spin_properties_from_pdg_id`` for
+            available values.
         _capacity: int
             The maximum number of particles that can be stored in the object.
             If not provided, it is inferred from the size of the provided
@@ -175,7 +182,12 @@ class Particles(xo.HybridClass):
             constructor does not normalize the spin vector.
         anomalous_magnetic_moment : array_like of float, optional
             Dimensionless magnetic-moment anomaly ``(g - 2) / 2`` used for
-            spin tracking. Defaults to 0; it is not inferred from ``pdg_id``.
+            spin tracking. For a named reference (``pdg_id_0``), defaults to
+            the tabulated species anomaly when available, otherwise 0.
+            Explicit values, including 0, take precedence. A per-particle
+            ``pdg_id`` alone does not infer the anomaly. Zero is the existing
+            numeric fallback and means g=2, not an unknown or zero moment;
+            unavailable lookup values are represented by None in the data API.
         delta : array_like of float, optional
             (Pc m0/m - p0c) /p0c
         ptau : array_like of float, optional
@@ -1925,6 +1937,16 @@ def _update_kwargs0_from_pdg_id(pdg_id, kwargs):
             kwargs['q0'] = q
         if mass0 is None:
             kwargs['mass0'] = get_mass_from_pdg_id(pdg_id)
+        if 'anomalous_magnetic_moment' not in kwargs:
+            anomaly = get_spin_properties_from_pdg_id(
+                pdg_id).anomalous_magnetic_moment
+            if anomaly is not None:
+                nominal_charge = get_properties_from_pdg_id(pdg_id)[0]
+                nominal_mass = get_mass_from_pdg_id(pdg_id)
+                if (kwargs['q0'] != nominal_charge
+                        or kwargs['mass0'] != nominal_mass):
+                    anomaly = None
+            kwargs['anomalous_magnetic_moment'] = 0. if anomaly is None else anomaly
 
 def ptau2delta(ptau, beta0):
     """Convert normalized energy deviation ptau to momentum deviation delta.
