@@ -476,7 +476,7 @@ class _BFieldExpansionGeometry:
 
     @staticmethod
     def _validate_bent_curvature(h):
-        if h <= 1e-4:
+        if abs(h) <= 1e-4:
             raise ValueError(
                 "A curved BFieldExpansion requires h > 1e-4. "
                 "Create a new BFieldExpansion with h=0 for straight geometry.")
