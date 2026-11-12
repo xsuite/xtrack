@@ -7444,10 +7444,18 @@ class Line:
             key = self.element_names[key]
         assert isinstance(key, str)
         if key in self._element_dict:
+            element = self._element_dict[key]
+            view_class = getattr(type(element), '_line_view_class', None)
             if self.ref_manager is None:
-                return self._element_dict[key]
+                if view_class is None:
+                    return element
+                return view_class(element, None, None, line=self, name=key)
+            if view_class is not None:
+                return view_class(
+                    element, self._xdeps_eref[key],
+                    evaluator=self._xdeps_eval.eval, line=self, name=key)
             return xt.view.View(
-                self._element_dict[key], self._xdeps_eref[key],
+                element, self._xdeps_eref[key],
                 evaluator=self._xdeps_eval.eval)
         elif key in self.vars:
             return self.vars.val[key]

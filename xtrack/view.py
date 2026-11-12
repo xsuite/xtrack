@@ -1,3 +1,4 @@
+from inspect import getattr_static
 from warnings import warn
 
 import numpy as np
@@ -7,7 +8,7 @@ from .table import Table
 
 class View:
     def __init__(self, obj, ref, evaluator):
-        if type(obj) is View:
+        if issubclass(type(obj), View):
             obj = obj._get_viewed_object()
         object.__setattr__(self, "_obj", obj)
         object.__setattr__(self, "_ref", ref)
@@ -211,3 +212,69 @@ class View:
 
     def __ge__(self, value: object) -> bool:
         return self._obj >= value
+
+
+class LineElementView(View):
+    """Element view carrying the line context, independently of expressions.
+
+    Beam element classes can opt in by declaring ``_line_view_class`` to be
+    this class or a subclass. The constructor receives the same object,
+    reference and evaluator as View, plus the line and the element name.
+    A missing reference means direct numerical access (no expressions).
+    The line owns the element; the element never owns this view.
+    """
+
+    def __init__(self, obj, ref, evaluator, *, line, name):
+        super().__init__(obj, ref, evaluator)
+        object.__setattr__(self, "_view_line", line)
+        object.__setattr__(self, "_view_name", name)
+
+    def __getattr__(self, key):
+        if self._ref is None:
+            return getattr(self._obj, key)
+        return super().__getattr__(key)
+
+    def __setattr__(self, key, value):
+        if key in ("_view_line", "_view_name"):
+            raise AttributeError("Line view context is read-only.")
+        # Honour properties/descriptors defined on a specialised view,
+        # without invoking the descriptor at class-level lookup.
+        descriptor = getattr_static(type(self), key, None)
+        if hasattr(type(descriptor), "__set__"):
+            object.__setattr__(self, key, value)
+        elif self._ref is None:
+            setattr(self._obj, key, value)
+        else:
+            super().__setattr__(key, value)
+
+    def __getitem__(self, key):
+        if self._ref is None:
+            return self._obj[key]
+        return super().__getitem__(key)
+
+    def __setitem__(self, key, value):
+        if self._ref is None:
+            self._obj[key] = value
+        else:
+            super().__setitem__(key, value)
+
+    def __dir__(self):
+        return sorted(set(super().__dir__()) | {
+            key for key in dir(type(self)) if not key.startswith("_")
+        })
+
+    def _get_expr(self, key=None, index=None):
+        if self._ref is not None:
+            return super()._get_expr(key, index)
+        if key is None:
+            if index is not None:
+                raise ValueError("`key` must be provided when `index` is provided.")
+            return {kk: None for kk in self._obj._xofields}
+        return None
+
+    def _get_info(self, key=None):
+        if self._ref is not None:
+            return super()._get_info(key)
+        if key is None:
+            return self.get_table().show(header=True, max_col_width=100)
+        raise ValueError("No Xdeps reference manager is available.")

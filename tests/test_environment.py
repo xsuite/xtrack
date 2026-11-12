@@ -1847,7 +1847,7 @@ def test_element_views(container_type):
     assert ee.get('mb').knl[2] == 240
 
     # Some interesting behavior
-    assert type(ee['mb']) is xt.view.View
+    assert isinstance(ee['mb'], xt.view.View)
     assert ee['mb'].__class__ is xt.Bend
     assert isinstance(ee['mb'], xt.Bend)
     assert type(ee.ref['mb'].xdeps.value) is xt.Bend
@@ -2378,7 +2378,7 @@ def test_inpection_methods(container_type):
 
     # Line/Env containers (env[...], env.ref[...]
     assert ee['b'] == 2 * 2 + 1
-    assert type(ee['bb']).__name__ == 'View'
+    assert isinstance(ee['bb'], xt.view.View)
     assert ee['bb'].__class__.__name__ == 'Bend'
 
     # Vars methods (get, set, eval, get_expr, new_expr, info, get_table)
