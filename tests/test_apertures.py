@@ -4,13 +4,13 @@
 # ######################################### #
 
 import numpy as np
-
-import xobjects as xo
-import xtrack as xt
-import xpart as xp
-from xobjects.test_helpers import for_all_test_contexts
 import pytest
+import xobjects as xo
+import xpart as xp
 from cpymad.madx import Madx
+from xobjects.test_helpers import for_all_test_contexts
+
+import xtrack as xt
 
 
 def test_global_aperture_after_static_thick_elements():
@@ -41,6 +41,39 @@ def test_global_aperture_after_static_thick_elements():
         _context=test_context, p0c=7e12, px=0.6)
     line.track(p_after_drift, ele_start=0, num_elements=1)
     assert test_context.nparray_from_context_array(p_after_drift.state)[0] == -1
+
+
+def test_lost_particles_match_single_particle_tracking():
+    # Losses reorganise the arrays on CPU: each particle must end as when tracked alone
+    line = xt.Line(
+        elements=[
+            xt.Drift(length=1),
+            xt.Quadrupole(length=1, k1=0.5),
+            xt.LimitRect(min_x=-5e-3, max_x=5e-3),
+            xt.Multipole(knl=[1e-4, 0.2]),
+            xt.Drift(length=1),
+            xt.LimitRect(min_x=-3e-3, max_x=3e-3),
+            xt.Drift(length=1),
+        ]
+    )
+    line.particle_ref = xt.Particles(p0c=7e12)
+    line.build_tracker(_context=xo.ContextCpu())
+    x = np.linspace(-8e-3, 8e-3, 101)
+
+    p = line.build_particles(x=x, px=2e-4)
+    line.track(p)
+    n_alive = np.sum(p.state > 0)
+    assert 10 < n_alive < 90
+    assert np.all(p.state[:n_alive] > 0) and np.all(p.state[n_alive:] <= 0)
+    assert p._num_active_particles == n_alive
+    assert p._num_lost_particles == 101 - n_alive
+
+    for i in range(101):
+        single = line.build_particles(x=x[i], px=2e-4)
+        line.track(single)
+        j = np.where(p.particle_id == i)[0][0]
+        for name in ('state', 'x', 'px', 'y', 'py', 'zeta', 'delta', 'at_element', 's'):
+            assert getattr(p, name)[j] == getattr(single, name)[0], (i, name)
 
 
 @for_all_test_contexts
