@@ -1,4 +1,6 @@
+import gc
 import inspect
+import weakref
 
 import pytest
 import xtrack as xt
@@ -22,19 +24,25 @@ class TestElementView(LineElementView):
 
 
 @pytest.fixture
-def line(monkeypatch):
+def make_line(monkeypatch):
     # Use an existing beam element to avoid a new Xobject type/kernel.
     monkeypatch.setattr(xt.Quadrupole, '_line_view_class', TestElementView,
                         raising=False)
-    env = xt.Environment()
-    env['kq'] = 0.2
-    env.new('q', xt.Quadrupole, length=1., k1='kq', knl=[0., 0.])
-    env.new('d', xt.Drift, length=2.)
-    return env.new_line(components=['q', 'd'])
+    # Return a factory, not a Line: pytest retains fixture arguments during
+    # the autouse cleanup fixture's buffer-lifetime check.
+    def make():
+        env = xt.Environment()
+        env['kq'] = 0.2
+        env.new('q', xt.Quadrupole, length=1., k1='kq', knl=[0., 0.])
+        env.new('d', xt.Drift, length=2.)
+        return env.new_line(components=['q', 'd'])
+
+    return make
 
 
 @pytest.mark.parametrize('managed', [True, False])
-def test_line_view_access(line, managed):
+def test_line_view_access(make_line, managed):
+    line = make_line()
     if not managed:
         line.env._var_management = None
     raw = line.get('q')
@@ -84,7 +92,8 @@ def test_line_view_access(line, managed):
     assert raw.length == 2.
 
 
-def test_line_view_shared_element_and_copy(line):
+def test_line_view_shared_element_and_copy(make_line):
+    line = make_line()
     other = line.env.new_line(components=['d', 'q'])
     assert line.get('q') is other.get('q')
     assert line['q'].line_context() == (line, 'q', 1)
@@ -100,8 +109,34 @@ def test_line_view_shared_element_and_copy(line):
     assert shallow['q'].line_context() == (shallow, 'q', 1)
 
 
-def test_view_unwraps_specialised_view(line):
+def test_view_unwraps_specialised_view(make_line):
+    line = make_line()
     view = line['q']
     plain = View(view, line._xdeps_eref['q'], line._xdeps_eval.eval)
     assert plain._get_viewed_object() is line.get('q')
     assert not hasattr(plain, 'line_context')
+
+
+@pytest.mark.parametrize('managed', [True, False])
+def test_line_view_lifetime(make_line, managed):
+    line = make_line()
+    if not managed:
+        line.env._var_management = None
+    raw = line.get('q')
+    view = line['q']
+    line_ref = weakref.ref(line)
+    raw_ref = weakref.ref(raw)
+    view_ref = weakref.ref(view)
+
+    # A live view deliberately keeps its line and element alive.
+    del line, raw
+    gc.collect()
+    assert view._view_line is line_ref()
+    assert view._get_viewed_object() is raw_ref()
+
+    # No owning reference to the view is stored on the line or element.
+    del view
+    gc.collect()
+    assert view_ref() is None
+    assert line_ref() is None
+    assert raw_ref() is None
