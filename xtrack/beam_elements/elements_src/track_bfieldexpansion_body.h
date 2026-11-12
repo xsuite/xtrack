@@ -1,53 +1,7 @@
-#ifndef XTRACK_BFIELDEXPANSION_SPIN_HELPERS
-#define XTRACK_BFIELDEXPANSION_SPIN_HELPERS
+#include "xtrack/beam_elements/elements_src/track_magnet_spin_helpers.h"
 
-GPUFUN
-void bfieldexpansion_direction_of_motion(
-    double const px,
-    double const py,
-    double const delta,
-    double* iv_x,
-    double* iv_y,
-    double* iv_s){
-
-    double iix = px / (1. + delta);
-    double iiy = py / (1. + delta);
-    double iis = sqrt(1. - iix * iix - iiy * iiy);
-
-    *iv_x = iix;
-    *iv_y = iiy;
-    *iv_s = iis;
-}
-
-GPUFUN
-void bfieldexpansion_separate_par_perp_components(
-    double const Bx,
-    double const By,
-    double const Bz,
-    double const ix,
-    double const iy,
-    double const iz,
-    double* B_par_x,
-    double* B_par_y,
-    double* B_par_z,
-    double* B_perp_x,
-    double* B_perp_y,
-    double* B_perp_z
-){
-
-    double B_par = Bx * ix + By * iy + Bz * iz;
-    double const BB_par_x = B_par * ix;
-    double const BB_par_y = B_par * iy;
-    double const BB_par_z = B_par * iz;
-
-    *B_par_x = BB_par_x;
-    *B_par_y = BB_par_y;
-    *B_par_z = BB_par_z;
-    *B_perp_x = Bx - BB_par_x;
-    *B_perp_y = By - BB_par_y;
-    *B_perp_z = Bz - BB_par_z;
-}
-
+#ifndef XTRACK_BFIELDEXPANSION_SPIN
+#define XTRACK_BFIELDEXPANSION_SPIN
 GPUFUN
 void bfieldexpansion_spin_rhs(
     const double h_ref,
@@ -62,7 +16,7 @@ void bfieldexpansion_spin_rhs(
     const double spin[3],
     double kspin[3]
 ){
-    // Returns dS/ds based on BMT differential equation for magnetic fields 
+    // Returns dS/ds based on T-BMT differential equation for magnetic fields 
 
     const double ptau = z[5];
     const double delta = flow->delta;
@@ -80,13 +34,13 @@ void bfieldexpansion_spin_rhs(
     const double Bz_T = flow->pot.Bs * brho_ref;
 
     double iv_x, iv_y, iv_z;
-    bfieldexpansion_direction_of_motion(kin_px, kin_py, delta,
-                                        &iv_x, &iv_y, &iv_z);
+    direction_of_motion(kin_px, kin_py, delta,
+                        &iv_x, &iv_y, &iv_z);
 
     double B_par_x, B_par_y, B_par_z;
     double B_perp_x, B_perp_y, B_perp_z;
 
-    bfieldexpansion_separate_par_perp_components(
+    separate_par_perp_components(
         Bx_T,
         By_T,
         Bz_T,
@@ -118,7 +72,8 @@ void bfieldexpansion_spin_rhs(
     kspin[2] = Omega_x * spin[1] - Omega_y * spin[0];
 }
 
-#endif // XTRACK_BFIELDEXPANSION_SPIN_HELPERS
+#endif // XTRACK_BFIELDEXPANSION_SPIN
+
 
 GPUFUN
 int HAMILTONIAN_FLOW(Expansion *f, const double beta0, const double chi,
