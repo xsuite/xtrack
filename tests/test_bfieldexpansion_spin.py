@@ -8,6 +8,7 @@ import pytest
 import xobjects as xo
 import xtrack as xt
 from scipy.constants import c as clight
+from xobjects.test_helpers import for_all_test_contexts
 
 
 @for_all_test_contexts
