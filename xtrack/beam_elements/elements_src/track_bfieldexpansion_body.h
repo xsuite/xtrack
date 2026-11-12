@@ -54,11 +54,11 @@ void bfieldexpansion_spin_rhs(
         &B_perp_spin_y,
         &B_perp_spin_z);
 
-    const double Omega_BMT_x = -1.0 / brho_part * (
+    const double Omega_BMT_x = -1 / brho_part * (
         (1 + G_spin * gamma) * B_perp_spin_x + (1 + G_spin) * B_par_spin_x);
-    const double Omega_BMT_y = -1.0 / brho_part * (
+    const double Omega_BMT_y = -1 / brho_part * (
         (1 + G_spin * gamma) * B_perp_spin_y + (1 + G_spin) * B_par_spin_y);
-    const double Omega_BMT_z = -1.0 / brho_part * (
+    const double Omega_BMT_z = -1 / brho_part * (
         (1 + G_spin * gamma) * B_perp_spin_z + (1 + G_spin) * B_par_spin_z);
 
     const double dl_ds = (1 + h_ref * z[0]) * flow->one_plus_delta / flow->root;
