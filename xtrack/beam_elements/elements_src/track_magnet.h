@@ -19,9 +19,6 @@
 #include "xtrack/beam_elements/elements_src/track_magnet_radiation.h"
 #endif
 
-#define H_TOLERANCE (1e-8)
-
-
 // Order of knl + rel_ref_strength * knl_rel: the order of knl, or the highest
 // nonzero relative component above it
 GPUFUN
@@ -356,6 +353,12 @@ void MagnetKick_prepare(
     kick->rot_frame = split->kick_rot_frame;
     kick->do_drift_correction = split->do_drift_correction;
     kick->is_empty = is_empty;
+    kick->has_main = 0;
+    for (int ii = 0; ii <= 3; ii++) {
+        kick->has_main |= !xt_float_or_tpsa_is_zero(kick->knl_main[ii])
+                          || !xt_float_or_tpsa_is_zero(kick->ksl_main[ii]);
+    }
+    kick->has_curvature = kick->h != 0 || kick->hxl != 0;
 }
 
 
@@ -626,16 +629,30 @@ void MagnetPlan_prepare(
         knl_scale_body = weight;
     }
 
-    // Tapering: applied when tracking (magnet_taper_factor); the plan holds
-    // the nominal strengths
+    // Tapering: the factor of the element, 1 + delta_taper, is folded into the
+    // strengths of the plan. While compensating the radiation energy loss the
+    // plan holds the nominal strengths and the factor comes from the particle
+    // (magnet_taper_factor)
     plan->taper = 1.;
     plan->taper_from_delta = 0;
+    double taper_const = 1.;
 #if !defined(XTRACK_TPSA_TRACK) && !defined(XTRACK_MULTIPOLE_NO_SYNRAD)
     if (radiation_flag) {
-        plan->taper = 1. + settings->delta_taper;
-        plan->taper_from_delta = LocalParticle_check_track_flag(part0, XS_FLAG_SR_TAPER);
+        if (LocalParticle_check_track_flag(part0, XS_FLAG_SR_TAPER)) {
+            plan->taper_from_delta = 1;
+        }
+        else {
+            taper_const = 1. + settings->delta_taper;
+        }
     }
 #endif
+    if (taper_const != 1.) {
+        for (int ii = 0; ii <= MAGNET_K_ORDER; ii++) {
+            field->knorm[ii] = taper_const * field->knorm[ii];
+            field->kskew[ii] = taper_const * field->kskew[ii];
+        }
+        knl_scale_body *= taper_const;
+    }
 
     // Multipoles of the body and the faces
     const int64_t order_tot = magnet_multipole_order(
@@ -686,7 +703,7 @@ void MagnetPlan_prepare(
     }
 #endif
     field->kl_order = order_tot;
-    field->knl_scale = 1.;
+    field->knl_scale = taper_const;
     field->length = length;
 
     // Faces, in the order they are crossed: the particle enters the field at
@@ -781,9 +798,9 @@ int8_t magnet_transform(LocalParticle* part0, const MagnetTransform* tr, int8_t 
 }
 
 
-// The factor of the strengths of a magnet for a particle (tapering, 1
-// otherwise): that of the plan, or while compensating the radiation energy
-// loss 1 + delta of the particle at the entrance of the magnet
+// The factor of the strengths of a magnet for a particle: 1, or while
+// compensating the radiation energy loss 1 + delta of the particle at the
+// entrance of the magnet (the plan then holds the nominal strengths)
 GPUFUN XT_INLINE
 double magnet_taper_factor(LocalParticle* part, const MagnetPlan* plan) {
 #if !defined(XTRACK_TPSA_TRACK) && !defined(XTRACK_MULTIPOLE_NO_SYNRAD)

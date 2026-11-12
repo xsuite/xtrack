@@ -47,11 +47,26 @@ void track_exact_drift_single_particle(LocalParticle* part, double length){
     LocalParticle_add_to_s(part, length);
 }
 
+// The constants of a polar drift step of length s, for the curvature h
+typedef struct PolarStep_s {
+    double s, ca, sa;           // cos(h s), sin(h s)
+    double rho_sa, rho_2sa2sq;  // sin(h s) / h, 2 sin(h s / 2)^2 / h
+} PolarStep;
+
 GPUFUN
-void track_polar_drift_single_particle(
+PolarStep polar_step(const double length, const double h) {
+    double const rho = 1 / h;
+    double const ca = cos(h * length);
+    double const sa = sin(h * length);
+    // 2 sin(h s / 2)^2 = sin(h s)^2 / (1 + cos(h s)), without cancellation for |h s| < pi
+    PolarStep step = {length, ca, sa, rho * sa, rho * sa * sa / (1 + ca)};
+    return step;
+}
+
+GPUFUN
+void track_polar_step_single_particle(
     LocalParticle* part,  // LocalParticle to track
-    const double length,  // length of the element
-    const double h        // curvature
+    const PolarStep step  // constants of the step
 ) {
 
     // Based on SUBROUTINE Sprotr in PTC and curex_drift in MAD-NG
@@ -62,32 +77,35 @@ void track_polar_drift_single_particle(
     const xt_float_or_tpsa y = LocalParticle_get_y(part);
     const xt_float_or_tpsa px = LocalParticle_get_px(part);
     const xt_float_or_tpsa py = LocalParticle_get_py(part);
-    const double s = length;
 
     const xt_float_or_tpsa one_plus_delta = LocalParticle_get_delta(part) + 1.0;
     const xt_float_or_tpsa pz = sqrt(POW2(one_plus_delta) - POW2(px) - POW2(py));
 
-    // Polar drift
-    double const rho = 1 / h;
-    const double ca = cos(h * s);
-    const double sa = sin(h * s);
-    const double sa2 = sin(0.5 * h * s);
-    const xt_float_or_tpsa _pz = 1 / pz;
-    const xt_float_or_tpsa pxt = px * _pz;
-    const xt_float_or_tpsa _ptt = 1 / (ca - sa * pxt);
-    const xt_float_or_tpsa pst = (x + rho) * sa * _pz * _ptt;
+    // Polar drift, with a single division: 1 / (D rvv), D = ca pz - sa px
+    const xt_float_or_tpsa inv_d_rvv = 1 / ((step.ca * pz - step.sa * px) * rvv);
+    const xt_float_or_tpsa inv_d = rvv * inv_d_rvv;
+    const xt_float_or_tpsa pst_d = x * step.sa + step.rho_sa;  // pst * D
 
-    const xt_float_or_tpsa new_x = (x + rho * (2 * sa2 * sa2 + sa * pxt)) * _ptt;
-    const xt_float_or_tpsa new_px = ca * px + sa * pz;
-    const xt_float_or_tpsa new_y = y + pst * py;
-    const xt_float_or_tpsa delta_ell = one_plus_delta * (x + rho) * sa / ca / pz / (1 - px * sa / ca / pz);
+    const xt_float_or_tpsa new_x = ((x + step.rho_2sa2sq) * pz + step.rho_sa * px) * inv_d;
+    const xt_float_or_tpsa new_px = step.ca * px + step.sa * pz;
+    const xt_float_or_tpsa new_y = y + pst_d * inv_d * py;
+    const xt_float_or_tpsa delta_ell_over_rvv = one_plus_delta * pst_d * inv_d_rvv;
 
     // Update Particles object
     LocalParticle_set_x(part, new_x);
     LocalParticle_set_px(part, new_px);
     LocalParticle_set_y(part, new_y);
-    LocalParticle_add_to_zeta(part, length - delta_ell / rvv);
-    LocalParticle_add_to_s(part, s);
+    LocalParticle_add_to_zeta(part, step.s - delta_ell_over_rvv);
+    LocalParticle_add_to_s(part, step.s);
+}
+
+GPUFUN
+void track_polar_drift_single_particle(
+    LocalParticle* part,  // LocalParticle to track
+    const double length,  // length of the element
+    const double h        // curvature
+) {
+    track_polar_step_single_particle(part, polar_step(length, h));
 }
 
 
@@ -587,36 +605,44 @@ void track_magnet_drift_single_particle(
         case DRIFT_MAP_SOLENOID:
             track_solenoid_single_particle(part, length, ks, x0_solenoid, y0_solenoid);
             break;
-        case DRIFT_MAP_BEND_YOSHIDA4:
+        case DRIFT_MAP_BEND_YOSHIDA4: {
             // 4th order Yoshida integrator for a curved bend (h and k0 only)
-            // (integrator coefficients from MAD-NG)
-            track_polar_drift_single_particle(part, 0.6756035959798289 * length, h);
+            // (integrator coefficients from MAD-NG); the steps are symmetric
+            PolarStep const outer = polar_step(0.6756035959798289 * length, h);
+            PolarStep const inner = polar_step(-0.17560359597982889 * length, h);
+            track_polar_step_single_particle(part, outer);
             LocalParticle_set_px(part, LocalParticle_get_px(part) - 1.3512071919596578 * k0 * LocalParticle_get_chi(part) * length);
-            track_polar_drift_single_particle(part, -0.17560359597982889 * length, h);
+            track_polar_step_single_particle(part, inner);
             LocalParticle_set_px(part, LocalParticle_get_px(part) - (-1.7024143839193155) * k0 * LocalParticle_get_chi(part) * length);
-            track_polar_drift_single_particle(part, -0.17560359597982889 * length, h);
+            track_polar_step_single_particle(part, inner);
             LocalParticle_set_px(part, LocalParticle_get_px(part) - 1.3512071919596578 * k0 * LocalParticle_get_chi(part) * length);
-            track_polar_drift_single_particle(part, 0.6756035959798289 * length, h);
+            track_polar_step_single_particle(part, outer);
             break;
-        case DRIFT_MAP_BEND_YOSHIDA6:
-            // // Sixth order Yoshida integrator for a curved bend (h and k0 only)
-            // // (integrator coefficients from MAD-NG)
-            track_polar_drift_single_particle(part, 3.922568052387799819591407413100e-01 * length, h);
+        }
+        case DRIFT_MAP_BEND_YOSHIDA6: {
+            // Sixth order Yoshida integrator for a curved bend (h and k0 only)
+            // (integrator coefficients from MAD-NG); the steps are symmetric
+            PolarStep const step1 = polar_step(3.922568052387799819591407413100e-01 * length, h);
+            PolarStep const step2 = polar_step(5.100434119184584780271052295575e-01 * length, h);
+            PolarStep const step3 = polar_step(-4.710533854097565531482416645304e-01 * length, h);
+            PolarStep const step4 = polar_step(6.875316825251809316199569366290e-02 * length, h);
+            track_polar_step_single_particle(part, step1);
             LocalParticle_set_px(part, LocalParticle_get_px(part) - 7.845136104775599639182814826199e-01 * k0 * LocalParticle_get_chi(part) * length);
-            track_polar_drift_single_particle(part, 5.100434119184584780271052295575e-01 * length, h);
+            track_polar_step_single_particle(part, step2);
             LocalParticle_set_px(part, LocalParticle_get_px(part) - 2.355732133593569921359289764951e-01 * k0 * LocalParticle_get_chi(part) * length);
-            track_polar_drift_single_particle(part, -4.710533854097565531482416645304e-01 * length, h);
+            track_polar_step_single_particle(part, step3);
             LocalParticle_set_px(part, LocalParticle_get_px(part) - (-1.177679984178870098432412305556e+00) * k0 * LocalParticle_get_chi(part) * length);
-            track_polar_drift_single_particle(part, 6.875316825251809316199569366290e-02 * length, h);
+            track_polar_step_single_particle(part, step4);
             LocalParticle_set_px(part, LocalParticle_get_px(part) - 1.315186320683906284756403692882e+00 * k0 * LocalParticle_get_chi(part) * length);
-            track_polar_drift_single_particle(part, 6.875316825251809316199569366290e-02 * length, h);
+            track_polar_step_single_particle(part, step4);
             LocalParticle_set_px(part, LocalParticle_get_px(part) - (-1.177679984178870098432412305556e+00) * k0 * LocalParticle_get_chi(part) * length);
-            track_polar_drift_single_particle(part, -4.710533854097565531482416645304e-01 * length, h);
+            track_polar_step_single_particle(part, step3);
             LocalParticle_set_px(part, LocalParticle_get_px(part) - 2.355732133593569921359289764951e-01 * k0 * LocalParticle_get_chi(part) * length);
-            track_polar_drift_single_particle(part, 5.100434119184584780271052295575e-01 * length, h);
+            track_polar_step_single_particle(part, step2);
             LocalParticle_set_px(part, LocalParticle_get_px(part) - 7.845136104775599639182814826199e-01 * k0 * LocalParticle_get_chi(part) * length);
-            track_polar_drift_single_particle(part, 3.922568052387799819591407413100e-01 * length, h);
+            track_polar_step_single_particle(part, step1);
             break;
+        }
         default:
             break;
     }

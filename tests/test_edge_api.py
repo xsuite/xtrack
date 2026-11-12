@@ -630,3 +630,9 @@ def test_straight_soft_dipole_fringe_not_exported_to_mad():
     for to_mad in (line.to_madx_sequence, to_madng_sequence):
         with pytest.warns(UserWarning, match=r"straight magnets: 1 magnets have one, e.g. \['q1'\]"):
             to_mad(line)
+
+
+def test_magnet_edge_repr():
+    edge = xt.MagnetEdge(model='full', kn=[0.1, 0.2], length=1.0, qint1=0.3)
+    text = repr(edge)
+    assert 'MagnetEdge(' in text and 'qint1' in text

@@ -191,6 +191,8 @@ typedef struct MagnetKick_s {
     uint8_t rot_frame;
     uint8_t do_drift_correction;
     uint8_t is_empty;
+    uint8_t has_main;       // some of k0 ... k3 is non-zero
+    uint8_t has_curvature;  // h or hxl is non-zero
 #ifdef XTRACK_TPSA_TRACK
     // The TPSA type has no default constructor
     MagnetKick_s()
@@ -252,11 +254,11 @@ typedef struct MagnetPlan_s {
     uint8_t correct_s;  // straight-body RBend: path length on the curved reference
     double ds_curved;
     uint8_t is_thick;   // the global aperture is checked after it
-    // Tapering: the strengths of the plan are nominal; when tracking they
-    // are scaled by taper, or with taper_from_delta by 1 + delta of the
-    // particle (magnet_taper_factor)
+    // Tapering: 1 + delta_taper is folded into the strengths; while
+    // compensating the radiation energy loss (taper_from_delta) they are
+    // nominal and scaled per particle by 1 + delta (magnet_taper_factor)
     uint8_t taper_from_delta;
-    double taper;
+    double taper;  // 1 (kept for the layout and the per-particle factor)
     MagnetTransform transform;
     // knl + rel_ref_strength * knl_rel (same for ksl), formed only with
     // relative components; otherwise the field uses the element's arrays

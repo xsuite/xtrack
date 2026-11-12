@@ -1,9 +1,11 @@
-import xtrack as xt
-import xpart as xp
-import xobjects as xo
-import numpy as np
 import pathlib
+
+import numpy as np
+import xobjects as xo
+import xpart as xp
 from cpymad.madx import Madx
+
+import xtrack as xt
 
 test_data_folder = pathlib.Path(
     __file__).parent.joinpath('../test_data').absolute()
@@ -32,10 +34,11 @@ def test_cavity_harmonic():
                                             nemitt_y=2.5e-6,
                                             sigma_z=0.08)
 
-    # Switch to frequency mode
+    # Switch to frequency mode, synchronous with the harmonic
+    f_rf = 35640 / tw_harm.T_rev0
     for nn in tt_harm_cav.name:
         line[nn].harmonic = 0
-        line[nn].frequency=400.79e6
+        line[nn].frequency = f_rf
 
     tt_freq = line.get_table(attr=True)
     tt_freq_cav = tt_freq.rows.match(element_type='Cavity')
@@ -50,12 +53,12 @@ def test_cavity_harmonic():
     tt_freq_cav = tt_freq.rows.match(element_type='Cavity')
     tw_freq = line.twiss6d()
 
-    xo.assert_allclose(tw_harm.qs, tw_freq.qs, rtol=0, atol=1e-7)
+    xo.assert_allclose(tw_harm.qs, tw_freq.qs, rtol=0, atol=1e-12)
     xo.assert_allclose(pp_harm.zeta.std(), pp_freq.zeta.std(), rtol=0.01)
     xo.assert_allclose(pp_harm.delta.std(), pp_freq.delta.std(), rtol=0.01)
 
     xo.assert_allclose(tt_harm_cav.frequency, 0, rtol=1e-15)
-    xo.assert_allclose(tt_freq_cav.frequency, 400.79e6, rtol=1e-15)
+    xo.assert_allclose(tt_freq_cav.frequency, f_rf, rtol=1e-15)
     xo.assert_allclose(tt_harm_cav.harmonic, 35640, rtol=1e-15)
     xo.assert_allclose(tt_freq_cav.harmonic, 0, rtol=1e-15)
 
@@ -202,11 +205,11 @@ def test_cavity_harmonic_loader_native():
 
     for nn in tt1_cav.name:
         env[nn].harmonic = 0
-        env[nn].frequency = 400.79e6
+        env[nn].frequency = 35640 / tw_harm.T_rev0
 
     tw_freq = env.lhcb1.twiss6d()
 
-    xo.assert_allclose(tw_freq.qs, tw_harm.qs, rtol=0, atol=1e-7)
+    xo.assert_allclose(tw_freq.qs, tw_harm.qs, rtol=0, atol=1e-12)
 
 def test_cavity_harmonic_loader_cpymad():
 
@@ -235,16 +238,16 @@ def test_cavity_harmonic_loader_cpymad():
 
     for nn in tt1_cav.name:
         line[nn].harmonic = 0
-        line[nn].frequency = 400.79e6
+        line[nn].frequency = 35640 / tw_harm.T_rev0
 
     tw_freq = line.twiss6d()
 
-    xo.assert_allclose(tw_freq.qs, tw_harm.qs, rtol=0, atol=1e-7)
+    xo.assert_allclose(tw_freq.qs, tw_harm.qs, rtol=0, atol=1e-12)
 
 def test_cavity_harmonic_more_loader_checks():
     from cpymad.madx import Madx
+
     import xtrack as xt
-    import xobjects as xo
 
     madx_src = """
     hh = 5;

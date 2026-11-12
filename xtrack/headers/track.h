@@ -32,24 +32,19 @@
 */
 
 #ifdef XO_CONTEXT_CPU_SERIAL
-    // We are on CPU, without OpenMP. The LocalParticle is copied once per block,
-    // not once per particle: only ipart changes from one particle to the next.
-    //
-    // Invariant (CPU contexts): code inside a block writes only the per-particle
-    // arrays (through the LocalParticle_set_* / add_to_* accessors), never a
-    // field of the LocalParticle struct itself. Such a write would go to the
-    // block's copy, be seen by the following particles of the block and be lost
-    // at its end. Fields that must change (time_s, reference_turns, the counts
-    // of active and lost particles) are written on SRC_PART outside a block
-    // (local_particle_common.h, check_is_active).
+    // We are on CPU, without OpenMP. The block works on SRC_PART itself and restores its ipart
+    // at the end: no LocalParticle copy. Code in a block writes only per-particle arrays, never
+    // a field of the LocalParticle struct (time_s, reference_turns and the particle counts are
+    // written on SRC_PART outside a block).
 
     #define START_PER_PARTICLE_BLOCK(SRC_PART, DEST_PART)            \
         {                                                            \
             const int64_t XT_part_block_start_idx = 0;               \
             const int64_t XT_part_block_end_idx =                    \
                 LocalParticle_get__num_active_particles((SRC_PART)); \
-            LocalParticle lpart = *(SRC_PART);                       \
-            LocalParticle* DEST_PART = &lpart;                       \
+            LocalParticle* const XT_part_block_src = (SRC_PART);     \
+            const int64_t XT_part_block_ipart = XT_part_block_src->ipart; \
+            LocalParticle* DEST_PART = XT_part_block_src;            \
             for (int64_t XT_part_block_ii = XT_part_block_start_idx; \
                  XT_part_block_ii < XT_part_block_end_idx;           \
                  XT_part_block_ii++) {                               \
@@ -57,6 +52,7 @@
 
     #define END_PER_PARTICLE_BLOCK \
             } \
+            XT_part_block_src->ipart = XT_part_block_ipart; \
         }
 #endif  // XO_CONTEXT_CPU_SERIAL
 

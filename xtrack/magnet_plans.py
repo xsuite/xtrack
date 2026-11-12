@@ -46,11 +46,10 @@ the C struct (``layout_checks``); the tests do this.
 
 Exceptions
 ----------
-- Tapering: the plan holds the nominal strengths and the factor of the
-  element, ``1 + delta_taper``; the strengths are scaled when tracking
-  (``magnet_taper_factor``, track_magnet.h), so the same plan serves the
-  compensation of the radiation energy loss, where the factor comes from the
-  energy of the particle.
+- Tapering: the factor of the element, ``1 + delta_taper``, is folded into
+  the strengths of the plan. While compensating the radiation energy loss
+  the plan holds the nominal strengths and the factor comes from the energy
+  of each particle (``magnet_taper_factor``, track_magnet.h).
 - TPSA tracking: the plan holds TPSA values and cannot be stored, so it is
   made at the magnet, in the same branch of ``track_line``. Only where the
   plan comes from differs.
@@ -110,6 +109,7 @@ _KICK_DTYPE = _struct(
     ('h', 'f8'), ('hxl', 'f8'), ('htot', 'f8'),
     ('k0_h_coeff', 'f8'), ('k1_h_coeff', 'f8'),
     ('rot_frame', _FLAG), ('do_drift_correction', _FLAG), ('is_empty', _FLAG),
+    ('has_main', _FLAG), ('has_curvature', _FLAG),
 )
 _BODY_DTYPE = _struct(
     ('length', 'f8'), ('field', _PTR),
@@ -243,36 +243,52 @@ void prepare_magnet_plan(
 """ + checks + header
 
 
-def track_line_cases(magnet_ids):
+def track_line_cases(magnet_classes):
     """Return the cases of the element switch of ``track_line`` for the
-    magnets, given their type ids.
+    magnets, given their ``(type id, class)`` pairs.
 
     All magnets take the same branch: get the plan, then track the particles
     through it. Only where the plan comes from differs: its slot, or, in TPSA
-    tracking, a plan made at the magnet. The indentation matches
-    the generated ``track_line``.
+    tracking, a plan made at the magnet. The classes whose thickness is
+    statically True are then checked against the global aperture, as in the
+    other elements. The indentation matches the generated ``track_line``.
     """
-    if not magnet_ids:
+    return ''.join(
+        _track_line_case([ii for ii, cc in magnet_classes if static_thick(cc) == thick], thick)
+        for thick in (False, True)
+    )
+
+
+def static_thick(cls):
+    """Whether the class declares ``isthick = True`` literally (not a property)."""
+    return vars(cls._DressingClass).get('_isthick') is True
+
+
+def _track_line_case(ids, check_aperture):
+    if not ids:
         return ""
-    case_labels = "\n".join(
-        f"                        case {ii}:" for ii in magnet_ids)
+    case_labels = '\n'.join(f'                        case {ii}:' for ii in ids)
+    aperture = (
+        """
+                            #ifdef XTRACK_GLOBAL_XY_LIMIT
+                            global_aperture_check(&lpart);
+                            #endif"""
+        if check_aperture
+        else ''
+    )
     return f"""
 {case_labels}
                         {{
 #ifdef XTRACK_TPSA_TRACK
-                            // The plan holds TPSA values: it is made here
-                            MagnetPlan local_plan;
-                            prepare_magnet_plan(el, elem_type, &local_plan, &lpart);
-                            const MagnetPlan* plan = &local_plan;
+                            // The plan holds TPSA values: it is prepared here, in the plan of the call
+                            prepare_magnet_plan(el, elem_type, &magnet_plan_tpsa, &lpart);
+                            const MagnetPlan* plan = &magnet_plan_tpsa;
 #else
                             // The plan prepared for this track call
                             /*gpuglmem*/ const MagnetPlan* plan = (/*gpuglmem*/ const MagnetPlan*) (
                                 magnet_plans + MAGNET_PLAN_BYTES * magnet_plan_slots[elem_idx]);
 #endif
-                            track_magnet_particles(&lpart, plan);
-                            #ifdef XTRACK_GLOBAL_XY_LIMIT
-                            if (plan->is_thick) global_aperture_check(&lpart);
-                            #endif
+                            track_magnet_particles(&lpart, plan);{aperture}
                             break;
                         }}
 """

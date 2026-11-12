@@ -39,10 +39,18 @@ public:
     // Empty, lifted later (a member of a struct filled in place)
     xt_tpsa_lifted_array() {}
 
+    // Lifts the values; a lifted array is reused if it is long enough
     void lift(const double* values, int64_t size)
     {
-        if (values == nullptr || size <= 0 || this->size > 0) return;
+        if (values == nullptr || size <= 0) return;
 
+        if (this->size >= size)
+        {
+            for (int64_t ii = 0; ii < size; ii++) data[ii] = values[ii];
+            return;
+        }
+
+        release();
         storage = new storage_t[size];
         data = reinterpret_cast<value_t*>(storage);
 
@@ -54,11 +62,7 @@ public:
 
     ~xt_tpsa_lifted_array()
     {
-        for (int64_t ii = 0; ii < size; ii++)
-        {
-            data[ii].~value_t();
-        }
-        delete[] storage;
+        release();
     }
 
     const value_t* ptr() const
@@ -69,6 +73,18 @@ public:
     value_t* mutable_ptr() { return data; }
 
   private:
+    void release()
+    {
+        for (int64_t ii = 0; ii < size; ii++)
+        {
+            data[ii].~value_t();
+        }
+        delete[] storage;
+        storage = nullptr;
+        data = nullptr;
+        size = 0;
+    }
+
     using storage_t = std::aligned_storage_t<sizeof(value_t), alignof(value_t)>;
 
     storage_t* storage = nullptr;

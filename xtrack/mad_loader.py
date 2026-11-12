@@ -28,6 +28,7 @@ Loader.add_<name>(mad_elem,line,buffer) to add a new element to the line
 if they want to control how the xobject is created
 """
 import math
+from typing import List, Union
 
 import numpy as np
 import xobjects
@@ -647,7 +648,7 @@ class MadLoader:
 
     def add_elements(
         self,
-        elements: list[ElementAssembler],
+        elements: List[Union[ElementAssembler]],
         line,
         buffer,
     ):

@@ -14,12 +14,12 @@ from scipy.constants import c as clight
 
 import xtrack as xt
 
+from . import magnet_plans as _mp
 from .base_element import _handle_per_particle_blocks
 from .beam_elements import Drift
 from .general import DEPRECATION_INFO_PREP_1_0, _pkg_root
 from .internal_record import new_io_buffer
 from .line import Line, _is_collective, _is_thick
-from . import magnet_plans as _mp
 from .line import freeze_longitudinal as _freeze_longitudinal
 from .pipeline import PipelineStatus
 from .progress_indicator import progress
@@ -830,6 +830,11 @@ class Tracker:
         magnet_classes = _mp.magnet_classes(kernel_element_classes)
 
         src_lines = []
+        # TPSA tracking prepares each magnet in one plan, made once per call
+        src_lines.append(
+            '#define XT_TPSA_PLAN_DECL '
+            + ('MagnetPlan magnet_plan_tpsa;' if magnet_classes else '')
+        )
         src_lines.append(_mp.plan_source(
             magnet_classes,
             check_layout=config.get('XTRACK_CHECK_MAGNET_PLAN_LAYOUT', False)))
@@ -929,6 +934,7 @@ class Tracker:
             lpart.io_buffer = io_buffer;
             xt_tpsa::default_scope xt_tpsa_default_scope(lpart.x);
             xt_tpsa::error_scope xt_tpsa_error_scope;
+            XT_TPSA_PLAN_DECL
 
             try {
 
@@ -1021,7 +1027,7 @@ class Tracker:
             # with a dynamic `isthick` property (e.g. Multipole), `_isthick`
             # can be a field descriptor. The identity check therefore selects
             # only classes whose thickness is statically and literally True.
-            if vars(cc._DressingClass).get('_isthick') is True:
+            if _mp.static_thick(cc):
                 src_lines.append(
                     """
                             #ifdef XTRACK_GLOBAL_XY_LIMIT
@@ -1035,7 +1041,7 @@ class Tracker:
                             break;"""
             )
 
-        src_lines.append(_mp.track_line_cases(magnet_ids))
+        src_lines.append(_mp.track_line_cases(magnet_classes))
 
         src_lines.append(
             r"""

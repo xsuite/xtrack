@@ -73,7 +73,9 @@ void track_magnet_kick_single_particle(
     xt_float_or_tpsa_arg k1_h_coeff,
     uint8_t const rot_frame,
     uint8_t const do_drift_correction,
-    uint8_t const is_empty
+    uint8_t const is_empty,
+    uint8_t const has_main,
+    uint8_t const has_curvature
 ) {
     double const length_of_this_kick = length * kick_weight;
     // Tapers the field terms only
@@ -105,37 +107,41 @@ void track_magnet_kick_single_particle(
 
     // main kick; brace-init avoids default-constructing the
     // non-default-constructible xt_float_or_tpsa (tpsa) elements
-    xt_float_or_tpsa knl_main[4] = {k0l, k1l, k2l, k3l};
-    xt_float_or_tpsa ksl_main[4] = {k0sl, k1sl, k2sl, k3sl};
-    kick_simple_single_particle(
-        part,
-        /* order */ 3,
-        /* inv_factorial_order */ 1. / (3 * 2),
-        knl_main,
-        ksl_main,
-        /* factor_knl_ksl */ 1.0,
-        field_weight
-    );
-
-    // Correct for the curvature
-    xt_float_or_tpsa dpx = 0.0;
-    xt_float_or_tpsa dpy = 0.0;
-    xt_float_or_tpsa dzeta = 0.0;
-
-    if (rot_frame) {
-        double const hl = h * length * kick_weight + hxl * kick_weight;
-        dpx += hl * (1. + LocalParticle_get_delta(part));
-        xt_float_or_tpsa const rv0v = 1./LocalParticle_get_rvv(part);
-        dzeta += -rv0v * hl * x;
+    if (has_main) {
+        xt_float_or_tpsa knl_main[4] = {k0l, k1l, k2l, k3l};
+        xt_float_or_tpsa ksl_main[4] = {k0sl, k1sl, k2sl, k3sl};
+        kick_simple_single_particle(
+            part,
+            /* order */ 3,
+            /* inv_factorial_order */ 1. / (3 * 2),
+            knl_main,
+            ksl_main,
+            /* factor_knl_ksl */ 1.0,
+            field_weight
+        );
     }
 
-    dpx += -chi * k0_h_coeff * field_weight * htot * x;
-    dpx += htot * chi * k1_h_coeff * field_weight * (-x * x + 0.5 * y * y);
-    dpy += htot * chi * k1_h_coeff * field_weight * x * y;
+    if (has_curvature) {
+        // Correct for the curvature
+        xt_float_or_tpsa dpx = 0.0;
+        xt_float_or_tpsa dpy = 0.0;
+        xt_float_or_tpsa dzeta = 0.0;
 
-    LocalParticle_add_to_px(part, dpx);
-    LocalParticle_add_to_py(part, dpy);
-    LocalParticle_add_to_zeta(part, dzeta);
+        if (rot_frame) {
+            double const hl = h * length * kick_weight + hxl * kick_weight;
+            dpx += hl * (1. + LocalParticle_get_delta(part));
+            xt_float_or_tpsa const rv0v = 1./LocalParticle_get_rvv(part);
+            dzeta += -rv0v * hl * x;
+        }
+
+        dpx += -chi * k0_h_coeff * field_weight * htot * x;
+        dpx += htot * chi * k1_h_coeff * field_weight * (-x * x + 0.5 * y * y);
+        dpy += htot * chi * k1_h_coeff * field_weight * x * y;
+
+        LocalParticle_add_to_px(part, dpx);
+        LocalParticle_add_to_py(part, dpy);
+        LocalParticle_add_to_zeta(part, dzeta);
+    }
 
     if (do_drift_correction) {
         track_magnet_kick_path_correction_single_particle_h0(
@@ -178,7 +184,9 @@ void MagnetKick_apply(
         kick->k1_h_coeff,
         kick->rot_frame,
         kick->do_drift_correction,
-        kick->is_empty
+        kick->is_empty,
+        kick->has_main,
+        kick->has_curvature
     );
 }
 

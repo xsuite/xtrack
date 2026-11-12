@@ -295,23 +295,34 @@ int64_t check_is_active(LocalParticle* part) {
 
 #elif defined(XO_CONTEXT_CPU_SERIAL)
 
+// Index of the first lost particle, n if none. Out of line: the scan then does not
+// depend on the register allocation of the large track_line function that calls it.
+__attribute__((noinline))
+int64_t first_lost_particle(const int64_t* state, int64_t n) {
+    int64_t ipart = 0;
+    while (ipart < n && state[ipart] > 0) {
+        ipart++;
+    }
+    return ipart;
+}
+
 GPUFUN
 int64_t check_is_active(LocalParticle* part) {
-    int64_t ipart = 0;
-    while (ipart < part->_num_active_particles) {
-        #ifdef XSUITE_RESTORE_LOSS
-            ipart++;
-        #else
+    int64_t num_active = part->_num_active_particles;
+    #ifndef XSUITE_RESTORE_LOSS
+        int64_t ipart = first_lost_particle(part->state, num_active);
+        while (ipart < num_active) {
             if (part->state[ipart] < 1) {
-                LocalParticle_exchange(part, ipart, part->_num_active_particles - 1);
-                part->_num_active_particles--;
+                LocalParticle_exchange(part, ipart, num_active - 1);
+                num_active--;
                 part->_num_lost_particles++;
             } else {
                 ipart++;
             }
-        #endif
-    }
-    return part->_num_active_particles > 0;
+        }
+        part->_num_active_particles = num_active;
+    #endif
+    return num_active > 0;
 }
 
 #elif defined(XO_CONTEXT_CPU_OPENMP)

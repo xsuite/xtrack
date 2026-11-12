@@ -103,7 +103,7 @@ class MagnetEdge(_HasKnlKsl, BeamElement):
     _repr_fields = [
         'model', 'is_exit', 'kn', 'ks', 'k_order', 'knl', 'ksl', 'kl_order',
         'length', 'half_gap', 'face_angle', 'face_angle_feed_down',
-        'fringe_integral', 'qint1', 'qint2', 'delta_taper',
+        'fringe_integral', 'qint1', 'qint2',
     ]
 
     _noexpr_fields = _NOEXPR_FIELDS

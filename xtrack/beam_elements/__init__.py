@@ -18,13 +18,25 @@ import xtrack as xt
 from ..base_element import BeamElement
 from ..general import DEPRECATION_INFO_PREP_1_0
 from ..internal_record import RecordIndex
-from ..random import RandomExponential, RandomNormal, RandomUniformAccurate
+from ..random import (
+    RandomExponential,
+    RandomNormal,
+    RandomUniformAccurate,
+)
 from ..synctime import SyncTime
 from ._aperture_common import UNLIMITED
-from ._common import DEFAULT_MULTIPOLE_ORDER as DEFAULT_MULTIPOLE_ORDER
-from ._common import ElectronCoolerRecord as ElectronCoolerRecord
-from ._common import SynchrotronRadiationRecord as SynchrotronRadiationRecord
-from ._common import ThinSliceNotNeededError as ThinSliceNotNeededError
+from ._common import (
+    DEFAULT_MULTIPOLE_ORDER as DEFAULT_MULTIPOLE_ORDER,
+)
+from ._common import (
+    ElectronCoolerRecord as ElectronCoolerRecord,
+)
+from ._common import (
+    SynchrotronRadiationRecord as SynchrotronRadiationRecord,
+)
+from ._common import (
+    ThinSliceNotNeededError as ThinSliceNotNeededError,
+)
 from .acdipole import ACDipole
 from .beam_interaction import BeamInteraction, ParticlesInjectionSample
 from .bend import Bend
