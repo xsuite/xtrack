@@ -8,8 +8,7 @@ void bfieldexpansion_spin_rhs(
     const double beta0,
     const double gamma0,
     const double q0,
-    const double mass0,
-    const double G_spin,
+    const double mass0,    const double G_spin,
     const double chi,
     const double z[6],
     const HamiltonianFlow* flow,
@@ -175,10 +174,13 @@ void TRACK_EXPANSION(
 
         double s = s_start;
         double ztmp[6];
-        double spintmp[3];
+        double spintmp[3] = {0.0, 0.0, 0.0};
         for (int step = 0; valid && step < nstep; ++step) {
-            double k1[6], k2[6], k3[6], k4[6];
-            double ks1[3], ks2[3], ks3[3], ks4[3];
+            double k1[6], k2[6], k3[6], k4[6];	
+            double ks1[3] = {0.0, 0.0, 0.0};
+            double ks2[3] = {0.0, 0.0, 0.0};
+            double ks3[3] = {0.0, 0.0, 0.0};
+            double ks4[3] = {0.0, 0.0, 0.0};
 
             if (HAMILTONIAN_FLOW(&f, beta0, chi, s, z, &flow) != 0) {
                 valid = 0;
