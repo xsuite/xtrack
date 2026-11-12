@@ -62,7 +62,7 @@ void bfieldexpansion_spin_rhs(
     const double spin[3],
     double kspin[3]
 ){
-    // Based on magnet_spin (track_magnet_radiation.h), adapted to return dS/ds.
+    // Returns dS/ds based on BMT differential equation for magnetic fields 
 
     const double ptau = z[5];
     const double delta = flow->delta;
@@ -109,7 +109,6 @@ void bfieldexpansion_spin_rhs(
 
     const double dl_ds = (1.0 + h_ref * z[0]) * flow->one_plus_delta / flow->root;
 
-    // Continuous frame transport in curvilinear coordinates (analogous to hx in magnet_spin)
     const double Omega_x = Omega_BMT_x * dl_ds;
     const double Omega_y = Omega_BMT_y * dl_ds + h_ref;
     const double Omega_z = Omega_BMT_z * dl_ds;
