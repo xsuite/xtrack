@@ -37,8 +37,8 @@ void bfieldexpansion_spin_rhs(
     direction_of_motion(kin_px, kin_py, delta,
                         &iv_x, &iv_y, &iv_z);
 
-    double B_par_x, B_par_y, B_par_z;
-    double B_perp_x, B_perp_y, B_perp_z;
+    double B_par_spin_x, B_par_spin_y, B_par_spin_z;
+    double B_perp_spin_x, B_perp_spin_y, B_perp_spin_z;
 
     separate_par_perp_components(
         Bx_T,
@@ -47,21 +47,21 @@ void bfieldexpansion_spin_rhs(
         iv_x,
         iv_y,
         iv_z,
-        &B_par_x,
-        &B_par_y,
-        &B_par_z,
-        &B_perp_x,
-        &B_perp_y,
-        &B_perp_z);
+        &B_par_spin_x,
+        &B_par_spin_y,
+        &B_par_spin_z,
+        &B_perp_spin_x,
+        &B_perp_spin_y,
+        &B_perp_spin_z);
 
     const double Omega_BMT_x = -1.0 / brho_part * (
-        (1.0 + G_spin * gamma) * B_perp_x + (1.0 + G_spin) * B_par_x);
+        (1 + G_spin * gamma) * B_perp_spin_x + (1 + G_spin) * B_par_spin_x);
     const double Omega_BMT_y = -1.0 / brho_part * (
-        (1.0 + G_spin * gamma) * B_perp_y + (1.0 + G_spin) * B_par_y);
+        (1 + G_spin * gamma) * B_perp_spin_y + (1 + G_spin) * B_par_spin_y);
     const double Omega_BMT_z = -1.0 / brho_part * (
-        (1.0 + G_spin * gamma) * B_perp_z + (1.0 + G_spin) * B_par_z);
+        (1 + G_spin * gamma) * B_perp_spin_z + (1 + G_spin) * B_par_spin_z);
 
-    const double dl_ds = (1.0 + h_ref * z[0]) * flow->one_plus_delta / flow->root;
+    const double dl_ds = (1 + h_ref * z[0]) * flow->one_plus_delta / flow->root;
 
     const double Omega_x = Omega_BMT_x * dl_ds;
     const double Omega_y = Omega_BMT_y * dl_ds + h_ref;
