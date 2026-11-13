@@ -11,58 +11,58 @@ from xobjects.test_helpers import for_all_test_contexts
 
 
 @for_all_test_contexts
-def test_bfieldexpansion_spin_constant_h_k0(test_context):
+@pytest.mark.parametrize("h, k0", [(0.1, 0.1),  (0.1, 0), (0, 0.1), (-0.1, -0.1)])  # Test curved bend, curved drift, straight bend, negative curvature
+def test_bfieldexpansion_spin_constant_h_k0(test_context, h, k0):
     length = 1.0
-    for (h, k0) in [(0.1, 0.1),  (0.1, 0), (0, 0.1)]:  # Test curved bend, curved drift, straight bend
-        angle = h * length
+    angle = h * length
 
-        p0 = xt.Particles(
-            mass0=xt.PROTON_MASS_EV,
-            q0=1,
-            p0c=1e9,
-            x=1e-3,
-            px=2e-4,
-            y=-2e-3,
-            py=-1e-4,
-            delta=1e-3,
-            zeta=1e-2,
-            spin_x=0.2,
-            spin_y=0.1,
-            spin_z=0.3,
-        )
+    p0 = xt.Particles(
+        mass0=xt.PROTON_MASS_EV,
+        q0=1,
+        p0c=1e9,
+        x=1e-3,
+        px=2e-4,
+        y=-2e-3,
+        py=-1e-4,
+        delta=1e-3,
+        zeta=1e-2,
+        spin_x=0.2,
+        spin_y=0.1,
+        spin_z=0.3,
+    )
 
-        p_bend = p0.copy()
-        p_bfe = p0.copy()
+    p_bend = p0.copy()
+    p_bfe = p0.copy()
 
-        bend = xt.Bend(length=length, angle=angle, k0=k0)
-        line_bend = xt.Line(elements=[bend])
-        line_bend.particle_ref = p0.copy()
-        line_bend.configure_spin('auto')
-        line_bend.build_tracker(_context=test_context)
-        line_bend.track(p_bend)
+    bend = xt.Bend(length=length, angle=angle, k0=k0)
+    line_bend = xt.Line(elements=[bend])
+    line_bend.particle_ref = p0.copy()
+    line_bend.configure_spin('auto')
+    line_bend.build_tracker(_context=test_context)
+    line_bend.track(p_bend)
 
-        bfe = xt.BFieldExpansion(
-            length=length,
-            h=h,
-            knc=np.array([[k0]]),
-            num_integration_steps=2000,
-        )
-        line_bfe = xt.Line(elements=[bfe])
-        line_bfe.particle_ref = p0.copy()
-        line_bfe.configure_spin('auto')
-        line_bfe.build_tracker(_context=test_context)
-        line_bfe.track(p_bfe)
+    bfe = xt.BFieldExpansion(
+        length=length,
+        h=h,
+        knc=np.array([[k0]]),
+        num_integration_steps=2000,
+    )
+    line_bfe = xt.Line(elements=[bfe])
+    line_bfe.particle_ref = p0.copy()
+    line_bfe.configure_spin('auto')
+    line_bfe.build_tracker(_context=test_context)
+    line_bfe.track(p_bfe)
 
-        p_bend.move(_context=xo.context_default)
-        p_bfe.move(_context=xo.context_default)
+    p_bend.move(_context=xo.context_default)
+    p_bfe.move(_context=xo.context_default)
 
-        assert p_bend.state[0] == 1
-        assert p_bfe.state[0] == 1
+    assert p_bend.state[0] == 1
+    assert p_bfe.state[0] == 1
 
-        for coord in ('x', 'px', 'y', 'py', 'zeta', 'delta',
-                    'spin_x', 'spin_y', 'spin_z'):
-            xo.assert_allclose(getattr(p_bfe, coord), getattr(p_bend, coord),
-                            rtol=0, atol=5e-8)
+    for coord in ('x', 'px', 'y', 'py', 'zeta', 'delta',
+                'spin_x', 'spin_y', 'spin_z'):
+        xo.assert_allclose(getattr(p_bfe, coord), getattr(p_bend, coord),
+                        rtol=0, atol=5e-8)
 
 
 @for_all_test_contexts
