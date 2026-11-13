@@ -38,6 +38,8 @@ def _compute_spin_rotation_matrix(line, particle_on_co):
 
 def _find_spin_fixed_point(line, particle_on_co):
 
+    particle_on_co._warn_if_spin_anomaly_is_zero(require_spin=False)
+
     with xt.line._preserve_config(line):
         # Spin is behind the same compile flag as synchrotron radiation.
         line.config.XTRACK_MULTIPOLE_NO_SYNRAD = False
@@ -311,8 +313,10 @@ def _add_spin_polarization(tw, line, method):
         alpha_plus = alpha_plus_co + int_kappa3_11_18_dn_ddelta_sq / tw.line_length
         alpha_minus = alpha_minus_co - int_kappa3_dn_ddelta_ib / tw.line_length
 
-        pol_inf = 8 / 5 / np.sqrt(3) * alpha_minus_co / alpha_plus_co
-        pol_eq = 8 / 5 / np.sqrt(3) * alpha_minus / alpha_plus
+        # Sokolov-Ternov spin preference reverses with the particle charge.
+        st_prefactor = np.sign(tw.particle_on_co.q0) * 8 / 5 / np.sqrt(3)
+        pol_inf = st_prefactor * alpha_minus_co / alpha_plus_co
+        pol_eq = st_prefactor * alpha_minus / alpha_plus
 
         one_over_t_pol_component_s = (
             5 * np.sqrt(3) / 8 * r0 * hbar * tw.gamma0**5 / m0_kg * alpha_plus_co)
