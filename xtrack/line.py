@@ -11,7 +11,7 @@ from contextlib import contextmanager
 from pprint import pformat
 from typing import Container, Dict, List, Literal, Optional
 from warnings import warn
-from weakref import ref, WeakSet
+from weakref import ref
 
 import numpy as np
 import xdeps as xd
@@ -939,8 +939,6 @@ class Line:
 
     def __getstate__(self):
         out = self.__dict__.copy()
-        # The diagnostic cycle is runtime state, not part of the beam model.
-        out.pop('_spin_moment_checked_particles', None)
         return out
 
     def __setstate__(self, state):
@@ -1714,8 +1712,6 @@ class Line:
 
         self.env._last_context = self._context
 
-        self._check_spin_moment_at_gpu_setup()
-
         return self.tracker
 
     @property_with_doc_group("Compose Mode")
@@ -2121,15 +2117,6 @@ class Line:
 
         if not self._has_valid_tracker():
             self.build_tracker()
-
-        if self._spin_model and isinstance(particles._context, xo.ContextCpu):
-            # Remember batches without keeping their particle buffers alive.
-            checked = self.__dict__.get('_spin_moment_checked_particles')
-            if checked is None:
-                checked = self._spin_moment_checked_particles = WeakSet()
-            if particles not in checked:
-                particles._warn_if_spin_anomaly_is_zero()
-                checked.add(particles)
 
         return self.tracker._track(
             particles,
@@ -5132,13 +5119,6 @@ class Line:
         ----------
         spin_model: bool or str, optional
             Spin model to use. Can be None, 'auto', True, False.
-
-        Notes
-        -----
-        On CPU, nonzero spins with zero anomaly warn (g=2), except for
-        known spin-zero species. Batches are checked on first use; call
-        configure_spin again after changing their spin properties.
-        GPU diagnostics check a CPU reference when available.
         """
         self._method_incompatible_with_compose()
 
@@ -5150,23 +5130,8 @@ class Line:
             raise ValueError("spin_model must be None, 'auto', True, or False")
 
         self._spin_model = spin_model
-        self.__dict__.pop('_spin_moment_checked_particles', None)
+
         self._update_synrad_compile_flag()
-
-        self._check_spin_moment_at_gpu_setup()
-
-    def _check_spin_moment_at_gpu_setup(self):
-        if (not self._spin_model or self._context is None
-                or isinstance(self._context, xo.ContextCpu)
-                or self.particle_ref is None):
-            return
-        reference = self.particle_ref._resolved
-        checked = self.__dict__.get('_spin_moment_checked_particles')
-        if checked is None:
-            checked = self._spin_moment_checked_particles = WeakSet()
-        if reference not in checked:
-            reference._warn_if_spin_anomaly_is_zero(require_spin=False)
-            checked.add(reference)
 
     @doc_group("Deprecated")
     def configure_intrabeam_scattering(

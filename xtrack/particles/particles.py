@@ -1656,27 +1656,6 @@ class Particles(xo.HybridClass):
                            + "single entries!")
         return particle_ref
 
-    def _warn_if_spin_anomaly_is_zero(self, require_spin=True):
-        """Warn for zero-anomaly spins, excluding known spin-zero species."""
-        # Diagnostics use host setup data only. Never synchronize a device
-        # or copy GPU particle arrays to inspect a warning condition.
-        if not isinstance(self._context, xo.ContextCpu):
-            return
-        mask = (self.state > 0) & (self.anomalous_magnetic_moment == 0)
-        if require_spin:
-            mask &= ((self.spin_x != 0) | (self.spin_y != 0)
-                     | (self.spin_z != 0))
-        if not np.any(mask):
-            return
-        affected = [int(pid) for pid in np.unique(self.pdg_id[mask])
-                    if get_spin_properties_from_pdg_id(int(pid)).spin != 0]
-        if affected:
-            species = ', '.join(f'PDG {pid}' for pid in affected)
-            warn('Spin calculations with anomalous_magnetic_moment=0 use g=2. '
-                 'Set the anomaly explicitly if this is unintended. '
-                 f'Affected species: {species}.',
-                 UserWarning, stacklevel=3)
-
     def _allclose(self, a, b, rtol=1e-05, atol=1e-08, mask=None):
         """Substitute for np.allclose that works with all contexts, and
         allows for masking. Mask is expected to be an integer array on pyopencl,

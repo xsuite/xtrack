@@ -42,8 +42,6 @@ def _propagate_twiss_from_init(
         init = init.reverse()
 
     particle_on_co = init.particle_on_co
-    if spin:
-        particle_on_co._warn_if_spin_anomaly_is_zero(require_spin=False)
     W_matrix = init.W_matrix
 
     if start is not None and end is None:

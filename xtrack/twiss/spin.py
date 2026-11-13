@@ -38,8 +38,6 @@ def _compute_spin_rotation_matrix(line, particle_on_co):
 
 def _find_spin_fixed_point(line, particle_on_co):
 
-    particle_on_co._warn_if_spin_anomaly_is_zero(require_spin=False)
-
     with xt.line._preserve_config(line):
         # Spin is behind the same compile flag as synchrotron radiation.
         line.config.XTRACK_MULTIPOLE_NO_SYNRAD = False
