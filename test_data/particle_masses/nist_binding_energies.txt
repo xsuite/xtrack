@@ -1,0 +1,23 @@
+NIST Atomic Spectra Database, version 5.12 (2024)
+Retrieved 2026-09-28; neutral atoms, total binding energy, eV.
+
+--------------------------------------------------------------------------------------------------------------------------
+At. num | Sp. Name      | Ion Charge |       Binding Energy (a) (eV)        |    Uncertainty (b) (eV)    | References (c)
+--------|---------------|------------|--------------------------------------|----------------------------|----------------
+      6 | C I           |          0 |            [1030.1085]               |                   0.0004   | Multiple Refs.
+      8 | O I           |          0 |            [2043.8429]               |                   0.0022   | Multiple Refs.
+     10 | Ne I          |          0 |            [3511.696]                |                   0.019    | Multiple Refs.
+     18 | Ar I          |          0 |           [14400.8]                  |                   2.4      | Multiple Refs.
+     26 | Fe I          |          0 |           [34619]                    |                  11        | Multiple Refs.
+     54 | Xe I          |          0 |          [202400]                    |                 140        | Multiple Refs.
+     79 | Au I          |          0 |          [517100]                    |                1100        | Multiple Refs.
+     82 | Pb I          |          0 |          [568200]                    |                1500        | Multiple Refs.
+--------------------------------------------------------------------------------------------------------------------------
+Notes:
+(a) Binding energies are determined by summing up all relevant ionization energies.
+(b) Uncertainties of ionization energies taken from the same source are summed up linearly, assuming they are dominated by systematics. 
+    Uncertainties resulting from different sources are summed up in quadrature. 
+    If the uncertainty of an ionization energy involved in the summation is unknown, 
+    it is estimated as ten units of the least significant figure of the ionization energy. 
+(c) Determination of the listed binding energies involves summation of two or more ionization energies. 
+    References to individual values of ionization energies can be obtained by querying this database for ionization energies.

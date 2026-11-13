@@ -3,19 +3,21 @@
 # Copyright (c) CERN, 2025.                 #
 # ######################################### #
 
-from ..base_element import BeamElement
 import xobjects as xo
+
+from ..base_element import BeamElement
 from ..random import (
     RandomExponential,
     RandomUniformAccurate,
 )
 from ._common import (
+    _EDGE_MODEL_TO_INDEX,
+    _INDEX_TO_EDGE_MODEL,
     SynchrotronRadiationRecord,
     _BendCommon,
-    _EDGE_MODEL_TO_INDEX,
     _HasKnlKsl,
-    _INDEX_TO_EDGE_MODEL,
 )
+
 
 class Magnet(_BendCommon, BeamElement):
     """General transverse field magnet with curvature and fringe fields.
@@ -25,7 +27,7 @@ class Magnet(_BendCommon, BeamElement):
     parameters can be used to specify the integration scheme and drift model to
     be used in the kick-splitting scheme. Default value is ``adaptive`` for
     both, which aims to provide best results in the general case (``rot-kick-rot``
-    using the polar/exact, drift depending on h, for the model, and ``yoshida4``
+    using the polar/exact drift depending on h for the model, and ``yoshida-6``
     for the integration scheme).
 
     Parameters
@@ -48,9 +50,9 @@ class Magnet(_BendCommon, BeamElement):
         Strength of the skew sextupolar component in units of m^-3.
     k3s : float, optional
         Strength of the skew octupolar component in units of m^-4.
-    h : float, optional
-        Curvature of the reference trajectory in units of m^-1 (= 1 / radius).
-        Will imply the value of ``k0`` if ``k0_from_h`` is set.
+    angle : float, optional
+        Bending angle of the reference trajectory in radians. Default is 0.
+        Together with ``length``, determines the curvature ``h``.
     k0_from_h : bool, optional
         If true, the value of ``k0`` will be pinned to the value of ``h``.
     order : int, optional
@@ -72,7 +74,7 @@ class Magnet(_BendCommon, BeamElement):
             - ``rot-kick-rot``: nested integration scheme, alternating: 1. Yoshida-4
                 slices with exact drift maps (polar, if ``h`` non-zero) and k0-only
                 kicks; 2. kicks for the remaining strengths.
-            -   ``rot-kick-rot-high-order``: nested integration scheme, alternating:
+            - ``rot-kick-rot-high-order``: nested integration scheme, alternating:
                 1. Yoshida-6 slices with exact drift maps (polar, if ``h`` non-zero)
                 and k0-only kicks; 2. kicks for the remaining strengths.
             - ``mat-kick-mat``: use an expanded combined-function magnet map
@@ -87,11 +89,14 @@ class Magnet(_BendCommon, BeamElement):
     integrator : str, optional
         Integration scheme to be used. The options are:
 
-            - ``adaptive``: default option, same as ``yoshida4``.
+            - ``adaptive``: default option, same as ``yoshida-6``.
             - ``teapot``: use the Teapot integration scheme.
-            - ``yoshida4``: use the Yoshida 4 integration scheme. The number of
-                kicks will be implicitly rounded up to the nearest multiple of 7,
-                as required by the scheme.
+            - ``yoshida-4``, ``yoshida-6``, ``yoshida-8``: use the
+                corresponding even-order Yoshida scheme. The number of kicks is
+                rounded up to a complete 3, 7, or 15-kick slice. Selecting
+                ``yoshida4`` warns because older xtrack versions mislabeled the
+                sixth-order scheme with this name; use ``yoshida-6`` to retain
+                that historical accuracy.
             - ``uniform``: slice uniformly.
 
         The integration scheme setting will be ignored if the length is zero, or
@@ -125,7 +130,7 @@ class Magnet(_BendCommon, BeamElement):
         when entering the fringe field (feed down effect). Default is 0.
     edge_exit_angle_fdown : float, optional
         Same as ``edge_entry_angle_fdown``, but for the exit. Default is 0.
-    edge_entry_fint: float, optional
+    edge_entry_fint : float, optional
         Fringe integral value at entry. Default is 0.
     edge_exit_fint : float, optional
         Same as ``edge_entry_fint``, but for the exit. Default is 0.
@@ -142,6 +147,13 @@ class Magnet(_BendCommon, BeamElement):
         is generated.
     delta_taper : float, optional
         A value added to delta for the purposes of tapering. Default is 0.
+
+    Attributes
+    ----------
+    h : float
+        Read-only curvature of the reference trajectory in units of m^-1
+        (= 1 / radius), computed as ``angle / length`` for nonzero length.
+        Set ``length`` and ``angle`` instead of passing or assigning ``h``.
     """
     isthick = True
     has_backtrack = True

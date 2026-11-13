@@ -21,7 +21,7 @@ for ip_name in ip_names:
     s_cut_left = np.arange(tt['s', ip_name] - 11, tt['s', ip_name] - 2.4, 0.2)
     line.cut_at_s(s_cut_left)
 
-# Turn off exprimental solenoids
+# Turn off experimental solenoids
 line['on_sol_ipa'] = 0
 line['on_sol_ipd'] = 0
 line['on_sol_ipg'] = 0
@@ -36,7 +36,7 @@ line['on_sol_corr_ipj'] = 0
 
 tw_off = line.twiss6d(strengths=True)
 
-# Turn on exprimental solenoids
+# Turn on experimental solenoids
 line['on_sol_ipa'] = 1
 line['on_sol_ipd'] = 1
 line['on_sol_ipg'] = 1

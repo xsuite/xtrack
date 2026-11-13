@@ -549,6 +549,8 @@ def test_survey_prototype():
     assert np.all(sv.name == np.array(['q0', 'q1', 'q2', '_end_point']))
     assert np.all(sv.prototype == np.array([None, 'q0', 'q1', None]))
     assert np.all(sv_rev.prototype == np.array(['q1', 'q0', None, None]))
+    assert list(sv.base_prototype) == [None, 'q0', 'q0', None]
+    assert list(sv_rev.base_prototype) == ['q0', 'q0', None, None]
 
 def test_survey_with_h_and_v_bends():
 

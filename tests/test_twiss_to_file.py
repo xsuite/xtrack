@@ -69,13 +69,13 @@ def test_twiss_table_file(check_type, tmp_path):
     # Check particle_on_co
     assert isinstance(tw.particle_on_co, xt.Particles)
     assert isinstance(tw_test.particle_on_co, xt.Particles)
-    dct_ref = tw_test.particle_on_co.to_dict()
+    dct_ref = tw.particle_on_co.to_dict()
     dct_test = tw_test.particle_on_co.to_dict()
     for kk in dct_ref:
         if isinstance(dct_ref[kk], np.ndarray):
             xo.assert_allclose(dct_ref[kk], dct_test[kk], rtol=1e-10, atol=1e-15)
         else:
-            assert dct_ref[kk] == dct_test[kk]
+            np.testing.assert_equal(dct_ref[kk], dct_test[kk])
 
     # Check steps_R_matrix
     assert isinstance(tw.steps_R_matrix, dict)

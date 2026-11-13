@@ -8,7 +8,7 @@ from .bend import Bend
 class CombinedFunctionMagnet:
 
     def __init__(self, *args, **kwargs):
-        raise TypeError('`CombinedFunctionMagnet` is supported anymore. '
+        raise TypeError('`CombinedFunctionMagnet` is not supported anymore. '
                         'Use `Bend` instead.')
 
     @classmethod

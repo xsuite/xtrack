@@ -1,0 +1,17 @@
+# The same specification as the dictionary in 004_tfs_format_spec.py.
+version = "1"
+case = "upper"
+float_format = ".16e"
+
+columns = [
+    { name = "name", type = "string" },
+    { name = "s", type = "float", format = ".9f" },
+    { name = "betx", type = "float" },
+    { name = "bety", type = "float" },
+]
+
+scalars = [
+    { name = "TYPE", value = "TWISS" },
+    { name = "Q1", source_name = "qx", type = "float", format = ".12f" },
+    { name = "Q2", source_name = "qy", type = "float", format = ".12f" },
+]

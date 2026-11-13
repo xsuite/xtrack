@@ -65,7 +65,7 @@ class LimitRectEllipse(BeamElement):
             raise ValueError("max_x has to be positive definite")
 
         if max_y < 0.0:
-            raise ValueError("max_y has to be_positive definite")
+            raise ValueError("max_y has to be positive definite")
 
         if a_squ < 0.0 or b_squ < 0.0:
             raise ValueError("a_squ and b_squ have to be positive definite")

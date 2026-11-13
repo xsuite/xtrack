@@ -17,7 +17,7 @@ q0 = -1 # electrons
 P0c = 50e6 # reference momentum, eV/c
 P_over_q = P0c / q0 # V/c, reference rigidity
 
-# FODO cell paramters
+# FODO cell parameters
 mu = np.pi/2 # rad, phase advance
 Lcell = 2 # m, fodo cell length
 Lquad = 0 # m, a thin quad

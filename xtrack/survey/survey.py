@@ -11,6 +11,7 @@ import numpy as np
 
 from .frame import Frame, _angles_from_E_matrix
 from ..table import Table
+from .._tfs_format import _UNSET as _TFS_UNSET
 from ..general import DEPRECATION_INFO_PREP_1_0
 
 
@@ -55,6 +56,7 @@ class SurveyTable(Table):
             Additional positional arguments passed to :class:`xtrack.Table`.
         **kwargs
             Additional keyword arguments passed to :class:`xtrack.Table`.
+            ``sep_count`` defaults to ``'::::'`` for repeated element names.
 
         Examples
         --------
@@ -96,6 +98,7 @@ class SurveyTable(Table):
         d1.1  Drift                  0.3             0             0           0.3
         mb1.1 Bend                   1.3             0             0           1.3
         """
+        kwargs.setdefault('sep_count', '::::')
         super().__init__(data, *args, **kwargs)
 
     _DEPRECATED_FIELDS = {
@@ -106,10 +109,6 @@ class SurveyTable(Table):
     }
 
     _error_on_row_not_found = True
-
-    def __init__(self, *args, **kwargs):
-        kwargs.setdefault('sep_count', '::::')
-        super().__init__(*args, **kwargs)
 
     def reverse(self):
         """
@@ -131,7 +130,7 @@ class SurveyTable(Table):
         new_cols = {}
 
         element_properties = ['name', 'element_type', 'isthick', 'drift_length',
-                              'length', 'prototype']
+                              'length', 'prototype', 'base_prototype']
 
         for kk in element_properties:
             new_cols[kk] = self._data[kk].copy()
@@ -290,8 +289,10 @@ class SurveyTable(Table):
             for kk, vv in self._data.items()
         }
 
-        # Removing the count for repeated elements
-        out_sv_table._data['name'] = np.array([nn.split('::')[0] for nn in out_sv_table._data['name']])
+        # Remove repetition counts while keeping the object dtype expected by xplt.
+        out_sv_table._data['name'] = np.array(
+            [nn.split('::')[0] for nn in out_sv_table._data['name']],
+            dtype=object)
         out_sv_table._index_cache = None
         out_sv_table._count_cache = None
         out_sv_table._names_cache = None
@@ -312,6 +313,42 @@ class SurveyTable(Table):
         if legend:
             import matplotlib.pyplot as plt
             plt.legend()
+
+    def to_tfs(self, file, *, format_spec=None,
+               include=_TFS_UNSET, exclude=_TFS_UNSET,
+               missing=_TFS_UNSET, include_meta=_TFS_UNSET,
+               default_column_width=_TFS_UNSET, float_precision=_TFS_UNSET,
+               numeric_column_width=_TFS_UNSET, column_formats=_TFS_UNSET,
+               column_widths=_TFS_UNSET):
+        """Write the survey table to a TFS file.
+
+        The attached ``line`` reference is excluded from the default export.
+        All parameters follow :meth:`Table.to_tfs`. When ``format_spec`` is
+        provided, only the fields selected by the specification are written.
+        """
+        if format_spec is None:
+            if exclude is _TFS_UNSET or exclude is None:
+                exclude = []
+            elif isinstance(exclude, str):
+                exclude = [exclude]
+            else:
+                exclude = list(exclude)
+            if 'line' in self.keys():
+                exclude.append('line')
+
+        super().to_tfs(
+            file,
+            format_spec=format_spec,
+            include=include,
+            exclude=exclude,
+            missing=missing,
+            include_meta=include_meta,
+            default_column_width=default_column_width,
+            float_precision=float_precision,
+            numeric_column_width=numeric_column_width,
+            column_formats=column_formats,
+            column_widths=column_widths,
+        )
 
     def to_pandas(self, index=None, columns=None):
         """
@@ -353,14 +390,38 @@ def survey_from_line(
         X0=0, Y0=0, Z0=0, theta0=0, phi0=0, psi0=0,
         element0=0, values_at_element_exit=False, reverse=False,
         include_element_frames=False):
-    """Execute SURVEY command. Based on MAD-X equivalent.
-    Attributes, must be given in this order in the dictionary:
-    X0        (float)    Initial X position in meters.
-    Y0        (float)    Initial Y position in meters.
-    Z0        (float)    Initial Z position in meters.
-    theta0    (float)    Initial azimuthal angle in radians.
-    phi0      (float)    Initial elevation angle in radians.
-    psi0      (float)    Initial roll angle in radians."""
+    """Compute the positions and orientations along a line.
+
+    Parameters
+    ----------
+    line : xtrack.Line
+        Line to survey.
+    X0, Y0, Z0 : float, optional
+        Global coordinates at the entrance of ``element0``, in meters.
+        Each defaults to zero.
+    theta0, phi0, psi0 : float, optional
+        Azimuth, elevation, and roll angles at the entrance of ``element0``,
+        in radians. Each defaults to zero.
+    element0 : int or str, optional
+        Index or name of the element at which the initial position and
+        orientation are specified. Defaults to the first element. The survey
+        is propagated both forward and backward from this element.
+    values_at_element_exit : bool, optional
+        Must be False (the default). Values at element exits are not supported.
+    reverse : bool, optional
+        Must be False (the default). Use ``survey_from_line(...).reverse()``
+        to obtain the survey in the reverse local reference frame.
+    include_element_frames : bool, optional
+        Include aligned reference and physical element frames at both ends
+        of every element. Defaults to False.
+
+    Returns
+    -------
+    SurveyTable
+        Positions and orientations at element entrances, with an additional
+        ``_end_point`` row at the end of the line. The longitudinal coordinate
+        ``s`` is measured from the start of the line, regardless of ``element0``.
+    """
 
     if reverse:
         raise ValueError('`survey(..., reverse=True)` not supported anymore. '
@@ -414,6 +475,7 @@ def survey_from_line(
     out_columns["element_type"]     = tt.element_type
     out_columns['isthick']          = tt.isthick
     out_columns['prototype']        = tt.prototype
+    out_columns['base_prototype']   = tt.base_prototype
     out_columns['drift_length']     = drift_length
     out_columns['length']           = tt.length
 

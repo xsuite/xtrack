@@ -10,10 +10,86 @@ from cpymad.madx import Madx
 from xdeps.refs import CompactFormatter
 import xtrack as xt
 from xtrack import Strategy, Uniform
-from xtrack.mad_parser.loader import MadxLoader, MADLoaderWarning
+from xtrack.mad_parser.loader import CONSTANTS, MadxLoader, MADLoaderWarning
 from xtrack.mad_parser.parse import MadxParser
 
 test_data_folder = (Path(__file__).parent / '../test_data').absolute()
+
+
+@pytest.mark.parametrize('prefix', ['const', 'const real', 'const int'])
+@pytest.mark.parametrize('uppercase', [False, True])
+def test_const_declarations(prefix, uppercase):
+    source = f"""
+    base = 2;
+    {prefix} fixed = base;
+    {prefix} deferred := base;
+    base = 3;
+    q: quadrupole, l=1, k1:=fixed + deferred;
+    seq: sequence, l=1;
+        q, at=0.5;
+    endsequence;
+    """
+    if uppercase:
+        source = source.upper()
+    env = xt.load(string=source, format='madx')
+
+    assert env['fixed'] == 2
+    assert env['deferred'] == 3
+    assert env.seq['q'].k1 == 5
+    env['base'] = 4
+    assert env['fixed'] == 2
+    assert env['deferred'] == 4
+    assert env.seq['q'].k1 == 6
+    # Qualifiers do not introduce immutable variables in Xsuite.
+    env['fixed'] = 10
+    assert env.seq['q'].k1 == 14
+
+
+@pytest.mark.parametrize('prefix', ['const', 'const real'])
+def test_const_deferred_literal(prefix):
+    env = xt.load(string=f'{prefix} var := 1.0;', format='madx')
+    assert env['var'] == 1.0
+
+
+def test_const_type_names_and_comments():
+    env = xt.load(string='''
+        const real = 2;
+        const int := real + 1;
+        const real /* numeric type */ value := int + real;
+    ''', format='madx')
+    assert env['real'] == 2
+    assert env['int'] == 3
+    assert env['value'] == 5
+
+
+def test_const_unsupported_type():
+    with pytest.raises(ValueError, match='Unsupported MAD-X scalar type'):
+        xt.load(string='const nonsense var = 1;', format='madx')
+
+
+def test_madx_constants_match_cpymad():
+    mad_src = """
+    dummy: marker;
+    seq: sequence, l=1;
+        dummy, at=0.5;
+    endsequence;
+    """
+
+    native_env = xt.load(string=mad_src, format='madx')
+
+    mad = Madx(stdout=False)
+    mad.input(mad_src)
+    mad.beam()
+    mad.use('seq')
+    cpymad_line = xt.Line.from_madx_sequence(
+        mad.sequence.seq,
+        deferred_expressions=True,
+    )
+
+    for name in CONSTANTS:
+        xo.assert_allclose(
+            native_env[name], cpymad_line.vars[name]._value, rtol=0, atol=0
+        )
 
 
 def test_simple_parser():
@@ -138,6 +214,29 @@ def test_simple_parser():
     _order_madx_output(result)
 
     assert expected == result
+
+
+@pytest.mark.parametrize('option', [
+    'option;',
+    'option, -echo, -warn, info;',
+    'OPTION, ECHO=0, WARN=0;',
+    'option, -echo,\n        -warn;',
+    'option, -echo, &\n        -warn;',
+])
+def test_ignore_option(option, tmp_path, capsys):
+    path = tmp_path / 'options.madx'
+    path.write_text(f'''
+        before = 1;
+        {option} after = 2;
+        d: drift, l=before + after;
+        seq: line=(d);
+    ''')
+    env = xt.load(path, format='madx')
+
+    assert env['before'] == 1
+    assert env['after'] == 2
+    assert env.seq['d'].length == 3
+    assert 'Ignoring statement:' in capsys.readouterr().out
 
 
 def test_parse_linac4_beta0_sequence(capsys):
@@ -599,7 +698,7 @@ def test_instrument(example_sequence):
     env, positions, _ = example_sequence
     in1 = env['in1/line']
     xo.assert_allclose(positions['in1/line'], 9, atol=1e-14)
-    assert isinstance(in1, xt.Drift)
+    assert isinstance(in1, xt.Device)
     assert in1.length == 2
 
 
@@ -607,7 +706,7 @@ def test_monitor(example_sequence):
     env, positions, _ = example_sequence
     mo1 = env['mo1/line']
     xo.assert_allclose(positions['mo1/line'], 11, atol=1e-14)
-    assert isinstance(mo1, xt.Drift)
+    assert isinstance(mo1, xt.Device)
     assert mo1.length == 1
 
 
@@ -615,7 +714,7 @@ def test_placeholder(example_sequence):
     env, positions, _ = example_sequence
     pl1 = env['pl1/line']
     xo.assert_allclose(positions['pl1/line'], 13, atol=1e-14)
-    assert isinstance(pl1, xt.Drift)
+    assert isinstance(pl1, xt.Device)
     assert pl1.length == 1
 
 
@@ -845,7 +944,7 @@ def test_reversed_instrument(example_sequence):
     env, _, positions_reversed = example_sequence
     in1 = env['in1/line_reversed']
     xo.assert_allclose(positions_reversed['in1/line_reversed'], 36 - 9, atol=1e-14)
-    assert isinstance(in1, xt.Drift)
+    assert isinstance(in1, xt.Device)
     assert in1.length == 2
 
 
@@ -853,7 +952,7 @@ def test_reversed_monitor(example_sequence):
     env, _, positions_reversed = example_sequence
     mo1 = env['mo1/line_reversed']
     xo.assert_allclose(positions_reversed['mo1/line_reversed'], 36 - 11, atol=1e-14)
-    assert isinstance(mo1, xt.Drift)
+    assert isinstance(mo1, xt.Device)
     assert mo1.length == 1
 
 
@@ -861,7 +960,7 @@ def test_reversed_placeholder(example_sequence):
     env, _, positions_reversed = example_sequence
     pl1 = env['pl1/line_reversed']
     xo.assert_allclose(positions_reversed['pl1/line_reversed'], 36 - 13, atol=1e-14)
-    assert isinstance(pl1, xt.Drift)
+    assert isinstance(pl1, xt.Device)
     assert pl1.length == 1
 
 
@@ -1198,6 +1297,45 @@ def test_line_syntax_inserts_apertures():
     assert l1.element_names == 4 * ['m1_aper', 'm1'] + ['d1']
     assert l1['m1'].name_associated_aperture == 'm1_aper'
     assert isinstance(l1['m1_aper'], xt.LimitEllipse)
+
+
+@pytest.mark.parametrize('refer, positions', [
+    ('', (5, 7)),  # Default centre reference: the reproducer from issue #902.
+    (', refer=entry', (4, 6)),
+    (', refer=exit', (6, 8)),
+])
+@pytest.mark.parametrize('install_limits', [True, False])
+def test_sequence_repeated_element_apertures(refer, positions, install_limits):
+    sequence = f"""
+    b: sbend, l=2.0, angle=0.01, aperture={{0.01}};
+    m: marker;
+
+    seq: sequence, l=10{refer};
+        b, at={positions[0]};
+        m, at=6.0;
+        b, at={positions[1]};
+    endsequence;
+    """
+    env = xt.load(string=sequence, format='madx', install_limits=install_limits)
+    line = env.seq
+    table = line.get_table()
+    bend_indices = [ii for ii, name in enumerate(line.element_names) if name == 'b']
+
+    assert len(bend_indices) == 2
+    np.testing.assert_allclose(table.s[bend_indices], [4., 6.], atol=1e-14, rtol=0)
+    assert table['s', 'm'] == 6
+    assert line.get_length() == 10
+    assert line['b'].name_associated_aperture == 'b_aper'
+    assert isinstance(line['b_aper'], xt.LimitEllipse)
+    assert line['b_aper'].a == line['b_aper'].b == 0.01
+
+    if install_limits:
+        assert line.element_names.count('b_aper') == 2
+        for ii in bend_indices:
+            assert line.element_names[ii - 1] == 'b_aper'
+            assert table.s[ii - 1] == table.s[ii]
+    else:
+        assert 'b_aper' not in line.element_names
 
 
 def test_refer_and_thin_elements():

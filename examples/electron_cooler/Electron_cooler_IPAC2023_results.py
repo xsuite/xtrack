@@ -42,7 +42,7 @@ temp_long =  1e-3 # <E> [eV]
 magnetic_field = 0.060 # 100 Gauss in ELENA
 # idea is to study magnetic field imperfections
 magnetic_field_ratio_list = [0,1e-4,5e-4,1e-3] #Iterate over different values of the magnetic field quality to see effect on cooling performance.
-#magnetic_field_ratio is the ratio of transverse componenet of magnetic field and the longitudinal component. In the ideal case, the ratio is 0.
+#magnetic_field_ratio is the ratio of transverse component of magnetic field and the longitudinal component. In the ideal case, the ratio is 0.
 
 # some initial beam parameters
 emittance = 35e-6

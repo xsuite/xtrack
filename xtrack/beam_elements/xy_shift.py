@@ -10,7 +10,7 @@ import xobjects as xo
 
 class XYShift(BeamElement):
     '''
-    Beam element modeling an transverse shift of the reference system, by applying
+    Beam element modeling a transverse shift of the reference system, by applying
     the following transformation to the particle coordinates:
 
         x_new = x_old - dx

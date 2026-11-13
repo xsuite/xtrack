@@ -22,8 +22,8 @@ class VariableSolenoid(_HasKnlKsl, _HasIntegrator, BeamElement):
 
     _docstring_start = \
     """
-    Solenoid with linearly varying lingitudinal field. The transverse fields
-    arising form the derivative of the longitudinal fields are taken into account
+    Solenoid with linearly varying longitudinal field. The transverse fields
+    arising from the derivative of the longitudinal fields are taken into account
     in particle dynamics, radiation, spin precession.
 
     Parameters
@@ -80,6 +80,6 @@ class VariableSolenoid(_HasKnlKsl, _HasIntegrator, BeamElement):
     def __init__(self, **kwargs):
 
         if 'model' in kwargs:
-            raise ValueError("`model` is not supported for UniformSolenoid.")
+            raise ValueError("`model` is not supported for VariableSolenoid.")
 
         _HasKnlKsl.__init__(self, **kwargs)

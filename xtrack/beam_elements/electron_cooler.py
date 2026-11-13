@@ -17,7 +17,7 @@ class ElectronCooler(BeamElement):
         ----------
         current : float, optional
             The current in the electron beam, in amperes.
-        length  : float, optional
+        length : float, optional
             The length of the electron cooler, in meters.
         radius_e_beam : float, optional
             The radius of the electron beam, in meters.
@@ -32,7 +32,7 @@ class ElectronCooler(BeamElement):
         offset_px : float, optional
             The horizontal angle of the electron cooler, in rad.
         offset_y : float, optional
-            The horizontal offset of the electron cooler, in meters.
+            The vertical offset of the electron cooler, in meters.
         offset_py : float, optional
             The vertical angle of the electron cooler, in rad.
         offset_energy : float, optional
@@ -40,10 +40,17 @@ class ElectronCooler(BeamElement):
         magnetic_field_ratio : float, optional
             The ratio of perpendicular component of magnetic field with the
             longitudinal component of the magnetic field. This is a measure
-            of the magnetic field quality. With the ideal magnetic field quality
+            of the magnetic field quality, with the ideal magnetic field quality
             being 0.
-        space_charge : float, optional
-            Whether space charge of electron beam is enabled. 0 is off and 1 is on.
+        space_charge_factor : float, optional
+            Whether space charge of the electron beam is enabled. 0 is off and 1 is on.
+        record_flag : int, optional
+            If nonzero, record the cooling force components ``Fx``, ``Fy``, and
+            ``Fl`` in eV/m, together with ``particle_id``, for each particle on
+            each passage through the cooler. Requires internal logging to be
+            enabled with ``line.start_internal_logging_for_elements_of_type``
+            for ``ElectronCooler``; records are stored while capacity remains.
+            Default is 0 (disabled).
 
     """
 

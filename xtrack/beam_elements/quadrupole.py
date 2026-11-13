@@ -3,7 +3,7 @@
 # Copyright (c) CERN, 2025.                 #
 # ######################################### #
 
-from ..base_element import BeamElement
+from ..base_element import BeamElement, FloatOrTpsa
 import xobjects as xo
 import xtrack as xt
 from ..random import (
@@ -41,11 +41,11 @@ class Quadrupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
     """
     knl_rel : array, optional
         Relative integrated strength of the normal components with respect to the
-        main component k1 or k1s, depending whether `main_is_skew` is False or True, respectively.
+        main component k1 or k1s, depending on whether `main_is_skew` is False or True, respectively.
         The effect of knl_rel is added to the one of knl.
     ksl_rel : array, optional
         Relative integrated strength of the skew components with respect to the
-        main component k1 or k1s, depending whether `main_is_skew` is False or True, respectively.
+        main component k1 or k1s, depending on whether `main_is_skew` is False or True, respectively.
         The effect of ksl_rel is added to the one of ksl.
     main_is_skew : bool, optional
         If True, the main component is the skew one (k1s), otherwise it is the normal one (k1).
@@ -63,8 +63,8 @@ class Quadrupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
     allow_loss_refinement = True
 
     _xofields = {
-        'k1': xo.Float64,
-        'k1s': xo.Float64,
+        'k1': FloatOrTpsa,
+        'k1s': FloatOrTpsa,
         'length': xo.Float64,
         'num_multipole_kicks': xo.Int64,
         'order': xo.Int64,
@@ -82,7 +82,8 @@ class Quadrupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
         'delta_taper': xo.Float64,
     }
 
-    _skip_in_to_dict = ['_order', 'inv_factorial_order']  # defined by knl, etc.
+    _skip_in_to_dict = [
+        '_order', 'inv_factorial_order']  # defined by knl, etc.
 
     _rename = {
         'order': '_order',

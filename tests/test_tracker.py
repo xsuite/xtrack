@@ -306,7 +306,7 @@ def _ele_start_to_ele_stop(line, particles_init):
                 assert line.record_last_track.x.shape==(len(particles.x), expected_num_monitor)
 
 
-# Track from any ele_start until any ele_stop that is smaller than or equal to ele_start (turn increses by one)
+# Track from any ele_start until any ele_stop that is smaller than or equal to ele_start (turn increases by one)
 # for one, two, and ten turns
 def _ele_start_to_ele_stop_with_overflow(line, particles_init):
     n_elem = len(line.element_names)

@@ -137,6 +137,14 @@ class BeamStatsMonitor(BeamElement):
       is recorded per logged turn and full-turn slice. Whole-beam statistics
       are also available.
 
+    Coasting mode bins arrival coordinates on a fixed zeta grid relative to
+    the monitor: ``reference_turns - zeta / line_length``. A particle with
+    ``zeta=0`` records at ``reference_turns`` regardless of monitor position;
+    no flight-time offset from the start of the line is included. The tracker
+    supplies accumulated reference turns automatically, including during an
+    EnergyProgram. ``start_at_turn`` and ``stop_at_turn`` select reference-turn
+    bins, not SyncTime frames or individual particles' revolution counts.
+
     In this monitor, "slot" means a bunch position on the bunch pattern grid,
     where adjacent slots are separated in `zeta` by `bunch_spacing_zeta`.
     Note that `bunch_spacing_zeta` is distinct from an RF bucket, which can be
@@ -626,14 +634,27 @@ class BeamStatsMonitor(BeamElement):
             return centers[None, :] - turn_offsets[:, None]
         return centers[None, :, :] - turn_offsets[:, None, None]
 
-    def time_centers(self, *, line_length, beta0):
+    def time_centers(self, *, line_length, beta0=None, energy_program=None):
         """
         Return time centers for the monitor's most detailed longitudinal grid.
+
+        The time origin is local to the monitor; no flight-time offset from
+        the start of the line is included. For coasting acquisition during a
+        ramp, pass ``energy_program`` instead of ``beta0`` to convert the
+        grid's reference-turn coordinates using the program's time map.
+        The leading half-turn before t=0 uses the injection reference speed.
         """
         line_length = float(line_length)
-        beta0 = float(beta0)
         centers = self._longitudinal_centers(line_length=line_length)
         turn_offsets = self.turns * line_length
+        if energy_program is not None:
+            if not self.coasting:
+                raise ValueError("`energy_program` requires coasting mode")
+            reference_turns = (turn_offsets[:, None] - centers[None, :])/line_length
+            times = energy_program.get_t_s_at_turn(reference_turns)
+            injection_period = line_length / (energy_program.get_beta0_at_t_s(0)*_C_LIGHT)
+            return np.where(reference_turns < 0, reference_turns*injection_period, times)
+        beta0 = float(beta0)
         if self.coasting:
             return ((turn_offsets[:, None] - centers[None, :])
                     / (beta0 * _C_LIGHT))
@@ -997,6 +1018,21 @@ class BeamStatsMonitor(BeamElement):
         """
         _save_to_file(self, output_file=output_file)
 
+    def clear(self):
+        """
+        Clear all recorded in-memory data, keeping the monitor configuration.
+
+        Primitive moment arrays, profile counts, and touched-record flags are
+        reset in place. The turn range and sampling stride are preserved, and
+        the monitor can be reused with an existing tracker. This method is
+        available in all modes, including coasting mode.
+
+        Data already saved to an HDF5 output file is preserved. Use
+        :meth:`start_new_frame` to also retarget the monitor to later turns.
+        """
+        self._reset_data()
+        self._reset_touched_records()
+
     def start_new_frame(self, start_at_turn):
         """
         Clear data and retarget the same-size logged-turn frame.
@@ -1012,8 +1048,7 @@ class BeamStatsMonitor(BeamElement):
         self.start_at_turn = start_at_turn
         self.stop_at_turn = (
             start_at_turn + int(self._num_records) * int(self.every_n_turns))
-        self._reset_data()
-        self._reset_touched_records()
+        self.clear()
 
     def _moments_at_level(self, level):
         """

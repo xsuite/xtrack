@@ -122,6 +122,11 @@ class MadxTransformer(Transformer):
         name, value = assignment
         self.vars[name] = value
 
+    def set_typed_var(self, type_name, assignment):
+        if type_name.value.lower() not in {'real', 'int'}:
+            raise ValueError(f'Unsupported MAD-X scalar type: {type_name.value!r}')
+        self.set_var(assignment)
+
     def name_atom(self, name):
         field = name.value.lower()
         if self.vars.default_to_zero and field not in self.vars:

@@ -76,7 +76,7 @@ def _get_chromatic_functions(
     wx_chrom = np.sqrt(ax_chrom**2 + bx_chrom**2)
     wy_chrom = np.sqrt(ay_chrom**2 + by_chrom**2)
 
-    # Could be addede if needed (note that mad-x unwraps and devide by 2pi)
+    # Could be added if needed (note that MAD-X unwraps and divides by 2pi)
     # phix_chrom = np.arctan2(ax_chrom, bx_chrom)
     # phiy_chrom = np.arctan2(ay_chrom, by_chrom)
 
@@ -92,7 +92,7 @@ def _get_chromatic_functions(
                   'ax_chrom': ax_chrom, 'ay_chrom': ay_chrom,
                   'wx_chrom': wx_chrom, 'wy_chrom': wy_chrom,
                   }
-    scalars_chrom = {'dqx': dqx, 'dqy': dqy}
+    scalars_chrom = {'dqx': float(dqx), 'dqy': float(dqy)}
 
     if on_momentum_twiss_res is not None:
 
@@ -141,7 +141,7 @@ def _get_chromatic_functions(
 
         cols_chrom.update({'ddx': ddx, 'ddpx': ddpx,
                            'ddy': ddy, 'ddpy': ddpy})
-        scalars_chrom.update({'ddqx': ddqx, 'ddqy': ddqy})
+        scalars_chrom.update({'ddqx': float(ddqx), 'ddqy': float(ddqy)})
 
     return cols_chrom, scalars_chrom
 

@@ -2,9 +2,7 @@ import xtrack as xt
 import xobjects as xo
 import numpy as np
 import matplotlib.pyplot as plt
-from xtrack.aperture.aperture import Aperture
 from xtrack.aperture.transform import transform_matrix
-from xtrack.aperture.structures import ApertureModel, Pipe, Circle, Profile, ProfilePosition, Rectangle, PipePosition
 
 
 env = xt.Environment()
@@ -27,40 +25,18 @@ line = env.new_line(
 
 sv = line.survey()
 
-circle = Circle(radius=2)
-rectangle = Rectangle(half_width=2, half_height=1)
-
-profiles = [
-    Profile(shape=circle, tol_r=0, tol_x=0, tol_y=0),
-    Profile(shape=rectangle, tol_r=0, tol_x=0, tol_y=0),
-]
-
-pipes = [
-    Pipe(curvature=0., positions=[
-        ProfilePosition(profile_index=1, shift_s=0, rot_s_rad=np.deg2rad(15)),
-        ProfilePosition(profile_index=1, shift_s=5.5, rot_s_rad=np.deg2rad(90)),
-        ProfilePosition(profile_index=0, shift_s=11, rot_x_rad=np.deg2rad(10)),
-    ]),
-]
-
-pipe_positions = [
-    PipePosition(
-        pipe_index=0,
-        survey_reference_name='drift::0',
-        survey_index=sv.name.tolist().index('drift::0'),
-        transformation=transform_matrix(shift_x=-1.5),
-    ),
-]
-
-model = ApertureModel(
-    line_name='line',
-    pipe_positions=pipe_positions,
-    pipes=pipes,
-    profiles=profiles,
-    pipe_names=['pipe0'],
-    pipe_position_names=['pipe0'],
-    profile_names=['circle', 'rectangle'],
+circle = env.aperture.new_profile('circle', 'Circle', radius=2)
+rectangle = env.aperture.new_profile('rectangle', 'Rectangle', max_x=2, max_y=1)
+pipe = env.aperture.new_pipe(
+    'pipe0', positions=[
+        rectangle.place(at=0, rot_s_rad=np.deg2rad(15)),
+        rectangle.place(at=5.5, rot_s_rad=np.deg2rad(90)),
+        circle.place(at=11, rot_x_rad=np.deg2rad(10)),
+    ],
 )
+aper = line.aperture
+aper.place_pipe('pipe0', pipe, at='drift::0', shift_x=-1.5)
+aper.build_model()
 
 line_sliced = line.copy()
 line_sliced.cut_at_s(np.linspace(0, line_sliced.get_length(), 100))
@@ -72,9 +48,6 @@ ax.set_ylabel('X [m]')
 ax.set_zlabel('Y [m]')
 
 ax.auto_scale_xyz([0, 12], [-6, 6], [-6, 6])
-
-aper = Aperture(line, model)
-
 
 def matrix_from_survey_point(sv_row):
     matrix = np.identity(4)
@@ -91,15 +64,15 @@ def poly2d_to_hom(poly2d):
     return poly_hom
 
 
-for pipe_pos in aper._model.pipe_positions:
-    aper_pipe = aper._model.pipe_for_position(pipe_pos)
+for pipe_pos in aper.pipe_positions:
+    aper_pipe = pipe_pos.pipe
     sv_ref = sv.rows[pipe_pos.survey_index]
 
     sv_ref_matrix = matrix_from_survey_point(sv_ref)
-    pipe_matrix = pipe_pos.transformation.to_nparray()
+    pipe_matrix = pipe_pos.transformation
 
-    for profile_pos in aper_pipe.positions:
-        profile = aper._model.profile_for_position(profile_pos)
+    for profile_pos in aper_pipe:
+        profile = profile_pos.profile
 
         num_points = 100
         poly = profile.build_polygon(len_points=num_points)
@@ -139,7 +112,7 @@ def poses_at_s(line, s_positions):
 
 
 s_for_cuts = np.linspace(1, 11, 20)
-cs_table = aper.cross_sections_at_s(s_for_cuts)
+cs_table = aper.get_cross_sections_at_s(s_for_cuts)
 profiles, poses = cs_table.cross_section, cs_table.pose
 
 expected_poses = poses_at_s(line, s_for_cuts)

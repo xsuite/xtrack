@@ -97,12 +97,17 @@ for elem_name in elements_to_process:
     )
     misalignments[elem_name] = misalignment
 
+    entrance_frame = xt.Frame.from_survey(
+        sv['XYZ_elem_start', elem_name], sv['E_elem_start', elem_name])
+    if isinstance(ee_nj, xt.RBend):
+        # Convert the surveyed chord orientation to the entrance tangent
+        # orientation used by the alignment parameters, without translation.
+        entrance_frame.rotate_y(ee_nj.angle / 2)
     misalignment_from_absolute = su.misalignment_from_absolute_position(
-        XYZ_elem_start=sv['XYZ_elem_start', elem_name],
-        E_elem_start=sv['E_elem_start', elem_name],
+        XYZ_elem_start=entrance_frame.XYZ,
+        E_elem_start=entrance_frame.E_matrix,
         XYZ_ref_start=sv0_nj['XYZ_ref_start', elem_name],
         E_ref_start=sv0_nj['E_ref_start', elem_name],
-        rbend_angle=(ee_nj.angle if isinstance(ee_nj, xt.RBend) else None),
     )
     xo.assert_allclose(
         np.array([

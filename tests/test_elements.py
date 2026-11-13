@@ -64,6 +64,97 @@ def test_constructor(test_context):
                     nee._xobject._offset:nee._xobject._size]).sum() == 0
 
 
+@pytest.mark.parametrize(
+    "element_cls, field, kwargs",
+    [
+        (xt.Bend, "k0", {"length": 1.0}),
+        (xt.Quadrupole, "k1", {"length": 1.0}),
+        (xt.Sextupole, "k2", {"length": 1.0}),
+        (xt.Octupole, "k3", {"length": 1.0}),
+        (xt.UniformSolenoid, "ks", {"length": 1.0}),
+        (xt.Drift, "length", {}),
+    ],
+)
+def test_scalar_element_fields_accept_length_one_array_like(
+        element_cls, field, kwargs):
+    p = xt.Particles(mass0=xt.ELECTRON_MASS_EV, gamma0=10.0, q0=-1)
+    # Dummy strength-like value; the important part is that it is a length-one
+    # array-like scalar, as obtained from single-particle reference data.
+    value = 4.0 / abs(p.p0c / (cst.c * p.q0))
+
+    element = element_cls(**kwargs, **{field: value})
+
+    assert getattr(element, field) == pytest.approx(float(value[0]))
+
+
+@pytest.mark.parametrize('copy_to_cpu', [True, False])
+@pytest.mark.parametrize('element_cls, fields', [
+    (xt.Bend, ('k1', 'k2')),
+    (xt.RBend, ('k1', 'k2')),
+    (xt.Quadrupole, ('k1', 'k1s')),
+    (xt.Sextupole, ('k2', 'k2s')),
+    (xt.Octupole, ('k3', 'k3s')),
+    (xt.UniformSolenoid, ('ks',)),
+])
+def test_to_dict_omits_float_or_tpsa_defaults(element_cls, fields, copy_to_cpu):
+    element = element_cls()
+    default_dict = element.to_dict(copy_to_cpu=copy_to_cpu)
+    for field in fields:
+        assert field not in default_dict
+
+    for field in fields:
+        setattr(element, field, 0.125)
+    dct = element.to_dict(copy_to_cpu=copy_to_cpu)
+    restored = element_cls.from_dict(dct.copy())
+    for field in fields:
+        assert dct[field] == 0.125
+        assert getattr(restored, field) == 0.125
+        setattr(element, field, 0.0)
+    assert element.to_dict(copy_to_cpu=copy_to_cpu) == default_dict
+
+
+@pytest.mark.parametrize('copy_to_cpu', [True, False])
+def test_quadrupole_to_dict_omits_zero_strengths(copy_to_cpu):
+    element = xt.Quadrupole()
+    assert element.to_dict(copy_to_cpu=copy_to_cpu) == {
+        '__class__': 'Quadrupole', 'order': 5,
+    }
+
+    element = xt.Quadrupole(order=7, knl_rel=[0, 0.25], ksl_rel=[0, -0.5])
+    dct = element.to_dict(copy_to_cpu=copy_to_cpu)
+    restored = xt.Quadrupole.from_dict(dct.copy())
+    assert restored.order == 7
+    np.testing.assert_array_equal(restored.knl_rel, [0, 0.25])
+    np.testing.assert_array_equal(restored.ksl_rel, [0, -0.5])
+
+    element.knl_rel[:] = 0
+    element.ksl_rel[:] = 0
+    dct = element.to_dict(copy_to_cpu=copy_to_cpu)
+    restored = xt.Quadrupole.from_dict(dct.copy())
+    assert restored.order == 7
+    np.testing.assert_array_equal(restored.knl_rel, [0, 0])
+    np.testing.assert_array_equal(restored.ksl_rel, [0, 0])
+    assert len(restored.knl) == len(element.knl)
+    assert len(restored.ksl) == len(element.ksl)
+
+
+def test_zero_relative_strengths_preserve_expressions_on_json_round_trip(tmp_path):
+    env = xt.Environment()
+    env['error_knob'] = 0
+    env.new('q', xt.Quadrupole, knl_rel=np.zeros(15), ksl_rel=np.zeros(15))
+    env.ref['q'].knl_rel[14] = env.ref['error_knob']
+    env.ref['q'].ksl_rel[14] = -env.ref['error_knob']
+
+    path = tmp_path / 'env.json'
+    env.to_json(path)
+    restored = xt.load(path)
+    assert len(restored['q'].knl_rel) == 15
+    assert len(restored['q'].ksl_rel) == 15
+    restored['error_knob'] = 0.25
+    assert restored['q'].knl_rel[14] == 0.25
+    assert restored['q'].ksl_rel[14] == -0.25
+
+
 def test_rfmultipole_phase_n_s_and_deprecated_pn_ps_warnings():
     with warnings.catch_warnings(record=True) as record:
         warnings.simplefilter('always')
@@ -1179,6 +1270,42 @@ def test_simplified_accelerator_segment_bucket_fixed_rf(test_context):
 
 
 @for_all_test_contexts
+@allow_kernel_compilation
+def test_line_segment_map_chromaticity_with_zero_base_tunes(test_context):
+    # Compile the local header rather than use a prebuilt tracking kernel.
+    xt.LineSegmentMap(_context=test_context).compile_kernels(only_if_needed=False)
+    delta = np.array([-0.1, 0.0, 0.1])
+    initial = {'x': 1e-3, 'px': 2e-4, 'y': -3e-3, 'py': 4e-4}
+
+    for plane in ('x', 'y'):
+        # Taylor coefficients 2, 3, 4 correspond to derivatives 2, 6, 24.
+        for order, derivative, coefficient in [(1, 2, 2), (2, 6, 3), (3, 24, 4)]:
+            derivatives = [0] * order + [derivative]
+            segment = xt.LineSegmentMap(
+                _context=test_context, longitudinal_mode='frozen',
+                **{f'dnq{plane}': derivatives})
+            particles = xt.Particles(
+                _context=test_context, p0c=1e9, delta=delta, **initial)
+            segment.track(particles)
+
+            for observed_plane in ('x', 'y'):
+                phase = (2 * np.pi * coefficient * delta**order
+                         if observed_plane == plane else np.zeros_like(delta))
+                position = initial[observed_plane]
+                momentum = initial[f'p{observed_plane}']
+                xo.assert_allclose(
+                    test_context.nparray_from_context_array(
+                        getattr(particles, observed_plane)),
+                    position * np.cos(phase) + momentum * np.sin(phase),
+                    rtol=1e-13, atol=1e-15)
+                xo.assert_allclose(
+                    test_context.nparray_from_context_array(
+                        getattr(particles, f'p{observed_plane}')),
+                    -position * np.sin(phase) + momentum * np.cos(phase),
+                    rtol=1e-13, atol=1e-15)
+
+
+@for_all_test_contexts
 def test_simplified_accelerator_segment_chroma_detuning(test_context):
     dtk_particle = dtk.TestParticles(
             p0c=25.92e9,
@@ -1362,6 +1489,7 @@ def test_simplified_accelerator_segment_uncorrelated_damping(test_context):
                       dtk_particle.delta, rtol=1e-14, atol=1e-14)
 
 @for_all_test_contexts
+@fix_random_seed(873635)
 def test_simplified_accelerator_segment_correlated_damping(test_context):
     alpha_x_0 = -0.5
     beta_x_0 = 100.0
@@ -1389,7 +1517,8 @@ def test_simplified_accelerator_segment_correlated_damping(test_context):
     py_ref_0 = 1E-4
     y_ref_1 = 4E-2
     py_ref_1 = 5E-4
-    damping_matrix = np.reshape(np.random.randn(36),(6,6))
+    # Small, reproducible kicks keep the particle in the physical energy range.
+    damping_matrix = 1e-3 * np.reshape(np.random.randn(36), (6, 6))
 
     dtk_particle = dtk.TestParticles(
             p0c=25.92e9,

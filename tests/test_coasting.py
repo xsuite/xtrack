@@ -161,7 +161,8 @@ def test_coasting(test_context):
 
     tt = line.get_table()
     tt_synch = tt.rows[tt.element_type=='SyncTime']
-    assert len(tt_synch) == 12
+    # Synchronize at RF cavities as well as collective elements, even with RF off.
+    assert len(tt_synch) == 2 + len(set(collective_element_names) | set(ttcav.name))
     assert tt_synch.name[0] == 'synctime_start'
     assert tt_synch.name[-1] == 'synctime_end'
     assert np.all(tt_synch.name[5] == 'synctime_4')

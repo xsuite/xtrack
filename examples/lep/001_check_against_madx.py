@@ -5,7 +5,7 @@ from cpymad.madx import Madx
 mad = Madx()
 
 #########################################
-# Laod MAD-X model and import in Xsuite #
+# Load MAD-X model and import in Xsuite #
 #########################################
 
 mad = Madx()

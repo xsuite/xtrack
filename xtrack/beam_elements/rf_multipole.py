@@ -17,7 +17,7 @@ class RFMultipole(_HasKnlKsl, BeamElement):
 
     _docstring_start = \
     """Beam element modeling a thin modulated multipole, with strengths
-    dependent on the z coordinate:
+    dependent on the z coordinate.
 
     Parameters
     ----------

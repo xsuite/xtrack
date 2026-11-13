@@ -48,16 +48,18 @@ def particles0(line0, temp_context_default_mod):
 
 @for_all_test_contexts
 def test_constructor(test_context):
-    elements = [
-        #xt.ParticlesMonitor(_context=test_context, start_at_turn=0, stop_at_turn=10, num_particles=42),
-        #xt.LastTurnsMonitor(_context=test_context, n_last_turns=5, num_particles=42),
-        xt.BeamPositionMonitor(_context=test_context, stop_at_turn=10),
-    ]
+    with pytest.warns(DeprecationWarning, match='BeamPositionMonitor is deprecated'):
+        elements = [
+            #xt.ParticlesMonitor(_context=test_context, start_at_turn=0, stop_at_turn=10, num_particles=42),
+            #xt.LastTurnsMonitor(_context=test_context, n_last_turns=5, num_particles=42),
+            xt.BeamPositionMonitor(_context=test_context, stop_at_turn=10),
+        ]
 
     # test to_dict / from_dict
     for ee in elements:
         dd = ee.to_dict()
-        nee = ee.__class__.from_dict(dd, _context=test_context)
+        with pytest.warns(DeprecationWarning, match='BeamPositionMonitor is deprecated'):
+            nee = ee.__class__.from_dict(dd, _context=test_context)
         # Check that the two objects are bitwise identical
         if not isinstance(test_context, xo.ContextCpu):
             ee.move(_context=xo.ContextCpu())
@@ -204,7 +206,7 @@ def test_last_turns_monitor(test_context):
 
         line.track(particles, num_turns=1)
 
-        # Note that indicees are re-ordered upon particle loss on CPU contexts,
+        # Note that indices are re-ordered upon particle loss on CPU contexts,
         # so sort before manipulation
         if isinstance(test_context, xo.ContextCpu):
             particles.sort(interleave_lost_particles=True)
@@ -249,23 +251,24 @@ def test_beam_profile_monitor(test_context):
 
     nbins = 100
 
-    monitor = xt.BeamProfileMonitor(
-        num_particles=npart,
-        start_at_turn=0,
-        stop_at_turn=10,
-        frev=1,
-        sampling_frequency=2,
-        n=nbins,
-        x_range=5,
-        y_range=(-4,2),
-        _context=test_context,
-    )
+    with pytest.warns(DeprecationWarning, match='BeamProfileMonitor is deprecated'):
+        monitor = xt.BeamProfileMonitor(
+            num_particles=npart,
+            start_at_turn=0,
+            stop_at_turn=10,
+            frev=1,
+            sampling_frequency=2,
+            n=nbins,
+            x_range=5,
+            y_range=(-4,2),
+            _context=test_context,
+        )
 
     line = xt.Line([monitor])
     line.build_tracker(_context=test_context)
 
     for turn in range(11): # track a few more than we record to test "stop_at_turn"
-        # Note that indicees are re-ordered upon particle loss on CPU contexts,
+        # Note that indices are re-ordered upon particle loss on CPU contexts,
         # so sort before manipulation
         if isinstance(test_context, xo.ContextCpu):
             particles.sort(interleave_lost_particles=True)
@@ -384,20 +387,21 @@ def test_beam_size_monitor(test_context):
         _context=test_context,
     )
 
-    monitor = xt.BeamSizeMonitor(
-        num_particles=npart,
-        start_at_turn=0,
-        stop_at_turn=10,
-        frev=1,
-        sampling_frequency=2,
-        _context=test_context,
-    )
+    with pytest.warns(DeprecationWarning, match='BeamSizeMonitor is deprecated'):
+        monitor = xt.BeamSizeMonitor(
+            num_particles=npart,
+            start_at_turn=0,
+            stop_at_turn=10,
+            frev=1,
+            sampling_frequency=2,
+            _context=test_context,
+        )
 
     line = xt.Line([monitor])
     line.build_tracker(_context=test_context)
 
     for turn in range(11): # track a few more than we record to test "stop_at_turn"
-        # Note that indicees are re-ordered upon particle loss on CPU contexts,
+        # Note that indices are re-ordered upon particle loss on CPU contexts,
         # so sort before manipulation
         if isinstance(test_context, xo.ContextCpu):
             particles.sort(interleave_lost_particles=True)
@@ -467,20 +471,21 @@ def test_beam_position_monitor(test_context):
         _context=test_context,
     )
 
-    monitor = xt.BeamPositionMonitor(
-        num_particles=npart,
-        start_at_turn=0,
-        stop_at_turn=10,
-        frev=1,
-        sampling_frequency=2,
-        _context=test_context,
-    )
+    with pytest.warns(DeprecationWarning, match='BeamPositionMonitor is deprecated'):
+        monitor = xt.BeamPositionMonitor(
+            num_particles=npart,
+            start_at_turn=0,
+            stop_at_turn=10,
+            frev=1,
+            sampling_frequency=2,
+            _context=test_context,
+        )
 
     line = xt.Line([monitor])
     line.build_tracker(_context=test_context)
 
     for turn in range(11): # track a few more than we record to test "stop_at_turn"
-        # Note that indicees are re-ordered upon particle loss on CPU contexts,
+        # Note that indices are re-ordered upon particle loss on CPU contexts,
         # so sort before manipulation
         if isinstance(test_context, xo.ContextCpu):
             particles.sort(interleave_lost_particles=True)

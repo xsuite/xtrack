@@ -520,7 +520,7 @@ def test_to_pandas():
 
     assert tuple(df.columns) == (
         's', 'element_type', 'name', 'isthick', 'isreplica', 'parent_name',
-       'parent_type', 'prototype', 'iscollective', 'element', 's_start',
+       'parent_type', 'prototype', 'base_prototype', 'iscollective', 'element', 's_start',
        's_center', 's_end')
     assert len(df) == 4
 
@@ -954,7 +954,7 @@ def test_pickle():
     # Load the line
     line = xt.load(test_data_folder /
             'hllhc15_noerrors_nobb/line_w_knobs_and_particle.json')
-    line.particle_ref = xp.Particles(p0c=7e12, mass=xp.PROTON_MASS_EV)
+    line.particle_ref = xp.Particles(p0c=7e12, mass0=xp.PROTON_MASS_EV)
     line.build_tracker()
 
     lnss = pickle.dumps(line)
@@ -997,6 +997,54 @@ def test_pickle():
     xo.assert_allclose(coll['lhcb1'].twiss(method='4d')['px', 'ip1'], 321e-6, atol=1e-9, rtol=0)
 
 
+@pytest.mark.parametrize('access', ['attr', 'survey'])
+@pytest.mark.parametrize('pickle_environment', [False, True])
+def test_pickle_after_line_attr(access, pickle_environment):
+    line = xt.Line(elements={
+        'drift': xt.Drift(length=1.),
+        'bend': xt.Bend(length=2., angle=0.1, k0_from_h=True),
+        'quad': xt.Quadrupole(length=0.5, k1=0.2),
+    })
+    line.vars['kq'] = 0.2
+    line['quad'].k1 = line.vars['kq']
+    env = xt.Environment(lines={'line': line})
+    line = env['line']
+    line.build_tracker()
+
+    if access == 'attr':
+        xo.assert_allclose(line.attr['length'], [1., 2., 0.5])
+        xo.assert_allclose(line.attr['k1l'], [0., 0., 0.1])
+    else:
+        line.survey()
+    cached_attr = line.tracker._tracker_data_base.cache['attr']
+
+    particles = xt.Particles(p0c=7e12, x=1e-3, px=2e-4, y=-1e-3)
+    expected = particles.copy()
+    line.track(expected)
+
+    restored = pickle.loads(pickle.dumps(env if pickle_environment else line))
+    if pickle_environment:
+        restored = restored['line']
+
+    # Serializing must not invalidate the original line's attribute accessor.
+    assert line.attr is cached_attr
+    assert restored.attr.line is restored
+    xo.assert_allclose(restored.attr['length'], [1., 2., 0.5])
+    xo.assert_allclose(restored.attr['k1l'], [0., 0., 0.1])
+    xo.assert_allclose(restored.survey().Z, line.survey().Z, rtol=0, atol=1e-14)
+    restored.track(particles)
+    for field in ['x', 'px', 'y', 'py', 'zeta', 'delta']:
+        xo.assert_allclose(getattr(particles, field), getattr(expected, field),
+                           rtol=0, atol=1e-14)
+
+    # Rebuilt attribute accessors must follow changes to the restored elements.
+    restored.vars['kq'] = 0.4
+    xo.assert_allclose(restored.attr['k1l'], [0., 0., 0.2])
+    xo.assert_allclose(line.attr['k1l'], [0., 0., 0.1])
+    restored_again = pickle.loads(pickle.dumps(restored))
+    xo.assert_allclose(restored_again.attr['k1l'], [0., 0., 0.2])
+
+
 def test_line_attr():
     line = xt.Line(
         elements=[
@@ -1016,6 +1064,7 @@ def test_line_attr():
     assert np.all(line.attr['angle'] == [0, 8, 0.5 * 6, 0, 0])
 
 
+@pytest.mark.filterwarnings('ignore:The `Solenoid` element is deprecated:FutureWarning')
 def test_line_attr_ks():
     line = xt.Line(
         elements=[
@@ -1023,35 +1072,65 @@ def test_line_attr_ks():
             xt.UniformSolenoid(length=2, ks=0.3),
             xt.VariableSolenoid(length=3, ks_profile=[0.2, 0.8]),
             xt.VariableSolenoid(length=4, ks_profile=[0, 0]),
+            xt.Solenoid(length=5, ks=-0.2),
+            xt.Replica(parent_name='uniform_sol'),
         ],
-        element_names=['drift', 'uniform_sol', 'var_sol', 'var_sol_expr'],
+        element_names=['drift', 'uniform_sol', 'var_sol', 'var_sol_expr',
+                       'legacy_sol', 'uniform_replica'],
     )
 
     line.vars['ks_entry'] = 0.4
     line.vars['ks_exit'] = 1.0
     line['var_sol_expr'].ks_profile[0] = line.vars['ks_entry']
     line['var_sol_expr'].ks_profile[1] = line.vars['ks_exit']
+    line.vars['var_length'] = 4.
+    line['var_sol_expr'].length = line.vars['var_length']
 
     line.build_tracker()
 
-    xo.assert_allclose(
-        line.attr['ks'],
-        [0, 0.3, 0.5 * (0.2 + 0.8), 0.5 * (0.4 + 1.0)],
-        rtol=0,
-        atol=1e-14,
-    )
+    def check(ks, ksoll):
+        xo.assert_allclose(line.attr['ks'], ks, rtol=0, atol=1e-14)
+        xo.assert_allclose(line.attr['ksoll'], ksoll, rtol=0, atol=1e-14)
+        for table in (line.get_table(attr=True), line.get_strengths()):
+            xo.assert_allclose(table.ks, [*ks, 0.], rtol=0, atol=1e-14)
+            xo.assert_allclose(table.ksoll, [*ksoll, 0.], rtol=0, atol=1e-14)
 
+    check([0., 0.3, 0.5, 0.7, -0.2, 0.3], [0., 0.6, 1.5, 2.8, -1., 0.6])
+
+    line['uniform_sol'].ks = -0.4
+    line['uniform_sol'].length = 2.5
     line['var_sol'].ks_profile[0] = 0.6
     line['var_sol'].ks_profile[1] = 1.4
+    line['var_sol'].length = 1.5
     line.vars['ks_entry'] = 0.8
     line.vars['ks_exit'] = 1.6
+    line.vars['var_length'] = 6.
+    line['legacy_sol'].ks = -0.1
+    line['legacy_sol'].length = 6.
 
-    xo.assert_allclose(
-        line.attr['ks'],
-        [0, 0.3, 0.5 * (0.6 + 1.4), 0.5 * (0.8 + 1.6)],
-        rtol=0,
-        atol=1e-14,
-    )
+    check([0., -0.4, 1., 1.2, -0.1, -0.4], [0., -1., 1.5, 7.2, -0.6, -1.])
+
+
+def test_line_attr_ksoll_solenoid_slices():
+    line = xt.Line(elements={'sol': xt.UniformSolenoid(length=2., ks=0.3),
+                             'drift': xt.Drift(length=1.)})
+    line.vars['strength'] = 0.3
+    line.vars['sol_length'] = 2.
+    line['sol'].ks = line.vars['strength']
+    line['sol'].length = line.vars['sol_length']
+    line.slice_thick_elements([
+        xt.Strategy(xt.Uniform(3, mode='thick'), element_type=xt.UniformSolenoid)])
+    body_names = [name for name in line.element_names
+                  if isinstance(line.get(name), xt.ThickSliceUniformSolenoid)]
+    assert len(body_names) == 3
+    for strength, length in ((0.3, 2.), (-0.4, 3.), (0., 3.)):
+        line.vars['strength'] = strength
+        line.vars['sol_length'] = length
+        for table in (line.get_table(attr=True), line.get_strengths()):
+            for name in table.name:
+                expected = strength * length / 3 if name in body_names else 0.
+                assert table['ksoll', name] == pytest.approx(expected, abs=1e-14)
+            assert np.sum(table.ksoll) == pytest.approx(strength * length, abs=1e-14)
 
 
 def test_line_attr_splineboris_bs():

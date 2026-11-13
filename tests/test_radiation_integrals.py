@@ -8,6 +8,40 @@ import pytest
 test_data_folder = pathlib.Path(
         __file__).parent.joinpath('../test_data').absolute()
 
+
+def test_radiation_integrand_columns():
+    # Tilted bends and dispersion in both planes exercise all integrals.
+    # Unequal lengths check the integration weights; the marker has zero length.
+    line = xt.Line(elements=[
+        xt.Bend(length=1., angle=0.1, k0=0.1, k1=0.02, rot_s_rad=0.3),
+        xt.Drift(length=0.4),
+        xt.Bend(length=2., angle=-0.08, k0=-0.04, k1=-0.01,
+                rot_s_rad=-0.2),
+        xt.Marker(),
+    ])
+    line.particle_ref = xt.Particles(p0c=2e9, mass0=xt.ELECTRON_MASS_EV)
+    tw = line.twiss(method='4d', betx=2., bety=3.,
+                    dx=0.2, dy=0.1, dpx=0.01, dpy=0.02,
+                    radiation_integrals=True)
+
+    assert type(tw.rad_int_energy_loss) is float
+    assert type(tw['rad_int_energy_loss']) is float
+    for table in [tw, tw._get_radiation_integrals()]:
+        for name in table._data:
+            if name.startswith('rad_int_') and name not in table._col_names:
+                assert type(table._data[name]) is float, name
+
+    for integral in ['i1x', 'i1y', 'i2', 'i3', 'i4', 'i4x', 'i4y', 'i5x', 'i5y']:
+        scalar_name = f'rad_int_{integral}'
+        column_name = f'{scalar_name}_integrand'
+        assert column_name in tw._col_names
+        assert type(tw[scalar_name]) is float
+        assert abs(tw[scalar_name]) > 1e-12  # Avoid trivial zero-equals-zero checks.
+        np.testing.assert_allclose(
+            np.sum(tw[column_name] * tw.length), tw[scalar_name],
+            rtol=1e-12, atol=0, err_msg=scalar_name)
+
+
 def test_radiation_wiggler():
     env = xt.load([test_data_folder / 'sps_thick/sps.seq',
                    test_data_folder / 'sps_thick/lhc_q20.str'])
@@ -125,6 +159,10 @@ def test_radiation_integrals_sls_combined_function_magnets():
 
     tw_rad = line.twiss(radiation_analysis=True, strengths=True,
                         radiation_method='full')
+
+    for name in ['energy_loss', 'eq_gemitt_x', 'eq_gemitt_y', 'eq_gemitt_zeta',
+                 'eq_nemitt_x', 'eq_nemitt_y', 'eq_nemitt_zeta']:
+        assert type(tw_rad._data[name]) is float, name
 
     tw_integrals = line.twiss(radiation_integrals=True)
 

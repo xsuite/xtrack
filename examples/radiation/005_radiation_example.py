@@ -68,7 +68,7 @@ tw = line.twiss(radiation_analysis=True)
 # from the twiss for example:
 #  - tw['energy_loss'] provides the energy loss per turn (in eV).
 #  - tw['damping_constants_s'] provides the damping constants in x, y and zeta.
-#  - tw['partition_numbers'] provides the corresponding damping partion numbers.
+#  - tw['partition_numbers'] provides the corresponding damping partition numbers.
 #  - tw['eq_nemitt_x'] provides the equilibrium horizontal emittance.
 #  - tw['eq_nemitt_y'] provides the equilibrium vertical emittance.
 #  - tw['eq_nemitt_zeta'] provides the equilibrium longitudinal emittance.

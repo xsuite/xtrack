@@ -1,7 +1,14 @@
+from pathlib import Path
+
 import xtrack as xt
 import numpy as np
 from cpymad.madx import Madx
 from xdeps import Table
+
+if not Path('lhc/aperture/const_for_aperture.madx').is_file():
+    raise FileNotFoundError(
+        'Missing the external MAD-X lattice. Follow the setup steps in benchmark1/readme.'
+    )
 
 madx = Madx()
 madx.call("job_model.madx")
@@ -30,6 +37,8 @@ for ipn in range(1, 9):
         tfs = Table.from_tfs(f"offsets/offset.ip{ipn}.b{beam}.tfs")
         tfs._data["name"] = np.array(tfs._data["name"], dtype=str)
         line = lhc.b1 if beam == "1" else lhc.b2
-        line.metadata["aperture_offsets"][f"ip{ipn}"] = tfs._data.copy()
+        offset_data = tfs._data.copy()
+        offset_data['reversed'] = beam == '4'
+        line.metadata["aperture_offsets"][f"ip{ipn}"] = offset_data
 
-lhc.to_json("lhc_aperture.json")
+lhc.to_json("lhc_aperture.json", include_aperture=True)

@@ -42,34 +42,34 @@
                 "__class__": "Drift"
             },
             "collimator": {
-                "__class__": "Drift"
+                "__class__": "Device"
             },
             "rcollimator": {
-                "__class__": "Drift"
+                "__class__": "Device"
             },
             "ecollimator": {
-                "__class__": "Drift"
+                "__class__": "Device"
             },
             "instrument": {
-                "__class__": "Drift"
+                "__class__": "Device"
             },
             "monitor": {
-                "__class__": "Drift"
+                "__class__": "Device"
             },
             "hmonitor": {
-                "__class__": "Drift"
+                "__class__": "Device"
             },
             "vmonitor": {
-                "__class__": "Drift"
+                "__class__": "Device"
             },
             "imonitor": {
-                "__class__": "Drift"
+                "__class__": "Device"
             },
             "placeholder": {
-                "__class__": "Drift"
+                "__class__": "Device"
             },
             "wire": {
-                "__class__": "Drift"
+                "__class__": "Device"
             },
             "sbend": {
                 "__class__": "Bend",
@@ -175,7 +175,7 @@
                 "b": 0.078
             },
             "bmo": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bmo_aper",
                 "prototype": "monitor"
             },
@@ -188,16 +188,16 @@
                 "b": 0.078
             },
             "bmo.51997": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bmo.51997_aper",
                 "prototype": "bmo"
             },
             "tacw": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "prototype": "rcollimator"
             },
             "tacw.51998": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "prototype": "tacw"
             },
             "bpmbh_aper": {
@@ -209,7 +209,7 @@
                 "b": 0.078
             },
             "bpmbh": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpmbh_aper",
                 "prototype": "monitor"
             },
@@ -222,7 +222,7 @@
                 "b": 0.078
             },
             "bpmb.51999": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpmb.51999_aper",
                 "prototype": "bpmbh"
             },
@@ -364,7 +364,7 @@
                 "max_x": 0.0725
             },
             "bph": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph_aper",
                 "prototype": "hmonitor"
             },
@@ -376,7 +376,7 @@
                 "max_x": 0.0725
             },
             "bph.52008": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.52008_aper",
                 "prototype": "bph"
             },
@@ -635,7 +635,7 @@
                 "b": 0.05
             },
             "brcz": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "brcz_aper",
                 "prototype": "rcollimator"
             },
@@ -648,7 +648,7 @@
                 "b": 0.05
             },
             "brcz.52102": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "brcz.52102_aper",
                 "prototype": "brcz"
             },
@@ -700,7 +700,7 @@
                 "max_x": 0.0415
             },
             "bpv": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpv_aper",
                 "prototype": "vmonitor"
             },
@@ -712,7 +712,7 @@
                 "max_x": 0.0415
             },
             "bpv.52108": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpv.52108_aper",
                 "prototype": "bpv"
             },
@@ -852,7 +852,7 @@
                 "max_x": 0.078
             },
             "brsc": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "brsc_aper",
                 "prototype": "monitor"
             },
@@ -864,16 +864,16 @@
                 "max_x": 0.078
             },
             "brsc.52191": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "brsc.52191_aper",
                 "prototype": "brsc"
             },
             "tal": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "prototype": "rcollimator"
             },
             "tal.52196": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "prototype": "tal"
             },
             "mdh.52207_aper": {
@@ -903,7 +903,7 @@
                 "max_x": 0.0725
             },
             "bph.52208": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.52208_aper",
                 "prototype": "bph"
             },
@@ -1170,7 +1170,7 @@
                 "max_x": 0.0415
             },
             "bpv.52308": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpv.52308_aper",
                 "prototype": "bpv"
             },
@@ -1457,7 +1457,7 @@
                 "max_x": 0.0725
             },
             "bph.52408": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.52408_aper",
                 "prototype": "bph"
             },
@@ -1703,7 +1703,7 @@
                 "max_x": 0.0415
             },
             "bpv.52508": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpv.52508_aper",
                 "prototype": "bpv"
             },
@@ -1990,7 +1990,7 @@
                 "max_x": 0.0725
             },
             "bph.52608": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.52608_aper",
                 "prototype": "bph"
             },
@@ -2278,7 +2278,7 @@
                 "max_x": 0.0415
             },
             "bpv.52708": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpv.52708_aper",
                 "prototype": "bpv"
             },
@@ -2515,7 +2515,7 @@
                 "max_x": 0.0725
             },
             "bph.52808": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.52808_aper",
                 "prototype": "bph"
             },
@@ -2774,7 +2774,7 @@
                 "max_x": 0.0415
             },
             "bpv.52908": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpv.52908_aper",
                 "prototype": "bpv"
             },
@@ -3011,7 +3011,7 @@
                 "max_x": 0.0725
             },
             "bph.53008": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.53008_aper",
                 "prototype": "bph"
             },
@@ -3228,7 +3228,7 @@
                 "max_x": 0.0415
             },
             "bpv.53108": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpv.53108_aper",
                 "prototype": "bpv"
             },
@@ -3473,7 +3473,7 @@
                 "max_x": 0.0725
             },
             "bph.53208": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.53208_aper",
                 "prototype": "bph"
             },
@@ -3711,7 +3711,7 @@
                 "max_x": 0.0415
             },
             "bpv.53308": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpv.53308_aper",
                 "prototype": "bpv"
             },
@@ -3951,7 +3951,7 @@
                 "max_x": 0.0725
             },
             "bph.53408": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.53408_aper",
                 "prototype": "bph"
             },
@@ -4218,7 +4218,7 @@
                 "max_x": 0.0415
             },
             "bpv.53508": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpv.53508_aper",
                 "prototype": "bpv"
             },
@@ -4484,7 +4484,7 @@
                 "max_x": 0.0725
             },
             "bph.53608": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.53608_aper",
                 "prototype": "bph"
             },
@@ -4730,7 +4730,7 @@
                 "max_x": 0.0415
             },
             "bpv.60108": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpv.60108_aper",
                 "prototype": "bpv"
             },
@@ -4975,7 +4975,7 @@
                 "max_x": 0.0725
             },
             "bph.60208": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.60208_aper",
                 "prototype": "bph"
             },
@@ -5245,7 +5245,7 @@
                 "max_x": 0.0415
             },
             "bpv.60308": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpv.60308_aper",
                 "prototype": "bpv"
             },
@@ -5473,7 +5473,7 @@
                 "max_x": 0.0725
             },
             "bph.60408": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.60408_aper",
                 "prototype": "bph"
             },
@@ -5702,7 +5702,7 @@
                 "max_x": 0.0415
             },
             "bpv.60508": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpv.60508_aper",
                 "prototype": "bpv"
             },
@@ -5930,7 +5930,7 @@
                 "max_x": 0.0725
             },
             "bph.60608": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.60608_aper",
                 "prototype": "bph"
             },
@@ -6168,7 +6168,7 @@
                 "max_x": 0.0415
             },
             "bpv.60708": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpv.60708_aper",
                 "prototype": "bpv"
             },
@@ -6434,7 +6434,7 @@
                 "max_x": 0.0725
             },
             "bph.60808": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.60808_aper",
                 "prototype": "bph"
             },
@@ -6651,7 +6651,7 @@
                 "max_x": 0.0415
             },
             "bpv.60908": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpv.60908_aper",
                 "prototype": "bpv"
             },
@@ -6867,7 +6867,7 @@
                 "max_x": 0.0725
             },
             "bph.61008": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.61008_aper",
                 "prototype": "bph"
             },
@@ -7114,7 +7114,7 @@
                 "b": 0.038
             },
             "bpcn": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpcn_aper",
                 "prototype": "monitor"
             },
@@ -7127,7 +7127,7 @@
                 "b": 0.038
             },
             "bpcn.61108": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpcn.61108_aper",
                 "prototype": "bpcn"
             },
@@ -7372,7 +7372,7 @@
                 "max_x": 0.0725
             },
             "bph.61208": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.61208_aper",
                 "prototype": "bph"
             },
@@ -7659,7 +7659,7 @@
                 "b": 0.038
             },
             "bpcn.61308": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpcn.61308_aper",
                 "prototype": "bpcn"
             },
@@ -7942,7 +7942,7 @@
                 "max_x": 0.0725
             },
             "bph.61408": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.61408_aper",
                 "prototype": "bph"
             },
@@ -8130,7 +8130,7 @@
                 "max_x": 0.0415
             },
             "bpv.61508": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpv.61508_aper",
                 "prototype": "bpv"
             },
@@ -8346,7 +8346,7 @@
                 "max_x": 0.0725
             },
             "bph.61608": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.61608_aper",
                 "prototype": "bph"
             },
@@ -8583,7 +8583,7 @@
                 "b": 0.103
             },
             "bpce": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpce_aper",
                 "prototype": "monitor"
             },
@@ -8596,7 +8596,7 @@
                 "b": 0.103
             },
             "bpce.61705": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpce.61705_aper",
                 "prototype": "bpce"
             },
@@ -8651,15 +8651,15 @@
                 "prototype": "qda"
             },
             "tpsgs": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "prototype": "rcollimator"
             },
             "tpsg.61773": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "prototype": "tpsgs"
             },
             "tpsg.61776": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "prototype": "tpsgs"
             },
             "mst": {
@@ -8742,7 +8742,7 @@
                 "b": 0.103
             },
             "bpce.61805": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpce.61805_aper",
                 "prototype": "bpce"
             },
@@ -8882,7 +8882,7 @@
                 "b": 0.103
             },
             "bpce.61931": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpce.61931_aper",
                 "prototype": "bpce"
             },
@@ -8981,7 +8981,7 @@
                 "max_x": 0.0725
             },
             "bph.62008": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.62008_aper",
                 "prototype": "bph"
             },
@@ -9218,7 +9218,7 @@
                 "max_x": 0.0415
             },
             "bpv.62108": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpv.62108_aper",
                 "prototype": "bpv"
             },
@@ -9396,7 +9396,7 @@
                 "max_x": 0.0725
             },
             "bph.62208": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.62208_aper",
                 "prototype": "bph"
             },
@@ -9662,7 +9662,7 @@
                 "max_x": 0.0415
             },
             "bpv.62308": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpv.62308_aper",
                 "prototype": "bpv"
             },
@@ -9928,7 +9928,7 @@
                 "max_x": 0.0725
             },
             "bph.62408": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.62408_aper",
                 "prototype": "bph"
             },
@@ -10174,7 +10174,7 @@
                 "max_x": 0.0415
             },
             "bpv.62508": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpv.62508_aper",
                 "prototype": "bpv"
             },
@@ -10440,7 +10440,7 @@
                 "max_x": 0.0725
             },
             "bph.62608": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.62608_aper",
                 "prototype": "bph"
             },
@@ -10707,7 +10707,7 @@
                 "max_x": 0.0415
             },
             "bpv.62708": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpv.62708_aper",
                 "prototype": "bpv"
             },
@@ -10944,7 +10944,7 @@
                 "max_x": 0.0725
             },
             "bph.62808": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.62808_aper",
                 "prototype": "bph"
             },
@@ -11182,7 +11182,7 @@
                 "max_x": 0.0415
             },
             "bpv.62908": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpv.62908_aper",
                 "prototype": "bpv"
             },
@@ -11440,7 +11440,7 @@
                 "max_x": 0.0725
             },
             "bph.63008": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.63008_aper",
                 "prototype": "bph"
             },
@@ -11657,7 +11657,7 @@
                 "max_x": 0.0415
             },
             "bpv.63108": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpv.63108_aper",
                 "prototype": "bpv"
             },
@@ -11902,7 +11902,7 @@
                 "max_x": 0.0725
             },
             "bph.63208": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.63208_aper",
                 "prototype": "bph"
             },
@@ -12140,7 +12140,7 @@
                 "max_x": 0.0415
             },
             "bpv.63308": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpv.63308_aper",
                 "prototype": "bpv"
             },
@@ -12356,7 +12356,7 @@
                 "max_x": 0.0725
             },
             "bph.63408": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.63408_aper",
                 "prototype": "bph"
             },
@@ -12623,7 +12623,7 @@
                 "max_x": 0.0415
             },
             "bpv.63508": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpv.63508_aper",
                 "prototype": "bpv"
             },
@@ -12889,7 +12889,7 @@
                 "max_x": 0.0725
             },
             "bph.63608": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.63608_aper",
                 "prototype": "bph"
             },
@@ -13135,7 +13135,7 @@
                 "max_x": 0.0415
             },
             "bpv.10108": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpv.10108_aper",
                 "prototype": "bpv"
             },
@@ -13380,7 +13380,7 @@
                 "max_x": 0.0725
             },
             "bph.10208": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.10208_aper",
                 "prototype": "bph"
             },
@@ -13647,7 +13647,7 @@
                 "max_x": 0.0415
             },
             "bpv.10308": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpv.10308_aper",
                 "prototype": "bpv"
             },
@@ -13884,7 +13884,7 @@
                 "max_x": 0.0725
             },
             "bph.10408": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.10408_aper",
                 "prototype": "bph"
             },
@@ -14101,7 +14101,7 @@
                 "max_x": 0.0415
             },
             "bpv.10508": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpv.10508_aper",
                 "prototype": "bpv"
             },
@@ -14338,7 +14338,7 @@
                 "max_x": 0.0725
             },
             "bph.10608": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.10608_aper",
                 "prototype": "bph"
             },
@@ -14576,7 +14576,7 @@
                 "max_x": 0.0415
             },
             "bpv.10708": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpv.10708_aper",
                 "prototype": "bpv"
             },
@@ -14842,7 +14842,7 @@
                 "max_x": 0.0725
             },
             "bph.10808": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.10808_aper",
                 "prototype": "bph"
             },
@@ -15059,7 +15059,7 @@
                 "max_x": 0.0415
             },
             "bpv.10908": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpv.10908_aper",
                 "prototype": "bpv"
             },
@@ -15275,7 +15275,7 @@
                 "max_x": 0.0725
             },
             "bph.11008": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.11008_aper",
                 "prototype": "bph"
             },
@@ -15521,7 +15521,7 @@
                 "max_x": 0.0415
             },
             "bpv.11108": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpv.11108_aper",
                 "prototype": "bpv"
             },
@@ -15766,7 +15766,7 @@
                 "max_x": 0.0725
             },
             "bph.11208": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.11208_aper",
                 "prototype": "bph"
             },
@@ -16012,7 +16012,7 @@
                 "max_x": 0.0415
             },
             "bpv.11308": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpv.11308_aper",
                 "prototype": "bpv"
             },
@@ -16269,7 +16269,7 @@
                 "max_x": 0.0725
             },
             "bph.11408": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.11408_aper",
                 "prototype": "bph"
             },
@@ -16310,7 +16310,7 @@
                 "max_x": 0.041
             },
             "tidp": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "tidp_aper",
                 "prototype": "rcollimator"
             },
@@ -16322,7 +16322,7 @@
                 "max_x": 0.041
             },
             "tidp.11434": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "tidp.11434_aper",
                 "prototype": "tidp"
             },
@@ -16461,7 +16461,7 @@
                 "max_x": 0.0415
             },
             "bpv.11508": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpv.11508_aper",
                 "prototype": "bpv"
             },
@@ -16677,7 +16677,7 @@
                 "max_x": 0.0725
             },
             "bph.11606": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.11606_aper",
                 "prototype": "bph"
             },
@@ -16855,7 +16855,7 @@
                 "b": 0.078
             },
             "tbsm": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "tbsm_aper",
                 "prototype": "rcollimator"
             },
@@ -16868,7 +16868,7 @@
                 "b": 0.078
             },
             "tbsm.11672": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "tbsm.11672_aper",
                 "prototype": "tbsm"
             },
@@ -16938,7 +16938,7 @@
                 "max_x": 0.0415
             },
             "bpv.11706": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpv.11706_aper",
                 "prototype": "bpv"
             },
@@ -17170,7 +17170,7 @@
                 "b": 0.078
             },
             "bshv": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bshv_aper",
                 "prototype": "rcollimator"
             },
@@ -17183,7 +17183,7 @@
                 "b": 0.078
             },
             "bshv.11760": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bshv.11760_aper",
                 "prototype": "bshv"
             },
@@ -17196,7 +17196,7 @@
                 "b": 0.078
             },
             "bshv.11772": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bshv.11772_aper",
                 "prototype": "bshv"
             },
@@ -17208,7 +17208,7 @@
                 "max_x": 0.055
             },
             "tidh": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "tidh_aper",
                 "prototype": "rcollimator"
             },
@@ -17220,7 +17220,7 @@
                 "max_x": 0.055
             },
             "tidh.11795": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "tidh.11795_aper",
                 "prototype": "tidh"
             },
@@ -17291,7 +17291,7 @@
                 "b": 0.103
             },
             "bpce.11833": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpce.11833_aper",
                 "prototype": "bpce"
             },
@@ -17303,7 +17303,7 @@
                 "max_x": 0.0425
             },
             "tidv": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "tidv_aper",
                 "prototype": "rcollimator"
             },
@@ -17315,7 +17315,7 @@
                 "max_x": 0.0425
             },
             "tidv.11892": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "tidv.11892_aper",
                 "prototype": "tidv"
             },
@@ -17348,7 +17348,7 @@
                 "b": 0.103
             },
             "bpce.11906": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpce.11906_aper",
                 "prototype": "bpce"
             },
@@ -17562,7 +17562,7 @@
                 "max_x": 0.0608
             },
             "tbsjb": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "tbsjb_aper",
                 "prototype": "rcollimator"
             },
@@ -17574,7 +17574,7 @@
                 "max_x": 0.0608
             },
             "tbsj.11995": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "tbsj.11995_aper",
                 "prototype": "tbsjb"
             },
@@ -17655,7 +17655,7 @@
                 "max_x": 0.0725
             },
             "bph.12008": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.12008_aper",
                 "prototype": "bph"
             },
@@ -17872,7 +17872,7 @@
                 "max_x": 0.0415
             },
             "bpv.12108": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpv.12108_aper",
                 "prototype": "bpv"
             },
@@ -17992,7 +17992,7 @@
                 "b": 0.132
             },
             "bpsh": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpsh_aper",
                 "prototype": "hmonitor"
             },
@@ -18005,7 +18005,7 @@
                 "b": 0.132
             },
             "bpsh.12174": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpsh.12174_aper",
                 "prototype": "bpsh"
             },
@@ -18018,7 +18018,7 @@
                 "b": 0.0815
             },
             "bpsv": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpsv_aper",
                 "prototype": "vmonitor"
             },
@@ -18031,7 +18031,7 @@
                 "b": 0.0815
             },
             "bpsv.12179": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpsv.12179_aper",
                 "prototype": "bpsv"
             },
@@ -18083,7 +18083,7 @@
                 "max_x": 0.0725
             },
             "bph.12208": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.12208_aper",
                 "prototype": "bph"
             },
@@ -18330,7 +18330,7 @@
                 "b": 0.038
             },
             "bpcn.12308": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpcn.12308_aper",
                 "prototype": "bpcn"
             },
@@ -18596,7 +18596,7 @@
                 "max_x": 0.0725
             },
             "bph.12408": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.12408_aper",
                 "prototype": "bph"
             },
@@ -18843,7 +18843,7 @@
                 "b": 0.038
             },
             "bpcn.12508": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpcn.12508_aper",
                 "prototype": "bpcn"
             },
@@ -19109,7 +19109,7 @@
                 "max_x": 0.0725
             },
             "bph.12608": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.12608_aper",
                 "prototype": "bph"
             },
@@ -19376,7 +19376,7 @@
                 "max_x": 0.0415
             },
             "bpv.12708": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpv.12708_aper",
                 "prototype": "bpv"
             },
@@ -19613,7 +19613,7 @@
                 "max_x": 0.0725
             },
             "bph.12808": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.12808_aper",
                 "prototype": "bph"
             },
@@ -19851,7 +19851,7 @@
                 "max_x": 0.0415
             },
             "bpv.12908": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpv.12908_aper",
                 "prototype": "bpv"
             },
@@ -20088,7 +20088,7 @@
                 "max_x": 0.0725
             },
             "bph.13008": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.13008_aper",
                 "prototype": "bph"
             },
@@ -20305,7 +20305,7 @@
                 "max_x": 0.0415
             },
             "bpv.13108": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpv.13108_aper",
                 "prototype": "bpv"
             },
@@ -20550,7 +20550,7 @@
                 "max_x": 0.0725
             },
             "bph.13208": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.13208_aper",
                 "prototype": "bph"
             },
@@ -20769,7 +20769,7 @@
                 "b": 0.038
             },
             "bpvc": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpvc_aper",
                 "prototype": "vmonitor"
             },
@@ -20782,7 +20782,7 @@
                 "b": 0.038
             },
             "bpvc.13305": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpvc.13305_aper",
                 "prototype": "bpvc"
             },
@@ -20814,7 +20814,7 @@
                 "max_x": 0.0415
             },
             "bpv.13308": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpv.13308_aper",
                 "prototype": "bpv"
             },
@@ -21030,7 +21030,7 @@
                 "max_x": 0.0725
             },
             "bph.13408": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.13408_aper",
                 "prototype": "bph"
             },
@@ -21297,7 +21297,7 @@
                 "max_x": 0.0415
             },
             "bpv.13508": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpv.13508_aper",
                 "prototype": "bpv"
             },
@@ -21563,7 +21563,7 @@
                 "max_x": 0.0725
             },
             "bph.13608": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.13608_aper",
                 "prototype": "bph"
             },
@@ -21809,7 +21809,7 @@
                 "max_x": 0.0415
             },
             "bpv.20108": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpv.20108_aper",
                 "prototype": "bpv"
             },
@@ -22006,7 +22006,7 @@
                 "max_x": 0.0725
             },
             "bph.20203": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.20203_aper",
                 "prototype": "bph"
             },
@@ -22066,7 +22066,7 @@
                 "max_x": 0.0725
             },
             "bph.20208": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.20208_aper",
                 "prototype": "bph"
             },
@@ -22333,7 +22333,7 @@
                 "max_x": 0.0415
             },
             "bpv.20308": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpv.20308_aper",
                 "prototype": "bpv"
             },
@@ -22544,11 +22544,11 @@
                 "prototype": "lof"
             },
             "bpht": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "prototype": "monitor"
             },
             "bpht.20406": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "prototype": "bpht"
             },
             "mdh.20407_aper": {
@@ -22578,7 +22578,7 @@
                 "max_x": 0.0725
             },
             "bph.20408": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.20408_aper",
                 "prototype": "bph"
             },
@@ -22775,7 +22775,7 @@
                 "max_x": 0.0415
             },
             "bpv.20505": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpv.20505_aper",
                 "prototype": "bpv"
             },
@@ -22807,7 +22807,7 @@
                 "max_x": 0.0415
             },
             "bpv.20508": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpv.20508_aper",
                 "prototype": "bpv"
             },
@@ -23044,7 +23044,7 @@
                 "max_x": 0.0725
             },
             "bph.20608": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.20608_aper",
                 "prototype": "bph"
             },
@@ -23263,7 +23263,7 @@
                 "b": 0.038
             },
             "bpvc.20705": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpvc.20705_aper",
                 "prototype": "bpvc"
             },
@@ -23295,7 +23295,7 @@
                 "max_x": 0.0415
             },
             "bpv.20708": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpv.20708_aper",
                 "prototype": "bpv"
             },
@@ -23493,7 +23493,7 @@
                 "b": 0.078
             },
             "bpcr": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpcr_aper",
                 "prototype": "monitor"
             },
@@ -23506,7 +23506,7 @@
                 "b": 0.078
             },
             "bpcr.20802": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpcr.20802_aper",
                 "prototype": "bpcr"
             },
@@ -23566,7 +23566,7 @@
                 "max_x": 0.0725
             },
             "bph.20808": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.20808_aper",
                 "prototype": "bph"
             },
@@ -23764,7 +23764,7 @@
                 "b": 0.038
             },
             "bpcn.20902": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpcn.20902_aper",
                 "prototype": "bpcn"
             },
@@ -23796,7 +23796,7 @@
                 "max_x": 0.0415
             },
             "bpv.20908": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpv.20908_aper",
                 "prototype": "bpv"
             },
@@ -24012,7 +24012,7 @@
                 "max_x": 0.0725
             },
             "bph.21008": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.21008_aper",
                 "prototype": "bph"
             },
@@ -24258,7 +24258,7 @@
                 "max_x": 0.0415
             },
             "bpv.21108": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpv.21108_aper",
                 "prototype": "bpv"
             },
@@ -24522,7 +24522,7 @@
                 "max_x": 0.0725
             },
             "bph.21208": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.21208_aper",
                 "prototype": "bph"
             },
@@ -24788,7 +24788,7 @@
                 "max_x": 0.0415
             },
             "bpv.21308": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpv.21308_aper",
                 "prototype": "bpv"
             },
@@ -25033,7 +25033,7 @@
                 "max_x": 0.0725
             },
             "bph.21408": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.21408_aper",
                 "prototype": "bph"
             },
@@ -25094,7 +25094,7 @@
                 "b": 0.078
             },
             "bpcr.21434": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpcr.21434_aper",
                 "prototype": "bpcr"
             },
@@ -25107,7 +25107,7 @@
                 "b": 0.078
             },
             "bpcr.21435": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpcr.21435_aper",
                 "prototype": "bpcr"
             },
@@ -25119,7 +25119,7 @@
                 "max_x": 0.071
             },
             "bdh": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bdh_aper",
                 "prototype": "hmonitor"
             },
@@ -25131,7 +25131,7 @@
                 "max_x": 0.071
             },
             "bdh.21437": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bdh.21437_aper",
                 "prototype": "bdh"
             },
@@ -25143,7 +25143,7 @@
                 "max_x": 0.071
             },
             "bdh.21451": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bdh.21451_aper",
                 "prototype": "bdh"
             },
@@ -25155,7 +25155,7 @@
                 "max_x": 0.065
             },
             "bdv": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bdv_aper",
                 "prototype": "vmonitor"
             },
@@ -25167,7 +25167,7 @@
                 "max_x": 0.065
             },
             "bdv.21455": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bdv.21455_aper",
                 "prototype": "bdv"
             },
@@ -25180,7 +25180,7 @@
                 "b": 0.078
             },
             "bpcr.21459": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpcr.21459_aper",
                 "prototype": "bpcr"
             },
@@ -25339,7 +25339,7 @@
                 "max_x": 0.0415
             },
             "bpv.21508": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpv.21508_aper",
                 "prototype": "bpv"
             },
@@ -25577,7 +25577,7 @@
                 "b": 0.103
             },
             "bpce.21606": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpce.21606_aper",
                 "prototype": "bpce"
             },
@@ -25664,7 +25664,7 @@
                 "max_x": 0.0645
             },
             "tce": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "tce_aper",
                 "prototype": "rcollimator"
             },
@@ -25676,7 +25676,7 @@
                 "max_x": 0.0645
             },
             "tce.21695": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "tce.21695_aper",
                 "prototype": "tce"
             },
@@ -25709,7 +25709,7 @@
                 "b": 0.103
             },
             "bpce.21706": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpce.21706_aper",
                 "prototype": "bpce"
             },
@@ -25791,7 +25791,7 @@
                 "shift_x": -0.04825
             },
             "tpst_003": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "tpst_003_aper",
                 "prototype": "rcollimator"
             },
@@ -25804,7 +25804,7 @@
                 "shift_x": -0.04825
             },
             "tpst.21760": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "tpst.21760_aper",
                 "prototype": "tpst_003"
             },
@@ -25870,7 +25870,7 @@
                 "b": 0.103
             },
             "bpce.21806": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpce.21806_aper",
                 "prototype": "bpce"
             },
@@ -25987,7 +25987,7 @@
                 "b": 0.103
             },
             "bpce.21931": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpce.21931_aper",
                 "prototype": "bpce"
             },
@@ -26183,7 +26183,7 @@
                 "max_x": 0.0725
             },
             "bph.22008": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.22008_aper",
                 "prototype": "bph"
             },
@@ -26420,7 +26420,7 @@
                 "max_x": 0.0415
             },
             "bpv.22108": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpv.22108_aper",
                 "prototype": "bpv"
             },
@@ -26540,7 +26540,7 @@
                 "b": 0.078
             },
             "bpcr.22172": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpcr.22172_aper",
                 "prototype": "bpcr"
             },
@@ -26552,7 +26552,7 @@
                 "max_x": 0.065
             },
             "bdv.22176": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bdv.22176_aper",
                 "prototype": "bdv"
             },
@@ -26623,7 +26623,7 @@
                 "max_x": 0.0725
             },
             "bph.22208": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.22208_aper",
                 "prototype": "bph"
             },
@@ -26890,7 +26890,7 @@
                 "b": 0.038
             },
             "bpcn.22308": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpcn.22308_aper",
                 "prototype": "bpcn"
             },
@@ -27156,7 +27156,7 @@
                 "max_x": 0.0725
             },
             "bph.22408": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.22408_aper",
                 "prototype": "bph"
             },
@@ -27402,7 +27402,7 @@
                 "max_x": 0.0415
             },
             "bpv.22508": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpv.22508_aper",
                 "prototype": "bpv"
             },
@@ -27668,7 +27668,7 @@
                 "max_x": 0.0725
             },
             "bph.22608": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.22608_aper",
                 "prototype": "bph"
             },
@@ -27936,7 +27936,7 @@
                 "b": 0.038
             },
             "bpcn.22708": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpcn.22708_aper",
                 "prototype": "bpcn"
             },
@@ -28173,7 +28173,7 @@
                 "max_x": 0.0725
             },
             "bph.22808": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.22808_aper",
                 "prototype": "bph"
             },
@@ -28392,7 +28392,7 @@
                 "b": 0.038
             },
             "bpnc": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpnc_aper",
                 "prototype": "hmonitor"
             },
@@ -28405,7 +28405,7 @@
                 "b": 0.038
             },
             "bpnc.22905": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpnc.22905_aper",
                 "prototype": "bpnc"
             },
@@ -28437,7 +28437,7 @@
                 "max_x": 0.0415
             },
             "bpv.22908": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpv.22908_aper",
                 "prototype": "bpv"
             },
@@ -28674,7 +28674,7 @@
                 "max_x": 0.0725
             },
             "bph.23008": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.23008_aper",
                 "prototype": "bph"
             },
@@ -28891,7 +28891,7 @@
                 "max_x": 0.0415
             },
             "bpv.23108": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpv.23108_aper",
                 "prototype": "bpv"
             },
@@ -29136,7 +29136,7 @@
                 "max_x": 0.0725
             },
             "bph.23208": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.23208_aper",
                 "prototype": "bph"
             },
@@ -29374,7 +29374,7 @@
                 "max_x": 0.0415
             },
             "bpv.23308": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpv.23308_aper",
                 "prototype": "bpv"
             },
@@ -29590,7 +29590,7 @@
                 "max_x": 0.0725
             },
             "bph.23408": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.23408_aper",
                 "prototype": "bph"
             },
@@ -29857,7 +29857,7 @@
                 "max_x": 0.0415
             },
             "bpv.23508": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpv.23508_aper",
                 "prototype": "bpv"
             },
@@ -30123,7 +30123,7 @@
                 "max_x": 0.0725
             },
             "bph.23608": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.23608_aper",
                 "prototype": "bph"
             },
@@ -30369,7 +30369,7 @@
                 "max_x": 0.0415
             },
             "bpv.30108": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpv.30108_aper",
                 "prototype": "bpv"
             },
@@ -30626,7 +30626,7 @@
                 "max_x": 0.0725
             },
             "bph.30208": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.30208_aper",
                 "prototype": "bph"
             },
@@ -30872,7 +30872,7 @@
                 "max_x": 0.0415
             },
             "bpv.30308": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpv.30308_aper",
                 "prototype": "bpv"
             },
@@ -31088,7 +31088,7 @@
                 "max_x": 0.0725
             },
             "bph.30408": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.30408_aper",
                 "prototype": "bph"
             },
@@ -31305,7 +31305,7 @@
                 "max_x": 0.0415
             },
             "bpv.30508": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpv.30508_aper",
                 "prototype": "bpv"
             },
@@ -31533,7 +31533,7 @@
                 "max_x": 0.0725
             },
             "bph.30608": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.30608_aper",
                 "prototype": "bph"
             },
@@ -31771,7 +31771,7 @@
                 "max_x": 0.0415
             },
             "bpv.30708": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpv.30708_aper",
                 "prototype": "bpv"
             },
@@ -32037,7 +32037,7 @@
                 "max_x": 0.0725
             },
             "bph.30808": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.30808_aper",
                 "prototype": "bph"
             },
@@ -32254,7 +32254,7 @@
                 "max_x": 0.0415
             },
             "bpv.30908": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpv.30908_aper",
                 "prototype": "bpv"
             },
@@ -32470,7 +32470,7 @@
                 "max_x": 0.0725
             },
             "bph.31008": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.31008_aper",
                 "prototype": "bph"
             },
@@ -32660,11 +32660,11 @@
                 "e1": 0.004222570771
             },
             "bpwa": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "prototype": "vmonitor"
             },
             "bpwa.31101": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "prototype": "bpwa"
             },
             "lsd.31105_aper": {
@@ -32724,7 +32724,7 @@
                 "max_x": 0.0415
             },
             "bpv.31108": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpv.31108_aper",
                 "prototype": "bpv"
             },
@@ -32922,7 +32922,7 @@
                 "b": 0.078
             },
             "bpcr.31202": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpcr.31202_aper",
                 "prototype": "bpcr"
             },
@@ -32982,7 +32982,7 @@
                 "max_x": 0.0725
             },
             "bph.31208": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.31208_aper",
                 "prototype": "bph"
             },
@@ -33180,7 +33180,7 @@
                 "b": 0.0415
             },
             "aerb": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "aerb_aper",
                 "prototype": "hmonitor"
             },
@@ -33193,7 +33193,7 @@
                 "b": 0.0415
             },
             "aerb.31302": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "aerb.31302_aper",
                 "prototype": "aerb"
             },
@@ -33254,7 +33254,7 @@
                 "max_x": 0.0415
             },
             "bpv.31308": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpv.31308_aper",
                 "prototype": "bpv"
             },
@@ -33511,7 +33511,7 @@
                 "max_x": 0.0725
             },
             "bph.31408": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.31408_aper",
                 "prototype": "bph"
             },
@@ -33679,7 +33679,7 @@
                 "max_x": 0.0415
             },
             "bpv.31508": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpv.31508_aper",
                 "prototype": "bpv"
             },
@@ -33876,7 +33876,7 @@
                 "max_x": 0.0725
             },
             "bph.31605": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.31605_aper",
                 "prototype": "bph"
             },
@@ -33907,7 +33907,7 @@
                 "max_x": 0.0725
             },
             "bph.31608": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.31608_aper",
                 "prototype": "bph"
             },
@@ -34024,7 +34024,7 @@
                 "max_x": 0.0415
             },
             "bpv.31708": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpv.31708_aper",
                 "prototype": "bpv"
             },
@@ -34107,7 +34107,7 @@
                 "b": 0.077
             },
             "bpw": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpw_aper",
                 "prototype": "vmonitor"
             },
@@ -34120,7 +34120,7 @@
                 "b": 0.077
             },
             "bpw.31798": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpw.31798_aper",
                 "prototype": "bpw"
             },
@@ -34151,7 +34151,7 @@
                 "max_x": 0.0725
             },
             "bph.31808": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.31808_aper",
                 "prototype": "bph"
             },
@@ -34212,7 +34212,7 @@
                 "prototype": "actc"
             },
             "bpwa.31901": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "prototype": "bpwa"
             },
             "mdv.31907_aper": {
@@ -34243,7 +34243,7 @@
                 "max_x": 0.0415
             },
             "bpv.31908": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpv.31908_aper",
                 "prototype": "bpv"
             },
@@ -34311,7 +34311,7 @@
                 "max_x": 0.0725
             },
             "bph.31998": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.31998_aper",
                 "prototype": "bph"
             },
@@ -34392,7 +34392,7 @@
                 "max_x": 0.0725
             },
             "bph.32008": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.32008_aper",
                 "prototype": "bph"
             },
@@ -34582,11 +34582,11 @@
                 "e1": 0.004222570771
             },
             "bpwb": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "prototype": "vmonitor"
             },
             "bpwb.32101": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "prototype": "bpwb"
             },
             "mdv.32107_aper": {
@@ -34617,7 +34617,7 @@
                 "max_x": 0.0415
             },
             "bpv.32108": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpv.32108_aper",
                 "prototype": "bpv"
             },
@@ -34776,7 +34776,7 @@
                 "max_x": 0.0725
             },
             "bph.32208": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.32208_aper",
                 "prototype": "bph"
             },
@@ -34973,7 +34973,7 @@
                 "max_x": 0.0415
             },
             "bpvt": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpvt_aper",
                 "prototype": "vmonitor"
             },
@@ -34985,7 +34985,7 @@
                 "max_x": 0.0415
             },
             "bpvt.32303": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpvt.32303_aper",
                 "prototype": "bpvt"
             },
@@ -35047,7 +35047,7 @@
                 "b": 0.038
             },
             "bpcn.32308": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpcn.32308_aper",
                 "prototype": "bpcn"
             },
@@ -35313,7 +35313,7 @@
                 "max_x": 0.0725
             },
             "bph.32408": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.32408_aper",
                 "prototype": "bph"
             },
@@ -35559,7 +35559,7 @@
                 "max_x": 0.0415
             },
             "bpv.32508": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpv.32508_aper",
                 "prototype": "bpv"
             },
@@ -35825,7 +35825,7 @@
                 "max_x": 0.0725
             },
             "bph.32608": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.32608_aper",
                 "prototype": "bph"
             },
@@ -36093,7 +36093,7 @@
                 "b": 0.038
             },
             "bpcn.32708": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpcn.32708_aper",
                 "prototype": "bpcn"
             },
@@ -36330,7 +36330,7 @@
                 "max_x": 0.0725
             },
             "bph.32808": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.32808_aper",
                 "prototype": "bph"
             },
@@ -36568,7 +36568,7 @@
                 "max_x": 0.0415
             },
             "bpv.32908": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpv.32908_aper",
                 "prototype": "bpv"
             },
@@ -36805,7 +36805,7 @@
                 "max_x": 0.0725
             },
             "bph.33008": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.33008_aper",
                 "prototype": "bph"
             },
@@ -37003,7 +37003,7 @@
                 "b": 0.038
             },
             "bpnb": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpnb_aper",
                 "prototype": "hmonitor"
             },
@@ -37016,7 +37016,7 @@
                 "b": 0.038
             },
             "bpnb.33105": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpnb.33105_aper",
                 "prototype": "bpnb"
             },
@@ -37048,7 +37048,7 @@
                 "max_x": 0.0415
             },
             "bpv.33108": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpv.33108_aper",
                 "prototype": "bpv"
             },
@@ -37293,7 +37293,7 @@
                 "max_x": 0.0725
             },
             "bph.33208": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.33208_aper",
                 "prototype": "bph"
             },
@@ -37531,7 +37531,7 @@
                 "max_x": 0.0415
             },
             "bpv.33308": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpv.33308_aper",
                 "prototype": "bpv"
             },
@@ -37747,7 +37747,7 @@
                 "max_x": 0.0725
             },
             "bph.33408": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.33408_aper",
                 "prototype": "bph"
             },
@@ -38014,7 +38014,7 @@
                 "max_x": 0.0415
             },
             "bpv.33508": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpv.33508_aper",
                 "prototype": "bpv"
             },
@@ -38280,7 +38280,7 @@
                 "max_x": 0.0725
             },
             "bph.33608": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.33608_aper",
                 "prototype": "bph"
             },
@@ -38526,7 +38526,7 @@
                 "max_x": 0.0415
             },
             "bpv.40108": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpv.40108_aper",
                 "prototype": "bpv"
             },
@@ -38771,7 +38771,7 @@
                 "max_x": 0.0725
             },
             "bph.40208": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.40208_aper",
                 "prototype": "bph"
             },
@@ -39038,7 +39038,7 @@
                 "max_x": 0.0415
             },
             "bpv.40308": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpv.40308_aper",
                 "prototype": "bpv"
             },
@@ -39275,7 +39275,7 @@
                 "max_x": 0.0725
             },
             "bph.40408": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.40408_aper",
                 "prototype": "bph"
             },
@@ -39492,7 +39492,7 @@
                 "max_x": 0.0415
             },
             "bpv.40508": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpv.40508_aper",
                 "prototype": "bpv"
             },
@@ -39729,7 +39729,7 @@
                 "max_x": 0.0725
             },
             "bph.40608": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.40608_aper",
                 "prototype": "bph"
             },
@@ -39967,7 +39967,7 @@
                 "max_x": 0.0415
             },
             "bpv.40708": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpv.40708_aper",
                 "prototype": "bpv"
             },
@@ -40233,7 +40233,7 @@
                 "max_x": 0.0725
             },
             "bph.40808": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.40808_aper",
                 "prototype": "bph"
             },
@@ -40450,7 +40450,7 @@
                 "max_x": 0.0415
             },
             "bpv.40908": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpv.40908_aper",
                 "prototype": "bpv"
             },
@@ -40666,7 +40666,7 @@
                 "max_x": 0.0725
             },
             "bph.41008": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.41008_aper",
                 "prototype": "bph"
             },
@@ -40912,7 +40912,7 @@
                 "max_x": 0.0415
             },
             "bpv.41108": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpv.41108_aper",
                 "prototype": "bpv"
             },
@@ -41157,7 +41157,7 @@
                 "max_x": 0.0725
             },
             "bph.41208": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.41208_aper",
                 "prototype": "bph"
             },
@@ -41423,7 +41423,7 @@
                 "max_x": 0.0415
             },
             "bpv.41308": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpv.41308_aper",
                 "prototype": "bpv"
             },
@@ -41687,7 +41687,7 @@
                 "max_x": 0.0725
             },
             "bph.41408": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.41408_aper",
                 "prototype": "bph"
             },
@@ -41895,7 +41895,7 @@
                 "max_x": 0.0415
             },
             "bpv.41508": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpv.41508_aper",
                 "prototype": "bpv"
             },
@@ -42111,7 +42111,7 @@
                 "max_x": 0.0725
             },
             "bph.41608": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.41608_aper",
                 "prototype": "bph"
             },
@@ -42287,7 +42287,7 @@
                 "b": 0.103
             },
             "bpce.41705": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpce.41705_aper",
                 "prototype": "bpce"
             },
@@ -42329,7 +42329,7 @@
                 "b": 0.103
             },
             "bpce.41801": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpce.41801_aper",
                 "prototype": "bpce"
             },
@@ -42374,11 +42374,11 @@
                 "prototype": "qfa"
             },
             "tpsg": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "prototype": "rcollimator"
             },
             "tpsg.41832": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "prototype": "tpsg"
             },
             "mse.41837": {
@@ -42485,7 +42485,7 @@
                 "b": 0.103
             },
             "bpce.41931": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpce.41931_aper",
                 "prototype": "bpce"
             },
@@ -42584,7 +42584,7 @@
                 "max_x": 0.0725
             },
             "bph.42008": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.42008_aper",
                 "prototype": "bph"
             },
@@ -42802,7 +42802,7 @@
                 "b": 0.0415
             },
             "bpmbv": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpmbv_aper",
                 "prototype": "monitor"
             },
@@ -42815,7 +42815,7 @@
                 "b": 0.0415
             },
             "bpmb.42105": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpmb.42105_aper",
                 "prototype": "bpmbv"
             },
@@ -42847,7 +42847,7 @@
                 "max_x": 0.0415
             },
             "bpv.42108": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpv.42108_aper",
                 "prototype": "bpv"
             },
@@ -42967,7 +42967,7 @@
                 "b": 0.0575
             },
             "bpcl": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpcl_aper",
                 "prototype": "monitor"
             },
@@ -42980,7 +42980,7 @@
                 "b": 0.0575
             },
             "bpcl.42171": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpcl.42171_aper",
                 "prototype": "bpcl"
             },
@@ -42993,7 +42993,7 @@
                 "b": 0.078
             },
             "bpl": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpl_aper",
                 "prototype": "monitor"
             },
@@ -43006,7 +43006,7 @@
                 "b": 0.078
             },
             "bpl.42191": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpl.42191_aper",
                 "prototype": "bpl"
             },
@@ -43019,7 +43019,7 @@
                 "b": 0.088
             },
             "bplt": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bplt_aper",
                 "prototype": "monitor"
             },
@@ -43032,7 +43032,7 @@
                 "b": 0.088
             },
             "bplt.42192": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bplt.42192_aper",
                 "prototype": "bplt"
             },
@@ -43103,7 +43103,7 @@
                 "max_x": 0.0725
             },
             "bph.42208": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.42208_aper",
                 "prototype": "bph"
             },
@@ -43369,7 +43369,7 @@
                 "max_x": 0.0415
             },
             "bpv.42308": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpv.42308_aper",
                 "prototype": "bpv"
             },
@@ -43656,7 +43656,7 @@
                 "max_x": 0.0725
             },
             "bph.42408": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.42408_aper",
                 "prototype": "bph"
             },
@@ -43902,7 +43902,7 @@
                 "max_x": 0.0415
             },
             "bpv.42508": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpv.42508_aper",
                 "prototype": "bpv"
             },
@@ -44168,7 +44168,7 @@
                 "max_x": 0.0725
             },
             "bph.42608": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.42608_aper",
                 "prototype": "bph"
             },
@@ -44435,7 +44435,7 @@
                 "max_x": 0.0415
             },
             "bpv.42708": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpv.42708_aper",
                 "prototype": "bpv"
             },
@@ -44672,7 +44672,7 @@
                 "max_x": 0.0725
             },
             "bph.42808": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.42808_aper",
                 "prototype": "bph"
             },
@@ -44910,7 +44910,7 @@
                 "max_x": 0.0415
             },
             "bpv.42908": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpv.42908_aper",
                 "prototype": "bpv"
             },
@@ -45126,7 +45126,7 @@
                 "max_x": 0.0725
             },
             "bph.43008": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.43008_aper",
                 "prototype": "bph"
             },
@@ -45343,7 +45343,7 @@
                 "max_x": 0.0415
             },
             "bpv.43108": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpv.43108_aper",
                 "prototype": "bpv"
             },
@@ -45588,7 +45588,7 @@
                 "max_x": 0.0725
             },
             "bph.43208": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.43208_aper",
                 "prototype": "bph"
             },
@@ -45826,7 +45826,7 @@
                 "max_x": 0.0415
             },
             "bpv.43308": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpv.43308_aper",
                 "prototype": "bpv"
             },
@@ -46042,7 +46042,7 @@
                 "max_x": 0.0725
             },
             "bph.43408": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.43408_aper",
                 "prototype": "bph"
             },
@@ -46309,7 +46309,7 @@
                 "max_x": 0.0415
             },
             "bpv.43508": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpv.43508_aper",
                 "prototype": "bpv"
             },
@@ -46554,7 +46554,7 @@
                 "max_x": 0.0725
             },
             "bph.43608": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.43608_aper",
                 "prototype": "bph"
             },
@@ -46800,7 +46800,7 @@
                 "max_x": 0.0415
             },
             "bpv.50108": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpv.50108_aper",
                 "prototype": "bpv"
             },
@@ -47057,7 +47057,7 @@
                 "max_x": 0.0725
             },
             "bph.50208": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.50208_aper",
                 "prototype": "bph"
             },
@@ -47324,7 +47324,7 @@
                 "max_x": 0.0415
             },
             "bpv.50308": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpv.50308_aper",
                 "prototype": "bpv"
             },
@@ -47561,7 +47561,7 @@
                 "max_x": 0.0725
             },
             "bph.50408": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.50408_aper",
                 "prototype": "bph"
             },
@@ -47778,7 +47778,7 @@
                 "max_x": 0.0415
             },
             "bpv.50508": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpv.50508_aper",
                 "prototype": "bpv"
             },
@@ -48015,7 +48015,7 @@
                 "max_x": 0.0725
             },
             "bph.50608": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.50608_aper",
                 "prototype": "bph"
             },
@@ -48253,7 +48253,7 @@
                 "max_x": 0.0415
             },
             "bpv.50708": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpv.50708_aper",
                 "prototype": "bpv"
             },
@@ -48519,7 +48519,7 @@
                 "max_x": 0.0725
             },
             "bph.50808": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.50808_aper",
                 "prototype": "bph"
             },
@@ -48736,7 +48736,7 @@
                 "max_x": 0.0415
             },
             "bpv.50908": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpv.50908_aper",
                 "prototype": "bpv"
             },
@@ -48952,7 +48952,7 @@
                 "max_x": 0.0725
             },
             "bph.51008": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.51008_aper",
                 "prototype": "bph"
             },
@@ -49198,7 +49198,7 @@
                 "max_x": 0.0415
             },
             "bpv.51108": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpv.51108_aper",
                 "prototype": "bpv"
             },
@@ -49443,7 +49443,7 @@
                 "max_x": 0.0725
             },
             "bph.51208": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.51208_aper",
                 "prototype": "bph"
             },
@@ -49641,7 +49641,7 @@
                 "b": 0.0415
             },
             "bpmb.51303": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpmb.51303_aper",
                 "prototype": "bpmbv"
             },
@@ -49702,7 +49702,7 @@
                 "max_x": 0.0415
             },
             "bpv.51308": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpv.51308_aper",
                 "prototype": "bpv"
             },
@@ -49959,7 +49959,7 @@
                 "max_x": 0.0725
             },
             "bph.51408": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.51408_aper",
                 "prototype": "bph"
             },
@@ -50079,7 +50079,7 @@
                 "b": 0.0415
             },
             "bpmb.51503": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpmb.51503_aper",
                 "prototype": "bpmbv"
             },
@@ -50140,7 +50140,7 @@
                 "max_x": 0.0415
             },
             "bpv.51508": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpv.51508_aper",
                 "prototype": "bpv"
             },
@@ -50356,7 +50356,7 @@
                 "max_x": 0.0725
             },
             "bph.51608": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.51608_aper",
                 "prototype": "bph"
             },
@@ -50430,12 +50430,12 @@
                 "max_x": 68.0
             },
             "bipmh": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bipmh_aper",
                 "prototype": "monitor"
             },
             "bipmh.51634": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bipmh_aper",
                 "extra": {
                     "slot_id": 10940701.0
@@ -50462,7 +50462,7 @@
                 "b": 0.078
             },
             "bshv.51659": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bshv.51659_aper",
                 "prototype": "bshv"
             },
@@ -50475,7 +50475,7 @@
                 "b": 0.0415
             },
             "bpmb.51705": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpmb.51705_aper",
                 "prototype": "bpmbv"
             },
@@ -50507,7 +50507,7 @@
                 "max_x": 0.0415
             },
             "bpv.51708": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpv.51708_aper",
                 "prototype": "bpv"
             },
@@ -50581,12 +50581,12 @@
                 "max_x": 68.0
             },
             "bipmv": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bipmv_aper",
                 "prototype": "monitor"
             },
             "bipmv.51734": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bipmv_aper",
                 "extra": {
                     "slot_id": 10940704.0
@@ -50672,7 +50672,7 @@
                 "max_x": 0.059
             },
             "bblr": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bblr_aper",
                 "prototype": "monitor"
             },
@@ -50684,7 +50684,7 @@
                 "max_x": 0.059
             },
             "bblr.51760": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bblr.51760_aper",
                 "prototype": "bblr"
             },
@@ -50696,7 +50696,7 @@
                 "max_x": 0.059
             },
             "bblr.51771": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bblr.51771_aper",
                 "prototype": "bblr"
             },
@@ -50708,7 +50708,7 @@
                 "max_x": 0.053
             },
             "bblrm": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bblrm_aper",
                 "prototype": "monitor"
             },
@@ -50720,7 +50720,7 @@
                 "max_x": 0.053
             },
             "bblr.51772": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bblr.51772_aper",
                 "prototype": "bblrm"
             },
@@ -50732,7 +50732,7 @@
                 "max_x": 0.053
             },
             "bblr.51774": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bblr.51774_aper",
                 "prototype": "bblrm"
             },
@@ -50785,7 +50785,7 @@
                 "b": 0.078
             },
             "bshv.51792": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bshv.51792_aper",
                 "prototype": "bshv"
             },
@@ -50798,7 +50798,7 @@
                 "b": 0.078
             },
             "bshv.51793": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bshv.51793_aper",
                 "prototype": "bshv"
             },
@@ -50811,16 +50811,16 @@
                 "b": 0.078
             },
             "bshv.51794": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bshv.51794_aper",
                 "prototype": "bshv"
             },
             "tcpc": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "prototype": "rcollimator"
             },
             "tcpc.51795": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "prototype": "tcpc"
             },
             "bpmb.51805_aper": {
@@ -50832,7 +50832,7 @@
                 "b": 0.078
             },
             "bpmb.51805": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpmb.51805_aper",
                 "prototype": "bpmbh"
             },
@@ -50863,7 +50863,7 @@
                 "max_x": 0.0725
             },
             "bph.51808": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bph.51808_aper",
                 "prototype": "bph"
             },
@@ -50948,7 +50948,7 @@
                 "max_x": 0.05
             },
             "brcv": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "brcv_aper",
                 "prototype": "rcollimator"
             },
@@ -50960,7 +50960,7 @@
                 "max_x": 0.05
             },
             "brcv.51899": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "brcv.51899_aper",
                 "prototype": "brcv"
             },
@@ -50972,7 +50972,7 @@
                 "max_x": 0.05
             },
             "brch": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "brch_aper",
                 "prototype": "rcollimator"
             },
@@ -50984,7 +50984,7 @@
                 "max_x": 0.05
             },
             "brch.51902": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "brch.51902_aper",
                 "prototype": "brch"
             },
@@ -50997,7 +50997,7 @@
                 "b": 0.0415
             },
             "bpmb.51905": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpmb.51905_aper",
                 "prototype": "bpmbv"
             },
@@ -51029,7 +51029,7 @@
                 "max_x": 0.0415
             },
             "bpv.51908": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bpv.51908_aper",
                 "prototype": "bpv"
             },
@@ -51071,7 +51071,7 @@
                 "b": 0.04
             },
             "tcsm": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "tcsm_aper",
                 "prototype": "rcollimator"
             },
@@ -51084,7 +51084,7 @@
                 "b": 0.04
             },
             "tcsm.51934": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "tcsm.51934_aper",
                 "prototype": "tcsm"
             },
@@ -51097,7 +51097,7 @@
                 "b": 0.078
             },
             "bshv.51991": {
-                "__class__": "Drift",
+                "__class__": "Device",
                 "name_associated_aperture": "bshv.51991_aper",
                 "prototype": "bshv"
             },

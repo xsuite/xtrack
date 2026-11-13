@@ -11,6 +11,7 @@ import numpy as np
 from ..general import DEPRECATION_INFO_PREP_1_0
 from .. import linear_normal_form as lnf
 from ..table import Table
+from .._tfs_format import _UNSET as _TFS_UNSET
 from .twissplot import TwissPlot
 from .beam_covariance import _build_sigma_table
 from .twiss_init import TwissInit, _W_phys2norm
@@ -30,7 +31,7 @@ import xtrack as xt  # To avoid circular imports
 CYCLICAL_QUANTITIES = ['mux', 'muy', 'dzeta', 's']
 
 DEFAULT_COL_ORDER = [
-    'name', 'element_type', 's', 'betx', 'bety', 'alfx', 'alfy', 'dx', 'dy'
+    'name', 'element_type', 's', 'betx', 'bety', 'alfx', 'alfy', 'dx', 'dy',
     'dpx', 'dpy', 'x', 'y', 'px', 'py', 'delta', 'zeta']
 
 
@@ -42,6 +43,9 @@ class TwissTable(Table):
     produced by Twiss calculations. Typical columns include longitudinal
     position, beta functions, alpha functions, dispersion, phase advances,
     coordinates, momenta, and element strengths when requested.
+
+    Global floating-point quantities produced by Twiss calculations are stored
+    as Python floats. Columns and matrices are NumPy arrays.
     """
 
     # Messages to be shown when accessing deprecated fields
@@ -168,7 +172,7 @@ class TwissTable(Table):
                 self.W_matrix[ii] for ii in range(len(self.W_matrix))]
 
         import pandas as pd
-        df = pd.DataFrame(data, columns=self._col_names)
+        df = pd.DataFrame(data, columns=columns)
         if index is not None:
             df.set_index(index, inplace=True)
         return df
@@ -241,11 +245,12 @@ class TwissTable(Table):
             group=group,
         )
 
-    def to_tfs(self, file, *, include=None, exclude=None,
-               missing='error', include_meta=True,
-               default_column_width=None, float_precision=8,
-               numeric_column_width=16, column_formats=None,
-               column_widths=None):
+    def to_tfs(self, file, *, format_spec=None,
+               include=_TFS_UNSET, exclude=_TFS_UNSET,
+               missing=_TFS_UNSET, include_meta=_TFS_UNSET,
+               default_column_width=_TFS_UNSET, float_precision=_TFS_UNSET,
+               numeric_column_width=_TFS_UNSET, column_formats=_TFS_UNSET,
+               column_widths=_TFS_UNSET):
         """
         Write the Twiss table to a TFS file.
 
@@ -253,6 +258,9 @@ class TwissTable(Table):
         ----------
         file : str or pathlib.Path or file-like object
             Output TFS file path or writable file-like object.
+        format_spec : mapping or path-like, optional
+            Versioned specification or JSON/TOML file. See :meth:`Table.to_tfs`.
+            Cannot be combined with any legacy selection or formatting options.
         include : sequence of str, optional
             Columns or metadata fields to include. If not provided, all supported
             fields are included unless excluded.
@@ -275,14 +283,19 @@ class TwissTable(Table):
             Per-column TFS column widths.
         """
 
-        if exclude is None:
-            exclude = []
-
-        if 'completed_init' in self.keys():
-            exclude.append('completed_init')
+        if format_spec is None:
+            if exclude is _TFS_UNSET or exclude is None:
+                exclude = []
+            elif isinstance(exclude, str):
+                exclude = [exclude]
+            else:
+                exclude = list(exclude)
+            if 'completed_init' in self.keys():
+                exclude.append('completed_init')
 
         super().to_tfs(
             file,
+            format_spec=format_spec,
             include=include,
             exclude=exclude,
             missing=missing,
@@ -323,20 +336,38 @@ class TwissTable(Table):
 
         Parameters
         ----------
-        at_element : str or int
+        at_element : str, int, xt.START or xt.END
             Element name or row index at which the initial conditions are
             extracted. The table must contain values at element entry.
+            ``xt.START`` and ``xt.END`` select the first and last rows of this
+            table, respectively, including for sliced tables. On a full Twiss
+            table, ``xt.END`` selects ``_end_point``, at the exit of the last
+            element.
 
         Returns
         -------
         xtrack.TwissInit
             Initial conditions for a Twiss calculation at the selected element.
+
+        Raises
+        ------
+        ValueError
+            If the requested element name is not present in the table.
         """
 
         assert self.values_at == 'entry', 'Not yet implemented for exit'
 
+        if at_element is xt.START:
+            at_element = 0
+        elif at_element is xt.END:
+            at_element = -1
+
         if isinstance(at_element, str):
-            at_element = np.where(self.name == at_element)[0][0]
+            indices = np.where(self.name == at_element)[0]
+            if len(indices) == 0:
+                raise ValueError(
+                    f'Element {at_element!r} not found in the Twiss table.')
+            at_element = indices[0]
         part = self.particle_on_co.copy()
         part.x[:] = self.x[at_element]
         part.px[:] = self.px[at_element]
@@ -528,26 +559,25 @@ class TwissTable(Table):
             Which formalism to use for the computation. Can be ``Nagaitsev``
             or ``Bjorken-Mtingwa`` (also accepts ``B&M``), case-insensitively.
         total_beam_intensity : int, optional
-            The beam intensity. Required if ``particles`` is not provided.
+            The beam intensity. Must be provided.
         gemitt_x : float, optional
-            Horizontal geometric emittance in [m]. If ``particles`` is not
-            provided, either this parameter or ``nemitt_x`` is required.
+            Horizontal geometric emittance in [m]. Either this parameter or
+            ``nemitt_x`` is required.
         nemitt_x : float, optional
-            Horizontal normalized emittance in [m]. If ``particles`` is not
-            provided, either this parameter or ``gemitt_x`` is required.
+            Horizontal normalized emittance in [m]. Either this parameter or
+            ``gemitt_x`` is required.
         gemitt_y : float, optional
-            Vertical geometric emittance in [m]. If ``particles`` is not
-            provided, either this parameter or ``nemitt_y`` is required.
+            Vertical geometric emittance in [m]. Either this parameter or
+            ``nemitt_y`` is required.
         nemitt_y : float, optional
-            Vertical normalized emittance in [m]. If ``particles`` is not
-            provided, either this parameter or ``gemitt_y`` is required.
+            Vertical normalized emittance in [m]. Either this parameter or
+            ``gemitt_y`` is required.
         sigma_delta : float, optional
-            The momentum spread. Required if ``particles`` is not provided.
+            The momentum spread. Must be provided.
         bunch_length : float, optional
-            The bunch length in [m]. Required if ``particles`` is not provided.
+            The bunch length in [m]. Must be provided.
         bunched : bool, optional
             Whether the beam is bunched or not (coasting). Defaults to ``True``.
-            Required if ``particles`` is not provided.
         **kwargs : dict
             Keyword arguments are passed to the growth rates computation method of
             the chosen IBS formalism implementation. See the IBS details from the
@@ -619,8 +649,8 @@ class TwissTable(Table):
         -------
             If the user does not provide a starting emittance, the program
             defaults to using the SR equilibrium value from this ``TwissTable``,
-            which is a reasonable defaults for light sources. If a constraint
-            is provided via ``emittance_constraint``  the starting emittances are
+            which is a reasonable default for light sources. If a constraint
+            is provided via ``emittance_constraint``, the starting emittances are
             re-computed to respect that constraint (this is logged to the user).
 
             If the user does provide starting emittances **and** a constraint, it
@@ -735,9 +765,9 @@ class TwissTable(Table):
                 - eq_sr_ibs_gemitt_x: final horizontal equilibrium geometric emittance converged to, in [m].
                 - eq_sr_ibs_nemitt_x: final horizontal equilibrium normalized emittance converged to, in [m].
                 - eq_sr_ibs_gemitt_y: final vertical equilibrium geometric emittance converged to, in [m].
-                - eq_sr_ibs_gemitt_y: final vertical equilibrium normalized emittance converged to, in [m].
+                - eq_sr_ibs_nemitt_y: final vertical equilibrium normalized emittance converged to, in [m].
                 - eq_sr_ibs_gemitt_zeta: final longitudinal equilibrium geometric emittance converged to, in [m].
-                - eq_sr_ibs_gemitt_zeta: final longitudinal equilibrium normalized emittance converged to, in [m].
+                - eq_sr_ibs_nemitt_zeta: final longitudinal equilibrium normalized emittance converged to, in [m].
         """
         try:
             from xfields.ibs import get_ibs_and_synrad_emittance_evolution
@@ -786,7 +816,7 @@ class TwissTable(Table):
             end = np.where(self.name == end)[0][0]
 
         if start > end:
-            raise ValueError('start must be smaller than ele_end')
+            raise ValueError('start must be smaller than end')
 
         W_start = self.W_matrix[start]
         W_end = self.W_matrix[end]
@@ -869,8 +899,13 @@ class TwissTable(Table):
 
         Particle physical coordinates are transformed using the closed orbit and
         W matrix stored in this Twiss table at each particle's ``at_element``.
-        If normalized emittances are provided, the normalized coordinates are
-        scaled by the square root of the corresponding emittance.
+        For each plane with a supplied normalized emittance, the transformed
+        coordinates are divided by ``sqrt(nemitt / (beta0 * gamma0))``, using
+        the closed-orbit reference particle's ``beta0`` and ``gamma0``.
+        If an emittance is omitted or ``None``, no emittance scaling is applied
+        in that plane (equivalent to unit geometric emittance, not unit
+        normalized emittance). Emittances used to build the particles are not
+        inferred; pass the same emittances here to recover those coordinates.
 
         Parameters
         ----------
@@ -878,20 +913,22 @@ class TwissTable(Table):
             Particles whose coordinates are converted.
         nemitt_x : float, optional
             Horizontal normalized emittance used to scale ``x_norm`` and
-            ``px_norm``.
+            ``px_norm``. ``None`` leaves this plane without emittance scaling.
         nemitt_y : float, optional
             Vertical normalized emittance used to scale ``y_norm`` and
-            ``py_norm``.
+            ``py_norm``. ``None`` leaves this plane without emittance scaling.
         nemitt_zeta : float, optional
             Longitudinal normalized emittance used to scale ``zeta_norm`` and
-            ``pzeta_norm``.
+            ``pzeta_norm``. ``None`` leaves this plane without emittance scaling.
 
         Returns
         -------
         xtrack.Table
             Table indexed by ``particle_id`` with columns ``particle_id``,
             ``at_element``, ``x_norm``, ``px_norm``, ``y_norm``, ``py_norm``,
-            ``zeta_norm``, and ``pzeta_norm``.
+            ``zeta_norm``, and ``pzeta_norm``. The supplied ``nemitt_x``,
+            ``nemitt_y``, and ``nemitt_zeta`` are stored as table attributes;
+            ``None`` records that no emittance scaling was applied in a plane.
         """
 
         ctx2np = particles._context.nparray_from_context_array
@@ -927,11 +964,11 @@ class TwissTable(Table):
                                     y = ctx2np(particles.y)[mask_at_ele],
                                     py = ctx2np(particles.py)[mask_at_ele],
                                     zeta = ctx2np(particles.zeta)[mask_at_ele],
-                                    pzeta = ctx2np(particles.ptau)[mask_at_ele]/ctx2np(particles.beta0)[mask_at_ele],
+                                    pzeta = ctx2np(particles.pzeta)[mask_at_ele],
                                     W_matrix = W,
                                     co_dict = {'x': self.x[at_ele], 'px': self.px[at_ele],
                                                'y': self.y[at_ele], 'py': self.py[at_ele],
-                                               'zeta': self.zeta[at_ele], 'ptau': self.ptau[at_ele],
+                                               'zeta': self.zeta[at_ele], 'pzeta': self.pzeta[at_ele],
                                                'beta0': self.particle_on_co._xobject.beta0[0],
                                                'gamma0': self.particle_on_co._xobject.gamma0[0]},
                                     nemitt_x = nemitt_x,
@@ -946,10 +983,13 @@ class TwissTable(Table):
             pzeta_norm[mask_at_ele] = XX_norm[5, :]
             at_element[mask_at_ele] = at_ele
 
-        return Table({'particle_id': part_id, 'at_element': at_element,
+        out = Table({'particle_id': part_id, 'at_element': at_element,
                       'x_norm': x_norm, 'px_norm': px_norm, 'y_norm': y_norm,
                       'py_norm': py_norm, 'zeta_norm': zeta_norm,
                       'pzeta_norm': pzeta_norm}, index='particle_id')
+        out._data.update(nemitt_x=nemitt_x, nemitt_y=nemitt_y,
+                         nemitt_zeta=nemitt_zeta)
+        return out
 
     def reverse(self):
         """
@@ -983,7 +1023,7 @@ class TwissTable(Table):
         if self.only_markers:
             itake = slice(None, -1, None)
         else:
-            # To keep association name <-> quantities at elemement entry
+            # To keep association name <-> quantities at element entry
             itake = slice(1, None, None)
 
         for kk in self._col_names:
@@ -1020,6 +1060,8 @@ class TwissTable(Table):
         out.zeta = -out.zeta
         out.delta = out.delta
         out.ptau = out.ptau
+        if 'pzeta' in out:
+            out.pzeta = out.pzeta
 
         if 'kin_px' in out:
             out.kin_px = out.kin_px
@@ -1098,7 +1140,7 @@ class TwissTable(Table):
 
         if 'qs' in self.keys() and self.qs == 0:
             # 4d calculation
-            out.qs = 0
+            out.qs = 0.
             out.muzeta[:] = 0
 
         if 'spin_x' in self.keys():
@@ -1298,8 +1340,8 @@ class TwissTable(Table):
         """
         Plot columns of the TwissTable
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         yl: str
             space separated columns or expressions to plot on the left y-axis
         yr: str
@@ -1318,6 +1360,16 @@ class TwissTable(Table):
             axis to plot on
         figlabel: str
             label to use for the figure
+        figure: matplotlib figure
+            figure to plot on (if not provided, a new figure is created)
+        hover: bool
+            if True, element information is printed when hovering on the plot
+        grid: bool
+            if True, the grid is shown
+        figsize: tuple
+            size of the figure (used when a new figure is created)
+        lattice_only: bool
+            if True, only the lattice is plotted
         """
 
         if yl is None and yr is None:

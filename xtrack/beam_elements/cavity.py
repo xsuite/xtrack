@@ -11,7 +11,6 @@ import xtrack as xt
 from ._common import (
     _HasIntegrator,
     _HasModelRF,
-    _HasModelStraight,
     _NOEXPR_FIELDS,
     _docstring_general_notes,
     _for_docstring_alignment,
@@ -47,10 +46,16 @@ class Cavity(_HasModelRF, _HasIntegrator, BeamElement):
         If True, the cavity phase is computed from the absolute time of the
         simulation, otherwise the cavity is synchronized with the arrival time of
         the reference particle (zeta=0). Default is False.
+        Arrival time is
+        particles.time_s + (s - zeta) / (beta0 * c). The phase then uses one
+        laboratory-time origin for all cavity locations. For a frequency ramp,
+        supply phase = Phi(time_s) - 2*pi*frequency(time_s)*time_s, where Phi
+        is the integrated RF phase. This linearizes Phi within each frame;
+        changing frequency alone does not integrate the RF phase.
     '''.strip()
 
     __doc__ = '\n    '.join([_docstring_start,
-        _HasModelStraight._for_docstring,
+        _HasModelRF._for_docstring,
         _HasIntegrator._for_docstring.replace(
             'num_multipole_kicks', 'num_kicks').replace('multipole kicks', 'kicks'),
         _for_docstring_alignment, '\n',
@@ -155,7 +160,7 @@ class Cavity(_HasModelRF, _HasIntegrator, BeamElement):
                  "while loading a saved line from a previous version of Xsuite, please "
                  "regenerate the line with the current version to use phase instead of lag. "
                  "Note that if both `lag` and `phase` are set, the effect is the sum of the two, "
-                 " with `lag` converted to radians. "
+                 "with `lag` converted to radians. "
                  + DEPRECATION_INFO_PREP_1_0,
                  FutureWarning, stacklevel=2)
         self._lag = value

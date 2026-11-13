@@ -31,7 +31,7 @@ class RBend(_BendCommon, BeamElement):
 
     Parameters
     ----------
-    length_strait : float
+    length_straight : float
         Length of the element in meters along the axis of the magnet (straight line
         between entry and exit points). This is different from the length of the
         reference trajectory, i.e. the increase of the `s` coordinate through the
@@ -40,22 +40,22 @@ class RBend(_BendCommon, BeamElement):
     angle : float
         Angle of the bend in radians. This is the angle by which the reference
         trajectory is bent in the horizontal plane.
-    k0 : float
+    k0 : float, optional
         Strength of the horizontal dipolar component in units of m^-1.
         It can be set to the string value 'from_h', in which case `k0` is
         computed from the curvature defined by `angle` and `length`
         (i.e. `k0 = h = angle/length`) and `k0_from_h` is set to True.
-    k1 : float
+    k1 : float, optional
         Strength of the quadrupolar component in units of m^-2.
-    k2 : float
+    k2 : float, optional
         Strength of the sextupolar component in units of m^-3.
-    k0_from_h : bool
+    k0_from_h : bool, optional
         If True, `k0` is computed from the curvature defined by `angle` and
         `length` (i.e. `k0 = h = angle/length`). Default is True. The flag
         becomes false when `k0` is set directly to a numeric value.
     rbend_model : str
         Model used for the rectangular bend. Possible values are:
-        "adaptive', "curved-body", "straight-body". Default is "adaptive',
+        "adaptive", "curved-body", "straight-body". Default is "adaptive",
         which falls back to "curved-body".
     rbend_angle_diff : float
         Difference in radians between the angle of the reference trajectory
@@ -74,10 +74,10 @@ class RBend(_BendCommon, BeamElement):
     """.strip()
 
     _docstring_knl_rel_ksl_rel = \
-    """knl_rel : array
+    """knl_rel : array, optional
         Relative integrated strength of the normal components with respect to the
         main component k0. The effect of knl_rel is added to the one of knl.
-    ksl_rel : array
+    ksl_rel : array, optional
         Relative integrated strength of the skew components with respect to the
         main component k0. The effect of ksl_rel is added to the one of ksl.
     """.strip()
@@ -194,17 +194,18 @@ class RBend(_BendCommon, BeamElement):
         _length_straight = self._length_straight
         _rbend_angle_diff = self._rbend_angle_diff
 
-        theta_in = 0.5 * _angle - _rbend_angle_diff / 2
-        theta_out = 0.5 * _angle + _rbend_angle_diff / 2
-        if abs(_angle) < 1e-10:
-            length = _length_straight
-            h = 0
-        elif abs(_length_straight) < 1e-10:
+        if abs(_length_straight) < 1e-10:
             length = 0.0
             h = 0
         else:
-            h = (np.sin(theta_in) + np.sin(theta_out)) / _length_straight
-            length = _angle / h
+            # sin(theta_in) + sin(theta_out) = 2*sin(angle/2)*cos(angle_diff/2).
+            # The sinc form avoids cancellation and retains the crossing-angle
+            # correction at zero bend angle. NumPy's sinc includes a factor pi.
+            sinc_half = (1. if _angle == 0.
+                         else np.sinc(_angle / (2 * np.pi)))
+            length = _length_straight / (
+                sinc_half * np.cos(_rbend_angle_diff / 2))
+            h = _angle / length
 
         self._h = h
         self._angle = _angle
@@ -246,18 +247,22 @@ class RBend(_BendCommon, BeamElement):
     def _x0_mid(self):
         out = -self.rbend_shift
         if abs(self.angle) > 1e-10 and self.rbend_compensate_sagitta:
-            out += 0.5 / self.h * (1 - np.cos(self.angle / 2))
+            # 1 - cos(u) = 2 * sin(u / 2)**2, to avoid the cancellation.
+            out += np.sin(self.angle / 4) ** 2 / self.h
         return out
 
     @property
     def _x0_in(self):
+        # Rationalised form of (1 / h) * (sqrt_mid - cos_theta_in), in which h
+        # cancels exactly. See `track_magnet.h` for the derivation.
         out = self._x0_mid
         if abs(self.angle) > 1e-10:
             px0_in = np.sin(self._angle_in)
             px0_mid = px0_in - self.h * self.length_straight / 2
             sqrt_mid = np.sqrt(1 - px0_mid * px0_mid)
             cos_theta_in = np.cos(self._angle_in)
-            out -= 1 / self.h * (sqrt_mid - cos_theta_in)
+            out -= (0.5 * self.length_straight * (px0_in + px0_mid)
+                    / (sqrt_mid + cos_theta_in))
         return out
 
     @property
@@ -268,7 +273,8 @@ class RBend(_BendCommon, BeamElement):
             px0_mid = px0_out - self.h * self.length_straight / 2
             sqrt_mid = np.sqrt(1 - px0_mid * px0_mid)
             cos_theta_out = np.cos(self._angle_out)
-            out += 1 / self.h * (cos_theta_out - sqrt_mid)
+            out -= (0.5 * self.length_straight * (px0_out + px0_mid)
+                    / (cos_theta_out + sqrt_mid))
         return out
 
     def _survey_ref_start_to_body_start(self, XYZ, E):
@@ -365,7 +371,7 @@ class RBend(_BendCommon, BeamElement):
     def to_dict(self, copy_to_cpu=True):
         out = super().to_dict(copy_to_cpu=copy_to_cpu)
 
-        for kk in {'angle', 'length_straight'}:
+        for kk in ('angle', 'length_straight'):
             if f'_{kk}' in out:
                 out.pop(f'_{kk}')
             out[kk] = getattr(self, kk)

@@ -86,7 +86,7 @@ def get_linear_normal_form(M, symplectify=False, only_4d_block=False,
     -------
     W : np.ndarray
         6x6 matrix
-    invW: np.ndarray
+    invW : np.ndarray
         6x6 matrix
     Rot : np.ndarray
         6x6 matrix
@@ -207,7 +207,7 @@ def _assert_matrix_responsiveness(M,
 def _assert_matrix_determinant_within_tol(M, tol=1e-15):
     if np.abs(np.linalg.det(M)-1) > tol:
         raise ValueError(
-            f'The determinant of M is out tolerance. det={np.linalg.det(M)}')
+            f'The determinant of M is out of tolerance. det={np.linalg.det(M)}')
 
 def _assert_matrix_stability(eigenvals, tol=1e-3):
     if np.any(np.abs(eigenvals) > 1. + tol):

@@ -13,10 +13,10 @@ void track_ramped_ac_dipole_single_particle(
     double vrf,
     double omega,
     double phirf,
-    uint16_t ramp1,
-    uint16_t ramp2,
-    uint16_t ramp3,
-    uint16_t ramp4,
+    uint32_t ramp1,
+    uint32_t ramp2,
+    uint32_t ramp3,
+    uint32_t ramp4,
     uint8_t plane)
 {
     double const at_turn = LocalParticle_get_at_turn(part);

@@ -18,7 +18,7 @@ tw_edw_teng = line.twiss4d(coupling_edw_teng=True)
 line['kqs.a45b1'] = 0.0 # Remove skew quadrupole
 
 # outliers came from the fact that at the sources the RDT jumps at entry
-# instead of exit of the element or viceversa
+# instead of exit of the element or vice-versa
 xo.assert_allclose(rdts.f1001, tw_edw_teng.f1001, rtol=0.05)
 xo.assert_allclose(rdts.f1010, tw_edw_teng.f1010, rtol=0.05, max_outliers=5)
 xo.assert_allclose(rdts.f0110, tw_edw_teng.f0110, rtol=0.05)
@@ -34,7 +34,7 @@ rdts = xt.rdt_first_order_perturbation(
 tw_ng = line.madng_twiss(rdts=rdt_names)
 for nn in rdt_names:
     # outliers came from the fact that at the sources the RDT jumps at entry
-    # instead of exit of the element or viceversa
+    # instead of exit of the element or vice-versa
     xo.assert_allclose(rdts[nn], tw_ng[nn],
                        atol=0.1*np.max(np.abs(tw_ng[nn])),
                        max_outliers=0.01*len(tw_ng))
@@ -52,7 +52,7 @@ rdts = xt.rdt_first_order_perturbation(
 )
 for nn in rdt_names:
     # outliers came from the fact that at the sources the RDT jumps at entry
-    # instead of exit of the element or viceversa
+    # instead of exit of the element or vice-versa
     xo.assert_allclose(rdts[nn], tw1[nn],
                        atol=0.06*np.max(np.abs(tw1[nn])),
                        max_outliers=0.005*len(tw1))

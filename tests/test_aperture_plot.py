@@ -25,11 +25,11 @@ from xtrack.aperture.transform import transform_matrix
     ('shape_class', 'shape_kwargs', 'direction', 'expected_support'),
     [
         (Circle, {'radius': 2.0}, [1.0, 0.0], 2.0),
-        (Ellipse, {'half_major': 3.0, 'half_minor': 2.0}, [0.6, 0.8], np.hypot(1.8, 1.6)),
-        (Rectangle, {'half_width': 3.0, 'half_height': 2.0}, [0.6, 0.8], 3.4),
+        (Ellipse, {'a': 3.0, 'b': 2.0}, [0.6, 0.8], np.hypot(1.8, 1.6)),
+        (Rectangle, {'max_x': 3.0, 'max_y': 2.0}, [0.6, 0.8], 3.4),
         (
             Racetrack,
-            {'half_width': 3.0, 'half_height': 2.0, 'half_major': 0.5, 'half_minor': 0.25},
+            {'max_x': 3.0, 'max_y': 2.0, 'a': 0.5, 'b': 0.25},
             [0.6, 0.8],
             2.5 * 0.6 + 1.75 * 0.8 + np.hypot(0.5 * 0.6, 0.25 * 0.8),
         ),
@@ -52,7 +52,7 @@ def test_shape_projection_extents_for_symmetric_shapes(
 
 def test_shape_projection_extents_for_octagon_and_polygon():
     direction = np.array([1.0, 1.0]) / np.sqrt(2.0)
-    octagon = Octagon(half_width=2.0, half_height=1.5, half_diagonal=2.0)
+    octagon = Octagon(max_x=2.0, max_y=1.5, max_diagonal=2.0)
     polygon = Polygon(vertices=np.array([
         [-2.0, -1.0],
         [3.0, -1.0],
@@ -73,40 +73,40 @@ def test_shape_projection_extents_for_octagon_and_polygon():
 
 def test_rectellipse_projection_matches_dense_boundary_search():
     shape = RectEllipse(
-        half_width=1.1,
-        half_height=0.7,
-        half_major=1.5,
-        half_minor=1.0,
+        max_x=1.1,
+        max_y=0.7,
+        a=1.5,
+        b=1.0,
     )
     direction = np.array([0.37, 0.93])
     direction /= np.linalg.norm(direction)
 
     lower, upper = _shape_projection_extents(shape, direction)
 
-    half_width = float(shape.half_width)
-    half_height = float(shape.half_height)
-    half_major = float(shape.half_major)
-    half_minor = float(shape.half_minor)
+    max_x = float(shape.max_x)
+    max_y = float(shape.max_y)
+    a = float(shape.a)
+    b = float(shape.b)
     angles = np.linspace(0.0, 2.0 * np.pi, 100_000, endpoint=False)
     ellipse = np.column_stack([
-        half_major * np.cos(angles),
-        half_minor * np.sin(angles),
+        a * np.cos(angles),
+        b * np.sin(angles),
     ])
     inside_rectangle = (
-        (np.abs(ellipse[:, 0]) <= half_width)
-        & (np.abs(ellipse[:, 1]) <= half_height)
+        (np.abs(ellipse[:, 0]) <= max_x)
+        & (np.abs(ellipse[:, 1]) <= max_y)
     )
-    rectangle_x = np.linspace(-half_width, half_width, 10_000)
-    rectangle_y = np.linspace(-half_height, half_height, 10_000)
+    rectangle_x = np.linspace(-max_x, max_x, 10_000)
+    rectangle_y = np.linspace(-max_y, max_y, 10_000)
     rectangle_boundary = np.vstack([
-        np.column_stack([rectangle_x, np.full_like(rectangle_x, half_height)]),
-        np.column_stack([rectangle_x, np.full_like(rectangle_x, -half_height)]),
-        np.column_stack([np.full_like(rectangle_y, half_width), rectangle_y]),
-        np.column_stack([np.full_like(rectangle_y, -half_width), rectangle_y]),
+        np.column_stack([rectangle_x, np.full_like(rectangle_x, max_y)]),
+        np.column_stack([rectangle_x, np.full_like(rectangle_x, -max_y)]),
+        np.column_stack([np.full_like(rectangle_y, max_x), rectangle_y]),
+        np.column_stack([np.full_like(rectangle_y, -max_x), rectangle_y]),
     ])
     inside_ellipse = (
-        (rectangle_boundary[:, 0] / half_major) ** 2
-        + (rectangle_boundary[:, 1] / half_minor) ** 2
+        (rectangle_boundary[:, 0] / a) ** 2
+        + (rectangle_boundary[:, 1] / b) ** 2
         <= 1.0
     )
     boundary = np.vstack([ellipse[inside_rectangle], rectangle_boundary[inside_ellipse]])
@@ -116,7 +116,7 @@ def test_rectellipse_projection_matches_dense_boundary_search():
 
 
 def test_profile_projection_segment_and_plane_degeneracies():
-    rectangle = Rectangle(half_width=2.0, half_height=1.0)
+    rectangle = Rectangle(max_x=2.0, max_y=1.0)
 
     segment = _profile_projection_segment(rectangle, np.identity(4), normal_axis=1)
     np.testing.assert_allclose(segment[:, 1], 0.0, atol=1e-14)

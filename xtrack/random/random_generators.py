@@ -15,7 +15,7 @@ import numpy as np
 # Random generators need to be a BeamElement to get the LocalParticle API
 class RandomUniform(BeamElement):
     _xofields = {
-        '_dummy': xo.UInt8,  # TODO: a hack for allocating empty struct on OCL
+        '_dummy': xo.UInt8,  # TODO: a hack for allocating an empty struct on OCL
     }
 
     allow_track = False
@@ -54,7 +54,7 @@ class RandomUniform(BeamElement):
 
         n_samples_per_seed = int(np.floor(n_samples/n_seeds))
         if n_samples_per_seed < 1:
-            raise ValueError("Not enough samples to accomodate all seeds!")
+            raise ValueError("Not enough samples to accommodate all seeds!")
 
         samples = context.zeros(shape=(n_seeds*n_samples_per_seed,),
                                 dtype=np.float64)
@@ -77,7 +77,7 @@ class RandomUniformAccurate(RandomUniform):
     _extra_c_sources = ['#include "xtrack/random/random_src/uniform_accurate.h"']
 
     _per_particle_kernels = {
-        'sample_unif_accuurate': xo.Kernel(
+        'sample_unif_accurate': xo.Kernel(
                 c_name='RandomUniformAccurate_sample',
                 args=[
                     xo.Arg(xo.Float64, pointer=True, name='samples'),
@@ -87,7 +87,7 @@ class RandomUniformAccurate(RandomUniform):
         }
 
     def _sample(self, *args, **kwargs):
-        self.sample_unif_accuurate(*args, **kwargs)
+        self.sample_unif_accurate(*args, **kwargs)
 
 
 class RandomExponential(RandomUniform):

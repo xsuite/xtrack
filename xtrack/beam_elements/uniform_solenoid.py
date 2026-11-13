@@ -3,7 +3,7 @@
 # Copyright (c) CERN, 2025.                 #
 # ######################################### #
 
-from ..base_element import BeamElement
+from ..base_element import BeamElement, FloatOrTpsa
 import xobjects as xo
 import xtrack as xt
 from ..random import (
@@ -17,7 +17,6 @@ from ._common import (
     _NOEXPR_FIELDS,
     _docstring_general_notes,
     _for_docstring_alignment,
-    _for_docstring_edge_straight,
 )
 
 class UniformSolenoid(_HasKnlKsl, _HasIntegrator, BeamElement):
@@ -26,7 +25,7 @@ class UniformSolenoid(_HasKnlKsl, _HasIntegrator, BeamElement):
     """
     Uniform solenoid element with hard-edge fringe field. The axis of the
     solenoid is assumed parallel to the `s` axis. Radiation and spin
-    precession are take place only in the solenoid body (no radiation and
+    precession take place only in the solenoid body (no radiation and
     precession in the fringe field).
 
     Parameters
@@ -39,10 +38,14 @@ class UniformSolenoid(_HasKnlKsl, _HasIntegrator, BeamElement):
         Horizontal offset of the solenoid center in meters. Defaults to 0.
     y0 : float, optional
         Vertical offset of the solenoid center in meters. Defaults to 0.
+    edge_entry_active : bool
+        Fringe field at the entrance edge is active if True. Default is True.
+    edge_exit_active : bool
+        Fringe field at the exit edge is active if True. Default is True.
     """.strip()
 
     __doc__ = '\n    '.join([_docstring_start, _HasKnlKsl._for_docstring,
-            _HasIntegrator._for_docstring, _for_docstring_edge_straight,
+            _HasIntegrator._for_docstring,
             _for_docstring_alignment, '\n', _docstring_general_notes, '\n\n'])
 
     isthick = True
@@ -50,7 +53,7 @@ class UniformSolenoid(_HasKnlKsl, _HasIntegrator, BeamElement):
     allow_loss_refinement = True
 
     _xofields={
-        'ks': xo.Float64,
+        'ks': FloatOrTpsa,
         'length': xo.Float64,
         'x0': xo.Float64,
         'y0': xo.Float64,
@@ -66,7 +69,8 @@ class UniformSolenoid(_HasKnlKsl, _HasIntegrator, BeamElement):
         'delta_taper': xo.Float64,
     }
 
-    _skip_in_to_dict = ['_order', 'inv_factorial_order']  # defined by knl, etc.
+    _skip_in_to_dict = [
+        '_order', 'inv_factorial_order']  # defined by knl, etc.
 
     _rename = {
         'order': '_order',

@@ -23,6 +23,12 @@ def _get_eneloss_and_damping_rates(particle_on_co, R_matrix,
                                        t_rev0, line, radiation_method):
     diff_ptau = np.diff(ptau_co)
     mask_loss = diff_ptau < 0
+
+    # Explicitly exclude cavities from the energy loss calculation
+    # (decelerating cavities should not contribute to the energy loss)
+    mask_cav = line.tracker._tracker_data_base._line_table.element_type=='Cavity'
+    mask_loss = mask_loss & ~mask_cav[:-1]
+
     eloss_turn = -sum(diff_ptau[mask_loss]) * particle_on_co._xobject.p0c[0]
 
     # Get eigenvalues
@@ -44,8 +50,8 @@ def _get_eneloss_and_damping_rates(particle_on_co, R_matrix,
         / (-np.sum(diff_ptau[mask_loss] / (1 + ptau_co[:-1][mask_loss]))))
 
     eneloss_damp_res = {
-        'eneloss_turn': eloss_turn, # deprecated
-        'energy_loss': eloss_turn,
+        'eneloss_turn': float(eloss_turn), # deprecated
+        'energy_loss': float(eloss_turn),
         'damping_constants_turns': damping_constants_turns,
         'damping_constants_s':damping_constants_s,
         'partition_numbers': partition_numbers,
@@ -205,9 +211,9 @@ def _get_equilibrium_emittance_kick_as_co(twiss_res,
     eq_nemitt_zeta = float(eq_gemitt_zeta * (beta0 * gamma0))
 
     res = {
-        'eq_gemitt_x': eq_gemitt_x,
-        'eq_gemitt_y': eq_gemitt_y,
-        'eq_gemitt_zeta': eq_gemitt_zeta,
+        'eq_gemitt_x': float(eq_gemitt_x),
+        'eq_gemitt_y': float(eq_gemitt_y),
+        'eq_gemitt_zeta': float(eq_gemitt_zeta),
         'eq_nemitt_x': eq_nemitt_x,
         'eq_nemitt_y': eq_nemitt_y,
         'eq_nemitt_zeta': eq_nemitt_zeta,
@@ -342,9 +348,9 @@ def _get_equilibrium_emittance_full(twiss_res, R_matrix_ebe,
     eq_sigma_tab = _build_sigma_table(Sigma=Sigma, s=None, name=twiss_res['name'],)
 
     res = {
-        'eq_gemitt_x': eq_gemitt_x,
-        'eq_gemitt_y': eq_gemitt_y,
-        'eq_gemitt_zeta': eq_gemitt_zeta,
+        'eq_gemitt_x': float(eq_gemitt_x),
+        'eq_gemitt_y': float(eq_gemitt_y),
+        'eq_gemitt_zeta': float(eq_gemitt_zeta),
         'eq_nemitt_x': eq_nemitt_x,
         'eq_nemitt_y': eq_nemitt_y,
         'eq_nemitt_zeta': eq_nemitt_zeta,
@@ -460,7 +466,7 @@ def _compute_radiation_integrals(twiss_res):
         'rad_int_curly_hy': Hy_rad,
         'rad_int_i1x_integrand': i1x_integrand,
         'rad_int_i1y_integrand': i1y_integrand,
-        'rad_int_l2_integrand': i2_integrand,
+        'rad_int_i2_integrand': i2_integrand,
         'rad_int_i3_integrand': i3_integrand,
         'rad_int_i4_integrand': i4_integrand,
         'rad_int_i4x_integrand': i4x_integrand,
@@ -479,25 +485,25 @@ def _compute_radiation_integrals(twiss_res):
     }
 
     scalars = {
-        'rad_int_i1x': i1x,
-        'rad_int_i1y': i1y,
-        'rad_int_i2': i2,
-        'rad_int_i3': i3,
-        'rad_int_i4': i4,
-        'rad_int_i4x': i4x,
-        'rad_int_i4y': i4y,
-        'rad_int_i5x': i5x,
-        'rad_int_i5y': i5y,
-        'rad_int_eq_gemitt_x': eq_gemitt_x,
-        'rad_int_eq_gemitt_y': eq_gemitt_y,
-        'rad_int_energy_loss': energy_loss,
-        'rad_int_sigma_delta': sigma_delta,
-        'rad_int_damping_constant_x_s': damping_constant_x_s,
-        'rad_int_damping_constant_y_s': damping_constant_y_s,
-        'rad_int_damping_constant_zeta_s': damping_constant_zeta_s,
-        'rad_int_partition_number_x': J_x,
-        'rad_int_partition_number_y': J_y,
-        'rad_int_partition_number_zeta': J_zeta,
+        'rad_int_i1x': float(i1x),
+        'rad_int_i1y': float(i1y),
+        'rad_int_i2': float(i2),
+        'rad_int_i3': float(i3),
+        'rad_int_i4': float(i4),
+        'rad_int_i4x': float(i4x),
+        'rad_int_i4y': float(i4y),
+        'rad_int_i5x': float(i5x),
+        'rad_int_i5y': float(i5y),
+        'rad_int_eq_gemitt_x': float(eq_gemitt_x),
+        'rad_int_eq_gemitt_y': float(eq_gemitt_y),
+        'rad_int_energy_loss': float(energy_loss),
+        'rad_int_sigma_delta': float(sigma_delta),
+        'rad_int_damping_constant_x_s': float(damping_constant_x_s),
+        'rad_int_damping_constant_y_s': float(damping_constant_y_s),
+        'rad_int_damping_constant_zeta_s': float(damping_constant_zeta_s),
+        'rad_int_partition_number_x': float(J_x),
+        'rad_int_partition_number_y': float(J_y),
+        'rad_int_partition_number_zeta': float(J_zeta),
     }
 
     out = Table({'name': twiss_res.name, 's': twiss_res.s, 'length': length} | cols)

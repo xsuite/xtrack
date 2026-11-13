@@ -1206,7 +1206,7 @@ def test_splineboris_bend_radiation(make_uniform_splineboris):
     Ps = (2 * r0 * clight * mass0_kg * clight**2 * gamma0**2 * gamma**2) / (3 * rho_0**2)  # [W]
 
     Delta_E_eV = -Ps * (L_bend / clight) / qe  # Theoretical energy loss
-    Delta_E_qntm = (dct_mean['ptau'] - dct_mean_before['ptau']) * dct_mean['p0c']  # Tracked energy loss
+    Delta_E_qntm = (dct_mean['pzeta'] - dct_mean_before['pzeta']) * dct_mean['beta0'] * dct_mean['p0c']  # Tracked energy loss
 
     # Allow ~0.5% tolerance due to integration steps
     xo.assert_allclose(Delta_E_eV, np.mean(Delta_E_qntm), atol=0, rtol=5e-3)

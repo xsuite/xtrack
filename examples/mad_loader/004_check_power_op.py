@@ -2,7 +2,7 @@ import xtrack as xt
 
 mad_source = '''
 a = 3;
-b = 3*a;  ! <<<< assiged by value
+b = 3*a;  ! <<<< assigned by value
 c := a^5; ! <<<< deferred expression
 
 ll: sequence, l = 1.0;
@@ -27,6 +27,6 @@ env_cpymad.get_expr('c')
 # is vars['a^5'] <<<<<<<<<<< WRONG!
 
 env_native.get_expr('b')
-# (3.0 * vars['a']) <<<<<<< WRONG!, was assinged by value in madx
+# (3.0 * vars['a']) <<<<<<< WRONG!, was assigned by value in madx
 env_cpymad.get_expr('b')
 # None <<<<<<<<<<< CORRECT

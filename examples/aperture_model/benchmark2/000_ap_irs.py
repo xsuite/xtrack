@@ -9,8 +9,6 @@ from xdeps import Table
 from xobjects.general import allclose_with_outliers
 from xobjects import ContextCpu
 
-from xtrack.aperture import Aperture
-
 
 BASE_DIR = Path(__file__).resolve().parents[3] / "test_data" / "hllhc19_apertures"
 OFFSET_COLUMNS = [
@@ -42,7 +40,7 @@ def _offset_s_positions(survey_table, offset_data):
     s_values = np.asarray(survey_table.s, dtype=float)
     survey_names = np.asarray(survey_table.name)
     for idx, survey_name in enumerate(survey_names):
-        mad_name = Aperture._guess_original_mad_name(survey_name)
+        mad_name = xt.LineAperture._guess_original_mad_name(survey_name)
         s_by_name.setdefault(mad_name, (idx, float(s_values[idx])))
 
     s_positions = []
@@ -147,8 +145,7 @@ def main():
     context = ContextCpu(omp_num_threads="auto")
 
     apertures = {
-        beam: Aperture.from_line_with_madx_metadata(
-            line,
+        beam: line.aperture.from_madx_metadata(
             num_profile_points=100,
             include_offsets=True,
             context=context,
@@ -183,7 +180,7 @@ def main():
         s_positions_ring = np.asarray(n1_table.s[undo_order], dtype=float)
         n1_madx = np.asarray(reference["n1_madx"], dtype=float)
 
-        min_idx = int(np.argmin(sigmas))
+        min_idx = int(np.nanargmin(sigmas))
         min_n1 = float(sigmas[min_idx])
         min_s = float(s_positions_ring[min_idx])
         element_name = _get_nearest_element_name(line_table, min_s)

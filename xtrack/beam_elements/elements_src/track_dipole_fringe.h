@@ -6,19 +6,71 @@
 #define XTRACK_TRACK_DIPOLE_FRINGE_H
 
 #include "xtrack/headers/track.h"
+#include "xtrack/beam_elements/elements_src/fringe_convergence.h"
+
+#define XT_DIPOLE_FRINGE_MAX_ITER XT_FRINGE_MAX_ITER
 
 #ifndef XTRACK_FRINGE_FROM_PTC
 
 // MAD-NG implementation
 // https://github.com/MethodicalAcceleratorDesign/MAD/blob/d3cabd9cdebde62ebedb51bab61ac033b9159489/src/madl_dynmap.mad#L1864
-// Generating function changed to contain 1/pz instead of pz
+// The finite-gap angle includes 1/(pz*(1+u*u)), u=xp/(1+yp*yp).
+// Expanding the outer tan then reproduces the second-order field term
+// in Forest et al., Eq. (34). See the physics manual, "Dipole fringe field".
 
+// Coefficients of the fringe generating function, at the given momenta.
 GPUFUN
-void DipoleFringe_single_particle(
+void DipoleFringe_coefficients(
+        xt_float_or_tpsa_arg px, xt_float_or_tpsa_arg py, xt_float_or_tpsa_arg dpp,
+        const xt_float_or_tpsa b0, const double c2, xt_float_or_tpsa_arg tfac,
+        xt_float_or_tpsa* fi0_out, xt_float_or_tpsa* kx, xt_float_or_tpsa* ky, xt_float_or_tpsa* kz
+) {
+    const xt_float_or_tpsa pz = sqrt(dpp - POW2(px) - POW2(py));
+    const xt_float_or_tpsa _pz = 1./pz;
+
+    const xt_float_or_tpsa xp = px/pz;
+    const xt_float_or_tpsa yp = py/pz;
+    const xt_float_or_tpsa xyp = xp*yp;
+    const xt_float_or_tpsa yp2 = 1.+POW2(yp);
+    const xt_float_or_tpsa xp2 = POW2(xp);
+    const xt_float_or_tpsa _yp2 = 1./yp2;
+
+    const xt_float_or_tpsa u = xp*_yp2;
+    const xt_float_or_tpsa du_dxp = _yp2;
+    const xt_float_or_tpsa du_dyp = -2*xyp*POW2(_yp2);
+    const xt_float_or_tpsa inv_den = 1./(1 + POW2(u));
+    const xt_float_or_tpsa fringe_term = (1 + xp2*(1+yp2))*inv_den;
+    const xt_float_or_tpsa dfringe_dxp =
+        (2*xp*(1+yp2) - 2*u*du_dxp*fringe_term)*inv_den;
+    const xt_float_or_tpsa dfringe_dyp =
+        (2*xp2*yp - 2*u*du_dyp*fringe_term)*inv_den;
+
+    const xt_float_or_tpsa fi0 = atan(u) - c2*fringe_term*_pz;
+    const xt_float_or_tpsa co2 = b0/POW2(cos(fi0));
+
+    // Derivatives of b0*tan(fi0) with respect to xp, yp and pz,
+    // treating these three intermediate variables as independent.
+    const xt_float_or_tpsa fi1 = co2*(du_dxp*inv_den - c2*dfringe_dxp*_pz);
+    const xt_float_or_tpsa fi2 = co2*(du_dyp*inv_den - c2*dfringe_dyp*_pz);
+    const xt_float_or_tpsa fi3 = co2*c2*fringe_term*POW2(_pz);
+
+    *fi0_out = fi0;
+    *kx = fi1*(1+xp2)*_pz   + fi2*xyp*_pz       - fi3*xp;
+    *ky = fi1*xyp*_pz       + fi2*yp2*_pz       - fi3*yp;
+    *kz = fi1*tfac*xp*POW2(_pz) + fi2*tfac*yp*POW2(_pz) - fi3*tfac*_pz;
+}
+
+// Tracks the dipole fringe, or its inverse when `backtrack` is set. Every
+// relation is explicit in the outgoing y, so backtracking subtracts the same
+// increments instead of adding them; only the coefficients, which the forward
+// map evaluates at the incoming py, have to be recovered first.
+GPUFUN
+void DipoleFringe_track_single_particle(
         LocalParticle* part,  // LocalParticle to track
         const double fint,    // Fringe field integral
         const double hgap,    // Half gap
-        const double k0       // Dipole strength
+        const double k0,      // Dipole strength
+        const int64_t backtrack
 ) {
     if (fabs(k0) < 10e-10) {
         return;
@@ -27,61 +79,71 @@ void DipoleFringe_single_particle(
     const double beta0 = LocalParticle_get_beta0(part);
 
     // Particle coordinates
-    const double x = LocalParticle_get_x(part);
-    const double px = LocalParticle_get_px(part);
-    const double y = LocalParticle_get_y(part);
-    const double py = LocalParticle_get_py(part);
-    const double t = LocalParticle_get_zeta(part) / beta0;
-    const double pt = LocalParticle_get_ptau(part);
-    const double delta = LocalParticle_get_delta(part);
+    xt_float_or_tpsa const x = LocalParticle_get_x(part);
+    xt_float_or_tpsa const px = LocalParticle_get_px(part);
+    xt_float_or_tpsa const y = LocalParticle_get_y(part);
+    xt_float_or_tpsa const py = LocalParticle_get_py(part);
+    xt_float_or_tpsa const t = LocalParticle_get_zeta(part) / beta0;
+    xt_float_or_tpsa const pt = LocalParticle_get_ptau(part);
+    xt_float_or_tpsa const delta = LocalParticle_get_delta(part);
 
     const double fh = hgap * fint;
     const double fsad = (fh > 10e-10) ? 1./(72 * fh) : 0;
-    const double k0w = k0 * LocalParticle_get_chi(part);
+    const double b0 = k0 * LocalParticle_get_chi(part);
 
-    const double _beta = 1. / beta0 ;
-    const double b0 = k0w; // MAD does something with the charge (to be checked)
-
-    const double dpp = POW2(1. + delta);
-    const double pz = sqrt(dpp - POW2(px) - POW2(py));
-    const double _pz = 1./pz;
-    const double relp = 1./sqrt(dpp);
-    const double tfac = -(_beta + pt);
+    xt_float_or_tpsa const dpp = POW2(1. + delta);
+    xt_float_or_tpsa const relp = 1./sqrt(dpp);
+    xt_float_or_tpsa const tfac = -(1. / beta0 + pt);
 
     const double c2 = b0*fh*2;
-    const double c3 = POW2(b0)*fsad*relp;
+    xt_float_or_tpsa const c3 = POW2(b0)*fsad*relp;
 
-    const double xp = px/pz;
-    const double yp = py/pz;
-    const double xyp = xp*yp;
-    const double yp2 = 1.+POW2(yp);
-    const double xp2 = POW2(xp);
-    const double _yp2 = 1./yp2;
+    xt_float_or_tpsa fi0 = 0., kx = 0., ky = 0., kz = 0.;
+    DipoleFringe_coefficients(px, py, dpp, b0, c2, tfac, &fi0, &kx, &ky, &kz);
 
-    const double fi0 = atan((xp*_yp2)) - c2*(1 + xp2*(1+yp2))*_pz;
-    const double co2 = b0/POW2(cos(fi0));
-    const double co1 = co2/(1 + POW2(xp*_yp2))*_yp2;
-    const double co3 = co2*c2;
+    if (backtrack) {
+        xt_float_or_tpsa source_py = py;
+        uint8_t converged = 0;
 
-    const double fi1 =    co1          - co3*2*xp*(1+yp2)*_pz;
-    const double fi2 = -2*co1*xyp*_yp2 - co3*2*xp*xyp    *_pz;
-    const double fi3 =                 + co3*(1 + xp2*(1+yp2))*POW2(_pz);
+        for (int64_t ii = 0; ii < XT_DIPOLE_FRINGE_MAX_ITER; ii++) {
+            const xt_float_or_tpsa next_py =
+                py + 4 * c3 * POW3(y) + b0 * tan(fi0) * y;
 
-    const double kx = fi1*(1+xp2)*_pz   + fi2*xyp*_pz       - fi3*xp;
-    const double ky = fi1*xyp*_pz       + fi2*yp2*_pz       - fi3*yp;
-    const double kz = fi1*tfac*xp*POW2(_pz) + fi2*tfac*yp*POW2(_pz) - fi3*tfac*_pz;
+            const double step = fabs(xt_float_or_tpsa_const_part(next_py - source_py));
+            const double tol = 1e-13 * fabs(xt_float_or_tpsa_const_part(next_py)) + XT_FRINGE_TOL_FLOOR;
+            source_py = next_py;
+            DipoleFringe_coefficients(
+                px, source_py, dpp, b0, c2, tfac, &fi0, &kx, &ky, &kz);
 
-    const double new_y = 2 * y / (1 + sqrt(1 - 2 * ky * y));
-    const double new_x  = x  + 0.5 * kx * POW2(new_y);
-    const double new_py = py - 4 * c3 * POW3(new_y) - b0 * tan(fi0) * new_y;
-    const double new_t = t + 0.5 * kz * POW2(new_y) + c3 * POW4(new_y) * POW2(relp) * tfac;
+            if (step <= tol) {
+                converged = 1;
+                break;
+            }
+        }
 
-    const double new_zeta = new_t * beta0;
+        if (!converged) {
+            LocalParticle_kill_particle(part, XT_BACKTRACK_NOT_CONVERGED);
+            return;
+        }
+    }
 
-    LocalParticle_set_x(part, new_x);
+    // The outgoing y, which drives every relation in both directions.
+    xt_float_or_tpsa yy = y;
+    xt_float_or_tpsa new_y = y;
+    if (backtrack) {
+        new_y = y - 0.5 * ky * POW2(y);
+    } else {
+        yy = 2 * y / (1 + sqrt(1 - 2 * ky * y));
+        new_y = yy;
+    }
+    const double sign = backtrack ? -1. : 1.;
+
+    LocalParticle_set_x(part, x + sign * 0.5 * kx * POW2(yy));
     LocalParticle_set_y(part, new_y);
-    LocalParticle_set_py(part, new_py);
-    LocalParticle_set_zeta(part, new_zeta);
+    LocalParticle_set_py(part,
+        py - sign * (4 * c3 * POW3(yy) + b0 * tan(fi0) * yy));
+    LocalParticle_set_zeta(part, beta0 * (t + sign * (
+        0.5 * kz * POW2(yy) + c3 * POW4(yy) * POW2(relp) * tfac)));
 }
 
 #endif // no XTRACK_FRINGE_FROM_PTC
@@ -90,7 +152,7 @@ void DipoleFringe_single_particle(
 #ifdef XTRACK_FRINGE_FROM_PTC
 // The following is ported from PTC:
 //https://github.com/MethodicalAcceleratorDesign/MAD-X/blob/master/libs/ptc/src/Sh_def_kind.f90#L4936
-// Generating function changed to contain 1/pz instead of pz
+// Uses the same corrected finite-gap angle and derivatives as the default map.
 
 GPUFUN
 void DipoleFringe_single_particle(
@@ -137,13 +199,24 @@ void DipoleFringe_single_particle(
     const double D_2_3 = -time_fac * yp / (pz * pz);
     const double D_3_3 =  time_fac / pz;
 
-    double fi0 = atan((xp / (1.0 + yp * yp)))-b * fint * hgap * 2.0 * ( 1.0 + xp * xp *(2.0 + yp * yp)) / pz;
-    const double co2 = b / cos(fi0) / cos(fi0);
-    const double co1 = co2 / (1.0 + POW2(xp / POW2(1.0 + yp * yp)));
+    const double yp2 = 1.0 + yp*yp;
+    const double u = xp / yp2;
+    const double du_dxp = 1.0 / yp2;
+    const double du_dyp = -2.0*xp*yp / POW2(yp2);
+    const double inv_den = 1.0 / (1.0 + u*u);
+    const double fringe_term = (1.0 + xp*xp*(1.0 + yp2))*inv_den;
+    const double dfringe_dxp =
+        (2.0*xp*(1.0 + yp2) - 2.0*u*du_dxp*fringe_term)*inv_den;
+    const double dfringe_dyp =
+        (2.0*xp*xp*yp - 2.0*u*du_dyp*fringe_term)*inv_den;
+    const double c2 = b * fint * hgap * 2.0;
 
-    const double fi_1 = co1 / (1.0 + yp*yp) - co2 * b * fint * hgap * 2.0*(2.0 * xp * (2.0 + yp * yp) / pz);
-    const double fi_2 = -co1 * 2.0 * xp * yp / POW2(1.0 + yp * yp) - co2 * b * fint * hgap * 2.0 * (2.0 * xp* xp * yp) / pz;
-    const double fi_3 = co2 * b * fint * hgap * 2.0 * (1.0 + xp * xp * (2.0 + yp*yp)) / POW2(pz);
+    double fi0 = atan(u) - c2*fringe_term / pz;
+    const double co2 = b / cos(fi0) / cos(fi0);
+
+    const double fi_1 = co2*(du_dxp*inv_den - c2*dfringe_dxp / pz);
+    const double fi_2 = co2*(du_dyp*inv_den - c2*dfringe_dyp / pz);
+    const double fi_3 = co2*c2*fringe_term / POW2(pz);
 
     fi0 = b * tan(fi0);
 
@@ -174,6 +247,24 @@ void DipoleFringe_single_particle(
     LocalParticle_set_y(part, new_y);
     LocalParticle_set_py(part, new_py);
     LocalParticle_add_to_zeta(part, -d_tau * beta0); // PTC uses tau = ct
+}
+
+// The PTC fringe has no closed-form inverse, so backtracking is not supported.
+GPUFUN
+void DipoleFringe_track_single_particle(
+        LocalParticle* part,  // LocalParticle to track
+        const double fint,    // Fringe field integral
+        const double hgap,    // Half gap
+        const double k0,      // Dipole strength
+        const int64_t backtrack
+) {
+    // Use the DipoleFringe_single_particle threshold.
+    if (fabs(k0) < 10e-10) return;
+    if (backtrack) {
+        LocalParticle_kill_particle(part, XT_BACKTRACK_NOT_SUPPORTED);
+        return;
+    }
+    DipoleFringe_single_particle(part, fint, hgap, k0);
 }
 #endif // XTRACK_FRINGE_FROM_PTC
 

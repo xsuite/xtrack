@@ -641,6 +641,61 @@ def test_orbit_correction_with_limits():
     assert np.sum(np.abs(kicks_y_basic) > 1e-10) > n_micado
 
 
+@pytest.mark.parametrize('n_iter', [1, 3, 'auto'])
+@pytest.mark.parametrize('misalignment', [1e-3, 2e-4])
+def test_orbit_correction_limits_repeated_calls(n_iter, misalignment):
+
+    env = xt.Environment()
+    components = []
+    for ii in range(40):
+        components += [
+            env.new(f'qf{ii}', xt.Quadrupole, length=0.5, k1=0.0802),
+            env.new(f'bpm{ii}', xt.Marker),
+            env.new(f'corr{ii}', xt.Multipole, knl=[0], ksl=[0]),
+            env.new(f'bf{ii}', xt.Bend, length=4., angle=np.pi/40,
+                    k0_from_h=True),
+            env.new(f'qd{ii}', xt.Quadrupole, length=0.5, k1=-0.0811),
+            env.new(f'bd{ii}', xt.Bend, length=4., angle=np.pi/40,
+                    k0_from_h=True),
+        ]
+    line = env.new_line(components=components)
+    line.set_particle_ref('electron', p0c=45.6e9)
+    tw_ref = line.twiss4d()
+
+    rng = np.random.default_rng(1)
+    for ii in range(40):
+        line[f'qf{ii}'].shift_x = rng.normal(0, misalignment)
+        line[f'qd{ii}'].shift_y = rng.normal(0, misalignment)
+
+    limit = 2e-5
+    limits_x = (-limit, limit)
+    limits_y = (-limit * np.linspace(0.5, 1., 40),
+                 limit * np.linspace(1., 1.5, 40))
+    correction = line.correct_trajectory(
+        run=False, twiss_table=tw_ref,
+        monitor_names_x=[f'bpm{ii}' for ii in range(40)],
+        monitor_names_y=[f'bpm{ii}' for ii in range(40)],
+        corrector_names_x=[f'corr{ii}' for ii in range(40)],
+        corrector_names_y=[f'corr{ii}' for ii in range(40)],
+        corrector_limits_x=limits_x, corrector_limits_y=limits_y)
+
+    results = []
+    for verbose in (False, True):
+        correction.clear_correction_knobs()
+        kicks_per_call = []
+        for _ in range(3):
+            correction.correct(n_iter=n_iter, verbose=verbose)
+            kicks_x = correction.x_correction.get_kick_values()
+            kicks_y = correction.y_correction.get_kick_values()
+            for kicks, limits in [(kicks_x, limits_x), (kicks_y, limits_y)]:
+                assert np.all(kicks >= limits[0] - 1e-15)
+                assert np.all(kicks <= limits[1] + 1e-15)
+            kicks_per_call.append([kicks_x, kicks_y])
+        results.append(kicks_per_call)
+
+    xo.assert_allclose(results[0], results[1], rtol=0, atol=1e-15)
+
+
 def test_orbit_correction_with_delta_zero():
 
     line = xt.load(test_data_folder

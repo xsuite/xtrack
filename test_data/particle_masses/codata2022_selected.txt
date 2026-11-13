@@ -1,0 +1,20 @@
+
+             Fundamental Physical Constants --- Complete Listing
+             2022 CODATA adjustment
+
+
+  From:  http://physics.nist.gov/constants
+
+
+
+  Quantity                                                       Value                 Uncertainty           Unit
+-----------------------------------------------------------------------------------------------------------------------------
+alpha particle mass energy equivalent in MeV                3727.379 4118            0.000 0012               MeV
+atomic mass constant energy equivalent in MeV               931.494 103 72           0.000 000 29             MeV
+deuteron mass energy equivalent in MeV                      1875.612 945 00          0.000 000 58             MeV
+electron mass energy equivalent in MeV                      0.510 998 950 69         0.000 000 000 16         MeV
+helion mass energy equivalent in MeV                        2808.391 611 12          0.000 000 88             MeV
+muon mass energy equivalent in MeV                          105.658 3755             0.000 0023               MeV
+neutron mass energy equivalent in MeV                       939.565 421 94           0.000 000 48             MeV
+proton mass energy equivalent in MeV                        938.272 089 43           0.000 000 29             MeV
+triton mass energy equivalent in MeV                        2808.921 136 68          0.000 000 88             MeV

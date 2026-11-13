@@ -335,6 +335,8 @@ class Composer:
         diagnostics : bool, optional
             If true, analyze unresolved placement dependencies and distinguish
             missing references from dependency cycles. The default is false.
+        name : optional
+            No longer supported; passing a value raises ``ValueError``.
 
         Returns
         -------
@@ -496,6 +498,12 @@ class Composer:
 
         Lines, composers, and nested component sequences are expanded into a flat
         list of ``xtrack.Place`` objects. The original composer is not modified.
+
+        Parameters
+        ----------
+        inplace : bool, optional
+            Must be false (the default). In-place flattening is not implemented;
+            passing true raises ``NotImplementedError``.
 
         Returns
         -------
@@ -763,7 +771,7 @@ def _flatten_components(env, components, refer='center'):
     """Recursively replace nested lines and composers with their elements."""
     if refer not in ['start', 'center', 'centre', 'end']:
         raise ValueError(
-            f'Allowed values for refer are "start", "center" and "end". Got "{refer}".'
+            f'Allowed values for refer are "start", "center", "centre" and "end". Got "{refer}".'
         )
 
     components = _resolve_lines_in_components(components, env)
@@ -841,7 +849,7 @@ def _generate_element_names_with_drifts(env, tt_sorted, length=None, s_tol=1e-6)
     if not len(tt_sorted):
         if length is not None and length > s_tol:
             names_with_drifts.append(env._get_drift(length))
-        return list(map(str, names_with_drifts))
+        return [str(nn) for nn in names_with_drifts]
 
     for index, name in enumerate(tt_sorted.env_name):
         gap = tt_sorted['ds_upstream', index]
@@ -863,7 +871,8 @@ def _generate_element_names_with_drifts(env, tt_sorted, length=None, s_tol=1e-6)
             )
         if line_length < length - s_tol:
             names_with_drifts.append(env._get_drift(length - line_length))
-    return list(map(str, names_with_drifts))
+
+    return [str(nn) for nn in names_with_drifts]
 
 
 def _validate_placement_geometry(

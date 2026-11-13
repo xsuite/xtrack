@@ -59,12 +59,12 @@ CONSTANTS = {
     "pmass": 0.93827208816,  # GeV
     "nmass": 0.93956542052,  # GeV
     "umass": 0.93149410242,  # GeV
-    "mumass": 0.1056583715,  # GeV
+    "mumass": 0.1056583755,  # GeV
     "clight": 299792458.0,  # m/s
     "qelect": 1.602176634e-19,  # A * s
     "hbar": 6.582119569e-25,  # MeV * s
     "erad": 2.8179403262e-15,  # m
-    "prad": 'erad / emass * pmass',
+    "prad": 'erad * emass / pmass',
 }
 
 _APERTURE_TYPES = {
@@ -145,16 +145,16 @@ class MadxLoader:
         self._new_builtin("tkicker", "Multipole")
         self._new_builtin("kicker", "Multipole")
         self._new_builtin("drift", "Drift")
-        self._new_builtin("collimator", "Drift")
-        self._new_builtin("rcollimator", "Drift")
-        self._new_builtin("ecollimator", "Drift")
-        self._new_builtin("instrument", "Drift")
-        self._new_builtin("monitor", "Drift")
-        self._new_builtin("hmonitor", "Drift")
-        self._new_builtin("vmonitor", "Drift")
-        self._new_builtin("imonitor", "Drift")
-        self._new_builtin("placeholder", "Drift")
-        self._new_builtin("wire", "Drift")
+        self._new_builtin("collimator", "Device")
+        self._new_builtin("rcollimator", "Device")
+        self._new_builtin("ecollimator", "Device")
+        self._new_builtin("instrument", "Device")
+        self._new_builtin("monitor", "Device")
+        self._new_builtin("hmonitor", "Device")
+        self._new_builtin("vmonitor", "Device")
+        self._new_builtin("imonitor", "Device")
+        self._new_builtin("placeholder", "Device")
+        self._new_builtin("wire", "Device")
         self._new_builtin("sbend", "Bend")
         self._new_builtin("rbend", "RBend")
         self._new_builtin("quadrupole", "Quadrupole")
@@ -270,7 +270,7 @@ class MadxLoader:
                 composer = self.env.new_line(name=name, components=components, compose=True)
             else:
                 raise ValueError(
-                    f'Only a MAD-X sequence or a line type can be used to build'
+                    f'Only a MAD-X sequence or a line type can be used to build '
                     f'a line, but got: {line_type}!'
                 )
 
@@ -341,8 +341,8 @@ class MadxLoader:
 
         for name, body in elements:
 
-            # Parent is None if the element already exists and is referred to,
-            # by name, otherwise we expect a line nested in the current one.
+            # Parent is None if the element already exists and is referred to
+            # by name; otherwise we expect a line nested in the current one.
             parent = body.get('parent', None)
             repeat = body.get('_repeat', 1)
             invert = body.get('_invert', False)
@@ -504,6 +504,8 @@ class MadxLoader:
                 params['edge_exit_hgap'] = hgap
 
         elif parent_name in {'rfcavity', 'crabcavity'}:
+            # Native MAD-X import assumes unit charge for cavity voltages,
+            # independently of any BEAM statement.
             if (lag := params.pop('lag', None)):
                 params['phase'] = lag * self.env.vars['pi'] * 2
             if (volt := params.pop('volt', None)):
@@ -586,7 +588,7 @@ class MadxLoader:
         return params
 
     def _build_aperture(self, name, aper_name, params, force=False):
-        """Build a Xtrack aperture for element `name` with  `params`.
+        """Build an Xtrack aperture for element `name` with `params`.
 
         Parameters
         ----------
@@ -606,8 +608,8 @@ class MadxLoader:
         -------
         The name of the generated aperture element in the environment, or None.
 
-        Notes:
-        ------
+        Notes
+        -----
         Currently supports all the basic MAD-X aperture types, however when
         ``aper_vx`` or ``aper_vy`` are given, the aperture is assumed to be
         simply a polygon, instead of applying the MAD-X logic (testing first for
@@ -753,7 +755,21 @@ class MadxLoader:
 
 def load_madx_lattice(file=None, string=None, reverse_lines=None, s_tol=1e-6,
                       _rbend_correct_k0=False, end_compose=True, **kwargs) -> xt.Environment:
+    """Load a MAD-X lattice using the native parser.
 
+    Scalar declarations accept ``const``, optionally followed by ``real`` or
+    ``int``. These qualifiers are ignored: imported variables remain mutable,
+    no numeric type conversion is enforced, and ``=`` and ``:=`` retain their
+    usual immediate and deferred assignment behavior. MAD-X protection against
+    reassignment of constants is not enforced.
+    """
+
+    """Load a MAD-X lattice using the native parser.
+
+    RF and crab cavity voltages are imported assuming unit charge, even when
+    a BEAM statement specifies a different charge. For ions, divide the
+    imported voltages by the absolute reference charge if needed.
+    """
     if file is not None and string is not None:
         raise ValueError('Only one of `file` or `string` can be provided!')
 

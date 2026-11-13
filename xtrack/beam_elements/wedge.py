@@ -14,7 +14,13 @@ class Wedge(BeamElement):
     angle : float
         Angle of the wedge in radians.
     k : float
-        Normalized integrated strength of the normal component in units of 1/m.
+        Normalized dipole strength in units of 1/m. Default is 0.
+    k1 : float
+        Normalized quadrupole strength in units of 1/m^2. Default is 0.
+    quad_wedge_then_dip_wedge : int
+        Order of the wedge maps: 0 applies the dipole wedge followed by the
+        quadrupole wedge; 1 applies the quadrupole wedge followed by the dipole
+        wedge. Default is 0.
     """
 
     _xofields = {

@@ -191,19 +191,10 @@ SurveyEntry_s interpolate_survey_table_entry(
         entry.pose = pose_matrix_from_survey(survey, i_survey);
         // tilt and RBend related fields are already in
     }
-    else if (fabs(s_target - s_next) < eps) {
-        // Target is next, simply copy the next survey entry
-        entry.s = SurveyData_get_s(survey, i_survey + 1);
-        entry.angle = SurveyData_get_angle(survey, i_survey + 1);
-        entry.length = SurveyData_get_length(survey, i_survey + 1);
-        entry.tilt = SurveyData_get_tilt(survey, i_survey + 1);
-        entry.rbend_shift_x_in = SurveyData_get_rbend_shift_x_in(survey, i_survey + 1);
-        entry.rbend_angle_in = SurveyData_get_rbend_angle_in(survey, i_survey + 1);
-        entry.pose = pose_matrix_from_survey(survey, i_survey + 1);
-    }
     else {
-        // Properly interpolate between the current and the next survey entry
-        const float_type t = (s_target - s_current) / (s_next - s_current);
+        // Prefer the left frame when the target is at a discontinuous boundary.
+        const float_type t = fabs(s_target - s_next) < eps
+            ? 1 : (s_target - s_current) / (s_next - s_current);
         entry.angle = t * SurveyData_get_angle(survey, i_survey);
         entry.length = t * SurveyData_get_length(survey, i_survey);
         entry.s = s_current + entry.length;
@@ -333,7 +324,8 @@ void resample_survey_table(
         while (i_survey < survey_len - 2) {
             const float_type s_current = SurveyData_get_s(survey, i_survey);
             const float_type s_next = SurveyData_get_s(survey, i_survey + 1);
-            if (s_current <= s_target && s_target <= s_next) {
+            // Allow a boundary query to round just past the segment end.
+            if (s_current <= s_target && s_target <= s_next + eps) {
                 break;
             }
             i_survey++;

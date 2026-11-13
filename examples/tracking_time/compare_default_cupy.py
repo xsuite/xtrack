@@ -190,7 +190,7 @@ for mode in RADIATION_MODES:
             needs_rng   = mode["needs_rng"])
 
 ################################################################################
-# Plot overlayed
+# Plot overlaid
 ################################################################################
 fig, ax = plt.subplots(figsize = (10, 6))
 

@@ -1,4 +1,5 @@
-from typing import Collection, List, Tuple, Union, get_args
+import operator
+from typing import Collection, List, Union, get_args
 
 import numpy as np
 
@@ -6,13 +7,65 @@ import xobjects as xo
 from xobjects.context import XContext
 from xtrack.particles import Particles
 from xtrack.survey import SurveyTable
+from xtrack.svgutils import svg_to_points_by_resolution
 from xtrack.twiss import TwissTable
 
 FloatType = xo.Float64
 
 
+def _nonzero_tolerances_repr(position) -> str:
+    return ''.join(
+        f', {name}={value}'
+        for name in ('tol_r', 'tol_x', 'tol_y')
+        if (value := getattr(position, name)) != 0
+    )
+
+
+def _polygon_output(len_points, out_poly):
+    len_points = operator.index(len_points)
+    if not 3 <= len_points <= np.iinfo(np.uint32).max:
+        raise ValueError('len_points must be between 3 and UINT32_MAX.')
+    if out_poly is None:
+        return np.empty((len_points, 2), dtype=FloatType._dtype)
+    if (not isinstance(out_poly, np.ndarray)
+            or out_poly.shape != (len_points, 2)
+            or out_poly.dtype != FloatType._dtype
+            or not out_poly.flags.c_contiguous
+            or not out_poly.flags.writeable):
+        raise ValueError('out_poly must be a writable, C-contiguous float64 array '
+                         'with shape (len_points, 2).')
+    return out_poly
+
+
 class Circle(xo.Struct):
+    _extra_c_sources = ['#include "xtrack/aperture/headers/profile.h"']
+    _kernels = {
+        'build_circle_polygon': xo.Kernel(
+            c_name='build_circle_polygon',
+            args=[
+                xo.Arg(FloatType, pointer=True, name='points'),
+                xo.Arg(xo.UInt32, name='len_points'),
+                xo.Arg(FloatType, name='radius'),
+            ],
+        ),
+    }
+
     radius = FloatType
+
+    def build_polygon(self, len_points: int, out_poly=None) -> np.ndarray:
+        """Return a closed, CCW polygon sampled uniformly in boundary arc length.
+
+        The last point repeats the first. Write into and return ``out_poly``
+        when supplied.
+        """
+        points = _polygon_output(len_points, out_poly)
+        self.compile_kernels(only_if_needed=True)
+        self._context.kernels.build_circle_polygon(
+            points=points,
+            len_points=len(points),
+            radius=self.radius,
+        )
+        return points
 
     def __repr__(self):
         return f'Circle(radius={self.radius})'
@@ -22,65 +75,243 @@ class Circle(xo.Struct):
 
 
 class Rectangle(xo.Struct):
-    half_width = FloatType
-    half_height = FloatType
+    """Centred rectangle with bounds ``±max_x`` and ``±max_y`` [m]."""
+
+    _extra_c_sources = ['#include "xtrack/aperture/headers/profile.h"']
+    _kernels = {
+        'build_rectangle_polygon': xo.Kernel(
+            c_name='build_rectangle_polygon',
+            args=[
+                xo.Arg(FloatType, pointer=True, name='points'),
+                xo.Arg(xo.UInt32, name='len_points'),
+                xo.Arg(FloatType, name='max_x'),
+                xo.Arg(FloatType, name='max_y'),
+            ],
+        ),
+    }
+
+    max_x = FloatType
+    max_y = FloatType
+
+    def build_polygon(self, len_points: int, out_poly=None) -> np.ndarray:
+        """Return a closed, CCW polygon sampled uniformly in boundary arc length.
+
+        The last point repeats the first. Write into and return ``out_poly``
+        when supplied.
+        """
+        points = _polygon_output(len_points, out_poly)
+        self.compile_kernels(only_if_needed=True)
+        self._context.kernels.build_rectangle_polygon(
+            points=points,
+            len_points=len(points),
+            max_x=self.max_x,
+            max_y=self.max_y,
+        )
+        return points
 
     def __repr__(self):
-        return f'Rectangle(half_width={self.half_width}, half_height={self.half_height})'
+        return f'Rectangle(max_x={self.max_x}, max_y={self.max_y})'
 
     def valid(self):
-        return np.min((self.half_width, self.half_height)) > 0
+        return np.min((self.max_x, self.max_y)) > 0
 
 
 class Ellipse(xo.Struct):
-    half_major = FloatType
-    half_minor = FloatType
+    """Centred ellipse with horizontal semi-axis ``a`` and vertical semi-axis ``b`` [m]."""
+
+    _extra_c_sources = ['#include "xtrack/aperture/headers/profile.h"']
+    _kernels = {
+        'build_ellipse_polygon': xo.Kernel(
+            c_name='build_ellipse_polygon',
+            args=[
+                xo.Arg(FloatType, pointer=True, name='points'),
+                xo.Arg(xo.UInt32, name='len_points'),
+                xo.Arg(FloatType, name='a'),
+                xo.Arg(FloatType, name='b'),
+            ],
+        ),
+    }
+
+    a = FloatType
+    b = FloatType
+
+    def build_polygon(self, len_points: int, out_poly=None) -> np.ndarray:
+        """Return a closed, CCW polygon sampled uniformly in boundary arc length.
+
+        The last point repeats the first. Write into and return ``out_poly``
+        when supplied.
+        """
+        points = _polygon_output(len_points, out_poly)
+        self.compile_kernels(only_if_needed=True)
+        self._context.kernels.build_ellipse_polygon(
+            points=points,
+            len_points=len(points),
+            a=self.a,
+            b=self.b,
+        )
+        return points
 
     def __repr__(self):
-        return f'Ellipse(half_major={self.half_major}, half_minor={self.half_minor})'
+        return f'Ellipse(a={self.a}, b={self.b})'
 
     def valid(self):
-        return np.min((self.half_major, self.half_minor)) > 0
+        return np.min((self.a, self.b)) > 0
 
 
 class RectEllipse(xo.Struct):
-    half_width = FloatType
-    half_height = FloatType
-    half_major = FloatType
-    half_minor = FloatType
+    """Intersection of a centred rectangle and ellipse.
+
+    ``max_x`` and ``max_y`` are the positive rectangular bounds [m]; ``a``
+    and ``b`` are the horizontal and vertical ellipse semi-axes [m].
+    """
+
+    _extra_c_sources = ['#include "xtrack/aperture/headers/profile.h"']
+    _kernels = {
+        'build_rect_ellipse_polygon': xo.Kernel(
+            c_name='build_rect_ellipse_polygon',
+            args=[
+                xo.Arg(FloatType, pointer=True, name='points'),
+                xo.Arg(xo.UInt32, name='len_points'),
+                xo.Arg(FloatType, name='max_x'),
+                xo.Arg(FloatType, name='max_y'),
+                xo.Arg(FloatType, name='a'),
+                xo.Arg(FloatType, name='b'),
+            ],
+        ),
+    }
+
+    max_x = FloatType
+    max_y = FloatType
+    a = FloatType
+    b = FloatType
+
+    def build_polygon(self, len_points: int, out_poly=None) -> np.ndarray:
+        """Return a closed, CCW polygon sampled uniformly in boundary arc length.
+
+        The last point repeats the first. Write into and return ``out_poly``
+        when supplied.
+        """
+        points = _polygon_output(len_points, out_poly)
+        self.compile_kernels(only_if_needed=True)
+        self._context.kernels.build_rect_ellipse_polygon(
+            points=points,
+            len_points=len(points),
+            max_x=self.max_x,
+            max_y=self.max_y,
+            a=self.a,
+            b=self.b,
+        )
+        return points
 
     def __repr__(self):
-        return (f'RectEllipse(half_width={self.half_width}, half_height={self.half_height}, '
-                f'half_major={self.half_major}, half_minor={self.half_minor})')
+        return (f'RectEllipse(max_x={self.max_x}, max_y={self.max_y}, '
+                f'a={self.a}, b={self.b})')
 
     def valid(self):
-        return np.min((self.half_width, self.half_height, self.half_major, self.half_minor)) > 0
+        return np.min((self.max_x, self.max_y, self.a, self.b)) > 0
 
 
 class Racetrack(xo.Struct):
-    half_width = FloatType
-    half_height = FloatType
-    half_major = FloatType
-    half_minor = FloatType
+    """Centred rectangle with elliptically rounded corners.
+
+    ``max_x`` and ``max_y`` are the positive outer bounds [m]; ``a`` and
+    ``b`` are the horizontal and vertical semi-axes of the corner ellipses [m].
+    """
+
+    _extra_c_sources = ['#include "xtrack/aperture/headers/profile.h"']
+    _kernels = {
+        'build_racetrack_polygon': xo.Kernel(
+            c_name='build_racetrack_polygon',
+            args=[
+                xo.Arg(FloatType, pointer=True, name='points'),
+                xo.Arg(xo.UInt32, name='len_points'),
+                xo.Arg(FloatType, name='max_x'),
+                xo.Arg(FloatType, name='max_y'),
+                xo.Arg(FloatType, name='a'),
+                xo.Arg(FloatType, name='b'),
+            ],
+        ),
+    }
+
+    max_x = FloatType
+    max_y = FloatType
+    a = FloatType
+    b = FloatType
+
+    def build_polygon(self, len_points: int, out_poly=None) -> np.ndarray:
+        """Return a closed, CCW polygon sampled uniformly in boundary arc length.
+
+        The last point repeats the first. Write into and return ``out_poly``
+        when supplied.
+        """
+        points = _polygon_output(len_points, out_poly)
+        self.compile_kernels(only_if_needed=True)
+        self._context.kernels.build_racetrack_polygon(
+            points=points,
+            len_points=len(points),
+            max_x=self.max_x,
+            max_y=self.max_y,
+            a=self.a,
+            b=self.b,
+        )
+        return points
 
     def __repr__(self):
-        return (f'Racetrack(half_width={self.half_width}, half_height={self.half_height}, '
-                f'half_major={self.half_major}, half_minor={self.half_minor})')
+        return (f'Racetrack(max_x={self.max_x}, max_y={self.max_y}, '
+                f'a={self.a}, b={self.b})')
 
     def valid(self):
-        return np.min((self.half_width, self.half_height)) > 0
+        return np.min((self.max_x, self.max_y)) > 0
 
 
 class Octagon(xo.Struct):
-    half_width = FloatType
-    half_height = FloatType
-    half_diagonal = FloatType
+    """Centred octagon with axis-aligned and 45-degree faces.
+
+    ``max_x`` and ``max_y`` are the positive axis-aligned bounds [m].
+    ``max_diagonal`` is the perpendicular distance to the slanted faces [m],
+    which impose ``abs(x) + abs(y) <= sqrt(2) * max_diagonal``.
+    """
+
+    _extra_c_sources = ['#include "xtrack/aperture/headers/profile.h"']
+    _kernels = {
+        'build_octagon_polygon': xo.Kernel(
+            c_name='build_octagon_polygon',
+            args=[
+                xo.Arg(FloatType, pointer=True, name='points'),
+                xo.Arg(xo.UInt32, name='len_points'),
+                xo.Arg(FloatType, name='max_x'),
+                xo.Arg(FloatType, name='max_y'),
+                xo.Arg(FloatType, name='max_diagonal'),
+            ],
+        ),
+    }
+
+    max_x = FloatType
+    max_y = FloatType
+    max_diagonal = FloatType
+
+    def build_polygon(self, len_points: int, out_poly=None) -> np.ndarray:
+        """Return a closed, CCW polygon sampled uniformly in boundary arc length.
+
+        The last point repeats the first. Write into and return ``out_poly``
+        when supplied.
+        """
+        points = _polygon_output(len_points, out_poly)
+        self.compile_kernels(only_if_needed=True)
+        self._context.kernels.build_octagon_polygon(
+            points=points,
+            len_points=len(points),
+            max_x=self.max_x,
+            max_y=self.max_y,
+            max_diagonal=self.max_diagonal,
+        )
+        return points
 
     def __repr__(self):
-        return f'Octagon(half_width={self.half_width}, half_height={self.half_height}, half_diagonal={self.half_diagonal})'
+        return f'Octagon(max_x={self.max_x}, max_y={self.max_y}, max_diagonal={self.max_diagonal})'
 
     def valid(self):
-        return np.min((self.half_width, self.half_height, self.half_diagonal)) > 0
+        return np.min((self.max_x, self.max_y, self.max_diagonal)) > 0
 
 
 class Polygon(xo.Struct):
@@ -88,9 +319,19 @@ class Polygon(xo.Struct):
 
     _extra_c_sources = [
         '#include "xtrack/aperture/headers/polygon.h"',
+        '#include "xtrack/aperture/headers/profile.h"',
     ]
 
     _kernels = {
+        'build_polygon_polygon': xo.Kernel(
+            c_name='build_polygon_polygon',
+            args=[
+                xo.Arg(FloatType, pointer=True, name='points'),
+                xo.Arg(xo.UInt32, name='len_points'),
+                xo.Arg(FloatType, pointer=True, const=True, name='vertices'),
+                xo.Arg(xo.UInt32, name='len_vertices'),
+            ],
+        ),
         'is_point_inside_polygon': xo.Kernel(
             c_name='is_point_inside_polygon',
             args=[
@@ -109,6 +350,23 @@ class Polygon(xo.Struct):
             ret=xo.Arg(xo.Int8),
         ),
     }
+
+    def build_polygon(self, len_points: int, out_poly=None) -> np.ndarray:
+        """Return a closed, CCW polygon sampled uniformly in boundary arc length.
+
+        Write into and return ``out_poly`` when supplied. Vertices are passed
+        as a buffer view; temporary arrays remain local to the C builder.
+        """
+        points = _polygon_output(len_points, out_poly)
+        vertices = self.vertices.to_nplike()
+        self.compile_kernels(only_if_needed=True)
+        self._context.kernels.build_polygon_polygon(
+            points=points,
+            len_points=len(points),
+            vertices=vertices,
+            len_vertices=len(vertices),
+        )
+        return points
 
     def __repr__(self):
         return f'<Polygon: {self.vertices._shape[0]} vertices>'
@@ -140,7 +398,42 @@ class Polygon(xo.Struct):
 
 
 class SVGShape(xo.Struct):
-    svg_data = xo.String
+    """Parametric aperture defined by a single closed SVG 1.1 path.
+
+    ``svg_path`` is an SVG path string. ``scale`` converts its coordinate units
+    to metres (default 0.001, one SVG unit corresponds to 1 millimetre). The
+    SVG y-axis is inverted to physical y-up coordinates. The ``resolution``
+    defines the average sampling distance in metres, which will be used to
+    covert the path to a polygon, later used for uniform resampling.
+    """
+
+    svg_path = xo.String
+    scale = xo.Field(FloatType, default=0.001)
+    resolution = xo.Field(FloatType, default=1e-4)
+
+    def valid(self):
+        try:
+            svg_to_points_by_resolution(self.svg_path, self.resolution, self.scale)
+        except (ValueError, TypeError, OverflowError):
+            return False
+        return True
+
+    def build_polygon(self, len_points: int, out_poly=None) -> np.ndarray:
+        """Return a closed, CCW polygon with ``len_points`` including closure.
+
+        Arc-length sampling is uniform along the intermediate polygon;
+        ``resolution`` independently controls its SVG approximation.
+        Write into and return ``out_poly`` when supplied.
+        """
+        points = _polygon_output(len_points, out_poly)
+        vertices = svg_to_points_by_resolution(
+            self.svg_path, resolution=self.resolution, scale=self.scale)
+        polygon = Polygon(vertices=vertices, _context=self._context)
+        return polygon.build_polygon(len_points, out_poly=points)
+
+    def __repr__(self):
+        return (f'SVGShape(scale={self.scale}, resolution={self.resolution}, '
+                f'svg_path={self.svg_path[:40]!r}...)')
 
 
 ShapeTypes = Union[Circle, Rectangle, Ellipse, RectEllipse, Racetrack, Octagon, Polygon, SVGShape]
@@ -151,59 +444,21 @@ class Shape(xo.UnionRef):
 
 
 class Profile(xo.Struct):
-    """Structure representing a profile with associated tolerances.
+    """Structure representing a profile shape.
 
     Parameters
     ----------
-    tol_r: float
-        Radial tolerance for point-in-aperture check.
-    tol_x: float
-        Horizontal tolerance for point-in-aperture check.
-    tol_y: float
-        Vertical tolerance for point-in-aperture check.
+    shape: Shape
+        The profile shape.
     """
     shape = Shape
-    tol_r = FloatType
-    tol_x = FloatType
-    tol_y = FloatType
 
-    _extra_c_sources = [
-        '#include "xtrack/aperture/headers/profile.h"',
-    ]
-
-    _kernels = {
-        'build_polygon_for_profile': xo.Kernel(
-            c_name='build_polygon_for_profile',
-            args=[
-                xo.Arg(FloatType, pointer=True, name='points'),
-                xo.Arg(xo.UInt32, name='len_points'),
-                xo.Arg(xo.ThisClass, name='profile'),
-                xo.Arg(xo.Int8, pointer=True, name='out_is_convex'),
-            ],
-        ),
-    }
-
-    def build_polygon(self, len_points: int) -> np.ndarray:
-        points = np.empty((len_points, 2), dtype=FloatType._dtype)
-        is_convex = np.zeros(1, dtype=np.int8)
-        self.compile_kernels(only_if_needed=True)
-        self._context.kernels.build_polygon_for_profile(
-            points=points,
-            len_points=len_points,
-            profile=self,
-            out_is_convex=is_convex,
-        )
-        return points
+    def build_polygon(self, len_points: int, out_poly=None) -> np.ndarray:
+        """Delegate closed, CCW boundary sampling to the profile shape."""
+        return self.shape.build_polygon(len_points, out_poly=out_poly)
 
     def __repr__(self):
-        tols_str = ''
-        if self.tol_r != 0:
-            tols_str += f', tol_r={self.tol_r}'
-        if self.tol_x != 0:
-            tols_str += f', tol_x={self.tol_x}'
-        if self.tol_y != 0:
-            tols_str += f', tol_y={self.tol_y}'
-        return f'Profile({self.shape!r}{tols_str})'
+        return f'Profile({self.shape!r})'
 
     def plot(self, len_points=128, ax=None, **kwargs):
         from matplotlib import pyplot as plt
@@ -215,7 +470,7 @@ class Profile(xo.Struct):
 
 
 class ProfilePosition(xo.Struct):
-    """Description of the placement of a profile in pipe (lab) frame.
+    """Description of the placement of a profile in the pipe (lab) frame.
 
     Parameters
     ----------
@@ -226,13 +481,15 @@ class ProfilePosition(xo.Struct):
     shift_x: float
         The horizontal shift of the profile centre from the pipe axis.
     shift_y: float
-        The vertical shift of the profile centre from the pipe axis
+        The vertical shift of the profile centre from the pipe axis.
     rot_x_rad: float
         The rotation of the profile around the horizontal axis in radians.
     rot_y_rad: float
         The rotation of the profile around the vertical axis in radians.
     rot_s_rad: float
         The rotation of the profile around the pipe axis in radians.
+    tol_r, tol_x, tol_y: float
+        Radial, horizontal, and vertical tolerances at this profile position.
     """
     profile_index = xo.Int32
     shift_s = FloatType
@@ -241,6 +498,16 @@ class ProfilePosition(xo.Struct):
     rot_x_rad = FloatType
     rot_y_rad = FloatType
     rot_s_rad = FloatType
+    tol_r = FloatType
+    tol_x = FloatType
+    tol_y = FloatType
+
+    def __repr__(self):
+        params = f'profile_index={self.profile_index}, shift_s={self.shift_s}'
+        for name in ('shift_x', 'shift_y', 'rot_x_rad', 'rot_y_rad', 'rot_s_rad'):
+            if value := getattr(self, name):
+                params += f', {name}={value}'
+        return f'ProfilePosition({params}{_nonzero_tolerances_repr(self)})'
 
     def copy(self):
         return ProfilePosition(
@@ -251,6 +518,9 @@ class ProfilePosition(xo.Struct):
             rot_x_rad=self.rot_x_rad,
             rot_y_rad=self.rot_y_rad,
             rot_s_rad=self.rot_s_rad,
+            tol_r=self.tol_r,
+            tol_x=self.tol_x,
+            tol_y=self.tol_y,
         )
 
 
@@ -277,10 +547,22 @@ class Pipe(xo.Struct):
 
 
 class PipePosition(xo.Struct):
+    """Installed pipe with tolerances added to those of its profile positions."""
     pipe_index = xo.Int32
     survey_reference_name = xo.String  # identify a point in survey
     survey_index = xo.Int32  # index of the point in the survey
     transformation = FloatType[4, 4]  # 3D rigid transformation matrix from the survey entry to 0 shift_s of pipe
+    tol_r = FloatType
+    tol_x = FloatType
+    tol_y = FloatType
+
+    def __repr__(self):
+        params = (
+            f'pipe_index={self.pipe_index}, '
+            f'survey_reference_name={self.survey_reference_name!r}, '
+            f'survey_index={self.survey_index}'
+        )
+        return f'PipePosition({params}{_nonzero_tolerances_repr(self)})'
 
 
 class ApertureBounds(xo.Struct):
@@ -315,90 +597,85 @@ class ApertureBounds(xo.Struct):
         order = np.argsort(np.round(s_start / s_tol), kind='stable')
         self.reorder(order)
 
-    def reorder_for_tolerated_pipe_overlaps(self, s_tol: float, is_ring: bool = False) -> None:
-        """Keep profiles of minimally overlapping installed pipes adjacent.
+    def reorder_for_tolerated_pipe_overlaps(
+        self, s_tol: float, is_ring: bool, line_length: float,
+    ) -> None:
+        """Keep neighbouring profiles of minimally overlapping pipes adjacent.
 
-        Bounds are initially sorted by ``s_start``. If the end of one installed
-        pipe follows the start of the next one by no more than ``s_tol``, that
-        ordering can interleave their profiles and make interpolation connect
-        profiles from different pipes. Move a pipe's next profile across such
-        bounds, but only when both the pipe overlap and every crossed
-        ``s_start`` inversion are within ``s_tol``.
-
-        The resulting ``s_start`` order is therefore monotonic up to
-        ``s_tol``. Physical bound coordinates are not modified.
+        A reversed installation has profile indices decreasing along s. A jump
+        larger than half the ring length instead identifies a wrapped pipe,
+        which is left in its original order.
         """
         if self.count < 2 or s_tol <= 0:
             return
 
-        pipe_indices = self.pipe_position_indices.to_nparray()
+        pipe_pos_indices = self.pipe_position_indices.to_nparray()
         profile_indices = self.profile_position_indices.to_nparray()
         s_positions = self.s_positions.to_nparray()
         s_start = self.s_start.to_nparray()
 
         pipe_intervals = {}
+        next_bound_in_pipe = {}
         wrapped_pipes = set()
-        for pipe_index in np.unique(pipe_indices):
-            in_pipe = pipe_indices == pipe_index
-            pipe_s = s_positions[in_pipe]
-            pipe_profile_indices = profile_indices[in_pipe]
-            profile_order = np.argsort(pipe_profile_indices, kind='stable')
+        for pipe_pos_index in np.unique(pipe_pos_indices):
+            bound_indices = np.flatnonzero(pipe_pos_indices == pipe_pos_index)
+            pipe_s = s_positions[bound_indices]
+            profile_order = np.argsort(profile_indices[bound_indices], kind='stable')
             pipe_s_in_profile_order = pipe_s[profile_order]
-            if is_ring and np.any(np.diff(pipe_s_in_profile_order) < -s_tol):
-                wrapped_pipes.add(pipe_index)
-                continue
-            pipe_intervals[pipe_index] = (
-                float(np.min(pipe_s)),
-                float(np.max(pipe_s)),
-            )
 
+            if is_ring and np.any(
+                np.abs(np.diff(pipe_s_in_profile_order)) > line_length / 2
+            ):
+                wrapped_pipes.add(pipe_pos_index)
+                continue
+
+            next_bound_in_pipe.update(zip(bound_indices[:-1], bound_indices[1:]))
+            pipe_intervals[pipe_pos_index] = (float(np.min(pipe_s)), float(np.max(pipe_s)))
+
+        # Reorder indices first, then apply the permutation to every bound field.
         order = np.arange(self.count)
-        ii = 0
-        while ii + 1 < len(order):
-            pipe_index = pipe_indices[order[ii]]
-            profile_index = profile_indices[order[ii]]
-            if pipe_index in wrapped_pipes:
-                ii += 1
+        idx = 0
+        while idx < self.count - 1:
+            pipe_pos_index = pipe_pos_indices[order[idx]]
+            if pipe_pos_index in wrapped_pipes:
+                idx += 1
                 continue
 
-            # Profile positions in a pipe are stored with consecutive indices
-            # along that pipe; interpolation uses adjacent profile positions.
-            expected_profile_index = profile_index + 1
-            candidates = np.flatnonzero(
-                (pipe_indices[order[ii + 1:]] == pipe_index)
-                & (profile_indices[order[ii + 1:]] == expected_profile_index)
-            )
-            if len(candidates) == 0:
-                ii += 1
+            next_bound = next_bound_in_pipe.get(order[idx])
+            if next_bound is None:
+                idx += 1
                 continue
 
-            jj = ii + 1 + int(candidates[0])
-            if jj == ii + 1:
-                ii += 1
+            next_bound_offset = np.flatnonzero(order[idx + 1:] == next_bound).item()
+            if next_bound_offset == 0:
+                idx += 1
                 continue
 
-            next_bound = order[jj]
-            crossed_bounds = order[ii + 1:jj]
-            crossed_pipes = np.unique(pipe_indices[crossed_bounds])
-            pipe_start, pipe_end = pipe_intervals[pipe_index]
+            idx_next_bound = idx + 1 + next_bound_offset
+            crossed_bounds = order[idx + 1:idx_next_bound]
+            crossed_pipes = np.unique(pipe_pos_indices[crossed_bounds])
+            pipe_start, pipe_end = pipe_intervals[pipe_pos_index]
 
-            tolerated_pipe_overlap = True
+            tolerated_overlap = True
             for crossed_pipe in crossed_pipes:
-                if crossed_pipe == pipe_index or crossed_pipe not in pipe_intervals:
-                    tolerated_pipe_overlap = False
+                if crossed_pipe in wrapped_pipes:
+                    tolerated_overlap = False
                     break
+
                 crossed_start, _ = pipe_intervals[crossed_pipe]
                 overlap = pipe_end - crossed_start
-                if crossed_start < pipe_start or overlap < 0 or overlap > s_tol:
-                    tolerated_pipe_overlap = False
+                if crossed_start < pipe_start or abs(overlap) > s_tol:
+                    tolerated_overlap = False
                     break
 
-            if tolerated_pipe_overlap:
-                tolerated_bound_inversion = np.all(s_start[next_bound] - s_start[crossed_bounds] <= s_tol)
-                if tolerated_bound_inversion:
-                    order[ii + 1:jj + 1] = np.concatenate(([next_bound], crossed_bounds))
+            if tolerated_overlap and np.all(
+                s_start[next_bound] - s_start[crossed_bounds] <= s_tol
+            ):
+                order[idx + 1:idx_next_bound + 1] = np.concatenate(
+                    ([next_bound], crossed_bounds)
+                )
 
-            ii += 1
+            idx += 1
 
         self.reorder(order)
 
@@ -439,8 +716,8 @@ class TwissData(xo.Struct):
 
 
 class BeamData(xo.Struct):
-    emitx_norm = xo.Float64        # normalized emittance x
-    emity_norm = xo.Float64        # normalized emittance y
+    nemitt_x = xo.Float64        # normalized emittance x
+    nemitt_y = xo.Float64        # normalized emittance y
     delta_rms = xo.Float64         # rms energy spread
     tol_co = xo.Float64            # tolerance for closed orbit [co_radius]
     tol_disp = xo.Float64          # tolerance for normalized dispersion [dqf]
@@ -516,7 +793,7 @@ class SurveyData(xo.Struct):
             poses[idx, :, 3] = np.hstack([row.X[0], row.Y[0], row.Z[0], 1])
             lengths[idx] = row.length[0]
 
-        # The survey has an additional endpoint without a corresponding element.
+        # Resolve slice weights and attributes inherited from parent elements.
         angles[:-1] = line.attr['angle']
         tilts[:-1] = line.attr['rot_s_rad']
 
@@ -548,12 +825,32 @@ class SurveyData(xo.Struct):
         return resampled
 
 
-class ApertureModel(xo.Struct):
-    pipe_positions = PipePosition[:]
+class ApertureEnvStruct(xo.Struct):
     pipes = Pipe[:]
     profiles = Profile[:]
+
+    def __init__(self, pipes, profiles, pipe_names, profile_names, **kwargs):
+        if len(pipe_names) != len(pipes):
+            raise ValueError("Length of pipe_names and pipes must match.")
+        if len(profile_names) != len(profiles):
+            raise ValueError("Length of profile_names and profiles must match.")
+        self.pipe_names = list(pipe_names)
+        self.profile_names = list(profile_names)
+        super().__init__(pipes=pipes, profiles=profiles, **kwargs)
+
+    def to_dict(self):
+        out = self._to_dict()
+        out['pipe_names'] = self.pipe_names
+        out['profile_names'] = self.profile_names
+        return out
+
+
+class LineApertureModel(xo.Struct):
+    pipe_positions = PipePosition[:]
     is_ring = xo.Int8
     survey_length = FloatType
+
+    _depends_on = [ApertureEnvStruct]
 
     _extra_c_sources = [
         '#include "xtrack/aperture/headers/cross_sections.h"',
@@ -562,10 +859,11 @@ class ApertureModel(xo.Struct):
     ]
 
     _kernels = {
-        'build_profile_polygons': xo.Kernel(
-            c_name='build_profile_polygons',
+        'build_aperture_bounds': xo.Kernel(
+            c_name='build_aperture_bounds',
             args=[
                 xo.Arg(xo.ThisClass, name='model'),
+                xo.Arg(ApertureEnvStruct, name='aperture_env'),
                 xo.Arg(ProfilePolygons, name='profile_polygons'),
                 xo.Arg(ApertureBounds, name='aperture_bounds'),
                 xo.Arg(SurveyData, name='survey'),
@@ -576,6 +874,7 @@ class ApertureModel(xo.Struct):
             args=[
                 xo.Arg(SurveyData, name='survey_at_s'),
                 xo.Arg(xo.ThisClass, name='model'),
+                xo.Arg(ApertureEnvStruct, name='aperture_env'),
                 xo.Arg(ProfilePolygons, name='profile_polygons'),
                 xo.Arg(ApertureBounds, name='aperture_bounds'),
                 xo.Arg(SurveyData, name='survey'),
@@ -594,6 +893,7 @@ class ApertureModel(xo.Struct):
             c_name='get_max_aperture_sigma_bisection',
             args=[
                 xo.Arg(xo.ThisClass, name='model'),
+                xo.Arg(ApertureEnvStruct, name='aperture_env'),
                 xo.Arg(SurveyData, name='survey'),
                 xo.Arg(ProfilePolygons, name='profile_polygons'),
                 xo.Arg(ApertureBounds, name='aperture_bounds'),
@@ -610,6 +910,7 @@ class ApertureModel(xo.Struct):
             c_name='get_max_aperture_sigma_rays',
             args=[
                 xo.Arg(xo.ThisClass, name='model'),
+                xo.Arg(ApertureEnvStruct, name='aperture_env'),
                 xo.Arg(SurveyData, name='survey'),
                 xo.Arg(ProfilePolygons, name='profile_polygons'),
                 xo.Arg(ApertureBounds, name='aperture_bounds'),
@@ -622,12 +923,14 @@ class ApertureModel(xo.Struct):
                 xo.Arg(FloatType, pointer=True, name='ray_angles'),
                 xo.Arg(xo.UInt32, name='num_ray_angles'),
                 xo.Arg(FloatType, pointer=True, name='sigmas'),
+                xo.Arg(FloatType, pointer=True, name='out_contact_points'),
             ],
         ),
         'get_max_aperture_sigma_exact': xo.Kernel(
             c_name='get_max_aperture_sigma_exact',
             args=[
                 xo.Arg(xo.ThisClass, name='model'),
+                xo.Arg(ApertureEnvStruct, name='aperture_env'),
                 xo.Arg(SurveyData, name='survey'),
                 xo.Arg(ProfilePolygons, name='profile_polygons'),
                 xo.Arg(ApertureBounds, name='aperture_bounds'),
@@ -646,6 +949,7 @@ class ApertureModel(xo.Struct):
             c_name='compute_beam_envelopes_at_sigma',
             args=[
                 xo.Arg(xo.ThisClass, name='model'),
+                xo.Arg(ApertureEnvStruct, name='aperture_env'),
                 xo.Arg(ApertureBounds, name='aperture_bounds'),
                 xo.Arg(TwissData, name='twiss_at_s'),
                 xo.Arg(BeamData, name='beam_data'),
@@ -664,42 +968,46 @@ class ApertureModel(xo.Struct):
     def __init__(
         self,
         pipe_positions: List[PipePosition],
-        pipes: List[Pipe],
-        profiles: List[Profile],
-        pipe_names: List[str],
-        profile_names: List[str],
         pipe_position_names: List[str],
         is_ring: bool = False,
         survey_length: float = np.nan,
         **kwargs,
     ):
-        if len(pipe_names) != len(pipes):
-            raise ValueError("Length of pipe_names and pipe_names must match.")
-
-        if len(profile_names) != len(profiles):
-            raise ValueError("Length of profile_names and profiles must match.")
-
         if len(pipe_position_names) != len(pipe_positions):
             raise ValueError("Length of pipe_position_names and pipe_positions must match.")
 
-        self.pipe_names = pipe_names
-        self.profile_names = profile_names
         self.pipe_position_names = pipe_position_names
+        self._aperture_env = None
 
         super().__init__(
             pipe_positions=pipe_positions,
-            pipes=pipes,
-            profiles=profiles,
             is_ring=int(is_ring),
             survey_length=survey_length,
             **kwargs,
         )
 
+    def bind_environment(self, aperture_env):
+        self._aperture_env = aperture_env
+        return self
+
+    @property
+    def pipes(self):
+        return self._aperture_env.pipes
+
+    @property
+    def profiles(self):
+        return self._aperture_env.profiles
+
+    @property
+    def pipe_names(self):
+        return self._aperture_env.pipe_names
+
+    @property
+    def profile_names(self):
+        return self._aperture_env.profile_names
+
     def pipe_name_for_index(self, idx: int) -> str:
         return self.pipe_names[idx]
-
-    def pipe_position_name_for_index(self, idx: int) -> str:
-        return self.pipe_position_names[idx]
 
     def profile_name_for_index(self, idx: int) -> str:
         return self.profile_names[idx]
@@ -710,16 +1018,14 @@ class ApertureModel(xo.Struct):
     def pipe_name_for_position(self, pipe_position: PipePosition) -> str:
         return self.pipe_name_for_index(pipe_position.pipe_index)
 
-    def pipe_position_name_for_position_index(self, idx: int) -> str:
-        return self.pipe_position_name_for_index(idx)
-
     def profile_for_position(self, profile_position: ProfilePosition) -> Profile:
         return self.profiles[profile_position.profile_index]
 
     def profile_name_for_position(self, profile_position: ProfilePosition) -> str:
         return self.profile_name_for_index(profile_position.profile_index)
 
-    def pipe_position_profile_names_for_indices(self, pipe_position_index, profile_position_index) -> Tuple[str, str]:
+    def pipe_position_profile_names_for_indices(self, pipe_position_index,
+                                                profile_position_index):
         pipe_pos_name = self.pipe_position_name_for_index(pipe_position_index)
         pipe_pos = self.pipe_positions[pipe_position_index]
         pipe = self.pipe_for_position(pipe_pos)
@@ -727,7 +1033,8 @@ class ApertureModel(xo.Struct):
         profile_name = self.profile_name_for_position(profile_pos)
         return pipe_pos_name, profile_name
 
-    def pipe_profile_names_for_indices(self, pipe_position_index, profile_position_index) -> Tuple[str, str]:
+    def pipe_profile_names_for_indices(self, pipe_position_index,
+                                       profile_position_index):
         pipe_pos = self.pipe_positions[pipe_position_index]
         pipe_name = self.pipe_name_for_position(pipe_pos)
         pipe = self.pipe_for_position(pipe_pos)
@@ -735,19 +1042,25 @@ class ApertureModel(xo.Struct):
         profile_name = self.profile_name_for_position(profile_pos)
         return pipe_name, profile_name
 
+    def pipe_position_name_for_index(self, idx: int) -> str:
+        return self.pipe_position_names[idx]
+
+    def pipe_position_name_for_position_index(self, idx: int) -> str:
+        return self.pipe_position_name_for_index(idx)
+
     def to_dict(self) -> dict:
         out = self._to_dict()
-        out['pipe_names'] = self.pipe_names
         out['pipe_position_names'] = self.pipe_position_names
-        out['profile_names'] = self.profile_names
         return out
     @classmethod
-    def from_dict(cls, src: dict, context: XContext = None) -> 'ApertureModel':
+    def from_dict(cls, src: dict, context: XContext = None) -> 'LineApertureModel':
         return cls(**src, _context=context)
 
-    def build_profile_polygons(self, **kwargs) -> None:
+    def build_aperture_bounds(self, aperture_env=None, **kwargs) -> None:
+        aperture_env = aperture_env or self._aperture_env
         self.compile_kernels(only_if_needed=True)
-        self._context.kernels.build_profile_polygons(model=self, **kwargs)
+        self._context.kernels.build_aperture_bounds(
+            model=self, aperture_env=aperture_env, **kwargs)
 
     def cross_sections_at_s(
         self,
@@ -756,11 +1069,14 @@ class ApertureModel(xo.Struct):
         max_x=None,
         min_y=None,
         max_y=None,
+        aperture_env=None,
         **kwargs,
     ) -> None:
+        aperture_env = aperture_env or self._aperture_env
         self.compile_kernels(only_if_needed=True)
         self._context.kernels.cross_sections_at_s(
             model=self,
+            aperture_env=aperture_env,
             is_convex=is_convex,
             min_x=min_x,
             max_x=max_x,
@@ -769,17 +1085,25 @@ class ApertureModel(xo.Struct):
             **kwargs,
         )
 
-    def get_max_aperture_sigma_bisection(self, **kwargs) -> None:
+    def get_max_aperture_sigma_bisection(self, aperture_env=None, **kwargs) -> None:
+        aperture_env = aperture_env or self._aperture_env
         self.compile_kernels(only_if_needed=True)
-        self._context.kernels.get_max_aperture_sigma_bisection(model=self, **kwargs)
+        self._context.kernels.get_max_aperture_sigma_bisection(
+            model=self, aperture_env=aperture_env, **kwargs)
 
-    def get_max_aperture_sigma_rays(self, **kwargs) -> None:
+    def get_max_aperture_sigma_rays(
+            self, aperture_env=None, out_contact_points=None, **kwargs) -> None:
+        aperture_env = aperture_env or self._aperture_env
         self.compile_kernels(only_if_needed=True)
-        self._context.kernels.get_max_aperture_sigma_rays(model=self, **kwargs)
+        self._context.kernels.get_max_aperture_sigma_rays(
+            model=self, aperture_env=aperture_env,
+            out_contact_points=out_contact_points, **kwargs)
 
-    def get_max_aperture_sigma_exact(self, **kwargs) -> None:
+    def get_max_aperture_sigma_exact(self, aperture_env=None, **kwargs) -> None:
+        aperture_env = aperture_env or self._aperture_env
         self.compile_kernels(only_if_needed=True)
-        self._context.kernels.get_max_aperture_sigma_exact(model=self, **kwargs)
+        self._context.kernels.get_max_aperture_sigma_exact(
+            model=self, aperture_env=aperture_env, **kwargs)
 
     def get_beam_envelopes_at_sigma(
         self,
@@ -787,11 +1111,14 @@ class ApertureModel(xo.Struct):
         max_x=None,
         min_y=None,
         max_y=None,
+        aperture_env=None,
         **kwargs,
     ) -> None:
+        aperture_env = aperture_env or self._aperture_env
         self.compile_kernels(only_if_needed=True)
         self._context.kernels.get_beam_envelopes_at_sigma(
             model=self,
+            aperture_env=aperture_env,
             min_x=min_x,
             max_x=max_x,
             min_y=min_y,

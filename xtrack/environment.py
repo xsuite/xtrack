@@ -3,13 +3,13 @@ import json
 import re
 import uuid
 from collections import Counter, UserDict
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from contextlib import contextmanager
 from copy import deepcopy
 from pathlib import Path
 from typing import Literal
 from warnings import warn
-from weakref import WeakKeyDictionary, WeakSet
+from weakref import WeakKeyDictionary, WeakSet, ref
 
 import numpy as np
 import pandas as pd
@@ -30,7 +30,7 @@ from .table import Table
 ReferType = Literal['start', 'center', 'centre', 'end']
 
 DEFAULT_REF_STRENGTH_NAME = {
-    'Bend': '_k0', # using underscored to get the value also when k0_from_h is True
+    'Bend': '_k0', # using the underscored attribute to get the value also when k0_from_h is True
     'RBend': '_k0',
     'Quadrupole': 'k1',
     'Sextupole': 'k2',
@@ -67,7 +67,11 @@ class Environment:
             Reference particle.
         lines : dict, optional
             Dictionary with the lines of the environment.
+        particles : dict, optional
+            Dictionary with the named particles of the environment.
 
+        Notes
+        -----
         Short description of main attributes of the Environment class:
          - Environment[...]: accesses values of variables, elements and lines.
          - ref[...]: provides reference objects to variables and elements.
@@ -125,6 +129,8 @@ class Environment:
         self._enable_name_clash_check = True
         self._last_context = None
         self._drift_cache = {}
+        from xtrack.aperture.environment import EnvAperture
+        self.aperture = EnvAperture(self)
 
         for nn, ee in self._element_dict.items():
             if nn.startswith('||drift_') and isinstance(ee, xt.Drift):
@@ -195,6 +201,7 @@ class Environment:
             self._extra_config = {}
         self._lines_weakrefs = WeakSet()
         self._line_composers = WeakKeyDictionary()
+        self.aperture._env_ref = ref(self)
 
     @classmethod
     def _generate_doc_rst(
@@ -326,7 +333,7 @@ class Environment:
     def new(self, name, prototype=None, mode=None, at=None, from_=None,
             anchor=None, from_anchor=None,
             extra=None,
-            mirror=False, force=False, import_from=None, parent=None,
+            mirror=False, force=False, parent=None,
             **kwargs):
 
         '''
@@ -340,22 +347,34 @@ class Environment:
             Prototype class or name of the prototype element
         parent : str or class, optional
             Deprecated alias for ``prototype``.
-        mode : str, optional
+        mode : {None, 'clone', 'replica'}, optional
+             - None (default): create an element or line from a class, or clone
+               an existing prototype element or line.
              - clone: clone the prototype element or line.
                The prototype element or line is copied, together with the associated
                expressions.
-             - replica: replicate the prototype elements or lines are made.
-             - import: clone from a different environment. `import_from` must be
-               provided.
+             - replica: a replica of the prototype element or line is made.
         at : float or str, optional
             Position of the created object.
-        from_: str, optional
+        from_ : str, optional
             Name of the element from which the position is calculated (its center
             is used as reference).
+        anchor : {'start', 'center', 'centre', 'end'}, optional
+            Anchor of the created element positioned at ``at``. If omitted, the
+            default reference anchor of the line is used.
+        from_anchor : {'start', 'center', 'centre', 'end'}, optional
+            Anchor of the reference element from which ``at`` is measured. If
+            omitted, the default reference anchor of the line is used.
+        extra : dict, optional
+            Additional metadata associated with the new element.
         mirror : bool, optional
             Can only be used when cloning lines. If True, the order of the elements
             is reversed.
-        import_from : Environment, optional. Only to be used when mode is 'import'.
+        force : bool, optional
+            If True, replace an existing element with the same name. Default is
+            False.
+        **kwargs
+            Attributes used to initialize or customize the element.
 
         Notes
         -----
@@ -475,7 +494,7 @@ class Environment:
 
         if parent is xt.Line or (parent=='Line' and (
             'Line' not in self.lines and 'Line' not in self.elements)):
-            assert mode is None, 'Mode not allowed when cls is Line'
+            assert mode is None, 'Mode not allowed when prototype is Line'
             return self.new_line(name=name, **kwargs)
 
         if mode == 'replica':
@@ -489,8 +508,6 @@ class Environment:
         else:
             assert mode is None, f'Unknown mode {mode}'
 
-        eval_ = self._xdeps_eval.eval
-
         if not (isinstance(parent, str) or parent in _ALLOWED_ELEMENT_TYPES_IN_NEW):
             raise ValueError(
             'Only '
@@ -501,22 +518,12 @@ class Environment:
             + '`env.elements["myname"] = MyClass(...)`\n'
             )
 
-        needs_instantiation = True
-        parent_element = None
         element_prototype = None
         if isinstance(parent, str):
             if parent in self.elements:
-                # Clone an existing element
                 element_prototype = parent
-                self.elements[name] = xt.Replica(parent_name=parent)
-                self.replace_replica(name)
-
-                parent_element = self._element_dict[name]
-                parent = type(parent_element)
-                needs_instantiation = False
             elif parent in _ALLOWED_ELEMENT_TYPES_DICT:
                 parent = _ALLOWED_ELEMENT_TYPES_DICT[parent]
-                needs_instantiation = True
             else:
                 raise ValueError(f'Element type {parent} not found')
 
@@ -529,14 +536,22 @@ class Environment:
                              '`length_straight` parameter set accordingly, '
                              'instead of specifying the `rbarc` flag.')
 
-        ref_kwargs, value_kwargs = _parse_kwargs(parent, kwargs, eval_)
-
-        if needs_instantiation: # Prototype is a class and not another element
+        if element_prototype is None:
+            # Construct a new element, then attach its deferred expressions.
+            ref_kwargs, value_kwargs = _parse_kwargs(
+                parent, kwargs, self._xdeps_eval.eval)
             self.elements[name] = parent(**value_kwargs)
-
-        self._set_kwargs(name=name, ref_kwargs=ref_kwargs, value_kwargs=value_kwargs,
-                    container=self._element_dict, container_refs=self._xdeps_eref,
-                    isinit=True)
+            self._set_kwargs(
+                name=name, ref_kwargs=ref_kwargs, value_kwargs=value_kwargs,
+                container=self._element_dict, container_refs=self._xdeps_eref,
+                isinit=True)
+        else:
+            # Copy the prototype and its expressions, resolving replicas too.
+            self.elements[name] = xt.Replica(parent_name=element_prototype)
+            self.replace_replica(name)
+            # Overrides are edits: numeric values must clear inherited
+            # expressions, while unspecified fields keep their expressions.
+            self.set(name, **kwargs)
 
         if extra is not None:
             assert isinstance(extra, dict)
@@ -557,9 +572,9 @@ class Environment:
         Environment.particles, its properties can be controlled with deferred
         expressions and it can be used as reference particle for lines.
 
-        Note that this method is not meant to create particles distributions for
+        Note that this method is not meant to create particle distributions for
         tracking. For that purpose use xt.Particles(...), Line.build_particles(...)
-        or the generation functions for particles distributions available in xpart.
+        or the generation functions for particle distributions available in xpart.
         See https://xsuite.readthedocs.io/en/latest/particlesmanip.html for more
         details.
 
@@ -569,8 +584,11 @@ class Environment:
             Name of the new particle type
         parent : str or class
             Parent class or name of the parent particle type
-        pdg_id_0 : int or str, optional, define reference mass and charge from
-            PDG id or particle name.
+        force : bool, optional
+            If True, replace an existing particle type with the same name.
+            Default is False.
+        pdg_id_0 : int or str, optional
+            Define reference mass and charge from PDG id or particle name.
         mass0 : float, optional
             Reference rest mass [eV]
         q0 : float, optional
@@ -748,13 +766,22 @@ class Environment:
 
         Parameters
         ----------
-        name : str or Line
-            Name of the element or line to be placed.
+        name : str, Line, or sequence of str
+            Name of the element or line to be placed. A sequence of element
+            names is first combined into a line.
+        obj : object, optional
+            Object to register in the environment under ``name`` before placing it.
         at : float or str, optional
             Position of the created object.
-        from_: str, optional
+        from_ : str, optional
             Name of the element from which the position is calculated (its center
             is used as reference).
+        anchor : {'start', 'center', 'centre', 'end'}, optional
+            Anchor of the placed component positioned at ``at``. If omitted, the
+            default reference anchor of the line is used.
+        from_anchor : {'start', 'center', 'centre', 'end'}, optional
+            Anchor of the reference component from which ``at`` is measured. If
+            omitted, the default reference anchor of the line is used.
 
         Returns
         -------
@@ -859,7 +886,7 @@ class Environment:
             metadata.
         """
         return self.__class__.from_dict(
-            self.to_dict(), with_progress=with_progress)
+            self.to_dict(include_aperture=True), with_progress=with_progress)
 
     def _copy_element_from(self, name, source, new_name=None):
         """Copy an element from another environment.
@@ -1079,7 +1106,8 @@ class Environment:
             raise ValueError('Only lines, scalars or references are allowed')
 
     @doc_group("Constructors and Serialization")
-    def to_dict(self, include_var_management=True, include_version=True):
+    def to_dict(self, include_var_management=True, include_version=True,
+                include_aperture=False):
         """
         Serialize the environment to a JSON-compatible dictionary.
 
@@ -1091,11 +1119,19 @@ class Environment:
         include_version : bool, optional
             If True, include the xtrack version that generated the dictionary.
             Default is ``True``.
+        include_aperture : bool, optional
+            If True, include environment and line aperture data. Default is
+            ``False``.
 
         Returns
         -------
         dict
             Serialized environment data.
+
+        Raises
+        ------
+        TypeError
+            If an element to be serialized has no callable ``to_dict`` method.
         """
 
         out = {}
@@ -1104,7 +1140,8 @@ class Environment:
         if include_version:
             out["xtrack_version"] = xt.__version__
 
-        out["elements"] = {k: el.to_dict() for k, el in self._element_dict.items()}
+        out["elements"] = {k: xt.line._serialize_element(el, k)
+                           for k, el in self._element_dict.items()}
 
         if self._particle_ref is not None:
             if isinstance(self._particle_ref, str):
@@ -1113,7 +1150,7 @@ class Environment:
                 out['particle_ref'] = self._particle_ref.to_dict()
         if self._var_management is not None and include_var_management:
             if hasattr(self, '_in_multiline') and self._in_multiline is not None:
-                raise ValueError('The line is part ot a MultiLine object. '
+                raise ValueError('The line is part of a MultiLine object. '
                     'To save without expressions please use '
                     '`line.to_dict(include_var_management=False)`.\n'
                     'To save also the deferred expressions please save the '
@@ -1137,13 +1174,17 @@ class Environment:
         out["_extra_config"] = deepcopy(self.extra_config)
         out["metadata"] = deepcopy(self.metadata)
 
+        if include_aperture and (len(self.aperture.profiles) or len(self.aperture.pipes)):
+            out['aperture'] = self.aperture.to_dict(include_line_models=False)
+
         out['xsuite_data_type'] = 'Environment'
 
         out['lines'] = {}
         for nn, ll in self.lines.items():
             if isinstance(ll, xt.Line):
                 out['lines'][nn] = ll.to_dict(include_element_dict=False,
-                                            include_var_management=False)
+                                            include_var_management=False,
+                                            include_aperture=include_aperture)
             else:
                 raise ValueError(f'Unknown line type {type(ll)}')
 
@@ -1197,7 +1238,8 @@ class Environment:
         particles = {}
         if 'particles' in dct:
             for nn, ppd in dct['particles'].items():
-               particles[nn] = xt.Particles.from_dict(ppd)
+               particles[nn] = xt.Particles.from_dict(
+                   ppd, _context=_context, _buffer=_buffer)
 
         particle_ref = None
         if 'particle_ref' in dct.keys():
@@ -1213,6 +1255,9 @@ class Environment:
 
         out = cls(element_dict=elements, particle_ref=particle_ref,
                 _var_management_dct=_var_management_dct, particles=particles)
+
+        if 'aperture' in dct:
+            out.aperture.from_dict(dct['aperture'], context=_context)
 
         dct_lines = dct.copy()
         dct_lines.pop('elements', None)
@@ -1278,7 +1323,8 @@ class Environment:
         indent : int, optional
             Indentation level used for the JSON output. Default is 1.
         **kwargs
-            Additional keyword arguments passed to ``Environment.to_dict``.
+            Additional keyword arguments passed to ``Environment.to_dict``,
+            including ``include_aperture``.
 
         Returns
         -------
@@ -1577,7 +1623,7 @@ class Environment:
                     ] + object.__dir__(self)
 
     @doc_group("Deprecated")
-    def set_multipolar_errors(env, errors, with_progress=True):
+    def set_multipolar_errors(self, errors, with_progress=True):
         """Deprecated: set multipolar errors for specified elements of the environment.
 
         .. warning:: This function is deprecated and will be removed in a future
@@ -1640,7 +1686,7 @@ class Environment:
             rel_knl = err.get('rel_knl', [])
             rel_ksl = err.get('rel_ksl', [])
             refer = err.get('refer', None)
-            ele_class = env[ele_name].__class__.__name__
+            ele_class = self[ele_name].__class__.__name__
 
             if 'Replica' in ele_class or 'Slice' in ele_class:
                 raise ValueError(f'Cannot set multipolar errors for element `{ele_name}`'
@@ -1654,22 +1700,22 @@ class Environment:
             if reference_strength_name is None:
                 raise ValueError(f'Cannot find reference strength for element `{ele_name}`')
 
-            ref_str_ref = getattr(env.ref[ele_name], reference_strength_name)
-            length_ref = env.ref[ele_name].length
+            ref_str_ref = getattr(self.ref[ele_name], reference_strength_name)
+            length_ref = self.ref[ele_name].length
 
             for ii, kk in enumerate(rel_knl):
                 err_vname = f'err_{ele_name}_knl{ii}'
-                env[err_vname] = kk
-                if (env.ref[ele_name].knl[ii]._expr is None or env.ref[err_vname] in
-                        env.ref[ele_name].knl[ii]._expr._get_dependencies()):
-                    env[ele_name].knl[ii] += env.ref[err_vname] * ref_str_ref * length_ref
+                self[err_vname] = kk
+                if (self.ref[ele_name].knl[ii]._expr is None or self.ref[err_vname] in
+                        self.ref[ele_name].knl[ii]._expr._get_dependencies()):
+                    self[ele_name].knl[ii] += self.ref[err_vname] * ref_str_ref * length_ref
 
             for ii, kk in enumerate(rel_ksl):
                 err_vname = f'err_{ele_name}_ksl{ii}'
-                env[err_vname] = kk
-                if (env.ref[ele_name].ksl[ii]._expr is None or env.ref[err_vname] in
-                        env.ref[ele_name].ksl[ii]._expr._get_dependencies()):
-                    env[ele_name].ksl[ii] += env.ref[err_vname] * ref_str_ref * length_ref
+                self[err_vname] = kk
+                if (self.ref[ele_name].ksl[ii]._expr is None or self.ref[err_vname] in
+                        self.ref[ele_name].ksl[ii]._expr._get_dependencies()):
+                    self[ele_name].ksl[ii] += self.ref[err_vname] * ref_str_ref * length_ref
 
     @property_with_doc_group("Editing, Inspection, Variables and Configuration")
     def element_dict(self):
@@ -1943,12 +1989,23 @@ class Environment:
 
         Parameters
         ----------
-        name : str or iterable of str
-            Name or names of the variable(s) or element(s).
-        value: float or str
-            Value or expression of the variable to set. Can be provided only
-            if the name is associated to a variable.
-        **kwargs, float or str
+        name : str, iterable of str, mapping or Table
+            Name or names of the variable(s) or element(s). A mapping supplies
+            variable names and values. A table supplies variable names from its
+            ``name`` column and values from its ``value`` column.
+        value : float, str or iterable, optional
+            Value or expression of the variable to set. For multiple variable
+            names, an iterable supplies one value or expression per name and
+            must have the same length. A scalar is applied to every name.
+            Can be provided only if the names are associated to variables.
+            For a mapping or table, an explicit positional value overrides the
+            stored values. Iterables follow key or row order; scalars (including
+            expression strings) broadcast to all names. With an override, a table
+            needs only the ``name`` column. Mapping inputs accept no keyword
+            arguments. With a table, keyword arguments set attributes of the
+            elements in its ``env_name`` column (falling back to ``name`` if
+            absent) and cannot be combined with a positional value.
+        **kwargs : float or str
             Attributes to set. Can be provided only if the name is associated
             to an element.
 
@@ -1960,14 +2017,63 @@ class Environment:
         >>> line.set(['quad1', 'quad2'], k1=0.1, k2='3*a')
         >>> line.set(['c', 'd'], 0.1)
         >>> line.set(['e', 'f'], '3*a')
+        >>> line.set(['c', 'd'], [0.1, 0.2])
+        >>> line.set(['e', 'f'], ['3*a', '4*a'])
+        >>> line.set({'c': 0.1, 'd': '2*a'})
+        >>> line.set({'c': 0.1, 'd': 0.2}, 0.)
+        >>> line.set(table)  # table with name and value columns
+        >>> line.set(table, [0.1, 0.2])  # table with two rows
+        >>> line.set(table, 0.)
+        >>> line.set(element_table, k1='3*a')
 
         '''
+        if isinstance(name, xd.Table) and kwargs and not args:
+            if 'name' not in name._col_names:
+                raise ValueError('Table must have a name column')
+            column = 'env_name' if 'env_name' in name._col_names else 'name'
+            return self.set(name[column], **kwargs)
+
+        if isinstance(name, (Mapping, xd.Table)):
+            if len(args) > 1 or kwargs:
+                raise ValueError('Mapping or table input accepts at most one value override '
+                                 'and no keyword arguments')
+            if isinstance(name, Mapping):
+                names = list(name.keys())
+                values = args[0] if args else name.values()
+            else:
+                if 'name' not in name._col_names:
+                    raise ValueError('Table must have a name column')
+                if not args and 'value' not in name._col_names:
+                    raise ValueError('Table must have a value column when no override is supplied')
+                names = name['name']
+                values = args[0] if args else name['value']
+            if (not isinstance(values, Iterable) or isinstance(values, (str, bytes))
+                    or (isinstance(values, np.ndarray) and values.ndim == 0)):
+                values = [values] * len(names)
+            return self.set(names, values)
+
         if hasattr(name, 'env_name'):
             name = name.env_name
         elif hasattr(name, 'name'):
             name = name.name
 
         if isinstance(name, Iterable) and not isinstance(name, str):
+            if (len(args) == 1 and not kwargs
+                    and isinstance(args[0], Iterable)
+                    and not isinstance(args[0], (str, bytes))
+                    and not (isinstance(args[0], np.ndarray) and args[0].ndim == 0)):
+                # xdeps variable references use Python string keys.
+                names = [str(nn) if isinstance(nn, np.str_) else nn for nn in name]
+                values = list(args[0])
+                if len(names) != len(values):
+                    raise ValueError('Names and values must have the same length')
+                for nn in names:
+                    if nn in self.lines:
+                        raise ValueError('Cannot set a line')
+                    if nn in self.elements:
+                        raise ValueError('Only kwargs are allowed when setting element attributes')
+                self.vars.update(dict(zip(names, values)))
+                return
             for nn in name:
                 self.set(nn, *args, **kwargs)
             return
@@ -2012,17 +2118,18 @@ class Environment:
     @doc_group("Editing, Inspection, Variables and Configuration")
     def get(self, key):
         '''
-        Get an element or the value of a variable.
+        Get elements or variable values by name.
 
         Parameters
         ----------
-        key : str
-            Name of the element or variable.
+        key : str or iterable of str
+            Name or names of the elements or variables.
 
         Returns
         -------
-        element : Element or float
-            Element or value of the variable.
+        result : Element, float or list
+            Element or variable value for a single name. For multiple names,
+            a list of results in the requested order.
 
         Examples
         --------
@@ -2038,7 +2145,13 @@ class Environment:
             value = env.get('kq')
 
             # element is the Quadrupole object; value is 0.2
+
+            env.get(['kq', 'qf'])
+            # [0.2, Quadrupole(...)]
         '''
+
+        if isinstance(key, Iterable) and not isinstance(key, (str, bytes)):
+            return [self.get(name) for name in key]
 
         if key in self._element_dict:
             return self._element_dict[key]
@@ -2115,7 +2228,7 @@ class Environment:
 
         Parameters
         ----------
-        var: str
+        var : str
             Name of the variable
 
         Returns
@@ -2218,11 +2331,11 @@ class Environment:
 
         Parameters
         ----------
-        order: int
+        order : int
             New order of the knl and ksl attributes.
-        element_names: list of str
-            Names of the elements to extend. If None, all elements having `knl`
-            and `ksl` attributes are extended.
+        element_names : str or list of str
+            Names of the elements to extend. Must be provided explicitly;
+            None raises NotImplementedError.
 
         """
         self._extend_knl_ksl_abs_rel(order, element_names=element_names,
@@ -2231,15 +2344,15 @@ class Environment:
     @doc_group("Editing, Inspection, Variables and Configuration")
     def extend_knl_rel_ksl_rel(self, order, element_names=None):
         """
-        Extend the order of the rel_knl and rel_ksl attributes of the elements.
+        Extend the order of the knl_rel and ksl_rel attributes of the elements.
 
         Parameters
         ----------
-        order: int
-            New order of the rel_knl and rel_ksl attributes.
-        element_names: list of str
-            Names of the elements to extend. If None, all elements having `knl`
-            and `ksl` attributes are extended.
+        order : int
+            New order of the knl_rel and ksl_rel attributes.
+        element_names : str or list of str
+            Names of the elements to extend. Must be provided explicitly;
+            None raises NotImplementedError.
 
         """
         self._extend_knl_ksl_abs_rel(order, element_names=element_names,
@@ -2317,9 +2430,9 @@ class Environment:
             Dictionary with the xdeps references to the elements.
         isinit: bool
             Whether the element is being initialized. If True, to gain speed,
-            we assume that no references are alredy present to the element
+            we assume that no references are already present to the element
             in the ref_manager, and we set numerical values directly on the
-            element without unregistering the refereces.
+            element without unregistering the references.
         """
 
         for field_name, value in value_kwargs.items():
@@ -2602,6 +2715,7 @@ def _parse_kwargs(hybrid_class, kwargs, eval_):
     has_xofields = hasattr(hybrid_class, '_xofields')
     xofields = getattr(hybrid_class, '_xofields', {})
     noexpr_fields = getattr(hybrid_class, '_noexpr_fields', ())
+    normalize_array_input = getattr(hybrid_class, '_normalize_array_input', None)
 
     for field_name, value in kwargs.items():
         # `xo.Field` wraps the type only to attach a default.
@@ -2613,6 +2727,8 @@ def _parse_kwargs(hybrid_class, kwargs, eval_):
 
         # A whole array can also be given as a single reference.
         is_ref = hasattr(value, '_value')
+        if is_array_field and not is_ref and normalize_array_input is not None:
+            value = normalize_array_input(field_name, value)
         assigned = value._value if is_ref else value
 
         if is_array_field and hasattr(assigned, '__iter__'):
@@ -3024,7 +3140,7 @@ def _reverse_element(env, name):
 
     SUPPORTED = {'RBend', 'Bend', 'Quadrupole', 'Sextupole', 'Octupole',
                 'Multipole', 'Cavity', 'UniformSolenoid',
-                'Marker', 'Drift', 'LimitRect', 'LimitEllipse', 'LimitPolygon',
+                'Marker', 'Drift', 'Device', 'LimitRect', 'LimitEllipse', 'LimitPolygon',
                 'LimitRectEllipse', 'CrabCavity'}
 
     ee = env.get(name)
@@ -3657,13 +3773,13 @@ class EnvVars:
 
     def _load_madx(self, filename=None, string=None):
         """
-        Set variables values of expression from a MAD-X file.
+        Set variable values or expressions from a MAD-X file.
 
         Parameters
         ----------
-        filename: str or list of str
+        filename : str or list of str
             Path to the MAD-X file(s) to load.
-        string: str
+        string : str
             MAD-X source string to load.
         """
         old_default_to_zero = self.default_to_zero
@@ -3690,7 +3806,7 @@ class EnvVars:
             Path to the JSON file to load.
         """
         warn(
-            '`EnvVars.load_json` is deprecated, use `vars.load` ,'
+            '`EnvVars.load_json` is deprecated, use `vars.load`, '
             'optionally with `format="json"` instead.'
             + DEPRECATION_INFO_PREP_1_0,
             FutureWarning

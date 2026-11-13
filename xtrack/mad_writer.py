@@ -25,7 +25,7 @@ def expr_to_mad_str(expr):
     expr_str = expr_str.replace("'", "")
     expr_str = expr_str.replace('"', "")
 
-    # transform vars[...] in (...)
+    # transform vars[...] into (...)
     while "vars[" in expr_str:
         before, after = tuple(*[expr_str.split("vars[", 1)])
         # find the corresponding closing bracket
@@ -166,7 +166,8 @@ def _handle_transforms(tokens, el_ref, mad_type=MadType.MADX, substituted_vars=N
         if misalign_flag:
             tokens.append(misalign_token[:-2] + '}')
 
-def cavity_to_mad_str(eref, mad_type=MadType.MADX, substituted_vars=None):
+def cavity_to_mad_str(eref, mad_type=MadType.MADX, substituted_vars=None,
+                      voltage_scale=1.):
     """
     Convert a cavity element to a MADX/MAD-NG string representation.
 
@@ -188,15 +189,16 @@ def cavity_to_mad_str(eref, mad_type=MadType.MADX, substituted_vars=None):
     tokens.append('rfcavity')
     tokens.append(mad_assignment('freq', _ge(eref.frequency) * 1e-6, mad_type, substituted_vars=substituted_vars))
     tokens.append(mad_assignment('harmon', _ge(eref.harmonic), mad_type, substituted_vars=substituted_vars))
-    tokens.append(mad_assignment('volt', _ge(eref.voltage) * 1e-6, mad_type, substituted_vars=substituted_vars))
+    tokens.append(mad_assignment('volt', _ge(eref.voltage) * (1e-6 * voltage_scale), mad_type, substituted_vars=substituted_vars))
     tokens.append(mad_assignment('lag', _ge(eref.lag) / 360. + _ge(eref.phase) / (2 * np.pi), mad_type, substituted_vars=substituted_vars))
     tokens.append(mad_assignment('l', _ge(eref.length) * weight, mad_type, substituted_vars=substituted_vars))
 
     return tokens
 
-def crabcavity_to_mad_str(eref, mad_type=MadType.MADX, substituted_vars=None):
+def crabcavity_to_mad_str(eref, mad_type=MadType.MADX, substituted_vars=None,
+                          voltage_scale=1.):
     """
-    Convert a cavity element to a MADX/MAD-NG string representation.
+    Convert a crab cavity element to a MADX/MAD-NG string representation.
 
     Parameters:
     - eref: The element reference.
@@ -204,14 +206,14 @@ def crabcavity_to_mad_str(eref, mad_type=MadType.MADX, substituted_vars=None):
     - substituted_vars: List of substituted variables for MADNG.
 
     Returns:
-    - A string representation of the cavity in MADX/MAD-NG format.
+    - A string representation of the crab cavity in MADX/MAD-NG format.
     """
 
     tokens = []
     tokens.append('crabcavity')
     tokens.append(mad_assignment('freq', _ge(eref.frequency) * 1e-6, mad_type, substituted_vars=substituted_vars))
-    tokens.append(mad_assignment('volt', _ge(eref.crab_voltage) * 1e-6, mad_type, substituted_vars=substituted_vars))
-    tokens.append(mad_assignment('lag', _ge(eref.lag) / 360., mad_type, substituted_vars=substituted_vars))
+    tokens.append(mad_assignment('volt', _ge(eref.crab_voltage) * (1e-6 * voltage_scale), mad_type, substituted_vars=substituted_vars))
+    tokens.append(mad_assignment('lag', _ge(eref.lag) / 360. + _ge(eref.phase) / (2 * np.pi), mad_type, substituted_vars=substituted_vars))
     tokens.append(mad_assignment('l', _ge(eref.length), mad_type, substituted_vars=substituted_vars))
 
     return tokens
@@ -220,7 +222,8 @@ def marker_to_mad_str(name, line, mad_type=MadType.MADX, substituted_vars=None):
     """Convert a marker element to a MADX/MAD-NG string representation.
 
     Parameters:
-    - eref: The element reference.
+    - name: The name of the marker element.
+    - line: The line containing the element.
     - mad_type: Type of MAD (MADX or MADNG).
     - substituted_vars: List of substituted variables for MADNG.
 
@@ -263,9 +266,19 @@ def drift_to_mad_str(eref, mad_type=MadType.MADX, substituted_vars=None):
 
     return tokens
 
+def device_to_mad_str(eref, mad_type=MadType.MADX, substituted_vars=None):
+    """Export a passive device as a MAD-X/MAD-NG instrument."""
+    if hasattr(eref._value, '_parent'):
+        length = _ge(eref._parent.length) * _ge(eref.weight)
+    else:
+        length = _ge(eref.length)
+    return ['instrument', mad_assignment(
+        'l', length, mad_type, substituted_vars=substituted_vars)]
+
+
 def drift_slice_to_mad_str(eref, mad_type=MadType.MADX, substituted_vars=None):
     """
-    Convert a drift element to a MADX/MAD-NG string representation.
+    Convert a drift slice element to a MADX/MAD-NG string representation.
 
     Parameters:
     - eref: The element reference.
@@ -273,7 +286,7 @@ def drift_slice_to_mad_str(eref, mad_type=MadType.MADX, substituted_vars=None):
     - substituted_vars: List of substituted variables for MADNG.
 
     Returns:
-    - A string representation of the drift in MADX/MAD-NG format.
+    - A string representation of the drift slice in MADX/MAD-NG format.
     """
 
     tokens = []
@@ -360,7 +373,7 @@ def acdipole_to_mad_str(eref, mad_type=MadType.MADNG, substituted_vars=None):
         tokens.append(mad_assignment('volt', _ge(eref.volt), mad_type, substituted_vars=substituted_vars))
         tokens.append(mad_assignment('freq', _ge(eref.freq), mad_type, substituted_vars=substituted_vars))
 
-        # MAD-NG is turn-1 based, while in xtrack is turn-0 based, so we need to shift the lag and ramp parameters accordingly
+        # MAD-NG is turn-1 based, while xtrack is turn-0 based, so we need to shift the lag and ramp parameters accordingly
         tokens.append(mad_assignment('lag', _ge(eref.lag) - _ge(eref.freq), mad_type, substituted_vars=substituted_vars))
         tokens.append(mad_assignment('ramp', eref.ramp._value + 1, mad_type, substituted_vars=substituted_vars))
         tokens.append("ac_bet = false")
@@ -503,7 +516,7 @@ def sextupole_to_mad_str(eref, mad_type=MadType.MADX, substituted_vars=None):
     return tokens
 
 def octupole_to_mad_str(eref, mad_type=MadType.MADX, substituted_vars=None):
-    """ Convert a octupole element to a MADX/MAD-NG string representation.
+    """ Convert an octupole element to a MADX/MAD-NG string representation.
 
     Parameters:
     - eref: The element reference.
@@ -532,7 +545,7 @@ def octupole_to_mad_str(eref, mad_type=MadType.MADX, substituted_vars=None):
     return tokens
 
 def quadrupole_to_mad_str(eref, mad_type=MadType.MADX, substituted_vars=None):
-    """ Convert a quadrupole element to a MADX string representation.
+    """ Convert a quadrupole element to a MADX/MAD-NG string representation.
 
     Parameters:
     - eref: The element reference.
@@ -561,7 +574,7 @@ def quadrupole_to_mad_str(eref, mad_type=MadType.MADX, substituted_vars=None):
     return tokens
 
 def solenoid_to_mad_str(eref, mad_type=MadType.MADX, substituted_vars=None):
-    """ Convert a solenoid element to a MADX string representation.
+    """ Convert a solenoid element to a MADX/MAD-NG string representation.
 
     Parameters:
     - eref: The element reference.
@@ -601,6 +614,7 @@ xsuite_to_mad_converters = {
     xt.Cavity: cavity_to_mad_str,
     xt.Marker: marker_to_mad_str,
     xt.Drift: drift_to_mad_str,
+    xt.Device: device_to_mad_str,
     xt.Multipole: multipole_to_mad_str,
     xt.DipoleEdge: dipoleedge_to_mad_str,
     xt.Bend: bend_to_mad_str,
@@ -644,6 +658,11 @@ def element_to_mad_str(
         el = line._element_dict[el.parent_name]
 
     parent_flag = hasattr(el, '_parent')
+    converter_kwargs = dict(mad_type=mad_type, substituted_vars=substituted_vars)
+    if (mad_type == MadType.MADX and line.particle_ref is not None
+            and isinstance(el._parent if parent_flag else el,
+                           (xt.Cavity, xt.CrabCavity))):
+        converter_kwargs['voltage_scale'] = abs(line.particle_ref.q0)
     if (el.__class__ == xt.Marker or el.__class__ in element_types_converted_to_markers
         or parent_flag and el._parent.__class__ == xt.Marker):
         return marker_to_mad_str(name, line, mad_type=mad_type, substituted_vars=substituted_vars)
@@ -652,16 +671,18 @@ def element_to_mad_str(
         if isinstance(el, xt.beam_elements.slice_elements_drift._DriftSliceElementBase):
             tokens = drift_slice_to_mad_str(eref, mad_type=mad_type, substituted_vars=substituted_vars)
         elif parent_flag and el._parent.__class__ in xsuite_to_mad_converters:
-            tokens = xsuite_to_mad_converters[el._parent.__class__](eref, mad_type=mad_type, substituted_vars=substituted_vars)
+            tokens = xsuite_to_mad_converters[el._parent.__class__](eref, **converter_kwargs)
             if isinstance(el, xt.beam_elements.slice_elements_edge._ThinSliceEdgeBase):
                 tokens.append(mad_assignment('kill_body', True, mad_type, substituted_vars=substituted_vars))
         else:
             raise NotImplementedError(f"Element of type {el.__class__} not supported yet in MAD writer")
     else:
-        tokens = xsuite_to_mad_converters[el.__class__](eref, mad_type=mad_type, substituted_vars=substituted_vars)
+        tokens = xsuite_to_mad_converters[el.__class__](eref, **converter_kwargs)
 
     if el.__class__ not in [xt.Drift, xt.DriftSlice]:
-        _handle_transforms(tokens, eref, mad_type=mad_type, substituted_vars=substituted_vars)
+        transform_ref = (_get_eref(line, el.parent_name)
+                         if isinstance(el, xt.ThickSliceDevice) else eref)
+        _handle_transforms(tokens, transform_ref, mad_type=mad_type, substituted_vars=substituted_vars)
 
     if mad_type == MadType.MADNG:
         tokens = [tokens[0]] + [f"'{name}'"] + tokens[1:]
@@ -720,7 +741,7 @@ def to_madx_sequence(line, name='seq', mode='sequence'):
                 continue
 
             nn_mad = nn.replace(':', '__')  # : not supported in madx names
-            nn_mad = nn.replace('/', '__')  # / not supported in madx names
+            nn_mad = nn_mad.replace('/', '__')  # / not supported in madx names
             seq_str += f"{nn_mad}: {el_str}, at={s_dict[nn]};\n"
         seq_str += 'endsequence;'
         machine_str = seq_str

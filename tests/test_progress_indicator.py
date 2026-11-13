@@ -185,24 +185,18 @@ def test_aperture_factory_propagates_with_progress_false(monkeypatch):
     monkeypatch.setattr(aperture_module, 'progress', _unexpected_progress)
     build_arguments = {}
 
-    def fake_build_aperture_model(cls, **kwargs):
+    def fake_build_aperture_bounds(self, **kwargs):
         build_arguments.update(kwargs)
-        return object()
 
     monkeypatch.setattr(
-        aperture_module.Aperture,
-        '_build_aperture_model',
-        classmethod(fake_build_aperture_model),
+        aperture_module.LineAperture,
+        '_build_aperture_bounds',
+        fake_build_aperture_bounds,
     )
     line = xt.Line(
         elements={'aper': xt.LimitEllipse(a=1, b=1)},
         element_names=['aper'],
     )
-    monkeypatch.setattr(
-        line, 'survey',
-        lambda: SimpleNamespace(name=['aper', '_end_point']))
-
-    aperture_module.Aperture.from_line_with_limits(
-        line, with_progress=False)
+    line.aperture.from_limits(with_progress=False)
 
     assert build_arguments['with_progress'] is False

@@ -1,14 +1,64 @@
-import xtrack as xt
+import pathlib
+
 import numpy as np
+import pytest
 import xobjects as xo
+import xpart as xp
 from cpymad.madx import Madx
 from xobjects.test_helpers import for_all_test_contexts
-import pytest
 
-import pathlib
+import xtrack as xt
 
 test_data_folder = pathlib.Path(
         __file__).parent.joinpath('../test_data').absolute()
+
+
+def test_drift_kick_drift_exact_converges_to_straight_body_rbend():
+    """The straight-body RBend DKD-exact model converges to the BKB body map.
+
+    Edges are disabled: this test covers the straight RBend body, not the
+    edge/fringe maps.
+    """
+    test_context = xo.ContextCpu()
+    coords = ["x", "px", "y", "py", "zeta", "delta"]
+
+    def track(model, num_multipole_kicks):
+        bend = xt.RBend(
+            length_straight=3.0,
+            angle=0.1,
+            k0_from_h=True,
+            rbend_model="straight-body",
+            model=model,
+            num_multipole_kicks=num_multipole_kicks,
+            edge_entry_active=False,
+            edge_exit_active=False,
+            _context=test_context,
+        )
+        particles = xp.Particles(
+            p0c=10e9,
+            x=1e-3,
+            px=2e-4,
+            y=2e-3,
+            py=-3e-4,
+            delta=1e-3,
+            _context=test_context,
+        )
+        bend.track(particles)
+        particles.move(_context=xo.context_default)
+        return particles
+
+    p_ref = track("bend-kick-bend", num_multipole_kicks=1)
+    p_low = track("drift-kick-drift-exact", num_multipole_kicks=5)
+    p_high = track("drift-kick-drift-exact", num_multipole_kicks=20)
+
+    err_low = max(abs(getattr(p_low, cc)[0] - getattr(p_ref, cc)[0])
+                  for cc in coords)
+    err_high = max(abs(getattr(p_high, cc)[0] - getattr(p_ref, cc)[0])
+                   for cc in coords)
+
+    assert err_high < 1e-11
+    assert err_high < err_low / 100
+
 
 @for_all_test_contexts
 def test_rbend_straight_body_edge_full(test_context):
@@ -1402,7 +1452,7 @@ def test_rbend_straight_body_survey_v():
     # end                       5 Marker                          0
     # _end_point                5                                 0
 
-    assert np.all(sv_curved['name'] == 
+    assert np.all(sv_curved['name'] ==
         ['start', '||drift_3::0', '||drift_4', 'mb_entry', 'mb..entry_map',
        'mb..0', 'mb..1', 'mb..2', 'mb..3', 'mid', 'mb..4', 'mb..5',
        'mb..6', 'mb..7', 'mb..exit_map', 'mb_exit', '||drift_5',
@@ -3064,4 +3114,3 @@ def test_rbend_curved_body_thick_slicing():
     xo.assert_allclose(tw_thick_back.x, tw_thick.x, atol=3e-10)
     xo.assert_allclose(tw_thin_back.x, tw_thin.x, atol=1e-13)
     xo.assert_allclose(tw_thick_cut_back.x, tw_thick_cut.x, atol=3e-10)
-

@@ -19,7 +19,7 @@ class SecondOrderTaylorMap(BeamElement):
     Parameters
     ----------
     length : float
-        length of the element in meters.
+        Length of the element in meters.
     k : array_like
         6x1 array of the zero order Taylor map coefficients. Default is 0.
     R : array_like

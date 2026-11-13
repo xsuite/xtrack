@@ -340,7 +340,7 @@ def _build_auxiliary_tracker_with_extra_markers(
 
     import xtrack as xt  # Local import avoids circular imports.
 
-    assert algorithm in ['auto', 'insert', 'regen_all_drift']
+    assert algorithm in ['auto', 'insert', 'regen_all_drifts']
     if algorithm == 'auto':
         if len(at_s) < 10:
             algorithm = 'insert'
@@ -450,8 +450,8 @@ def _handle_deprecated_twiss_kwargs(
     if at_s is not None:
         warn('`at_s` keyword is deprecated and will be removed in future versions. \n'
         'The same functionality can be achieved making a shallow copy of the line '
-        '(e.g. `line_copy = line.copy(shallow=True)`), using the`line.cut_at_s(...)` '
-        ' functionality and then calling line_copy.twiss(...) on the cut line.'
+        '(e.g. `line_copy = line.copy(shallow=True)`), using the `line.cut_at_s(...)` '
+        'functionality and then calling line_copy.twiss(...) on the cut line.'
         + DEPRECATION_INFO_PREP_1_0,
         FutureWarning)
 
@@ -480,13 +480,13 @@ def _handle_deprecated_twiss_kwargs(
 
     if freeze_energy:
         warn('The `freeze_energy` keyword is deprecated and will be removed in future versions. \n'
-             'You can use twiss(method="4d", ...) to suppress the energy kick from RF cavities'
+             'You can use twiss(method="4d", ...) to suppress the energy kick from RF cavities.'
              + DEPRECATION_INFO_PREP_1_0,
              FutureWarning)
 
     if freeze_longitudinal:
         warn('The `freeze_longitudinal` keyword is deprecated and will be removed in future versions. \n'
-             'You can use twiss(method="4d", ...) to suppress the energy kick from RF cavities'
+             'You can use twiss(method="4d", ...) to suppress the energy kick from RF cavities.'
              + DEPRECATION_INFO_PREP_1_0,
              FutureWarning)
 

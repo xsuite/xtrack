@@ -203,8 +203,7 @@ def get_T_matrix_line(line, start, end, particle_on_co=None,
     TT[:, :, 4] = 0.5 * (R_plus['zeta'] - R_minus['zeta']) / (
         p_plus['zeta']._xobject.zeta[0] - p_minus['zeta']._xobject.zeta[0])
     TT[:, :, 5] = 0.5 * (R_plus['delta'] - R_minus['delta']) / (
-        (p_plus['delta']._xobject.ptau[0] - p_minus['delta']._xobject.ptau[0])
-        / p_plus['delta']._xobject.beta0[0])
+        p_plus['delta']._xobject.pzeta[0] - p_minus['delta']._xobject.pzeta[0])
 
     return TT
 

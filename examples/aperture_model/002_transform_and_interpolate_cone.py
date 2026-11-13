@@ -3,16 +3,7 @@ import numpy as np
 import xobjects as xo
 import xtrack as xt
 
-from xtrack.aperture.aperture import Aperture
 from xtrack.aperture.transform import transform_matrix
-from xtrack.aperture.structures import (
-    ApertureModel,
-    Pipe,
-    Circle,
-    Profile,
-    ProfilePosition,
-    PipePosition,
-)
 
 
 def matrix_from_survey_row(sv_row):
@@ -49,44 +40,25 @@ sv = line.survey()
 s0, s1 = 0.0, 11.0
 r0, r1 = 0.8, 2.0
 
-profiles = [
-    Profile(shape=Circle(radius=r0), tol_r=0, tol_x=0, tol_y=0),
-    Profile(shape=Circle(radius=r1), tol_r=0, tol_x=0, tol_y=0),
-]
-profile_positions = [
-    ProfilePosition(profile_index=0, shift_s=s0),
-    ProfilePosition(profile_index=1, shift_s=s1),
-]
-
-model = ApertureModel(
-    line=line,
-    pipe_positions=[
-        PipePosition(
-            pipe_index=0,
-            survey_reference_name=sv.name[0],
-            survey_index=0,
-            transformation=transform_matrix(shift_x=-1.5),
-        ),
-    ],
-    pipes=[Pipe(curvature=0.0, positions=profile_positions)],
-    profiles=profiles,
-    pipe_names=["pipe0"],
-    pipe_position_names=["pipe0"],
-    profile_names=["circle0", "circle1"],
+circle0 = env.aperture.new_profile('circle0', 'Circle', radius=r0)
+circle1 = env.aperture.new_profile('circle1', 'Circle', radius=r1)
+pipe = env.aperture.new_pipe(
+    'pipe0', positions=[circle0.place(at=s0), circle1.place(at=s1)],
 )
-
-ap = Aperture(line=line, model=model)
+ap = line.aperture
+ap.place_pipe('pipe0', pipe, at=sv.name[0], shift_x=-1.5)
+ap.build_model()
 
 # Build transform world<->pipe
 sv_ref = sv.rows[0]
 sv_ref_mat = matrix_from_survey_row(sv_ref)
-pipe_matrix = model.pipe_positions[0].transformation.to_nparray()
+pipe_matrix = ap.pipe_positions['pipe0'].transformation
 world_from_pipe = sv_ref_mat @ pipe_matrix
 pipe_from_world = np.linalg.inv(world_from_pipe)
 
 # Compute interpolated cross-sections.
 s_samples = np.linspace(1.0, 11.0, 21, dtype=np.float32)
-sections_table = ap.cross_sections_at_s(s_samples)
+sections_table = ap.get_cross_sections_at_s(s_samples)
 sections = sections_table.cross_section
 poses = sections_table.pose
 
@@ -111,14 +83,14 @@ ax = plt.figure().add_subplot(projection="3d")
 ax.plot(sv.Z, sv.X, sv.Y, c="b", label="survey")
 
 # Plot installed profiles (red)
-for pipe_pos in ap._model.pipe_positions:
-    aper_pipe = ap._model.pipe_for_position(pipe_pos)
+for pipe_pos in ap.pipe_positions:
+    aper_pipe = pipe_pos.pipe
     sv_ref_row = sv.rows[pipe_pos.survey_index]
     sv_ref_matrix = matrix_from_survey_row(sv_ref_row)
-    pipe_pos_matrix = pipe_pos.transformation.to_nparray()
+    pipe_pos_matrix = pipe_pos.transformation
 
-    for profile_pos in aper_pipe.positions:
-        profile = ap._model.profile_for_position(profile_pos)
+    for profile_pos in aper_pipe:
+        profile = profile_pos.profile
         poly = profile.build_polygon(len_points=256)
         poly_hom = poly2d_to_hom(poly)
         profile_matrix = transform_matrix(

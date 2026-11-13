@@ -8,7 +8,7 @@ import numpy as np
 import xobjects as xo
 
 class DipoleEdge(BeamElement):
-    """Beam element modeling a dipole edge (see MAD-X manual for detaild description).
+    """Beam element modeling a dipole edge (see MAD-X manual for detailed description).
 
     Parameters
     ----------
@@ -25,7 +25,7 @@ class DipoleEdge(BeamElement):
         plane to account for non-zero angle in the closed orbit when entering
         the fringe field (feed down effect).
     model : str
-        Model to be used for the edge. It can be 'linear', 'full' or 'suppress'.
+        Model to be used for the edge. It can be 'linear', 'full' or 'suppressed'.
         Default is 'linear'.
     side : str
         Side of the bend on which the edge is located. It can be 'entry' or

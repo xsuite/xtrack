@@ -364,6 +364,29 @@ class TwissInit:
 
     def get_normalized_coordinates(self, particles, nemitt_x=None, nemitt_y=None,
                                    nemitt_zeta=None):
+        """Convert particle coordinates using this initial condition's optics.
+
+        Parameters
+        ----------
+        particles : xtrack.Particles or xtrack.ParticlesMonitor
+            Particles or recorded coordinates to convert.
+        nemitt_x, nemitt_y, nemitt_zeta : float, optional
+            Normalized emittances for the three planes. In each plane, the
+            coordinates transformed by the inverse W matrix are divided by
+            ``sqrt(nemitt / (beta0 * gamma0))``, using the closed-orbit reference
+            particle's ``beta0`` and ``gamma0``. If omitted or ``None``, no
+            emittance scaling is applied (equivalent to unit geometric
+            emittance, not unit normalized emittance). Emittances used to
+            build the particles are not inferred.
+
+        Returns
+        -------
+        xtrack.Table
+            Normalized coordinates indexed by ``particle_id``, with
+            ``at_element`` and ``at_turn`` columns. The supplied ``nemitt_x``,
+            ``nemitt_y``, and ``nemitt_zeta`` are stored as table attributes;
+            ``None`` records that no emittance scaling was applied in a plane.
+        """
 
         ctx2np = particles._context.nparray_from_context_array
 
@@ -382,7 +405,7 @@ class TwissInit:
                                 y = ctx2np(particles.y),
                                 py = ctx2np(particles.py),
                                 zeta = ctx2np(particles.zeta),
-                                pzeta = ctx2np(particles.ptau)/ctx2np(particles.beta0),
+                                pzeta = ctx2np(particles.pzeta),
                                 W_matrix = self.W_matrix,
                                 co_dict = self.particle_on_co.copy(_context=xo.context_default).to_dict(),
                                 nemitt_x = nemitt_x,
@@ -408,10 +431,13 @@ class TwissInit:
             at_element = at_element.flatten()
             at_turn = at_turn.flatten()
 
-        return Table({'particle_id': part_id, 'at_element': at_element,'at_turn':at_turn,
+        out = Table({'particle_id': part_id, 'at_element': at_element,'at_turn':at_turn,
                       'x_norm': x_norm, 'px_norm': px_norm, 'y_norm': y_norm,
                       'py_norm': py_norm, 'zeta_norm': zeta_norm,
                       'pzeta_norm': pzeta_norm}, index='particle_id')
+        out._data.update(nemitt_x=nemitt_x, nemitt_y=nemitt_y,
+                         nemitt_zeta=nemitt_zeta)
+        return out
 
     @property
     def betx(self):
@@ -478,9 +504,9 @@ def _W_phys2norm(x, px, y, py, zeta, pzeta, W_matrix, co_dict, nemitt_x=None, ne
     gemitt_zeta = np.ones(shape=np.shape(co_dict['beta0'])) if nemitt_zeta is None else (
         nemitt_zeta / co_dict['beta0'] / co_dict['gamma0'])
 
-    # Prepaing co arrray and gemitt array:
+    # Preparing co array and gemitt array:
     co = np.array([co_dict['x'], co_dict['px'], co_dict['y'], co_dict['py'],
-                  co_dict['zeta'], co_dict['ptau'] / co_dict['beta0']])
+                  co_dict['zeta'], co_dict['pzeta']])
     gemitt_values = np.array(
         [gemitt_x, gemitt_x, gemitt_y, gemitt_y, gemitt_zeta, gemitt_zeta])
 
@@ -490,7 +516,7 @@ def _W_phys2norm(x, px, y, py, zeta, pzeta, W_matrix, co_dict, nemitt_x=None, ne
     for add_axis in range(-1, len(np.shape(x))-len(np.shape(gemitt_values))):
         gemitt_values = gemitt_values[:, np.newaxis]
 
-    # substracting closed orbit
+    # subtracting closed orbit
     XX = np.array([x, px, y, py, zeta, pzeta])
     XX -= co
 

@@ -107,7 +107,7 @@ void ElectronCooler_track_local_particle(ElectronCoolerData el, LocalParticle* p
             double rho_max = fmin(rho_max_shielding, rho_max_interaction);               // Take the smaller of the two maximum impact parameters
             double log_coulomb = log((rho_max+rho_min+rho_larmor)/(rho_min+rho_larmor)); // Coulomb logarithm
 
-            double friction_denominator = POW3(V_tot); // Compute this coefficient once because its going to be used three times
+            double friction_denominator = POW3(V_tot); // Compute this coefficient once because it's going to be used three times
                                 
             Fx = -friction_coefficient * dVx/friction_denominator * log_coulomb; // Newton
             Fy = -friction_coefficient * dVy/friction_denominator * log_coulomb; // Newton
@@ -123,7 +123,7 @@ void ElectronCooler_track_local_particle(ElectronCoolerData el, LocalParticle* p
         LocalParticle_add_to_px(part,Fx * gamma0 * tau/p0c);
         LocalParticle_add_to_py(part,Fy * gamma0 * tau/p0c);
 
-        // Handles cases where force is record
+        // Handle the case where the force is recorded
         if (record_flag && record){
             record_index = ElectronCoolerRecordData_getp__index(record);
                 int64_t i_slot = RecordIndex_get_slot(record_index);

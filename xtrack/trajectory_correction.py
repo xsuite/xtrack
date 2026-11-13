@@ -391,7 +391,7 @@ class OrbitCorrectionSinglePlane:
                         self.line.ref.elements[nn_kick].knl[0] -= ( # knl[0] is -kick
                             self.line.vars[f'orbit_corr_{nn_kick}_x'])
                     else:
-                        # Workarond for https://github.com/xsuite/xsuite/issues/501
+                        # Workaround for https://github.com/xsuite/xsuite/issues/501
                         val = self.line.ref.elements[nn_kick].knl[0]._value
                         if hasattr(val, 'get'):
                             val = val.get()
@@ -405,7 +405,7 @@ class OrbitCorrectionSinglePlane:
                         self.line.ref.elements[nn_kick].ksl[0] += ( # ksl[0] is +kick
                             self.line.vars[f'orbit_corr_{nn_kick}_y'])
                     else:
-                        # Workarond for https://github.com/xsuite/xsuite/issues/501
+                        # Workaround for https://github.com/xsuite/xsuite/issues/501
                         val = self.line.ref.elements[nn_kick].ksl[0]._value
                         if hasattr(val, 'get'):
                             val = val.get()
@@ -662,14 +662,15 @@ class TrajectoryCorrection:
 
         tw_orbit = a_correction._get_tw_orbit(delta0=delta0)
 
-        if self.x_correction is not None:
-            relative_limits_x = self.x_correction.corrector_limits
-        if self.y_correction is not None:
-            relative_limits_y = self.y_correction.corrector_limits
-
         while True:
 
+            # Bound the total kicks, including corrections from previous calls.
             if self.x_correction is not None and 'x' in planes:
+                relative_limits_x = self.x_correction.corrector_limits
+                if relative_limits_x is not None:
+                    kicks_x = self.x_correction.get_kick_values()
+                    relative_limits_x = (relative_limits_x[0] - kicks_x,
+                                         relative_limits_x[1] - kicks_x)
                 self.x_correction.correct(n_micado=n_micado_x,
                             n_singular_values=n_singular_values_x,
                             rcond=rcond_x, verbose=False, n_iter=1,
@@ -677,6 +678,11 @@ class TrajectoryCorrection:
                             corrector_limits=relative_limits_x)
 
             if self.y_correction is not None and 'y' in planes:
+                relative_limits_y = self.y_correction.corrector_limits
+                if relative_limits_y is not None:
+                    kicks_y = self.y_correction.get_kick_values()
+                    relative_limits_y = (relative_limits_y[0] - kicks_y,
+                                         relative_limits_y[1] - kicks_y)
                 self.y_correction.correct(n_micado=n_micado_y,
                             n_singular_values=n_singular_values_y,
                             rcond=rcond_y, verbose=False, n_iter=1,
@@ -705,19 +711,11 @@ class TrajectoryCorrection:
                     old_position = self.x_correction._measure_position(tw_orbit_prev)
                     str_2print += (f'x_rms: {old_position.std():.2e}'
                         f' -> {new_position.std():.2e}, ')
-                    if self.x_correction.corrector_limits is not None:
-                        correction_kicks_x = self.x_correction.get_kick_values()
-                        relative_limits_x = (self.x_correction.corrector_limits[0] - correction_kicks_x,
-                                             self.x_correction.corrector_limits[1] - correction_kicks_x)
                 if self.y_correction is not None and 'y' in planes:
                     new_position = self.y_correction._measure_position(tw_orbit)
                     old_position = self.y_correction._measure_position(tw_orbit_prev)
                     str_2print += (f'y_rms: {old_position.std():.2e}'
                         f' -> {new_position.std():.2e}')
-                    if self.y_correction.corrector_limits is not None:
-                        correction_kicks_y = self.y_correction.get_kick_values()
-                        relative_limits_y = (self.y_correction.corrector_limits[0] - correction_kicks_y,
-                                             self.y_correction.corrector_limits[1] - correction_kicks_y)
                 _print(str_2print)
             if stop_x and stop_y:
                 break
@@ -730,8 +728,8 @@ class TrajectoryCorrection:
         '''
         Thread the trajectory along the line. The correction is performed in
         portions of length `ds_thread`. For each portion the correction is
-        first performed only on the new added part, then on the whole portion up
-        to the end of the new added part.
+        first performed only on the newly added part, then on the whole portion up
+        to the end of the newly added part.
 
         Parameters
         ----------
@@ -743,7 +741,7 @@ class TrajectoryCorrection:
         rcond_long : float or tuple of float
             Cutoff for small singular values (relative to the largest singular
             value) used for the correction of the whole portion up to the end
-            of the new added part.
+            of the newly added part.
 
         Returns
         -------
@@ -904,7 +902,7 @@ def _thread(line, ds_thread, twiss_table=None, rcond_short = None, rcond_long = 
 
     assert ds_thread is not None
 
-    # r_cond_short is not used anymore, see commented code below
+    # rcond_short is not used anymore, see commented code below
 
     tt = line.get_table()
     line_length = tt.s[-1]
@@ -931,9 +929,9 @@ def _thread(line, ds_thread, twiss_table=None, rcond_short = None, rcond_long = 
             end_loop = True
 
         # ----- The following was used to correct only the newly added part
-        # ----- It us not used anymore, as it was observed not to help
-        # ----- We keep it in case it is needed in the futures
-        # Correct only the new added portion
+        # ----- It is not used anymore, as it was observed not to help
+        # ----- We keep it in case it is needed in the future
+        # Correct only the newly added portion
         # tt_new_part = tt.rows[s_corr_end-ds_thread:s_corr_end:'s']
         #
         # Get initial conditions for the new added portion
@@ -991,7 +989,7 @@ def _thread(line, ds_thread, twiss_table=None, rcond_short = None, rcond_long = 
         #         f' -> {y_meas_print.std():.2e}]')
         #     print(str_2print)
 
-        # Correct from start line to end of new added portion
+        # Correct from start of line to end of newly added portion
         tt_part = tt.rows[0:s_corr_end:'s']
         ocorr = TrajectoryCorrection(
             twiss_table=twiss_table,

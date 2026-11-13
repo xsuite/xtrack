@@ -5,44 +5,26 @@ from scipy.special import ellipe
 import xobjects as xo
 from xtrack.aperture import structures
 from xtrack.aperture.structures import (
-    Circle, Ellipse, FloatType, Octagon, Polygon, Profile, Racetrack, Rectangle,
+    Circle, Ellipse, Octagon, Polygon, Racetrack, Rectangle,
     RectEllipse, ShapeTypes
 )
 
 
 @pytest.fixture(scope="module")
 def context():
-    # This is to avoid recompilation for every test
-    context = xo.ContextCpu()
-    Profile.compile_class_kernels(context, only_if_needed=True)
-    return context
+    """Reuse one CPU context for all polygon kernels in this module."""
+    return xo.ContextCpu()
 
 
 @pytest.fixture(scope="module")
 def build_polygon_for_profile(context):
-    def _build_polygon_for_profile(profile: ShapeTypes, len_points: int):
-        profile = Profile(shape=profile, _context=context)
-        return profile.build_polygon(len_points=len_points)
+    """Build each shape on the shared context, using its public polygon API."""
+
+    def _build_polygon_for_profile(shape: ShapeTypes, len_points: int):
+        context_shape = type(shape)(shape._to_dict(), _context=context)
+        return context_shape.build_polygon(len_points=len_points)
 
     return _build_polygon_for_profile
-
-
-@pytest.fixture(scope="module")
-def build_polygon_for_profile_with_convexity(context):
-    def _build_polygon_for_profile_with_convexity(profile: ShapeTypes, len_points: int):
-        profile = Profile(shape=profile, _context=context)
-        points = np.empty((len_points, 2), dtype=FloatType._dtype)
-        is_convex = np.zeros(1, dtype=np.int8)
-        profile.compile_kernels(only_if_needed=True)
-        context.kernels.build_polygon_for_profile(
-            points=points,
-            len_points=len_points,
-            profile=profile,
-            out_is_convex=is_convex,
-        )
-        return points, bool(is_convex[0])
-
-    return _build_polygon_for_profile_with_convexity
 
 
 def ellipse_circumference(a: float, b: float) -> float:
@@ -223,7 +205,7 @@ def test_circle_correctness_and_uniformity(build_polygon_for_profile, r, n):
     (1.0, 1.0, 2000),
 ])
 def test_rectangle_correctness_and_uniformity(build_polygon_for_profile, w, h, n):
-    pts = build_polygon_for_profile(Rectangle(half_width=w, half_height=h), n)
+    pts = build_polygon_for_profile(Rectangle(max_x=w, max_y=h), n)
     assert pts.shape == (n, 2)
     assert_polyline(pts)
 
@@ -237,7 +219,7 @@ def test_rectangle_correctness_and_uniformity(build_polygon_for_profile, w, h, n
     (5.0, 0.5, 4000),
 ])
 def test_ellipse_correctness_and_uniformity(build_polygon_for_profile, a, b, n):
-    pts = build_polygon_for_profile(Ellipse(half_major=a, half_minor=b), n)
+    pts = build_polygon_for_profile(Ellipse(a=a, b=b), n)
     assert pts.shape == (n, 2)
     assert_polyline(pts)
 
@@ -251,7 +233,7 @@ def test_ellipse_correctness_and_uniformity(build_polygon_for_profile, a, b, n):
     (2.0, 1.0, 1.0, 0.25, 6000),
 ])
 def test_racetrack_correctness_and_uniformity(build_polygon_for_profile, w, h, a, b, n):
-    pts = build_polygon_for_profile(Racetrack(half_width=w, half_height=h, half_major=a, half_minor=b), n)
+    pts = build_polygon_for_profile(Racetrack(max_x=w, max_y=h, a=a, b=b), n)
     assert pts.shape == (n, 2)
     assert_polyline(pts)
 
@@ -265,7 +247,7 @@ def test_racetrack_degenerate_to_ellipse(build_polygon_for_profile):
     w, h = a, b
     n = 2500
 
-    pts = build_polygon_for_profile(Racetrack(half_width=w, half_height=h, half_major=a, half_minor=b), n)
+    pts = build_polygon_for_profile(Racetrack(max_x=w, max_y=h, a=a, b=b), n)
     assert pts.shape == (n, 2)
     assert_polyline(pts)
 
@@ -277,7 +259,7 @@ def test_rectellipse_with_zero_length_arcs(build_polygon_for_profile):
     # angle1 == angle2 in `geom2d_segments_from_rectellipse`, yielding zero-length arc segments.
     # This used to expose division-by-zero issues in arc sampling.
     pts = build_polygon_for_profile(
-        RectEllipse(half_width=0.6, half_height=0.8, half_major=1.0, half_minor=1.0),
+        RectEllipse(max_x=0.6, max_y=0.8, a=1.0, b=1.0),
         1200,
     )
     assert pts.shape == (1200, 2)
@@ -295,7 +277,7 @@ def test_rectellipse_with_zero_length_arcs(build_polygon_for_profile):
     (0.022, 0.01715, 0.022, 0.022, 300), # LHC-style screen
 ])
 def test_rectellipse_correctness_and_uniformity(build_polygon_for_profile, w, h, a, b, n):
-    pts = build_polygon_for_profile(RectEllipse(half_width=w, half_height=h, half_major=a, half_minor=b), n)
+    pts = build_polygon_for_profile(RectEllipse(max_x=w, max_y=h, a=a, b=b), n)
     assert pts.shape == (n, 2)
     assert_polyline(pts)
 
@@ -310,7 +292,7 @@ def test_rectellipse_correctness_and_uniformity(build_polygon_for_profile, w, h,
     (2.0, 2.0, 1.5, 5000),
 ])
 def test_octagon_correctness_and_uniformity(build_polygon_for_profile, w, h, d, n):
-    pts = build_polygon_for_profile(Octagon(half_width=w, half_height=h, half_diagonal=d), n)
+    pts = build_polygon_for_profile(Octagon(max_x=w, max_y=h, max_diagonal=d), n)
     assert pts.shape == (n, 2)
     assert_polyline(pts)
 
@@ -322,11 +304,11 @@ def test_octagon_correctness_and_uniformity(build_polygon_for_profile, w, h, d, 
 
 @pytest.mark.parametrize("shape_class,params", [
     ('Circle', {'radius': 1.0}),
-    ('Rectangle', {'half_width': 1.0, 'half_height': 0.5}),
-    ('Ellipse', {'half_major': 1.5, 'half_minor': 1.0}),
-    ('RectEllipse', {'half_width': 1.0, 'half_height': 0.5, 'half_major': 1.2, 'half_minor': 0.8}),
-    ('Racetrack', {'half_width': 1.0, 'half_height': 0.5, 'half_major': 0.3, 'half_minor': 0.2}),
-    ('Octagon', {'half_width': 1.0, 'half_height': 0.8, 'half_diagonal': 0.8}),
+    ('Rectangle', {'max_x': 1.0, 'max_y': 0.5}),
+    ('Ellipse', {'a': 1.5, 'b': 1.0}),
+    ('RectEllipse', {'max_x': 1.0, 'max_y': 0.5, 'a': 1.2, 'b': 0.8}),
+    ('Racetrack', {'max_x': 1.0, 'max_y': 0.5, 'a': 0.3, 'b': 0.2}),
+    ('Octagon', {'max_x': 1.0, 'max_y': 0.8, 'max_diagonal': 0.8}),
 ])
 def test_smoke_small_len_points(build_polygon_for_profile, shape_class, params):
     profile = getattr(structures, shape_class)(**params)
@@ -352,38 +334,25 @@ def test_polygon_correctness_and_uniformity(build_polygon_for_profile):
     assert_polygon_boundary_and_uniformity(pts, vertices)
 
 
-@pytest.mark.parametrize("shape_class,params", [
-    ('Circle', {'radius': 1.0}),
-    ('Rectangle', {'half_width': 1.0, 'half_height': 0.5}),
-    ('Ellipse', {'half_major': 1.5, 'half_minor': 1.0}),
-    ('RectEllipse', {'half_width': 1.0, 'half_height': 0.5, 'half_major': 1.2, 'half_minor': 0.8}),
-    ('Racetrack', {'half_width': 1.0, 'half_height': 0.5, 'half_major': 0.3, 'half_minor': 0.2}),
-    ('Octagon', {'half_width': 1.0, 'half_height': 0.8, 'half_diagonal': 0.8}),
-])
-def test_builtin_shapes_emit_convexity_true(build_polygon_for_profile_with_convexity, shape_class, params):
-    profile = getattr(structures, shape_class)(**params)
-    pts, is_convex = build_polygon_for_profile_with_convexity(profile, 64)
-    assert_polyline(pts)
-    assert is_convex is True
-
-
-def test_polygon_convexity_and_orientation(build_polygon_for_profile_with_convexity):
+def test_polygon_clockwise_orientation(build_polygon_for_profile):
+    """Clockwise input must be resampled as a closed anticlockwise polygon."""
     cw_vertices = np.array([
         [-3.0, -1.0],
         [-3.0, 2.0],
         [3.0, 2.0],
         [3.0, -1.0],
     ])
-    pts, is_convex = build_polygon_for_profile_with_convexity(Polygon(vertices=cw_vertices), 37)
 
-    assert pts.shape == (37, 2)
-    assert_polyline(pts)
-    assert_polygon_boundary_and_uniformity(pts, cw_vertices[::-1])
-    assert is_convex is True
-    assert polygon_signed_area(pts) > 0
+    points = build_polygon_for_profile(Polygon(vertices=cw_vertices), 37)
+
+    assert points.shape == (37, 2)
+    assert_polyline(points)
+    assert_polygon_boundary_and_uniformity(points, cw_vertices[::-1])
+    assert polygon_signed_area(points) > 0
 
 
-def test_polygon_concave_emits_false_convexity(build_polygon_for_profile_with_convexity):
+def test_polygon_concave_boundary(build_polygon_for_profile):
+    """Resampling must preserve the indented boundary of a concave polygon."""
     concave_vertices = np.array([
         [-3.0, -1.0],
         [0.0, -1.0],
@@ -392,9 +361,9 @@ def test_polygon_concave_emits_false_convexity(build_polygon_for_profile_with_co
         [3.0, 2.0],
         [-3.0, 2.0],
     ])
-    pts, is_convex = build_polygon_for_profile_with_convexity(Polygon(vertices=concave_vertices), 61)
 
-    assert pts.shape == (61, 2)
-    assert_polyline(pts)
-    assert_polygon_boundary_and_uniformity(pts, concave_vertices)
-    assert is_convex is False
+    points = build_polygon_for_profile(Polygon(vertices=concave_vertices), 61)
+
+    assert points.shape == (61, 2)
+    assert_polyline(points)
+    assert_polygon_boundary_and_uniformity(points, concave_vertices)

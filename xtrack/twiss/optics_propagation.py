@@ -173,6 +173,7 @@ def _propagate_twiss_from_init(
     zeta_co = line.record_last_track.zeta[0, i_start:i_stop+1].copy()
     delta_co = np.array(line.record_last_track.delta[0, i_start:i_stop+1].copy())
     ptau_co = np.array(line.record_last_track.ptau[0, i_start:i_stop+1].copy())
+    pzeta_co = np.array(line.record_last_track.pzeta[0, i_start:i_stop+1].copy())
     s_co = line.record_last_track.s[0, i_start:i_stop+1].copy()
     kin_px_co = line.record_last_track.kin_px[0, i_start:i_stop+1].copy()
     kin_py_co = line.record_last_track.kin_py[0, i_start:i_stop+1].copy()
@@ -217,6 +218,7 @@ def _propagate_twiss_from_init(
         'zeta': zeta_co,
         'delta': delta_co,
         'ptau': ptau_co,
+        'pzeta': pzeta_co,
         'W_matrix': Ws,
         'kin_px': kin_px_co,
         'kin_py': kin_py_co,
@@ -248,7 +250,7 @@ def _propagate_twiss_from_init(
 
     if hide_thin_groups:
         _vars_hide_changes = [
-            'x', 'px', 'y', 'py', 'zeta', 'delta', 'ptau',
+            'x', 'px', 'y', 'py', 'zeta', 'delta', 'ptau', 'pzeta',
             'betx', 'bety', 'alfx', 'alfy', 'gamx', 'gamy',
             'betx1', 'bety1', 'betx2', 'bety2',
             'betx_edw_teng', 'bety_edw_teng',
@@ -269,8 +271,8 @@ def _propagate_twiss_from_init(
     twiss_res._data['particle_on_co'] = particle_on_co.copy(_context=xo.context_default)
 
     line_length = line.tracker._tracker_data_base.line_length
-    twiss_res._data['line_length'] = line_length
-    twiss_res._data['circumference'] = line_length # deprecated
+    twiss_res._data['line_length'] = float(line_length)
+    twiss_res._data['circumference'] = float(line_length) # deprecated
     twiss_res._data['_orientation'] = twiss_orientation
 
     return twiss_res

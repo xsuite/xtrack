@@ -11,7 +11,6 @@ import xtrack as xt
 from ._common import (
     _HasIntegrator,
     _HasModelRF,
-    _HasModelStraight,
     _NOEXPR_FIELDS,
     _docstring_general_notes,
     _for_docstring_alignment,
@@ -27,18 +26,24 @@ class CrabCavity(_HasModelRF, _HasIntegrator, BeamElement):
         Length of the RF cavity in meters. Default is ``0``.
     crab_voltage : float
         Voltage associated to the horizontal RF deflection in Volts. Default is ``0``.
+        As for `Cavity.voltage`, this is the voltage per unit charge; the
+        reference-particle kick includes the absolute reference charge `abs(q0)`.
     frequency : float
         Frequency of the cavity in Hertz. It can be set only if harmonic is zero.
         Default is ``0``.
     phase : float
         Phase in radians seen at the arrival time of the reference particle (zeta = 0).
-        Default is ``0``.
+        When `absolute_time` is True, `phase` is the phase at time zero. Default is ``0``.
     lag : float
         Deprecated phase shift in degrees, added to `phase`. Default is ``0``.
+    absolute_time : bool
+        If True, the cavity phase is computed from the absolute time of the
+        simulation, otherwise the cavity is synchronized with the arrival time of
+        the reference particle (zeta=0). Default is False.
     '''.strip()
 
     __doc__ = '\n    '.join([_docstring_start,
-        _HasModelStraight._for_docstring,
+        _HasModelRF._for_docstring,
         _HasIntegrator._for_docstring.replace(
             'num_multipole_kicks', 'num_kicks').replace('multipole kicks', 'kicks'),
         _for_docstring_alignment, '\n',
@@ -110,7 +115,7 @@ class CrabCavity(_HasModelRF, _HasIntegrator, BeamElement):
                  "while loading a saved line from a previous version of Xsuite, please "
                  "regenerate the line with the current version to use phase instead of lag. "
                  "Note that if both `lag` and `phase` are set, the effect is the sum of the two, "
-                 " with `lag` converted to radians. "
+                 "with `lag` converted to radians. "
                  + DEPRECATION_INFO_PREP_1_0,
                  FutureWarning, stacklevel=2)
         self._lag = value

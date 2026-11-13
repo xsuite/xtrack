@@ -849,3 +849,15 @@ def test_slicing_thin_correctly_set_slice_offsets():
     slice_s_positions = [tt.rows[name].s for name in slice_names]
 
     assert np.all(slice_offsets == slice_s_positions)
+
+
+@pytest.mark.parametrize('mode', ['thin', 'thick'])
+def test_reslicing_preserves_parent_slice_offsets(mode):
+    line = xt.Line(elements={'bend': xt.Bend(length=3., angle=0.3)})
+    line.slice_thick_elements([Strategy(Uniform(3, mode='thick'))])
+    line.slice_thick_elements([
+        Strategy(Uniform(2, mode=mode), element_type=xt.ThickSliceBend)])
+    table = line.get_table()
+    for name in line.element_names:
+        if hasattr(line[name], 'slice_offset'):
+            assert line[name].slice_offset == pytest.approx(table['s', name])

@@ -63,7 +63,7 @@ void ThinSliceUniformSolenoidExit_track_local_particle(
         /*body_active*/           0, // disabled
         /*edge_entry_active*/     0,
         /*edge_exit_active*/      ThinSliceUniformSolenoidExitData_get__parent_edge_exit_active(el),
-        /*edge_entry_model*/      3, // only ax ay cancellation0,
+        /*edge_entry_model*/      0,
         /*edge_exit_model*/       3, // only ax ay cancellation
         /*edge_entry_angle*/      0.,
         /*edge_exit_angle*/       0.,

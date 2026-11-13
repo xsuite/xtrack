@@ -191,10 +191,11 @@ void BeamStatsMonitor_track_local_particle(
 
     START_PER_PARTICLE_BLOCK(part0, part);
         if (LocalParticle_get_state(part) > 0) {
-            int64_t effective_turn = LocalParticle_get_at_turn(part);
-            double zeta = LocalParticle_get_zeta(part);
-            int64_t coasting_slice = 0;
-            int64_t accepted = 1;
+            int64_t record_turn = LocalParticle_get_at_turn(part);
+            // Fold only the recorded coordinate; leave the particle zeta unchanged.
+            double record_zeta = LocalParticle_get_zeta(part);
+            int64_t coasting_slice_index = 0;
+            int64_t accepted = record_turn >= 0;
 
             if (particle_id_start >= 0) {
                 int64_t const particle_id = LocalParticle_get_particle_id(part);
@@ -209,27 +210,35 @@ void BeamStatsMonitor_track_local_particle(
                 if (line_length <= 0.0) {
                     accepted = 0;
                 } else {
-                    double const u = (
-                        (double)effective_turn - zeta / line_length);
-                    effective_turn = (int64_t)floor(u + 0.5);
-                    double relative_turn_fraction =
-                        u - (double)effective_turn;
+                    // The tracker supplies accumulated reference revolutions at time_s,
+                    // including fractional turns and the EnergyProgram's integral of beta0*c/C.
+                    double const reference_turns = part->reference_turns;
+                    // Express arrival relative to the monitor on the fixed-zeta grid
+                    // in turn units. A particle with zeta=0 records at reference_turns,
+                    // regardless of the monitor's position in the line.
+                    // During a ramp this differs from evaluating the integrated
+                    // reference-turn map at the particle's arrival time.
+                    double const arrival_turns = reference_turns - record_zeta/line_length;
+                    // Choose the integer turn bin, then its offset in [-0.5, 0.5).
+                    record_turn = (int64_t)floor(arrival_turns + 0.5);
+                    double arrival_turn_offset =
+                        arrival_turns - (double)record_turn;
                     double slice_position =
-                        (relative_turn_fraction + 0.5) * (double)n_slices;
-                    coasting_slice = (int64_t)floor(slice_position);
+                        (arrival_turn_offset + 0.5) * (double)n_slices;
+                    coasting_slice_index = (int64_t)floor(slice_position);
 
-                    if (coasting_slice < 0 || coasting_slice >= n_slices) {
+                    if (coasting_slice_index < 0 || coasting_slice_index >= n_slices) {
                         accepted = 0;
                     }
-                    zeta = -relative_turn_fraction * line_length;
+                    record_zeta = -arrival_turn_offset * line_length;
                 }
             }
 
-            int64_t const turn_offset = effective_turn - start_at_turn;
+            int64_t const turn_offset = record_turn - start_at_turn;
 
             if (accepted
-                    && effective_turn >= start_at_turn
-                    && effective_turn < stop_at_turn
+                    && record_turn >= start_at_turn
+                    && record_turn < stop_at_turn
                     && turn_offset % every_n_turns == 0) {
                 int64_t const i_record = turn_offset / every_n_turns;
 
@@ -239,13 +248,13 @@ void BeamStatsMonitor_track_local_particle(
                     if (coasting) {
                         index = (
                             (i_record * n_selected) * n_slices
-                            + coasting_slice);
+                            + coasting_slice_index);
                     } else if (mode > 0) {
                         int64_t slot = 0;
                         int64_t i_selected = 0;
 
                         if (bunch_spacing_zeta != 0.0) {
-                            slot = -floor((zeta - z_min_edge)
+                            slot = -floor((record_zeta - z_min_edge)
                                           / bunch_spacing_zeta);
                             if (slot >= 0
                                     && slot < BeamStatsMonitorData_len__slot_to_selected(el)) {
@@ -271,7 +280,7 @@ void BeamStatsMonitor_track_local_particle(
                             double const z_min_edge_bunch =
                                 z_min_edge - slot * bunch_spacing_zeta;
                             int64_t const i_slice = floor(
-                                (zeta - z_min_edge_bunch) / dzeta);
+                                (record_zeta - z_min_edge_bunch) / dzeta);
                             if (i_slice < 0 || i_slice >= n_slices) {
                                 accepted = 0;
                             } else {
@@ -309,7 +318,7 @@ void BeamStatsMonitor_track_local_particle(
                         if (sum_y) atomicAdd(&sum_y[index], weight * y);
                         if (sum_py) atomicAdd(&sum_py[index], weight * py);
                         if (sum_zeta) {
-                            atomicAdd(&sum_zeta[index], weight * zeta);
+                            atomicAdd(&sum_zeta[index], weight * record_zeta);
                         }
                         if (sum_delta) {
                             atomicAdd(&sum_delta[index], weight * delta);
@@ -330,35 +339,35 @@ void BeamStatsMonitor_track_local_particle(
                         if (sum_x_px) atomicAdd(&sum_x_px[index], weight * x * px);
                         if (sum_x_y) atomicAdd(&sum_x_y[index], weight * x * y);
                         if (sum_x_py) atomicAdd(&sum_x_py[index], weight * x * py);
-                        if (sum_x_zeta) atomicAdd(&sum_x_zeta[index], weight * x * zeta);
+                        if (sum_x_zeta) atomicAdd(&sum_x_zeta[index], weight * x * record_zeta);
                         if (sum_x_delta) atomicAdd(&sum_x_delta[index], weight * x * delta);
                         if (sum_x_pzeta) atomicAdd(&sum_x_pzeta[index], weight * x * pzeta);
                         if (sum_px_px) atomicAdd(&sum_px_px[index], weight * px * px);
                         if (sum_px_y) atomicAdd(&sum_px_y[index], weight * px * y);
                         if (sum_px_py) atomicAdd(&sum_px_py[index], weight * px * py);
-                        if (sum_px_zeta) atomicAdd(&sum_px_zeta[index], weight * px * zeta);
+                        if (sum_px_zeta) atomicAdd(&sum_px_zeta[index], weight * px * record_zeta);
                         if (sum_px_delta) atomicAdd(&sum_px_delta[index], weight * px * delta);
                         if (sum_px_pzeta) atomicAdd(&sum_px_pzeta[index], weight * px * pzeta);
                         if (sum_y_y) atomicAdd(&sum_y_y[index], weight * y * y);
                         if (sum_y_py) atomicAdd(&sum_y_py[index], weight * y * py);
-                        if (sum_y_zeta) atomicAdd(&sum_y_zeta[index], weight * y * zeta);
+                        if (sum_y_zeta) atomicAdd(&sum_y_zeta[index], weight * y * record_zeta);
                         if (sum_y_delta) atomicAdd(&sum_y_delta[index], weight * y * delta);
                         if (sum_y_pzeta) atomicAdd(&sum_y_pzeta[index], weight * y * pzeta);
                         if (sum_py_py) atomicAdd(&sum_py_py[index], weight * py * py);
-                        if (sum_py_zeta) atomicAdd(&sum_py_zeta[index], weight * py * zeta);
+                        if (sum_py_zeta) atomicAdd(&sum_py_zeta[index], weight * py * record_zeta);
                         if (sum_py_delta) atomicAdd(&sum_py_delta[index], weight * py * delta);
                         if (sum_py_pzeta) atomicAdd(&sum_py_pzeta[index], weight * py * pzeta);
                         if (sum_zeta_zeta) {
                             atomicAdd(&sum_zeta_zeta[index],
-                                      weight * zeta * zeta);
+                                      weight * record_zeta * record_zeta);
                         }
                         if (sum_zeta_delta) {
                             atomicAdd(&sum_zeta_delta[index],
-                                      weight * zeta * delta);
+                                      weight * record_zeta * delta);
                         }
                         if (sum_zeta_pzeta) {
                             atomicAdd(&sum_zeta_pzeta[index],
-                                      weight * zeta * pzeta);
+                                      weight * record_zeta * pzeta);
                         }
                         if (sum_delta_delta) {
                             atomicAdd(&sum_delta_delta[index],
@@ -384,7 +393,7 @@ void BeamStatsMonitor_track_local_particle(
                                 } else if (coord_id == 3) {
                                     value = py;
                                 } else if (coord_id == 4) {
-                                    value = zeta;
+                                    value = record_zeta;
                                 } else if (coord_id == 5) {
                                     value = delta;
                                 } else if (coord_id == 6) {

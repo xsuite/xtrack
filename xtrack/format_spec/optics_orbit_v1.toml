@@ -1,0 +1,32 @@
+# Periodic transverse Twiss optics and closed orbit, in Xtrack units.
+# This preset is frozen. Changes to its output require a new preset name.
+version = "optics_orbit_v1"
+case = "preserve"
+float_format = ".16e"
+numeric_column_width = 24
+default_column_width = 0
+
+columns = [
+    { name = "NAME", source_name = "name", type = "string" },
+    { name = "S", source_name = "s", type = "float" },
+    { name = "BETX", source_name = "betx", type = "float" },
+    { name = "BETY", source_name = "bety", type = "float" },
+    { name = "ALFX", source_name = "alfx", type = "float" },
+    { name = "ALFY", source_name = "alfy", type = "float" },
+    { name = "DX", source_name = "dx", type = "float" },
+    { name = "DPX", source_name = "dpx", type = "float" },
+    { name = "DY", source_name = "dy", type = "float" },
+    { name = "DPY", source_name = "dpy", type = "float" },
+    { name = "MUX", source_name = "mux", type = "float" },
+    { name = "MUY", source_name = "muy", type = "float" },
+    { name = "X", source_name = "x", type = "float" },
+    { name = "PX", source_name = "px", type = "float" },
+    { name = "Y", source_name = "y", type = "float" },
+    { name = "PY", source_name = "py", type = "float" },
+]
+
+scalars = [
+    { name = "LINE_LENGTH", source_name = "line_length", type = "float" },
+    { name = "QX", source_name = "qx", type = "float" },
+    { name = "QY", source_name = "qy", type = "float" },
+]

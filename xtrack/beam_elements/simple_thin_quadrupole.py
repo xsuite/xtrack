@@ -7,8 +7,8 @@ from ..base_element import BeamElement
 import xobjects as xo
 
 class SimpleThinQuadrupole(BeamElement):
-    """An specialized version of Multipole to model a thin quadrupole
-    (knl[0], ksl, hxl, are all zero).
+    """A specialized version of Multipole to model a thin quadrupole
+    (knl[0], ksl, hxl are all zero).
 
     Parameters
     ----------

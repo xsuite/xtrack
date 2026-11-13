@@ -8,6 +8,49 @@ import json
 import textwrap
 
 
+@pytest.mark.parametrize('expression', [
+    '-a^2', '-a^2 + 1', 'b + (-a^2)', '-2^2', '1 - a^2', '-(a^2)',
+    '(-a)^2', '-a^3', '-a*b', 'a*(-b^2)', 'a/(-b^2)', '-sin(a)^2',
+    'a^(-2)', 'a^(-b^2)', 'a^b^2', '-a^2^2', '+a^2', '1e-2^2',
+])
+def test_madx_power_precedence(expression):
+    from cpymad.madx import Madx
+
+    source = f'a = 0.3; b = 0.7; immediate = {expression}; deferred := {expression};'
+    env = xt.Environment()
+    env.vars.load(string=source, format='madx')
+    with Madx(stdout=False) as madx:
+        madx.input(source)
+        for a in (0.3, 0.4):
+            env['a'] = a
+            madx.globals['a'] = a
+            for name in ('immediate', 'deferred'):
+                assert env[name] == pytest.approx(madx.globals[name])
+
+
+@pytest.mark.parametrize('power', ['^', '**'])
+def test_expression_string_power_precedence(power):
+    env = xt.Environment()
+    env['a'] = 0.3
+    env['negative_square'] = f'-a {power} 2'
+    env['squared_negative'] = f'(-a) {power} 2'
+    env['negative_exponent'] = f'a {power} -2'
+    for a in (0.3, -0.4):
+        env['a'] = a
+        assert env['negative_square'] == pytest.approx(-a**2)
+        assert env['squared_negative'] == pytest.approx(a**2)
+        assert env['negative_exponent'] == pytest.approx(a**-2)
+
+
+def test_madx_signed_exponents():
+    env = xt.Environment()
+    env.vars.load(string='a = 0.3; x := -a^-2; y := a^+2;', format='madx')
+    for a in (0.3, -0.4):
+        env['a'] = a
+        assert env['x'] == pytest.approx(-(a**-2))
+        assert env['y'] == pytest.approx(a**2)
+
+
 @pytest.fixture
 def madx_vars():
     return """

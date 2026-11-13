@@ -45,7 +45,7 @@ void track_misalignment_entry_straight(
     double psi_no_frame,  // rotation around s, roll, positive y to x
     double anchor, // anchor of the misalignment as offset in m from entry
     double length,  // length of the misaligned element
-    double psi_with_frame,  // psi_with_frame of the element, positive s to x
+    double psi_with_frame,  // roll around s; positive frame x to y, particle coordinates y to x
     int8_t backtrack
 ) {
     // Silence the warning about unused variable length
@@ -85,7 +85,7 @@ void track_misalignment_exit_straight(
     double psi_no_frame,  // rotation around s, roll, positive y to x
     double anchor, // anchor of the misalignment as offset in m from entry
     double length,  // length of the misaligned element
-    double psi_with_frame,  // psi_with_frame of the element, positive s to x
+    double psi_with_frame,  // roll around s; positive frame x to y, particle coordinates y to x
     int8_t backtrack
 ) {
     const double neg_part_length = anchor - length;
@@ -125,7 +125,7 @@ void track_misalignment_entry_curved(
     double length,  // length of the misaligned element
     double angle,  // angle by which the element bends the reference frame
     double h,  // curvature, only used when length == 0
-    double psi_with_frame,  // psi_with_frame of the element, positive s to x
+    double psi_with_frame,  // roll around s; positive frame x to y, particle coordinates y to x
     int8_t backtrack
 ) {
     // Handle as a straight case if a thick element has no bending.
@@ -147,8 +147,9 @@ void track_misalignment_entry_curved(
        
        where:
        - misalignment_matrix is the matrix that applies the misalignment
-       - matrix_first_part is the matrix that takes us from the entry of the
-         element to the anchor of the misalignment
+       - matrix_first_part is the pose of the aligned anchor frame expressed
+         in the aligned entry frame: it maps anchor-frame coordinates to
+         entry-frame coordinates
     */
 
     // Misalignment matrix
@@ -173,8 +174,8 @@ void track_misalignment_entry_curved(
         {0, 0, 0, 1}
     };
 
-    // Compute matrix that takes us from the reference point of the misalignment
-    // to the entry of the element
+    // Compute the pose of the aligned anchor frame in the aligned entry frame
+    // (maps anchor-frame coordinates to entry-frame coordinates).
     if (length != 0.0) h = angle / length;
     const double part_angle = anchor * h;
     const double delta_x_first_part = (cos(part_angle) - 1) * cos(psi_with_frame) / h;
@@ -249,11 +250,11 @@ void track_misalignment_exit_curved(
     double theta, // rotation around y, yaw, positive s to x
     double phi,  // rotation around x, pitch, positive s to y
     double psi_no_frame,  // rotation around s, roll, positive y to x
-    double anchor, // anchor of the misalignment as a fraction of the length
+    double anchor, // anchor of the misalignment as offset in m from entry
     double length,  // length of the misaligned element
     double angle,  // angle by which the element bends the reference frame
     double h,  // curvature, only used when length == 0
-    double psi_with_frame,  // psi_with_frame of the element, positive s to x
+    double psi_with_frame,  // roll around s; positive frame x to y, particle coordinates y to x
     int8_t backtrack  // whether to backtrack the particle
 ) {
     // Handle as a straight case if a thick element has no bending.
@@ -276,8 +277,9 @@ void track_misalignment_exit_curved(
 
        where:
        - misalignment_matrix is the matrix that applies the misalignment
-       - matrix_second_part is the matrix that takes us from the frame in the
-         middle of the element (anchor) to the end of the element
+       - matrix_second_part is the pose of the aligned exit frame expressed
+         in the aligned anchor frame: it maps exit-frame coordinates to
+         anchor-frame coordinates
     */
 
     // Misalignment matrix
@@ -307,8 +309,8 @@ void track_misalignment_exit_curved(
     double inv_misalignment_matrix[4][4];
     matrix_rigid_affine_inverse(misalignment_matrix, inv_misalignment_matrix);
 
-    // Compute the inverse of the matrix that takes us from the point of the
-    // misalignment to the exit of the element.
+    // Compute the pose of the aligned exit frame in the aligned anchor frame
+    // (maps exit-frame coordinates to anchor-frame coordinates).
     if (length != 0.0) h = angle / length;
     const double part_angle = angle - h * anchor;
 

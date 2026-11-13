@@ -129,9 +129,8 @@ def test_line_with_second_order_maps_split_at_octupoles(test_context):
         ll.track(pp, num_turns=512, turn_by_turn_monitor=True,
                  freeze_longitudinal=True)
         mon = ll.record_last_track
-        ctx2np = test_context.nparray_from_context_array
-        qx = [_tune_fft(ctx2np(mon.x)[jj, :]) for jj in range(3)]
-        qy = [_tune_fft(ctx2np(mon.y)[jj, :]) for jj in range(3)]
+        qx = [_tune_fft(mon.x[jj, :]) for jj in range(3)]
+        qy = [_tune_fft(mon.y[jj, :]) for jj in range(3)]
         dq[label] = (qx[1] - qx[0], qy[2] - qy[0])  # amplitude detuning
 
     assert dq['ref'][0] > 5e-3   # measured: ~1e-2

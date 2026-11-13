@@ -67,10 +67,12 @@ def test_random_generation(test_context, generator):
 
 @for_all_test_contexts
 @fix_random_seed(8264012)
-def test_direct_sampling(test_context):
+@pytest.mark.parametrize('generator', ['RandomUniform', 'RandomUniformAccurate'])
+@allow_kernel_compilation
+def test_direct_sampling(test_context, generator):
     n_seeds = 3
     n_samples = 3e6
-    ran = xt.RandomUniform(_context=test_context)
+    ran = getattr(xt, generator)(_context=test_context)
     samples = ran.generate(n_samples=n_samples, n_seeds=n_seeds)
     samples = test_context.nparray_from_context_array(samples)
 

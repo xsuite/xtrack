@@ -45,7 +45,7 @@ def parse_anchor_spec(
         Element name, optionally followed by ``@start``, ``@center``,
         ``@centre``, or ``@end``.
     default_anchor : str, optional
-        Anchor returned when ``spec`` does not contain ``@``.
+        Anchor returned when ``element_name`` does not contain ``@``.
 
     Returns
     -------

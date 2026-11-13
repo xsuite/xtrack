@@ -96,8 +96,8 @@ for ir_name in sorted(apm):
 
     aperture.halo_params.update(
         {
-            "emitx_norm": ir.exn,
-            "emity_norm": ir.eyn,
+            "nemitt_x": ir.exn,
+            "nemitt_y": ir.eyn,
             "delta_rms": ir.dp_bucket_size,
             "tol_co": ir.co_radius,
             "tol_disp": ir.paras_dx,  # MAD-X has different settings for x/y
@@ -110,8 +110,8 @@ for ir_name in sorted(apm):
     reference_halo_params = {
         key: float(aperture.halo_params[key])
         for key in (
-            "emitx_norm",
-            "emity_norm",
+            "nemitt_x",
+            "nemitt_y",
             "delta_rms",
             "tol_co",
             "tol_disp",

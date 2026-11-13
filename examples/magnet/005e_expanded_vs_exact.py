@@ -1,22 +1,28 @@
-import xtrack as xt
-
+import matplotlib.pyplot as plt
 import numpy as np
+
+import xtrack as xt
 
 magnet = xt.Magnet(k0=0.002, h=0.002, k1=0.02, length=2)
 
 m_exact = magnet.copy()
 m_exact.model = 'bend-kick-bend'
-m_exact.integrator='yoshida4'
+m_exact.integrator = 'yoshida-6'
 m_exact.num_multipole_kicks = 1000
 
 m_expanded = magnet.copy()
 m_expanded.model = 'mat-kick-mat'
-m_expanded.integrator='yoshida4'
+m_expanded.integrator = 'yoshida-6'
 m_expanded.num_multipole_kicks = 1000
 
 p0 = xt.Particles(x=1e-3, y=2e-3)
-px_list = [1e-7, 2e-7, 5e-7, 1e-6, 2e-6, 5e-6,
-           1e-5, 2e-5, 5e-5, 1e-4, 2e-4, 5e-4, 1e-3, 2e-3, 5e-3, 1e-2]
+# fmt: off
+px_list = [
+    1e-7, 2e-7, 5e-7, 1e-6, 2e-6, 5e-6,
+    1e-5, 2e-5, 5e-5, 1e-4, 2e-4, 5e-4,
+    1e-3, 2e-3, 5e-3, 1e-2
+]
+# fmt: on
 px_in = np.array(px_list)
 
 x_out_exact = []
@@ -54,7 +60,6 @@ for dd in px_list:
 
 
 # Cast to numpy arrays
-import numpy as np
 x_out_exact = np.array(x_out_exact)
 px_out_exact = np.array(px_out_exact)
 y_out_exact = np.array(y_out_exact)
@@ -67,8 +72,6 @@ y_out_expanded = np.array(y_out_expanded)
 py_out_expanded = np.array(py_out_expanded)
 zeta_out_expanded = np.array(zeta_out_expanded)
 
-
-import matplotlib.pyplot as plt
 
 plt.close('all')
 plt.figure(1, figsize=(12, 8))
@@ -109,8 +112,3 @@ plt.subplots_adjust(wspace=0.3, hspace=0.3)
 
 
 plt.show()
-
-
-
-
-

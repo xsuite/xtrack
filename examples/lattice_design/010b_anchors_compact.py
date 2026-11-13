@@ -15,7 +15,7 @@ components=[
     env.new('q4', 'q3', anchor='start', at='q3@end'),
     env.new('q5', 'q3'),
 
-    # Sandwitch of markers expected [m2.0, m2, m2.1.0, m2.1]
+    # Sandwich of markers expected [m2.0, m2, m2.1.0, m2.1]
     env.new('m2', 'Marker', at='q2@start'),
     env.new('m2_0', 'Marker', at='m2@start'),
     env.new('m2_1', 'Marker', at='m2@end'),

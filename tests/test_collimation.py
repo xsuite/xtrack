@@ -13,7 +13,8 @@ import xpart as xp
 import xtrack as xt
 
 
-def test_collimation_infrastructure():
+@pytest.mark.parametrize('time_s, reference_turns', [(0., np.nan), (1e-5, 3.5)])
+def test_collimation_infrastructure(time_s, reference_turns):
 
     ######################################
     # Create a dummy collimation process #
@@ -73,10 +74,14 @@ def test_collimation_infrastructure():
     ############################################
 
     particles = xp.Particles(_capacity=200,
-            p0c=7000, x=np.linspace(-1e-3, 1e-3, 10))
+            p0c=7000, x=np.linspace(-1e-3, 1e-3, 10),
+            time_s=time_s, reference_turns=reference_turns)
 
     for _ in range(10):
         beam_interaction.track(particles)
+
+    assert particles.time_s == time_s
+    np.testing.assert_equal(particles.reference_turns, reference_turns)
 
     ###############
     # Some checks #

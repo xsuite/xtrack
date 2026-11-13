@@ -1,6 +1,7 @@
-import xtrack as xt
-import xobjects as xo
 import numpy as np
+import xobjects as xo
+
+import xtrack as xt
 
 magnet = xt.Magnet(k0=0.02, h=0.01, k1=0.01, length=2.,
                    k2=0.005, k3=0.03,
@@ -28,7 +29,7 @@ m_teapot.num_multipole_kicks = 50000
 
 m_yoshida = magnet.copy()
 m_yoshida.model = 'drift-kick-drift-expanded'
-m_yoshida.integrator='yoshida4'
+m_yoshida.integrator = 'yoshida-6'
 m_yoshida.num_multipole_kicks = 500
 
 p_ref = p0.copy()

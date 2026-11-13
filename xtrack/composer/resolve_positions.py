@@ -91,8 +91,8 @@ def _resolve_s_positions(seq_all_places, env, refer='center', diagnostics=False)
                     from_anchor = 'end'
 
             elif place.from_ is None:
-                # Needs to be placed at an absolute location along the line.
-                # Needs to be placed based on `at`, `from_`, and `from_anchor`.
+                # Needs to be placed at an absolute location along the line,
+                # based on `at` and `anchor`.
 
                 at = _evaluate_position_expression(place.at, aux_line._xdeps_eval)
                 # Component anchor (start/end/center)
