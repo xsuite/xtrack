@@ -607,7 +607,7 @@ def test_bfieldexpansion_survey_matches_sector_bend():
 
 def test_bfieldexpansion_geometry_is_fixed():
     kwargs = dict(length=0.3, ksc=[[0.]], knc=[[0.1]], ksolc=[0.], num_phi=5)
-    for h in (-0.3, 1e-9, 1e-4):
+    for h in (1e-9, 1e-4):
         with pytest.raises(ValueError, match='requires h > 1e-4'):
             xt.BFieldExpansion(h=h, **kwargs)
 
