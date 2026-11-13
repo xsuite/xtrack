@@ -1041,7 +1041,7 @@ class Tracker:
                             break;"""
             )
 
-        src_lines.append(_mp.track_line_cases(magnet_classes))
+        src_lines.append(_mp.track_line_cases(magnet_ids))
 
         src_lines.append(
             r"""

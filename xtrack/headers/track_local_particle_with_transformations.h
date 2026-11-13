@@ -94,9 +94,8 @@ void CONCAT(ELEMENT_NAME, _prepare_plan)(
 ) {
     CONCAT(ELEMENT_NAME, _prepare_magnet)(el, plan, part0);
 
-    #if defined(IS_THICK_DYNAMIC)
-        plan->is_thick = GET_PARAM(el, isthick) != 0;
-    #elif defined(IS_THICK)
+    // Statically thick classes only: the global aperture is checked after them
+    #ifdef IS_THICK
         plan->is_thick = 1;
     #endif
 

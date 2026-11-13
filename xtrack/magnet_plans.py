@@ -243,39 +243,20 @@ void prepare_magnet_plan(
 """ + checks + header
 
 
-def track_line_cases(magnet_classes):
+def track_line_cases(magnet_ids):
     """Return the cases of the element switch of ``track_line`` for the
-    magnets, given their ``(type id, class)`` pairs.
+    magnets, given their type ids.
 
     All magnets take the same branch: get the plan, then track the particles
     through it. Only where the plan comes from differs: its slot, or, in TPSA
-    tracking, a plan made at the magnet. The classes whose thickness is
-    statically True are then checked against the global aperture, as in the
-    other elements. The indentation matches the generated ``track_line``.
+    tracking, a plan made at the magnet. The global aperture is checked after
+    the statically thick classes (``plan->is_thick``), as in the other
+    elements. The indentation matches the generated ``track_line``.
     """
-    return ''.join(
-        _track_line_case([ii for ii, cc in magnet_classes if static_thick(cc) == thick], thick)
-        for thick in (False, True)
-    )
-
-
-def static_thick(cls):
-    """Whether the class declares ``isthick = True`` literally (not a property)."""
-    return vars(cls._DressingClass).get('_isthick') is True
-
-
-def _track_line_case(ids, check_aperture):
-    if not ids:
+    if not magnet_ids:
         return ""
-    case_labels = '\n'.join(f'                        case {ii}:' for ii in ids)
-    aperture = (
-        """
-                            #ifdef XTRACK_GLOBAL_XY_LIMIT
-                            global_aperture_check(&lpart);
-                            #endif"""
-        if check_aperture
-        else ''
-    )
+    case_labels = "\n".join(
+        f"                        case {ii}:" for ii in magnet_ids)
     return f"""
 {case_labels}
                         {{
@@ -288,10 +269,18 @@ def _track_line_case(ids, check_aperture):
                             /*gpuglmem*/ const MagnetPlan* plan = (/*gpuglmem*/ const MagnetPlan*) (
                                 magnet_plans + MAGNET_PLAN_BYTES * magnet_plan_slots[elem_idx]);
 #endif
-                            track_magnet_particles(&lpart, plan);{aperture}
+                            track_magnet_particles(&lpart, plan);
+                            #ifdef XTRACK_GLOBAL_XY_LIMIT
+                            if (plan->is_thick) global_aperture_check(&lpart);
+                            #endif
                             break;
                         }}
 """
+
+
+def static_thick(cls):
+    """Whether the class declares ``isthick = True`` literally (not a property)."""
+    return vars(cls._DressingClass).get('_isthick') is True
 
 
 def track_line_args():
