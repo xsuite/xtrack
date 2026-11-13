@@ -8,7 +8,8 @@ void bfieldexpansion_spin_rhs(
     const double beta0,
     const double gamma0,
     const double q0,
-    const double mass0,    const double G_spin,
+    const double mass0,    
+    const double G_spin,
     const double chi,
     const double z[6],
     const HamiltonianFlow* flow,
@@ -73,7 +74,8 @@ void bfieldexpansion_spin_rhs(
 
 #endif // XTRACK_BFIELDEXPANSION_SPIN
 
-
+/* Intentionally included twice: specialize the integration loop for each
+ * geometry, with no geometry dispatch inside the Runge-Kutta stages. */
 GPUFUN
 int HAMILTONIAN_FLOW(Expansion *f, const double beta0, const double chi,
                      double s, const double z[6], HamiltonianFlow *flow) {
