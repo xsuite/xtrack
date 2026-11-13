@@ -52,6 +52,8 @@ class Cavity(_HasModelRF, _HasIntegrator, BeamElement):
         supply phase = Phi(time_s) - 2*pi*frequency(time_s)*time_s, where Phi
         is the integrated RF phase. This linearizes Phi within each frame;
         changing frequency alone does not integrate the RF phase.
+        With `harmonic`, the phase accumulated by `time_s` is `harmonic` cycles
+        per reference turn, so the cavity stays locked to the reference.
     '''.strip()
 
     __doc__ = '\n    '.join([_docstring_start,
