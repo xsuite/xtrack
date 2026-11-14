@@ -826,6 +826,73 @@ def test_splineboris_homogeneous_rbend(field_angle, make_uniform_splineboris):
     xo.assert_allclose(py_end_rbend, py_final_splineboris, atol=1e-12, rtol=1e-5)
 
 
+def test_splineboris_homogeneous_rbend_radiation( make_uniform_splineboris):
+    """
+    Test the SplineBoris element with a homogeneous field against the RBend.
+    """
+    field_angle=0
+    s_start = 0
+    s_end = 2
+    length = s_end - s_start
+    n_steps = 100
+
+    # Field strength and orientation in the transverse plane
+    B_0 = 2.0  #(0.1 passes, energy loss too low)
+    B_x = B_0 * np.cos(field_angle)
+    B_y = B_0 * np.sin(field_angle)
+
+    splineboris = make_uniform_splineboris(Bx=B_x, By=B_y, Bs=0, s_start=s_start, s_end=s_end, n_steps=n_steps,radiation_flag=1)
+
+    # Reference and test particle
+    line_splineboris = xt.Line(elements=[splineboris])
+    line_splineboris.particle_ref = xt.Particles(
+        mass0=xt.ELECTRON_MASS_EV,
+        q0=1.0,
+        energy0=20e9,
+    )
+
+    p_splineboris = line_splineboris.particle_ref.copy()
+    p_splineboris.x = 1e-3
+    p_splineboris.px = 1e-3
+
+    p_rbend = p_splineboris.copy()
+    p_rbend.x = 1e-3
+    p_rbend.px = 1e-3
+
+    k0 =  B_0 * clight / p_rbend.p0c[0]
+
+    edge_model = 'suppressed'       # Ignore the edge effects
+    rot_s_rad = field_angle-np.pi/2 # For field_angle = 0, the field is in the x-direction. To have the bend reflect this, we need to rotate the coordinate system in the opposite direction.
+    b_rbend = xt.RBend(k0=k0, k0_from_h=False, length_straight=length, angle=0, edge_entry_angle=0, edge_exit_angle=0, rot_s_rad=rot_s_rad,radiation_flag=1)
+    b_rbend.edge_entry_model = edge_model
+    b_rbend.edge_exit_model = edge_model
+    b_rbend.model = 'bend-kick-bend'
+    b_rbend.num_multipole_kicks = 1000   ## Convergence
+
+    line_rbend = xt.Line(elements=[b_rbend])
+
+    line_splineboris.configure_radiation(model='mean')
+    line_rbend.configure_radiation(model='mean')
+
+    line_rbend.particle_ref = p_rbend
+    line_rbend.track(p_rbend)
+    x_end_rbend = p_rbend.x[0]
+    y_end_rbend = p_rbend.y[0]
+    px_end_rbend = p_rbend.kin_px[0]
+    py_end_rbend = p_rbend.kin_py[0]
+
+    # Track the particle with SplineBoris
+    line_splineboris.track(p_splineboris)
+    x_end_splineboris = p_splineboris.x[0]
+    y_end_splineboris = p_splineboris.y[0]
+    px_final_splineboris = p_splineboris.kin_px[0]
+    py_final_splineboris = p_splineboris.kin_py[0]
+
+    xo.assert_allclose(x_end_rbend, x_end_splineboris, atol=1e-12, rtol=1e-5)
+    xo.assert_allclose(y_end_rbend, y_end_splineboris, atol=1e-12, rtol=1e-5)
+    xo.assert_allclose(px_end_rbend, px_final_splineboris, atol=1e-12, rtol=1e-5)
+    xo.assert_allclose(py_end_rbend, py_final_splineboris, atol=1e-12, rtol=1e-5)
+
 
 def test_splineboris_solenoid_vs_variable_solenoid(solenoid_field, solenoid_vs_varsol_fit_pars_df):
     """
