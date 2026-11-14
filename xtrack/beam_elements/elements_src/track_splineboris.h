@@ -277,6 +277,8 @@ void SplineBoris_single_particle(
         // Store updated momenta for next step
         px = px1;
         py = py1;
+        LocalParticle_set_px(part, px / P0);
+        LocalParticle_set_py(part, py / P0);
 
         // Update zeta per step (matching Python: zeta += (ds - dt * c * beta0))
         zeta += (ds - dt * c * beta0);
@@ -325,6 +327,8 @@ void SplineBoris_single_particle(
                 &dp_record_exit, &dpx_record_exit, &dpy_record_exit
             );
         }
+        px = LocalParticle_get_px(part) * P0;
+        py = LocalParticle_get_py(part) * P0;
         #endif
     }
 
