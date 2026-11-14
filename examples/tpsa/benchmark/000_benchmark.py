@@ -74,7 +74,7 @@ def _normal_particle(line):
 
 
 def _tpsa_particle(line, order, descriptor=None):
-    return xtpsa.ParticlesTpsa(order=order, descriptor=descriptor,
+    return xtpsa.ParticlesTpsa(truncation_order=order, descriptor=descriptor,
                                **_scalar_ref_kwargs(line), **X0)
 
 
@@ -143,7 +143,7 @@ def main():
         f"Tracking range: {args.start} -> {args.end} "
         f"({end_idx - start_idx} elements)"
     )
-    print(f"TPSA map order: {args.order}")
+    print(f"TPSA map truncation order: {args.order}")
     print(f"Parametric variables: {len(IR8_VARY)}")
 
     normal_line.build_tracker(compile=False)
@@ -151,7 +151,7 @@ def main():
     param_line.build_tracker(compile=False)
 
     param_descriptor = madng_tpsa.Descriptor(
-        6, args.order, num_params=len(IR8_VARY), param_order=1
+        variables=xtpsa.COORDS, order=args.order, num_params=len(IR8_VARY), param_order=1
     )
     _enable_line_variable_tpsa(param_line, IR8_VARY, param_descriptor)
 

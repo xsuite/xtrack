@@ -10,13 +10,13 @@ from typing import Any
 
 import numpy as np
 
-import madng_tpsa
+from madng_tpsa import Descriptor
 import xtrack as xt
 
 from ..match import Action, TargetRelPhaseAdvance
 from ..twiss.twiss_init import _6d_w_matrix
 from ._knobs import KnobParameters, _scalar_value
-from .particles import ParticlesTpsa
+from .particles import ParticlesTpsa, COORDS
 
 # Optics quantities served by TpsaOptics, orbit quantities by the map's param_jacobian.
 _OPTICS_QTYS = ("betx", "bety", "alfx", "alfy", "mux", "muy", "dx", "dpx", "dy", "dpy")
@@ -43,15 +43,15 @@ class ActionTpsaTrack(Action):
     plain doubles back.
     """
 
-    def __init__(self, line, vary_names, targets=(), tw_kwargs=None, order=2,
+    def __init__(self, line, vary_names, targets=(), tw_kwargs=None, truncation_order=2,
                  **kwargs):
         self.line = line
         self.vary_names = list(vary_names)
         self.targets = list(targets)
-        self.order = order
+        self.truncation_order = truncation_order
         # The value-only map carries no parameters and can be one order less
         # as derivatives are not required.
-        self.plain_order = max(1, order - 1)
+        self.plain_order = max(1, truncation_order - 1)
         self.tw_kwargs = dict(tw_kwargs or {})
         self.tw_kwargs.update(kwargs)
         self.optics_target_locations = None   # all observed locations (ordered, unique)
@@ -152,11 +152,18 @@ class ActionTpsaTrack(Action):
         # expressions reach, the tracked map and the recorded maps all live in it.
         # Parameter k+1 is vary_names[k], which is what makes TpsaOptics.gradient() come
         # out in vary order.
-        self._descriptor = madng_tpsa.Descriptor(
-            6, self.order, params=list(self.vary_names), param_order=1)
+        self._descriptor = Descriptor(
+            variables=COORDS,
+            order=self.truncation_order,
+            parameters=list(self.vary_names),
+            param_order=1
+        )
         # The value-only map carries no parameters and only plain_order, which is what
         # makes it cheap.
-        self._plain_descriptor = madng_tpsa.Descriptor(6, self.plain_order)
+        self._plain_descriptor = Descriptor(
+            variables=COORDS,
+            order=self.plain_order
+        )
         self._knobs = KnobParameters(self.line, self.vary_names, self._descriptor)
         self._knobs.apply()
         self._already_prepared = True
@@ -177,7 +184,7 @@ class ActionTpsaTrack(Action):
             return float(init[qty, self._seed_name])
 
         m = ParticlesTpsa(
-            order=self.order if parametric else self.plain_order,
+            truncation_order=self.truncation_order if parametric else self.plain_order,
             descriptor=self._descriptor if parametric else self._plain_descriptor,
             mass0=float(pref.mass0),
             q0=float(pref.q0),
@@ -275,7 +282,7 @@ class ActionTpsaTrack(Action):
             else:
                 _, qty, loc = meta
                 if qty in _ORBIT_QTYS:
-                    jac[i, :] = self._views[loc].param_jacobian()[_ORBIT_QTYS.index(qty)]
+                    jac[i, :] = self._views[loc].evaluate_jacobian(wrt='parameters')[_ORBIT_QTYS.index(qty)]
                 else:
                     jac[i, :] = self._optics[loc].gradient(qty)
         return jac

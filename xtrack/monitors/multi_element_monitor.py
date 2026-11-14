@@ -89,8 +89,11 @@ class MultiElementMonitor(xt.BeamElement):
         '#include "xtrack/monitors/multi_element_monitor.h"',
     ]
 
-    _coord_name_to_index = {'x': 0, 'px': 1, 'y': 2, 'py': 3,
-                            'zeta': 4, 'delta': 5, 's': 6}
+    _data_coord_name_to_index = {'x': 0, 'px': 1, 'y': 2, 'py': 3,
+                                 'zeta': 4, 'delta': 5, 's': 6}
+    _tpsa_coord_name_to_index = {
+        name: ii for ii, name in enumerate(COORDS)
+    }
 
     def __init__(self, start_at_turn, stop_at_turn,
                  part_id_start, part_id_end,
@@ -137,7 +140,7 @@ class MultiElementMonitor(xt.BeamElement):
         self._slot_index = {}
         for slot, (coord, monomial, coefficient_index) in enumerate(recordings):
             self.monomial_indices[slot] = coefficient_index
-            self.coord_indices[slot] = self._coord_name_to_index[coord]
+            self.coord_indices[slot] = self._tpsa_coord_name_to_index[coord]
             self._slot_index[coord, monomial] = slot
 
     def __len__(self):
@@ -241,7 +244,7 @@ class MultiElementMonitor(xt.BeamElement):
         return series, addresses
 
     def get(self, coordinate, obs_name=None, particle_id=None, turn=None):
-        coord_index = self._coord_name_to_index[coordinate]
+        coord_index = self._data_coord_name_to_index[coordinate]
 
         if obs_name is None:
             obs_index = slice(None)
