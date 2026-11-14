@@ -69,3 +69,22 @@ def test_rfmultipole_kicks_and_symplecticity(
         for field in ['x', 'px', 'y', 'py', 'zeta', 'pzeta']:
             xo.assert_allclose(getattr(p, field), getattr(p0, field),
                                rtol=0, atol=1e-14)
+
+
+@for_all_test_contexts
+def test_rfmultipole_on_absolute_time_follows_the_clock(test_context):
+    # A quarter RF period on the clock is a quarter wave of phase.
+    ctx2np = test_context.nparray_from_context_array
+    frequency = 400e6
+    on_the_clock = xt.RFMultipole(_context=test_context, knl=[1e-3], ksl=[0.], frequency=frequency, voltage=1e5,
+                                  phase=.3, phase_n=[.1], phase_s=[0.], absolute_time=True)
+    phase_added = xt.RFMultipole(_context=test_context, knl=[1e-3], ksl=[0.], frequency=frequency, voltage=1e5,
+                                 phase=.3 + np.pi / 2, phase_n=[.1 + np.pi / 2], phase_s=[np.pi / 2])
+    particles_on_the_clock = xt.Particles(_context=test_context, p0c=6e9, x=1e-3, time_s=.25 / frequency)
+    particles_phase_added = xt.Particles(_context=test_context, p0c=6e9, x=1e-3)
+
+    on_the_clock.track(particles_on_the_clock)
+    phase_added.track(particles_phase_added)
+
+    xo.assert_allclose(ctx2np(particles_on_the_clock.px), ctx2np(particles_phase_added.px), rtol=1e-12, atol=1e-16)
+    xo.assert_allclose(ctx2np(particles_on_the_clock.delta), ctx2np(particles_phase_added.delta), rtol=1e-12, atol=1e-16)
