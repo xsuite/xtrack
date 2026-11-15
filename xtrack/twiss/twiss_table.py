@@ -174,7 +174,7 @@ class TwissTable(Table):
         import pandas as pd
         df = pd.DataFrame(data, columns=columns)
         if index is not None:
-            df.set_index(index, inplace=True)
+            df = df.set_index(index)
         return df
 
     def _extra_metadata(self):

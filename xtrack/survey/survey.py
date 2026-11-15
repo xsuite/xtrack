@@ -378,7 +378,7 @@ class SurveyTable(Table):
         import pandas as pd
         df = pd.DataFrame(data, columns=self._col_names)
         if index is not None:
-            df.set_index(index, inplace=True)
+            df = df.set_index(index)
         return df
 
 
