@@ -922,7 +922,7 @@ class Environment:
         else:
             pars_with_expr = []
 
-        formatter = xd.refs.CompactFormatter(scope=None)
+        formatter = xd.refs.MadxFormatter(scope=None)
 
         for rr in pars_with_expr:
             # Assign expressions by string to avoid having to deal with the
@@ -3529,7 +3529,7 @@ class EnvVars:
         value = np.array([self.env._xdeps_vref[kk]._value for kk in name])
 
         if compact:
-            formatter = xd.refs.CompactFormatter(scope=None)
+            formatter = xd.refs.MadxFormatter(scope=None)
             expr = []
             expr_obj_list = []
             for kk in name:

@@ -546,7 +546,7 @@ class Composer:
             '__class__': self.__class__.__name__,
             'components': [],
         }
-        formatter = xd.refs.CompactFormatter(scope=None)
+        formatter = xd.refs.MadxFormatter(scope=None)
 
         for component in self.components:
             if isinstance(component, str):
