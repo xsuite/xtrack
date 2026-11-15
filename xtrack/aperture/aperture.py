@@ -1061,6 +1061,7 @@ class LineAperture:
             element_name: str,
             resolution: float | None = None,
             twiss: TwissTable | None = None,
+            twiss_options: dict | None = None,
             **kwargs,
     ) -> tuple[Table, TwissTable]:
         """Compute the maximum number of sigmas at which the beam fits in the aperture at element ``element_name``.
@@ -1074,6 +1075,9 @@ class LineAperture:
             values at the entry and exit will be output.
         twiss
             Optionally provided twiss table from which to derive the initial beam parameters at the element.
+        twiss_options
+            Options passed to :meth:`xtrack.Line.twiss`, for example
+            ``{'method': '4d'}``. See :meth:`get_aperture_sigmas_at_s`.
         **kwargs
             Other parameters to be forwarded to :meth:`get_aperture_sigmas_at_s`.
 
@@ -1083,7 +1087,8 @@ class LineAperture:
         """
         s_positions = self._get_cuts_inside_element(element_name, resolution)
         twiss_init = twiss.get_twiss_init(at_element=element_name) if twiss else None
-        return self.get_aperture_sigmas_at_s(s_positions, twiss_init, **kwargs)
+        return self.get_aperture_sigmas_at_s(
+            s_positions, twiss_init, twiss_options=twiss_options, **kwargs)
 
     @doc_group("Aperture Computation")
     def get_aperture_sigmas_at_s(
@@ -1097,6 +1102,7 @@ class LineAperture:
             output_cross_sections: bool = False,
             with_progress: bool = True,
             output_contact_points: bool = False,
+            twiss_options: dict | None = None,
     ) -> tuple[Table, TwissTable]:
         """Compute the maximum number of sigmas at which the beam fits in the aperture at the given ``s_positions``.
 
@@ -1136,6 +1142,11 @@ class LineAperture:
             survey frame, not offsets from the closed orbit or pipe centre.
             If several rays tie, return the first sampled direction.
             Nonfinite ``n1`` has NaN coordinates.
+        twiss_options
+            Options passed to :meth:`xtrack.Line.twiss`, for example
+            ``{'method': '4d', 'delta0': 1e-3}``. The aperture calculation
+            requires ``reverse=False``. Provide initial conditions through
+            either ``twiss_init`` or ``twiss_options['init']``, not both.
 
         Returns
         -------
@@ -1151,7 +1162,7 @@ class LineAperture:
             raise ValueError("Contact points are supported only for method='rays'")
         sliced_twiss = self._get_sliced_twiss_at_s(
             s_positions=s_positions, twiss_init=twiss_init,
-            with_progress=with_progress)
+            with_progress=with_progress, twiss_options=twiss_options)
         table = self.get_aperture_sigmas_for_twiss(
             sliced_twiss=sliced_twiss,
             method=method,
@@ -1331,6 +1342,7 @@ class LineAperture:
             resolution: float | None = None,
             twiss: TwissTable | None = None,
             with_progress: bool = True,
+            twiss_options: dict | None = None,
     ) -> tuple[Table, TwissTable]:
         """Compute horizontal, vertical and diagonal (45°) max aperture sigmas at element ``element_name``.
 
@@ -1346,6 +1358,9 @@ class LineAperture:
         with_progress
             Whether to show progress while slicing the line. Defaults to
             ``True``.
+        twiss_options
+            Options passed to :meth:`xtrack.Line.twiss`, for example
+            ``{'method': '4d'}``. See :meth:`get_hvd_aperture_sigmas_at_s`.
 
         Returns
         -------
@@ -1355,7 +1370,7 @@ class LineAperture:
         twiss_init = twiss.get_twiss_init(at_element=element_name) if twiss else None
         return self.get_hvd_aperture_sigmas_at_s(
             s_positions=s_positions, twiss_init=twiss_init,
-            with_progress=with_progress)
+            with_progress=with_progress, twiss_options=twiss_options)
 
     @doc_group("Aperture Computation")
     def get_hvd_aperture_sigmas_at_s(
@@ -1363,6 +1378,7 @@ class LineAperture:
             s_positions: Iterable[float],
             twiss_init: TwissInit | None = None,
             with_progress: bool = True,
+            twiss_options: dict | None = None,
     ) -> tuple[Table, TwissTable]:
         """Compute horizontal, vertical and diagonal (45°) max aperture sigmas at the given ``s_positions``.
 
@@ -1375,6 +1391,11 @@ class LineAperture:
         with_progress
             Whether to show progress while slicing the line. Defaults to
             ``True``.
+        twiss_options
+            Options passed to :meth:`xtrack.Line.twiss`, for example
+            ``{'method': '4d', 'delta0': 1e-3}``. The aperture calculation
+            requires ``reverse=False``. Provide initial conditions through
+            either ``twiss_init`` or ``twiss_options['init']``, not both.
 
         Returns
         -------
@@ -1389,7 +1410,7 @@ class LineAperture:
 
         sliced_twiss = self._get_sliced_twiss_at_s(
             s_positions=s_positions, twiss_init=twiss_init,
-            with_progress=with_progress)
+            with_progress=with_progress, twiss_options=twiss_options)
         num_slices = len(sliced_twiss.s)
 
         twiss_at_s = TwissData.from_twiss_table(self.line.particle_ref, sliced_twiss)
@@ -1441,6 +1462,7 @@ class LineAperture:
             sigmas: float,
             resolution: float | None = None,
             twiss: TwissTable | None = None,
+            twiss_options: dict | None = None,
             **kwargs,
     ) -> tuple[Table, TwissTable]:
         """Compute beam-envelope polygons at the cuts of ``element_name`` for a fixed sigma value.
@@ -1456,6 +1478,9 @@ class LineAperture:
             the values at the entry and exit will be output.
         twiss
             Optionally provided twiss table from which to derive the initial beam parameters at the element.
+        twiss_options
+            Options passed to :meth:`xtrack.Line.twiss`, for example
+            ``{'method': '4d'}``. See :meth:`get_envelope_at_s`.
         **kwargs
             Other parameters to be forwarded to :meth:`get_envelope_at_s`.
 
@@ -1465,7 +1490,8 @@ class LineAperture:
         """
         s_positions = self._get_cuts_inside_element(element_name, resolution)
         twiss_init = twiss.get_twiss_init(at_element=element_name) if twiss else None
-        return self.get_envelope_at_s(s_positions, sigmas, twiss_init, **kwargs)
+        return self.get_envelope_at_s(
+            s_positions, sigmas, twiss_init, twiss_options=twiss_options, **kwargs)
 
     @doc_group("Aperture Computation")
     def get_envelope_at_s(
@@ -1478,6 +1504,7 @@ class LineAperture:
             polygons: bool = True,
             extents: bool = False,
             with_progress: bool = True,
+            twiss_options: dict | None = None,
     ) -> tuple[Table, TwissTable]:
         """Compute beam-envelope polygons at the requested ``s_positions`` for a fixed sigma value.
 
@@ -1500,6 +1527,11 @@ class LineAperture:
         with_progress
             Whether to show progress while slicing the line. Defaults to
             ``True``.
+        twiss_options
+            Options passed to :meth:`xtrack.Line.twiss`, for example
+            ``{'method': '4d', 'delta0': 1e-3}``. The aperture calculation
+            requires ``reverse=False``. Provide initial conditions through
+            either ``twiss_init`` or ``twiss_options['init']``, not both.
 
         Returns
         -------
@@ -1510,7 +1542,7 @@ class LineAperture:
         """
         sliced_twiss = self._get_sliced_twiss_at_s(
             s_positions=s_positions, twiss_init=twiss_init,
-            with_progress=with_progress)
+            with_progress=with_progress, twiss_options=twiss_options)
         envelope_table = self.get_envelope_for_twiss(
             sliced_twiss=sliced_twiss,
             sigmas=sigmas,
@@ -1821,6 +1853,7 @@ class LineAperture:
         plot_s_positions: Collection[float] | None = None,
         axs=None,
         with_progress: bool = True,
+        twiss_options: dict | None = None,
     ):
         """Plot aperture limits and beam-envelope extents along the line.
 
@@ -1866,6 +1899,11 @@ class LineAperture:
         with_progress
             Whether to show progress while slicing the line. Defaults to
             ``True``.
+        twiss_options
+            Options passed to :meth:`xtrack.Line.twiss`, for example
+            ``{'method': '4d', 'delta0': 1e-3}``. The aperture calculation
+            requires ``reverse=False``. Provide initial conditions through
+            either ``twiss_init`` or ``twiss_options['init']``, not both.
 
         Returns
         -------
@@ -1889,6 +1927,7 @@ class LineAperture:
             s_positions=s_sorted,
             twiss_init=twiss_init,
             with_progress=with_progress,
+            twiss_options=twiss_options,
         )
         sigmas_was_computed = sigmas is None
         if sigmas is None:
@@ -1967,6 +2006,7 @@ class LineAperture:
             middle='beam',
             ax=None,
             with_progress: bool = True,
+            twiss_options: dict | None = None,
     ):
         """Display transverse aperture cross-sections and beam envelopes.
 
@@ -2005,6 +2045,11 @@ class LineAperture:
         with_progress
             Whether to show progress while slicing the line. Defaults to
             ``True``.
+        twiss_options
+            Options passed to :meth:`xtrack.Line.twiss`, for example
+            ``{'method': '4d', 'delta0': 1e-3}``. The aperture calculation
+            requires ``reverse=False``. Provide initial conditions through
+            either ``twiss_init`` or ``twiss_options['init']``, not both.
 
         Returns
         -------
@@ -2033,6 +2078,7 @@ class LineAperture:
                 output_max_envelopes=True,
                 output_cross_sections=True,
                 with_progress=with_progress,
+                twiss_options=twiss_options,
             )
             sigmas = float(np.min(n1_tab.n1))
             beam_tols = n1_tab.envelope
@@ -2045,6 +2091,7 @@ class LineAperture:
                 s_positions=s_positions,
                 twiss_init=twiss_init,
                 with_progress=with_progress,
+                twiss_options=twiss_options,
             )
             beam_tols = self.get_envelope_for_twiss(
                 sliced_twiss=sliced_twiss,
@@ -2590,6 +2637,7 @@ class LineAperture:
             s_positions: Iterable[float],
             twiss_init: TwissInit | None = None,
             with_progress: bool = True,
+            twiss_options: dict | None = None,
     ) -> TwissTable:
         """Get a twiss table for the line with entries at each requested `s`.
 
@@ -2601,12 +2649,26 @@ class LineAperture:
             Initial conditions for the twiss.
         with_progress
             Whether to show progress while slicing the line.
+        twiss_options
+            Options passed to :meth:`xtrack.Line.twiss`, for example
+            ``{'method': '4d', 'delta0': 1e-3}``. The aperture calculation
+            requires ``reverse=False``. Provide initial conditions through
+            either ``twiss_init`` or ``twiss_options['init']``, not both.
         """
+        kwargs = dict(twiss_options or {})
+        if kwargs.get('reverse'):
+            raise ValueError("Aperture calculations require reverse=False")
+        kwargs['reverse'] = False
+        if twiss_init is not None and kwargs.get('init') is not None:
+            raise ValueError("Provide either twiss_init or twiss_options['init'], not both")
+        if kwargs.get('init') is None:
+            kwargs['init'] = twiss_init
+
         s_positions = np.array(s_positions, dtype=FloatType._dtype)
         line_sliced = self.line.copy()
         line_sliced.cut_at_s(s_positions, with_progress=with_progress)
 
-        full_twiss = line_sliced.twiss(init=twiss_init, reverse=False)
+        full_twiss = line_sliced.twiss(**kwargs)
 
         # "Authoritative" s-positions after slicing (up to cutting tolerances)
         tw_s = np.array(full_twiss.s, dtype=FloatType._dtype)
