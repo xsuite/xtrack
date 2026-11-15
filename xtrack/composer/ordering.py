@@ -6,6 +6,8 @@ from typing import Any
 
 import numpy as np
 
+from .positions import _Position, _position_from_table
+
 
 @dataclass(frozen=True)
 class ResolvedPlacement:
@@ -66,7 +68,7 @@ def _sort_places(tt_unsorted, s_tol=1e-10, allow_non_existent_from=False):
             name_with_repetition=source.name[index],
             length=source.length[index],
             isthick=bool(source.isthick[index]),
-            s_start=source.s_start[index],
+            s_start=_position_from_table(source, index),
             from_=source.from_[index],
             from_anchor=source.from_anchor[index],
         )
@@ -102,13 +104,15 @@ def _sort_places(tt_unsorted, s_tol=1e-10, allow_non_existent_from=False):
     place_order = [placement.source_index for placement in ordered_placements]
     sorted_table = source.rows[place_order]
     sorted_table['i_place'] = np.array(place_order)
-    sorted_table['s_center'] = sorted_table['s_start'] + sorted_table['length'] / 2
-    sorted_table['s_end'] = sorted_table['s_start'] + sorted_table['length']
-    sorted_table['ds_upstream'] = 0 * sorted_table['s_start']
-    sorted_table['ds_upstream'][1:] = (
-        sorted_table['s_start'][1:] - sorted_table['s_end'][:-1]
-    )
-    sorted_table['ds_upstream'][0] = sorted_table['s_start'][0]
+    sorted_table['s_center'] = np.array([
+        float(placement.s_center) for placement in ordered_placements])
+    sorted_table['s_end'] = np.array([
+        float(placement.s_end) for placement in ordered_placements])
+    sorted_table['ds_upstream'] = np.array([
+        float(ordered_placements[0].s_start),
+        *(current.s_start.gap_from(previous.s_start, previous.length)
+          for previous, current in zip(ordered_placements, ordered_placements[1:]))
+    ])
     sorted_table['s'] = sorted_table['s_start']
     return sorted_table
 
@@ -121,11 +125,9 @@ def _group_elements_at_same_s(placements, s_tol):
     groups = [[placements[0]]]
     for placement in placements[1:]:
         previous = groups[-1][-1]
-        different_center = abs(placement.s_center - previous.s_center) > s_tol
-        previous_is_thick = previous.isthick and previous.s_end - previous.s_start != 0
-        placement_is_thick = (
-            placement.isthick and placement.s_end - placement.s_start != 0
-        )
+        different_center = abs(placement.s_center.gap_from(previous.s_center)) > s_tol
+        previous_is_thick = previous.isthick and previous.length != 0
+        placement_is_thick = placement.isthick and placement.length != 0
         if different_center or previous_is_thick or placement_is_thick:
             groups.append([placement])
         else:
@@ -238,8 +240,10 @@ def _argsort_s(sequence, tol=10e-10):
     def comparator(first_index, second_index):
         first = sequence[first_index]
         second = sequence[second_index]
-        if np.abs(first - second) < tol:
+        difference = (first.gap_from(second) if isinstance(first, _Position)
+                      else first - second)
+        if abs(difference) < tol:
             return 0
-        return -1 if first < second else 1
+        return -1 if difference < 0 else 1
 
     return sorted(sequence_indices, key=cmp_to_key(comparator))

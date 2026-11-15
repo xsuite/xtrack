@@ -3,6 +3,8 @@
 import numpy as np
 import xdeps as xd
 
+from .positions import _Position
+
 
 _ALLOWED_ANCHORS = (None, 'center', 'centre', 'start', 'end')
 
@@ -39,6 +41,7 @@ def _resolve_s_positions(seq_all_places, env, refer='center', diagnostics=False)
         table['s_center'] = np.array([], dtype=float)
         table['s_end'] = np.array([], dtype=float)
         table['s'] = np.array([], dtype=float)
+        table['_s_start_error'] = np.array([], dtype=float)
         table['from_'] = np.array([], dtype=object)
         table['from_anchor'] = np.array([], dtype=object)
         return table
@@ -54,7 +57,7 @@ def _resolve_s_positions(seq_all_places, env, refer='center', diagnostics=False)
 
     # If first place has at=None, it goes at s=0
     if places[0].at is None:
-        s_start_by_index[0] = 0
+        s_start_by_index[0] = _Position()
         resolved_index_by_name[places[0].name] = 0
 
     # Scan all unresolved places and resolve those whose reference component
@@ -94,7 +97,8 @@ def _resolve_s_positions(seq_all_places, env, refer='center', diagnostics=False)
                 # Needs to be placed at an absolute location along the line,
                 # based on `at` and `anchor`.
 
-                at = _evaluate_position_expression(place.at, aux_line._xdeps_eval)
+                at = _Position(float(_evaluate_position_expression(
+                    place.at, aux_line._xdeps_eval)), place._at_error)
                 # Component anchor (start/end/center)
                 anchor = refer if place.anchor is None else place.anchor
                 # Absolute location of the component
@@ -104,7 +108,8 @@ def _resolve_s_positions(seq_all_places, env, refer='center', diagnostics=False)
                 # Needs to be placed relative to another component,
                 # based on `at`, `from_`, and `from_anchor`.
 
-                at = _evaluate_position_expression(place.at, aux_line._xdeps_eval)
+                at = _Position(float(_evaluate_position_expression(
+                    place.at, aux_line._xdeps_eval)), place._at_error)
                 # Check if the referenced component has been resolved.
                 reference_index = resolved_index_by_name.get(place.from_)
                 if reference_index is None:
@@ -146,9 +151,13 @@ def _resolve_s_positions(seq_all_places, env, refer='center', diagnostics=False)
             )
         _raise_resolution_error_with_diagnostics(places, unresolved_indices)
 
-    table['s_start'] = np.array(s_start_by_index)
-    table['s_center'] = table['s_start'] + table['length'] / 2
-    table['s_end'] = table['s_start'] + table['length']
+    table['s_start'] = np.array([s.hi for s in s_start_by_index])
+    # A column follows row selection/reordering, unlike table-level metadata.
+    table['_s_start_error'] = np.array([s.lo for s in s_start_by_index])
+    table['s_center'] = np.array([
+        float(s + length / 2) for s, length in zip(s_start_by_index, table.length)])
+    table['s_end'] = np.array([
+        float(s + length) for s, length in zip(s_start_by_index, table.length)])
     table['s'] = table['s_start'].copy()
     table['from_'] = np.array(from_name_by_index)
     table['from_anchor'] = np.array(from_anchor_by_index)

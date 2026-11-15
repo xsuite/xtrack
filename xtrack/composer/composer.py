@@ -15,6 +15,7 @@ import xdeps as xd
 import xtrack as xt
 
 from .ordering import _sort_places
+from .positions import _Position, _line_length, _remaining_length
 from .resolve_positions import _ALLOWED_ANCHORS, _anchor_offset, _resolve_s_positions
 from ..general import DEPRECATION_INFO_PREP_1_0, parse_anchor_spec
 
@@ -370,19 +371,20 @@ class Composer:
             # building a positions table and is significantly faster for large lines.
             element_names = list(map(str, expanded_components))
             if length is not None:
-                components_length = self.env.new_line(
+                components_length = _line_length(self.env.new_line(
                     components=element_names
-                ).get_length()
-                if components_length > length + s_tol:
+                ))
+                gap = _Position(float(length)).gap_from(components_length)
+                if gap < -s_tol:
                     raise ValueError(
-                        f'Line length {components_length} is greater than the '
+                        f'Line length {float(components_length)} is greater than the '
                         f'requested length {length}'
                     )
-                if components_length < length - s_tol:
+                if gap > s_tol:
                     drift = self.env.new(
                         self.env._get_a_drift_name(),
                         xt.Drift,
-                        length=length - components_length,
+                        length=gap,
                     )
                     element_names.append(drift)
         else:
@@ -393,7 +395,7 @@ class Composer:
                 refer=self.refer,
                 diagnostics=diagnostics,
             )
-            positions = _sort_places(positions)
+            positions = _sort_places(positions, s_tol=s_tol)
             element_names = _generate_element_names_with_drifts(
                 self.env,
                 positions,
@@ -439,6 +441,12 @@ class Composer:
         xtrack.line.LineTable
             Table containing one row per expanded component, including its
             ``s_start``, ``s_center``, and ``s_end`` positions.
+
+        Notes
+        -----
+        Positions are resolved with compensated arithmetic. The public position
+        columns contain ordinary binary64 values; ``ds_upstream`` is computed
+        using the retained residuals before rounding each gap to binary64.
         """
         expanded_components = _flatten_components(
             self.env,
@@ -452,7 +460,7 @@ class Composer:
             refer=self.refer,
             diagnostics=diagnostics,
         )
-        return _sort_places(table) if sort else table
+        return _sort_places(table, s_tol=self.s_tol) if sort else table
 
     def validate(self, s_tol=None, check_overlaps=True):
         """Validate the current component definitions.
@@ -485,7 +493,8 @@ class Composer:
         if s_tol is None:
             s_tol = self.s_tol
         length = _evaluate_length(self.env, self.length)
-        table = self.resolve_s_positions(sort=True, diagnostics=True)
+        table = self.resolve_s_positions(sort=False, diagnostics=True)
+        table = _sort_places(table, s_tol=s_tol)
         _validate_placement_geometry(
             table,
             length=length,
@@ -569,6 +578,8 @@ class Composer:
                     component_data['at'] = component.at._formatted(formatter)
                 else:
                     component_data['at'] = component.at
+            if component._at_error:
+                component_data['_at_error'] = component._at_error
             if component.from_ is not None:
                 component_data['from_'] = component.from_
             if component.anchor is not None:
@@ -640,7 +651,9 @@ class Composer:
                 component_data['name'] = xt.Line.from_dict(
                     component_data['name'], _env=env
                 )
-            out.place(**component_data)
+            at_error = component_data.pop('_at_error', 0.)
+            place = out.place(**component_data)
+            place._at_error = at_error
 
         for key, value in data.items():
             setattr(out, key, value)
@@ -709,7 +722,8 @@ class Place:
     """
 
     def __init__(
-        self, name, at=None, from_=None, anchor=None, from_anchor=None, env=None
+        self, name, at=None, from_=None, anchor=None, from_anchor=None, env=None,
+        _at_error=0.,
     ):
         if isinstance(at, str):
             if '@' in at:
@@ -737,6 +751,8 @@ class Place:
 
         self.name = name
         self.at = at
+        # Residual of an anchor adjustment made while flattening a nested line.
+        self._at_error = _at_error
         self.from_ = from_
         self.anchor = anchor
         self.from_anchor = from_anchor
@@ -796,14 +812,17 @@ def _flatten_components(env, components, refer='center'):
 
             sub_components = list(this_line.element_names)
             if component.at is not None:
-                if isinstance(component.at, str):
-                    at = this_line._xdeps_eval.eval(component.at)
-                else:
-                    at = component.at
-                at_of_start = at - _anchor_offset(anchor, this_line.get_length())
+                at = component.at
+                if isinstance(at, str):
+                    at = this_line._xdeps_eval.eval(at)
+                if xd.refs.is_ref(at):
+                    at = at._value
+                at = _Position(float(at), component._at_error)
+                at_of_start = at - _anchor_offset(anchor, _line_length(this_line))
                 sub_components[0] = xt.Place(
                     sub_components[0],
-                    at=at_of_start,
+                    at=at_of_start.hi,
+                    _at_error=at_of_start.lo,
                     anchor='start',
                     from_=component.from_,
                     from_anchor=component.from_anchor,
@@ -864,13 +883,14 @@ def _generate_element_names_with_drifts(env, tt_sorted, length=None, s_tol=1e-6)
 
     if length is not None:
         line_length = tt_sorted['s_end'][-1]
-        if line_length > length + s_tol:
+        gap = _remaining_length(tt_sorted, length)
+        if gap < -s_tol:
             raise ValueError(
                 f'Line length {line_length} is greater than the requested '
                 f'length {length}'
             )
-        if line_length < length - s_tol:
-            names_with_drifts.append(env._get_drift(length - line_length))
+        if gap > s_tol:
+            names_with_drifts.append(env._get_drift(gap))
 
     return [str(nn) for nn in names_with_drifts]
 
@@ -896,7 +916,7 @@ def _validate_placement_geometry(
 
     if length is not None:
         line_length = tt_sorted['s_end'][-1]
-        if line_length > length + s_tol:
+        if _remaining_length(tt_sorted, length) < -s_tol:
             raise ValueError(
                 f'Line length {line_length} is greater than the requested '
                 f'length {length}'

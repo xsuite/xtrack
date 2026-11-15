@@ -4181,6 +4181,9 @@ class Line:
 
         tt_after_cut = self.get_table()
         tt_after_cut['length'] = tt_after_cut.length * tt_after_cut.isthick
+        # Concatenation keeps common columns only. Retain the insertions' residuals
+        # alongside the binary64 coordinates of the remaining line elements.
+        tt_after_cut['_s_start_error'] = np.zeros(len(tt_after_cut))
 
         # Identify old elements falling inside the insertions
         idx_remove = []
