@@ -4,43 +4,26 @@
 GPUFUN
 int HAMILTONIAN_FLOW(Expansion *f, const double beta0, const double chi,
                      double s, const double z[6], HamiltonianFlow *flow) {
-    double delta1, delta, ddelta1;
-    double q, pix, piy, rad, root;
-
-    const HamiltonianFlow zero = {0};
-    *flow = zero;
-
     if (EVALUATE_EXPANSION(f, z[0], z[2], s, &flow->pot) != 0) return -1;
-    delta_from_ptau(beta0, z[5], &delta, &delta1, &ddelta1);
-    q = 1.0 + f->h * z[0];
+
+    // H = ptau/beta0 - (1 + h x) * (sqrt((1+delta)^2 - pix^2 - piy^2) + chi As)
     // Expansion potentials are normalized to the reference rigidity.
-    pix = z[1] - chi * flow->pot.Ax;
-    piy = z[3] - chi * flow->pot.Ay;  /* A_y is zero in this gauge. */
-    rad = delta1 * delta1 - pix * pix - piy * piy;
-    root = sqrt(rad);
+    const double ptau = z[5];
+    const double delta1 = sqrt(1.0 + 2.0 * ptau / beta0 + ptau * ptau);  // 1 + delta
+    const double q = 1.0 + f->h * z[0];
+    const double pix = z[1] - chi * flow->pot.Ax;
+    const double piy = z[3] - chi * flow->pot.Ay;  /* A_y is zero in this gauge. */
+    const double root = sqrt(delta1 * delta1 - pix * pix - piy * piy);
+    const double q_over_root = q / root;
 
-    flow->delta = delta;
-    flow->one_plus_delta = delta1;
-    flow->radicand = rad;
-    flow->root = root;
-    flow->H = z[5] / beta0 - q * (root + chi * flow->pot.As);
-
-    flow->rhs[0] = q * pix / root;  // dx/ds = dH/dpx
-    flow->rhs[2] = q * piy / root;  // dy/ds = dH/dpy
-    flow->rhs[4] = 1.0 / beta0 - q * delta1 * ddelta1 / root;  // dtau/ds = dH/dptau
+    flow->rhs[0] = q_over_root * pix;  // dx/ds = dH/dpx
+    flow->rhs[2] = q_over_root * piy;  // dy/ds = dH/dpy
+    flow->rhs[4] = 1.0 / beta0 - q_over_root * (1.0 / beta0 + ptau);  // dtau/ds = dH/dptau
 
     flow->rhs[1] = f->h * (root + chi * flow->pot.As)
         + q * chi * (pix * flow->pot.dAx_dx / root + flow->pot.dAs_dx);  // dpx/ds = -dH/dx
     flow->rhs[3] = q * chi * (pix * flow->pot.dAx_dy / root + flow->pot.dAs_dy);  // dpy/ds = -dH/dy
     flow->rhs[5] = 0.0;  // dptau/ds = -dH/dtau, H has no tau-dependence for these static fields.
-
-    flow->grad[0] = -flow->rhs[1];  // dH/dx
-    flow->grad[1] =  flow->rhs[0];  // dH/dpx
-    flow->grad[2] = -flow->rhs[3];  // dH/dy
-    flow->grad[3] =  flow->rhs[2];  // dH/dpy
-    flow->grad[4] = -flow->rhs[5];  // dH/dtau
-    flow->grad[5] =  flow->rhs[4];  // dH/dptau
-    flow->dH_ds = -q * chi * (pix * flow->pot.dAx_ds / root + flow->pot.dAs_ds);
     return 0;
 }
 

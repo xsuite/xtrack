@@ -11,8 +11,15 @@ moff=-mmin is the offset to be added to m to get the correct index,
 since m does not necessarily start at 0
 */
 
+/* Seed rows as polynomials in x, accumulated into dst with layout
+   dst[cidx(i, m, k, nm, moff, deg)], m >= 0:
+   phi_0(x,s) = -int ksol ds - sum_n Bx^(n-1)(s) x^n/n!
+   phi_1(x,s) = -By(x,0,s)  = - sum_n By^(n-1)(s) x^(n-1)/(n-1)!
+   including the uniform scalar strengths and the hard-edge densities.
+   Construction is serial; the element workspace holds the factorials. */
 GPUFUN
-void build_expansion_straight(BFieldExpansionData el){
+void bfieldexpansion_seed_x_rows(BFieldExpansionData el, GPUGLMEM double *dst,
+                                 int nm, int moff) {
     const int ncoef = BFieldExpansionData_get__ncoef(el);
     const int nac   = BFieldExpansionData_get_na(el);
     const int nbc   = BFieldExpansionData_get_nb(el);
@@ -36,45 +43,52 @@ void build_expansion_straight(BFieldExpansionData el){
     GPUGLMEM const double *knc = BFieldExpansionData_getp2_knc(el, 0, 0);
     GPUGLMEM const double *ksolc = BFieldExpansionData_getp1_ksolc(el, 0);
 
-    const int mmax = BFieldExpansionData_get__mmax(el);
-    const int moff = BFieldExpansionData_get__moff(el);
-    const int nm   = BFieldExpansionData_get__nm(el);
-
-    GPUGLMEM double *c = BFieldExpansionData_getp1__c(el, 0);
-
     int nmax = (na > nb) ? na : nb;
-    /* Construction is serial; reuse the element workspace for the seeds. */
     GPUGLMEM double *invfact = BFieldExpansionData_getp1__V(el, 0);
     invfact[0] = 1.0;
     for (int n = 1; n <= nmax; ++n) {
         invfact[n] = invfact[n - 1] / (double)n;
     }
 
-    for (int k = 0; k < nsol; ++k) c[cidx(0,0,k+1,nm,moff,deg)] = -ksolc[k] / (double)(k + 1);
+    for (int k = 0; k < nsol; ++k) dst[cidx(0,0,k+1,nm,moff,deg)] = -ksolc[k] / (double)(k + 1);
 
     for (int n = 1; n <= na; ++n) {
         const double fac = -invfact[n];
         if (n <= nac) {
             GPUGLMEM const double *an = ksc + (size_t)(n - 1) * (size_t)width_a;
-            for (int k = 0; k < width_a; ++k) c[cidx(0,n,k,nm,moff,deg)] += fac * an[k];
+            for (int k = 0; k < width_a; ++k) dst[cidx(0,n,k,nm,moff,deg)] += fac * an[k];
         }
-        if (n <= 4) c[cidx(0,n,0,nm,moff,deg)] += fac * ks[n - 1];
+        if (n <= 4) dst[cidx(0,n,0,nm,moff,deg)] += fac * ks[n - 1];
         if (n <= nal)
-            c[cidx(0,n,0,nm,moff,deg)] += fac * BFieldExpansionData_get_ksl(el, n - 1) * inv_length;
+            dst[cidx(0,n,0,nm,moff,deg)] += fac * BFieldExpansionData_get_ksl(el, n - 1) * inv_length;
     }
     if (ncoef > 1) {
         for (int n = 1; n <= nb; ++n) {
             const double fac = -invfact[n - 1];
             if (n <= nbc) {
                 GPUGLMEM const double *bn = knc + (size_t)(n - 1) * (size_t)width_b;
-                for (int k = 0; k < width_b; ++k) c[cidx(1,n-1,k,nm,moff,deg)] += fac * bn[k];
+                for (int k = 0; k < width_b; ++k) dst[cidx(1,n-1,k,nm,moff,deg)] += fac * bn[k];
             }
-            if (n <= 4) c[cidx(1,n-1,0,nm,moff,deg)] += fac * kn[n - 1];
+            if (n <= 4) dst[cidx(1,n-1,0,nm,moff,deg)] += fac * kn[n - 1];
             if (n <= nbl)
-                c[cidx(1,n-1,0,nm,moff,deg)] += fac * BFieldExpansionData_get_knl(el, n - 1) * inv_length;
+                dst[cidx(1,n-1,0,nm,moff,deg)] += fac * BFieldExpansionData_get_knl(el, n - 1) * inv_length;
         }
     }
+}
 
+GPUFUN
+void build_expansion_straight(BFieldExpansionData el){
+    const int ncoef = BFieldExpansionData_get__ncoef(el);
+    const int deg = BFieldExpansionData_get__potential_degree(el);
+    const int mmax = BFieldExpansionData_get__mmax(el);
+    const int moff = BFieldExpansionData_get__moff(el);
+    const int nm   = BFieldExpansionData_get__nm(el);
+
+    GPUGLMEM double *c = BFieldExpansionData_getp1__c(el, 0);
+
+    bfieldexpansion_seed_x_rows(el, c, nm, moff);
+
+    /* Recursion: phi_{i+2} = -(d_x^2 + d_s^2) phi_i */
     for (int i = 0; i + 2 < ncoef; ++i) {
         for (int m = 0; m <= mmax; ++m) {
             for (int k = 0; k <= deg; ++k) {
