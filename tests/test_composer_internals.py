@@ -58,6 +58,22 @@ def test_position_resolution_supports_forward_dependencies():
     assert np.allclose(table.s_start, [7, 5])
 
 
+def test_position_resolution_retains_transport_lengths_after_long_prefix():
+    env = xt.Environment()
+    env.new('prefix', xt.Drift, length=20000.)
+    env.new('q', xt.Quadrupole, length=0.11)
+    env.new('thin', xt.Multipole, length=0.7, isthick=False)
+    places = [
+        xt.Place('prefix', at=0., anchor='start'),
+        xt.Place('q', at=20001., anchor='start'),
+        xt.Place('thin'),
+    ]
+
+    table = _resolve_s_positions(places, env)
+    np.testing.assert_array_equal(table.length, [20000., 0.11, 0.])
+    np.testing.assert_array_equal(table.isthick, [True, True, False])
+
+
 def test_position_resolution_rejects_from_without_at():
     env = xt.Environment()
     env.new('marker', xt.Marker)
