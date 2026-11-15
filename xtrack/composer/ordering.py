@@ -6,7 +6,7 @@ from typing import Any
 
 import numpy as np
 
-from .positions import _Position, _position_from_table
+from .positions import CompensatedFloat, _position_from_table
 
 
 @dataclass(frozen=True)
@@ -110,7 +110,7 @@ def _sort_places(tt_unsorted, s_tol=1e-10, allow_non_existent_from=False):
         float(placement.s_end) for placement in ordered_placements])
     sorted_table['ds_upstream'] = np.array([
         float(ordered_placements[0].s_start),
-        *(current.s_start.gap_from(previous.s_start, previous.length)
+        *(current.s_start.difference_from(previous.s_start, previous.length)
           for previous, current in zip(ordered_placements, ordered_placements[1:]))
     ])
     sorted_table['s'] = sorted_table['s_start']
@@ -125,7 +125,7 @@ def _group_elements_at_same_s(placements, s_tol):
     groups = [[placements[0]]]
     for placement in placements[1:]:
         previous = groups[-1][-1]
-        different_center = abs(placement.s_center.gap_from(previous.s_center)) > s_tol
+        different_center = abs(placement.s_center.difference_from(previous.s_center)) > s_tol
         previous_is_thick = previous.isthick and previous.length != 0
         placement_is_thick = placement.isthick and placement.length != 0
         if different_center or previous_is_thick or placement_is_thick:
@@ -240,7 +240,7 @@ def _argsort_s(sequence, tol=10e-10):
     def comparator(first_index, second_index):
         first = sequence[first_index]
         second = sequence[second_index]
-        difference = (first.gap_from(second) if isinstance(first, _Position)
+        difference = (first.difference_from(second) if isinstance(first, CompensatedFloat)
                       else first - second)
         if abs(difference) < tol:
             return 0

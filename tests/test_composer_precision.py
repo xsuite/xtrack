@@ -101,9 +101,18 @@ def test_nested_lines_and_flattened_serialization(anchor, compose):
     env.new('b', xt.Quadrupole, length=0.23)
     env.new_line(name='cell', components=['a', 'b'], compose=compose)
     places = [xt.Place('cell', at=20001. + i, anchor=anchor) for i in range(3)]
+    specifications = [vars(place).copy() for place in places]
     composer = xt.Composer(env, components=places, s_tol=1e-14, length=20004.)
     flat = composer.flatten()
-    restored = xt.Composer.from_dict(json.loads(json.dumps(flat.to_dict())), env)
+    data = json.loads(json.dumps(flat.to_dict()))
+    for place, serialized in zip(flat.components, data['components']):
+        if place.at is not None:
+            assert isinstance(place.at, xt.CompensatedFloat)
+            assert set(serialized) == {'name', 'at', 'anchor'}
+            assert serialized['at'] == place.at.to_dict()
+        assert set(vars(place)) == {'name', 'at', 'from_', 'anchor', 'from_anchor', 'env'}
+    restored = xt.Composer.from_dict(data, env)
+    assert restored.to_dict() == data
     expected_gap = float(1 - Fraction(0.11) - Fraction(0.23))
     expected_tail = float(1 - (1 - ANCHORS[anchor]) * (Fraction(0.11) + Fraction(0.23)))
     for candidate in [composer, flat, restored]:
@@ -113,7 +122,8 @@ def test_nested_lines_and_flattened_serialization(anchor, compose):
         np.testing.assert_array_equal(gaps[1:3], [expected_gap] * 2)
         assert gaps[-1] == expected_tail
         assert fsum(table.length * table.isthick) == 20004.
-    assert all(place._at_error == 0. for place in places)
+    assert [vars(place) for place in places] == specifications
+    assert all(isinstance(place.at, float) for place in places)
 
 
 def test_nested_line_length_keeps_its_own_rounding_residual():
@@ -225,3 +235,101 @@ def test_small_final_gap_is_not_lost_in_absolute_coordinates():
         xt.Place('q', at=2.**30, anchor='start'),
     ], length=2.**30 + 0.125, s_tol=1e-12)
     assert line[line.element_names[-1]].length == 0.125 - length
+
+
+def test_compensated_float_arithmetic_and_serialization():
+    origin = xt.CompensatedFloat(2.**30)
+    shifted = origin + 2e-10
+    assert float(shifted) == float(origin)
+    assert shifted.difference_from(origin) == 2e-10
+    assert shifted.difference_from(2.**30) == 2e-10
+    assert float(shifted - origin) == 2e-10
+    assert float(shifted - 2.**30) == 2e-10
+    assert (shifted / 2).difference_from(origin / 2) == 1e-10
+    assert shifted.difference_from(origin, offset=1e-10) == 1e-10
+    restored = xt.CompensatedFloat.from_dict(json.loads(json.dumps(shifted.to_dict())))
+    assert restored == shifted
+    assert restored.difference_from(origin) == 2e-10
+    assert origin.hi == 2.**30 and origin.lo == 0.
+
+
+@pytest.mark.parametrize('kind', ['int', 'float', 'numpy', 'expression', 'reference', 'sequential'])
+def test_normal_placement_values_remain_unchanged(kind):
+    env = xt.Environment()
+    env.new('a', xt.Marker)
+    env.new('b', xt.Marker)
+    env['position'] = 2.
+    at = {'int': 2, 'float': 2., 'numpy': np.float64(2.),
+          'expression': 'position', 'reference': env.ref['position'],
+          'sequential': None}[kind]
+    place = env.place('b', at=at, anchor='start')
+    specification = vars(place).copy()
+    composer = xt.Composer(env, components=[xt.Place('a', at=0.), place])
+    data_before = composer.to_dict()
+    table = composer.resolve_s_positions()
+    assert table['s_start', 'b'] == (0. if at is None else 2.)
+    assert place.at is at
+    assert vars(place) == specification
+    assert set(vars(place)) == {'name', 'at', 'from_', 'anchor', 'from_anchor', 'env'}
+    assert composer.to_dict() == data_before
+    assert not isinstance(data_before['components'][1].get('at'), dict)
+
+
+@pytest.mark.parametrize('relative', [False, True])
+def test_compensated_placement_values_and_line_json_roundtrip(tmp_path, relative):
+    env = xt.Environment()
+    env.new('a', xt.Marker)
+    env.new('b', xt.Marker)
+    env.new('c', xt.Marker)
+    origin = xt.CompensatedFloat(2.**30)
+    line = env.new_line(compose=True, s_tol=1e-12)
+    line.place('a', at=origin)
+    offset = origin + 2e-10
+    line.place('b', at=offset, from_='a' if relative else None)
+    # A reference origin allows the same value to exercise both paths.
+    line.place('c', at=(origin + origin if relative else origin) + 4e-10)
+    specifications = [vars(place).copy() for place in line.composer.components]
+    table = line.composer.resolve_s_positions()
+    assert table['ds_upstream', 'c'] == 2e-10
+    assert line.composer.components[1].at is offset
+    assert [vars(place) for place in line.composer.components] == specifications
+
+    path = tmp_path / 'line.json'
+    line.to_json(path)
+    restored = xt.Line.from_json(path)
+    # Reloading finalizes compose-mode lines by default.
+    assert restored.mode == 'normal'
+    assert restored.composer.components[1].at == offset
+    np.testing.assert_array_equal(
+        restored.composer.resolve_s_positions().ds_upstream, table.ds_upstream)
+    data = json.loads(path.read_text())
+    assert data['composer']['components'][1]['at'] == offset.to_dict()
+    assert set(data['composer']['components'][1]) == (
+        {'name', 'at', 'from_'} if relative else {'name', 'at'})
+    line.end_compose()
+    np.testing.assert_array_equal(restored.get_table().length, line.get_table().length)
+    assert restored[restored.element_names[-2]].length == 2e-10
+
+
+def test_nested_line_at_compensated_value_is_not_rounded():
+    env = xt.Environment()
+    env.new('q', xt.Quadrupole, length=0.11)
+    env.new('end', xt.Marker)
+    cell = env.new_line(components=['q'])
+    # This binary offset remains exact through the anchor adjustment.
+    offset = 2.**-32
+    at = xt.CompensatedFloat(2.**30) + offset
+    place = env.place(cell, at=at, anchor='end')
+    specification = vars(place).copy()
+    composer = xt.Composer(env, s_tol=1e-12, components=[
+        place, xt.Place('end', at=xt.CompensatedFloat(2.**30) + 2 * offset),
+    ])
+    flat = composer.flatten()
+    expected_start = at - 0.11
+    assert flat.components[0].at == expected_start
+    assert place.at is at
+    assert vars(place) == specification
+    for candidate in [composer, flat, flat.flatten()]:
+        assert candidate.resolve_s_positions()['ds_upstream', 'end'] == offset
+        line = candidate.build()
+        assert line[line.element_names[-2]].length == offset

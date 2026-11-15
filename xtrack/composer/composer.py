@@ -15,8 +15,11 @@ import xdeps as xd
 import xtrack as xt
 
 from .ordering import _sort_places
-from .positions import _Position, _line_length, _remaining_length
-from .resolve_positions import _ALLOWED_ANCHORS, _anchor_offset, _resolve_s_positions
+from .positions import CompensatedFloat, _line_length, _remaining_length
+from .resolve_positions import (
+    _ALLOWED_ANCHORS, _anchor_offset, _evaluate_position_expression,
+    _resolve_s_positions,
+)
 from ..general import DEPRECATION_INFO_PREP_1_0, parse_anchor_spec
 
 
@@ -374,7 +377,7 @@ class Composer:
                 components_length = _line_length(self.env.new_line(
                     components=element_names
                 ))
-                gap = _Position(float(length)).gap_from(components_length)
+                gap = CompensatedFloat(float(length)).difference_from(components_length)
                 if gap < -s_tol:
                     raise ValueError(
                         f'Line length {float(components_length)} is greater than the '
@@ -539,6 +542,8 @@ class Composer:
         The dictionary contains the component placements and composer configuration,
         but not the elements, variables, or lines stored in the environment. It can
         be restored with :meth:`from_dict` using a compatible environment.
+        A compensated ``at`` value is stored as a tagged dictionary containing
+        its ``hi`` and ``lo`` components under the single ``at`` key.
 
         Returns
         -------
@@ -574,12 +579,12 @@ class Composer:
                 )
             component_data = {'name': name}
             if component.at is not None:
-                if xd.refs.is_ref(component.at):
+                if isinstance(component.at, CompensatedFloat):
+                    component_data['at'] = component.at.to_dict()
+                elif xd.refs.is_ref(component.at):
                     component_data['at'] = component.at._formatted(formatter)
                 else:
                     component_data['at'] = component.at
-            if component._at_error:
-                component_data['_at_error'] = component._at_error
             if component.from_ is not None:
                 component_data['from_'] = component.from_
             if component.anchor is not None:
@@ -651,9 +656,9 @@ class Composer:
                 component_data['name'] = xt.Line.from_dict(
                     component_data['name'], _env=env
                 )
-            at_error = component_data.pop('_at_error', 0.)
-            place = out.place(**component_data)
-            place._at_error = at_error
+            if isinstance(component_data.get('at'), dict):
+                component_data['at'] = CompensatedFloat.from_dict(component_data['at'])
+            out.place(**component_data)
 
         for key, value in data.items():
             setattr(out, key, value)
@@ -677,11 +682,13 @@ class Place:
     ----------
     name : str or xtrack.Line
         Element or line to place.
-    at : float, str, or xdeps reference, optional
+    at : float, str, xdeps reference, or CompensatedFloat, optional
         Position of the selected component anchor. If ``from_`` is provided, this is
         an offset from the selected anchor of the reference component. A string of
         the form ``'name@anchor'`` places the component directly at that anchor. If
         omitted together with ``from_``, the component is placed sequentially.
+        A :class:`xtrack.CompensatedFloat` retains offsets smaller than the
+        binary64 resolution of the absolute position.
     from_ : str, optional
         Component relative to which ``at`` is measured. The reference anchor can be
         included using the ``'name@anchor'`` form.
@@ -722,8 +729,7 @@ class Place:
     """
 
     def __init__(
-        self, name, at=None, from_=None, anchor=None, from_anchor=None, env=None,
-        _at_error=0.,
+        self, name, at=None, from_=None, anchor=None, from_anchor=None, env=None
     ):
         if isinstance(at, str):
             if '@' in at:
@@ -751,8 +757,6 @@ class Place:
 
         self.name = name
         self.at = at
-        # Residual of an anchor adjustment made while flattening a nested line.
-        self._at_error = _at_error
         self.from_ = from_
         self.anchor = anchor
         self.from_anchor = from_anchor
@@ -812,17 +816,11 @@ def _flatten_components(env, components, refer='center'):
 
             sub_components = list(this_line.element_names)
             if component.at is not None:
-                at = component.at
-                if isinstance(at, str):
-                    at = this_line._xdeps_eval.eval(at)
-                if xd.refs.is_ref(at):
-                    at = at._value
-                at = _Position(float(at), component._at_error)
+                at = _evaluate_position_expression(component.at, this_line._xdeps_eval)
                 at_of_start = at - _anchor_offset(anchor, _line_length(this_line))
                 sub_components[0] = xt.Place(
                     sub_components[0],
-                    at=at_of_start.hi,
-                    _at_error=at_of_start.lo,
+                    at=at_of_start,
                     anchor='start',
                     from_=component.from_,
                     from_anchor=component.from_anchor,

@@ -3,7 +3,7 @@
 import numpy as np
 import xdeps as xd
 
-from .positions import _Position
+from .positions import CompensatedFloat
 
 
 _ALLOWED_ANCHORS = (None, 'center', 'centre', 'start', 'end')
@@ -57,7 +57,7 @@ def _resolve_s_positions(seq_all_places, env, refer='center', diagnostics=False)
 
     # If first place has at=None, it goes at s=0
     if places[0].at is None:
-        s_start_by_index[0] = _Position()
+        s_start_by_index[0] = CompensatedFloat()
         resolved_index_by_name[places[0].name] = 0
 
     # Scan all unresolved places and resolve those whose reference component
@@ -97,8 +97,7 @@ def _resolve_s_positions(seq_all_places, env, refer='center', diagnostics=False)
                 # Needs to be placed at an absolute location along the line,
                 # based on `at` and `anchor`.
 
-                at = _Position(float(_evaluate_position_expression(
-                    place.at, aux_line._xdeps_eval)), place._at_error)
+                at = _evaluate_position_expression(place.at, aux_line._xdeps_eval)
                 # Component anchor (start/end/center)
                 anchor = refer if place.anchor is None else place.anchor
                 # Absolute location of the component
@@ -108,8 +107,7 @@ def _resolve_s_positions(seq_all_places, env, refer='center', diagnostics=False)
                 # Needs to be placed relative to another component,
                 # based on `at`, `from_`, and `from_anchor`.
 
-                at = _Position(float(_evaluate_position_expression(
-                    place.at, aux_line._xdeps_eval)), place._at_error)
+                at = _evaluate_position_expression(place.at, aux_line._xdeps_eval)
                 # Check if the referenced component has been resolved.
                 reference_index = resolved_index_by_name.get(place.from_)
                 if reference_index is None:
@@ -176,11 +174,12 @@ def _anchor_offset(anchor, length):
 
 
 def _evaluate_position_expression(at, evaluator):
+    """Normalize a placement value without rounding an existing high/low pair."""
     if isinstance(at, str):
         at = evaluator.eval(at)
     if xd.refs.is_ref(at):
-        return at._value
-    return at
+        at = at._value
+    return at if isinstance(at, CompensatedFloat) else CompensatedFloat(float(at))
 
 
 def _format_place(index, place):
