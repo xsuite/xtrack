@@ -30,7 +30,7 @@ def _resolve_s_positions(seq_all_places, env, refer='center', diagnostics=False)
         refer=refer,
     )
     table = aux_line.get_table()
-    table['length'] = np.diff(table.s, append=table.s[-1])
+    table['length'] = table.length * table.isthick
     table = table.rows[:-1]
 
     # If places is empty, return an empty table with the correct columns.

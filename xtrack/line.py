@@ -971,7 +971,9 @@ class Line:
             self._full_elements_from_composer()
 
         elements = list(self._elements)
+        use_attr_lengths = self._has_valid_tracker() and not self.tracker.iscollective
 
+        length_elements = []
         isthick = []
         iscollective = []
         element_types = []
@@ -993,6 +995,12 @@ class Line:
                     ee_pname = ee.parent_name
                     ee_ptype = self[ee.parent_name].__class__.__name__
             isthick.append(_is_thick(ee, self))
+            if not use_attr_lengths:
+                if (hasattr(ee, 'length') or
+                        (hasattr(ee, 'parent_name') and hasattr(ee, 'weight'))):
+                    length_elements.append(_length(ee, self))
+                else:
+                    length_elements.append(0.)
             iscollective.append(_is_collective(ee, self))
             element_types.append(ee.__class__.__name__)
             parent_name.append(ee_pname)
@@ -1039,19 +1047,20 @@ class Line:
 
         elements += [None]
 
-        if self._has_valid_tracker() and not self.tracker.iscollective:
-            s_elements = np.zeros(len(self.element_names) + 1)
-            s_elements[1:] = np.cumsum(self.attr['length'] * isthick[:-1])
-        else:
-            s_elements = np.array(list(self._get_s_elements()) + [self.get_length()])
+        if use_attr_lengths:
+            length_elements = self.attr['length']
+        length_elements = np.concatenate((length_elements, [0.]))
+        transport_lengths = length_elements * isthick
+        s_elements = np.zeros(len(self.element_names) + 1)
+        s_elements[1:] = np.cumsum(transport_lengths[:-1])
 
-        length_elements = np.diff(s_elements, append=s_elements[-1]) # only thick elements have length here
         s_start = s_elements
-        s_end = s_elements + length_elements
-        s_center = s_start + 0.5 * length_elements
+        s_end = s_elements + transport_lengths
+        s_center = s_start + 0.5 * transport_lengths
 
         out = {
             's': s_elements,
+            'length': length_elements,
             'element_type': element_types,
             'name': list(self.element_names) + ['_end_point'],
             'isthick': isthick,
@@ -1106,6 +1115,10 @@ class Line:
         -------
         table : LineTable
             Table containing one row per element plus the ``'_end_point'`` row.
+            ``length`` contains element lengths, retained before accumulating
+            longitudinal positions. Thin elements can have nonzero lengths;
+            ``length * isthick`` gives their contribution to the line length.
+            The ``'_end_point'`` row has zero length and ``isthick=False``.
             ``base_prototype`` is the last non-None name in the prototype chain,
             or None for elements without a prototype and for ``'_end_point'``.
             If a prototype is absent from the environment, its name is used
@@ -1135,6 +1148,8 @@ class Line:
         if attr:
             with self.attr._cache_values():
                 for kk in self.attr.keys():
+                    if kk == 'length':
+                        continue  # Already retained in the layout table.
                     this_attr = self.attr[kk]
                     if hasattr(this_attr, 'get'):
                         this_attr = this_attr.get() # bring to cpu
@@ -4165,7 +4180,7 @@ class Line:
         self.cut_at_s(s_cuts, s_tol=s_tol, with_progress=with_progress)
 
         tt_after_cut = self.get_table()
-        tt_after_cut['length'] = np.diff(tt_after_cut.s, append=tt_after_cut.s[-1])
+        tt_after_cut['length'] = tt_after_cut.length * tt_after_cut.isthick
 
         # Identify old elements falling inside the insertions
         idx_remove = []
