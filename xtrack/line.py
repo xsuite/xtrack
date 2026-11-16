@@ -3382,13 +3382,13 @@ class Line:
         return self.get_T_matrix(*args, **kwargs)
 
     @doc_group("Tracking and Analysis")
-    def get_footprint(self, nemitt_x=None, nemitt_y=None, n_turns=256, n_fft=2**18,
+    def get_footprint(self, nemitt_x=None, nemitt_y=None, gemitt_x=None, gemitt_y=None,
+            n_turns=256, n_fft=2**18,
             mode='polar', r_range=None, theta_range=None, n_r=None, n_theta=None,
             x_norm_range=None, y_norm_range=None, n_x_norm=None, n_y_norm=None,
             linear_rescale_on_knobs=None,
             freeze_longitudinal=None, delta0=None, zeta0=None,
-            keep_fft=True, keep_tracking_data=False, *,
-            gemitt_x=None, gemitt_y=None):
+            keep_fft=True, keep_tracking_data=False):
 
         '''
         Compute the tune footprint for a beam with given emittances using tracking.
