@@ -49,34 +49,34 @@ typedef struct {
 } Pose;
 
 
-inline Pose arc_matrix(const float_type length, const float_type angle, const float_type tilt);
+static inline Pose arc_matrix(const float_type length, const float_type angle, const float_type tilt);
 
-inline float_type point2d_dot(Point2D, Point2D);
-inline float_type point2d_cross(Point2D, Point2D);
-inline Point2D point2d_scale(Point2D, float_type);
-inline Point2D point2d_add(Point2D, Point2D);
-inline Point2D point2d_sub(Point2D, Point2D);
-inline float_type clamp_value(float_type t, float_type lo, float_type hi);
-inline float_type point2d_distance(float_type x1, float_type y1, float_type x2, float_type y2);
-inline void point2d_translate(float_type dx, float_type dy, Point2D* points, const int len_points);
+static inline float_type point2d_dot(Point2D, Point2D);
+static inline float_type point2d_cross(Point2D, Point2D);
+static inline Point2D point2d_scale(Point2D, float_type);
+static inline Point2D point2d_add(Point2D, Point2D);
+static inline Point2D point2d_sub(Point2D, Point2D);
+static inline float_type clamp_value(float_type t, float_type lo, float_type hi);
+static inline float_type point2d_distance(float_type x1, float_type y1, float_type x2, float_type y2);
+static inline void point2d_translate(float_type dx, float_type dy, Point2D* points, const int len_points);
 
 static inline float_type elliptic_E_adaptive(float_type a, float_type b, float_type eps, int depth, float_type m);
 static inline float_type elliptic_E_numeric(float_type phi, float_type k);
 float_type elliptic_E(float_type phi, float_type k);
 float_type elliptic_E_complete(float_type k);
 
-inline float_type sinc(float_type);
-inline Pose identity();
+static inline float_type sinc(float_type);
+static inline Pose identity();
 static inline Pose matrix_multiply(const Pose a, const Pose b);
-inline Pose transform_to_matrix(const Transform);
-inline Transform matrix_to_transform(const Pose);
-inline Point3D point3d_sub(const Point3D, const Point3D);
-inline float_type point3d_dot(const Point3D, const Point3D);
-inline Point3D point3d_add_scaled(const Point3D a, const Point3D v, const float_type t);
-inline Point3D pose_apply_point(const Pose, const Point3D);
+static inline Pose transform_to_matrix(const Transform);
+static inline Transform matrix_to_transform(const Pose);
+static inline Point3D point3d_sub(const Point3D, const Point3D);
+static inline float_type point3d_dot(const Point3D, const Point3D);
+static inline Point3D point3d_add_scaled(const Point3D a, const Point3D v, const float_type t);
+static inline Point3D pose_apply_point(const Pose, const Point3D);
 
 
-inline Pose arc_matrix(const float_type length, const float_type angle, const float_type tilt)
+static inline Pose arc_matrix(const float_type length, const float_type angle, const float_type tilt)
 /*
     Get a transformation to the point at `length` along an arc of `angle`.
 */
@@ -101,42 +101,42 @@ inline Pose arc_matrix(const float_type length, const float_type angle, const fl
 }
 
 
-inline float_type point2d_dot(Point2D a, Point2D b)
+static inline float_type point2d_dot(Point2D a, Point2D b)
 {
     return a.x * b.x + a.y * b.y;
 }
 
 
-inline float_type point2d_cross(Point2D a, Point2D b)
+static inline float_type point2d_cross(Point2D a, Point2D b)
 {
     return a.x * b.y - a.y * b.x;
 }
 
 
-inline Point2D point2d_scale(Point2D p, float_type k)
+static inline Point2D point2d_scale(Point2D p, float_type k)
 {
     return (Point2D) {k * p.x, k * p.y};
 }
 
 
-inline Point2D point2d_add(Point2D a, Point2D b)
+static inline Point2D point2d_add(Point2D a, Point2D b)
 {
     return (Point2D) {a.x + b.x, a.y + b.y};
 }
 
 
-inline Point2D point2d_sub(Point2D a, Point2D b)
+static inline Point2D point2d_sub(Point2D a, Point2D b)
 {
     return point2d_add(a, point2d_scale(b, -1));
 }
 
 
-inline float_type clamp_value(float_type t, float_type lo, float_type hi) {
+static inline float_type clamp_value(float_type t, float_type lo, float_type hi) {
     return (t < lo) ? lo : (t > hi) ? hi : t;
 }
 
 
-inline float_type point2d_distance(float_type x1, float_type y1, float_type x2, float_type y2)
+static inline float_type point2d_distance(float_type x1, float_type y1, float_type x2, float_type y2)
 /* Get the distance between two 2D points */
 {
     float_type dx = x2 - x1;
@@ -145,7 +145,7 @@ inline float_type point2d_distance(float_type x1, float_type y1, float_type x2, 
 }
 
 
-inline void point2d_translate(float_type dx, float_type dy, Point2D* points, const int len_points)
+static inline void point2d_translate(float_type dx, float_type dy, Point2D* points, const int len_points)
 /* Translate the `points` by (dx, dy)
 
 Contract: len_points=len(points)
@@ -217,12 +217,12 @@ float_type elliptic_E_complete(float_type k)
 }
 
 
-inline float_type sinc(float_type x) {
+static inline float_type sinc(float_type x) {
     if (fabs(x) < 1e-8f) return 1.0f;
     return sin(x) / x;
 }
 
-inline Pose identity() {
+static inline Pose identity() {
     Pose id = {0};
     for (int i = 0; i < 4; i++) id.mat[i][i] = 1;
     return id;
@@ -272,7 +272,7 @@ static inline Pose pose_inverse_rigid(const Pose p)
 
 
 
-inline Pose transform_to_matrix(const Transform t)
+static inline Pose transform_to_matrix(const Transform t)
 {
     const float_type s_phi = sin(t.rot_x);
     const float_type c_phi = cos(t.rot_x);
@@ -307,7 +307,7 @@ inline Pose transform_to_matrix(const Transform t)
 }
 
 
-inline Transform matrix_to_transform(const Pose m) {
+static inline Transform matrix_to_transform(const Pose m) {
     return (Transform) {
         .x = m.mat[0][3],
         .y = m.mat[1][3],
@@ -319,19 +319,19 @@ inline Transform matrix_to_transform(const Pose m) {
 }
 
 
-inline Point3D point3d_sub(const Point3D a, const Point3D b)
+static inline Point3D point3d_sub(const Point3D a, const Point3D b)
 {
     return (Point3D){ a.x - b.x, a.y - b.y, a.z - b.z };
 }
 
 
-inline float_type point3d_dot(const Point3D a, const Point3D b)
+static inline float_type point3d_dot(const Point3D a, const Point3D b)
 {
     return a.x * b.x + a.y * b.y + a.z * b.z;
 }
 
 
-inline Point3D point3d_add_scaled(const Point3D a, const Point3D v, const float_type t)
+static inline Point3D point3d_add_scaled(const Point3D a, const Point3D v, const float_type t)
 {
     return (Point3D){
         a.x + t * v.x,
@@ -341,7 +341,7 @@ inline Point3D point3d_add_scaled(const Point3D a, const Point3D v, const float_
 }
 
 
-inline Point3D pose_apply_point(const Pose p, const Point3D v)
+static inline Point3D pose_apply_point(const Pose p, const Point3D v)
 /* Apply a Pose matrix to a 3D point */
 {
     const float_type x = p.mat[0][0] * v.x + p.mat[0][1] * v.y + p.mat[0][2] * v.z + p.mat[0][3];

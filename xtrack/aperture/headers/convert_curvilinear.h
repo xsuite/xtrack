@@ -3,7 +3,7 @@
 
 #include "base.h"
 
-inline Point3D curvilinear_to_cartesian_point(const Point3D p_curv, const float_type h)
+static inline Point3D curvilinear_to_cartesian_point(const Point3D p_curv, const float_type h)
 /*
     Curvilinear (x, y, s) -> Cartesian (X, Y, Z):
 
@@ -35,7 +35,7 @@ inline Point3D curvilinear_to_cartesian_point(const Point3D p_curv, const float_
 }
 
 
-inline Point3D cartesian_to_curvilinear_point(const Point3D p_cart, const float_type h)
+static inline Point3D cartesian_to_curvilinear_point(const Point3D p_cart, const float_type h)
 /*
     Cartesian (X, Y, Z) -> Curvilinear (x, y, s).
 
@@ -74,7 +74,7 @@ inline Point3D cartesian_to_curvilinear_point(const Point3D p_cart, const float_
 }
 
 
-inline Point3D cartesian_vector_to_curvilinear_at_point(const Point3D p_curv, const Point3D v_cart, const float_type h)
+static inline Point3D cartesian_vector_to_curvilinear_at_point(const Point3D p_curv, const Point3D v_cart, const float_type h)
 /*
     Convert an attached Cartesian vector to curvilinear components
     using the local inverse Jacobian for the arc_matrix convention.
