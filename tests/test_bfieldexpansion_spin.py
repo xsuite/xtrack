@@ -45,7 +45,7 @@ def test_bfieldexpansion_spin_constant_h_k0(test_context, h, k0):
         length=length,
         h=h,
         knc=np.array([[k0]]),
-        num_integration_steps=2000,
+        num_integration_steps=10,
     )
     line_bfe = xt.Line(elements=[bfe])
     line_bfe.particle_ref = p0.copy()
@@ -59,10 +59,8 @@ def test_bfieldexpansion_spin_constant_h_k0(test_context, h, k0):
     assert p_bend.state[0] == 1
     assert p_bfe.state[0] == 1
 
-    for coord in ('x', 'px', 'y', 'py', 'zeta', 'delta',
-                'spin_x', 'spin_y', 'spin_z'):
-        xo.assert_allclose(getattr(p_bfe, coord), getattr(p_bend, coord),
-                        rtol=0, atol=5e-8)
+    for coord in ('x', 'px', 'y', 'py', 'zeta', 'delta', 'spin_x', 'spin_y', 'spin_z'):
+        xo.assert_allclose(getattr(p_bfe, coord), getattr(p_bend, coord), rtol=0, atol=5e-8)
 
 
 @for_all_test_contexts
@@ -110,14 +108,14 @@ def test_bfieldexpansion_spin_vs_splineboris(test_context):
     p_bfe = p0.copy()
     p_sb = p0.copy()
 
-    bfe = xt.BFieldExpansion(knc=knc, ksc=ksc, length=length, h=0, num_integration_steps=100)
+    bfe = xt.BFieldExpansion(knc=knc, ksc=ksc, length=length, h=0, num_integration_steps=20)
     line_bfe = xt.Line(elements=[bfe])
     line_bfe.particle_ref = p0.copy()
     line_bfe.configure_spin('auto')
     line_bfe.build_tracker(_context=test_context)
     line_bfe.track(p_bfe)
 
-    sb = xt.SplineBoris(length=length, n_steps=1000, 
+    sb = xt.SplineBoris(length=length, n_steps=500, 
                         by=tuple(hermite_from_poly([c * brho for c in coeffs], length) for coeffs in knc), 
                         bx=tuple(hermite_from_poly([c * brho for c in coeffs], length) for coeffs in ksc))
     line_sb = xt.Line(elements=[sb])
@@ -132,7 +130,5 @@ def test_bfieldexpansion_spin_vs_splineboris(test_context):
     assert p_bfe.state[0] == 1
     assert p_sb.state[0] == 1
 
-    for coord in ('x', 'px', 'y', 'py', 'zeta', 'delta',
-                  'spin_x', 'spin_y', 'spin_z'):
-        xo.assert_allclose(getattr(p_bfe, coord), getattr(p_sb, coord),
-                           rtol=0, atol=5e-8)
+    for coord in ('x', 'px', 'y', 'py', 'zeta', 'delta', 'spin_x', 'spin_y', 'spin_z'):
+        xo.assert_allclose(getattr(p_bfe, coord), getattr(p_sb, coord), rtol=0, atol=5e-8)
