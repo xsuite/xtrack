@@ -138,3 +138,17 @@ def test_aperture_geometric_emittances():
     aperture.halo_params['nemitt_x'] = 1e-6
     with pytest.raises(ValueError, match='Cannot provide both'):
         aperture.get_aperture_sigmas_at_element('m', twiss=tw)
+
+    # A supplied Twiss table does not replace the line's reference particle.
+    line.particle_ref = None
+    message = r'line\.particle_ref must be set to compute beam envelopes or aperture sigmas\.'
+    for inputs in (norm, geom):
+        aperture.halo_params.update(nemitt_x=None, nemitt_y=None,
+                                    gemitt_x=None, gemitt_y=None)
+        aperture.halo_params.update(inputs)
+        with pytest.raises(ValueError, match=message):
+            aperture.get_aperture_sigmas_for_twiss(sliced_twiss=tw)
+        with pytest.raises(ValueError, match=message):
+            aperture.get_envelope_for_twiss(
+                sliced_twiss=tw, sigmas=1., envelopes_num_points=32,
+                include_aper_tols=False, polygons=True, extents=False)

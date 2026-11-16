@@ -700,6 +700,10 @@ class TwissData(xo.Struct):
 
     @classmethod
     def from_twiss_table(cls, particle_ref: Particles, twiss_table: TwissTable) -> 'TwissData':
+        if particle_ref is None:
+            raise ValueError(
+                'line.particle_ref must be set to compute beam envelopes or '
+                'aperture sigmas.')
         twiss_data = cls(
             s=twiss_table.s,  # s position
             x=twiss_table.x,  # closed orbit x
