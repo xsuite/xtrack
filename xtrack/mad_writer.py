@@ -2,7 +2,7 @@ import numpy as np
 import xtrack as xt
 from enum import Enum
 
-from xdeps.refs import is_ref
+from xdeps.refs import MadxFormatter, is_ref
 from xtrack.functions import Functions
 from .beam_elements._common import _get_expr as _ge
 
@@ -13,9 +13,20 @@ class MadType(Enum):
     MADX = 1
     MADNG = 2
 
+
+class _MadFormatter(MadxFormatter):
+    # Use compact operations while retaining qualified references for the
+    # MAD-specific substitutions below (including dotted variable names).
+    def repr_item(self, owner, key):
+        return f'{owner!r}[{key!r}]'
+
+    def repr_attr(self, owner, key):
+        return f'{owner!r}.{key}'
+
+
 def expr_to_mad_str(expr):
 
-    expr_str = str(expr)
+    expr_str = expr._formatted(_MadFormatter(None)) if is_ref(expr) else str(expr)
 
     fff = Functions()
     for nn in fff._mathfunctions:
@@ -25,7 +36,7 @@ def expr_to_mad_str(expr):
     expr_str = expr_str.replace("'", "")
     expr_str = expr_str.replace('"', "")
 
-    # transform vars[...] into (...)
+    # Transform vars[...] into bare MAD variable names.
     while "vars[" in expr_str:
         before, after = tuple(*[expr_str.split("vars[", 1)])
         # find the corresponding closing bracket
@@ -38,9 +49,9 @@ def expr_to_mad_str(expr):
             if count == 0:
                 break
 
-        expr_str = before + "(" + after[:ii] + ")" + after[ii+1:]
+        expr_str = before + after[:ii] + after[ii+1:]
 
-        expr_str = expr_str.replace("**", "^")
+    expr_str = expr_str.replace("**", "^")
 
     return expr_str
 
@@ -54,9 +65,7 @@ def _replace_var_dots_with_underscores(expr, substituted_vars):
 
 def mad_str_or_value(var):
     if is_ref(var):
-        out = expr_to_mad_str(var)
-        out = out.strip('._expr')
-        return out
+        return expr_to_mad_str(var)
     else:
         return var
 

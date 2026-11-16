@@ -197,7 +197,7 @@ def test_vars_and_element_access_modes(container_type):
     ttv = env.vars.get_table()
     for nn in ['x1', 'x2', 'x3']:
         assert ttv['value', nn] == 3 * 3
-        assert ttv['expr', nn] == '(3.0 * x0)'
+        assert ttv['expr', nn] == '3.0 * x0'
 
     env.new('qx1', xt.Quadrupole, length=1)
     env.new('qx2', xt.Quadrupole, length=1)
@@ -2440,16 +2440,16 @@ def test_vars_features(tmpdir):
 
     # Test compact and to_dict
     tt = env.vars.get_table()
-    assert tt['expr', 'b'] == '(3.0 * a)'
+    assert tt['expr', 'b'] == '3.0 * a'
     dd = tt.to_dict()
-    assert dd['b'] == '(3.0 * a)'
+    assert dd['b'] == '3.0 * a'
     assert dd['a'] == 3.0
 
     ee = xt.Environment()
     ee.vars.update(dd)
     assert ee['a'] == 3.0
     assert ee['b'] == 9.0
-    assert ee.vars.get_table()['expr', 'b'] == '(3.0 * a)'
+    assert ee.vars.get_table()['expr', 'b'] == '3.0 * a'
 
     with open(tmpdir / 'env.json', 'w') as fid:
         json.dump(dd, fid)
@@ -2458,7 +2458,7 @@ def test_vars_features(tmpdir):
     ee2.vars.load(Path(tmpdir) / 'env.json')
     assert ee2['a'] == 3.0
     assert ee2['b'] == 9.0
-    assert ee2.vars.get_table()['expr', 'b'] == '(3.0 * a)'
+    assert ee2.vars.get_table()['expr', 'b'] == '3.0 * a'
 
     tt1 = env.vars.get_table(compact=False)
     assert tt1['expr', 'b'] ==  "(3.0 * vars['a'])"

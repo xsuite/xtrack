@@ -537,7 +537,7 @@ def test_parse_beam_particle_aliases(particle_name, expected_q0, expected_mass0,
     'input,value,expr',
     [
         ('a := 42;', 42, None),
-        ('c := 3; d := 4; a := c^d;', 81, '(c ** d)'),
+        ('c := 3; d := 4; a := c^d;', 81, 'c ** d'),
         ('c := 3; d := 4; a = c^d;', 81, None),
     ]
 )
