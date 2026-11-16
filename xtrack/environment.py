@@ -2529,7 +2529,8 @@ class Environment:
 
     @doc_group("Upcoming deprecations")
     def configure_beambeam_interactions(self, num_particles,
-                                        nemitt_x, nemitt_y,
+                                        nemitt_x=None, nemitt_y=None,
+                                        gemitt_x=None, gemitt_y=None,
                                         crab_strong_beam=True,
                                         use_antisymmetry=False,
                                         separation_bumps=None):
@@ -2548,6 +2549,9 @@ class Environment:
             Horizontal normalized emittance.
         nemitt_y : float
             Vertical normalized emittance.
+        gemitt_x, gemitt_y : float, optional
+            Geometric transverse emittances. Provide at most one of
+            ``nemitt_*`` and ``gemitt_*`` in each plane.
         crab_strong_beam : bool, optional
             Whether to include strong-beam crabbing.
         use_antisymmetry : bool, optional
@@ -2569,6 +2573,7 @@ class Environment:
             num_particles=num_particles,
             nemitt_x=nemitt_x,
             nemitt_y=nemitt_y,
+            gemitt_x=gemitt_x, gemitt_y=gemitt_y,
             crab_strong_beam=crab_strong_beam,
             use_antisymmetry=use_antisymmetry,
             separation_bumps=separation_bumps)

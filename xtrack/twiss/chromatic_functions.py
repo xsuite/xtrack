@@ -40,6 +40,7 @@ def _get_chromatic_functions(
                     end=twiss_config['end'],
                     nemitt_x=twiss_config['nemitt_x'],
                     nemitt_y=twiss_config['nemitt_y'],
+                    gemitt_x=twiss_config['gemitt_x'], gemitt_y=twiss_config['gemitt_y'],
                     step_W_sigma=twiss_config['step_W_sigma'],
                     delta_disp=twiss_config['delta_disp'],
                     use_full_inverse=twiss_config['use_full_inverse'],
@@ -165,6 +166,7 @@ def _build_periodic_off_momentum_init(
         particle_on_co=on_momentum_twiss_res.particle_on_co.copy(),
         nemitt_x=twiss_config['nemitt_x'],
         nemitt_y=twiss_config['nemitt_y'],
+        gemitt_x=twiss_config['gemitt_x'], gemitt_y=twiss_config['gemitt_y'],
         W_matrix=twiss_init.W_matrix,
         include_collective=twiss_config['include_collective'])
 

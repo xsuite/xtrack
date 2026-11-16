@@ -5440,6 +5440,8 @@ def test_environment_xfields_beambeam_facade(monkeypatch):
             'num_particles': 1.2e11,
             'nemitt_x': 2.5e-6,
             'nemitt_y': 2.5e-6,
+            'gemitt_x': None,
+            'gemitt_y': None,
             'crab_strong_beam': True,
             'use_antisymmetry': False,
             'separation_bumps': None,

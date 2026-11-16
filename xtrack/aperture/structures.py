@@ -5,7 +5,6 @@ import numpy as np
 
 import xobjects as xo
 from xobjects.context import XContext
-from xtrack.particles import Particles
 from xtrack.survey import SurveyTable
 from xtrack.svgutils import svg_to_points_by_resolution
 from xtrack.twiss import TwissTable
@@ -695,11 +694,9 @@ class TwissData(xo.Struct):
     dx = FloatType[:]    # dispersion x
     dy = FloatType[:]    # dispersion y
     delta = FloatType[:] # relative energy deviation
-    gamma = FloatType    # relativistic gamma
-    beta = FloatType     # relativistic beta
 
     @classmethod
-    def from_twiss_table(cls, particle_ref: Particles, twiss_table: TwissTable) -> 'TwissData':
+    def from_twiss_table(cls, twiss_table: TwissTable) -> 'TwissData':
         twiss_data = cls(
             s=twiss_table.s,  # s position
             x=twiss_table.x,  # closed orbit x
@@ -709,15 +706,13 @@ class TwissData(xo.Struct):
             dx=twiss_table.dx,  # dispersion x
             dy=twiss_table.dy,  # dispersion y
             delta=twiss_table.delta,  # relative energy deviation
-            gamma=particle_ref.gamma0,  # relativistic gamma
-            beta=particle_ref.beta0,  # relativistic beta
         )
         return twiss_data
 
 
 class BeamData(xo.Struct):
-    nemitt_x = xo.Float64        # normalized emittance x
-    nemitt_y = xo.Float64        # normalized emittance y
+    gemitt_x = xo.Float64        # geometric emittance x
+    gemitt_y = xo.Float64        # geometric emittance y
     delta_rms = xo.Float64         # rms energy spread
     tol_co = xo.Float64            # tolerance for closed orbit [co_radius]
     tol_disp = xo.Float64          # tolerance for normalized dispersion [dqf]

@@ -115,8 +115,10 @@ _aperture_doc_groups = GroupedAPICollector([
 ])
 
 DEFAULT_HALO_PARAMS = {
-    "nemitt_x": 1e-6,
-    "nemitt_y": 1e-6,
+    "nemitt_x": None,
+    "nemitt_y": None,
+    "gemitt_x": None,
+    "gemitt_y": None,
     "delta_rms": 0.0,
     "tol_co": 0.0,
     "tol_disp": 0.0,
@@ -198,8 +200,10 @@ class LineAperture:
         ========================  =======  =====================================================
         Key                       Default  Description
         ========================  =======  =====================================================
-        ``nemitt_x``              1e-6     Normalised horizontal emittance [m·rad]
-        ``nemitt_y``              1e-6     Normalised vertical emittance [m·rad]
+        ``nemitt_x``              None     Normalised horizontal emittance [m·rad]
+        ``nemitt_y``              None     Normalised vertical emittance [m·rad]
+        ``gemitt_x``              None     Geometric horizontal emittance [m·rad]
+        ``gemitt_y``              None     Geometric vertical emittance [m·rad]
         ``delta_rms``             0.0      RMS momentum spread
         ``tol_co``                0.0      Closed-orbit tolerance [m]
         ``tol_disp``              0.0      Normalised dispersion tolerance [m]
@@ -215,8 +219,44 @@ class LineAperture:
         The dictionary is mutable; individual entries can be changed with
         ``aperture.halo_params['key'] = value`` or in bulk with
         ``aperture.halo_params.update({...})``.
+        ``gemitt_x`` and ``gemitt_y`` can be used instead of the corresponding
+        normalized emittances. Providing both forms in one plane is an error.
+        If neither form is set, the normalized emittance defaults to 1e-6.
+        The stored emittance inputs default to ``None``.
+        Normalized inputs and defaults require ``line.particle_ref`` for
+        conversion. The kernels and plot labels use geometric emittances.
         """
         return self._halo_params
+
+    def _resolve_halo_emittances(self):
+        """Return the horizontal and vertical geometric halo emittances."""
+        emittances = []
+        beta_gamma = None
+        for plane in ('x', 'y'):
+            nemitt = self.halo_params.get(f'nemitt_{plane}')
+            gemitt = self.halo_params.get(f'gemitt_{plane}')
+            if nemitt is not None and gemitt is not None:
+                raise ValueError(
+                    f'Cannot provide both nemitt_{plane} and gemitt_{plane}.')
+            if gemitt is None:
+                if beta_gamma is None:
+                    particle = self.line.particle_ref
+                    if particle is None:
+                        raise ValueError(
+                            'line.particle_ref must be set to convert normalized '
+                            'halo emittances (including defaults) to geometric emittances.')
+                    beta_gamma = particle.beta0[0] * particle.gamma0[0]
+                gemitt = (1e-6 if nemitt is None else nemitt) / beta_gamma
+            emittances.append(gemitt)
+        return tuple(emittances)
+
+    def _get_beam_data(self):
+        """Build kernel input from the halo settings and geometric emittances."""
+        params = self.halo_params.copy()
+        params.pop('nemitt_x', None)
+        params.pop('nemitt_y', None)
+        params['gemitt_x'], params['gemitt_y'] = self._resolve_halo_emittances()
+        return BeamData(**params)
 
     @halo_params.setter
     def halo_params(self, value: dict):
@@ -1242,9 +1282,9 @@ class LineAperture:
             self.build_model()
 
         num_slices = len(sliced_twiss.s)
-        twiss_at_s = TwissData.from_twiss_table(self.line.particle_ref, sliced_twiss)
+        twiss_at_s = TwissData.from_twiss_table(sliced_twiss)
         survey_at_s = self._survey_data.resample(twiss_at_s.s)
-        beam_data = BeamData(**self.halo_params)
+        beam_data = self._get_beam_data()
 
         if output_cross_sections:
             interpolated_points = np.zeros(shape=(num_slices, self.num_profile_points, 2), dtype=FloatType._dtype)
@@ -1413,10 +1453,10 @@ class LineAperture:
             with_progress=with_progress, twiss_options=twiss_options)
         num_slices = len(sliced_twiss.s)
 
-        twiss_at_s = TwissData.from_twiss_table(self.line.particle_ref, sliced_twiss)
+        twiss_at_s = TwissData.from_twiss_table(sliced_twiss)
         survey_at_s = self._survey_data.resample(twiss_at_s.s)
 
-        beam_data = BeamData(**self.halo_params)
+        beam_data = self._get_beam_data()
         interpolated_points = np.zeros(shape=(num_slices, self.num_profile_points, 2), dtype=FloatType._dtype)
 
         ray_angles = np.linspace(0, 2 * np.pi, 8, endpoint=False, dtype=FloatType._dtype)
@@ -1606,8 +1646,8 @@ class LineAperture:
             self.build_model()
 
         num_slices = len(sliced_twiss.s)
-        twiss_at_s = TwissData.from_twiss_table(self.line.particle_ref, sliced_twiss)
-        beam_data = BeamData(**self.halo_params)
+        twiss_at_s = TwissData.from_twiss_table(sliced_twiss)
+        beam_data = self._get_beam_data()
 
         envelopes = (
             np.zeros(shape=(num_slices, envelopes_num_points, 2), dtype=FloatType._dtype)
@@ -1985,11 +2025,11 @@ class LineAperture:
         ax_y.set_xlabel('s [m]')
 
         sigma_label = 'n_1' if sigmas_was_computed else 'n'
-        nemitt_x, nemitt_y = self.halo_params['nemitt_x'], self.halo_params['nemitt_y']
+        gemitt_x, gemitt_y = self._resolve_halo_emittances()
         fig.suptitle(
             fr"Extents and beam envelope at ${sigma_label} = {sigmas:.3g}$ and "
             fr"$s \in [{np.min(plot_s_positions):.3g}, {np.max(plot_s_positions):.3g}]$" + "\n"
-            fr"$\varepsilon_{{n,x}}$ = {nemitt_x:.3e}, $\varepsilon_{{n,y}}$ = {nemitt_y:.3e}"
+            fr"$\varepsilon_{{g,x}}$ = {gemitt_x:.3e}, $\varepsilon_{{g,y}}$ = {gemitt_y:.3e}"
         )
 
         return fig, axs
@@ -2142,12 +2182,12 @@ class LineAperture:
                 ax.plot(pt[:, 0] - mid[0], pt[:, 1] - mid[1], c='skyblue', linestyle=':', label=label)
                 seen = True
 
-        nemitt_x, nemitt_y = self.halo_params['nemitt_x'], self.halo_params['nemitt_y']
+        gemitt_x, gemitt_y = self._resolve_halo_emittances()
         ax.set_aspect('equal')
         ax.set_title(
             fr"Transverse aperture at {title_location}, "
             fr"s $\in$ [{s_positions[0]:.2f}, {s_positions[-1]:.2f}], {title_sigma}," + "\n"
-            fr"$\varepsilon_{{n,x}}$ = {nemitt_x:.3e}, $\varepsilon_{{n,y}}$ = {nemitt_y:.3e}"
+            fr"$\varepsilon_{{g,x}}$ = {gemitt_x:.3e}, $\varepsilon_{{g,y}}$ = {gemitt_y:.3e}"
         )
         ax.legend()
         return ax

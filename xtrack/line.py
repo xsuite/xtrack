@@ -2160,6 +2160,7 @@ class Line:
         y_norm_offset: float = 0.0,
         nemitt_x=None,
         nemitt_y=None,
+        gemitt_x=None, gemitt_y=None,
         delta_negative_limit: float = -0.10,
         delta_positive_limit: float = +0.10,
         delta_step_size: float = 0.01,
@@ -2204,6 +2205,9 @@ class Line:
             Horizontal normalized emittance (m·rad, rms).
         nemitt_y : float
             Vertical normalized emittance (m·rad, rms).
+        gemitt_x, gemitt_y : float, optional
+            Geometric transverse emittances. Provide at most one of
+            ``nemitt_*`` and ``gemitt_*`` in each plane.
         delta_negative_limit : float, default -0.10
             Lower bound of the δ scan (inclusive). Must be < 0.
         delta_positive_limit : float, default +0.10
@@ -2253,8 +2257,12 @@ class Line:
         if y_offset != 0.0 and y_norm_offset != 0.0:
             raise ValueError("Provide either y_offset or y_norm_offset, not both.")
 
-        if nemitt_x is None or nemitt_y is None:
-            raise ValueError("nemitt_x and nemitt_y must be provided.")
+        for plane, nemitt, gemitt in (('x', nemitt_x, gemitt_x),
+                                     ('y', nemitt_y, gemitt_y)):
+            if nemitt is not None and gemitt is not None:
+                raise ValueError(f'Cannot provide both nemitt_{plane} and gemitt_{plane}.')
+            if nemitt is None and gemitt is None:
+                raise ValueError(f'nemitt_{plane} or gemitt_{plane} must be provided.')
 
         if delta_negative_limit >= 0:
             raise ValueError("delta_negative_limit must be < 0")
@@ -2333,6 +2341,7 @@ class Line:
                 delta=delta_co,
                 nemitt_x=nemitt_x,
                 nemitt_y=nemitt_y,
+                gemitt_x=gemitt_x, gemitt_y=gemitt_y,
                 W_matrix=tw_init.W_matrix,
                 particle_on_co=tw_init.particle_on_co,
             )
@@ -2435,7 +2444,8 @@ class Line:
         x=None, px=None, y=None, py=None, zeta=None, delta=None, pzeta=None,
         x_norm=None, px_norm=None, y_norm=None, py_norm=None, zeta_norm=None, pzeta_norm=None,
         at_element=None, match_at_s=None,
-        nemitt_x=None, nemitt_y=None,
+        nemitt_x=None, nemitt_y=None, gemitt_x=None, gemitt_y=None,
+        nemitt_zeta=None, gemitt_zeta=None,
         weight=None,
         particle_on_co=None,
         R_matrix=None,
@@ -2447,7 +2457,6 @@ class Line:
         _capacity=None,
         mode=None,
         *, chi=None, charge_ratio=None, mass_ratio=None, pdg_id=None,
-        nemitt_zeta=None, gemitt_x=None, gemitt_y=None, gemitt_zeta=None,
         **kwargs, # They are passed to the twiss
     ):
 
@@ -2635,7 +2644,8 @@ class Line:
     def twiss(self, particle_ref=None, method=None,
         particle_on_co=None, R_matrix=None, W_matrix=None,
         delta0=None, zeta0=None, zeta_shift=None,
-        nemitt_x=None, nemitt_y=None, step_W_sigma=None,
+        nemitt_x=None, nemitt_y=None, gemitt_x=None, gemitt_y=None,
+        step_W_sigma=None,
         delta_disp=None, delta_chrom=None, zeta_disp=None,
         co_guess=None, steps_R_matrix=None,
         co_search_settings=None,
@@ -3387,7 +3397,8 @@ class Line:
         return self.get_T_matrix(*args, **kwargs)
 
     @doc_group("Tracking and Analysis")
-    def get_footprint(self, nemitt_x=None, nemitt_y=None, n_turns=256, n_fft=2**18,
+    def get_footprint(self, nemitt_x=None, nemitt_y=None, gemitt_x=None, gemitt_y=None,
+            n_turns=256, n_fft=2**18,
             mode='polar', r_range=None, theta_range=None, n_r=None, n_theta=None,
             x_norm_range=None, y_norm_range=None, n_x_norm=None, n_y_norm=None,
             linear_rescale_on_knobs=None,
@@ -3404,6 +3415,9 @@ class Line:
             Normalized emittance in the x-plane.
         nemitt_y : float
             Normalized emittance in the y-plane.
+        gemitt_x, gemitt_y : float, optional
+            Geometric transverse emittances. Provide at most one of
+            ``nemitt_*`` and ``gemitt_*`` in each plane.
         n_turns : int
             Number of turns for tracking.
         n_fft : int
@@ -3461,6 +3475,8 @@ class Line:
         -------
         fp : Footprint
             Footprint object containing footprint data (fp.qx, fp.qy).
+            In ``uniform_action_grid`` mode, ``fp.Jx_grid`` and ``fp.Jy_grid``
+            contain geometric actions, regardless of the input emittance convention.
 
         '''
 
@@ -3480,7 +3496,7 @@ class Line:
                         freeze_longitudinal=freeze_longitudinal,
                         delta0=delta0, zeta0=zeta0)
         else:
-            fp = Footprint(**kwargs)
+            fp = Footprint(particle_ref=self.particle_ref, **kwargs)
             fp._get_footprint(self,
                 freeze_longitudinal=freeze_longitudinal,
                 delta0=delta0, zeta0=zeta0)
@@ -3488,7 +3504,8 @@ class Line:
         return fp
 
     @doc_group("Tracking and Analysis")
-    def get_amplitude_detuning_coefficients(self, nemitt_x=1e-6, nemitt_y=1e-6,
+    def get_amplitude_detuning_coefficients(self, nemitt_x=None, nemitt_y=None,
+                gemitt_x=None, gemitt_y=None,
                 num_turns=256, a0_sigmas=0.01, a1_sigmas=0.1, a2_sigmas=0.2):
 
         '''
@@ -3502,6 +3519,9 @@ class Line:
             Normalized emittance in the x-plane. Default is 1e-6.
         nemitt_y : float
             Normalized emittance in the y-plane. Default is 1e-6.
+        gemitt_x, gemitt_y : float, optional
+            Geometric transverse emittances. Provide at most one of
+            ``nemitt_*`` and ``gemitt_*`` in each plane.
         num_turns : int
             Number of turns for tracking. Default is 256.
         a0_sigmas : float
@@ -3523,10 +3543,13 @@ class Line:
 
         import nafflib as nl
 
-        gemitt_x = (nemitt_x / self.particle_ref._xobject.beta0[0]
-                            / self.particle_ref._xobject.gamma0[0])
-        gemitt_y = (nemitt_y / self.particle_ref._xobject.beta0[0]
-                            / self.particle_ref._xobject.gamma0[0])
+        from ._emittance import _geometric_emittance
+        beta_gamma = (self.particle_ref._xobject.beta0[0]
+                      * self.particle_ref._xobject.gamma0[0])
+        gemitt_x = _geometric_emittance(
+            nemitt_x, gemitt_x, beta_gamma, 'x', default=1e-6 / beta_gamma)
+        gemitt_y = _geometric_emittance(
+            nemitt_y, gemitt_y, beta_gamma, 'y', default=1e-6 / beta_gamma)
 
         Jx_1 = a1_sigmas**2 * gemitt_x / 2
         Jx_2 = a2_sigmas**2 * gemitt_x / 2
@@ -3538,7 +3561,7 @@ class Line:
                             zeta=0, delta=0,
                             x_norm=[a1_sigmas, a2_sigmas, a0_sigmas, a0_sigmas],
                             y_norm=[a0_sigmas, a0_sigmas, a1_sigmas, a2_sigmas],
-                            nemitt_x=nemitt_x, nemitt_y=nemitt_y)
+                            gemitt_x=gemitt_x, gemitt_y=gemitt_y)
 
         self.track(particles,
                         num_turns=num_turns, time=True,

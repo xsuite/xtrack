@@ -33,7 +33,8 @@ import xtrack as xt  # To avoid circular imports
 def twiss_line(line, particle_ref=None, method=None,
         particle_on_co=None, R_matrix=None, W_matrix=None,
         delta0=None, zeta0=None, zeta_shift=None,
-        nemitt_x=None, nemitt_y=None, step_W_sigma=None,
+        nemitt_x=None, nemitt_y=None, gemitt_x=None, gemitt_y=None,
+        step_W_sigma=None,
         delta_disp=None, delta_chrom=None, zeta_disp=None,
         co_guess=None, steps_R_matrix=None,
         co_search_settings=None,
@@ -201,6 +202,10 @@ def twiss_line(line, particle_ref=None, method=None,
     matrix_stability_tol : float, optional
         Tolerance to be used to check the stability of the R matrix.
         If not provided, the default value is used.
+    gemitt_x, gemitt_y : float, optional
+        Geometric transverse emittances used to set W-matrix propagation steps.
+        Mutually exclusive with the corresponding normalized emittance.
+        If neither form is provided, the normalized emittance defaults to 1e-6.
     step_W_sigma : float, optional
         Deviation in sigmas used for the propagation of the W matrix.
     nemitt_x : float, optional
@@ -603,6 +608,7 @@ def _compute_base_twiss(twiss_config):
         end=end,
         nemitt_x=twiss_config['nemitt_x'],
         nemitt_y=twiss_config['nemitt_y'],
+        gemitt_x=twiss_config['gemitt_x'], gemitt_y=twiss_config['gemitt_y'],
         step_W_sigma=twiss_config['step_W_sigma'],
         delta_disp=twiss_config['delta_disp'],
         use_full_inverse=twiss_config['use_full_inverse'],

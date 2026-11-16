@@ -194,6 +194,7 @@ def _add_radiation_analysis_to_twiss_result(twiss_config, twiss_res):
                 matrix_stability_tol=None,
                 start=twiss_config['start'], end=twiss_config['end'],
                 nemitt_x=twiss_config['nemitt_x'], nemitt_y=twiss_config['nemitt_y'],
+                gemitt_x=twiss_config['gemitt_x'], gemitt_y=twiss_config['gemitt_y'],
                 step_W_sigma=twiss_config['step_W_sigma'],
                 delta0=None, zeta0=None, zeta_shift=twiss_config['zeta_shift'],
                 W_matrix=None, R_matrix=None,
