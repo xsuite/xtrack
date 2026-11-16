@@ -67,7 +67,7 @@ float_type elliptic_E_complete(float_type k);
 
 inline float_type sinc(float_type);
 inline Pose identity();
-inline Pose matrix_multiply(const Pose a, const Pose b);
+static inline Pose matrix_multiply(const Pose a, const Pose b);
 inline Pose transform_to_matrix(const Transform);
 inline Transform matrix_to_transform(const Pose);
 inline Point3D point3d_sub(const Point3D, const Point3D);
@@ -229,7 +229,7 @@ inline Pose identity() {
 }
 
 
-inline Pose matrix_multiply(const Pose a, const Pose b) {
+static inline Pose matrix_multiply(const Pose a, const Pose b) {
     Pose result;
     for (int i = 0; i < 4; i++) {
         result.mat[i][0] = a.mat[i][0] * b.mat[0][0] + a.mat[i][1] * b.mat[1][0] + a.mat[i][2] * b.mat[2][0] + a.mat[i][3] * b.mat[3][0];

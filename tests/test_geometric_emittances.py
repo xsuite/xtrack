@@ -120,8 +120,9 @@ def test_luminosity_geometric_emittances(line):
         luminosity_from_twiss(**norm, **geom, **kwargs)
 
 
+@pytest.mark.parametrize('method', ['rays', 'bisection', 'exact'])
 @allow_kernel_compilation
-def test_aperture_geometric_emittances():
+def test_aperture_geometric_emittances(method):
     env = xt.load(string='''m: marker, apertype=circle, aperture={0.02};
                             seq: sequence,l=1; m,at=0; endsequence;''',
                   format='madx', install_limits=False)
@@ -131,24 +132,77 @@ def test_aperture_geometric_emittances():
     norm, geom = emittances(line)
     aperture = line.aperture.from_associated_apertures()
     aperture.halo_params.update(norm)
-    an = aperture.get_aperture_sigmas_at_element('m', twiss=tw)
+    an = aperture.get_aperture_sigmas_at_element('m', twiss=tw, method=method)
+    assert np.all(np.isfinite(an[0].n1))
+    assert np.all(an[0].n1 > 0)
     aperture.halo_params.update(nemitt_x=None, nemitt_y=None, **geom)
-    ag = aperture.get_aperture_sigmas_at_element('m', twiss=tw)
+    ag = aperture.get_aperture_sigmas_at_element('m', twiss=tw, method=method)
     np.testing.assert_allclose(an[0].n1, ag[0].n1, rtol=1e-12)
     aperture.halo_params['nemitt_x'] = 1e-6
     with pytest.raises(ValueError, match='Cannot provide both'):
-        aperture.get_aperture_sigmas_at_element('m', twiss=tw)
+        aperture.get_aperture_sigmas_at_element('m', twiss=tw, method=method)
 
-    # A supplied Twiss table does not replace the line's reference particle.
+    aperture.halo_params['nemitt_x'] = None
+    expected_sigmas = aperture.get_aperture_sigmas_for_twiss(tw, method=method)
+    envelope_kwargs = dict(sliced_twiss=tw, sigmas=1., envelopes_num_points=32,
+                           include_aper_tols=False, polygons=False, extents=True)
+    expected_envelope = aperture.get_envelope_for_twiss(**envelope_kwargs)
+
+    # Geometric inputs need no reference energy once the optics are supplied.
     line.particle_ref = None
-    message = r'line\.particle_ref must be set to compute beam envelopes or aperture sigmas\.'
-    for inputs in (norm, geom):
+    sigmas = aperture.get_aperture_sigmas_for_twiss(tw, method=method)
+    envelope = aperture.get_envelope_for_twiss(**envelope_kwargs)
+    np.testing.assert_allclose(sigmas.n1, expected_sigmas.n1, rtol=1e-12)
+    for key in ('min_x', 'max_x', 'min_y', 'max_y'):
+        np.testing.assert_allclose(envelope[key], expected_envelope[key], rtol=1e-12)
+
+    # Normalized inputs, including implicit defaults, still require an energy.
+    message = r'line\.particle_ref must be set to convert normalized halo emittances'
+    for inputs in (norm, {}, dict(gemitt_x=geom['gemitt_x'], nemitt_y=norm['nemitt_y'])):
         aperture.halo_params.update(nemitt_x=None, nemitt_y=None,
                                     gemitt_x=None, gemitt_y=None)
         aperture.halo_params.update(inputs)
         with pytest.raises(ValueError, match=message):
-            aperture.get_aperture_sigmas_for_twiss(sliced_twiss=tw)
+            aperture.get_aperture_sigmas_for_twiss(tw, method=method)
         with pytest.raises(ValueError, match=message):
-            aperture.get_envelope_for_twiss(
-                sliced_twiss=tw, sigmas=1., envelopes_num_points=32,
-                include_aper_tols=False, polygons=True, extents=False)
+            aperture.get_envelope_for_twiss(**envelope_kwargs)
+
+
+@allow_kernel_compilation
+def test_aperture_geometric_defaults_and_plot_labels():
+    import matplotlib
+    matplotlib.use('Agg')
+    from matplotlib import pyplot as plt
+
+    env = xt.load(string='''m: marker, apertype=circle, aperture={0.02};
+                            seq: sequence,l=1; m,at=0; endsequence;''',
+                  format='madx', install_limits=False)
+    line = env['seq']
+    line.particle_ref = xt.Particles(p0c=2e9)
+    tw = line.twiss4d(betx=3, bety=5)
+    aperture = line.aperture.from_associated_apertures()
+    defaults = aperture.get_aperture_sigmas_for_twiss(tw)
+    aperture.halo_params.update(nemitt_x=1e-6, nemitt_y=1e-6)
+    explicit = aperture.get_aperture_sigmas_for_twiss(tw)
+    np.testing.assert_allclose(defaults.n1, explicit.n1, rtol=1e-12)
+
+    bg = line.particle_ref.beta0[0] * line.particle_ref.gamma0[0]
+    geom = dict(gemitt_x=1e-6/bg, gemitt_y=1e-6/bg)
+    aperture.halo_params.update(nemitt_x=None, nemitt_y=None, **geom)
+    original_params = aperture.halo_params.copy()
+    twiss_init = tw.get_twiss_init('m')
+    fig, axs = plt.subplots(2)
+    fig_transverse, ax = plt.subplots()
+    try:
+        aperture.plot_extents(s_positions=[0., 0.5], sigmas=1.,
+                              twiss_init=twiss_init, axs=axs, with_progress=False)
+        aperture.plot_transverse(s_positions=[0.], sigmas=1.,
+                                 twiss_init=twiss_init, ax=ax, with_progress=False)
+        for title in (fig._suptitle.get_text(), ax.get_title()):
+            for plane in ('x', 'y'):
+                assert rf'\varepsilon_{{g,{plane}}}' in title
+                assert f'{geom[f"gemitt_{plane}"]:.3e}' in title
+        assert aperture.halo_params == original_params
+    finally:
+        plt.close(fig)
+        plt.close(fig_transverse)
