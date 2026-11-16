@@ -1,0 +1,140 @@
+import numpy as np
+import pytest
+
+import xtrack as xt
+from xtrack.lumi import luminosity_from_twiss
+from xobjects.test_helpers import allow_kernel_compilation
+
+
+@pytest.fixture
+def line(temp_context_default_func):
+    line = xt.Line(elements=[xt.LineSegmentMap(
+        length=100, qx=0.28, qy=0.31, betx=3., bety=5.,
+        longitudinal_mode='linear_fixed_qs', qs=0.01, bets=20.,
+        det_xx=100., det_yy=150., det_xy=20.)], element_names=['ip'])
+    line.particle_ref = xt.Particles(p0c=2e9)
+    line.build_tracker()
+    return line
+
+
+def emittances(line):
+    bg = line.particle_ref.beta0[0] * line.particle_ref.gamma0[0]
+    return dict(nemitt_x=2e-6, nemitt_y=3e-6), dict(gemitt_x=2e-6/bg, gemitt_y=3e-6/bg)
+
+
+@pytest.mark.parametrize('open_twiss', [False, True])
+def test_twiss_geometric_emittances(line, open_twiss):
+    norm, geom = emittances(line)
+    kwargs = dict(chrom=True, _keep_initial_particles=True)
+    if open_twiss:
+        kwargs.update(init=line.twiss().get_twiss_init('ip'))
+    tn = line.twiss(**norm, **kwargs)
+    tg = line.twiss(**geom, **kwargs)
+    for key in ('W_matrix', 'betx', 'bety', 'dx', 'mux', 'muy'):
+        np.testing.assert_allclose(tn[key], tg[key], rtol=1e-12, atol=1e-14)
+    # Verify that the propagation probes, not only linear optics, are identical.
+    for key in ('x', 'px', 'y', 'py'):
+        np.testing.assert_allclose(getattr(tn._initial_particles, key),
+                                   getattr(tg._initial_particles, key), rtol=1e-12, atol=1e-15)
+    line.twiss_default.update(geom)
+    np.testing.assert_allclose(line.twiss().betx, tg.betx)
+
+
+@pytest.mark.parametrize('mode', ['polar', 'uniform_action_grid'])
+@allow_kernel_compilation
+def test_footprint_geometric_emittances(line, mode):
+    norm, geom = emittances(line)
+    kwargs = dict(mode=mode, n_turns=64, n_fft=1024, keep_tracking_data=True,
+                  freeze_longitudinal=True)
+    kwargs.update(dict(n_r=2, n_theta=2) if mode == 'polar' else
+                  dict(n_x_norm=2, n_y_norm=2))
+    fn = line.get_footprint(**norm, **kwargs)
+    fg = line.get_footprint(**geom, **kwargs)
+    for key in ('qx', 'qy', 'x_norm_2d', 'y_norm_2d'):
+        np.testing.assert_allclose(getattr(fn, key), getattr(fg, key), rtol=1e-12)
+    for key in ('x', 'px', 'y', 'py'):
+        np.testing.assert_allclose(getattr(fn.tracking_data, key),
+                                   getattr(fg.tracking_data, key), rtol=1e-10, atol=1e-15)
+
+
+def test_detuning_geometric_emittances(line):
+    norm, geom = emittances(line)
+    dn = line.get_amplitude_detuning_coefficients(**norm)
+    dg = line.get_amplitude_detuning_coefficients(**geom)
+    for key in dn:
+        assert dg[key] == pytest.approx(dn[key], rel=1e-7, abs=1e-5)
+    defaults = line.get_amplitude_detuning_coefficients()
+    explicit = line.get_amplitude_detuning_coefficients(nemitt_x=1e-6, nemitt_y=1e-6)
+    assert defaults == explicit
+
+
+def test_momentum_acceptance_geometric_emittances(line):
+    norm, geom = emittances(line)
+    kwargs = dict(elements=['ip'], n_turns=2, x_norm_offset=1., y_norm_offset=2.,
+                  delta_step_size=0.01, delta_negative_limit=-0.02, delta_positive_limit=0.02)
+    tn = line.get_local_momentum_acceptance(**norm, **kwargs)
+    tg = line.get_local_momentum_acceptance(**geom, **kwargs)
+    for key in ('delta_neg', 'delta_pos'):
+        np.testing.assert_allclose(tn[key], tg[key])
+
+
+@pytest.mark.parametrize('method', ['twiss', 'get_footprint',
+                                   'get_amplitude_detuning_coefficients',
+                                   'get_local_momentum_acceptance'])
+@pytest.mark.parametrize('plane', ['x', 'y'])
+def test_conflicting_emittances(line, method, plane):
+    kwargs = dict(nemitt_x=2e-6, nemitt_y=3e-6)
+    kwargs[f'gemitt_{plane}'] = 1e-6
+    with pytest.raises(ValueError, match=f'both nemitt_{plane} and gemitt_{plane}'):
+        getattr(line, method)(**kwargs)
+
+
+@pytest.mark.parametrize('source', ['table', 'init'])
+@pytest.mark.parametrize('plane', ['x', 'y', 'zeta'])
+def test_geometric_normalized_coordinates(line, source, plane):
+    tw = line.twiss()
+    if source == 'init':
+        tw = tw.get_twiss_init('ip')
+    bg = line.particle_ref.beta0[0] * line.particle_ref.gamma0[0]
+    particles = line.build_particles(x_norm=[1., 2.], y_norm=[-1., 0.5],
+                                    zeta_norm=[0.1, 0.2], gemitt_x=2e-6,
+                                    gemitt_y=3e-6, gemitt_zeta=1e-4)
+    kwargs = {f'gemitt_{plane}': 1e-6}
+    ng = tw.get_normalized_coordinates(particles, **kwargs)
+    nn = tw.get_normalized_coordinates(particles, **{f'nemitt_{plane}': 1e-6*bg})
+    for key in ('x_norm', 'px_norm', 'y_norm', 'py_norm', 'zeta_norm', 'pzeta_norm'):
+        np.testing.assert_allclose(ng[key], nn[key], rtol=1e-13, atol=1e-15)
+    assert ng[f'gemitt_{plane}'] == 1e-6
+    with pytest.raises(ValueError, match='Cannot provide both'):
+        tw.get_normalized_coordinates(particles, **kwargs, **{f'nemitt_{plane}': 1e-6})
+
+
+def test_luminosity_geometric_emittances(line):
+    norm, geom = emittances(line)
+    tw = line.twiss()
+    kwargs = dict(n_colliding_bunches=10, num_particles_per_bunch=1e10,
+                  ip_name='ip', sigma_z=0.05, twiss_b1=tw, twiss_b2=tw, crab=False)
+    assert luminosity_from_twiss(**norm, **kwargs) == pytest.approx(
+        luminosity_from_twiss(**geom, **kwargs), rel=1e-12)
+    with pytest.raises(ValueError, match='Cannot provide both'):
+        luminosity_from_twiss(**norm, **geom, **kwargs)
+
+
+@allow_kernel_compilation
+def test_aperture_geometric_emittances():
+    env = xt.load(string='''m: marker, apertype=circle, aperture={0.02};
+                            seq: sequence,l=1; m,at=0; endsequence;''',
+                  format='madx', install_limits=False)
+    line = env['seq']
+    line.particle_ref = xt.Particles(p0c=2e9)
+    tw = line.twiss4d(betx=3, bety=5)
+    norm, geom = emittances(line)
+    aperture = line.aperture.from_associated_apertures()
+    aperture.halo_params.update(norm)
+    an = aperture.get_aperture_sigmas_at_element('m', twiss=tw)
+    aperture.halo_params.update(nemitt_x=None, nemitt_y=None, **geom)
+    ag = aperture.get_aperture_sigmas_at_element('m', twiss=tw)
+    np.testing.assert_allclose(an[0].n1, ag[0].n1, rtol=1e-12)
+    aperture.halo_params['nemitt_x'] = 1e-6
+    with pytest.raises(ValueError, match='Cannot provide both'):
+        aperture.get_aperture_sigmas_at_element('m', twiss=tw)

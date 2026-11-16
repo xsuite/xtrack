@@ -66,11 +66,18 @@ class Footprint():
             mode='polar', r_range=None, theta_range=None, n_r=None, n_theta=None,
             x_norm_range=None, y_norm_range=None, n_x_norm=None, n_y_norm=None,
             keep_fft=False, keep_tracking_data=False,
-            auto_to_numpy=True,fft_chunk_size=200
+            auto_to_numpy=True,fft_chunk_size=200, *,
+            gemitt_x=None, gemitt_y=None
             ):
 
-        assert nemitt_x is not None and nemitt_y is not None, (
-            'nemitt_x and nemitt_y must be provided')
+        # Action grids use the units of the supplied emittance in each plane.
+        # Tracking and stability diagrams use the corresponding sigma amplitudes.
+        for plane, nemitt, gemitt in (('x', nemitt_x, gemitt_x),
+                                     ('y', nemitt_y, gemitt_y)):
+            if nemitt is not None and gemitt is not None:
+                raise ValueError(f'Cannot provide both nemitt_{plane} and gemitt_{plane}.')
+            if nemitt is None and gemitt is None:
+                raise ValueError(f'nemitt_{plane} or gemitt_{plane} must be provided.')
         self.mode = mode
         self.auto_to_numpy = auto_to_numpy
         self.n_turns = n_turns
@@ -81,6 +88,10 @@ class Footprint():
 
         self.nemitt_x = nemitt_x
         self.nemitt_y = nemitt_y
+        self.gemitt_x = gemitt_x
+        self.gemitt_y = gemitt_y
+        self._emitt_x = nemitt_x if gemitt_x is None else gemitt_x
+        self._emitt_y = nemitt_y if gemitt_y is None else gemitt_y
 
         assert mode in ['polar', 'uniform_action_grid'], (
             'mode must be either polar or uniform_action_grid')
@@ -129,18 +140,18 @@ class Footprint():
             if n_y_norm is None:
                 n_y_norm = 10
 
-            Jx_min = nemitt_x * x_norm_range[0]**2 / 2
-            Jx_max = nemitt_x * x_norm_range[1]**2 / 2
-            Jy_min = nemitt_y * y_norm_range[0]**2 / 2
-            Jy_max = nemitt_y * y_norm_range[1]**2 / 2
+            Jx_min = self._emitt_x * x_norm_range[0]**2 / 2
+            Jx_max = self._emitt_x * x_norm_range[1]**2 / 2
+            Jy_min = self._emitt_y * y_norm_range[0]**2 / 2
+            Jy_max = self._emitt_y * y_norm_range[1]**2 / 2
 
             self.Jx_grid = np.linspace(Jx_min, Jx_max, n_x_norm)
             self.Jy_grid = np.linspace(Jy_min, Jy_max, n_y_norm)
 
             self.Jx_2d, self.Jy_2d = np.meshgrid(self.Jx_grid, self.Jy_grid)
 
-            self.x_norm_2d = np.sqrt(2 * self.Jx_2d / nemitt_x)
-            self.y_norm_2d = np.sqrt(2 * self.Jy_2d / nemitt_y)
+            self.x_norm_2d = np.sqrt(2 * self.Jx_2d / self._emitt_x)
+            self.y_norm_2d = np.sqrt(2 * self.Jy_2d / self._emitt_y)
 
     def _get_footprint(self, line, freeze_longitudinal=False,
                            delta0=None, zeta0=None):
@@ -157,6 +168,7 @@ class Footprint():
         particles = line.build_particles(
             x_norm=self.x_norm_2d.flatten(), y_norm=self.y_norm_2d.flatten(),
             nemitt_x=self.nemitt_x, nemitt_y=self.nemitt_y,
+            gemitt_x=self.gemitt_x, gemitt_y=self.gemitt_y,
             zeta=zeta0, delta=delta0,
             method={True: '4d', False: '6d'}[freeze_longitudinal]
             )
@@ -311,10 +323,10 @@ class Footprint():
         ctx2np = _context.nparray_from_context_array
         np2ctx = _context.nparray_to_context_array
 
-        Jx_2d = np2ctx(self.Jx_2d / self.nemitt_x)
-        Jx_grid = np2ctx(self.Jx_grid / self.nemitt_x)
-        Jy_2d = np2ctx(self.Jy_2d / self.nemitt_y)
-        Jy_grid = np2ctx(self.Jy_grid / self.nemitt_y)
+        Jx_2d = np2ctx(self.Jx_2d / self._emitt_x)
+        Jx_grid = np2ctx(self.Jx_grid / self._emitt_x)
+        Jy_2d = np2ctx(self.Jy_2d / self._emitt_y)
+        Jy_grid = np2ctx(self.Jy_grid / self._emitt_y)
         qx = np2ctx(self.qx)
         qy = np2ctx(self.qy)
 

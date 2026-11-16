@@ -35,10 +35,15 @@ VARS_FOR_TWISS_INIT_GENERATION = [
 
 def _apply_twiss_defaults(twiss_kwargs):
 
+    for plane in ('x', 'y'):
+        nn, gg = f'nemitt_{plane}', f'gemitt_{plane}'
+        if twiss_kwargs[nn] is not None and twiss_kwargs[gg] is not None:
+            raise ValueError(f'Cannot provide both {nn} and {gg}.')
+        if twiss_kwargs[nn] is None and twiss_kwargs[gg] is None:
+            twiss_kwargs[nn] = 1e-6
+
     twiss_kwargs.update({
         'step_W_sigma': twiss_kwargs['step_W_sigma'] or 0.01,
-        'nemitt_x': twiss_kwargs['nemitt_x'] or 1e-6,
-        'nemitt_y': twiss_kwargs['nemitt_y'] or 1e-6,
         'delta_disp': twiss_kwargs['delta_disp'] or 1e-5,
         'delta_chrom': twiss_kwargs['delta_chrom'] or 5e-5,
         'zeta_disp': twiss_kwargs['zeta_disp'] or 1e-3,

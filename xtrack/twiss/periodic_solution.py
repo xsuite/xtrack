@@ -31,6 +31,7 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
                             only_orbit=False,
                             periodic_mode='periodic',
                             include_collective=False,
+                            gemitt_x=None, gemitt_y=None,
                             factor_adapt_steps=0.3
                             ):
 
@@ -133,16 +134,18 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
                             stability_tol=None)
 
                 # Estimate beam size (betatron part)
-                gemitt_x = nemitt_x/part_on_co._xobject.beta0[0]/part_on_co._xobject.gamma0[0]
-                gemitt_y = nemitt_y/part_on_co._xobject.beta0[0]/part_on_co._xobject.gamma0[0]
+                from .._emittance import _geometric_emittance
+                beta_gamma = part_on_co._xobject.beta0[0] * part_on_co._xobject.gamma0[0]
+                emit_x = _geometric_emittance(nemitt_x, gemitt_x, beta_gamma, 'x')
+                emit_y = _geometric_emittance(nemitt_y, gemitt_y, beta_gamma, 'y')
                 betx_at_start = W[0, 0]**2 + W[0, 1]**2
                 bety_at_start = W[2, 2]**2 + W[2, 3]**2
                 gamx_at_start = W[1, 0]**2 + W[1, 1]**2
                 gamy_at_start = W[3, 2]**2 + W[3, 3]**2
-                sigma_x_start = np.sqrt(betx_at_start * gemitt_x)
-                sigma_y_start = np.sqrt(bety_at_start * gemitt_y)
-                sigma_px_start = np.sqrt(gamx_at_start * gemitt_x)
-                sigma_py_start = np.sqrt(gamy_at_start * gemitt_y)
+                sigma_x_start = np.sqrt(betx_at_start * emit_x)
+                sigma_y_start = np.sqrt(bety_at_start * emit_y)
+                sigma_px_start = np.sqrt(gamx_at_start * emit_x)
+                sigma_py_start = np.sqrt(gamy_at_start * emit_y)
 
                 if ((steps_R_matrix['dx'] < factor_adapt_steps * sigma_x_start)
                     and (steps_R_matrix['dy'] < factor_adapt_steps * sigma_y_start)

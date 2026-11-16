@@ -428,7 +428,8 @@ class TwissTable(Table):
                         ddx=ddx, ddpx=ddpx, ddy=ddy, ddpy=ddpy,
                         reference_frame=self.reference_frame)
 
-    def get_betatron_sigmas(self, nemitt_x, nemitt_y):
+    def get_betatron_sigmas(self, nemitt_x=None, nemitt_y=None, *,
+                            gemitt_x=None, gemitt_y=None):
         """
         Compute transverse beam covariance from normalized emittances.
 
@@ -445,6 +446,10 @@ class TwissTable(Table):
         nemitt_y : float
             Vertical normalized emittance.
 
+        gemitt_x, gemitt_y : float, optional
+            Geometric transverse emittances. Provide at most one of
+            ``nemitt_*`` and ``gemitt_*`` in each plane.
+
         Returns
         -------
         xtrack.Table
@@ -458,7 +463,8 @@ class TwissTable(Table):
             stacklevel=2,
         )
         return self.get_beam_covariance(
-            nemitt_x=nemitt_x, nemitt_y=nemitt_y)
+            nemitt_x=nemitt_x, nemitt_y=nemitt_y,
+            gemitt_x=gemitt_x, gemitt_y=gemitt_y)
 
     def get_beam_covariance(self,
             nemitt_x=None, nemitt_y=None, nemitt_zeta=None,
@@ -893,7 +899,8 @@ class TwissTable(Table):
         return Table(out_dct)
 
     def get_normalized_coordinates(self, particles, nemitt_x=None, nemitt_y=None,
-                                   nemitt_zeta=None, _force_at_element=None):
+                                   nemitt_zeta=None, _force_at_element=None, *,
+                                   gemitt_x=None, gemitt_y=None, gemitt_zeta=None):
         """
         Convert particle coordinates to normalized coordinates.
 
@@ -921,6 +928,12 @@ class TwissTable(Table):
             Longitudinal normalized emittance used to scale ``zeta_norm`` and
             ``pzeta_norm``. ``None`` leaves this plane without emittance scaling.
 
+        gemitt_x, gemitt_y, gemitt_zeta : float, optional
+            Geometric emittances used directly for the square-root scaling.
+            Mutually exclusive with ``nemitt_*`` in the same plane. If neither
+            form is supplied, that plane uses unit geometric emittance.
+            The supplied geometric inputs are stored as table attributes.
+
         Returns
         -------
         xtrack.Table
@@ -928,7 +941,8 @@ class TwissTable(Table):
             ``at_element``, ``x_norm``, ``px_norm``, ``y_norm``, ``py_norm``,
             ``zeta_norm``, and ``pzeta_norm``. The supplied ``nemitt_x``,
             ``nemitt_y``, and ``nemitt_zeta`` are stored as table attributes;
-            ``None`` records that no emittance scaling was applied in a plane.
+            ``None`` in both forms records that no emittance scaling was applied
+            in a plane.
         """
 
         ctx2np = particles._context.nparray_from_context_array
@@ -973,7 +987,9 @@ class TwissTable(Table):
                                                'gamma0': self.particle_on_co._xobject.gamma0[0]},
                                     nemitt_x = nemitt_x,
                                     nemitt_y = nemitt_y,
-                                    nemitt_zeta = nemitt_zeta)
+                                    nemitt_zeta = nemitt_zeta,
+                                    gemitt_x=gemitt_x, gemitt_y=gemitt_y,
+                                    gemitt_zeta=gemitt_zeta)
 
             x_norm[mask_at_ele] = XX_norm[0, :]
             px_norm[mask_at_ele] = XX_norm[1, :]
@@ -988,7 +1004,8 @@ class TwissTable(Table):
                       'py_norm': py_norm, 'zeta_norm': zeta_norm,
                       'pzeta_norm': pzeta_norm}, index='particle_id')
         out._data.update(nemitt_x=nemitt_x, nemitt_y=nemitt_y,
-                         nemitt_zeta=nemitt_zeta)
+                         nemitt_zeta=nemitt_zeta,
+                         gemitt_x=gemitt_x, gemitt_y=gemitt_y, gemitt_zeta=gemitt_zeta)
         return out
 
     def reverse(self):

@@ -35,6 +35,7 @@ def _propagate_twiss_from_init(
         keep_initial_particles=False,
         initial_particles=None,
         ebe_monitor=None,
+        gemitt_x=None, gemitt_y=None,
 ):
     """Track an orbit and basis particles from a completed Twiss init."""
 
@@ -73,8 +74,10 @@ def _propagate_twiss_from_init(
 
     ctx2np = line._context.nparray_from_context_array
 
-    gemitt_x = nemitt_x/particle_on_co._xobject.beta0[0]/particle_on_co._xobject.gamma0[0]
-    gemitt_y = nemitt_y/particle_on_co._xobject.beta0[0]/particle_on_co._xobject.gamma0[0]
+    from .._emittance import _geometric_emittance
+    beta_gamma = particle_on_co._xobject.beta0[0] * particle_on_co._xobject.gamma0[0]
+    gemitt_x = _geometric_emittance(nemitt_x, gemitt_x, beta_gamma, 'x')
+    gemitt_y = _geometric_emittance(nemitt_y, gemitt_y, beta_gamma, 'y')
     scale_transverse_x = np.sqrt(gemitt_x)*step_W_sigma
     scale_transverse_y = np.sqrt(gemitt_y)*step_W_sigma
     scale_longitudinal = delta_disp

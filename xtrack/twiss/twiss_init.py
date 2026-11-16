@@ -363,7 +363,8 @@ class TwissInit:
             self.__dict__[name] = value
 
     def get_normalized_coordinates(self, particles, nemitt_x=None, nemitt_y=None,
-                                   nemitt_zeta=None):
+                                   nemitt_zeta=None, *,
+                                   gemitt_x=None, gemitt_y=None, gemitt_zeta=None):
         """Convert particle coordinates using this initial condition's optics.
 
         Parameters
@@ -379,13 +380,20 @@ class TwissInit:
             emittance, not unit normalized emittance). Emittances used to
             build the particles are not inferred.
 
+        gemitt_x, gemitt_y, gemitt_zeta : float, optional
+            Geometric emittances used directly for the square-root scaling.
+            Mutually exclusive with ``nemitt_*`` in the same plane. If neither
+            form is supplied, that plane uses unit geometric emittance.
+            The supplied geometric inputs are stored as table attributes.
+
         Returns
         -------
         xtrack.Table
             Normalized coordinates indexed by ``particle_id``, with
             ``at_element`` and ``at_turn`` columns. The supplied ``nemitt_x``,
             ``nemitt_y``, and ``nemitt_zeta`` are stored as table attributes;
-            ``None`` records that no emittance scaling was applied in a plane.
+            ``None`` in both forms records that no emittance scaling was applied
+            in a plane.
         """
 
         ctx2np = particles._context.nparray_from_context_array
@@ -410,7 +418,9 @@ class TwissInit:
                                 co_dict = self.particle_on_co.copy(_context=xo.context_default).to_dict(),
                                 nemitt_x = nemitt_x,
                                 nemitt_y = nemitt_y,
-                                nemitt_zeta = nemitt_zeta)
+                                nemitt_zeta = nemitt_zeta,
+                                gemitt_x=gemitt_x, gemitt_y=gemitt_y,
+                                gemitt_zeta=gemitt_zeta)
 
         if XX_norm.ndim == 2:
             x_norm = XX_norm[0, :]
@@ -436,7 +446,8 @@ class TwissInit:
                       'py_norm': py_norm, 'zeta_norm': zeta_norm,
                       'pzeta_norm': pzeta_norm}, index='particle_id')
         out._data.update(nemitt_x=nemitt_x, nemitt_y=nemitt_y,
-                         nemitt_zeta=nemitt_zeta)
+                         nemitt_zeta=nemitt_zeta,
+                         gemitt_x=gemitt_x, gemitt_y=gemitt_y, gemitt_zeta=gemitt_zeta)
         return out
 
     @property
@@ -494,15 +505,16 @@ class TwissInit:
                 WW[5, 5] - WW[5, 4] * WW[4, 5] / WW[4, 4])
 
 
-def _W_phys2norm(x, px, y, py, zeta, pzeta, W_matrix, co_dict, nemitt_x=None, nemitt_y=None, nemitt_zeta=None):
+def _W_phys2norm(x, px, y, py, zeta, pzeta, W_matrix, co_dict, nemitt_x=None, nemitt_y=None, nemitt_zeta=None,
+                 gemitt_x=None, gemitt_y=None, gemitt_zeta=None):
 
     # Compute geometric emittances if normalized emittances are provided
-    gemitt_x = np.ones(shape=np.shape(co_dict['beta0'])) if nemitt_x is None else (
-        nemitt_x / co_dict['beta0'] / co_dict['gamma0'])
-    gemitt_y = np.ones(shape=np.shape(co_dict['beta0'])) if nemitt_y is None else (
-        nemitt_y / co_dict['beta0'] / co_dict['gamma0'])
-    gemitt_zeta = np.ones(shape=np.shape(co_dict['beta0'])) if nemitt_zeta is None else (
-        nemitt_zeta / co_dict['beta0'] / co_dict['gamma0'])
+    from .._emittance import _geometric_emittance
+    beta_gamma = co_dict['beta0'] * co_dict['gamma0']
+    unit = np.ones(shape=np.shape(co_dict['beta0']))
+    gemitt_x = _geometric_emittance(nemitt_x, gemitt_x, beta_gamma, 'x', unit) * unit
+    gemitt_y = _geometric_emittance(nemitt_y, gemitt_y, beta_gamma, 'y', unit) * unit
+    gemitt_zeta = _geometric_emittance(nemitt_zeta, gemitt_zeta, beta_gamma, 'zeta', unit) * unit
 
     # Preparing co array and gemitt array:
     co = np.array([co_dict['x'], co_dict['px'], co_dict['y'], co_dict['py'],
@@ -582,6 +594,8 @@ _PERIODIC_INIT_ARGUMENTS_FROM_BASE_DATA = (
     'num_turns_search_t_rev',
     'nemitt_x',
     'nemitt_y',
+    'gemitt_x',
+    'gemitt_y',
     'step_W_sigma',
     'compute_R_element_by_element',
     'only_markers',
