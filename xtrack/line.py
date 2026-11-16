@@ -3460,6 +3460,8 @@ class Line:
         -------
         fp : Footprint
             Footprint object containing footprint data (fp.qx, fp.qy).
+            In ``uniform_action_grid`` mode, ``fp.Jx_grid`` and ``fp.Jy_grid``
+            contain geometric actions, regardless of the input emittance convention.
 
         '''
 
@@ -3479,7 +3481,7 @@ class Line:
                         freeze_longitudinal=freeze_longitudinal,
                         delta0=delta0, zeta0=zeta0)
         else:
-            fp = Footprint(**kwargs)
+            fp = Footprint(particle_ref=self.particle_ref, **kwargs)
             fp._get_footprint(self,
                 freeze_longitudinal=freeze_longitudinal,
                 delta0=delta0, zeta0=zeta0)

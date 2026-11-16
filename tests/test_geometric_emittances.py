@@ -41,20 +41,67 @@ def test_twiss_geometric_emittances(line, open_twiss):
 
 
 @pytest.mark.parametrize('mode', ['polar', 'uniform_action_grid'])
+@pytest.mark.parametrize('linear_rescale', [False, True])
 @allow_kernel_compilation
-def test_footprint_geometric_emittances(line, mode):
+def test_footprint_geometric_emittances(line, mode, linear_rescale):
     norm, geom = emittances(line)
     kwargs = dict(mode=mode, n_turns=64, n_fft=1024, keep_tracking_data=True,
                   freeze_longitudinal=True)
     kwargs.update(dict(n_r=2, n_theta=2) if mode == 'polar' else
                   dict(n_x_norm=2, n_y_norm=2))
+    if linear_rescale:
+        line.vars['detuning_scale'] = 1.
+        line.element_refs['ip'].det_xx = 100. * line.vars['detuning_scale']
+        kwargs['linear_rescale_on_knobs'] = xt.LinearRescale(
+            knob_name='detuning_scale', v0=0.5, dv=0.1)
     fn = line.get_footprint(**norm, **kwargs)
     fg = line.get_footprint(**geom, **kwargs)
     for key in ('qx', 'qy', 'x_norm_2d', 'y_norm_2d'):
         np.testing.assert_allclose(getattr(fn, key), getattr(fg, key), rtol=1e-12)
+    for key, value in geom.items():
+        assert getattr(fn, key) == pytest.approx(value)
+        assert getattr(fg, key) == pytest.approx(value)
+    if mode == 'uniform_action_grid':
+        for key in ('Jx_grid', 'Jy_grid', 'Jx_2d', 'Jy_2d'):
+            np.testing.assert_allclose(getattr(fn, key), getattr(fg, key), rtol=1e-12)
+        stability_kwargs = dict(n_points_stability_diagram=3,
+                                n_points_interpolate=16, max_iter=2)
+        sn = fn.get_stability_diagram(**stability_kwargs)
+        sg = fg.get_stability_diagram(**stability_kwargs)
+        assert np.all(np.isfinite(sn))
+        np.testing.assert_allclose(sn, sg, rtol=1e-12, atol=1e-15)
     for key in ('x', 'px', 'y', 'py'):
         np.testing.assert_allclose(getattr(fn.tracking_data, key),
                                    getattr(fg.tracking_data, key), rtol=1e-10, atol=1e-15)
+
+
+@pytest.mark.parametrize('p0c', [2e9, 7e12])
+@pytest.mark.parametrize('input_form', ['normalized', 'geometric', 'mixed'])
+def test_footprint_geometric_action_grid(p0c, input_form):
+    particle_ref = xt.Particles(p0c=p0c)
+    bg = particle_ref.beta0[0] * particle_ref.gamma0[0]
+    geom = dict(gemitt_x=2e-6/bg, gemitt_y=3e-6/bg)
+    inputs = dict(normalized=dict(nemitt_x=2e-6, nemitt_y=3e-6),
+                  geometric=geom,
+                  mixed=dict(nemitt_x=2e-6, gemitt_y=geom['gemitt_y']))[input_form]
+    fp = xt.Footprint(**inputs, particle_ref=particle_ref,
+                      mode='uniform_action_grid', x_norm_range=(1, 3),
+                      y_norm_range=(2, 4), n_x_norm=3, n_y_norm=4)
+    np.testing.assert_allclose(fp.Jx_grid, geom['gemitt_x'] * np.array([0.5, 2.5, 4.5]),
+                               rtol=1e-13, atol=0)
+    np.testing.assert_allclose(fp.Jy_grid, geom['gemitt_y'] * np.array([2., 4., 6., 8.]),
+                               rtol=1e-13, atol=0)
+
+
+def test_footprint_emittances_without_reference_particle():
+    geom = dict(gemitt_x=2e-6, gemitt_y=3e-6)
+    fp = xt.Footprint(**geom, mode='uniform_action_grid')
+    assert fp.gemitt_x == geom['gemitt_x']
+    assert fp.gemitt_y == geom['gemitt_y']
+    for inputs in (dict(nemitt_x=2e-6, nemitt_y=3e-6),
+                   dict(gemitt_x=2e-6, nemitt_y=3e-6)):
+        with pytest.raises(ValueError, match='particle_ref.*normalized.*geometric'):
+            xt.Footprint(**inputs)
 
 
 def test_detuning_geometric_emittances(line):
