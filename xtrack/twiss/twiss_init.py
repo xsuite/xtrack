@@ -363,8 +363,8 @@ class TwissInit:
             self.__dict__[name] = value
 
     def get_normalized_coordinates(self, particles, nemitt_x=None, nemitt_y=None,
-                                   nemitt_zeta=None, *,
-                                   gemitt_x=None, gemitt_y=None, gemitt_zeta=None):
+                                   gemitt_x=None, gemitt_y=None,
+                                   nemitt_zeta=None, gemitt_zeta=None):
         """Convert particle coordinates using this initial condition's optics.
 
         Parameters

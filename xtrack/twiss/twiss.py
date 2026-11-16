@@ -33,7 +33,8 @@ import xtrack as xt  # To avoid circular imports
 def twiss_line(line, particle_ref=None, method=None,
         particle_on_co=None, R_matrix=None, W_matrix=None,
         delta0=None, zeta0=None, zeta_shift=None,
-        nemitt_x=None, nemitt_y=None, step_W_sigma=None,
+        nemitt_x=None, nemitt_y=None, gemitt_x=None, gemitt_y=None,
+        step_W_sigma=None,
         delta_disp=None, delta_chrom=None, zeta_disp=None,
         co_guess=None, steps_R_matrix=None,
         co_search_settings=None,
@@ -92,7 +93,6 @@ def twiss_line(line, particle_ref=None, method=None,
         steps_r_matrix=None, *,
         with_progress=True,
         chi=None, charge_ratio=None, mass_ratio=None,
-        gemitt_x=None, gemitt_y=None,
     ):
     """
     Compute the Twiss parameters of the beam line. If no initial conditions

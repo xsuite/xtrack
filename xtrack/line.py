@@ -2429,7 +2429,8 @@ class Line:
         x=None, px=None, y=None, py=None, zeta=None, delta=None, pzeta=None,
         x_norm=None, px_norm=None, y_norm=None, py_norm=None, zeta_norm=None, pzeta_norm=None,
         at_element=None, match_at_s=None,
-        nemitt_x=None, nemitt_y=None,
+        nemitt_x=None, nemitt_y=None, gemitt_x=None, gemitt_y=None,
+        nemitt_zeta=None, gemitt_zeta=None,
         weight=None,
         particle_on_co=None,
         R_matrix=None,
@@ -2441,7 +2442,6 @@ class Line:
         _capacity=None,
         mode=None,
         *, chi=None, charge_ratio=None, mass_ratio=None, pdg_id=None,
-        nemitt_zeta=None, gemitt_x=None, gemitt_y=None, gemitt_zeta=None,
         **kwargs, # They are passed to the twiss
     ):
 
@@ -2629,7 +2629,8 @@ class Line:
     def twiss(self, particle_ref=None, method=None,
         particle_on_co=None, R_matrix=None, W_matrix=None,
         delta0=None, zeta0=None, zeta_shift=None,
-        nemitt_x=None, nemitt_y=None, step_W_sigma=None,
+        nemitt_x=None, nemitt_y=None, gemitt_x=None, gemitt_y=None,
+        step_W_sigma=None,
         delta_disp=None, delta_chrom=None, zeta_disp=None,
         co_guess=None, steps_R_matrix=None,
         co_search_settings=None,
@@ -2691,7 +2692,6 @@ class Line:
         eneloss_and_damping=None,
         steps_r_matrix=None, *,
         with_progress=True,
-        gemitt_x=None, gemitt_y=None,
         chi=None, charge_ratio=None, mass_ratio=None,
     ):
         if not self._has_valid_tracker():
@@ -3490,8 +3490,8 @@ class Line:
 
     @doc_group("Tracking and Analysis")
     def get_amplitude_detuning_coefficients(self, nemitt_x=None, nemitt_y=None,
-                num_turns=256, a0_sigmas=0.01, a1_sigmas=0.1, a2_sigmas=0.2, *,
-                gemitt_x=None, gemitt_y=None):
+                gemitt_x=None, gemitt_y=None,
+                num_turns=256, a0_sigmas=0.01, a1_sigmas=0.1, a2_sigmas=0.2):
 
         '''
         Compute the amplitude detuning coefficients (det_xx = dQx / dJx,

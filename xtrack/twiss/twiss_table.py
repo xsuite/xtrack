@@ -467,8 +467,8 @@ class TwissTable(Table):
             gemitt_x=gemitt_x, gemitt_y=gemitt_y)
 
     def get_beam_covariance(self,
-            nemitt_x=None, nemitt_y=None, nemitt_zeta=None,
-            gemitt_x=None, gemitt_y=None, gemitt_zeta=None):
+            nemitt_x=None, nemitt_y=None, gemitt_x=None, gemitt_y=None,
+            nemitt_zeta=None, gemitt_zeta=None):
         """
         Compute the beam covariance matrix along the line.
 
@@ -899,8 +899,9 @@ class TwissTable(Table):
         return Table(out_dct)
 
     def get_normalized_coordinates(self, particles, nemitt_x=None, nemitt_y=None,
-                                   nemitt_zeta=None, _force_at_element=None, *,
-                                   gemitt_x=None, gemitt_y=None, gemitt_zeta=None):
+                                   gemitt_x=None, gemitt_y=None,
+                                   nemitt_zeta=None, gemitt_zeta=None,
+                                   _force_at_element=None):
         """
         Convert particle coordinates to normalized coordinates.
 
