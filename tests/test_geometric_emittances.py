@@ -2,7 +2,6 @@ import numpy as np
 import pytest
 
 import xtrack as xt
-from xtrack.lumi import luminosity_from_twiss
 from xobjects.test_helpers import allow_kernel_compilation
 
 
@@ -154,17 +153,6 @@ def test_geometric_normalized_coordinates(line, source, plane):
     assert ng[f'gemitt_{plane}'] == 1e-6
     with pytest.raises(ValueError, match='Cannot provide both'):
         tw.get_normalized_coordinates(particles, **kwargs, **{f'nemitt_{plane}': 1e-6})
-
-
-def test_luminosity_geometric_emittances(line):
-    norm, geom = emittances(line)
-    tw = line.twiss()
-    kwargs = dict(n_colliding_bunches=10, num_particles_per_bunch=1e10,
-                  ip_name='ip', sigma_z=0.05, twiss_b1=tw, twiss_b2=tw, crab=False)
-    assert luminosity_from_twiss(**norm, **kwargs) == pytest.approx(
-        luminosity_from_twiss(**geom, **kwargs), rel=1e-12)
-    with pytest.raises(ValueError, match='Cannot provide both'):
-        luminosity_from_twiss(**norm, **geom, **kwargs)
 
 
 @pytest.mark.parametrize('method', ['rays', 'bisection', 'exact'])

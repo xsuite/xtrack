@@ -285,29 +285,13 @@ def luminosity_from_twiss(
     n_colliding_bunches,
     num_particles_per_bunch,
     ip_name,
-    nemitt_x=None,
-    nemitt_y=None,
-    sigma_z=None,
-    twiss_b1=None,
-    twiss_b2=None,
+    nemitt_x,
+    nemitt_y,
+    sigma_z,
+    twiss_b1,
+    twiss_b2,
     f_rev=None,
-    crab=None, *, gemitt_x=None, gemitt_y=None):
-
-    """Compute luminosity using normalized or geometric transverse emittances.
-
-    Provide one form per plane. Geometric inputs apply to both beams; each
-    beam's own reference energy is used for conversion. Existing positional
-    arguments remain supported.
-    """
-    from ._emittance import _geometric_emittance
-    emittances = []
-    for tw in (twiss_b1, twiss_b2):
-        bg = tw.particle_on_co.beta0[0] * tw.particle_on_co.gamma0[0]
-        ex = _geometric_emittance(nemitt_x, gemitt_x, bg, 'x')
-        ey = _geometric_emittance(nemitt_y, gemitt_y, bg, 'y')
-        if ex is None or ey is None:
-            raise ValueError('An emittance must be provided for each transverse plane.')
-        emittances.append((ex * bg, ey * bg))
+    crab=None):
 
     assert crab is not None, 'crab crossing information is required'
 
@@ -353,10 +337,10 @@ def luminosity_from_twiss(
         energy_tot2=twiss_b2_rev.particle_on_co.energy0[0]*1e-9, # GeV
         deltap_p0_1=0, # energy spread (for now we neglect effect of dispersion)
         deltap_p0_2=0, # energy spread (for now we neglect effect of dispersion)
-        epsilon_x1=emittances[0][0],
-        epsilon_x2=emittances[1][0],
-        epsilon_y1=emittances[0][1],
-        epsilon_y2=emittances[1][1],
+        epsilon_x1=nemitt_x,
+        epsilon_x2=nemitt_x,
+        epsilon_y1=nemitt_y,
+        epsilon_y2=nemitt_y,
         sigma_z1=sigma_z,
         sigma_z2=sigma_z,
         beta_x1=twiss_b1['betx', ip_name],
