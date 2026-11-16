@@ -19,7 +19,8 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
                             delta_disp, symplectify,
                             matrix_responsiveness_tol,
                             matrix_stability_tol,
-                            nemitt_x, nemitt_y, step_W_sigma,
+                            step_W_sigma,
+                            nemitt_x, nemitt_y, gemitt_x=None, gemitt_y=None,
                             start=None, end=None,
                             num_turns=1,
                             co_search_at=None,
@@ -31,7 +32,6 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
                             only_orbit=False,
                             periodic_mode='periodic',
                             include_collective=False,
-                            gemitt_x=None, gemitt_y=None,
                             factor_adapt_steps=0.3
                             ):
 

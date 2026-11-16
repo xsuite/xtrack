@@ -20,11 +20,12 @@ def _propagate_twiss_from_init(
         init,
         start,
         end,
-        nemitt_x,
-        nemitt_y,
         step_W_sigma,
         delta_disp,
         use_full_inverse,
+        nemitt_x,
+        nemitt_y,
+        gemitt_x=None, gemitt_y=None,
         hide_thin_groups=False,
         only_markers=False,
         only_orbit=False,
@@ -35,7 +36,6 @@ def _propagate_twiss_from_init(
         keep_initial_particles=False,
         initial_particles=None,
         ebe_monitor=None,
-        gemitt_x=None, gemitt_y=None,
 ):
     """Track an orbit and basis particles from a completed Twiss init."""
 

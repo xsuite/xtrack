@@ -505,8 +505,9 @@ class TwissInit:
                 WW[5, 5] - WW[5, 4] * WW[4, 5] / WW[4, 4])
 
 
-def _W_phys2norm(x, px, y, py, zeta, pzeta, W_matrix, co_dict, nemitt_x=None, nemitt_y=None, nemitt_zeta=None,
-                 gemitt_x=None, gemitt_y=None, gemitt_zeta=None):
+def _W_phys2norm(x, px, y, py, zeta, pzeta, W_matrix, co_dict,
+                 nemitt_x=None, nemitt_y=None, gemitt_x=None, gemitt_y=None,
+                 nemitt_zeta=None, gemitt_zeta=None):
 
     # Compute geometric emittances if normalized emittances are provided
     from .._emittance import _geometric_emittance
