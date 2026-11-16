@@ -62,12 +62,12 @@ def _footprint_with_linear_rescale(linear_rescale_on_knobs, line,
 
 class Footprint():
 
-    def __init__(self, nemitt_x=None, nemitt_y=None, n_turns=256, n_fft=2**18,
+    def __init__(self, nemitt_x=None, nemitt_y=None, gemitt_x=None, gemitt_y=None,
+            n_turns=256, n_fft=2**18,
             mode='polar', r_range=None, theta_range=None, n_r=None, n_theta=None,
             x_norm_range=None, y_norm_range=None, n_x_norm=None, n_y_norm=None,
             keep_fft=False, keep_tracking_data=False,
-            auto_to_numpy=True,fft_chunk_size=200, *,
-            gemitt_x=None, gemitt_y=None
+            auto_to_numpy=True,fft_chunk_size=200
             ):
 
         # Action grids use the units of the supplied emittance in each plane.

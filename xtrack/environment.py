@@ -2530,10 +2530,10 @@ class Environment:
     @doc_group("Upcoming deprecations")
     def configure_beambeam_interactions(self, num_particles,
                                         nemitt_x=None, nemitt_y=None,
+                                        gemitt_x=None, gemitt_y=None,
                                         crab_strong_beam=True,
                                         use_antisymmetry=False,
-                                        separation_bumps=None, *,
-                                        gemitt_x=None, gemitt_y=None):
+                                        separation_bumps=None):
         """
         Deprecated alias for ``env.xfields.configure_beambeam_interactions(...)``.
 
