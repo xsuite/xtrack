@@ -226,7 +226,8 @@ class LineAperture:
         """
         return self._halo_params
 
-    def _resolved_halo_params(self):
+    def _resolve_halo_emittances(self):
+        """Return a copy of halo parameters with emittances in normalized units."""
         from .._emittance import _geometric_emittance
         params = self.halo_params.copy()
         particle = self.line.particle_ref
@@ -1253,7 +1254,7 @@ class LineAperture:
         num_slices = len(sliced_twiss.s)
         twiss_at_s = TwissData.from_twiss_table(self.line.particle_ref, sliced_twiss)
         survey_at_s = self._survey_data.resample(twiss_at_s.s)
-        beam_data = BeamData(**self._resolved_halo_params())
+        beam_data = BeamData(**self._resolve_halo_emittances())
 
         if output_cross_sections:
             interpolated_points = np.zeros(shape=(num_slices, self.num_profile_points, 2), dtype=FloatType._dtype)
@@ -1415,7 +1416,7 @@ class LineAperture:
         twiss_at_s = TwissData.from_twiss_table(self.line.particle_ref, sliced_twiss)
         survey_at_s = self._survey_data.resample(twiss_at_s.s)
 
-        beam_data = BeamData(**self._resolved_halo_params())
+        beam_data = BeamData(**self._resolve_halo_emittances())
         interpolated_points = np.zeros(shape=(num_slices, self.num_profile_points, 2), dtype=FloatType._dtype)
 
         ray_angles = np.linspace(0, 2 * np.pi, 8, endpoint=False, dtype=FloatType._dtype)
@@ -1595,7 +1596,7 @@ class LineAperture:
 
         num_slices = len(sliced_twiss.s)
         twiss_at_s = TwissData.from_twiss_table(self.line.particle_ref, sliced_twiss)
-        beam_data = BeamData(**self._resolved_halo_params())
+        beam_data = BeamData(**self._resolve_halo_emittances())
 
         envelopes = (
             np.zeros(shape=(num_slices, envelopes_num_points, 2), dtype=FloatType._dtype)
@@ -1966,7 +1967,7 @@ class LineAperture:
         ax_y.set_xlabel('s [m]')
 
         sigma_label = 'n_1' if sigmas_was_computed else 'n'
-        params = self._resolved_halo_params()
+        params = self._resolve_halo_emittances()
         nemitt_x, nemitt_y = params['nemitt_x'], params['nemitt_y']
         fig.suptitle(
             fr"Extents and beam envelope at ${sigma_label} = {sigmas:.3g}$ and "
@@ -2116,7 +2117,7 @@ class LineAperture:
                 ax.plot(pt[:, 0] - mid[0], pt[:, 1] - mid[1], c='skyblue', linestyle=':', label=label)
                 seen = True
 
-        params = self._resolved_halo_params()
+        params = self._resolve_halo_emittances()
         nemitt_x, nemitt_y = params['nemitt_x'], params['nemitt_y']
         ax.set_aspect('equal')
         ax.set_title(
