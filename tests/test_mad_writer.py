@@ -6,7 +6,7 @@ from cpymad.madx import Madx
 
 import xobjects as xo
 import xtrack as xt
-from xtrack.mad_writer import expr_to_mad_str, mad_assignment
+from xtrack.mad_writer import MadType, expr_to_mad_str, mad_assignment
 
 test_data_folder = pathlib.Path(
             __file__).parent.joinpath('../test_data').absolute()
@@ -96,6 +96,35 @@ def test_mad_expression_precedence(source, expected):
         env['a'] = 4.
         mad.globals['a'] = 4.
         assert mad.globals['result'] == pytest.approx(expr._value)
+
+
+@pytest.mark.parametrize('source', [
+    '(a + b) / 2.0 + 0.192',
+    '(a ** b) ** c',
+    'a - (b - c)',
+    '-a * b + c',
+    'f.sin(a + b) * c',
+    'a',
+])
+@pytest.mark.parametrize('as_string', [False, True])
+def test_madng_deferred_expression_scope(source, as_string):
+    MAD = pytest.importorskip('pymadng').MAD
+    env = xt.Environment()
+    env.vars.update({'a': 2., 'b': 3., 'c': 2.})
+    namespace = {name: env.ref[name] for name in 'abc'}
+    namespace['f'] = env._xdeps_fref
+    expression = eval(source, {}, namespace)
+    rhs = expr_to_mad_str(expression) if as_string else expression
+    assignment = mad_assignment('result', rhs, mad_type=MadType.MADNG,
+                                substituted_vars=[])
+
+    with MAD() as mad:
+        mad.send('MADX:open_env(); a = 2.; b = 3.; c = 2.; '
+                 + assignment + '; MADX:close_env()')
+        assert mad.MADX.result == pytest.approx(expression._value)
+        env['a'] = 4.
+        mad.send('MADX.a = 4.0')
+        assert mad.MADX.result == pytest.approx(expression._value)
 
 
 @pytest.mark.parametrize('case', ['thin', 'thick'])

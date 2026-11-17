@@ -76,8 +76,11 @@ def mad_assignment(lhs, rhs, mad_type=MadType.MADX, substituted_vars=None):
         rhs = mad_str_or_value(rhs)
         rhs = _replace_var_dots_with_underscores(rhs, substituted_vars) if mad_type == MadType.MADNG else rhs
     if isinstance(rhs, str):
-        equal_str = ':=' if mad_type == MadType.MADX else '=\\'
-        return f"{lhs} {equal_str} {rhs}"
+        if mad_type == MadType.MADNG:
+            # Parentheses delimit the complete deferred expression in MAD-NG.
+            # Without them, a leading group can end the lambda body early.
+            return f"{lhs} =\\ ({rhs})"
+        return f"{lhs} := {rhs}"
     if isinstance(rhs, np.ndarray):
         rhs = f"{{ {np.array2string(rhs, separator=', ')[1:-1]} }}"
     return f"{lhs} = {rhs}"
