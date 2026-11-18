@@ -7,6 +7,7 @@ import pathlib
 
 import numpy as np
 import pytest
+from scipy.constants import c
 from cpymad.madx import Madx
 
 import xobjects as xo
@@ -17,7 +18,8 @@ test_data_folder = pathlib.Path(
         __file__).parent.joinpath('../test_data').absolute()
 
 @for_all_test_contexts
-def test_line_with_second_order_maps(test_context):
+@pytest.mark.parametrize('steps_t_matrix', [None, {'dzeta': 1e-3}])
+def test_line_with_second_order_maps(test_context, steps_t_matrix):
 
     line = xt.load(test_data_folder /
                              'hllhc15_thick/lhc_thick_with_knobs.json')
@@ -30,7 +32,8 @@ def test_line_with_second_order_maps(test_context):
 
     ele_cut = ['ip1', 'ip2', 'ip3', 'ip4', 'ip5', 'ip6', 'ip7']
 
-    line_maps = line.get_line_with_second_order_maps(split_at=ele_cut)
+    line_maps = line.get_line_with_second_order_maps(
+        split_at=ele_cut, steps_t_matrix=steps_t_matrix)
     line_maps.build_tracker(_context=test_context)
 
     line_maps.get_table().show()
@@ -58,6 +61,46 @@ def test_line_with_second_order_maps(test_context):
     xo.assert_allclose(tw_map.dqy, tw.dqy, rtol=0, atol=5e-2)
     xo.assert_allclose(tw_map.c_minus, tw.c_minus, rtol=0, atol=1e-5)
     xo.assert_allclose(tw_map.line_length, tw.line_length, rtol=0, atol=5e-9)
+
+
+@for_all_test_contexts
+@pytest.mark.parametrize('steps_t', [None, {}, {'dx': 1e-6},
+                                   {'dzeta': 1e-5}, {'dzeta': 1e-3}])
+def test_second_order_map_fd_steps_rf(test_context, steps_t):
+    # A sinusoidal RF kick has known nonzero first and second derivatives.
+    # Their finite-step responses also distinguish the inner and outer steps
+    # of the second derivative, and the independent step used for R.
+    frequency, voltage, phase = 400e6, 1e6, np.pi / 6
+    line = xt.Line(elements={
+        'start': xt.Marker(),
+        'rf': xt.Cavity(frequency=frequency, voltage=voltage, phase=phase),
+        'end': xt.Marker(),
+    })
+    line.particle_ref = xt.Particles(p0c=7e12)
+    line.build_tracker(_context=test_context)
+    tw = line.twiss(start='start', end='end', method='4d',
+                    init=xt.TwissInit(betx=1., bety=1.))
+    steps_r = {'dzeta': 1e-2}
+    steps_t_before = None if steps_t is None else steps_t.copy()
+    dzeta_t = (steps_t or {}).get('dzeta', 1e-4)
+    smap = xt.SecondOrderTaylorMap.from_line(
+        line, start='start', end='end', twiss_table=tw,
+        steps_r_matrix=steps_r, steps_t_matrix=steps_t)
+    beta0 = line.particle_ref.beta0[0]
+    wave_number = 2 * np.pi * frequency / (beta0 * c)
+    amplitude = voltage / (line.particle_ref.p0c[0] * beta0)
+    r_exact = -amplitude * wave_number * np.cos(phase)
+    t_exact = -0.5 * amplitude * wave_number**2 * np.sin(phase)
+    xo.assert_allclose(smap.R[5, 4],
+                       r_exact * np.sinc(wave_number * steps_r['dzeta'] / np.pi),
+                       rtol=1e-8, atol=0)
+    xo.assert_allclose(smap.T[5, 4, 4],
+                       t_exact * np.sinc(wave_number * dzeta_t / np.pi)**2,
+                       rtol=1e-8, atol=0)
+    xo.assert_allclose(smap.T[5, 4, 4], t_exact,
+                       rtol=max(1e-8, 3e-5 * (dzeta_t / 1e-3)**2), atol=0)
+    assert steps_r == {'dzeta': 1e-2}
+    assert steps_t == steps_t_before
 
 
 @for_all_test_contexts

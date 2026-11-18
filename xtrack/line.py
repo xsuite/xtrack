@@ -3358,7 +3358,11 @@ class Line:
         particle_on_co : Particle
             Particle at the closed orbit (optional).
         steps : dict
-            Finite difference step for computing the second order tensor.
+            Finite-difference steps for computing the second-order tensor
+            (``dx``, ``dpx``, ``dy``, ``dpy``, ``dzeta``, ``ddelta``).
+            These steps apply to both levels of the nested differences;
+            omitted keys use the second-order defaults (``dzeta=1e-4`` m;
+            other coordinates use the same defaults as ``get_R_matrix``).
         steps_t_matrix : dict
             Deprecated. Use ``steps`` instead.
 
@@ -6021,7 +6025,8 @@ class Line:
             return newline
 
     @doc_group("Tracking and Analysis")
-    def get_line_with_second_order_maps(self, split_at):
+    def get_line_with_second_order_maps(self, split_at,
+                                       steps_r_matrix=None, steps_t_matrix=None):
 
         '''
         Return a new line with segments defined by the elements in `split_at`
@@ -6039,6 +6044,12 @@ class Line:
             referred to by their disambiguated name 'name::N' (as shown in
             the line table and in the twiss table); the same names are used
             in the returned line.
+        steps_r_matrix, steps_t_matrix : dict, optional
+            Finite-difference steps for first- and second-order map coefficients.
+            Passed to :meth:`SecondOrderTaylorMap.from_line`; the second-order
+            steps apply to both levels of the nested differences. Omitted
+            keys use the corresponding first- or second-order defaults
+            (``dzeta=1e-5`` m for R, ``dzeta=1e-4`` m for T).
 
         Returns
         -------
@@ -6096,6 +6107,8 @@ class Line:
                                     self, start=map_start,
                                     end=ele_cut_sorted[ii+1],
                                     twiss_table=tw,
+                                    steps_r_matrix=steps_r_matrix,
+                                    steps_t_matrix=steps_t_matrix,
                                     _buffer=self._buffer)
             names_map_line.append(f'map_{ii}')
             elements_map_line.append(smap)

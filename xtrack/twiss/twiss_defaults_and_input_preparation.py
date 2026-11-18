@@ -17,6 +17,13 @@ DEFAULT_STEPS_R_MATRIX = {
     'dzeta': 1e-5, 'ddelta': 1e-6,
 }
 
+# Nested finite differences need a larger longitudinal step to reduce roundoff
+# in the second derivatives, especially when maps are used at large zeta.
+DEFAULT_STEPS_T_MATRIX = {
+    **DEFAULT_STEPS_R_MATRIX,
+    'dzeta': 1e-4,
+}
+
 DEFAULT_CO_SEARCH_TOL = [1e-11, 1e-11, 1e-11, 1e-11, 1e-5, 1e-9]
 
 DEFAULT_MATRIX_RESPONSIVENESS_TOL = 1e-15
