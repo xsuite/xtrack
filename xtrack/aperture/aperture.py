@@ -323,7 +323,10 @@ class LineAperture:
         if name in self._pipe_position_name_to_index:
             raise ValueError(f"Pipe position `{name}` already exists.")
 
-        table = self.line.get_table()
+        if self.line._has_valid_tracker():
+            table = self.line.tracker._tracker_data_base._line_table
+        else:
+            table = self.line.get_table()
         index = table.rows.get_index(name)
         element = self.line[table.env_name[index]]
         profile_index = self.line.env.aperture.profile_index(profile)
