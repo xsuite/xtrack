@@ -56,7 +56,7 @@ def test_aperture_twiss_options_without_rf(quantity, location):
 @pytest.mark.parametrize('plot', ['plot_extents', 'plot_transverse'])
 @pytest.mark.parametrize('sigmas', [None, 3])
 def test_aperture_plot_twiss_options_without_rf(plot, sigmas):
-    from matplotlib.figure import Figure
+    Figure = pytest.importorskip('matplotlib.figure').Figure
 
     line = _make_line_without_rf()
     aperture = line.aperture
