@@ -562,6 +562,9 @@ def test_zigzag_iterator_wrap_and_bounds(test_context):
     zigzag_test_kernel(start=4, upper_bound=5, wrap=1, out=out, len_out=len(out))
     assert all(out == [4, 0, 3, 1, 2])
 
+    zigzag_test_kernel(start=4, upper_bound=5, wrap=0, out=out, len_out=len(out))
+    assert all(out == [4, 3, 2, 1, 0])
+
     zigzag_test_kernel(start=2, upper_bound=5, wrap=0, out=out, len_out=len(out))
     assert all(out == [2, 3, 1, 4, 0])
 
@@ -840,7 +843,11 @@ def test_aperture_model_views(test_context):
 
 
 def test_get_limit_elements(monkeypatch):
-    ap = Aperture.__new__(Aperture)
+    env = xt.Environment()
+    line = env.new_line(components=[env.new('d', 'Drift', length=4.)])
+    profile = env.aperture.new_profile('profile', 'Circle', radius=1.)
+    line.aperture.new_element_pipe('d', profile)
+    ap = line.aperture
     cross_sections = np.array(
         [
             [[0.0, 0.0], [1.0, 0.0], [0.0, 1.0], [0.0, 0.0]],
@@ -857,7 +864,7 @@ def test_get_limit_elements(monkeypatch):
     )
     monkeypatch.setattr(ap, 'get_cross_sections_at_s', lambda s_positions: table)
 
-    out = ap.get_limit_elements_at_s([1.5, 3.5])
+    out = ap.get_limit_elements_at_s([1.5, 3.5], prefer_native=False)
 
     assert list(out) == [1.5, 3.5]
     assert all(isinstance(value, xt.LimitPolygon) for value in out.values())

@@ -8,7 +8,7 @@ from weakref import ref
 import numpy as np
 
 import xobjects as xo
-from xtrack.beam_elements.limit_polygon import LimitPolygon
+from xtrack.aperture.limit_converters import limit_elements_at_s
 from xdeps.table import Table
 from xobjects.context import XContext
 from xtrack.twiss import TwissInit, TwissTable
@@ -1985,24 +1985,47 @@ class LineAperture:
             yield list(indices[inside])
 
     @doc_group("Aperture Computation")
-    def get_limit_elements_at_s(self, s_positions: list[float]) -> dict[float, LimitElement]:
-        """Return sampled polygon limits. A unique covering pipe placement supplies
-        the limit's installed_pipe_name. Gaps and overlapping pipes give None.
-        """
-        cross_sections_table = self.get_cross_sections_at_s(s_positions)
-        limit_elements = {}
-        candidates = self._pipe_candidates_at_s(s_positions)
-        for s, row, pipes in zip(s_positions, cross_sections_table.rows, candidates):
-            cross_section = row.cross_section
-            limit_poly = LimitPolygon(
-                x_vertices=cross_section[:-1, 0],
-                y_vertices=cross_section[:-1, 1],
-            )
-            if len(pipes) == 1:
-                limit_poly.installed_pipe_name = self._model.pipe_position_names[pipes[0]]
-            limit_elements[s] = limit_poly
+    def get_limit_elements_at_s(self, s_positions: list[float], *, names=None,
+                                prefer_native=True) -> dict[float, LimitElement]:
+        """Convert aperture sections to tracking limits, retaining native shapes.
 
-        return limit_elements
+        Perpendicular sections through equal profiles use native rectangles,
+        ellipses, rectellipses or racetracks. Circles with interpolated radii
+        remain ellipses. Polygon vertices and ordinary octagon corners are
+        retained exactly. Inside a pipe, oblique circular and rectellipse cuts
+        can also use a numerical ellipse or rectellipse when the maximum
+        discrepancy at the contour samples is at most one micrometre.
+        These fitted parameters are snapshots. At pipe joints and for other
+        unmatched cuts, the sampled polygon supplies the tracking boundary.
+
+        Parameters
+        ----------
+        s_positions : sequence of float
+            Longitudinal sample positions [m].
+        names : sequence of str, optional
+            Register the limits under these names in the line's environment and
+            translate supported shape and transverse-placement expressions.
+            Without names, return standalone numeric snapshots. A warning lists
+            any expression that could not be translated, including geometry and
+            tolerance expressions. Registration does not insert limits in the line.
+        prefer_native : bool, optional
+            Default True. False always samples polygons, as in earlier versions.
+
+        Returns
+        -------
+        dict
+            Sample position to limit element. Named limits share the environment's
+            variables, and their bindings survive line/environment copying and JSON.
+
+        Notes
+        -----
+        Sampling positions, pipe topology and the survey remain fixed. Regenerate
+        limits after geometry changes that invalidate the selected section type.
+        With one covering pipe, installed_pipe_name identifies its placement.
+        Gaps and overlaps have no unique placement and use None.
+        Mechanical tolerances are not applied to the tracking boundaries.
+        """
+        return limit_elements_at_s(self, s_positions, names=names, prefer_native=prefer_native)
 
     @doc_group("Visualization")
     def plot_extents(

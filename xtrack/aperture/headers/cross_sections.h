@@ -995,7 +995,11 @@ static inline float_type survey_s_for_aperture(
     float_type found_s = NAN;
     float_type last_t_right = NAN;
     float_type last_t_left = NAN;
-    ZigZagIterator it = zigzag_iterator_new(survey_idx, num_survey_entries - 1, wrap);
+    /* The final survey row is an endpoint. Start from its preceding segment.
+       Keep this seed for the footprint search if the profile centre misses the survey. */
+    const uint32_t start_idx = survey_idx < num_survey_entries - 1 ? survey_idx : num_survey_entries - 2;
+    *found_survey_index = start_idx;
+    ZigZagIterator it = zigzag_iterator_new(start_idx, num_survey_entries - 1, wrap);
     do
     {
         Segment3D segment = survey_segment(survey, it.index);
