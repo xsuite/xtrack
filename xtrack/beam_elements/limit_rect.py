@@ -5,10 +5,10 @@
 
 from ..base_element import BeamElement
 import xobjects as xo
-from ._aperture_common import UNLIMITED
+from ._aperture_common import UNLIMITED, _AsInstalledPipeName
 
 
-class LimitRect(BeamElement):
+class LimitRect(_AsInstalledPipeName, BeamElement):
     """
     Beam element modeling a rectangular aperture limit.
 
@@ -24,10 +24,6 @@ class LimitRect(BeamElement):
         Upper y limit in meters.
 
     """
-
-    installed_pipe_name: str | None = None
-    _noexpr_fields = {'installed_pipe_name'}
-    _store_in_to_dict = ['installed_pipe_name']
 
     _xofields = {
         "min_x": xo.Field(xo.Float64, default=-UNLIMITED),

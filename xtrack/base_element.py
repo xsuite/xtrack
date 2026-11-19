@@ -801,8 +801,6 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
             raise ValueError("Invalid array type")
 
     def xoinitialize(self, **kwargs):
-        if 'installed_pipe_name' in kwargs and hasattr(self, 'installed_pipe_name'):
-            self.installed_pipe_name = kwargs.pop('installed_pipe_name')
         rot_s_rad = kwargs.pop('rot_s_rad', kwargs.pop('_rot_s_rad', None))
         shift_x = kwargs.pop('shift_x', kwargs.pop('_shift_x', None))
         shift_y = kwargs.pop('shift_y', kwargs.pop('_shift_y', None))
@@ -854,19 +852,6 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
 
         if rot_s_rad_no_frame is not None:
             self.rot_s_rad_no_frame = rot_s_rad_no_frame
-
-    def __getstate__(self):
-        state = super().__getstate__()
-        name = getattr(self, 'installed_pipe_name', None)
-        if name is not None:
-            return dict(element_state=state, installed_pipe_name=name)
-        return state
-
-    def __setstate__(self, state):
-        if isinstance(state, dict) and 'element_state' in state:
-            self.installed_pipe_name = state['installed_pipe_name']
-            state = state['element_state']
-        super().__setstate__(state)
 
     def to_dict(self, **kwargs):
         if getattr(self._xobject, "_tpsa_enabled", 0):

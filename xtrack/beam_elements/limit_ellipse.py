@@ -6,10 +6,10 @@
 from ..base_element import BeamElement
 import numpy as np
 import xobjects as xo
-from ._aperture_common import UNLIMITED
+from ._aperture_common import UNLIMITED, _AsInstalledPipeName
 
 
-class LimitEllipse(BeamElement):
+class LimitEllipse(_AsInstalledPipeName, BeamElement):
     """
     Beam element modeling an elliptical aperture limit.
 
@@ -21,10 +21,6 @@ class LimitEllipse(BeamElement):
         Vertical semi-axis in meters.
 
     """
-
-    installed_pipe_name: str | None = None
-    _noexpr_fields = {'installed_pipe_name'}
-    _store_in_to_dict = ['installed_pipe_name']
 
     _xofields = {
         "a_squ": xo.Float64,

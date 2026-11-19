@@ -3,13 +3,14 @@
 # Copyright (c) CERN, 2021.                 #
 # ######################################### #
 
+from ._aperture_common import _AsInstalledPipeName
 from ..base_element import BeamElement
 import numpy as np
 import xobjects as xo
 from ..svgutils import svg_to_points
 
 
-class LimitPolygon(BeamElement):
+class LimitPolygon(_AsInstalledPipeName, BeamElement):
     """
     Beam element modeling a polygonal aperture limit.
 
@@ -34,10 +35,6 @@ class LimitPolygon(BeamElement):
     The y axis is inverted from SVG units to physical space because in svg y points downwards
 
     """
-
-    installed_pipe_name: str | None = None
-    _noexpr_fields = {'installed_pipe_name'}
-    _store_in_to_dict = ['installed_pipe_name']
 
     _xofields = {
         "x_vertices": xo.Float64[:],

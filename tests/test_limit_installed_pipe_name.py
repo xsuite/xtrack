@@ -22,6 +22,8 @@ def test_installed_pipe_name(cls, params, tmp_path):
                  xt.Line.from_json(tmp_path / 'line.json').element_dict['limit'],
                  pickle.loads(pickle.dumps(element))):
         assert copy.installed_pipe_name == 'longer.placement,following.placement'
+    with pytest.raises(TypeError, match='installed_pipe_name'):
+        element.installed_pipe_name = 42
 
 
 def test_sampled_limits_identify_placement_not_definition():
