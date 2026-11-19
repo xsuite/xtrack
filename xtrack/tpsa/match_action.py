@@ -153,15 +153,15 @@ class ActionTpsaTrack(Action):
         # Parameter k+1 is vary_names[k], which is what makes TpsaOptics.gradient() come
         # out in vary order.
         self._descriptor = Descriptor(
-            variables=COORDS,
+            var_names=COORDS,
             order=self.truncation_order,
-            parameters=list(self.vary_names),
+            param_names=list(self.vary_names),
             param_order=1
         )
         # The value-only map carries no parameters and only plain_order, which is what
         # makes it cheap.
         self._plain_descriptor = Descriptor(
-            variables=COORDS,
+            var_names=COORDS,
             order=self.plain_order
         )
         self._knobs = KnobParameters(self.line, self.vary_names, self._descriptor)
@@ -282,7 +282,7 @@ class ActionTpsaTrack(Action):
             else:
                 _, qty, loc = meta
                 if qty in _ORBIT_QTYS:
-                    jac[i, :] = self._views[loc].evaluate_jacobian(wrt='parameters')[_ORBIT_QTYS.index(qty)]
+                    jac[i, :] = self._views[loc].evaluate_jacobian(wrt='params')[_ORBIT_QTYS.index(qty)]
                 else:
                     jac[i, :] = self._optics[loc].gradient(qty)
         return jac

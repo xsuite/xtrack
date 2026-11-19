@@ -139,7 +139,7 @@ def test_tpsa_quadrupole_zero_strength_parameter_map():
     quadrupole = xt.Quadrupole(length=length, k1=0.0)
     line = xt.Line(elements=[quadrupole])
     line.particle_ref = xt.Particles(p0c=7e12, mass0=xt.PROTON_MASS_EV)
-    descriptor = Descriptor(variables=COORDS, order=1, num_params=1, param_order=1)
+    descriptor = Descriptor(var_names=COORDS, order=1, param_names=1, param_order=1)
     quadrupole.k1 = descriptor.param(1, 0.0)
     line.build_tracker(compile=False)
     particles = _map(descriptor=descriptor)
@@ -162,7 +162,7 @@ def test_tpsa_quadrupole_zero_strength_parameter_element_track():
     length = 2.0
     element = xt.Quadrupole(length=length, k1=0.0)
     line = xt.Line(elements=[element])
-    descriptor = Descriptor(variables=COORDS, order=1, num_params=1, param_order=1)
+    descriptor = Descriptor(var_names=COORDS, order=1, param_names=1, param_order=1)
     element.k1 = descriptor.param(1, 0.0)
     particles = _map(descriptor=descriptor)
     x0 = particles.const_part[0]
@@ -330,7 +330,7 @@ def test_scalar_track_tpsa_enabled_element_uses_const_part():
     line_scalar.track(part_scalar)
 
     line_tpsa_enabled = _line(k1=0.125)
-    descriptor = Descriptor(variables=COORDS, order=1, num_params=1, param_order=1)
+    descriptor = Descriptor(var_names=COORDS, order=1, param_names=1, param_order=1)
     line_tpsa_enabled["q"].k1 = descriptor.param(1, 0.125)
     part_tpsa_enabled = _particle()
     line_tpsa_enabled.track(part_tpsa_enabled)
@@ -376,7 +376,7 @@ def test_tpsa_tracking_rejects_particles_monitor_element():
 
 def test_line_disable_tpsa_elements():
     line = _line(k1=0.125)
-    descriptor = Descriptor(variables=COORDS, order=1, num_params=1, param_order=1)
+    descriptor = Descriptor(var_names=COORDS, order=1, param_names=1, param_order=1)
     line["q"].k1 = descriptor.param(1, 0.125)
 
     assert np.array_equal(line.attr['_tpsa_enabled'], [0, 0, 1, 0, 0, 0])
@@ -394,7 +394,7 @@ def test_build_tracker_preserves_tpsa_enabled_elements_moved_to_common_buffer():
 
     q1 = xt.Quadrupole(length=1.0, k1=0.1, _buffer=buffer_a)
     q2 = xt.Quadrupole(length=1.0, k1=0.2, _buffer=buffer_b)
-    descriptor = Descriptor(variables=COORDS, order=1, num_params=1, param_order=1)
+    descriptor = Descriptor(var_names=COORDS, order=1, param_names=1, param_order=1)
     k1_tpsa = descriptor.param(1, 0.2)
     q2.k1 = k1_tpsa
     q2_handles = q2._tpsa_handles
@@ -457,7 +457,7 @@ def test_build_tracker_preserves_tpsa_enabled_elements_moved_to_common_buffer():
 
 def test_tpsa_enabled_element_copy_is_rejected():
     q = xt.Quadrupole(length=1.0, k1=0.1)
-    descriptor = Descriptor(variables=COORDS, order=1, num_params=1, param_order=1)
+    descriptor = Descriptor(var_names=COORDS, order=1, param_names=1, param_order=1)
     k1_tpsa = descriptor.param(1, 0.1)
     q.k1 = k1_tpsa
 
@@ -467,7 +467,7 @@ def test_tpsa_enabled_element_copy_is_rejected():
 
 def test_float_or_tpsa_field_assignment():
     line = _line()
-    descriptor = Descriptor(variables=COORDS, order=1, num_params=1, param_order=1)
+    descriptor = Descriptor(var_names=COORDS, order=1, param_names=1, param_order=1)
     line["q"].k1 = descriptor.param(1, 0.1)
 
     assert line["q"]._tpsa_enabled
@@ -478,7 +478,7 @@ def test_float_or_tpsa_field_assignment():
 def test_supported_float_or_tpsa_elements_accept_tpsa_fields(
         name, element_cls, kwargs, field):
     element = element_cls(**kwargs)
-    descriptor = Descriptor(variables=COORDS, order=1, num_params=1, param_order=1)
+    descriptor = Descriptor(var_names=COORDS, order=1, param_names=1, param_order=1)
 
     setattr(element, field, descriptor.param(1, kwargs[field]))
 
@@ -488,7 +488,7 @@ def test_supported_float_or_tpsa_elements_accept_tpsa_fields(
 
 def test_tpsa_enabled_element_to_dict_is_rejected():
     line = _line()
-    descriptor = Descriptor(variables=COORDS, order=1, num_params=1, param_order=1)
+    descriptor = Descriptor(var_names=COORDS, order=1, param_names=1, param_order=1)
     line["q"].k1 = descriptor.param(1, 0.1)
 
     with pytest.raises(NotImplementedError, match="Serializing TPSA-enabled"):
@@ -496,7 +496,7 @@ def test_tpsa_enabled_element_to_dict_is_rejected():
 
 
 def test_tpsa_constructor_assignment_without_container_is_rejected():
-    descriptor = Descriptor(6, 1, num_params=1, param_order=1)
+    descriptor = Descriptor(6, 1, param_names=1, param_order=1)
 
     with pytest.raises(ValueError, match="without an owning container"):
         xt.Quadrupole(length=1.0, k1=descriptor.param(1, 0.1))
@@ -504,7 +504,7 @@ def test_tpsa_constructor_assignment_without_container_is_rejected():
 
 def test_parametric_element_field_tracks_with_shared_descriptor():
     line = _line()
-    descriptor = Descriptor(variables=COORDS, order=1, num_params=1, param_order=1)
+    descriptor = Descriptor(var_names=COORDS, order=1, param_names=1, param_order=1)
     line["q"].k1 = descriptor.param(1, 0.1)
 
     m = _map(descriptor=descriptor)
@@ -919,7 +919,7 @@ def test_map_loss_raises():
 
 def test_tpsa_enabled_element_rejects_scalar_element_track():
     line = _line()
-    descriptor = Descriptor(variables=COORDS, order=1, num_params=1, param_order=1)
+    descriptor = Descriptor(var_names=COORDS, order=1, param_names=1, param_order=1)
     line["q"].k1 = descriptor.param(1, 0.1)
     with pytest.raises(RuntimeError, match="Cannot track normal Particles"):
         line.element_dict["q"].track(_particle())
@@ -1014,7 +1014,7 @@ def test_multi_element_monitor_records_parameters():
     """A parametric map is recorded whole, so the knob columns survive into each slot."""
     line = _fodo_knob_line()
     names = ["kqf", "kqd", "ksx"]
-    descriptor = Descriptor(variables=COORDS, order=2, parameters=names, param_order=1)
+    descriptor = Descriptor(var_names=COORDS, order=2, param_names=names, param_order=1)
     knobs = KnobParameters(line, names, descriptor)
     knobs.apply()
 
@@ -1022,13 +1022,13 @@ def test_multi_element_monitor_records_parameters():
     line.track(m, multi_element_monitor_at=["sx", "d3"])
     mon = line.tracker.record_multi_element_last_track
 
-    assert mon.map_at("sx").evaluate_jacobian(wrt='parameters').shape == (6, 3)
+    assert mon.map_at("sx").evaluate_jacobian(wrt='params').shape == (6, 3)
     # 'd3' is the last element: its slot is the map at the end of the line minus d3
     up_to = _offaxis_map(truncation_order=2, descriptor=descriptor)
     line.track(up_to, ele_stop="d3")
-    xo.assert_allclose(mon.map_at("d3").evaluate_jacobian(wrt='parameters'), up_to.evaluate_jacobian(wrt='parameters'),
+    xo.assert_allclose(mon.map_at("d3").evaluate_jacobian(wrt='params'), up_to.evaluate_jacobian(wrt='params'),
                        rtol=0, atol=0)
-    assert np.abs(mon.map_at("sx").evaluate_jacobian(wrt='parameters')).max() > 1e-6
+    assert np.abs(mon.map_at("sx").evaluate_jacobian(wrt='params')).max() > 1e-6
     knobs.teardown()
 
 
@@ -1169,11 +1169,7 @@ def test_monitor_monomials_constant_part_is_the_scalar_particle():
             own = [np.ravel(_monitor_coordinate(mon, c, name, turn=turn))[0]
                    for c in COORDS]
             # x, px, y, py and zeta are stored directly in both places.
-            xo.assert_allclose(recorded[:-1], own[:-1], rtol=0, atol=0)
-            # The doubles monitor stores delta, not pzeta. For comparison with the
-            # canonical TPSA map, pzeta is reconstructed from the stored double delta,
-            # so roundoff from the delta <-> pzeta conversion is unavoidable.
-            xo.assert_allclose(recorded[-1], own[-1], rtol=0, atol=1e-15)
+            xo.assert_allclose(recorded, own, rtol=0, atol=0)
 
     # a swapped turn or location index cannot pass unnoticed
     orbit = mon.coefficient("x", constant)
@@ -1280,7 +1276,7 @@ def test_optics_parameter_gradient_vs_finite_differences():
     dA = {(0, 0): [1.3, -0.5], (0, 1): [0.4, 0.9], (1, 0): [0.2, 0.1],
           (1, 1): [-0.7, 0.3], (0, 5): [0.05, -0.02]}
 
-    descriptor = Descriptor(variables=COORDS, order=2, parameters=["kqa", "kqb"], param_order=1)
+    descriptor = Descriptor(var_names=COORDS, order=2, param_names=["kqa", "kqb"], param_order=1)
     m = _offaxis_map(truncation_order=2, pzeta=0, descriptor=descriptor)
     m.set_jacobian(A0)
     for (i, j), gradient in dA.items():
@@ -1320,12 +1316,12 @@ def test_optics_gradient_guards():
     with pytest.raises(ValueError, match="no parameters"):
         plain.optics().gradient("betx")
 
-    parameters = dict(parameters=["kqa", "kqb"], param_order=1)
-    order_one = _offaxis_map(truncation_order=1, pzeta=0, descriptor=Descriptor(variables=COORDS, order=1, **parameters))
+    parameters = dict(param_names=["kqa", "kqb"], param_order=1)
+    order_one = _offaxis_map(truncation_order=1, pzeta=0, descriptor=Descriptor(var_names=COORDS, order=1, **parameters))
     with pytest.raises(ValueError, match="order >= 2"):
         order_one.optics().gradient("betx")
 
-    parametric = _offaxis_map(truncation_order=2, pzeta=0, descriptor=Descriptor(variables=COORDS, order=2, **parameters))
+    parametric = _offaxis_map(truncation_order=2, pzeta=0, descriptor=Descriptor(var_names=COORDS, order=2, **parameters))
     with pytest.raises(KeyError, match="unknown optical function"):
         parametric.optics().gradient("nope")
 
@@ -1347,17 +1343,17 @@ def test_optics_dispersion_is_reported_wrt_delta_off_momentum():
 def test_knob_parameters_rejects_bad_names_and_shapes():
     line = _knob_line()
     with pytest.raises(KeyError, match="not a line variable"):
-        KnobParameters(line, ["nope"], Descriptor(variables=COORDS, order=2, num_params=1))
+        KnobParameters(line, ["nope"], Descriptor(var_names=COORDS, order=2, param_names=1))
     with pytest.raises(ValueError, match="descriptor has 2 parameters, expected 1"):
         KnobParameters(line, ["kqa"], Descriptor(
-            variables=COORDS, order=2, parameters=["kqa", "kqb"], param_order=1))
+            var_names=COORDS, order=2, param_names=["kqa", "kqb"], param_order=1))
 
 
 def test_knob_parameters_apply_and_driven_elements():
     line = _knob_line()
     names = ["kqa", "kqb", "klink"]
     knobs = KnobParameters(line, names,
-                           Descriptor(variables=COORDS, order=2, parameters=names, param_order=1))
+                           Descriptor(var_names=COORDS, order=2, param_names=names, param_order=1))
     assert len(knobs) == 3 and not knobs.applied
     knobs.teardown()          # a no-op before apply
     knobs.apply()
@@ -1373,12 +1369,12 @@ def test_knob_parameters_apply_and_driven_elements():
     knobs.teardown()
 
 
-def test_knob_parameters_strength_jacobian_vs_fd():
+def test_knob_param_names_strength_jacobian_vs_fd():
     """d strength / d knob through the xdeps expressions, incl. a var->var chain."""
     line = _knob_line()
     names = ["kqa", "kqb", "klink"]
     knobs = KnobParameters(line, names,
-                           Descriptor(variables=COORDS, order=2, parameters=names, param_order=1))
+                           Descriptor(var_names=COORDS, order=2, param_names=names, param_order=1))
     knobs.apply()
     jacobian = knobs.strength_jacobian()
 
@@ -1411,7 +1407,7 @@ def test_knob_parameters_strength_jacobian_vs_fd():
 def test_knob_parameters_refresh_moves_a_nonlinear_knob():
     """refresh re-seeds the parameters, so the gradient follows the knob value."""
     line = _nonlinear_knob_line()
-    knobs = KnobParameters(line, ["kqa"], Descriptor(variables=COORDS, order=2, num_params=1))
+    knobs = KnobParameters(line, ["kqa"], Descriptor(var_names=COORDS, order=2, param_names=1))
     knobs.apply()
     xo.assert_allclose(knobs.strength_jacobian()[("mq1", "k1")], [2 * 0.012],
                        rtol=0, atol=1e-14)
@@ -1428,7 +1424,7 @@ def test_knob_parameters_teardown_restores_doubles():
     line = _knob_line()
     names = ["kqa", "kqb", "klink"]
     knobs = KnobParameters(line, names,
-                           Descriptor(variables=COORDS, order=2, parameters=names, param_order=1))
+                           Descriptor(var_names=COORDS, order=2, param_names=names, param_order=1))
     knobs.apply()
     knobs.teardown()
 
@@ -1447,13 +1443,13 @@ def test_parametric_track_matches_finite_differences():
     """One knobbed track gives d(coord)/d(knob) == central differences."""
     line = _fodo_knob_line()
     names = ["kqf", "kqd", "ksx"]
-    descriptor = Descriptor(variables=COORDS, order=2, parameters=names, param_order=1)
+    descriptor = Descriptor(var_names=COORDS, order=2, param_names=names, param_order=1)
     knobs = KnobParameters(line, names, descriptor)
     knobs.apply()
 
     m = _offaxis_map(truncation_order=2, descriptor=descriptor)
     line.track(m)
-    param_jacobian = m.evaluate_jacobian(wrt='parameters')
+    param_jacobian = m.evaluate_jacobian(wrt='params')
     assert np.abs(param_jacobian).max() > 1e-6      # knob dependence is really there
     knobs.teardown()
 

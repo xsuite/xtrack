@@ -37,7 +37,7 @@ class TpsaOptics:
 
     def __init__(self, map: ParticlesTpsa) -> None:
         self._num_params = map.num_params
-        self.param_names = [f"p{ii + 1}" for ii in range(self._num_params)]
+        self.param_names = [f"p{ii + 1}" for ii in range(self._num_params)]  # TODO: shouldn't this be map.descriptor.param_names?
         self._jacobian = np.asarray(map.evaluate_jacobian(), dtype=float)  # 6x6 A-matrix (const parts)
         self._map = map
         self._num_vars = map.num_vars
@@ -105,19 +105,19 @@ class TpsaOptics:
 
     @property
     def dx(self) -> float:
-        return self._jacobian[0, 5] * self._dpzeta_ddelta
+        return self._jacobian[0, 5]
 
     @property
     def dpx(self) -> float:
-        return self._jacobian[1, 5] * self._dpzeta_ddelta
+        return self._jacobian[1, 5]
 
     @property
     def dy(self) -> float:
-        return self._jacobian[2, 5] * self._dpzeta_ddelta
+        return self._jacobian[2, 5]
 
     @property
     def dpy(self) -> float:
-        return self._jacobian[3, 5] * self._dpzeta_ddelta
+        return self._jacobian[3, 5]
 
     def to_dict(self) -> dict[str, float]:
         """All optical function values as ``{name: value}``."""
@@ -180,16 +180,16 @@ class TpsaOptics:
         return self._grad_mu("y")
 
     def _grad_dx(self):
-        return self._dJij(0, 5) * self._dpzeta_ddelta
+        return self._dJij(0, 5)
 
     def _grad_dpx(self):
-        return self._dJij(1, 5) * self._dpzeta_ddelta
+        return self._dJij(1, 5)
 
     def _grad_dy(self):
-        return self._dJij(2, 5) * self._dpzeta_ddelta
+        return self._dJij(2, 5)
 
     def _grad_dpy(self):
-        return self._dJij(3, 5) * self._dpzeta_ddelta
+        return self._dJij(3, 5)
 
     def __repr__(self) -> str:
         return (f"TpsaOptics(betx={self.betx:.6g}, bety={self.bety:.6g}, "

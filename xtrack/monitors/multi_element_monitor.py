@@ -90,7 +90,7 @@ class MultiElementMonitor(xt.BeamElement):
     ]
 
     _data_coord_name_to_index = {'x': 0, 'px': 1, 'y': 2, 'py': 3,
-                                 'zeta': 4, 'delta': 5, 's': 6}
+                                 'zeta': 4, 'pzeta': 5, 's': 6}
     _tpsa_coord_name_to_index = {
         name: ii for ii, name in enumerate(COORDS)
     }

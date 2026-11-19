@@ -2,16 +2,12 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Iterable, Sequence, Self
+from typing import TYPE_CHECKING, Any, Sequence, Self
 if TYPE_CHECKING:
-    from collections.abc import Mapping
-
-    from madng_tpsa._typing import Scalar, TpsaSeries, TpsaSeriesT
-
+    from madng_tpsa._typing import Scalar, TpsaSeriesT
     from .optics import TpsaOptics
 
 import inspect
-from types import MappingProxyType
 from warnings import warn
 
 import numpy as np
@@ -127,7 +123,7 @@ class ParticlesTpsa(TpsaMap[Tpsa]):
         *,
         descriptor: Descriptor | None = None,
         truncation_order: int | None = None,
-        parameters: Sequence[str] | None = None,
+        param_names: Sequence[str] | None = None,
         line_length: float = 0.0,
         track_flags: int = 0,
         **kwargs: Any,
@@ -177,7 +173,7 @@ class ParticlesTpsa(TpsaMap[Tpsa]):
         # Get the descriptor. Prioritise the provided descriptor over the descriptor from
         # coordinates, then compare and unionise with the expected defaults.
         default_descriptor = Descriptor(
-            variables=COORDS, order=truncation_order, parameters=parameters
+            var_names=COORDS, order=truncation_order, param_names=param_names
         )
         if descriptor is None:
             if descriptor_from_coords is None:
@@ -192,9 +188,9 @@ class ParticlesTpsa(TpsaMap[Tpsa]):
             descriptor = default_descriptor.union(
                             descriptor, restrict_order=True
                         ).union(descriptor_from_coords, restrict_order=True)
-        if descriptor.variables != COORDS:
+        if descriptor.var_names != COORDS:
             raise ValueError(
-                f"Descriptor has unsupported variables: {descriptor.variables}"
+                f"Descriptor has unsupported variables: {descriptor.var_names}"
             )
 
         # Initialise the canonical coordinates and a TpsaMap
@@ -258,7 +254,7 @@ class ParticlesTpsa(TpsaMap[Tpsa]):
         if particle_data is None:
             raise ValueError("Missing 'particle_data' in dictionary")
         descriptor, _,  tpsa_flat = super()._parse_dict(dct)
-        particle_data.update(dict(zip(descriptor.variables, tpsa_flat)))
+        particle_data.update(dict(zip(descriptor.var_names, tpsa_flat)))
         return particle_data
 
     @classmethod
