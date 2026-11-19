@@ -856,6 +856,7 @@ def test_get_limit_elements(monkeypatch):
         index='index',
     )
     monkeypatch.setattr(ap, 'get_cross_sections_at_s', lambda s_positions: table)
+    monkeypatch.setattr(ap, '_pipe_candidates_at_s', lambda positions: [[], []])
 
     out = ap.get_limit_elements_at_s([1.5, 3.5])
 
@@ -970,6 +971,17 @@ def test_get_pipe_table_handles_regular_and_wrapped_pipes(test_context):
     xo.assert_allclose(wrapped.span, 7.97542, atol=5e-4, rtol=0)
     assert wrapped.s_start > wrapped.s_end
     assert wrapped.s_span_start > wrapped.s_span_end
+
+
+@requires_context('ContextCpu')
+def test_installed_pipe_names_at_ring_transitions():
+    line, model = _make_pipe_table_test_ring(
+        xo.ContextCpu(), extra_pipe_positions=[('pipe_before_regular', 'bend::0', 0.)])
+    ap = Aperture(line, model, _skip_validity_check=True)
+    # One overlap crosses the ring seam. The gap at 50 m joins two other pipes.
+    limits = ap.get_limit_elements_at_s([1., 50.])
+    assert limits[1.].installed_pipe_name == 'pipe_wrapped,pipe_before_regular'
+    assert limits[50.].installed_pipe_name == 'pipe_regular,pipe_wrapped'
 
 
 @for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))

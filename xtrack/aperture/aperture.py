@@ -1866,17 +1866,65 @@ class LineAperture:
         """
         return self.get_cross_sections_at_s(s_positions, extents=True, polygons=False)
 
+    def _pipe_candidates_at_s(self, positions):
+        """Yield covering pipe placements, or the two neighbours across a gap."""
+        table = self.get_pipe_table()
+        model_indices = {name: i for i, name in enumerate(self._model.pipe_position_names)}
+        indices = np.array([model_indices[name] for name in table.name], dtype=int)
+        starts, ends = table.s_span_start, table.s_span_end
+        # The pipe table is ordered by longitudinal start, including on rings.
+        ordered_starts = table.s_start
+        period = self.line.get_length() if self.is_ring else None
+        tol = 1e-10
+        for s in positions:
+            if self._aperture_bounds.count == 1:
+                # The section kernel projects the only bound onto any requested plane.
+                yield [int(self._aperture_bounds.pipe_position_indices[0])]
+                continue
+            if period:
+                s %= period
+            inside = (starts - tol <= s) & (s <= ends + tol)
+            if self.is_ring:
+                inside |= ((starts > ends) & ((s >= starts - tol) | (s <= ends + tol)))
+            if inside.any():
+                covered = indices[inside]
+                if self.is_ring and len(covered) > 1:
+                    # A pipe crossing s=0 comes before one starting on this lap.
+                    wrapped = starts[inside] > s + tol
+                    covered = np.r_[covered[wrapped], covered[~wrapped]]
+                yield list(covered)
+                continue
+
+            # Between two pipes the section interpolates their end profiles.
+            right = np.searchsorted(ordered_starts, s)
+            if 0 < right < len(indices):
+                yield [indices[right - 1], indices[right]]
+            elif self.is_ring and len(indices):
+                yield [indices[-1], indices[0]]
+            else:
+                yield []
+
+    def _installed_pipe_name(self, pipes):
+        names = (self._model.pipe_position_names[i] for i in pipes)
+        return ','.join(dict.fromkeys(names)) or None
+
     @doc_group("Aperture Computation")
     def get_limit_elements_at_s(self, s_positions: list[float]) -> dict[float, LimitElement]:
-        """Obtain interpolated cross-sections as limit beam elements."""
+        """Return sampled polygon limits with their installed pipe placement names.
+
+        At a shared boundary, overlap or interpolated gap, installed_pipe_name
+        lists the contributing placements in beam order, separated by commas.
+        """
         cross_sections_table = self.get_cross_sections_at_s(s_positions)
         limit_elements = {}
-        for s, row in zip(s_positions, cross_sections_table.rows):
+        candidates = self._pipe_candidates_at_s(s_positions)
+        for s, row, pipes in zip(s_positions, cross_sections_table.rows, candidates):
             cross_section = row.cross_section
             limit_poly = LimitPolygon(
                 x_vertices=cross_section[:-1, 0],
                 y_vertices=cross_section[:-1, 1],
             )
+            limit_poly.installed_pipe_name = self._installed_pipe_name(pipes)
             limit_elements[s] = limit_poly
 
         return limit_elements
