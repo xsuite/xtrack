@@ -16,7 +16,9 @@ from xtrack.mad_parser.parse import MadxParser
 test_data_folder = (Path(__file__).parent / '../test_data').absolute()
 
 
-@pytest.mark.parametrize('prefix', ['const', 'const real', 'const int'])
+@pytest.mark.parametrize('prefix', [
+    'const', 'const real', 'const int', 'real const', 'int const',
+])
 @pytest.mark.parametrize('uppercase', [False, True])
 def test_const_declarations(prefix, uppercase):
     source = f"""
@@ -45,7 +47,9 @@ def test_const_declarations(prefix, uppercase):
     assert env.seq['q'].k1 == 14
 
 
-@pytest.mark.parametrize('prefix', ['const', 'const real'])
+@pytest.mark.parametrize('prefix', [
+    'const', 'const real', 'const int', 'real const', 'int const',
+])
 def test_const_deferred_literal(prefix):
     env = xt.load(string=f'{prefix} var := 1.0;', format='madx')
     assert env['var'] == 1.0
@@ -56,15 +60,18 @@ def test_const_type_names_and_comments():
         const real = 2;
         const int := real + 1;
         const real /* numeric type */ value := int + real;
+        real /* numeric type */ const other := int + real;
     ''', format='madx')
     assert env['real'] == 2
     assert env['int'] == 3
     assert env['value'] == 5
+    assert env['other'] == 5
 
 
-def test_const_unsupported_type():
+@pytest.mark.parametrize('prefix', ['const nonsense', 'nonsense const'])
+def test_const_unsupported_type(prefix):
     with pytest.raises(ValueError, match='Unsupported MAD-X scalar type'):
-        xt.load(string='const nonsense var = 1;', format='madx')
+        xt.load(string=f'{prefix} var = 1;', format='madx')
 
 
 def test_madx_constants_match_cpymad():
