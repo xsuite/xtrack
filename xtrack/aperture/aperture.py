@@ -1968,21 +1968,46 @@ class LineAperture:
         return self.get_cross_sections_at_s(s_positions, extents=True, polygons=False)
 
     def _pipe_candidates_at_s(self, positions):
-        """Yield model placement indices whose projected footprints contain each cut."""
+        """Yield covering pipe placements, or the two neighbours across a gap."""
         table = self.get_pipe_table()
         model_indices = {name: i for i, name in enumerate(self._model.pipe_position_names)}
         indices = np.array([model_indices[name] for name in table.name], dtype=int)
         starts, ends = table.s_span_start, table.s_span_end
+        # The pipe table is ordered by longitudinal start, including on rings.
+        ordered_starts = table.s_start
+        period = self.line.get_length() if self.is_ring else None
         tol = 1e-10
         for s in positions:
             if self._aperture_bounds.count == 1:
                 # The section kernel projects the only bound onto any requested plane.
                 yield [int(self._aperture_bounds.pipe_position_indices[0])]
                 continue
+            if period:
+                s %= period
             inside = (starts - tol <= s) & (s <= ends + tol)
             if self.is_ring:
                 inside |= ((starts > ends) & ((s >= starts - tol) | (s <= ends + tol)))
-            yield list(indices[inside])
+            if inside.any():
+                covered = indices[inside]
+                if self.is_ring and len(covered) > 1:
+                    # A pipe crossing s=0 comes before one starting on this lap.
+                    wrapped = starts[inside] > s + tol
+                    covered = np.r_[covered[wrapped], covered[~wrapped]]
+                yield list(covered)
+                continue
+
+            # Between two pipes the section interpolates their end profiles.
+            right = np.searchsorted(ordered_starts, s)
+            if 0 < right < len(indices):
+                yield [indices[right - 1], indices[right]]
+            elif self.is_ring and len(indices):
+                yield [indices[-1], indices[0]]
+            else:
+                yield []
+
+    def _installed_pipe_name(self, pipes):
+        names = (self._model.pipe_position_names[i] for i in pipes)
+        return ','.join(dict.fromkeys(names)) or None
 
     @doc_group("Aperture Computation")
     def get_limit_elements_at_s(self, s_positions: list[float], *, names=None,
@@ -2021,8 +2046,8 @@ class LineAperture:
         -----
         Sampling positions, pipe topology and the survey remain fixed. Regenerate
         limits after geometry changes that invalidate the selected section type.
-        With one covering pipe, installed_pipe_name identifies its placement.
-        Gaps and overlaps have no unique placement and use None.
+        installed_pipe_name lists the contributing pipe placements in beam order,
+        separated by commas at shared boundaries, overlaps and interpolated gaps.
         Mechanical tolerances are not applied to the tracking boundaries.
         """
         return limit_elements_at_s(self, s_positions, names=names, prefer_native=prefer_native)

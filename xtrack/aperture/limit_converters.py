@@ -432,7 +432,7 @@ def _section_specs(aperture, positions, prefer_native, keep_bindings):
     specs, lost = [], {}
     candidates_at_s = aperture._pipe_candidates_at_s(positions)
     for ii, (s, plane, candidates) in enumerate(zip(positions, planes, candidates_at_s)):
-        sources.append(placement_names[candidates[0]] if len(candidates) == 1 else None)
+        sources.append(aperture._installed_pipe_name(candidates))
         spec, relevant = None, set()
         if len(candidates) == 1 and prefer_native:
             expressions.used.clear()

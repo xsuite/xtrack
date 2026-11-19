@@ -357,3 +357,19 @@ def test_generated_limit_keeps_helper_placement_and_bindings(prefer_native):
         assert env['limit'].max_x == .04
     else:
         assert isinstance(env.element_dict['limit'], xt.LimitPolygon)
+
+
+@pytest.mark.parametrize('prefer_native', [False, True])
+def test_named_limit_in_interpolated_gap(prefer_native):
+    env = xt.Environment()
+    line = env.new_line(components=[env.new('drift', 'Drift', length=4.)])
+    for name, start, radius in [('up', 0., .02), ('down', 2., .04)]:
+        profile = env.aperture.new_profile(name, 'Circle', radius=radius)
+        pipe = env.aperture.new_pipe(name, positions=[profile.place(at=s) for s in (0., 1.)])
+        line.aperture.place_pipe(name, pipe, at='drift', shift_z=start)
+
+    limits = line.aperture.get_limit_elements_at_s(
+        [1.5], names=['transition'], prefer_native=prefer_native)
+    assert isinstance(limits[1.5], xt.LimitPolygon)
+    assert env['transition'].installed_pipe_name == 'up,down'
+    np.testing.assert_allclose(limits[1.5].x_vertices.max(), .03, atol=1e-7)
