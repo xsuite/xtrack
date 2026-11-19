@@ -856,6 +856,7 @@ def test_get_limit_elements(monkeypatch):
         index='index',
     )
     monkeypatch.setattr(ap, 'get_cross_sections_at_s', lambda s_positions: table)
+    monkeypatch.setattr(ap, '_pipe_candidates_at_s', lambda positions: [[], []])
 
     out = ap.get_limit_elements_at_s([1.5, 3.5])
 
