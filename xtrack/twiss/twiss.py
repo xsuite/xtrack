@@ -101,9 +101,14 @@ def twiss_line(line, particle_ref=None, method=None,
     Parameters
     ----------
 
-    method : {'6d', '4d'}, optional
+    method : {'6d', '5d', '4d'}, optional
         Method to be used for the computation. If '6d' the full 6D
         normal form is used. If '4d' the 4D normal form is used.
+        If '5d', x, px, y, py and delta are periodic, while zeta is allowed
+        to slip. Either zeta0 or delta0 can be provided (default zeta0=0).
+        Radiation and cavity kicks remain active and the full 6D normal form
+        is computed relative to the slipping reference orbit. This assumes
+        that the RF phase follows that reference on successive turns.
     particle_ref : xpart.Particles, optional
         Reference particle used to search for the closed orbit. If not provided,
         ``line.particle_ref`` is used.
@@ -144,11 +149,14 @@ def twiss_line(line, particle_ref=None, method=None,
         the initial conditions are defined at ``start``.
     delta0 : float, optional
         Closed-orbit ``delta`` at the start of the beam line, used when solving
-        the closed orbit in ``method='4d'``. Mutually exclusive with ``zeta0``.
+        the closed orbit in ``method='4d'`` or ``method='5d'``.
+        In 5d mode, mutually exclusive with ``zeta0``; the starting zeta is solved.
         Cannot be used in 6d mode.
     zeta0 : float, optional
         Closed-orbit ``zeta`` at the start of the beam line, used when solving
-        the closed orbit in ``method='4d'``. Mutually exclusive with ``delta0``.
+        the closed orbit in ``method='4d'`` or ``method='5d'``.
+        In 5d mode, mutually exclusive with ``delta0``; the starting delta is solved.
+        Defaults to zero in 5d mode when neither constraint is supplied.
         Cannot be used in 6d mode.
     zeta_shift : float, optional
         Offset applied to ``zeta`` during closed-orbit search (closed orbit is
@@ -321,10 +329,10 @@ def twiss_line(line, particle_ref=None, method=None,
         - `reference_frame`: reference frame used for the output (can be `proper`
           or `reverse`)
         - `periodic`: True if periodic twiss, False if open twiss
-        - `method`: method used for the computation (`4d` or `6d`)
+        - `method`: method used for the computation (`4d`, `5d` or `6d`)
     Output fields present only for periodic twiss:
         - `qx`, `qy`: transverse tunes
-        - `qs`: synchrotron tune (present only when method is `6d`)
+        - `qs`: synchrotron tune (zero in `4d` mode)
         - `dqx`, `dqy`: linear chromaticities
         - `ddqx`, `ddqy`: second-order chromaticities
         - `line_length`: length of the beam line

@@ -2743,6 +2743,19 @@ class Line:
         return self.twiss(**kwargs)
 
     @doc_group("Tracking and Analysis")
+    def twiss5d(self, **kwargs):
+
+        """Compute Twiss with five periodic coordinates and free zeta slip.
+
+        Equivalent to ``twiss(method='5d', ...)``. Specify either ``zeta0``
+        or ``delta0``; the default is ``zeta0=0``. The full 6D normal form is
+        used, with radiation and RF kicks active.
+        """
+        assert 'method' not in kwargs, 'method cannot be provided as argument to twiss5d'
+        kwargs['method'] = '5d'
+        return self.twiss(**kwargs)
+
+    @doc_group("Tracking and Analysis")
     def twiss6d(self, **kwargs):
 
         """
@@ -3243,13 +3256,22 @@ class Line:
                           spin=None,
                           num_turns_search_t_rev=None,
                           symmetrize=False,
-                          include_collective=False):
+                          include_collective=False, method=None):
 
         """
         Find the closed orbit of the beamline.
 
         Parameters
         ----------
+        method : {None, '4d', '5d', '6d'}, optional
+            With None (default), use a 6D search if neither delta0 nor zeta0
+            is supplied. If either or both are supplied, close only the four
+            transverse coordinates and constrain the supplied initial
+            longitudinal coordinates; longitudinal closure is not required.
+            With '5d', close x, px, y, py and delta, allowing
+            zeta to slip. Specify either zeta0 or delta0; the default is zeta0=0.
+            With '4d', close only the transverse coordinates (default delta0=0).
+            With '6d', close all six coordinates.
         co_guess : Particles or dict
             Particle used as first guess to compute the closed orbit. If None,
             the reference particle is used.
@@ -3307,6 +3329,9 @@ class Line:
 
         """
 
+        if method == '5d' and freeze_longitudinal:
+            raise ValueError('freeze_longitudinal is incompatible with method="5d"')
+
         if freeze_longitudinal:
             kwargs = locals().copy()
             kwargs.pop('self')
@@ -3338,7 +3363,7 @@ class Line:
                                  search_for_t_rev=search_for_t_rev,
                                  spin=spin,
                                  num_turns_search_t_rev=num_turns_search_t_rev,
-                                 symmetrize=symmetrize)
+                                 symmetrize=symmetrize, method=method)
 
     @doc_group("Tracking and Analysis")
     def get_T_matrix(self, start=None, end=None,

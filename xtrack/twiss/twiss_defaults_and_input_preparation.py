@@ -134,8 +134,25 @@ def _normalize_twiss_inputs(twiss_kwargs):
 
     if twiss_config['method'] is None:
         twiss_config['method'] = '6d'
-    assert twiss_config['method'] in ['6d', '4d'], (
-        'Method must be ``6d`` or ``4d``')
+    assert twiss_config['method'] in ['6d', '5d', '4d'], (
+        'Method must be ``6d``, ``5d`` or ``4d``')
+
+    if twiss_config['method'] == '5d':
+        if twiss_config['delta0'] is not None and twiss_config['zeta0'] is not None:
+            raise ValueError('delta0 and zeta0 are mutually exclusive for method="5d"')
+        if twiss_config['delta0'] is None and twiss_config['zeta0'] is None:
+            twiss_config['zeta0'] = 0
+        if (twiss_config['zeta_shift'] != 0 or twiss_config['search_for_t_rev']
+                or twiss_config['num_turns'] != 1):
+            raise ValueError('method="5d" requires zeta_shift=0, '
+                             'search_for_t_rev=False and num_turns=1')
+        if twiss_config['freeze_longitudinal']:
+            raise ValueError('freeze_longitudinal is incompatible with method="5d"')
+        if (twiss_config['co_search_at'] is not None
+                or (twiss_config['periodic'] and twiss_config['start'] is not None
+                    and twiss_config['end'] is None)):
+            raise ValueError('For a different starting element with method="5d", '
+                             'cycle the line before calling twiss')
 
     _prepare_twiss_at_s_markers(twiss_config)
     _normalize_radiation_method(twiss_config)
