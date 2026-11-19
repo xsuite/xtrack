@@ -21,17 +21,19 @@ def _scalar_value(value: Any) -> float:
 class KnobParameters:
     """Line variables ``names`` held as parameters ``1..len(names)`` of ``descriptor``.
 
-    ``apply()`` puts the parameters in, ``refresh(values)`` moves them to new knob
-    values, ``teardown()`` puts plain doubles back everywhere.
+    ``apply()`` puts the parameters in, ``apply(values)`` re-seeds them at
+    new values, and ``teardown()`` restores plain doubles.
 
-    While the parameters are in, the knobs must be moved with ``refresh``: assigning a
-    float to ``line.vars`` re-propagates constants and drops the knob dependence.
+    While parameters are in the line, direct float assignments to ``line.vars``
+    remove knob dependence; call ``apply(values)`` again before tracking.
     """
 
     def __init__(self, line: Any, names: list[str], descriptor: Descriptor) -> None:
         self.line = line
         self.names = list(names)
         self.descriptor = descriptor
+        if len(set(self.names)) != len(self.names):
+            raise ValueError("Knob names must be unique")
         for name in self.names:
             if name not in line.vars:
                 raise KeyError(f"knob {name!r} is not a line variable")
@@ -40,7 +42,17 @@ class KnobParameters:
                 f"descriptor has {descriptor.num_params} parameters, "
                 f"expected {len(self.names)} (one per knob)"
             )
+        if descriptor.param_names != tuple(self.names):
+            raise ValueError("Descriptor parameter names must match knob order")
         self._applied = False
+
+        # Knobs in Xtrack matching own the TPSA state of the driven line.
+        # Never disable unrelated pre-existing TPSA series on teardown.
+        preenabled = [name for name, element in line.element_dict.items()
+                      if getattr(getattr(element, "_xobject", None), "_tpsa_enabled", 0)]
+        if preenabled:
+            raise ValueError("KnobParameters requires a line without pre-existing "
+                             f"TPSA-enabled elements: {preenabled}")
         self._reached = None      # element names the knob expressions reach
 
     def __len__(self) -> int:
@@ -55,8 +67,15 @@ class KnobParameters:
         """Assign parameter ``k+1`` to knob ``k``, seeded at its current value."""
         if values is None:
             values = [_scalar_value(self.line[name]) for name in self.names]
-        for index, (name, value) in enumerate(zip(self.names, values), start=1):
-            self.line.vars[name] = self.descriptor.param(index, _scalar_value(value))
+        if len(values) != len(self.names):
+            raise ValueError("Exactly one value per knob is required")
+        old_values = [_scalar_value(self.line[name]) for name in self.names]
+        try:
+            for index, (name, value) in enumerate(zip(self.names, values, strict=True), start=1):
+                self.line.vars[name] = self.descriptor.param(index, _scalar_value(value))
+        except Exception:
+            self.apply_doubles(old_values)
+            raise
         self._applied = True
         if self._reached is None:
             # The expression topology is fixed, so the reached elements are too.
@@ -70,7 +89,9 @@ class KnobParameters:
 
     def apply_doubles(self, values: list[float]) -> None:
         """Set the knobs to floats and drop TPSA storage from the elements they drive."""
-        for name, value in zip(self.names, values):
+        if len(values) != len(self.names):
+            raise ValueError("Exactly one value per knob is required")
+        for name, value in zip(self.names, values, strict=True):
             self.line.vars[name] = _scalar_value(value)
         # xdeps re-propagates the new floats, but an enabled element stores them as
         # constant series, so the switch back to doubles is explicit by disabling tpsa

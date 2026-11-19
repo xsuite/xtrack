@@ -770,17 +770,17 @@ def test_reference_algebra_matches_particles(kwargs):
 
 def test_from_coords_view_shares_series():
     m = _offaxis_map(truncation_order=2)
-    view = xtpsa.ParticlesTpsa._from_coords(m.components)
+    view = m.to_map()
     assert view.components[0] is m.components[0]     # shared series, not copies
     assert view.truncation_order == 2
     xo.assert_allclose(view.const_part, m.const_part, rtol=0, atol=0)
-    with pytest.raises(AttributeError, match="no reference particle"):
+    with pytest.raises(AttributeError):
         view.beta0
 
 
 def test_particles_tpsa_rejects_descriptor_order_mismatch():
     with pytest.raises(ValueError, match="descriptor is order 3, map asks for 2"):
-        _offaxis_map(truncation_order=2, descriptor=Descriptor(6, 3))
+        _offaxis_map(truncation_order=2, descriptor=Descriptor(var_names=COORDS, order=3))
 
 
 def test_particles_tpsa_rejects_vector_coordinates():
@@ -817,7 +817,7 @@ def test_delta_is_derived_from_pzeta():
     m = xtpsa.ParticlesTpsa(truncation_order=3, p0c=P0C, mass0=MASS0, delta=2e-3)
     # dpzeta/ddelta = rvv
     # therefore ddelta/dpzeta = 1/rvv.
-    assert m.delta.grad()[5] == pytest.approx(1 / m._ref("rvv"))
+    assert m.delta.grad()[5] == pytest.approx(1 / m.rvv.const_part)
 
 # Tracking a map against native tracking
 
@@ -1050,9 +1050,6 @@ def _recorded_over_coords(mon, monomial, coords=COORDS, turn=0):
 
 
 def _monitor_coordinate(mon, coord, *args, **kwargs):
-    if coord == "pzeta":
-        delta = np.asarray(mon.get("delta", *args, **kwargs))
-        return _pzeta_from_delta(delta)
     return np.asarray(mon.get(coord, *args, **kwargs))
 
 def test_monitor_monomials_match_the_full_maps():
@@ -1263,7 +1260,7 @@ def test_optics_values_vs_twiss():
                                 init["alfy"], 1.0, init["dx"], init["dpx"],
                                 init["dy"], init["dpy"]))
     line.track(m, multi_element_monitor_at=["b"])
-    o = line.tracker.record_multi_element_last_track.map_at("b").optics()
+    o = line.tracker.record_multi_element_last_track.optics_at("b")
 
     i = list(line.element_names).index("b")
     for name in ("betx", "bety", "alfx", "alfy", "dx", "dpx", "mux", "muy"):
@@ -1328,7 +1325,7 @@ def test_optics_gradient_guards():
 
 def test_optics_dispersion_is_reported_wrt_delta_off_momentum():
     m = _offaxis_map(truncation_order=2, pzeta=0)
-    rvv = m._ref("rvv")
+    rvv = m.rvv.const_part
     expected_dx = 0.3
     jacobian = np.eye(6)
     # Internal coordinate is pzeta:
@@ -1407,7 +1404,7 @@ def test_knob_param_names_strength_jacobian_vs_fd():
 def test_knob_parameters_refresh_moves_a_nonlinear_knob():
     """refresh re-seeds the parameters, so the gradient follows the knob value."""
     line = _nonlinear_knob_line()
-    knobs = KnobParameters(line, ["kqa"], Descriptor(var_names=COORDS, order=2, param_names=1))
+    knobs = KnobParameters(line, ["kqa"], Descriptor(var_names=COORDS, order=2, param_names=["kqa"]))
     knobs.apply()
     xo.assert_allclose(knobs.strength_jacobian()[("mq1", "k1")], [2 * 0.012],
                        rtol=0, atol=1e-14)
@@ -1602,3 +1599,110 @@ def test_inherited_set_const_part_remains_trackable():
         rtol=0,
         atol=1e-14,
     )
+
+def test_new_like_keeps_trackable_particle_state_and_no_pointer_addresses():
+    m = _offaxis_map(truncation_order=2)
+    m.pzeta.const_part += 0.013
+    m.s.const_part = 1.23
+    copy = m.copy()
+    assert isinstance(copy, xtpsa.ParticlesTpsa)
+    assert copy.pzeta is not m.pzeta
+    assert copy.s.const_part == pytest.approx(1.23)
+    assert copy.delta.const_part == pytest.approx(
+        xt.Particles(p0c=P0C, mass0=MASS0, pzeta=copy.pzeta.const_part).delta[0]
+    )
+    assert copy.to_particles().pzeta[0] == pytest.approx(copy.pzeta.const_part)
+    restored = xtpsa.ParticlesTpsa.from_dict(copy.to_dict())
+    assert restored.s.monomial_coeffs() == copy.s.monomial_coeffs()
+    assert restored.pzeta.monomial_coeffs() == copy.pzeta.monomial_coeffs()
+    line = _demo_line()
+    scalar = copy.to_particles()
+    line.track(copy)
+    line.track(scalar)
+    xo.assert_allclose(copy.const_part,
+                       [getattr(scalar, c)[0] for c in COORDS], atol=1e-12, rtol=0)
+
+
+def test_derived_coordinates_follow_direct_pzeta_coefficient_changes():
+    m = _offaxis_map(truncation_order=2)
+    m.pzeta.const_part = 0.05
+    ref = xt.Particles(p0c=P0C, mass0=MASS0, pzeta=0.05)
+    assert m.delta.const_part == pytest.approx(ref.delta[0])
+    assert m.rvv.const_part == pytest.approx(ref.rvv[0])
+    assert m.rpp.const_part == pytest.approx(ref.rpp[0])
+    assert m.to_particles().delta[0] == pytest.approx(ref.delta[0])
+
+
+def test_monitor_reports_delta_and_pzeta_without_conflating_them():
+    line = _demo_line()
+    part = line.build_particles(**X0)
+    line.track(part, multi_element_monitor_at=["q"])
+    monitor = line.tracker.record_multi_element_last_track
+    assert monitor.get("delta", "q").shape == (1, 1)
+    assert monitor.get("pzeta", "q").shape == (1, 1)
+    assert monitor.get("delta", "q")[0, 0] != monitor.get("pzeta", "q")[0, 0]
+
+
+def test_off_momentum_dispersion_and_parameter_gradient_use_delta():
+    p0c = 1e9  # deliberately non-ultrarelativistic
+    beta = p0c / np.hypot(p0c, MASS0)
+    d = Descriptor(var_names=COORDS, order=2, param_names=["k"])
+    m = xtpsa.ParticlesTpsa(descriptor=d, p0c=p0c, mass0=MASS0, pzeta=0.08)
+    W = np.eye(6)
+    W[0, 5] = 0.3
+    m.set_jacobian(W)
+    param_jac = np.zeros((6, 1))
+    param_jac[5, 0] = 0.04
+    m.set_param_jacobian(param_jac)
+    optics = m.optics()
+    def reference_dx(pzeta):
+        delta = np.sqrt(1 + 2*pzeta + beta**2*pzeta**2)-1
+        return 0.3 * (1 + delta) / (1 + beta**2*pzeta)
+    assert optics.dx == pytest.approx(reference_dx(0.08), rel=1e-13)
+    h = 1e-6
+    fd = (reference_dx(0.08+0.04*h)-reference_dx(0.08-0.04*h))/(2*h)
+    assert optics.gradient("dx")[0] == pytest.approx(fd, rel=1e-6, abs=1e-9)
+
+
+def test_reference_beta0_is_recorded_at_each_monitor_location():
+    line = xt.Line(
+        elements=[xt.Drift(length=1),
+                  xt.ReferenceEnergyChange(p0c=P0C + 3e12),
+                  xt.Drift(length=1)],
+        element_names=['start', 'ramp', 'after'])
+    line.particle_ref = xt.Particles(p0c=P0C, mass0=MASS0)
+    line.build_tracker()
+    m = _offaxis_map(truncation_order=2)
+    line.track(m, multi_element_monitor_at=['ramp', 'after'])
+    mon = line.tracker.record_multi_element_last_track
+    assert mon.optics_at('ramp').beta0 == pytest.approx(BETA0)
+    assert mon.optics_at('after').beta0 == pytest.approx(m.beta0)
+    assert mon.optics_at('ramp').beta0 != mon.optics_at('after').beta0
+
+
+def test_tpsa_monitor_turns_are_absolute():
+    line = _demo_line()
+    m = _offaxis_map(truncation_order=1)
+    line.track(m, num_turns=2)
+    line.track(m, multi_element_monitor_at=['q'])
+    mon = line.tracker.record_multi_element_last_track
+    assert mon.start_at_turn == 2
+    mon.map_at('q', turn=2)
+    with pytest.raises(IndexError):
+        mon.map_at('q', turn=0)
+
+
+def test_knob_parameter_length_validation_is_atomic():
+    line = _knob_line()
+    names = ["kqa", "kqb"]
+    knobs = KnobParameters(line, names,
+                           Descriptor(var_names=COORDS, order=2,
+                                      param_names=names))
+    baseline = [line[name] for name in names]
+    with pytest.raises(ValueError, match="Exactly one value"):
+        knobs.apply([0.1])
+    assert [line[name] for name in names] == baseline
+    knobs.apply()
+    with pytest.raises(ValueError, match="Exactly one value"):
+        knobs.apply_doubles([0.1])
+    knobs.teardown()

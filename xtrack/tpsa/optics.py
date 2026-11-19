@@ -1,20 +1,15 @@
-"""TpsaOptics: read optical functions and parameter derivatives off a map.
+"""Xtrack Twiss observables extracted from a TPSA-normalising map.
 
-For a ``ParticlesTpsa`` whose Jacobian is the propagated normalizing matrix ``A``,
-the uncoupled optical functions are algebra on ``A``'s columns:
-``betx = A00²+A01²``, ``alfx = -(A00·A10+A01·A11)``, ``mux = atan2(A01,A00)/2pi``.
-Internally column 5 is the canonical pzeta column. User-facing dispersion remains
-d()/d(delta), using dpzeta/ddelta = rvv at the expansion point.
-
-Because a *parametric* map carries parameter dependence in every ``A(i,j)``, the derivative of any
-optical function with respect to a parameter is a chain rule on the map's mixed coefficients
-``d A(i,j)/d param_k = coeff(coord_i, [var_j=1, param_k=1])``. No new C: values come from
-``jacobian()``, gradients from ``coefficient()``.
+The map has canonical (zeta, pzeta) coordinates. Xtrack's public dispersion
+is expressed with respect to delta, and is extracted from the W-matrix using
+its usual longitudinal-coordinate elimination. Parameter derivatives include
+both the W-matrix derivative and the off-momentum pzeta/delta conversion.
 """
 
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
+from madng_tpsa import TpsaMap
 
 import numpy as np
 
@@ -35,16 +30,25 @@ class TpsaOptics:
 
     _NAMES = ("betx", "bety", "alfx", "alfy", "mux", "muy", "dx", "dpx", "dy", "dpy")
 
-    def __init__(self, map: ParticlesTpsa) -> None:
+    def __init__(self, map: TpsaMap, beta0: float | None = None) -> None:
         self._num_params = map.num_params
-        self.param_names = [f"p{ii + 1}" for ii in range(self._num_params)]  # TODO: shouldn't this be map.descriptor.param_names?
-        self._jacobian = np.asarray(map.evaluate_jacobian(), dtype=float)  # 6x6 A-matrix (const parts)
+        self.param_names = map.descriptor.param_names
+        self._jacobian = np.asarray(map.evaluate_jacobian(), dtype=float)
         self._map = map
         self._num_vars = map.num_vars
-        # dJ[i, j] = d A(i,j) / d parameter (length-np). Built lazily per (i,j) on first use
-        # (a value read touches no dJ; a gradient builds only the coefficients it needs).
         self._dJ: dict[tuple[int, int], np.ndarray] = {}
-        self._dpzeta_ddelta = map._ref("rvv")
+        if beta0 is None:
+            if not hasattr(map, 'beta0'):
+                raise ValueError("beta0 is required when extracting optics from a bare map")
+            beta0 = float(map.beta0)
+        self._beta0 = beta0
+        pzeta = float(map.components[5].const_part)
+        one_plus_delta = np.sqrt(1 + 2 * pzeta + beta0**2 * pzeta**2)
+        denominator = 1 + beta0**2 * pzeta
+        self._rvv = one_plus_delta / denominator
+        # d(rvv)/d(pzeta) at the output expansion point.
+        derivative = 1 / one_plus_delta - beta0**2 * one_plus_delta / denominator**2
+        self._rvv_param_grad = derivative * np.asarray(map.components[5].param_grad())
 
     def _dJij(self, i: int, j: int) -> np.ndarray:
         """``d A(i,j) / d parameter`` (length-np), read from the map's mixed coefficients once."""
@@ -84,6 +88,11 @@ class TpsaOptics:
         return self._bet("x")
 
     @property
+    def beta0(self) -> float:
+        """Local reference relativistic beta for delta/pzeta conversion."""
+        return self._beta0
+
+    @property
     def bety(self) -> float:
         return self._bet("y")
 
@@ -103,21 +112,30 @@ class TpsaOptics:
     def muy(self) -> float:
         return self._mu("y")
 
+    def _dispersion(self, index: int) -> float:
+        # The same elimination of the longitudinal normalised coordinate as
+        # TwissInit.dx. Convert the resulting pzeta dispersion to delta.
+        jj = self._jacobian
+        ratio = jj[4, 5] / jj[4, 4]
+        numerator = jj[index, 5] - jj[index, 4] * ratio
+        denominator = jj[5, 5] - jj[5, 4] * ratio
+        return float(self._rvv * numerator / denominator)
+
     @property
     def dx(self) -> float:
-        return self._jacobian[0, 5]
+        return self._dispersion(0)
 
     @property
     def dpx(self) -> float:
-        return self._jacobian[1, 5]
+        return self._dispersion(1)
 
     @property
     def dy(self) -> float:
-        return self._jacobian[2, 5]
+        return self._dispersion(2)
 
     @property
     def dpy(self) -> float:
-        return self._jacobian[3, 5]
+        return self._dispersion(3)
 
     def to_dict(self) -> dict[str, float]:
         """All optical function values as ``{name: value}``."""
@@ -179,17 +197,31 @@ class TpsaOptics:
     def _grad_muy(self):
         return self._grad_mu("y")
 
+    def _grad_dispersion(self, index: int) -> np.ndarray:
+        jj = self._jacobian
+        ratio = jj[4, 5] / jj[4, 4]
+        d_ratio = (self._dJij(4, 5) - ratio * self._dJij(4, 4)) / jj[4, 4]
+        numerator = jj[index, 5] - jj[index, 4] * ratio
+        denominator = jj[5, 5] - jj[5, 4] * ratio
+        d_num = (self._dJij(index, 5) - self._dJij(index, 4) * ratio
+                 - jj[index, 4] * d_ratio)
+        d_den = (self._dJij(5, 5) - self._dJij(5, 4) * ratio
+                 - jj[5, 4] * d_ratio)
+        return (self._rvv * (d_num / denominator
+                - numerator * d_den / denominator**2)
+                + self._rvv_param_grad * numerator / denominator)
+
     def _grad_dx(self):
-        return self._dJij(0, 5)
+        return self._grad_dispersion(0)
 
     def _grad_dpx(self):
-        return self._dJij(1, 5)
+        return self._grad_dispersion(1)
 
     def _grad_dy(self):
-        return self._dJij(2, 5)
+        return self._grad_dispersion(2)
 
     def _grad_dpy(self):
-        return self._dJij(3, 5)
+        return self._grad_dispersion(3)
 
     def __repr__(self) -> str:
         return (f"TpsaOptics(betx={self.betx:.6g}, bety={self.bety:.6g}, "

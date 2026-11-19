@@ -79,6 +79,8 @@ class MultiElementMonitor(xt.BeamElement):
         'monomial_indices': xo.Int64[:],  # descriptor coefficient index per slot
         'coord_indices': xo.Int64[:],     # output coordinate index per slot
         'coefficients': xo.Float64[:, :, :], # turns, location, slot
+        'record_pzeta': xo.Int64,  # guard for 8+-coordinate data buffers
+        'record_beta0': xo.Int64,  # local reference beta0 for TPSA optics
     }
 
     behaves_like_drift = True
@@ -89,8 +91,10 @@ class MultiElementMonitor(xt.BeamElement):
         '#include "xtrack/monitors/multi_element_monitor.h"',
     ]
 
+    # Preserve legacy scalar-monitor coordinates and add canonical pzeta at 7.
     _data_coord_name_to_index = {'x': 0, 'px': 1, 'y': 2, 'py': 3,
-                                 'zeta': 4, 'pzeta': 5, 's': 6}
+                                 'zeta': 4, 'delta': 5, 's': 6,
+                                 'pzeta': 7, 'beta0': 8}
     _tpsa_coord_name_to_index = {
         name: ii for ii, name in enumerate(COORDS)
     }
@@ -114,7 +118,10 @@ class MultiElementMonitor(xt.BeamElement):
         """
 
         recordings = ([] if monomials is None
-                      else _parse_monomials(monomials, descriptor))
+                       else _parse_monomials(monomials, descriptor))
+        ncoords = data[2] if isinstance(data, tuple) else data.shape[2]
+        if ncoords not in (7, 8, 9):
+            raise ValueError("MultiElementMonitor data needs 7, 8, or 9 coordinates")
         num_turns = stop_at_turn - start_at_turn
         super().__init__(start_at_turn=start_at_turn,
                          stop_at_turn=stop_at_turn,
@@ -123,6 +130,8 @@ class MultiElementMonitor(xt.BeamElement):
                          at_element_mapping=at_element_mapping,
                          data=data,
                          tpsa_addresses=tpsa_addresses,
+                         record_pzeta=int(ncoords >= 8),
+                         record_beta0=int(ncoords == 9),
                          monomial_indices=len(recordings),
                          coord_indices=len(recordings),
                          coefficients=(num_turns, len(obs_names), len(recordings)),
@@ -197,6 +206,18 @@ class MultiElementMonitor(xt.BeamElement):
         """The full TPSA map recorded at a location, sharing the series."""
         return TpsaMap(self._recorded_maps(turn)[self._obs_index(obs_name)])
 
+    def optics_at(self, obs_name, turn=None):
+        """Twiss observables of a recorded map, with its reference beta0."""
+        from xtrack.tpsa.optics import TpsaOptics
+        if self._map_ref_particle is None:
+            raise AttributeError("No reference particle recorded for TPSA optics")
+        if self.record_beta0:
+            beta0 = float(np.asarray(self.get(
+                'beta0', obs_name, turn=self.start_at_turn if turn is None else turn)).reshape(-1)[0])
+        else:
+            beta0 = float(self._map_ref_particle.beta0[0])
+        return TpsaOptics(self.map_at(obs_name, turn=turn), beta0=beta0)
+
     def map_jacobian(self, turn=None):
         """Recorded transfer matrices, one per location, `(num_locations, 6, 6)`."""
         return np.array([[series.grad() for series in location]
@@ -242,6 +263,8 @@ class MultiElementMonitor(xt.BeamElement):
 
     def get(self, coordinate, obs_name=None, particle_id=None, turn=None):
         coord_index = self._data_coord_name_to_index[coordinate]
+        if coord_index >= self.data.shape[2]:
+            raise KeyError(f"Coordinate {coordinate!r} not recorded in this monitor")
 
         if obs_name is None:
             obs_index = slice(None)

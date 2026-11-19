@@ -8,13 +8,12 @@ if TYPE_CHECKING:
     from .optics import TpsaOptics
 
 import inspect
-from warnings import warn
 
 import numpy as np
 
 import xtrack as xt
 import xobjects as xo
-from madng_tpsa import ffi, Descriptor, Tpsa, ComplexTpsa, TpsaTensor, TpsaMap
+from madng_tpsa import ffi, lib, Descriptor, Tpsa, ComplexTpsa, TpsaTensor, TpsaMap
 
 
 # TPSAs
@@ -148,50 +147,51 @@ class ParticlesTpsa(TpsaMap[Tpsa]):
         if len(np.atleast_1d(particle.x)) != 1:
             raise ValueError("ParticlesTpsa is a single map: pass scalar coordinates")
 
-        # Get the truncation order. Prioritise the variable truncation_order, then the
-        # truncation_order in the provided descriptor, then in the descriptor from
-        # the coordinate TPSAs.
-        if truncation_order is None:
-            if descriptor is None:
-                if descriptor_from_coords is None:
-                    raise ValueError(
-                        "truncation_order must be specified if descriptor is not "
-                        "provided and no coordinate TPSAs are available"
-                    )
-                else:
-                    truncation_order = descriptor_from_coords.order
-            else:
-                truncation_order = descriptor.order
-        if any([tt.truncation_order < truncation_order for tt in coords.values()]):
-            warn(
-                "Provided 'truncation_order' is smaller than order from coordinates. "
-                "The coordinate TPSAs are truncated."
-            )
-            for tt in coords.values():
-                tt.truncate(truncation_order)
-
-        # Get the descriptor. Prioritise the provided descriptor over the descriptor from
-        # coordinates, then compare and unionise with the expected defaults.
-        default_descriptor = Descriptor(
-            var_names=COORDS, order=truncation_order, param_names=param_names
-        )
+        # The tracking ABI has exactly six independent canonical coordinates.
+        # Do not union arbitrary descriptors: doing so may reorder variables,
+        # silently introduce new variables, or change the truncation order.
+        explicit_order = truncation_order is not None
         if descriptor is None:
-            if descriptor_from_coords is None:
-                descriptor = default_descriptor
+            descriptor = descriptor_from_coords
+        if truncation_order is None:
+            if coords:
+                orders = {tt.truncation_order for tt in coords.values()}
+                if len(orders) != 1:
+                    raise ValueError("Coordinate TPSAs have different truncation orders")
+                truncation_order = orders.pop()
+            elif descriptor is not None:
+                truncation_order = descriptor.order
             else:
-                descriptor = default_descriptor.union(
-                                descriptor_from_coords, restrict_order=True
-                            )
-        elif descriptor_from_coords is None:
-            descriptor = default_descriptor.union(descriptor, restrict_order=True)
-        else:
-            descriptor = default_descriptor.union(
-                            descriptor, restrict_order=True
-                        ).union(descriptor_from_coords, restrict_order=True)
+                raise ValueError("Provide truncation_order or a descriptor")
+        if descriptor is None:
+            descriptor = Descriptor(
+                var_names=COORDS, order=truncation_order, param_names=param_names
+            )
         if descriptor.var_names != COORDS:
             raise ValueError(
-                f"Descriptor has unsupported variables: {descriptor.var_names}"
+                f"ParticlesTpsa requires 6 variables {COORDS}, "
+                f"got {descriptor.var_names}"
             )
+        if descriptor.order != truncation_order:
+            # Explicitly conflicting orders are an error. However a result
+            # of TpsaMap.truncate() has lower-order TPSAs on the original
+            # (higher-order) descriptor, and must remain a trackable subclass.
+            if explicit_order or descriptor.order < truncation_order:
+                raise ValueError(
+                    f"descriptor is order {descriptor.order}, map asks for {truncation_order}"
+                )
+        if param_names is not None and tuple(param_names) != descriptor.param_names:
+            raise ValueError("param_names differ from the supplied descriptor")
+        if descriptor_from_coords is not None and descriptor_from_coords != descriptor:
+            raise ValueError("Coordinate TPSAs must use the supplied descriptor")
+        for name, tt in coords.items():
+            if tt.truncation_order < truncation_order:
+                raise ValueError(
+                    f"Coordinate {name} has order {tt.truncation_order}; "
+                    f"expected at least {truncation_order}"
+                )
+            if tt.truncation_order > truncation_order:
+                coords[name] = tt.truncate(truncation_order)
 
         # Initialise the canonical coordinates and a TpsaMap
         components = []
@@ -199,7 +199,8 @@ class ParticlesTpsa(TpsaMap[Tpsa]):
             if c in coords:
                 components.append(coords[c])
             else:
-                val = descriptor.var(i + 1, _get_attr_from_particle(particle, c))
+                val = descriptor.var(i + 1, _get_attr_from_particle(particle, c),
+                                     order=truncation_order)
                 components.append(val)
         super().__init__(components, descriptor=descriptor)
 
@@ -241,11 +242,38 @@ class ParticlesTpsa(TpsaMap[Tpsa]):
                 setattr(bp, nn, val)
         self._xobject = bp
 
+    def _particle_kwargs(self) -> dict[str, Any]:
+        """Constructor-safe particle state; never expose TPSA pointer integers."""
+        excluded = set(COORDS + _DERIVED_COORDS + _EXTRA_COORDS)
+        excluded.update(('line_length', 'track_flags'))
+        kwargs = {name: value for name, value in self._xobject._to_dict().items()
+                  if name not in excluded}
+        kwargs.update({name: value.const_part for name, value in self._extra_coords.items()
+                       if name in _EXTRA_COORDS})
+        return kwargs
+
     def _new_like(self, values: Sequence[TpsaSeriesT]) -> Self:
-        """Create a new instance like this one, but with different coordinate values."""
-        kwargs = self._xobject._to_dict()
-        kwargs.update(dict(zip(self.component_names, values)))
-        return type(self)(**kwargs)
+        """Preserve the trackable subclass and rebind its six TPSA handles.
+
+        Derived quantities are rebuilt from pzeta by the constructor; other
+        auxiliary TPSAs are copied into the new object's own C-linked storage.
+        """
+        if len(values) != len(COORDS):
+            raise ValueError("ParticlesTpsa operations must produce six components")
+        if any(not isinstance(tt, Tpsa) for tt in values):
+            raise TypeError("ParticlesTpsa only supports real TPSA components")
+        if any(tt.descriptor.var_names != COORDS for tt in values):
+            raise ValueError("Result has incompatible canonical variables")
+        kwargs = self._particle_kwargs()
+        kwargs.update(dict(zip(COORDS, values, strict=True)))
+        result = type(self)(line_length=float(self._xobject.line_length),
+                            track_flags=int(self._xobject.track_flags), **kwargs)
+        for name in _EXTRA_COORDS:
+            old = self._extra_coords[name]
+            target = result._extra_coords[name]
+            if old.descriptor is target.descriptor:
+                lib.mad_tpsa_copy(old.ptr, target.ptr)
+        return result
 
     @classmethod
     def _parse_dict(cls, dct: dict[str, Any]) -> dict[str, Any]:
@@ -260,25 +288,31 @@ class ParticlesTpsa(TpsaMap[Tpsa]):
     @classmethod
     def from_dict(cls, dct) -> Self:
         particle_data = cls._parse_dict(dct)
-        return cls(**particle_data)
+        extra_tpsa = particle_data.pop('_extra_tpsa', {})
+        result = cls(**particle_data)
+        for name, series_dict in extra_tpsa.items():
+            if name not in _EXTRA_COORDS:
+                raise ValueError(f"Unknown auxiliary TPSA: {name}")
+            series = Tpsa.from_dict(series_dict, descriptor=result.descriptor)
+            lib.mad_tpsa_copy(series.ptr, result._extra_coords[name].ptr)
+        return result
 
     def to_dict(self, tol: float = 0.0) -> dict[str, Any]:
         """Serialise the polynomial map and its particle/tracking state."""
         dct = super().to_dict(tol=tol)
-        particle_data = self._xobject._to_dict()
-        for kk in COORDS + tuple(self._extra_coords.keys()):
-            particle_data.pop(kk)
-        dct['particle_data'] = particle_data
+        dct['particle_data'] = self._particle_kwargs() | {
+            'line_length': float(self._xobject.line_length),
+            'track_flags': int(self._xobject.track_flags),
+            '_extra_tpsa': {
+                name: self._extra_coords[name].to_dict(
+                    tol=tol, store_descriptor=False)
+                for name in _EXTRA_COORDS
+            },
+        }
         return dct
 
-    def __getitem__(self, key: int) -> TpsaSeriesT:
-        if key < 6:
-            return super().__getitem__(key)
-        elif key < 6 + len(self._extra_coords):
-            extra_coords_keys = list(self._extra_coords.keys())
-            return self._extra_coords[extra_coords_keys[key - 6]]
-        else:
-            raise IndexError("Index out of range")
+    # Indexing is inherited from TpsaMap: precisely six components, with
+    # standard negative indices. Derived quantities are named properties only.
 
     def __setitem__(self, key: object, value: Any) -> None:
         """Reject handle replacement on a map wired to the tracking ABI.
@@ -301,6 +335,8 @@ class ParticlesTpsa(TpsaMap[Tpsa]):
         except AttributeError:
             dct = {}
         if name in dct:
+            if name in _DERIVED_COORDS:
+                self._sync_derived_coordinates()
             return dct[name]
         # TpsaParticleData fields
         if name in self._fields:
@@ -318,6 +354,23 @@ class ParticlesTpsa(TpsaMap[Tpsa]):
                 #     return float(val)
         # Fallback to the superclass attribute access
         return super().__getattr__(name)
+
+    def _sync_derived_coordinates(self) -> None:
+        """Refresh C-linked derived TPSAs after arbitrary coefficient edits.
+
+        Mutating m.pzeta in place cannot be intercepted by __setattr__, so
+        refresh these dependent series on every Python read.
+        """
+        pzeta = self.pzeta
+        beta0 = float(self._xobject.beta0)
+        one_plus_delta = (1 + 2 * pzeta + beta0**2 * pzeta**2).sqrt()
+        updates = {
+            'delta': one_plus_delta - 1,
+            'rpp': 1 / one_plus_delta,
+            'rvv': one_plus_delta / (1 + beta0**2 * pzeta),
+        }
+        for name, series in updates.items():
+            lib.mad_tpsa_copy(series.ptr, self._extra_coords[name].ptr)
 
     def __setattr__(self, name: str, value: Any) -> None:
         # Let Python handle properties and other data descriptors first.
@@ -344,6 +397,15 @@ class ParticlesTpsa(TpsaMap[Tpsa]):
             xobject = None
 
         if name in components:
+            if name == 'delta' and isinstance(value, (int, float)):
+                beta0 = float(self._xobject.beta0)
+                db = float(value) * beta0
+                self.pzeta.const_part = (
+                    np.sqrt(1 + 2 * beta0 * db + db**2) - 1
+                ) / beta0**2
+                return
+            if name in _DERIVED_COORDS:
+                raise AttributeError(f"{name} is derived from pzeta; assign pzeta or delta")
             if isinstance(value, (int, float)):
                 components[name].const_part = value
             else:
@@ -360,18 +422,17 @@ class ParticlesTpsa(TpsaMap[Tpsa]):
         not copied. Not trackable.
         """
         if extend:
-            return TpsaTensor(self.components + list(self._extra_coords.values()))
+            self._sync_derived_coordinates()
+            return TpsaTensor([*self.components, *self._extra_coords.values()])
         else:
             return TpsaMap(self.components)
 
     def to_particles(self) -> xt.Particles:
         """A fresh single ``xt.Particles`` at the current const part (validation use)."""
-        particles_dict = self._xobject._to_dict()
-        for nn, tt in (self.named_components | self._extra_coords).items():
-            particles_dict[nn] = tt.const_part
-        particles_dict.pop('line_length')
-        particles_dict.pop('track_flags')
-        return xt.Particles.from_dict(particles_dict)
+        particles_dict = self._particle_kwargs()
+        particles_dict.update({name: value.const_part for name, value in
+                               self.named_components.items()})
+        return xt.Particles(**particles_dict)
 
     @property
     def time_s(self) -> np.float64:
@@ -393,11 +454,20 @@ class ParticlesTpsa(TpsaMap[Tpsa]):
         return TpsaOptics(self)
 
     def sensitivity(self, coord: str | int, knob: str | int) -> float:
-        """First-order d coord / d parameter (0-based parameter index)."""
+        """First-order d coordinate/d parameter, by label or 0-based index."""
+        ic = self._component_index(coord)
         if isinstance(knob, str):
-            raise TypeError("ParticlesTpsa does not store parameter names")
-        ip = knob
-        return self.named_components[coord].param_grad()[ip]
+            try:
+                ip = self.descriptor.param_names.index(knob)
+            except ValueError:
+                raise KeyError(knob) from None
+        elif isinstance(knob, int) and not isinstance(knob, bool):
+            ip = knob
+        else:
+            raise TypeError("Parameter must be its name or 0-based index")
+        if not 0 <= ip < self.num_params:
+            raise IndexError("Parameter index out of range")
+        return self.components[ic].param_grad()[ip]
 
     def set_jacobian(self, jacobian: Sequence[Sequence[Scalar]] | np.ndarray) -> None:
         """Replace all first-order coefficients for descriptor variables."""

@@ -45,13 +45,13 @@ print('Map - direct:', m0.evaluate(point) - direct)
 # B. Parameterised map with focusing and defocusing quadrupoles
 # =============================================================
 
-d = Descriptor(variables=COORDS, parameters=['dkf', 'dkd'], order=ORDER, param_order=1)
+d = Descriptor(var_names=COORDS, param_names=['dkf', 'dkd'], order=ORDER, param_order=1)
 line['qf'].k1 = d.param('dkf', 0.13)
 line['qd'].k1 = d.param('dkd', -0.13)
 mp = ParticlesTpsa(truncation_order=ORDER, descriptor=d, p0c=P0C, mass0=xt.PROTON_MASS_EV)
 line.track(mp)
 print('Parameter gradients at an off-axis point:\n',
-      mp.evaluate_jacobian(np.array([2e-3, 0, 1e-3, 0, 0, 0]), parameters=[0, 0], wrt='parameters'))
+      mp.evaluate_jacobian(np.array([2e-3, 0, 1e-3, 0, 0, 0]), param_values=[0, 0], wrt='params'))
 
 
 # C. Repeated evaluation versus self-composition
@@ -63,7 +63,7 @@ steps = 2500
 eval_path = [initial]
 start = perf_counter()
 for turn in range(steps):
-    eval_path.append(mp.evaluate(eval_path[-1], parameters=[0., 0.]))
+    eval_path.append(mp.evaluate(eval_path[-1], param_values=[0., 0.]))
 print('Evaluation time for TPSA map evaluation:', perf_counter() - start)
 eval_path = np.asarray(eval_path)
 
@@ -101,7 +101,7 @@ print('Stepwise self-composition time for TPSA map:', perf_counter() - start)
 start = perf_counter()
 full_map = mp ^ steps  # Much quicker; scales as O(log n) instead of O(n) for stepwise composition
 print('Direct self-composition time for TPSA map:', perf_counter() - start)
-compose_path = np.array([initial] + [mm.evaluate(initial, parameters=[0, 0]) for mm in temp])
+compose_path = np.array([initial] + [mm.evaluate(initial, param_values=[0, 0]) for mm in temp])
 print('Maximum absolute difference: composed TPSA map versus native tracking:',
       np.max(np.abs(compose_path - track_path)))
 print('Maximum absolute difference: composed TPSA map versus evaluated TPSA map:',
@@ -131,7 +131,7 @@ for value in np.linspace(0., 0.025, 6):
     z = initial.copy()
     trajectory = [z]
     for turn in range(80):
-        z = mp.evaluate(z, parameters=[value, -value])
+        z = mp.evaluate(z, param_values=[value, -value])
         trajectory.append(z)
     trajectory = np.asarray(trajectory)
     ax.plot(trajectory[:, 0] * 1e3, trajectory[:, 1] * 1e3,
@@ -159,7 +159,7 @@ for name, z, pars in [
     ('off axis', initial, [0., 0.]),
     ('with parameters', initial, [0.005, -0.005]),
 ]:
-    J = mp.evaluate_jacobian(z, parameters=pars)
+    J = mp.evaluate_jacobian(z, param_values=pars)
     defect = J.T @ S @ J - S
     print(f'Max numerical symplectic defect ({name}): {np.max(np.abs(defect)):.3e}')
 

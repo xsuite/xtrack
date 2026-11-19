@@ -164,8 +164,8 @@ def bench_line(line, mng, knob_names, knob_values, label, order):
     mass0 = float(np.asarray(line.particle_ref.mass0).reshape(-1)[0])
     kwargs = dict(p0c=p0c, mass0=mass0, **X0)
 
-    plain = Descriptor(variables=xtpsa.COORDS, order=order)
-    parametric = Descriptor(variables=xtpsa.COORDS, order=order, parameters=knob_names, param_order=1)
+    plain = Descriptor(var_names=xtpsa.COORDS, order=order)
+    parametric = Descriptor(var_names=xtpsa.COORDS, order=order, param_names=knob_names, param_order=1)
     knobs = KnobParameters(line, knob_names, parametric)
     n_driven = len(knob_driven_fields(line, knob_names))
 

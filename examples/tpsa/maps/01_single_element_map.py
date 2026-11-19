@@ -46,25 +46,25 @@ print('Map - direct:', m0.evaluate(initial) - direct)
 # ===========================================================
 
 # Zero parameter input means nominal K3.
-d = Descriptor(variables=COORDS, order=ORDER,
-               parameters=['dk3'], param_order=3)
+d = Descriptor(var_names=COORDS, order=ORDER,
+               param_names=['dk3'], param_order=3)
 octk = xt.Octupole(length=LENGTH, k3=K3)
 octk.k3 = d.param('dk3', K3)
 mk = ParticlesTpsa(truncation_order=ORDER, descriptor=d, p0c=P0C, mass0=xt.PROTON_MASS_EV)
 octk.track(mk)
 print('Parameter derivative d(px_out)/d(dk3) at input:',
-      mk.partial_derivative('dk3').evaluate(initial, parameters=[0.])[1])
-print('Parameter Jacobian shape:', mk.jacobian(wrt='parameters').shape)
+      mk.partial_derivative('dk3').evaluate(initial, param_values=[0.])[1])
+print('Parameter Jacobian shape:', mk.jacobian(wrt='params').shape)
 
 print('Mixed derivative d^2 px_out / dx_in d(dk3):',
-      mk.partial_derivative(('x', 'dk3')).evaluate(initial, parameters=[0.])[1])
+      mk.partial_derivative('x', 'dk3').evaluate(initial, param_values=[0.])[1])
 print('Full mixed Hessian shape:',
       mk.hessian(wrt='all').shape)
 
 # Sweep the strength WITHOUT re-tracking a TPSA map; compare native Xtrack
 # scalar tracking at a few sample strengths. Small |dk3| is important.
 dks = np.linspace(-0.12 * K3, +0.12 * K3, 61)
-px_map = np.array([mk.evaluate(initial, parameters=[dk])[1] for dk in dks])
+px_map = np.array([mk.evaluate(initial, param_values=[dk])[1] for dk in dks])
 px_native = []
 for dk in dks:
     part = xt.Particles(p0c=P0C, mass0=xt.PROTON_MASS_EV,
@@ -75,8 +75,8 @@ for dk in dks:
 px_native = np.array(px_native)
 
 # First-order Taylor prediction in dk3 at dk3=0.
-px_base = mk.evaluate(initial, parameters=[0.])[1]
-slope = mk.partial_derivative('dk3').evaluate(initial, parameters=[0.])[1]
+px_base = mk.evaluate(initial, param_values=[0.])[1]
+slope = mk.partial_derivative('dk3').evaluate(initial, param_values=[0.])[1]
 plt.figure(figsize=(8, 5))
 plt.plot((K3 + dks), px_native, 'k-', label='Native Xtrack')
 plt.plot((K3 + dks), px_map, '--', label=f'TPSA order {ORDER}')
@@ -92,7 +92,7 @@ plt.show()
 # The derivative is a polynomial in the input phase-space coordinates.
 xs = np.linspace(-2e-3, 2e-3, 91)
 sens = np.array([
-    mk.partial_derivative('dk3').evaluate([x, 0., 0., 0., 0., 0.], parameters=[0.])[1]
+mk.partial_derivative('dk3').evaluate([x, 0., 0., 0., 0., 0.], param_values=[0.])[1]
     for x in xs
 ])
 plt.figure(figsize=(7, 4.5))
@@ -139,14 +139,14 @@ residual = J0.T @ S @ J0 - S
 print("Maximum symplecticity error at arbitrary point:", np.max(np.abs(residual)))
 print("Symplectic at arbitrary point:", np.allclose(residual, 0, atol=1e-10))
 
-Jk = mk.evaluate_jacobian(z, parameters=[0.01])
+Jk = mk.evaluate_jacobian(z, param_values=[0.01])
 residual = Jk.T @ S @ Jk - S
 print("Maximum symplecticity error at arbitrary point:", np.max(np.abs(residual)))
 print("Symplectic at arbitrary point:", np.allclose(residual, 0, atol=1e-10))
 
 print("Built-in:")
 print(f"Residual: {m0.non_symplectic_residual(z)}")
-print(f"Residual: {mk.non_symplectic_residual(z)}")
+print(f"Residual: {mk.non_symplectic_residual(z, param_values=[0.01])}")
 
 # C.3 Symbolically
 # ----------------

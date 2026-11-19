@@ -72,7 +72,7 @@ for name in line.element_names:
 name_f, base_f = quad_pos[0]
 name_d, base_d = quad_neg[0]
 print('Choosing quadrupoles:', name_f, base_f, name_d, base_d)
-d = Descriptor(variables=COORDS, parameters=['relative_QF', 'relative_QD'],
+d = Descriptor(var_names=COORDS, param_names=['relative_QF', 'relative_QD'],
                order=max(ORDER, 2), param_order=1)
 
 # Two small dimensionless relative strength changes about zero.
@@ -81,14 +81,14 @@ line[name_d].k1 = base_d * (1 + d.param('relative_QD'))
 mp = ParticlesTpsa(truncation_order=d.order, descriptor=d, p0c=p0c, mass0=xt.PROTON_MASS_EV)
 
 line.track(mp)
-print('Parametric one-turn Jacobian:', mp.evaluate_jacobian(z, parameters=[0, 0]))
+print('Parametric one-turn Jacobian:', mp.evaluate_jacobian(z, param_values=[0, 0]))
 print('Response d z_out/d(relative_QF, relative_QD):\n',
-        mp.evaluate_jacobian(z, parameters=[0, 0], wrt='parameters'))
+        mp.evaluate_jacobian(z, param_values=[0, 0], wrt='params'))
 
 strengths = np.linspace(-0.005, 0.005, 31)
-values = np.asarray([mp.evaluate(z, parameters=[value, 0])[0] for value in strengths])
-slope = mp.partial_derivative('relative_QF').evaluate(z, parameters=[0, 0])[0]
-nominal = mp.evaluate(z, parameters=[0, 0])[0]
+values = np.asarray([mp.evaluate(z, param_values=[value, 0])[0] for value in strengths])
+slope = mp.partial_derivative('relative_QF').evaluate(z, param_values=[0, 0])[0]
+nominal = mp.evaluate(z, param_values=[0, 0])[0]
 
 plt.figure(figsize=(7, 4.5))
 plt.plot(strengths * 100, values * 1e6, label='TPSA evaluation')

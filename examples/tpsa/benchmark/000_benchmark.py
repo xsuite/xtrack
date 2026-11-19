@@ -151,7 +151,7 @@ def main():
     param_line.build_tracker(compile=False)
 
     param_descriptor = madng_tpsa.Descriptor(
-        variables=xtpsa.COORDS, order=args.order, num_params=len(IR8_VARY), param_order=1
+        var_names=xtpsa.COORDS, order=args.order, param_names=IR8_VARY, param_order=1
     )
     _enable_line_variable_tpsa(param_line, IR8_VARY, param_descriptor)
 
