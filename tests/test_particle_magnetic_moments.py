@@ -4,7 +4,6 @@ import json
 from pathlib import Path
 import runpy
 import shutil
-import subprocess
 import sys
 
 import numpy as np
@@ -18,12 +17,22 @@ SOURCE = Path(__file__).resolve().parents[1] / 'test_data/particle_data'
 
 
 @pytest.fixture
-def generator(tmp_path, monkeypatch):
+def generator_functions(monkeypatch):
+    functions = runpy.run_path(str(SOURCE / 'generate_magnetic_moments.py'))
+    # PyPI CI keeps the tests and source excerpts but removes the source package.
+    # Read the mass and PDG inputs from the package actually under test.
+    monkeypatch.setitem(functions['generate'].__globals__, 'ROOT',
+                        Path(xt.__file__).resolve().parents[1])
+    return functions
+
+
+@pytest.fixture
+def generator(tmp_path, monkeypatch, generator_functions):
     for path in SOURCE.glob('*.txt'):
         shutil.copyfile(path, tmp_path / path.name)
     shutil.copyfile(SOURCE / 'sources.json', tmp_path / 'sources.json')
     script = SOURCE / 'generate_magnetic_moments.py'
-    functions = runpy.run_path(str(script))
+    functions = generator_functions
     monkeypatch.setitem(functions['generate'].__globals__, 'HERE', tmp_path)
     monkeypatch.setitem(functions['generate'].__globals__, 'TARGET',
                         tmp_path / 'magnetic_moments.py')
@@ -193,7 +202,5 @@ def test_charge_conjugation_and_unlisted_ground_states():
         assert data.anomalous_magnetic_moment is None
 
 
-def test_moment_table_matches_saved_sources():
-    subprocess.run([sys.executable,
-                    str(SOURCE / 'generate_magnetic_moments.py'), '--check'],
-                   check=True)
+def test_moment_table_matches_saved_sources(generator_functions):
+    assert Path(magnetic_moments.__file__).read_text() == generator_functions['generate']()
