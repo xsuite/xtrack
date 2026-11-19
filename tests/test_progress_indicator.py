@@ -185,13 +185,13 @@ def test_aperture_factory_propagates_with_progress_false(monkeypatch):
     monkeypatch.setattr(aperture_module, 'progress', _unexpected_progress)
     build_arguments = {}
 
-    def fake_build_aperture_bounds(self, **kwargs):
+    def fake_refresh_geometry(self, **kwargs):
         build_arguments.update(kwargs)
 
     monkeypatch.setattr(
         aperture_module.LineAperture,
-        '_build_aperture_bounds',
-        fake_build_aperture_bounds,
+        '_refresh_geometry',
+        fake_refresh_geometry,
     )
     line = xt.Line(
         elements={'aper': xt.LimitEllipse(a=1, b=1)},
