@@ -1,5 +1,5 @@
 """Actual LHC one-turn map from an Xtrack example model."""
-import json
+from pathlib import Path
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -11,7 +11,8 @@ from madng_tpsa import Descriptor
 ORDER = 6
 p0c = 7e12
 
-env = xt.load('../../../test_data/hllhc15_thick/hllhc15_collider_thick.json')
+repo_root = Path(__file__).resolve().parents[3]
+env = xt.load(repo_root / 'test_data' / 'hllhc15_thick' / 'hllhc15_collider_thick.json')
 line = env.lhcb1
 line.particle_ref = xt.Particles(p0c=p0c, mass0=xt.PROTON_MASS_EV)
 line.build_tracker(compile=False)

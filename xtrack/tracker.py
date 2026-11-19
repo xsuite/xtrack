@@ -1935,7 +1935,7 @@ class Tracker:
         )
         multi_element_monitor._map_series = map_series
         if tpsa_descriptor is not None:
-            multi_element_monitor._map_ref_particle = particles._ref_particle
+            multi_element_monitor._map_ref_particle = particles.to_particles()
 
         return multi_element_monitor
 

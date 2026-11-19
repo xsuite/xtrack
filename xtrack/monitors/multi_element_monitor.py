@@ -2,12 +2,12 @@ from __future__ import annotations
 
 from typing import Sequence
 
-import madng_tpsa
+from madng_tpsa import ffi, Descriptor, TpsaMap
 import numpy as np
 
 import xtrack as xt
 import xobjects as xo
-from xtrack.tpsa.particles import COORDS, ParticlesTpsa
+from xtrack.tpsa.particles import COORDS
 
 # A monomial is the per-variable orders, a tuple once parsed. A request is
 # several of them, or the ones wanted per output coordinate.
@@ -17,7 +17,7 @@ MonomialRequest = (list[Monomial] | np.ndarray
 
 
 def _parse_monomials(monomials: MonomialRequest,
-                     descriptor: madng_tpsa.Descriptor) -> list[tuple]:
+                     descriptor: Descriptor) -> list[tuple]:
     """Expand the requested monomials into a list of tuples.
 
     Each requested coefficient becomes one recording `(coord, monomial,
@@ -102,7 +102,7 @@ class MultiElementMonitor(xt.BeamElement):
                  obs_names,
                  tpsa_addresses=(0, 0, 0),
                  monomials: MonomialRequest | None = None,
-                 descriptor: madng_tpsa.Descriptor | None = None,
+                 descriptor: Descriptor | None = None,
                  **kwargs):
         """Records coordinates at the observed locations, as well as
         the TPSA maps when tracking TPSAs.
@@ -195,9 +195,7 @@ class MultiElementMonitor(xt.BeamElement):
 
     def map_at(self, obs_name, turn=None):
         """The full TPSA map recorded at a location, sharing the series."""
-        return ParticlesTpsa._from_coords(
-            self._recorded_maps(turn)[self._obs_index(obs_name)],
-            self._map_ref_particle)
+        return TpsaMap(self._recorded_maps(turn)[self._obs_index(obs_name)])
 
     def map_jacobian(self, turn=None):
         """Recorded transfer matrices, one per location, `(num_locations, 6, 6)`."""
@@ -216,7 +214,7 @@ class MultiElementMonitor(xt.BeamElement):
                 f'obs_names=[{obs_names_str}]{recorded})')
 
     @staticmethod
-    def build_tpsa_addresses(descriptor: madng_tpsa.Descriptor,
+    def build_tpsa_addresses(descriptor: Descriptor,
                              num_locations: int, num_turns: int):
         """Preallocated series for the full TPSA maps, and the addresses C writes to.
 
@@ -231,7 +229,6 @@ class MultiElementMonitor(xt.BeamElement):
             [[descriptor.zero() for _ in COORDS] for _ in range(num_locations)]
             for _ in range(num_turns)
         ]
-        ffi = madng_tpsa.ffi
         addresses = np.array(
             [
                 int(ffi.cast("uintptr_t", one_series.ptr))

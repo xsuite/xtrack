@@ -47,7 +47,7 @@ print('Map - direct:', m0.evaluate(initial) - direct)
 
 # Zero parameter input means nominal K3.
 d = Descriptor(variables=COORDS, order=ORDER,
-               parameters=['dk3'], param_order=1)
+               parameters=['dk3'], param_order=3)
 octk = xt.Octupole(length=LENGTH, k3=K3)
 octk.k3 = d.param('dk3', K3)
 mk = ParticlesTpsa(truncation_order=ORDER, descriptor=d, p0c=P0C, mass0=xt.PROTON_MASS_EV)
@@ -87,6 +87,7 @@ plt.title('Thick octupole: tracking versus parametric Taylor map')
 plt.legend()
 plt.tight_layout()
 plt.savefig('octupole_parameter_scan.png', dpi=170)
+plt.show()
 
 # The derivative is a polynomial in the input phase-space coordinates.
 xs = np.linspace(-2e-3, 2e-3, 91)
@@ -101,7 +102,7 @@ plt.ylabel(r'$\partial p_{x,\mathrm{out}}/\partial k_3$')
 plt.title('Third-order octupole response')
 plt.tight_layout()
 plt.savefig('octupole_derivative_vs_amplitude.png', dpi=170)
-print('Figures written: octupole_parameter_scan.png, octupole_derivative_vs_amplitude.png')
+plt.show()
 
 
 
@@ -124,32 +125,46 @@ residual = Jk.T @ S @ Jk - S
 print("Maximum symplecticity error:", np.max(np.abs(residual)))
 print("Symplectic:", np.allclose(residual, 0, atol=1e-10))
 
+print("There is a built-in method to check for the non-symplectic residual:")
+print(f"Residual: {m0.non_symplectic_residual()}")
+print(f"Residual: {mk.non_symplectic_residual()}")
+
 
 # C.2 At an arbitrary point
 # -------------------------
 
 z = np.array([1e-3, -2.1e-5, -7.3e-4, -1.9e-5, 0, 0])  # Displacement from the expansion point
-J0_tpsa = m0.evaluate_jacobian(z)
-residual = J0_tpsa.T @ S @ J0_tpsa - S
+J0 = m0.evaluate_jacobian(z)
+residual = J0.T @ S @ J0 - S
 print("Maximum symplecticity error at arbitrary point:", np.max(np.abs(residual)))
 print("Symplectic at arbitrary point:", np.allclose(residual, 0, atol=1e-10))
 
-Jk_tpsa = mk.evaluate_jacobian(z, parameters=[0.01])
-residual = Jk_tpsa.T @ S @ Jk_tpsa - S
+Jk = mk.evaluate_jacobian(z, parameters=[0.01])
+residual = Jk.T @ S @ Jk - S
 print("Maximum symplecticity error at arbitrary point:", np.max(np.abs(residual)))
 print("Symplectic at arbitrary point:", np.allclose(residual, 0, atol=1e-10))
 
+print("Built-in:")
+print(f"Residual: {m0.non_symplectic_residual(z)}")
+print(f"Residual: {mk.non_symplectic_residual(z)}")
 
-# Symbolically
+# C.3 Symbolically
+# ----------------
+
 J0 = m0.jacobian()
 residual = J0.T @ S @ J0 - S
+residual = residual.truncate(ORDER - 1)  # One order lower because derivative
 for i in range(6):
     for j in range(6):
-        print(i, j, residual[i, j].monomial_coeffs())
+        print(i, j, residual[i, j])
 
 Jk = mk.jacobian()
 residual = Jk.T @ S @ Jk - S
+residual = residual.truncate(ORDER - 1)  # One order lower because derivative
 for i in range(6):
     for j in range(6):
-        print(i, j, residual[i, j].monomial_coeffs())
+        print(i, j, residual[i, j])
 
+print("There is a built-in method to check for the non-symplectic coefficients by degree:")
+print(m0.non_symplectic_coeffs_by_degree())
+print(mk.non_symplectic_coeffs_by_degree())
