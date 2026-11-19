@@ -15,9 +15,11 @@ start:  stmt*
 // Keep the type as NAME so variables named real or int remain valid.
 ?new_val: "const"i? equal_scalar ";"    -> set_var
     | "const"i NAME equal_scalar ";"  -> set_typed_var
+    | NAME "const"i equal_scalar ";"  -> set_typed_var
 
 ?new_def: "const"i? defer_scalar ";"    -> set_var
     | "const"i NAME defer_scalar ";"  -> set_typed_var
+    | NAME "const"i defer_scalar ";"  -> set_typed_var
 
 ?sequence: _sequence_body _ENDSEQUENCE ";"
 
