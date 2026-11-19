@@ -6,7 +6,7 @@
 UNLIMITED = 1e10  # could use np.inf but better safe than sorry
 
 
-class _AsInstalledPipeName:
+class _HasInstalledPipeName:
     """Optional installed pipe placement name, stored with the Python element."""
 
     _noexpr_fields = {'installed_pipe_name'}

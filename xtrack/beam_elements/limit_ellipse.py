@@ -6,10 +6,10 @@
 from ..base_element import BeamElement
 import numpy as np
 import xobjects as xo
-from ._aperture_common import UNLIMITED, _AsInstalledPipeName
+from ._aperture_common import UNLIMITED, _HasInstalledPipeName
 
 
-class LimitEllipse(_AsInstalledPipeName, BeamElement):
+class LimitEllipse(_HasInstalledPipeName, BeamElement):
     """
     Beam element modeling an elliptical aperture limit.
 
