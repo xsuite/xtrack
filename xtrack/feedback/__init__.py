@@ -5,9 +5,10 @@
 
 """Experimental feedback primitives."""
 
-from .timing import CommandQueue, DeadlineSchedule
+from .timing import CommandQueue, DeadlineSchedule, FirstOrderActuator
 
 __all__ = [
     'CommandQueue',
     'DeadlineSchedule',
+    'FirstOrderActuator',
 ]

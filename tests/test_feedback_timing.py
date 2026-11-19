@@ -3,12 +3,16 @@
 # Copyright (c) CERN, 2026.                 #
 # ######################################### #
 
+import dataclasses
+
 import numpy as np
 import pytest
 from numpy.testing import assert_allclose, assert_array_equal
 from xobjects.test_helpers import for_all_test_contexts
 
-from xtrack.feedback.timing import CommandQueue, DeadlineSchedule
+from xtrack.feedback.timing import (
+    CommandQueue, DeadlineSchedule, FirstOrderActuator,
+)
 
 
 def test_turn_schedule_consumes_each_deadline_once():
@@ -256,3 +260,221 @@ def test_queue_rejects_invalid_time_configuration(name, value):
     kwargs[name] = value
     with pytest.raises(ValueError):
         CommandQueue().enqueue([1.0], **kwargs)
+
+
+# The actuator needs NumPy-style where and expm1 on context arrays.
+@pytest.mark.parametrize('tau', [1.0, [1.0]])
+@for_all_test_contexts(excluding=('ContextPyopencl',))
+def test_actuator_resolves_short_response_intervals(test_context, tau):
+    """Resolve field increments for intervals much shorter than tau."""
+    xp = test_context.nplike_lib
+    actuator = FirstOrderActuator(
+        [0.0], response_time_constant_seconds=tau, xp=xp)
+    actuator.set_target([1.0])
+
+    applied = actuator.advance(1e-18)
+    assert isinstance(applied, xp.ndarray)
+    assert_allclose(
+        test_context.nparray_from_context_array(applied), [1e-18],
+        rtol=1e-15, atol=0,
+    )
+
+
+@pytest.mark.parametrize('tau', [1.0, [1.0]])
+@for_all_test_contexts(excluding=('ContextPyopencl',))
+def test_actuator_retains_a_small_settled_target(test_context, tau):
+    """Resolve a small nonzero target after the initial field decays."""
+    initial = 2e-3  # rad
+    target = 1e-20  # rad
+    time = 50.0  # s
+    actuator = FirstOrderActuator(
+        [initial], response_time_constant_seconds=tau, xp=test_context.nplike_lib)
+    actuator.set_target([target])
+
+    applied = actuator.advance(time)
+    expected = target + (initial - target) * np.exp(-time)
+    assert_allclose(test_context.nparray_from_context_array(applied), [expected],
+                    rtol=1e-15, atol=0)
+
+
+@for_all_test_contexts(excluding=('ContextPyopencl',))
+def test_actuator_advances_toward_the_held_target(test_context):
+    """Integrate the old target until delivery and commit the new target."""
+    to_host = test_context.nparray_from_context_array
+    actuator = FirstOrderActuator(
+        [0.0], response_time_constant_seconds=0.005, xp=test_context.nplike_lib)
+
+    # Deliver target at t=0: the physical state is continuous.
+    initial = actuator.preview(0.0, target=[1.0])
+    assert_array_equal(to_host(initial.applied), [0.0])
+    actuator.commit(initial)
+
+    candidate = actuator.preview(0.005, target=[2.0])
+    assert_allclose(to_host(candidate.applied), [1 - np.exp(-1)])
+    assert_array_equal(to_host(actuator.applied), [0.0])
+    assert_array_equal(to_host(actuator.target), [1.0])
+
+    actuator.commit(candidate)
+    before = to_host(actuator.applied)
+    assert_array_equal(to_host(actuator.advance(0.005)), before)
+    assert_array_equal(to_host(actuator.target), [2.0])
+    with pytest.raises(ValueError, match='Stale'):
+        actuator.commit(candidate)
+    with pytest.raises(ValueError, match='backwards'):
+        actuator.preview(0.004)
+
+
+@for_all_test_contexts(excluding=('ContextPyopencl',))
+def test_coordinated_slew_preserves_a_linear_constraint(test_context):
+    """Limit both moving channels together and leave the fixed channel alone."""
+    to_host = test_context.nparray_from_context_array
+    actuator = FirstOrderActuator(
+        [0.0, 0.0, 0.0], maximum_slew_per_second=[1.0, 2.0, 0.0],
+        xp=test_context.nplike_lib,
+    )
+    actuator.set_target([1.0, -1.0, 0.0])
+
+    candidate = actuator.preview(0.1)
+    assert_allclose(to_host(candidate.applied), [0.1, -0.1, 0.0])
+    actuator.commit(candidate)
+    assert_allclose(to_host(actuator.advance(0.2)), [0.2, -0.2, 0.0])
+
+
+@pytest.mark.parametrize(
+    'mode, immediate_step, common_fraction',
+    [('independent', 1.0, 1.0), ('coordinated', 0.0, 0.1)],
+)
+@for_all_test_contexts(excluding=('ContextPyopencl',))
+def test_slew_policy_controls_zero_tau_delivery(
+    test_context, mode, immediate_step, common_fraction,
+):
+    """Apply an immediate step only when the channel can move independently."""
+    to_host = test_context.nparray_from_context_array
+    actuator = FirstOrderActuator(
+        [0.0, 0.0, 0.0], response_time_constant_seconds=[0.0, 0.0, 0.1],
+        maximum_slew_per_second=[np.inf, 1.0, np.inf], slew_mode=mode,
+        xp=test_context.nplike_lib,
+    )
+
+    delivered = to_host(actuator.set_target([1.0, 1.0, 1.0]))
+    advanced = to_host(actuator.advance(0.1))
+    assert_array_equal(delivered, [immediate_step, 0.0, 0.0])
+    assert_allclose(advanced, [
+        common_fraction, 0.1, common_fraction * (1 - np.exp(-1)),
+    ])
+
+
+def test_actuator_rejects_invalid_candidates():
+    """Reject incompatible shapes, stale candidates and foreign candidates."""
+    actuator = FirstOrderActuator([0.0, 0.0])
+    with pytest.raises(ValueError, match='shape'):
+        actuator.preview(0.0, target=[1.0])
+    candidate = actuator.preview(0.1)
+    altered = dataclasses.replace(candidate, applied=np.zeros(3))
+    with pytest.raises(ValueError, match='shape'):
+        actuator.commit(altered)
+    actuator.commit(candidate)
+    with pytest.raises(ValueError, match='Stale'):
+        actuator.commit(candidate)
+    other = FirstOrderActuator([0.0, 0.0])
+    with pytest.raises(ValueError, match='Stale'):
+        other.commit(actuator.preview(0.2))
+
+
+@for_all_test_contexts(excluding=('ContextPyopencl',))
+def test_actuator_supports_distinct_time_constants(test_context):
+    """Advance each channel by its own time constant, including zero."""
+    to_host = test_context.nparray_from_context_array
+    actuator = FirstOrderActuator(
+        [1.0, -2.0, 0.5], response_time_constant_seconds=[0.0, 0.1, 0.4],
+        xp=test_context.nplike_lib,
+    )
+    assert_array_equal(to_host(actuator.set_target([2, 3, -0.5])), [2, -2, 0.5])
+
+    candidate = actuator.preview(0.1, target=[4.0, 9.0, 7.0])
+    expected = [4.0, 3 - 5 * np.exp(-1), -0.5 + np.exp(-0.25)]
+    assert_allclose(to_host(candidate.applied), expected)
+    assert_array_equal(to_host(actuator.applied), [2, -2, 0.5])
+    assert_array_equal(to_host(actuator.target), [2, 3, -0.5])
+
+    actuator.commit(candidate)
+    assert_allclose(
+        to_host(actuator.advance(0.2)),
+        [
+            4,
+            9 + (expected[1] - 9) * np.exp(-1),
+            7 + (expected[2] - 7) * np.exp(-0.25),
+        ],
+    )
+
+
+@for_all_test_contexts(excluding=('ContextPyopencl',))
+def test_actuator_limits_each_sampled_increment(test_context):
+    """Clip each channel's exponential increment to its own slew bound."""
+    to_host = test_context.nparray_from_context_array
+    actuator = FirstOrderActuator(
+        [0, 0],
+        response_time_constant_seconds=[0.1, 1.0],
+        maximum_slew_per_second=[0.01, 100e-6],
+        slew_mode='independent',
+        xp=test_context.nplike_lib,
+    )
+    actuator.set_target([0.02, 200e-6])
+    assert_allclose(to_host(actuator.advance(0.1)), [0.001, 10e-6])
+
+    candidate = actuator.preview(0.2, target=[-0.01, -50e-6])
+    assert_allclose(to_host(candidate.applied), [0.002, 20e-6])
+    actuator.commit(candidate)
+
+    expected = [0.001, -50e-6 + 70e-6 * np.exp(-0.1)]
+    assert_allclose(to_host(actuator.advance(0.3)), expected)
+
+
+@pytest.mark.parametrize('tau', [[-0.1, 1], [np.nan, 1], [np.inf, 1]])
+def test_invalid_response_constants_are_rejected(tau):
+    """Reject a negative or nonfinite time constant on any channel."""
+    with pytest.raises(ValueError, match='finite and nonnegative'):
+        FirstOrderActuator([0, 0], response_time_constant_seconds=tau)
+
+
+@pytest.mark.parametrize('mode', ['coordinated', 'independent'])
+@for_all_test_contexts(excluding=('ContextPyopencl',))
+def test_actuator_response_is_independent_of_channel_units(test_context, mode):
+    """Recover the same fields after rescaling channels and slew bounds."""
+    xp = test_context.nplike_lib
+    to_host = test_context.nparray_from_context_array
+    scales = np.array([1e3, 1e6])  # rad -> mrad, m -> micrometres
+    initial = np.array([0.005, -20e-6])
+    rates = np.array([0.02, 100e-6])
+    physical = FirstOrderActuator(
+        initial,
+        response_time_constant_seconds=[0.2, 0.7],
+        maximum_slew_per_second=rates,
+        slew_mode=mode,
+        xp=xp,
+    )
+    converted = FirstOrderActuator(
+        initial * scales,
+        response_time_constant_seconds=[0.2, 0.7],
+        maximum_slew_per_second=rates * scales,
+        slew_mode=mode,
+        xp=xp,
+    )
+    for time, target in [
+        (0, [0.03, 80e-6]),
+        (0.1, None),
+        (0.2, [-0.01, -50e-6]),
+        (0.5, None),
+    ]:
+        target = None if target is None else np.array(target)
+        physical.commit(physical.preview(time, target=target))
+        converted.commit(
+            converted.preview(
+                time,
+                target=None if target is None else target * scales,
+            )
+        )
+        assert_allclose(
+            to_host(converted.applied) / scales, to_host(physical.applied),
+            rtol=1e-13, atol=1e-18,
+        )

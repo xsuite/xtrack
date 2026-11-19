@@ -3,9 +3,9 @@
 # Copyright (c) CERN, 2026.                 #
 # ######################################### #
 
-"""Feedback deadlines and command transport."""
+"""Feedback deadlines, command transport and sampled actuator response."""
 
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 import heapq
 import math
 import numbers
@@ -300,3 +300,191 @@ class CommandQueue:
     def clear(self):
         """Cancel pending commands while preserving clock and sequence identity."""
         self._heap.clear()
+
+
+@dataclass(frozen=True)
+class ActuatorCandidate:
+    """Proposed applied field and held target at a sampled boundary."""
+
+    applied: object
+    target: object
+    time_seconds: float
+    generation: int
+    _owner: object = field(repr=False, compare=False)
+
+
+class FirstOrderActuator:
+    """Compute sampled exponential response with optional slew limits.
+
+    Advance toward the held target, then accept any target delivered at the
+    boundary. Slew rates in channel units per second bound each increment.
+    """
+
+    def __init__(
+        self,
+        initial,
+        *,
+        response_time_constant_seconds=0.0,
+        maximum_slew_per_second=None,
+        slew_mode='coordinated',
+        xp=np,
+        initial_time_seconds=0.0,
+    ):
+        self.xp = xp
+        if slew_mode not in ('coordinated', 'independent'):
+            raise ValueError('slew_mode must be coordinated or independent')
+        self._slew_mode = slew_mode
+        self._time = _nonnegative_float(
+            initial_time_seconds, 'initial_time_seconds')
+        self._applied = xp.asarray(initial, dtype=np.float64).copy()
+        if self._applied.size == 0:
+            raise ValueError('An actuator must have at least one channel')
+        if np.iscomplexobj(response_time_constant_seconds):
+            raise TypeError('Response time constants must be real')
+        tau = np.asarray(response_time_constant_seconds, dtype=float)
+        if np.any(~np.isfinite(tau)) or np.any(tau < 0):
+            raise ValueError(
+                'Response time constants must be finite and nonnegative')
+        self._scalar_tau = float(tau) if tau.ndim == 0 else None
+        tau = np.broadcast_to(tau, self._applied.shape)
+        self._tau = xp.asarray(tau).copy() if self._scalar_tau is None else None
+        self._target = self._applied.copy()
+        self._generation = 0
+        self._token = object()
+        if maximum_slew_per_second is None:
+            self._slew = None
+        else:
+            if np.iscomplexobj(maximum_slew_per_second):
+                raise TypeError('Slew rates must be real')
+            slew = np.asarray(maximum_slew_per_second, dtype=float)
+            if np.any(np.isnan(slew)) or np.any(slew < 0):
+                raise ValueError('Slew rates must be nonnegative, in channel units/s')
+            slew = np.broadcast_to(slew, self._applied.shape)
+            self._slew = None if np.all(np.isinf(slew)) else xp.asarray(slew).copy()
+        # An unbounded zero-tau channel changes field at the delivery boundary.
+        instantaneous = tau == 0
+        if self._slew is not None:
+            instantaneous = (
+                instantaneous & np.isinf(slew)
+                if slew_mode == 'independent'
+                else np.zeros_like(instantaneous)
+            )
+        self._instantaneous = (
+            xp.asarray(instantaneous).copy() if np.any(instantaneous) else None
+        )
+
+    @property
+    def slew_mode(self):
+        """Return whether channels are slew-limited together or independently."""
+        return self._slew_mode
+
+    @property
+    def tau(self):
+        """Return time constants in seconds as a scalar or channel array."""
+        if self._scalar_tau is not None:
+            return self._scalar_tau
+        return self._tau.copy()
+
+    @property
+    def applied(self):
+        """Copy the physical field after the last committed boundary."""
+        return self._applied.copy()
+
+    @property
+    def target(self):
+        """Copy the command currently held by the actuator."""
+        return self._target.copy()
+
+    @property
+    def time_seconds(self):
+        """Return the time of the last committed boundary in seconds."""
+        return self._time
+
+    def preview(self, time_seconds, *, target=None):
+        """Preview the held target's response and a possible target change."""
+        time_seconds = _nonnegative_float(time_seconds, 'time_seconds')
+        dt = time_seconds - self._time
+        if dt < 0:
+            raise ValueError('Actuator time cannot move backwards')
+        xp = self.xp
+        applied, held = self._applied, self._target
+        # expm1 resolves short steps. The decaying tail resolves settling.
+        if self._scalar_tau == 0:
+            desired = held
+        elif self._scalar_tau is not None:
+            exponent = -dt / self._scalar_tau
+            if exponent > -1:
+                desired = applied - math.expm1(exponent) * (held - applied)
+            else:
+                desired = held + math.exp(exponent) * (applied - held)
+        else:
+            safe_tau = xp.where(self._tau > 0, self._tau, 1.0)
+            exponent = xp.where(self._tau > 0, -dt / safe_tau, -xp.inf)
+            difference = held - applied
+            desired = xp.where(
+                exponent > -1,
+                applied - xp.expm1(exponent) * difference,
+                held - xp.exp(exponent) * difference,
+            )
+        new_applied = desired
+        if self._slew is not None:
+            delta = desired - applied
+            magnitude = xp.abs(delta)
+            finite_rate = xp.where(xp.isinf(self._slew), 0.0, self._slew)
+            safe_magnitude = xp.where(magnitude > 0, magnitude, 1.0)
+            fractions = xp.minimum(finite_rate * dt, magnitude) / safe_magnitude
+            fractions = xp.where(
+                (magnitude == 0) | xp.isinf(self._slew), 1.0, fractions
+            )
+            # A common fraction preserves the direction of the increment.
+            fraction = (
+                xp.min(fractions) if self.slew_mode == 'coordinated' else fractions
+            )
+            new_applied = xp.where(fraction < 1, applied + fraction * delta,
+                                   desired)
+        new_target = (
+            self._target.copy()
+            if target is None
+            else xp.asarray(target, dtype=np.float64).copy()
+        )
+        if new_target.shape != self._target.shape:
+            raise ValueError('Actuator target shape changed')
+        if self._instantaneous is not None:
+            new_applied = xp.where(self._instantaneous, new_target, new_applied)
+        return ActuatorCandidate(
+            new_applied, new_target, time_seconds, self._generation, self._token
+        )
+
+    def commit(self, candidate):
+        """Accept a preview from this actuator's current generation."""
+        if (
+            candidate._owner is not self._token
+            or candidate.generation != self._generation
+            or candidate.time_seconds < self._time
+        ):
+            raise ValueError('Stale actuator candidate')
+        if (
+            candidate.applied.shape != self._applied.shape
+            or candidate.target.shape != self._target.shape
+        ):
+            raise ValueError('Actuator candidate shape changed')
+        # Prepare both copies before publishing the new state.
+        applied = candidate.applied.copy()
+        target = candidate.target.copy()
+        self._applied, self._target = applied, target
+        self._time = candidate.time_seconds
+        self._generation += 1
+
+    def advance(self, time_seconds):
+        """Advance and return the field with the target held fixed."""
+        candidate = self.preview(time_seconds)
+        self.commit(candidate)
+        return self.applied
+
+    def set_target(self, target, *, time_seconds=None):
+        """Deliver a new target at the specified boundary and return the field."""
+        candidate = self.preview(
+            self._time if time_seconds is None else time_seconds, target=target
+        )
+        self.commit(candidate)
+        return self.applied
