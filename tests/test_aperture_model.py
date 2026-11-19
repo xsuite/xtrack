@@ -87,8 +87,8 @@ class Aperture(LineAperture):
             self.survey, line, context=self.context)
         if not skip_check:
             self._check_model_validity()
-        self._build_aperture_bounds(
-            check_validity=not skip_check,
+        self._refresh_geometry(
+            force=True, check_validity=not skip_check,
             with_progress=kwargs.get('with_progress', True),
         )
 
@@ -562,6 +562,9 @@ def test_zigzag_iterator_wrap_and_bounds(test_context):
     zigzag_test_kernel(start=4, upper_bound=5, wrap=1, out=out, len_out=len(out))
     assert all(out == [4, 0, 3, 1, 2])
 
+    zigzag_test_kernel(start=4, upper_bound=5, wrap=0, out=out, len_out=len(out))
+    assert all(out == [4, 3, 2, 1, 0])
+
     zigzag_test_kernel(start=2, upper_bound=5, wrap=0, out=out, len_out=len(out))
     assert all(out == [2, 3, 1, 4, 0])
 
@@ -740,7 +743,7 @@ def test_aperture_model_views(test_context):
     assert list(name for name, _ in profiles.items()) == ['circ0', 'rect0']
     assert list(type(profile.raw.shape).__name__ for profile in [profiles[0], profiles[1]]) == ['Circle', 'Rectangle']
     assert [profile.name for profile in profiles.values()] == ['circ0', 'rect0']
-    assert [type(profile.shape).__name__ for profile in profiles.values()] == ['Circle', 'Rectangle']
+    assert [profile.shape.__class__.__name__ for profile in profiles.values()] == ['Circle', 'Rectangle']
 
     xo.assert_allclose(positions[1].tol_r, 0.1, atol=1e-15, rtol=0)
     xo.assert_allclose(positions[1].tol_x, 0.2, atol=1e-15, rtol=0)
@@ -840,7 +843,11 @@ def test_aperture_model_views(test_context):
 
 
 def test_get_limit_elements(monkeypatch):
-    ap = Aperture.__new__(Aperture)
+    env = xt.Environment()
+    line = env.new_line(components=[env.new('d', 'Drift', length=4.)])
+    profile = env.aperture.new_profile('profile', 'Circle', radius=1.)
+    line.aperture.new_element_pipe('d', profile)
+    ap = line.aperture
     cross_sections = np.array(
         [
             [[0.0, 0.0], [1.0, 0.0], [0.0, 1.0], [0.0, 0.0]],
@@ -857,7 +864,7 @@ def test_get_limit_elements(monkeypatch):
     )
     monkeypatch.setattr(ap, 'get_cross_sections_at_s', lambda s_positions: table)
 
-    out = ap.get_limit_elements_at_s([1.5, 3.5])
+    out = ap.get_limit_elements_at_s([1.5, 3.5], prefer_native=False)
 
     assert list(out) == [1.5, 3.5]
     assert all(isinstance(value, xt.LimitPolygon) for value in out.values())
@@ -970,6 +977,17 @@ def test_get_pipe_table_handles_regular_and_wrapped_pipes(test_context):
     xo.assert_allclose(wrapped.span, 7.97542, atol=5e-4, rtol=0)
     assert wrapped.s_start > wrapped.s_end
     assert wrapped.s_span_start > wrapped.s_span_end
+
+
+@requires_context('ContextCpu')
+def test_installed_pipe_names_at_ring_transitions():
+    line, model = _make_pipe_table_test_ring(
+        xo.ContextCpu(), extra_pipe_positions=[('pipe_before_regular', 'bend::0', 0.)])
+    ap = Aperture(line, model, _skip_validity_check=True)
+    # One overlap crosses the ring seam. The gap at 50 m joins two other pipes.
+    limits = ap.get_limit_elements_at_s([1., 50.])
+    assert limits[1.].installed_pipe_name == 'pipe_wrapped,pipe_before_regular'
+    assert limits[50.].installed_pipe_name == 'pipe_regular,pipe_wrapped'
 
 
 @for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))

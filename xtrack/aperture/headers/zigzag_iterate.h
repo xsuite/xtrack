@@ -102,9 +102,9 @@ static inline uint8_t zigzag_iterator_next_bounded(ZigZagIterator* iter)
     int32_t prev_index = iter->index;
 
     if (iter->offset == 0) {
-        /* Initial condition */
-        iter->offset++;
-        iter->index++;
+        /* At the last segment only the upstream half of the search exists. */
+        iter->offset = iter->index + 1 < iter->upper_bound ? 1 : -1;
+        iter->index += iter->offset;
     }
     else if (iter->offset > 0) {
         /* Positive side -> negative side */

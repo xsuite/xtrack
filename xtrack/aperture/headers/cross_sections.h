@@ -29,7 +29,8 @@ void build_aperture_bounds(
     const ApertureEnvStruct,
     const ProfilePolygons,
     const ApertureBounds,
-    const SurveyData survey);
+    const SurveyData survey,
+    const int8_t* bounds_mask);
 int64_t cross_section_at_s(
     const SurveyData survey_at_s,
     const uint32_t idx_cross_section,
@@ -126,7 +127,8 @@ void build_aperture_bounds(
     const ApertureEnvStruct aperture_env,
     const ProfilePolygons profile_polygons,
     const ApertureBounds aperture_bounds,
-    const SurveyData survey
+    const SurveyData survey,
+    const int8_t* bounds_mask
 )
     /*
       Based on the aperture model and cross section location data, generate
@@ -143,6 +145,7 @@ void build_aperture_bounds(
      */
     for (uint32_t idx = 0; idx < num_cross_sections; idx++)
     {
+        if (bounds_mask != NULL && !bounds_mask[idx]) continue;
         const uint32_t pipe_pos_idx = ApertureBounds_get_pipe_position_indices(aperture_bounds, idx);
         const uint32_t profile_pos_idx = ApertureBounds_get_profile_position_indices(aperture_bounds, idx);
 
@@ -992,7 +995,11 @@ static inline float_type survey_s_for_aperture(
     float_type found_s = NAN;
     float_type last_t_right = NAN;
     float_type last_t_left = NAN;
-    ZigZagIterator it = zigzag_iterator_new(survey_idx, num_survey_entries - 1, wrap);
+    /* The final survey row is an endpoint. Start from its preceding segment.
+       Keep this seed for the footprint search if the profile centre misses the survey. */
+    const uint32_t start_idx = survey_idx < num_survey_entries - 1 ? survey_idx : num_survey_entries - 2;
+    *found_survey_index = start_idx;
+    ZigZagIterator it = zigzag_iterator_new(start_idx, num_survey_entries - 1, wrap);
     do
     {
         Segment3D segment = survey_segment(survey, it.index);
