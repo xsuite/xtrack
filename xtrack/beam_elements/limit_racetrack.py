@@ -5,10 +5,10 @@
 
 from ..base_element import BeamElement
 import xobjects as xo
-from ._aperture_common import UNLIMITED
+from ._aperture_common import UNLIMITED, _InstalledPipeName
 
 
-class LimitRacetrack(BeamElement):
+class LimitRacetrack(_InstalledPipeName, BeamElement):
     """
     Beam element modeling a racetrack aperture limit.
 

@@ -1866,17 +1866,39 @@ class LineAperture:
         """
         return self.get_cross_sections_at_s(s_positions, extents=True, polygons=False)
 
+    def _pipe_candidates_at_s(self, positions):
+        """Yield model placement indices whose projected footprints contain each cut."""
+        table = self.get_pipe_table()
+        model_indices = {name: i for i, name in enumerate(self._model.pipe_position_names)}
+        indices = np.array([model_indices[name] for name in table.name], dtype=int)
+        starts, ends = table.s_span_start, table.s_span_end
+        tol = 1e-10
+        for s in positions:
+            if self._aperture_bounds.count == 1:
+                # The section kernel projects the only bound onto any requested plane.
+                yield [int(self._aperture_bounds.pipe_position_indices[0])]
+                continue
+            inside = (starts - tol <= s) & (s <= ends + tol)
+            if self.is_ring:
+                inside |= ((starts > ends) & ((s >= starts - tol) | (s <= ends + tol)))
+            yield list(indices[inside])
+
     @doc_group("Aperture Computation")
     def get_limit_elements_at_s(self, s_positions: list[float]) -> dict[float, LimitElement]:
-        """Obtain interpolated cross-sections as limit beam elements."""
+        """Return sampled polygon limits. A unique covering pipe placement supplies
+        the limit's installed_pipe_name. Gaps and overlapping pipes give None.
+        """
         cross_sections_table = self.get_cross_sections_at_s(s_positions)
         limit_elements = {}
-        for s, row in zip(s_positions, cross_sections_table.rows):
+        candidates = self._pipe_candidates_at_s(s_positions)
+        for s, row, pipes in zip(s_positions, cross_sections_table.rows, candidates):
             cross_section = row.cross_section
             limit_poly = LimitPolygon(
                 x_vertices=cross_section[:-1, 0],
                 y_vertices=cross_section[:-1, 1],
             )
+            if len(pipes) == 1:
+                limit_poly.installed_pipe_name = self._model.pipe_position_names[pipes[0]]
             limit_elements[s] = limit_poly
 
         return limit_elements
