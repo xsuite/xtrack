@@ -509,7 +509,7 @@ class ProfilePosition(xo.Struct):
         return f'ProfilePosition({params}{_nonzero_tolerances_repr(self)})'
 
     def copy(self):
-        return ProfilePosition(
+        out = ProfilePosition(
             profile_index=self.profile_index,
             shift_s=self.shift_s,
             shift_x=self.shift_x,
@@ -521,6 +521,9 @@ class ProfilePosition(xo.Struct):
             tol_x=self.tol_x,
             tol_y=self.tol_y,
         )
+        if hasattr(self, '_expressions'):
+            out._expressions = self._expressions.copy()
+        return out
 
 
 class Pipe(xo.Struct):
@@ -862,6 +865,7 @@ class LineApertureModel(xo.Struct):
                 xo.Arg(ProfilePolygons, name='profile_polygons'),
                 xo.Arg(ApertureBounds, name='aperture_bounds'),
                 xo.Arg(SurveyData, name='survey'),
+                xo.Arg(xo.Int8, pointer=True, name='bounds_mask'),
             ],
         ),
         'cross_sections_at_s': xo.Kernel(
@@ -1051,11 +1055,11 @@ class LineApertureModel(xo.Struct):
     def from_dict(cls, src: dict, context: XContext = None) -> 'LineApertureModel':
         return cls(**src, _context=context)
 
-    def build_aperture_bounds(self, aperture_env=None, **kwargs) -> None:
+    def build_aperture_bounds(self, aperture_env=None, bounds_mask=None, **kwargs) -> None:
         aperture_env = aperture_env or self._aperture_env
         self.compile_kernels(only_if_needed=True)
         self._context.kernels.build_aperture_bounds(
-            model=self, aperture_env=aperture_env, **kwargs)
+            model=self, aperture_env=aperture_env, bounds_mask=bounds_mask, **kwargs)
 
     def cross_sections_at_s(
         self,
