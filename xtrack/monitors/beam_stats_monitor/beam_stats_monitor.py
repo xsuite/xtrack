@@ -485,7 +485,7 @@ class BeamStatsMonitor(BeamElement):
         data = {}
         for field in self._RAW_FIELDS:
             size = flat_size if field in needed_fields else 0
-            data[field] = size
+            data[field] = np.zeros(size)
 
         profile_config = _validate_profiles(profiles)
         profile_offsets = []
@@ -531,7 +531,7 @@ class BeamStatsMonitor(BeamElement):
             _filled_slots=filled_slots,
             _slot_to_selected=slot_to_selected,
             data=data,
-            touched_records={'value': num_records},
+            touched_records={'value': np.zeros(num_records, dtype=np.int64)},
             _profile_data=profile_data,
             **kwargs)
 

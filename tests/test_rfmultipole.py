@@ -24,7 +24,7 @@ def test_rfmultipole_kicks_and_symplecticity(
                       charge_ratio=charge_ratio, mass_ratio=mass_ratio,
                       x=0.13, y=-0.09, px=1e-4, py=-2e-4,
                       zeta=0.05, delta=1e-3)
-    beta0 = float(p0.beta0[0])
+    beta0 = test_context.nparray_from_context_array(p0.beta0)[0]
     chi = charge_ratio / mass_ratio
     k = 2 * np.pi * element.frequency / c
     w = 0.13 - 0.09j
