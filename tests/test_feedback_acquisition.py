@@ -417,17 +417,36 @@ def test_monitor_reduces_moments_before_taking_mean(test_context, sandbox_cwd):
 def test_controller_uses_bound_monitor_with_optional_custom_drive(
     test_context, sandbox_cwd, custom_drive,
 ):
-    """Pair a custom drive with the pickup from the same traversal."""
-    tracked = track_monitor(test_context)
+    """Pair the angle at the BPM with the dipole kick that produced it."""
+    # The final setting is written for the next turn and never transported.
+    kicks = [7e-6, -4e-6, 11e-6]
+    initial_py = 1e-6
+    tracked = xt.Line(
+        elements=[
+            xt.Multipole(ksl=[0.0]),
+            xt.BeamStatsMonitor(
+                _context=test_context, stop_at_turn=2, stats=['mean_py'],
+            ),
+            xt.Drift(length=1.0),
+        ],
+        element_names=['exciter', 'bpm', 'drift'],
+    )
+    tracked['drive_rad'] = kicks[0]
+    tracked.ref['exciter'].ksl[0] = tracked.ref['drive_rad']
+    tracked.build_tracker(_context=test_context, use_prebuilt_kernels=False)
+    particles = xt.Particles(_context=test_context, p0c=45.6e9, py=initial_py)
     xp = test_context.nplike_lib
-    acquisition = Acquisition.from_monitor(tracked.get('bpm'), {'y': 'mean_y'})
+    bpm = tracked.get('bpm')
+    acquisition = Acquisition.from_monitor(bpm, {'angle': 'mean_py'})
+    recorded_kicks = []
     explicit = {}
     if custom_drive:
 
         def read_drive(turn, *, completed_turn):
             assert completed_turn == turn + 1
             return SimpleNamespace(
-                value=xp.asarray(7.0 + turn), valid=True, record_index=turn
+                value=xp.asarray(recorded_kicks[turn]),
+                valid=True, record_index=turn,
             )
 
         explicit['drive'] = SimpleNamespace(
@@ -435,7 +454,7 @@ def test_controller_uses_bound_monitor_with_optional_custom_drive(
         )
 
     def program(inputs):
-        command = inputs['y'] + inputs.get('drive', 0.0) * 1e-6
+        command = inputs['angle'] - inputs.get('drive', 0.0)
         return {'outputs': {'command': command}}
 
     tracked['command'] = 0.0
@@ -447,10 +466,18 @@ def test_controller_uses_bound_monitor_with_optional_custom_drive(
         output=KnobOutput(tracked, 'command'),
     )
     system = FeedbackSystem([controller], lines=[tracked])
-    system.step(1, 0.1)
-    assert tracked['command'] == pytest.approx(8e-6 if custom_drive else 1e-6)
-    system.step(2, 0.2)
-    assert tracked['command'] == pytest.approx(11e-6 if custom_drive else 3e-6)
+    angle = initial_py
+    for turn, kick in enumerate(kicks[:-1]):
+        tracked.track(particles, num_turns=1)
+        recorded_kicks.append(float(tracked.get('exciter').ksl[0]))
+        # Prepare the next kick while the completed BPM record is still current.
+        tracked['drive_rad'] = kicks[turn + 1]
+        system.step(turn + 1, float(particles.time_s))
+
+        angle += kick
+        assert bpm.mean_py[turn] == pytest.approx(angle, abs=1e-15)
+        expected = angle - kick if custom_drive else angle
+        assert tracked['command'] == pytest.approx(expected, abs=1e-15)
 
 
 @for_all_test_contexts(excluding=('ContextPyopencl',))
