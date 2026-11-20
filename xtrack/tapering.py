@@ -105,20 +105,21 @@ def compensate_radiation_energy_loss(line, delta0='zero_mean', rtol_eneloss=1e-1
             mon = line.record_last_track
             if np.any(mon.state[0] <= 0):
                 raise RuntimeError('Particle lost while estimating radiation energy loss')
-            loss = -(mon.ptau[0, -1] - mon.ptau[0, 0]) * p0c
+            current_total_energy_loss = -(mon.ptau[0, -1] - mon.ptau[0, 0]) * p0c
             if not np.any(cav_active) or voltage.sum() == 0:
-                if abs(loss) < energy_tol:
+                if abs(current_total_energy_loss) < energy_tol:
                     if verbose: _print('  - No compensation needed')
                     return
                 raise ValueError('Energy compensation requires nonzero total RF voltage')
             # Share the loss in proportion to cavity voltage. Choose the stable
             # phase above transition and account for arrival time at each cavity.
             partition = voltage / voltage.sum()
-            gain_ratio = loss * partition[cav_active] / voltage[cav_active]
-            if np.any(np.abs(gain_ratio) >= 1):
+            initial_energy_voltage_ratio = (
+                current_total_energy_loss * partition[cav_active] / voltage[cav_active])
+            if np.any(np.abs(initial_energy_voltage_ratio) >= 1):
                 raise ValueError('Insufficient RF voltage to compensate radiation energy loss')
             phase = phase_original.copy()
-            phase[cav_active] = (np.pi - np.arcsin(gain_ratio)
+            phase[cav_active] = (np.pi - np.arcsin(initial_energy_voltage_ratio)
                              + wave_number[cav_active] * mon.zeta[0, :-1][cavity_mask][cav_active]
                              - base_phase[cav_active])
             phase_setter.set_values(phase)
@@ -147,20 +148,18 @@ def compensate_radiation_energy_loss(line, delta0='zero_mean', rtol_eneloss=1e-1
                 # Measure the actual cavity gains and the loss elsewhere in the
                 # ring, then compute the requested gain for each cavity.
                 energy_change = np.diff(mon.ptau[0]) * p0c
-                gain = energy_change[cavity_mask]
-                loss = -energy_change[~cavity_mask].sum()
-                target_gain = loss * partition
+                current_rf_energy_gain = energy_change[cavity_mask]
+                current_total_energy_loss = -energy_change[~cavity_mask].sum()
+                target_rf_energy_gain = current_total_energy_loss * partition
                 delta_mean = xt.twiss.trapz(mon.delta[0], mon.s[0]) / line_length
-                energy_error = energy_change.sum()
-                sharing_error = np.max(np.abs(gain - target_gain))
+                energy_error = (mon.ptau[0, -1] - mon.ptau[0, 0]) * p0c
+                sharing_error = np.max(np.abs(current_rf_energy_gain - target_rf_energy_gain))
                 # Use the average entrance/exit delta for each magnet's taper.
                 target_taper = (0.5 * (mon.delta[0, :-1] + mon.delta[0, 1:]))[delta_taper_mask]
                 taper_error = 0.
                 if not taper_all and np.any(selected):
                     taper_error = np.max(np.abs(target_taper[selected] - delta_taper[selected]))
-                # Energy closure alone is insufficient: a 5D search already
-                # enforces it. Also check RF sharing, selected magnet tapers,
-                # and the mean momentum when zero_mean was requested.
+
                 converged = (abs(energy_error) < energy_tol
                              and sharing_error < energy_tol
                              and taper_error < rtol_eneloss
@@ -173,11 +172,13 @@ def compensate_radiation_energy_loss(line, delta0='zero_mean', rtol_eneloss=1e-1
                 # the stable RF branch above transition.
                 phase[cav_active] -= wave_number[cav_active] * particle_on_co.zeta[0]
                 if not converged:
-                    target_ratio = target_gain[cav_active] / voltage[cav_active]
-                    if np.any(np.abs(target_ratio) >= 1):
+                    target_energy_voltage_ratio = target_rf_energy_gain[cav_active] / voltage[cav_active]
+                    if np.any(np.abs(target_energy_voltage_ratio) >= 1):
                         raise ValueError('Insufficient RF voltage to compensate radiation energy loss')
-                    actual_ratio = np.clip(gain[cav_active] / voltage[cav_active], -1, 1)
-                    phase[cav_active] += np.arcsin(actual_ratio) - np.arcsin(target_ratio)
+                    current_energy_voltage_ratio = np.clip(
+                        current_rf_energy_gain[cav_active] / voltage[cav_active], -1, 1)
+                    phase[cav_active] += (np.arcsin(current_energy_voltage_ratio)
+                                         - np.arcsin(target_energy_voltage_ratio))
                 phase_setter.set_values(phase)
                 if converged:
                     if taper_all:
