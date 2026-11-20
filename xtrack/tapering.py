@@ -159,6 +159,12 @@ def compensate_radiation_energy_loss(line, delta0='zero_mean', rtol_eneloss=1e-1
                 taper_error = 0.
                 if not taper_all and np.any(selected):
                     taper_error = np.max(np.abs(target_taper[selected] - delta_taper[selected]))
+                # Check the change before storing the new taper. Unselected
+                # magnets keep their values; automatic tapering overrides these
+                # stored values during tracking when taper_all is True.
+                if np.any(selected):
+                    delta_taper[selected] = target_taper[selected]
+                    delta_taper_setter.set_values(delta_taper)
 
                 converged = (abs(energy_error) < energy_tol
                              and sharing_error < energy_tol
@@ -181,17 +187,8 @@ def compensate_radiation_energy_loss(line, delta0='zero_mean', rtol_eneloss=1e-1
                     phase_taper[cav_active] += phase_target - phase_current
                 phase_setter.set_values(phase_taper)
                 if converged:
-                    if taper_all:
-                        # Store the taper inferred with the automatic flag active
-                        # so that subsequent tracking uses fixed magnet settings.
-                        delta_taper_setter.set_values(target_taper)
                     return
 
-                # For selective tapering, update only the chosen magnets before
-                # finding the next orbit. Unselected values remain unchanged.
-                if not taper_all and np.any(selected):
-                    delta_taper[selected] = target_taper[selected]
-                    delta_taper_setter.set_values(delta_taper)
                 if zero_mean:
                     # Shift the starting momentum to remove the measured mean.
                     delta_start -= delta_mean
