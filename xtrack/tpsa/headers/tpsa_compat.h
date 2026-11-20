@@ -17,7 +17,7 @@ GPUFUN int xt_float_or_tpsa_is_zero(xt_float_or_tpsa_arg value){
 }
 
 // Decode a scalar FloatOrTpsa slot stored as raw uint64_t bits.
-static inline double xt_float_or_tpsa_bits_to_double(uint64_t bits){
+GPUFUN double xt_float_or_tpsa_bits_to_double(uint64_t bits){
     union { uint64_t u; double d; } value;
     value.u = bits;
     return value.d;
@@ -34,7 +34,7 @@ typedef struct xt_float_or_tpsa_tpsa_ {
 } xt_float_or_tpsa_tpsa_t;
 
 // Read a FloatOrTpsa slot as a scalar, truncating TPSA slots to coef[0].
-static inline double xt_float_or_tpsa_get_double(uint64_t bits, uint8_t enabled){
+GPUFUN double xt_float_or_tpsa_get_double(uint64_t bits, uint8_t enabled){
     if (enabled) {
         return ((xt_float_or_tpsa_tpsa_t*)bits)->coef[0];
     }
