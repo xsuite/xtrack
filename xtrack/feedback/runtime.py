@@ -25,11 +25,12 @@ from weakref import ref
 import numpy as np
 import xobjects as xo
 
+from .acquisition import Acquisition, _callback_configuration, _validity
+from .readout import _TurnMonitorSource
 from .timing import (
     CommandQueue, DeadlineSchedule, FirstOrderActuator, _CalculationTiming,
     _nonnegative_float, _reached,
 )
-from .acquisition import Acquisition, _callback_configuration, _validity
 
 
 _ARGUMENTS = {'inputs', 'parameters', 'previous', 'constants', 'event', 'xp'}
@@ -167,7 +168,8 @@ class FeedbackController:
     initial_time_seconds : float, optional
         Initial actuator time on the direct system clock. Set this to the
         run's starting timestamp when using direct boundaries at a nonzero
-        epoch. Placed tracking supplies its own clock.
+        epoch. Use the default zero with a bound shared boundary, which
+        models delivery and actuator response on its elapsed clock.
     log_capacity : int, optional
         Maximum number of retained boundary log entries.
     acquisition : Acquisition, optional
@@ -704,6 +706,35 @@ class FeedbackSystem:
     def controllers(self):
         """Controllers bound to this transaction."""
         return self._controllers
+
+    def _bind_turn_clock(self, clock):
+        """Set the fixed-period clock before the first shared traversal."""
+        if (self._turn_clock is not None or self._completed_turn is not None
+                or self._busy or self._failure is not None):
+            raise ValueError('Bind a fresh feedback system to the turn clock')
+        if any(c.actuator.time_seconds != 0 or c.queue
+               for c in self.controllers):
+            raise ValueError('Bound feedback must start at zero elapsed time')
+        self._turn_clock = clock
+
+    def _validate_source_windows(self, start_turn, stop_turn):
+        """Protect the upcoming native records used by a shared system."""
+        self._check_sources()
+        for controller in self.controllers:
+            acquisition = controller.acquisition
+            first, last, stride = start_turn, stop_turn - 1, 1
+            if acquisition is not None:
+                acquisition._check_configuration()
+                origin = acquisition.first_sample_turn - 1
+                stride = acquisition.sample_turns
+                first = max(first, origin)
+                first += (origin - first) % stride
+                last -= (last - origin) % stride
+            if last < first:
+                continue
+            for source in controller.sources.values():
+                if isinstance(source, _TurnMonitorSource):
+                    source.validate_window(first, last + 1, sample_turns=stride)
 
     @staticmethod
     def _same_element(first, second):
