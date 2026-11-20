@@ -17,6 +17,10 @@ Load an independent nominal machine with `env = xt.load(path_to_lattice)` and
 select `env['demo']`. Each load owns independent elements and variables, with
 the stored strengths applied directly. Loading does not run a matching solve.
 
+Example 002 in the [feedback examples](../../../examples/feedback/README.md)
+loads this nominal ring, adds two pickups and measures the response of the
+two selected correctors.
+
 The model has six 160 m arcs and six 90 m straights. One straight contains the
 low-beta IP; the others contain symmetric utility optics. Reference particles
 are electrons with `p0c=1e9 eV`. The 1.5 km ring has tunes approximately
