@@ -192,6 +192,9 @@ class Tracker:
             parts.append(this_part)
             part_names.append(f'part_{i_part}_non_collective')
 
+        if self.iscollective:
+            line.feedback._check_placement(parts)
+
         # Build drifts to replace non-collective elements
         noncollective_xelements = []
         for ii, pp in enumerate(parts):
@@ -1426,6 +1429,11 @@ class Tracker:
         if ele_start is None:
             ele_start = 0
 
+        feedback = getattr(self.line, '_feedback_execution', None)
+        if feedback is not None and _session_to_resume is not None:
+            raise NotImplementedError(
+                'Placed feedback cannot resume a native pipeline hold')
+
         if self._sync_time_controller is not None:
             if (ele_start != 0 or ele_stop is not None or num_elements is not None
                     or _session_to_resume is not None or self._enable_pipeline_hold
@@ -1487,6 +1495,8 @@ class Tracker:
                 ) = self._prepare_collective_track_session(
                                 particles, ele_start, ele_stop,
                                 num_elements, num_turns, turn_by_turn_monitor)
+            if feedback is not None:
+                feedback.bind_runtime(particles)
             tt_resume = None
             ipp_resume = None
 
@@ -1546,6 +1556,12 @@ class Tracker:
 
                 if returned_by_track is not None:
                     if returned_by_track.on_hold:
+
+                        if feedback is not None:
+                            error = NotImplementedError(
+                                'Placed feedback cannot resume a native pipeline hold')
+                            feedback.failure = error
+                            raise error
 
                         assert self.enable_pipeline_hold, (
                             "Hold session not enabled for this tracker.")

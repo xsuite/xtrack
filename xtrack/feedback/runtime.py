@@ -454,7 +454,9 @@ class FeedbackController:
             raise
         return memory, requested, diagnostics
 
-    def _preview(self, completed_turn, time_seconds, model_time_seconds):
+    def _preview(
+        self, completed_turn, time_seconds, model_time_seconds, clock_origin,
+    ):
         """Stage completed measurements, one calculation and hardware response."""
         xp = self.xp
         history = {
@@ -515,8 +517,11 @@ class FeedbackController:
             and bool(history)
             and all(len(values) == self.history_length for values in history.values())
         )
+        # Default grids start at the run origin. Explicit phases stay absolute.
+        absolute_phase = self.schedule._explicit_first_deadline
+        schedule_time = time_seconds if absolute_phase else model_time_seconds
         event = self.schedule.peek(
-            time_seconds=time_seconds, reference_turns=completed_turn,
+            time_seconds=schedule_time, reference_turns=completed_turn,
         )
         execute = self.enabled and ready and event is not None
         queue = self.queue.copy()
@@ -553,14 +558,17 @@ class FeedbackController:
                 0.0 if self._last_calculation_time is None
                 else model_time_seconds - self._last_calculation_time
             )
+            nominal_time = event.nominal_time_seconds
+            if nominal_time is not None and not absolute_phase:
+                nominal_time += clock_origin
             event_values = asdict(event)
+            event_values['nominal_time_seconds'] = nominal_time
             event_values.update(_CalculationTiming(
                 completed_turn=completed_turn,
                 time_seconds=time_seconds,
                 dt_seconds=dt_seconds,
             ))
             event_values['pending_count'] = len(pending)
-            clock_origin = time_seconds - model_time_seconds
             event_values['pending_ready_times_seconds'] = tuple(
                 clock_origin + command.ready_time_seconds for command in pending
             )
@@ -609,7 +617,7 @@ class FeedbackController:
             entry.update(
                 sequence_index=event.sequence_index,
                 dt_seconds=dt_seconds,
-                nominal_time_seconds=event.nominal_time_seconds,
+                nominal_time_seconds=nominal_time,
                 nominal_reference_turns=event.nominal_reference_turns,
                 missed_deadlines=event.missed_deadlines,
             )
@@ -786,21 +794,23 @@ class FeedbackSystem:
             self._check_sources()
             self._check_ownership()
             self._check_applied_outputs()
+            first_turn = completed_turn - 1
             model_time_seconds = time_seconds
+            clock_origin = 0.0
             if self._turn_clock is not None:
-                # Keep delays and actuator intervals independent of the epoch.
-                first_turn, epoch_time, period = self._turn_clock
+                # Compare relative intervals without the large absolute epoch.
+                first_turn, clock_origin, period = self._turn_clock
                 model_time_seconds = (completed_turn - first_turn) * period
             if self._completed_turn is None:
                 for controller in self.controllers:
-                    if self._turn_clock is None:
-                        first_turn = completed_turn - 1
-                        epoch_time = controller.actuator.time_seconds
                     controller.schedule._start_at(
-                        reference_turns=first_turn, time_seconds=epoch_time,
+                        reference_turns=first_turn,
+                        time_seconds=controller.actuator.time_seconds,
                     )
             candidates = [
-                c._preview(completed_turn, time_seconds, model_time_seconds)
+                c._preview(
+                    completed_turn, time_seconds, model_time_seconds, clock_origin,
+                )
                 for c in self.controllers
             ]
             self._check_sources()
