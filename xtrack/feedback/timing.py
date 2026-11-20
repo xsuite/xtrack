@@ -10,6 +10,7 @@ import heapq
 import math
 import numbers
 import operator
+from typing import TypedDict
 
 import numpy as np
 
@@ -56,6 +57,19 @@ class ScheduleEvent:
     nominal_time_seconds: float | None
     nominal_reference_turns: float | None
     missed_deadlines: int
+
+
+class _CalculationTiming(TypedDict):
+    """Clock values at the completed boundary where a calculation runs.
+
+    ``dt_seconds`` is zero on the first calculation and thereafter measures
+    elapsed time since the previous calculation. ``time_seconds`` is absolute
+    tracking time. ``completed_turn`` counts finished reference turns.
+    """
+
+    dt_seconds: float
+    time_seconds: float
+    completed_turn: int
 
 
 class DeadlineSchedule:
