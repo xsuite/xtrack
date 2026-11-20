@@ -92,6 +92,7 @@ class DeadlineSchedule:
         if missed_policy not in ('coalesce', 'raise'):
             raise ValueError('Unknown missed-deadline policy')
         self._turn_based = update_turns is not None
+        self._explicit_first_deadline = first_turn is not None or first_time is not None
         if self._turn_based:
             if (
                 not isinstance(update_turns, numbers.Integral)
@@ -126,6 +127,12 @@ class DeadlineSchedule:
     def next_deadline(self):
         """Next nominal deadline in seconds or reference turns, as configured."""
         return self._origin + self._next_index * self._period
+
+    def _start_at(self, *, reference_turns, time_seconds):
+        """Place the default first deadline one interval after the run starts."""
+        if not self._explicit_first_deadline:
+            start = reference_turns if self._turn_based else time_seconds
+            self._origin = start + self._period
 
     def peek(self, *, time_seconds, reference_turns):
         """Preview a due update without advancing the schedule.

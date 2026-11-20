@@ -112,6 +112,11 @@ class _TurnMonitorSource:
         """Return the spacing between recorded turns."""
         return self._record_stride
 
+    @property
+    def first_record_turn(self):
+        """Return the native turn index of the first record."""
+        return self._frame[0]
+
     def validate_binding(self):
         """Verify that the bound frame and cached storage are still current."""
         monitor = self.monitor

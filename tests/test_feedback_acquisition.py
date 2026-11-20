@@ -3,7 +3,7 @@
 # Copyright (c) CERN, 2026.                 #
 # ######################################### #
 
-from types import MappingProxyType
+from types import MappingProxyType, SimpleNamespace
 
 import numpy as np
 import pytest
@@ -14,7 +14,9 @@ from xobjects.test_helpers import (
 )
 
 import xtrack as xt
-from xtrack.feedback import Acquisition
+from xtrack.feedback import (
+    Acquisition, FeedbackController, FeedbackSystem, KnobOutput,
+)
 
 
 def weighted_bpm(inputs, xp):
@@ -407,6 +409,92 @@ def test_monitor_reduces_moments_before_taking_mean(test_context, sandbox_cwd):
         raw_at(declared_sum, 1), completed_turn=2, time_seconds=0.2,
     )
     assert_allclose(to_host(result.samples['y']), 4e-6, rtol=1e-14)
+
+
+@pytest.mark.parametrize('custom_drive', [False, True])
+@for_all_test_contexts(excluding=('ContextPyopencl',))
+@allow_kernel_compilation
+def test_controller_uses_bound_monitor_with_optional_custom_drive(
+    test_context, sandbox_cwd, custom_drive,
+):
+    """Pair a custom drive with the pickup from the same traversal."""
+    tracked = track_monitor(test_context)
+    xp = test_context.nplike_lib
+    acquisition = Acquisition.from_monitor(tracked.get('bpm'), {'y': 'mean_y'})
+    explicit = {}
+    if custom_drive:
+
+        def read_drive(turn, *, completed_turn):
+            assert completed_turn == turn + 1
+            return SimpleNamespace(
+                value=xp.asarray(7.0 + turn), valid=True, record_index=turn
+            )
+
+        explicit['drive'] = SimpleNamespace(
+            context=test_context, read_record=read_drive
+        )
+
+    def program(inputs):
+        command = inputs['y'] + inputs.get('drive', 0.0) * 1e-6
+        return {'outputs': {'command': command}}
+
+    tracked['command'] = 0.0
+    controller = FeedbackController(
+        'bound_monitor',
+        acquisition=acquisition,
+        sources=explicit,
+        program=program,
+        output=KnobOutput(tracked, 'command'),
+    )
+    system = FeedbackSystem([controller], lines=[tracked])
+    system.step(1, 0.1)
+    assert tracked['command'] == pytest.approx(8e-6 if custom_drive else 1e-6)
+    system.step(2, 0.2)
+    assert tracked['command'] == pytest.approx(11e-6 if custom_drive else 3e-6)
+
+
+@for_all_test_contexts(excluding=('ContextPyopencl',))
+@allow_kernel_compilation
+def test_controller_delivers_between_strided_monitor_records(test_context, sandbox_cwd):
+    """Read even completed turns and deliver one turn later between records."""
+    bpm = xt.BeamStatsMonitor(
+        _context=test_context, start_at_turn=1, stop_at_turn=6,
+        every_n_turns=2, stats=['mean_y'],
+    )
+    line = xt.Line(elements=[bpm, xt.Drift(length=1.0)])
+    line.build_tracker(_context=test_context, use_prebuilt_kernels=False)
+    particles = xt.Particles(_context=test_context, p0c=45.6e9)
+    for turn in range(1, 7):
+        particles.y[:] = turn * 1e-6
+        line.track(particles, num_turns=1)
+    line['trim'] = 0.0
+    output = KnobOutput(line, 'trim')
+
+    def program(inputs):
+        return {'outputs': {'command': -inputs['y']}}
+
+    misaligned = Acquisition.from_monitor(
+        bpm, {'y': 'mean_y'}, sample_turns=2, first_sample_turn=1,
+    )
+    with pytest.raises(ValueError, match='cadence must align'):
+        FeedbackController('orbit', acquisition=misaligned,
+                           program=program, output=output)
+
+    aligned = Acquisition.from_monitor(
+        bpm, {'y': 'mean_y'}, sample_turns=2, first_sample_turn=2,
+    )
+    controller = FeedbackController(
+        'orbit', acquisition=aligned, program=program, output=output,
+        update_turns=2, command_delay_seconds=0.5,
+    )
+    system = FeedbackSystem([controller], lines=[line])
+    applied, published = [], []
+    for turn in range(1, 7):
+        entry = system.step(turn, float(turn))[0]
+        applied.append(line['trim'])
+        published.append(entry['acquisition_published'])
+    assert_allclose(applied, [0, 0, -2e-6, -2e-6, -4e-6, -4e-6], atol=1e-18)
+    assert published == [False, True, False, True, False, True]
 
 
 def test_missing_ignored_turns_preserves_selected_cadence():

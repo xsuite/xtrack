@@ -7,12 +7,15 @@
 
 from .acquisition import Acquisition
 from .output import KnobOutput
+from .runtime import FeedbackController, FeedbackSystem
 from .timing import CommandQueue, DeadlineSchedule, FirstOrderActuator
 
 __all__ = [
     'Acquisition',
     'CommandQueue',
     'DeadlineSchedule',
+    'FeedbackController',
+    'FeedbackSystem',
     'FirstOrderActuator',
     'KnobOutput',
 ]

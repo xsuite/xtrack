@@ -287,7 +287,7 @@ class Acquisition:
         )
         ids = {
             name: tuple(passage.record_ids[name] for passage in state.window)
-            for name in state.raw_schema
+            for name in (state.raw_schema or {})
         }
         first = state.window[0] if state.window else None
         last = state.window[-1] if state.window else None
@@ -348,6 +348,10 @@ class Acquisition:
             raise TypeError('Transform must return (samples, validity)')
         return result
 
+    def _samples_turn(self, completed_turn):
+        elapsed_turns = completed_turn - self.first_sample_turn
+        return elapsed_turns >= 0 and elapsed_turns % self.sample_turns == 0
+
     def preview(
         self,
         inputs,
@@ -360,7 +364,7 @@ class Acquisition:
         record_ids=None,
         xp=None,
     ):
-        """Preview a completed passage without advancing the window."""
+        """Preview a boundary. Unsampled turns may omit the input arrays."""
         self._check_configuration()
         completed_turn = _positive_integer(completed_turn, 'completed_turn')
         time_seconds = float(time_seconds)
@@ -384,17 +388,18 @@ class Acquisition:
             raise ValueError(
                 'Acquisition completion turns and times must increase'
             )
-        arrays = _arrays(inputs, xp, copy=False)
-        schema = _schema(arrays)
-        if state.raw_schema is not None and schema != state.raw_schema:
-            raise ValueError(
-                'Acquisition source names, shapes or dtypes changed')
-        state.raw_schema = schema
+        due = self._samples_turn(completed_turn)
+        if due or inputs is not None:
+            arrays = _arrays(inputs, xp, copy=False)
+            schema = _schema(arrays)
+            if state.raw_schema is not None and schema != state.raw_schema:
+                raise ValueError(
+                    'Acquisition source names, shapes or dtypes changed')
+            state.raw_schema = schema
         state.last_boundary_turn = completed_turn
         state.last_boundary_time = time_seconds
         invalidated = False
         elapsed_turns = completed_turn - self.first_sample_turn
-        due = elapsed_turns >= 0 and elapsed_turns % self.sample_turns == 0
         latest_due = (
             self.first_sample_turn
             + (elapsed_turns // self.sample_turns) * self.sample_turns
