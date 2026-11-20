@@ -114,15 +114,15 @@ def compensate_radiation_energy_loss(line, delta0='zero_mean', rtol_eneloss=1e-1
             # Share the loss in proportion to cavity voltage. Choose the stable
             # phase above transition and account for arrival time at each cavity.
             partition = voltage / voltage.sum()
-            initial_energy_voltage_ratio = (
-                current_total_energy_loss * partition[cav_active] / voltage[cav_active])
-            if np.any(np.abs(initial_energy_voltage_ratio) >= 1):
+            target_rf_energy_gain = current_total_energy_loss * partition
+            if np.any(np.abs(target_rf_energy_gain[cav_active]) >= np.abs(voltage[cav_active])):
                 raise ValueError('Insufficient RF voltage to compensate radiation energy loss')
-            phase = phase_original.copy()
-            phase[cav_active] = (np.pi - np.arcsin(initial_energy_voltage_ratio)
-                             + wave_number[cav_active] * mon.zeta[0, :-1][cavity_mask][cav_active]
-                             - base_phase[cav_active])
-            phase_setter.set_values(phase)
+            phase_taper = phase_original.copy()
+            phase_taper[cav_active] = (
+                np.pi - np.arcsin(target_rf_energy_gain[cav_active] / voltage[cav_active])
+                + wave_number[cav_active] * mon.zeta[0, :-1][cavity_mask][cav_active]
+                - base_phase[cav_active])
+            phase_setter.set_values(phase_taper)
             line.tracker.track_flags.XS_FLAG_KILL_CAVITY_KICK = False
             particle_on_co_guess = particle_on_co_no_rad.copy()
 
@@ -170,16 +170,14 @@ def compensate_radiation_energy_loss(line, delta0='zero_mean', rtol_eneloss=1e-1
 
                 # Put the reference at zeta=0, and adjust the energy gains on
                 # the stable RF branch above transition.
-                phase[cav_active] -= wave_number[cav_active] * particle_on_co.zeta[0]
+                phase_taper[cav_active] -= wave_number[cav_active] * particle_on_co.zeta[0]
                 if not converged:
-                    target_energy_voltage_ratio = target_rf_energy_gain[cav_active] / voltage[cav_active]
-                    if np.any(np.abs(target_energy_voltage_ratio) >= 1):
+                    if np.any(np.abs(target_rf_energy_gain[cav_active]) >= np.abs(voltage[cav_active])):
                         raise ValueError('Insufficient RF voltage to compensate radiation energy loss')
-                    current_energy_voltage_ratio = np.clip(
-                        current_rf_energy_gain[cav_active] / voltage[cav_active], -1, 1)
-                    phase[cav_active] += (np.arcsin(current_energy_voltage_ratio)
-                                         - np.arcsin(target_energy_voltage_ratio))
-                phase_setter.set_values(phase)
+                    phase_taper[cav_active] += (
+                        np.arcsin(np.clip(current_rf_energy_gain[cav_active] / voltage[cav_active], -1, 1))
+                        - np.arcsin(target_rf_energy_gain[cav_active] / voltage[cav_active]))
+                phase_setter.set_values(phase_taper)
                 if converged:
                     if taper_all:
                         # Store the taper inferred with the automatic flag active
