@@ -174,9 +174,11 @@ def compensate_radiation_energy_loss(line, delta0='zero_mean', rtol_eneloss=1e-1
                 if not converged:
                     if np.any(np.abs(target_rf_energy_gain[cav_active]) >= np.abs(voltage[cav_active])):
                         raise ValueError('Insufficient RF voltage to compensate radiation energy loss')
-                    phase_taper[cav_active] += (
-                        np.arcsin(np.clip(current_rf_energy_gain[cav_active] / voltage[cav_active], -1, 1))
-                        - np.arcsin(target_rf_energy_gain[cav_active] / voltage[cav_active]))
+                    phase_current = np.pi - np.arcsin(np.clip(
+                        current_rf_energy_gain[cav_active] / voltage[cav_active], -1, 1))
+                    phase_target = np.pi - np.arcsin(
+                        target_rf_energy_gain[cav_active] / voltage[cav_active])
+                    phase_taper[cav_active] += phase_target - phase_current
                 phase_setter.set_values(phase_taper)
                 if converged:
                     if taper_all:
