@@ -8,7 +8,7 @@ import xobjects as xo
 
 def compensate_radiation_energy_loss(line, delta0='zero_mean', rtol_eneloss=1e-12,
                                      max_iter=100, verbose=True,
-                                     co_search_at=None,
+                                     co_search_at=None, taper_magnets=True,
                                      **kwargs):
 
     assert isinstance(line._context, xo.ContextCpu), "Only CPU context is supported"
@@ -35,125 +35,146 @@ def compensate_radiation_energy_loss(line, delta0='zero_mean', rtol_eneloss=1e-1
     else:
         record_iterations = False
 
-    if verbose: _print("Compensating energy loss.")
+    cache = line.attr._cache
+    delta_taper_mask = cache['delta_taper'].mask
+    delta_taper_setter = cache['delta_taper'].multisetter
+    delta_taper_original = delta_taper_setter.get_values().copy()
+    taper_names = np.array(line.element_names)[delta_taper_mask]
+    if isinstance(taper_magnets, (bool, np.bool_)):
+        taper_all = bool(taper_magnets)
+        selected = np.full(len(taper_names), taper_all, dtype=bool)
+    elif isinstance(taper_magnets, (list, tuple, np.ndarray)):
+        taper_all = False
+        invalid = set(taper_magnets) - set(taper_names)
+        if invalid:
+            raise ValueError(f'Elements not available for tapering: {sorted(invalid)}')
+        selected = np.isin(taper_names, taper_magnets)
+    else:
+        raise ValueError('taper_magnets must be True, False or a list of element names')
+    if not taper_all and co_search_at is not None:
+        raise ValueError('co_search_at requires taper_magnets=True')
+    if line._radiation_model in ('quantum', 'quantum-kick'):
+        raise ValueError('Energy compensation requires deterministic radiation')
+    if max_iter < 1:
+        raise ValueError('max_iter must be at least one')
 
-    line.config.XTRACK_MULTIPOLE_NO_SYNRAD = True
-    with xt.line._preserve_track_flags(line):
-        line.tracker.track_flags.XS_FLAG_KILL_CAVITY_KICK = True
-        particle_on_co = line.find_closed_orbit(co_search_at=co_search_at,
-                                                delta0=0 # 4d search
-                                                )
-    line.config.XTRACK_MULTIPOLE_NO_SYNRAD = False
+    # Voltages, frequencies and harmonics stay at their configured values.
+    voltage = cache['_own_voltage'].multisetter.get_values()
+    active = voltage != 0
+    cavity_mask = cache['_own_voltage'].mask
+    phase_setter = cache['_own_phase_taper'].multisetter
+    phase_original = phase_setter.get_values().copy()
+    base_phase = (cache['_own_phase'].multisetter.get_values()
+                  + np.deg2rad(cache['_own_lag'].multisetter.get_values()
+                               + cache['_own_lag_taper'].multisetter.get_values()))
+    beta0 = float(line.particle_ref.beta0[0])
+    p0c = float(line.particle_ref.p0c[0])
+    line_length = line.get_length()
+    energy_tol = float(line.particle_ref.energy0[0]) * rtol_eneloss
+    frequency = (cache['_own_frequency'].multisetter.get_values()
+                 + cache['_own_harmonic'].multisetter.get_values()
+                 * beta0 * clight / line_length)
+    wave_number = 2 * np.pi * frequency / (beta0 * clight)
+    zero_mean = delta0 == 'zero_mean'
+    delta_start = 0. if zero_mean else float(delta0)
+    delta_taper = delta_taper_original.copy()
 
-    beta0 = float(particle_on_co._xobject.beta0[0])
+    if verbose: _print('Compensating energy loss.')
+    try:
+        with xt.line._preserve_track_flags(line):
+            line.tracker.track_flags.XS_FLAG_SR_TAPER = taper_all
+            line.tracker.track_flags.XS_FLAG_KILL_CAVITY_KICK = True
+            with xt.line._preserve_config(line):
+                line.config.XTRACK_MULTIPOLE_NO_SYNRAD = True
+                particle_on_co = line.find_closed_orbit(
+                    method='4d', delta0=delta_start, zeta0=0,
+                    co_search_at=co_search_at)
 
-    # Check whether compensation is needed
-    p_test = particle_on_co.copy()
-    p_test.delta = line.attr._cache['delta_taper'].multisetter.get_values()[0]
-    line.track(p_test, turn_by_turn_monitor='ONE_TURN_EBE')
-    mon = line.record_last_track
-    eloss = -(mon.ptau[0, -1] - mon.ptau[0, 0]) * p_test.p0c[0]
-    if p_test.state[0] > 0 and abs(eloss) < p_test.energy0[0] * rtol_eneloss:
-        if verbose: _print("  - No compensation needed")
-        return
+            # Estimate radiation loss and arrival times to seed the RF phases.
+            line.track(particle_on_co.copy(), turn_by_turn_monitor='ONE_TURN_EBE')
+            mon = line.record_last_track
+            if np.any(mon.state[0] <= 0):
+                raise RuntimeError('Particle lost while estimating radiation energy loss')
+            loss = -(mon.ptau[0, -1] - mon.ptau[0, 0]) * p0c
+            if not np.any(active) or voltage.sum() == 0:
+                if abs(loss) < energy_tol:
+                    if verbose: _print('  - No compensation needed')
+                    return
+                raise ValueError('Energy compensation requires nonzero total RF voltage')
+            partition = voltage / voltage.sum()
+            gain_ratio = loss * partition[active] / voltage[active]
+            if np.any(np.abs(gain_ratio) >= 1):
+                raise ValueError('Insufficient RF voltage to compensate radiation energy loss')
+            phase = phase_original.copy()
+            phase[active] = (np.pi - np.arcsin(gain_ratio)
+                             + wave_number[active] * mon.zeta[0, :-1][cavity_mask][active]
+                             - base_phase[active])
+            phase_setter.set_values(phase)
+            line.tracker.track_flags.XS_FLAG_KILL_CAVITY_KICK = False
+            guess = particle_on_co.copy()
 
-    # save voltages
-    # Can do "own" as cavity slices are not supported here (see assert above)
-    v_setter = line.attr._cache['_own_voltage'].multisetter
-    f_setter = line.attr._cache['_own_frequency'].multisetter
-    h_setter = line.attr._cache['_own_harmonic'].multisetter
-    lag_setter = line.attr._cache['_own_lag'].multisetter
-    phase_setter = line.attr._cache['_own_phase'].multisetter
-    phase_taper_setter = line.attr._cache['_own_phase_taper'].multisetter
-
-    v0 = v_setter.get_values()
-    f0 = f_setter.get_values()
-    h0 = h_setter.get_values()
-    lag_zero = lag_setter.get_values()
-    phase_zero = phase_setter.get_values()
-
-    # Legacy, deprecated, clean up if used
-    lag_taper_setter = line.attr._cache['_own_lag_taper'].multisetter
-    lag_taper_setter.set_values(0 * phase_zero)
-
-    f0_all = f0 + h0 / (line.tracker._tracker_data_base.line_length / beta0 / clight)
-    eneloss_partitioning = v0 / v0.sum()
-
-    # Put all cavities on crest and at zero frequency
-    phase_taper_setter.set_values(np.pi/2 - np.deg2rad(lag_zero) - phase_zero)
-    v_setter.set_values(np.zeros_like(v_setter.get_values()))
-    f_setter.set_values(np.zeros_like(f_setter.get_values()))
-    h_setter.set_values(np.zeros_like(h_setter.get_values()))
-
-    if verbose: _print("Share energy loss among cavities (repeat until energy loss is zero)")
-    with xt.line._preserve_track_flags(line):
-        line.tracker.track_flags.XS_FLAG_SR_TAPER = True
-
-        if delta0 == 'zero_mean':
-            num_rounds = 2
-            delta_start = 0
-        else:
-            num_rounds = 1
-            delta_start = delta0
-
-        for round in range(num_rounds):
-            i_iter = 0
-
-            while True:
-
-                if round == 1 and delta0 == 'zero_mean':
-                    delta_ave = xt.twiss.trapz(delta, ss) / ss[-1]
-                    delta_start -= delta_ave
-
-                p_test = particle_on_co.copy()
-                p_test.delta = delta_start
-                line.track(p_test, turn_by_turn_monitor='ONE_TURN_EBE')
+            for i_iter in range(max_iter):
+                if taper_all:
+                    # Automatic tapering follows the tracked momentum without
+                    # repeating the transverse closed-orbit search.
+                    orbit = particle_on_co.copy()
+                    orbit.delta = delta_start
+                    orbit.zeta = 0
+                else:
+                    orbit = line.find_closed_orbit(
+                        method='5d', delta0=delta_start, co_guess=guess)
+                line.track(orbit.copy(), turn_by_turn_monitor='ONE_TURN_EBE')
                 mon = line.record_last_track
-
+                if np.any(mon.state[0] <= 0):
+                    raise RuntimeError('Particle lost during radiation energy compensation')
                 if record_iterations:
                     line._tapering_iterations.append(mon)
 
-                eloss = -(mon.ptau[0, -1] - mon.ptau[0, 0]) * p_test.p0c[0]
-                if verbose: _print(f"Energy loss: {eloss:_.3f} eV             ")#, end='\r', flush=True)
+                energy_change = np.diff(mon.ptau[0]) * p0c
+                gain = energy_change[cavity_mask]
+                loss = -energy_change[~cavity_mask].sum()
+                target_gain = loss * partition
+                delta_mean = xt.twiss.trapz(mon.delta[0], mon.s[0]) / line_length
+                energy_error = energy_change.sum()
+                sharing_error = np.max(np.abs(gain - target_gain))
+                target_taper = (0.5 * (mon.delta[0, :-1] + mon.delta[0, 1:]))[delta_taper_mask]
+                taper_error = 0.
+                if not taper_all and np.any(selected):
+                    taper_error = np.max(np.abs(target_taper[selected] - delta_taper[selected]))
+                converged = (abs(energy_error) < energy_tol
+                             and sharing_error < energy_tol
+                             and taper_error < rtol_eneloss
+                             and (not zero_mean or abs(delta_mean) < rtol_eneloss))
+                if verbose:
+                    _print(f'  - Iteration {i_iter + 1}: energy imbalance '
+                           f'{energy_error:.3g} eV, mean delta {delta_mean:.6g}')
 
-                if np.abs(eloss) < p_test.energy0[0] * rtol_eneloss:
-                    break
+                # Put the reference at zeta=0, and adjust the energy gains on
+                # the stable RF branch above transition.
+                phase[active] -= wave_number[active] * orbit.zeta[0]
+                if not converged:
+                    target_ratio = target_gain[active] / voltage[active]
+                    if np.any(np.abs(target_ratio) >= 1):
+                        raise ValueError('Insufficient RF voltage to compensate radiation energy loss')
+                    actual_ratio = np.clip(gain[active] / voltage[active], -1, 1)
+                    phase[active] += np.arcsin(actual_ratio) - np.arcsin(target_ratio)
+                phase_setter.set_values(phase)
+                if converged:
+                    if taper_all:
+                        delta_taper_setter.set_values(target_taper)
+                    return
 
-                v_setter.set_values(v_setter.get_values()
-                                    + eloss * eneloss_partitioning)
+                if not taper_all and np.any(selected):
+                    delta_taper[selected] = target_taper[selected]
+                    delta_taper_setter.set_values(delta_taper)
+                if zero_mean:
+                    delta_start -= delta_mean
+                guess = orbit.copy()
+                guess.zeta = 0
 
-                delta = mon.delta[0, :-1]
-                ss = mon.s[0, :-1]
-
-                i_iter += 1
-                if i_iter > max_iter:
-                    raise RuntimeError("Maximum number of iterations reached")
-    if verbose: _print()
-    delta_taper_full = 0.5*(mon.delta[0, :-1] + mon.delta[0, 1:]) # last point is added by the monitor
-
-    if verbose: _print("  - Set delta_taper")
-    delta_taper_mask = line.attr._cache['delta_taper'].mask
-    delta_taper_setter = line.attr._cache['delta_taper'].multisetter
-    delta_taper_setter.set_values(delta_taper_full[delta_taper_mask])
-
-    if verbose: _print("  - Restore cavity voltage and frequency. Set cavity lag")
-    v_synchronous = v_setter.get_values()
-
-    mask_cav = line.attr._cache['_own_voltage'].mask
-    zeta_at_cav = np.atleast_1d(np.squeeze(mon.zeta[0, :-1]))[mask_cav]
-    mask_active_cav = np.abs(v0) > 0
-    v_ratio = v0 * 0
-    v_ratio[mask_active_cav] = v_synchronous[mask_active_cav] / v0[mask_active_cav]
-    assert np.all(np.abs(v_ratio[mask_active_cav]) < 1)
-    inst_phase = np.arcsin(v_ratio)
-
-    total_phase = (inst_phase - (2 * np.pi) * f0_all * zeta_at_cav / beta0 / clight)
-    total_phase = np.pi - total_phase # we are above transition
-    phase_taper = total_phase - np.deg2rad(lag_zero) - phase_zero
-    phase_taper[~mask_active_cav] = 0
-
-    v_setter.set_values(v0)
-    f_setter.set_values(f0)
-    h_setter.set_values(h0)
-    lag_taper_setter.set_values(0 * phase_taper)
-    phase_taper_setter.set_values(phase_taper)
+            raise RuntimeError('Maximum number of iterations reached')
+    except Exception:
+        phase_setter.set_values(phase_original)
+        if np.any(selected):
+            delta_taper_setter.set_values(delta_taper_original)
+        raise

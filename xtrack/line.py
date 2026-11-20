@@ -5263,24 +5263,32 @@ class Line:
 
     @doc_group("Radiation, Spin and Intra-Beam Scattering")
     def compensate_radiation_energy_loss(self, delta0='zero_mean', rtol_eneloss=1e-10,
-                                    max_iter=100, **kwargs):
+                                    max_iter=100, taper_magnets=True, **kwargs):
 
         """
         Compensate beam energy loss from synchrotron radiation by configuring
-        RF cavities and Multipole elements (tapering).
+        RF phases and optionally tapering the magnets.
 
         Parameters
         ----------
-        delta0: float
-            Initial energy deviation. If `delta0='zero_mean'` is specified, the
-            compensation is done such that the mean energy deviation along the
-            ring is zero.
+        delta0: float or 'zero_mean'
+            Initial relative momentum deviation. If `delta0='zero_mean'` is
+            specified, the mean relative momentum deviation along the ring
+            is set to zero.
         rtol_eneloss: float
             Relative tolerance on energy loss.
         max_iter: int
             Maximum number of iterations.
+        taper_magnets: bool or list of str
+            If True (default), taper all eligible magnets using automatic
+            tapering during tracking. If False, adjust only the RF phases.
+            A list selects the magnets whose delta_taper values are updated
+            between 5D closed-orbit searches. Unselected magnets keep their
+            existing settings. The reference starts at zeta=0; with False or
+            a list, zeta is allowed to slip over a turn. Cavity voltages,
+            frequencies and harmonics stay at their configured values.
         kwargs: dict
-            Additional keyword arguments passed to the twiss method.
+            Additional keyword arguments passed to the compensation function.
 
         """
         self._method_incompatible_with_compose()
