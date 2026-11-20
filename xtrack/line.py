@@ -1922,6 +1922,12 @@ class Line:
             self.particle_ref.t_sim = (
                 self.get_length() / self.particle_ref._xobject.beta0[0] / clight)
 
+    @property_with_doc_group("Tracking and Analysis")
+    def feedback(self):
+        """Discover and enable numerical feedback elements placed in this line."""
+        from .feedback.interface import FeedbackLine
+        return FeedbackLine(self)
+
     @property_with_doc_group("Radiation, Spin and Intra-Beam Scattering")
     def xcoll(self):
         """Xcoll-specific helpers associated with this line."""
@@ -2089,7 +2095,12 @@ class Line:
             it is False and no progress bar is displayed.
         """
 
+        feedback_execution = getattr(self, '_feedback_execution', None)
+
         if not isinstance(particles, xt.Particles):
+            if feedback_execution is not None:
+                raise NotImplementedError(
+                    'Placed feedback requires ordinary tracked Particles')
             from xtrack.tpsa import ParticlesTpsa
             if not isinstance(particles, ParticlesTpsa):
                 raise TypeError(f"Cannot track particles of type {type(particles)}")
@@ -2115,23 +2126,41 @@ class Line:
                 **kwargs)
 
         if not self._has_valid_tracker():
+            if feedback_execution is not None:
+                feedback_execution.check_configuration()
+            self.feedback._check_placement(require_enabled=True)
             self.build_tracker()
-        if hasattr(particles, '_needs_pipeline') and particles._needs_pipeline:
-            if '_called_by_pipeline' not in kwargs or not kwargs['_called_by_pipeline']:
-                all_kwargs = locals()
-                multitracker = xt.PipelineMultiTracker(
-                    branches=[xt.PipelineBranch(line=self, particles=particles)])
-                all_kwargs.pop('self')
-                all_kwargs.pop('particles')
-                all_kwargs.pop('kwargs')
-                all_kwargs.pop('_called_by_pipeline', None)
-                return multitracker.track(**all_kwargs, **kwargs)
+        elif self.tracker.iscollective:
+            self.feedback._check_placement(self.tracker._parts, require_enabled=True)
 
-        if '_called_by_pipeline' in kwargs: # Used only above
-            kwargs.pop('_called_by_pipeline')
+        called_by_pipeline = kwargs.pop('_called_by_pipeline', False)
+        if (
+            getattr(particles, '_needs_pipeline', False)
+            and not called_by_pipeline
+        ):
+            multitracker = xt.PipelineMultiTracker(
+                branches=[xt.PipelineBranch(line=self, particles=particles)])
+            return multitracker.track(
+                ele_start=ele_start,
+                ele_stop=ele_stop,
+                num_elements=num_elements,
+                num_turns=num_turns,
+                turn_by_turn_monitor=turn_by_turn_monitor,
+                freeze_longitudinal=freeze_longitudinal,
+                time=time,
+                with_progress=with_progress,
+                multi_element_monitor_at=multi_element_monitor_at,
+                monitor_monomials=monitor_monomials,
+                **kwargs)
 
-        if not self._has_valid_tracker():
-            self.build_tracker()
+        if feedback_execution is not None:
+            # Validate the full request before the tracker can split it into batches.
+            feedback_execution.validate_track(
+                particles, ele_start=ele_start, ele_stop=ele_stop,
+                num_elements=num_elements, num_turns=num_turns,
+                freeze_longitudinal=freeze_longitudinal,
+                backtrack=kwargs.get('backtrack', False),
+            )
 
         return self.tracker._track(
             particles,
@@ -7525,6 +7554,18 @@ class Line:
             raise ValueError('Only scalars or references are allowed')
 
     def _get_non_collective_line(self):
+        if getattr(self, '_feedback_execution', None) is not None or (
+            self._has_valid_tracker()
+            and self.tracker.iscollective
+            and any(
+                isinstance(part, xt.feedback.Feedback)
+                and part._execution is not None
+                for part in self.tracker._parts
+            )
+        ):
+            raise NotImplementedError(
+                'Prepare optics/probes before enabling feedback: non-collective '
+                'extraction would share and modify the live feedback monitor records')
         if not self.iscollective:
             return self
         else:
@@ -8103,7 +8144,7 @@ def mk_class_namespace(extra_classes):
     except ImportError:
         log.warning("Xcoll not installed")
 
-    all_classes = all_classes + (EnergyProgram, xt.Replica)
+    all_classes = all_classes + (EnergyProgram, xt.Replica, xt.feedback.Feedback)
 
     out = AttrDict()
     for cl in all_classes:
