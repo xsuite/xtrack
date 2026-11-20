@@ -6,6 +6,7 @@
 """Experimental feedback primitives."""
 
 from .acquisition import Acquisition
+from .output import KnobOutput
 from .timing import CommandQueue, DeadlineSchedule, FirstOrderActuator
 
 __all__ = [
@@ -13,4 +14,5 @@ __all__ = [
     'CommandQueue',
     'DeadlineSchedule',
     'FirstOrderActuator',
+    'KnobOutput',
 ]
