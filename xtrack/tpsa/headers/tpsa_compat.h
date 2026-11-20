@@ -8,11 +8,11 @@
 typedef double xt_float_or_tpsa;
 typedef const xt_float_or_tpsa xt_float_or_tpsa_arg;
 
-static inline double xt_float_or_tpsa_const_part(xt_float_or_tpsa_arg value){
+GPUFUN double xt_float_or_tpsa_const_part(xt_float_or_tpsa_arg value){
     return value;
 }
 
-static inline int xt_float_or_tpsa_is_zero(xt_float_or_tpsa_arg value){
+GPUFUN int xt_float_or_tpsa_is_zero(xt_float_or_tpsa_arg value){
     return value == 0.0;
 }
 
