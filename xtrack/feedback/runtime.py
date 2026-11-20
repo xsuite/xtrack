@@ -544,9 +544,8 @@ class FeedbackController:
             inputs['applied_output'] = self.actuator.applied
             inputs['held_target'] = held_target
             if contribution is not None:
-                # Use the nominal component held at the preceding boundary.
                 inputs['total_target'] = total_target
-                inputs['nominal_target'] = total_target - held_target
+                inputs['nominal_target'] = self.actuator.nominal_target
             inputs['pending_output'] = (
                 xp.asarray(pending[-1].value).copy() if pending else held_target.copy()
             )
@@ -729,24 +728,31 @@ class FeedbackSystem:
 
     def _check_ownership(self, other_outputs=()):
         seen = set()
-        fields = set()
         setpoints = set()
         outputs = (controller.output for controller in self.controllers)
         for output in chain(outputs, other_outputs):
             keys = set(output.ownership_keys)
-            field_keys = set(getattr(output, 'dependent_field_keys', ()))
+            keys.update(getattr(output, 'dependent_field_keys', ()))
             external = set(getattr(output, 'external_setpoint_keys', ()))
-            if setpoints & keys or external & seen:
+            if setpoints & keys or external & seen or external & keys:
                 raise ValueError(
-                    'Physical actuator nominal setpoints require external ownership'
+                    'Nominal setpoints require external ownership and cannot '
+                    'write controlled fields'
                 )
-            if seen & keys or fields & field_keys:
+            if seen & keys:
                 raise ValueError(
                     'Feedback outputs share a contribution or physical field'
                 )
             seen.update(keys)
-            fields.update(field_keys)
             setpoints.update(external)
+
+    def _check_applied_outputs(self):
+        """Reject stopped edits to applied knobs before a new traversal."""
+        for controller in self.controllers:
+            installed = controller.output.snapshot()
+            if not np.array_equal(installed, controller._applied):
+                raise RuntimeError(
+                    'Applied actuator knob changed outside its response owner')
 
     def step(self, completed_turn, time_seconds):
         """Commit a completed traversal at its absolute tracking time in seconds.
@@ -779,11 +785,7 @@ class FeedbackSystem:
         try:
             self._check_sources()
             self._check_ownership()
-            for controller in self.controllers:
-                installed = controller.output.snapshot()
-                if not np.array_equal(installed, controller._applied):
-                    raise RuntimeError(
-                        'Applied actuator knob changed outside its response owner')
+            self._check_applied_outputs()
             model_time_seconds = time_seconds
             if self._turn_clock is not None:
                 # Keep delays and actuator intervals independent of the epoch.

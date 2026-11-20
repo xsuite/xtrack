@@ -6,6 +6,7 @@
 """Experimental feedback primitives."""
 
 from .acquisition import Acquisition
+from .hardware import PhysicalActuator
 from .output import KnobOutput
 from .runtime import FeedbackController, FeedbackSystem
 from .timing import CommandQueue, DeadlineSchedule, FirstOrderActuator
@@ -18,4 +19,5 @@ __all__ = [
     'FeedbackSystem',
     'FirstOrderActuator',
     'KnobOutput',
+    'PhysicalActuator',
 ]
