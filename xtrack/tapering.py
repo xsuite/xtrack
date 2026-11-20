@@ -35,6 +35,9 @@ def compensate_radiation_energy_loss(line, delta0='zero_mean', rtol_eneloss=1e-1
     else:
         record_iterations = False
 
+    # Resolve the magnet selection. True uses automatic tapering during tracking;
+    # a list updates explicit delta_taper values between orbit searches.
+    # The selection is indexed over taperable elements, not the full line.
     cache = line.attr._cache
     delta_taper_mask = cache['delta_taper'].mask
     delta_taper_setter = cache['delta_taper'].multisetter
@@ -58,9 +61,11 @@ def compensate_radiation_energy_loss(line, delta0='zero_mean', rtol_eneloss=1e-1
     if max_iter < 1:
         raise ValueError('max_iter must be at least one')
 
-    # Voltages, frequencies and harmonics stay at their configured values.
+    # Read the RF settings and save the values needed to restore the line on
+    # failure. Only phase_taper is adjusted; base phases and RF strengths stay fixed.
+    # cavity_mask selects elements in the line, cav_active selects powered cavities.
     voltage = cache['_own_voltage'].multisetter.get_values()
-    active = voltage != 0
+    cav_active = voltage != 0
     cavity_mask = cache['_own_voltage'].mask
     phase_setter = cache['_own_phase_taper'].multisetter
     phase_original = phase_setter.get_values().copy()
@@ -71,6 +76,8 @@ def compensate_radiation_energy_loss(line, delta0='zero_mean', rtol_eneloss=1e-1
     p0c = float(line.particle_ref.p0c[0])
     line_length = line.get_length()
     energy_tol = float(line.particle_ref.energy0[0]) * rtol_eneloss
+    # Include both frequency and harmonic contributions. wave_number converts
+    # a change in zeta into the corresponding RF phase shift.
     frequency = (cache['_own_frequency'].multisetter.get_values()
                  + cache['_own_harmonic'].multisetter.get_values()
                  * beta0 * clight / line_length)
@@ -83,53 +90,62 @@ def compensate_radiation_energy_loss(line, delta0='zero_mean', rtol_eneloss=1e-1
     try:
         with xt.line._preserve_track_flags(line):
             line.tracker.track_flags.XS_FLAG_SR_TAPER = taper_all
+            # Find a starting orbit without radiation or RF energy kicks.
+            # Radiation is restored on leaving the config context below.
             line.tracker.track_flags.XS_FLAG_KILL_CAVITY_KICK = True
             with xt.line._preserve_config(line):
                 line.config.XTRACK_MULTIPOLE_NO_SYNRAD = True
-                particle_on_co = line.find_closed_orbit(
+                particle_on_co_no_rad = line.find_closed_orbit(
                     method='4d', delta0=delta_start, zeta0=0,
                     co_search_at=co_search_at)
 
-            # Estimate radiation loss and arrival times to seed the RF phases.
-            line.track(particle_on_co.copy(), turn_by_turn_monitor='ONE_TURN_EBE')
+            # Track with radiation active and RF kicks disabled to estimate the
+            # uncompensated loss and arrival times for the initial RF phases.
+            line.track(particle_on_co_no_rad.copy(), turn_by_turn_monitor='ONE_TURN_EBE')
             mon = line.record_last_track
             if np.any(mon.state[0] <= 0):
                 raise RuntimeError('Particle lost while estimating radiation energy loss')
             loss = -(mon.ptau[0, -1] - mon.ptau[0, 0]) * p0c
-            if not np.any(active) or voltage.sum() == 0:
+            if not np.any(cav_active) or voltage.sum() == 0:
                 if abs(loss) < energy_tol:
                     if verbose: _print('  - No compensation needed')
                     return
                 raise ValueError('Energy compensation requires nonzero total RF voltage')
+            # Share the loss in proportion to cavity voltage. Choose the stable
+            # phase above transition and account for arrival time at each cavity.
             partition = voltage / voltage.sum()
-            gain_ratio = loss * partition[active] / voltage[active]
+            gain_ratio = loss * partition[cav_active] / voltage[cav_active]
             if np.any(np.abs(gain_ratio) >= 1):
                 raise ValueError('Insufficient RF voltage to compensate radiation energy loss')
             phase = phase_original.copy()
-            phase[active] = (np.pi - np.arcsin(gain_ratio)
-                             + wave_number[active] * mon.zeta[0, :-1][cavity_mask][active]
-                             - base_phase[active])
+            phase[cav_active] = (np.pi - np.arcsin(gain_ratio)
+                             + wave_number[cav_active] * mon.zeta[0, :-1][cavity_mask][cav_active]
+                             - base_phase[cav_active])
             phase_setter.set_values(phase)
             line.tracker.track_flags.XS_FLAG_KILL_CAVITY_KICK = False
-            guess = particle_on_co.copy()
+            particle_on_co_guess = particle_on_co_no_rad.copy()
 
             for i_iter in range(max_iter):
                 if taper_all:
                     # Automatic tapering follows the tracked momentum without
                     # repeating the transverse closed-orbit search.
-                    orbit = particle_on_co.copy()
-                    orbit.delta = delta_start
-                    orbit.zeta = 0
+                    particle_on_co = particle_on_co_no_rad.copy()
+                    particle_on_co.delta = delta_start
+                    particle_on_co.zeta = 0
                 else:
-                    orbit = line.find_closed_orbit(
-                        method='5d', delta0=delta_start, co_guess=guess)
-                line.track(orbit.copy(), turn_by_turn_monitor='ONE_TURN_EBE')
+                    # With fixed magnet settings, close x, px, y, py and delta.
+                    # The starting zeta is free and will be absorbed into RF phases.
+                    particle_on_co = line.find_closed_orbit(
+                        method='5d', delta0=delta_start, co_guess=particle_on_co_guess)
+                line.track(particle_on_co.copy(), turn_by_turn_monitor='ONE_TURN_EBE')
                 mon = line.record_last_track
                 if np.any(mon.state[0] <= 0):
                     raise RuntimeError('Particle lost during radiation energy compensation')
                 if record_iterations:
                     line._tapering_iterations.append(mon)
 
+                # Measure the actual cavity gains and the loss elsewhere in the
+                # ring, then compute the requested gain for each cavity.
                 energy_change = np.diff(mon.ptau[0]) * p0c
                 gain = energy_change[cavity_mask]
                 loss = -energy_change[~cavity_mask].sum()
@@ -137,10 +153,14 @@ def compensate_radiation_energy_loss(line, delta0='zero_mean', rtol_eneloss=1e-1
                 delta_mean = xt.twiss.trapz(mon.delta[0], mon.s[0]) / line_length
                 energy_error = energy_change.sum()
                 sharing_error = np.max(np.abs(gain - target_gain))
+                # Use the average entrance/exit delta for each magnet's taper.
                 target_taper = (0.5 * (mon.delta[0, :-1] + mon.delta[0, 1:]))[delta_taper_mask]
                 taper_error = 0.
                 if not taper_all and np.any(selected):
                     taper_error = np.max(np.abs(target_taper[selected] - delta_taper[selected]))
+                # Energy closure alone is insufficient: a 5D search already
+                # enforces it. Also check RF sharing, selected magnet tapers,
+                # and the mean momentum when zero_mean was requested.
                 converged = (abs(energy_error) < energy_tol
                              and sharing_error < energy_tol
                              and taper_error < rtol_eneloss
@@ -151,29 +171,36 @@ def compensate_radiation_energy_loss(line, delta0='zero_mean', rtol_eneloss=1e-1
 
                 # Put the reference at zeta=0, and adjust the energy gains on
                 # the stable RF branch above transition.
-                phase[active] -= wave_number[active] * orbit.zeta[0]
+                phase[cav_active] -= wave_number[cav_active] * particle_on_co.zeta[0]
                 if not converged:
-                    target_ratio = target_gain[active] / voltage[active]
+                    target_ratio = target_gain[cav_active] / voltage[cav_active]
                     if np.any(np.abs(target_ratio) >= 1):
                         raise ValueError('Insufficient RF voltage to compensate radiation energy loss')
-                    actual_ratio = np.clip(gain[active] / voltage[active], -1, 1)
-                    phase[active] += np.arcsin(actual_ratio) - np.arcsin(target_ratio)
+                    actual_ratio = np.clip(gain[cav_active] / voltage[cav_active], -1, 1)
+                    phase[cav_active] += np.arcsin(actual_ratio) - np.arcsin(target_ratio)
                 phase_setter.set_values(phase)
                 if converged:
                     if taper_all:
+                        # Store the taper inferred with the automatic flag active
+                        # so that subsequent tracking uses fixed magnet settings.
                         delta_taper_setter.set_values(target_taper)
                     return
 
+                # For selective tapering, update only the chosen magnets before
+                # finding the next orbit. Unselected values remain unchanged.
                 if not taper_all and np.any(selected):
                     delta_taper[selected] = target_taper[selected]
                     delta_taper_setter.set_values(delta_taper)
                 if zero_mean:
+                    # Shift the starting momentum to remove the measured mean.
                     delta_start -= delta_mean
-                guess = orbit.copy()
-                guess.zeta = 0
+                # Reuse the previous orbit as a guess in the new RF phase frame.
+                particle_on_co_guess = particle_on_co.copy()
+                particle_on_co_guess.zeta = 0
 
             raise RuntimeError('Maximum number of iterations reached')
     except Exception:
+        # Do not leave partially compensated RF or magnet settings on failure.
         phase_setter.set_values(phase_original)
         if np.any(selected):
             delta_taper_setter.set_values(delta_taper_original)
