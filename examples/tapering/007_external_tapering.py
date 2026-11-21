@@ -2,7 +2,11 @@ from pathlib import Path
 import xtrack as xt
 
 line = xt.load(Path(__file__).parent / '../../test_data/clic_dr/line_for_taper.json')
-line.particle_ref.p0c = 4e9
+line.particle_ref.p0c = 10e9
+# Increase the RF voltage to compensate the larger radiation loss.
+tt = line.get_table()
+for name in tt.rows.match(element_type='Cavity').name:
+    line[name].voltage *= 4
 line.build_tracker()
 line.configure_radiation(model='mean')
 magnets = [(i, line.element_dict[name]) for i, name in enumerate(line.element_names)
