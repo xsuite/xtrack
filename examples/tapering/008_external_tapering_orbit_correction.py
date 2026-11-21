@@ -16,7 +16,7 @@ line = xt.Line.from_madx_sequence(mad.sequence.sps, allow_thick=True,
 line.particle_ref = xt.Particles(mass0=xt.ELECTRON_MASS_EV, q0=-1, p0c=45e9)
 line.cycle('bpv.11706', inplace=True)
 
-# Add the six distributed cavities, keeping the original cavity as in 009b.
+# Add the six distributed cavities
 locations = ['bpv.11706', 'bpv.21508', 'bpv.31508',
              'bpv.41508', 'bpv.51508', 'bpv.61508']
 line.insert([
