@@ -11,7 +11,7 @@ magnets = [(i, line.element_dict[name]) for i, name in enumerate(line.element_na
 for iteration in range(10):
     line.compensate_radiation_energy_loss(
         taper_magnets=False, delta0='zero_mean', verbose=False)
-    tw = line.twiss5d(chrom=False)
+    tw = line.twiss5d(only_orbit=True)
     delta_taper = 0.5 * (tw.delta[:-1] + tw.delta[1:])
     error = max(abs(el.delta_taper - delta_taper[i]) for i, el in magnets)
     print(f'{iteration=}: {error=:.3g}')
