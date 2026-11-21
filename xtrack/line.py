@@ -3085,7 +3085,7 @@ class Line:
                  monitor_names_y=None, corrector_names_y=None,
                  n_micado=None, n_singular_values=None, rcond=None,
                  monitor_alignment=None, corrector_limits_x=None,
-                 corrector_limits_y=None):
+                 corrector_limits_y=None, method=None):
 
         '''
         Correct the beam trajectory using a linearized response matrix computed
@@ -3114,6 +3114,10 @@ class Line:
         twiss_table : TwissTable
             Twiss table used to compute the response matrix for the correction.
             If None, the twiss table is computed from the line.
+        method : {'4d', '5d', '6d'}, optional
+            Twiss method used for response optics and orbit measurements.
+            With None, response optics use 4D and orbit measurements use the
+            line's Twiss defaults, or 4D when delta0 is supplied to `correct`.
         planes : str
             Planes for which the correction is performed. It can be 'x', 'y' or
             'xy'. If None, the correction is performed for both planes.
@@ -3168,7 +3172,7 @@ class Line:
                  rcond=rcond,
                  monitor_alignment=monitor_alignment,
                  corrector_limits_x=corrector_limits_x,
-                 corrector_limits_y=corrector_limits_y)
+                 corrector_limits_y=corrector_limits_y, method=method)
 
         if run:
             correction.correct(planes=planes, n_iter=n_iter)

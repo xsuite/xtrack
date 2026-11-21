@@ -80,6 +80,43 @@ def test_twiss_5d_matches_synchronous_6d():
                                rtol=1e-7, atol=1e-8)
 
 
+@pytest.mark.parametrize('method', [None, '4d', '5d', '6d'])
+@pytest.mark.parametrize('provide_twiss', [False, True])
+def test_orbit_correction_twiss_method(method, provide_twiss):
+    line = xt.Line(
+        elements=[
+            xt.Multipole(knl=[2e-5, .02]),
+            xt.LineSegmentMap(length=50, qx=.17, qy=.18, qs=.002,
+                              bets=10, energy_increment=-5e4),
+            xt.Multipole(knl=[-1e-5, -.02]),
+            xt.LineSegmentMap(length=50, qx=.14, qy=.15, qs=.002,
+                              bets=10, energy_increment=-5e4)],
+        element_names=['q1', 'arc1', 'q2', 'arc2'],
+        particle_ref=xt.Particles(p0c=2e9, mass0=xt.ELECTRON_MASS_EV))
+    quads = ['q1', 'q2']
+    tw_ref = line.twiss(method=method or '4d') if provide_twiss else None
+    correction = line.correct_trajectory(
+        method=method, twiss_table=tw_ref, run=False,
+        monitor_names_x=quads, corrector_names_x=quads)
+    assert correction.twiss_table.method == (method or '4d')
+    before = correction.x_correction._get_tw_orbit()
+    assert before.method == (method or '6d')
+    assert np.max(np.abs(before['x', quads])) > 1e-6
+
+    correction.correct(planes='x', n_iter=3, verbose=False)
+    after = correction.x_correction._get_tw_orbit()
+    assert np.max(np.abs(after['x', quads])) < 1e-10
+    xo.assert_allclose([line[name].knl[1] for name in quads], [.02, -.02],
+                       rtol=0, atol=0)
+    assert line.twiss_default == {}
+    if method == '5d':
+        _check_closure(line, after)
+        assert abs(after.zeta[-1] - after.zeta[0]) > 1e-8
+        off_momentum = correction.x_correction._get_tw_orbit(delta0=.001)
+        assert off_momentum.method == '5d'
+        xo.assert_allclose(off_momentum.delta[0], .001, rtol=0, atol=1e-12)
+
+
 @pytest.mark.parametrize('constraint', [
     {'delta0': 0, 'zeta0': 0}, {'zeta_shift': 1e-3},
     {'freeze_longitudinal': True}, {'search_for_t_rev': True},

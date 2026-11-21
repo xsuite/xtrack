@@ -132,7 +132,7 @@ class OrbitCorrectionSinglePlane:
                  start=None, end=None, twiss_table=None, n_micado=None,
                  n_singular_values=None, rcond=None, corrector_limits=None,
                  x_init=0, px_init=0, y_init=0, py_init=0, zeta_init=0, delta_init=0,
-                 monitor_alignment=None):
+                 monitor_alignment=None, method=None):
 
         assert plane in ['x', 'y']
 
@@ -144,6 +144,7 @@ class OrbitCorrectionSinglePlane:
         self.delta_init = delta_init
 
         self.twiss_table = twiss_table
+        self.method = method
         if twiss_table is not None:
             assert twiss_table.reference_frame == 'proper', (
                 'Twiss table must be in the proper frame (`reverse` not supported)')
@@ -152,13 +153,13 @@ class OrbitCorrectionSinglePlane:
             assert end is None
             self.mode = 'closed'
             if self.twiss_table is None:
-                self.twiss_table = line.twiss4d(reverse=False)
+                self.twiss_table = line.twiss(method=method or '4d', reverse=False)
         else:
             assert end is not None
             self.mode = 'open'
             if self.twiss_table is None:
                 # Initialized with betx=1, bety=1 (use W_matrix to avoid compilation)
-                self.twiss_table = line.twiss4d(start=start, end=end,
+                self.twiss_table = line.twiss(method=method or '4d', start=start, end=end,
                     init=xt.TwissInit(W_matrix=np.eye(6),
                                       particle_on_co=line.build_particles(
                                           x=self.x_init, y=self.y_init,
@@ -328,7 +329,9 @@ class OrbitCorrectionSinglePlane:
                             element_name=self.start)
         else:
             twinit = None
-        method = '4d' if delta0 is not None else None
+        method = self.method
+        if method is None and delta0 is not None:
+            method = '4d'
         tw_orbit = self.line.twiss(only_orbit=True, start=self.start, end=self.end,
                                    init=twinit, reverse=False, delta0=delta0,
                                    method=method)
@@ -453,7 +456,7 @@ class TrajectoryCorrection:
                  monitor_alignment=None,
                  x_init=0, px_init=0, y_init=0, py_init=0, zeta_init=0, delta_init=0,
                  n_micado=None, n_singular_values=None, rcond=None,
-                 corrector_limits_x=None, corrector_limits_y=None):
+                 corrector_limits_x=None, corrector_limits_y=None, method=None):
 
         '''
         Build a trajectory correction from a linearized response matrix.
@@ -476,6 +479,10 @@ class TrajectoryCorrection:
         twiss_table : TwissTable
             Twiss table used to compute the response matrix for the correction.
             If None, the twiss table is computed from the line.
+        method : {'4d', '5d', '6d'}, optional
+            Twiss method used for response optics and orbit measurements.
+            With None, response optics use 4D and orbit measurements use the
+            line's Twiss defaults, or 4D when delta0 is supplied to `correct`.
         monitor_names_x : list of str
             List of elements used as monitors in the horizontal plane.
         corrector_names_x : list of str
@@ -558,7 +565,7 @@ class TrajectoryCorrection:
                 corrector_limits=corrector_limits_x,
                 x_init=x_init, px_init=px_init, y_init=y_init, py_init=py_init,
                 zeta_init=zeta_init, delta_init=delta_init,
-                monitor_alignment=monitor_alignment)
+                monitor_alignment=monitor_alignment, method=method)
         else:
             self.x_correction = None
 
@@ -573,7 +580,7 @@ class TrajectoryCorrection:
                 corrector_limits=corrector_limits_y,
                 x_init=x_init, px_init=px_init, y_init=y_init, py_init=py_init,
                 zeta_init=zeta_init, delta_init=delta_init,
-                monitor_alignment=monitor_alignment)
+                monitor_alignment=monitor_alignment, method=method)
         else:
             self.y_correction = None
 
