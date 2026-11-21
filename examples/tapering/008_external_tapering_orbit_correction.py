@@ -8,10 +8,12 @@ line.build_tracker()
 line.configure_radiation(model='mean')
 
 # Taper the quadrupoles and sextupoles, leaving Bend elements untapered.
-magnets = [(i, line.element_dict[name]) for i, name in enumerate(line.element_names)
-           if isinstance(line.element_dict[name], (xt.Quadrupole, xt.Sextupole))]
+tt = line.get_table()
+tt_magnets = tt.rows.match(element_type='Quadrupole|Sextupole')
+magnets = [(i, line.element_dict[tt.name[i]])
+           for i in tt.rows.indices[tt_magnets.name]]
 # Use knl[0] and measure the orbit at each quadrupole.
-quads = [line.element_names[i] for i, el in magnets if isinstance(el, xt.Quadrupole)]
+quads = tt.rows.match(element_type='Quadrupole').name
 
 line.compensate_radiation_energy_loss(taper_magnets=False, verbose=False)
 tw_before = line.twiss5d(chrom=False)
