@@ -319,6 +319,9 @@ class OrbitCorrectionSinglePlane:
             self._position_after = None
 
     def _get_tw_orbit(self, delta0=None):
+        if self.method == '6d' and delta0 is not None:
+            raise ValueError('delta0 cannot be provided for method="6d"')
+
         if self.mode == 'open':
             # Initialized with betx=1, bety=1 (use W_matrix to avoid compilation)
             twinit = xt.TwissInit(W_matrix=np.eye(6),
@@ -482,7 +485,7 @@ class TrajectoryCorrection:
         method : {'4d', '5d', '6d'}, optional
             Twiss method used for response optics and orbit measurements.
             With None, response optics use 4D and orbit measurements use the
-            line's Twiss defaults, or 4D when delta0 is supplied to `correct`.
+            line's Twiss default.
         monitor_names_x : list of str
             List of elements used as monitors in the horizontal plane.
         corrector_names_x : list of str
@@ -620,7 +623,7 @@ class TrajectoryCorrection:
             value.
         delta0 : float or None
             Closed-orbit momentum deviation used when recomputing the orbit
-            during iterative correction.
+            during iterative correction. Cannot be supplied with method='6d'.
 
         Examples
         --------

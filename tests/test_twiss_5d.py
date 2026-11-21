@@ -103,6 +103,14 @@ def test_orbit_correction_twiss_method(method, provide_twiss):
     assert before.method == (method or '6d')
     assert np.max(np.abs(before['x', quads])) > 1e-6
 
+    if method == '6d':
+        kicks_before = correction.x_correction.get_kick_values().copy()
+        for delta0 in (0., .001):
+            with pytest.raises(ValueError, match='delta0.*6d'):
+                correction.correct(planes='x', delta0=delta0)
+            np.testing.assert_array_equal(
+                correction.x_correction.get_kick_values(), kicks_before)
+
     correction.correct(planes='x', n_iter=3, verbose=False)
     after = correction.x_correction._get_tw_orbit()
     assert np.max(np.abs(after['x', quads])) < 1e-10
