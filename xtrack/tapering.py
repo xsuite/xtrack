@@ -166,28 +166,34 @@ def compensate_radiation_energy_loss(line, delta0='zero_mean', rtol_eneloss=1e-1
                     delta_taper[selected] = target_taper[selected]
                     delta_taper_setter.set_values(delta_taper)
 
-                converged = (abs(energy_error) < energy_tol
-                             and sharing_error < energy_tol
-                             and taper_error < rtol_eneloss
-                             and (not zero_mean or abs(delta_mean) < rtol_eneloss))
                 if verbose:
                     _print(f'  - Iteration {i_iter + 1}: energy imbalance '
                            f'{energy_error:.3g} eV, mean delta {delta_mean:.6g}')
 
-                # Put the reference at zeta=0, and adjust the energy gains on
-                # the stable RF branch above transition.
+                # We have a degree of freedom to shift all phases
+                # We can use this freedom to impose zeta=0 at the start line
+                # and make the result deterministic
                 phase_taper[cav_active] -= wave_number[cav_active] * particle_on_co.zeta[0]
-                if not converged:
-                    if np.any(np.abs(target_rf_energy_gain[cav_active]) >= np.abs(voltage[cav_active])):
-                        raise ValueError('Insufficient RF voltage to compensate radiation energy loss')
-                    phase_current = np.pi - np.arcsin(np.clip(
-                        current_rf_energy_gain[cav_active] / voltage[cav_active], -1, 1))
-                    phase_target = np.pi - np.arcsin(
-                        target_rf_energy_gain[cav_active] / voltage[cav_active])
-                    phase_taper[cav_active] += phase_target - phase_current
+
+                # Set the adjusted RF phases in the cavity elements
                 phase_setter.set_values(phase_taper)
+
+                converged = (abs(energy_error) < energy_tol
+                             and sharing_error < energy_tol
+                             and taper_error < rtol_eneloss
+                             and (not zero_mean or abs(delta_mean) < rtol_eneloss))
                 if converged:
-                    return
+                    break
+
+                # Adjust the RF phases to match the target energy gain
+                if np.any(np.abs(target_rf_energy_gain[cav_active]) >= np.abs(voltage[cav_active])):
+                    raise ValueError('Insufficient RF voltage to compensate radiation energy loss')
+                phase_current = np.pi - np.arcsin(np.clip(
+                    current_rf_energy_gain[cav_active] / voltage[cav_active], -1, 1))
+                phase_target = np.pi - np.arcsin(
+                    target_rf_energy_gain[cav_active] / voltage[cav_active])
+                phase_taper[cav_active] += phase_target - phase_current
+                phase_setter.set_values(phase_taper)
 
                 if zero_mean:
                     # Shift the starting momentum to remove the measured mean.
@@ -196,7 +202,8 @@ def compensate_radiation_energy_loss(line, delta0='zero_mean', rtol_eneloss=1e-1
                 particle_on_co_guess = particle_on_co.copy()
                 particle_on_co_guess.zeta = 0
 
-            raise RuntimeError('Maximum number of iterations reached')
+            else:
+                raise RuntimeError('Maximum number of iterations reached')
     except Exception:
         # Do not leave partially compensated RF or magnet settings on failure.
         phase_setter.set_values(phase_original)
