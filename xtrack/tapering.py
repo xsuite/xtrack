@@ -74,7 +74,7 @@ def compensate_radiation_energy_loss(line, delta0='zero_mean', rtol_eneloss=1e-1
                                + cache['_own_lag_taper'].multisetter.get_values()))
     beta0 = float(line.particle_ref.beta0[0])
     p0c = float(line.particle_ref.p0c[0])
-    line_length = line.get_length()
+    line_length = line.tracker._tracker_data_base.line_length
     energy_tol = float(line.particle_ref.energy0[0]) * rtol_eneloss
     # Include both frequency and harmonic contributions. wave_number converts
     # a change in zeta into the corresponding RF phase shift.
