@@ -1,4 +1,5 @@
 import pathlib
+from contextlib import nullcontext
 
 import numpy as np
 import pytest
@@ -133,8 +134,12 @@ def test_orbit_correction_twiss_method(method, provide_twiss):
 def test_twiss_5d_invalid_constraints(constraint):
     line = _make_line()
     line.build_tracker()
-    with pytest.raises(ValueError, match='5d'):
-        line.twiss(method='5d', **constraint)
+    expected_warning = (
+        pytest.warns(FutureWarning, match='`freeze_longitudinal` keyword is deprecated')
+        if 'freeze_longitudinal' in constraint else nullcontext())
+    with expected_warning:
+        with pytest.raises(ValueError, match='5d'):
+            line.twiss(method='5d', **constraint)
     with pytest.raises(ValueError, match='5d'):
         line.find_closed_orbit(method='5d', **constraint)
 

@@ -56,7 +56,7 @@ def test_tapering_and_twiss_with_radiation(conf):
 
     # Enable radiation
     line.configure_radiation(model='mean')
-    # - Set cavity lags to compensate energy loss
+    # - Set cavity phases to compensate energy loss
     # - Taper magnet strengths
     line.compensate_radiation_energy_loss(delta0=0)
 
@@ -177,7 +177,7 @@ def test_tapering_zero_mean():
 
     line.configure_radiation(model='mean')
 
-    # - Set cavity lags to compensate energy loss
+    # - Set cavity phases to compensate energy loss
     # - Taper magnet strengths to avoid optics and orbit distortions
     line.compensate_radiation_energy_loss(max_iter=100, delta0='zero_mean')
 
@@ -223,7 +223,7 @@ def _make_line_for_phase_compensation():
         line[name].voltage *= 2
     line['rf1'].harmonic = line['rf1'].frequency * line.get_length() / clight
     line['rf1'].frequency = 0
-    line['rf1'].lag = 13.
+    line['rf1'].phase = np.deg2rad(13.)
     line['rf2a'].phase = .23
     line['rf'].phase_taper = .17  # Inactive cavity settings should be preserved.
     line.configure_radiation(model='mean')

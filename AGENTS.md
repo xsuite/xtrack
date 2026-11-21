@@ -82,6 +82,11 @@ selection need their intended settings.
 
 - Add a focused regression test for a bug fix or changed behavior. Prefer
   small, deterministic cases and existing fixtures and reference data.
+- Avoid unintended warnings in tests, including deprecation warnings. Use the
+  current API unless deprecated behavior is the subject of the test. For an
+  expected warning, assert its category and message with `pytest.warns` around
+  the specific call instead of suppressing it broadly. Run affected tests with
+  `-W error::FutureWarning -W error::DeprecationWarning` when fixing these warnings.
 - Use `xobjects.test_helpers.for_all_test_contexts` and the supplied
   `test_context` for tests intended to exercise multiple backends.
 - Tests that rely on Matplotlib must be skipped when it is unavailable.
