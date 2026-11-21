@@ -2,18 +2,16 @@ from pathlib import Path
 import numpy as np
 import xtrack as xt
 
-line = xt.load(Path(__file__).parent / '../../test_data/clic_dr/line_for_taper.json')
+line = xt.load(Path(__file__).parent / '../../test_data/clic_dr/line_for_taper_thick.json')
 line.particle_ref.p0c = 4e9
 line.build_tracker()
 line.configure_radiation(model='mean')
 
-# Taper the quadrupoles and sextupoles, leaving dipoles and their edges fixed.
+# Taper the quadrupoles and sextupoles, leaving Bend elements untapered.
 magnets = [(i, line.element_dict[name]) for i, name in enumerate(line.element_names)
-           if isinstance(line.element_dict[name], xt.Multipole)
-           and line.element_dict[name].order >= 1
-           and line.element_dict[name].hxl == 0]
-# Use knl[0] and measure the orbit at one slice of each four-slice quadrupole.
-quads = [line.element_names[i] for i, el in magnets if el.knl[1] != 0][::4]
+           if isinstance(line.element_dict[name], (xt.Quadrupole, xt.Sextupole))]
+# Use knl[0] and measure the orbit at each quadrupole.
+quads = [line.element_names[i] for i, el in magnets if isinstance(el, xt.Quadrupole)]
 
 line.compensate_radiation_energy_loss(taper_magnets=False, verbose=False)
 tw_before = line.twiss5d(chrom=False)
@@ -21,7 +19,7 @@ correction = line.correct_trajectory(
     method='5d', twiss_table=tw_before, run=False,
     monitor_names_x=quads, corrector_names_x=quads, rcond=1e-6)
 
-for iteration in range(10):
+for iteration in range(20):
     line.compensate_radiation_energy_loss(
         taper_magnets=False, delta0='zero_mean', verbose=False)
     correction.correct(planes='x', n_iter=1, verbose=False)
