@@ -5267,7 +5267,7 @@ class Line:
 
     @doc_group("Radiation, Spin and Intra-Beam Scattering")
     def compensate_radiation_energy_loss(self, delta0='zero_mean', rtol_eneloss=1e-10,
-                                    max_iter=100, taper_magnets=True, **kwargs):
+                                    max_iter=100, taper_magnets=True, co_guess=None, **kwargs):
 
         """
         Compensate beam energy loss from synchrotron radiation by configuring
@@ -5291,6 +5291,9 @@ class Line:
             existing settings. The reference starts at zeta=0; with False or
             a list, zeta is allowed to slip over a turn. Cavity voltages,
             frequencies and harmonics stay at their configured values.
+        co_guess: Particles or dict, optional
+            Initial guess for the radiation-free closed-orbit search used to
+            initialize compensation.
         kwargs: dict
             Additional keyword arguments passed to the compensation function.
 

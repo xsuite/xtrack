@@ -256,9 +256,14 @@ def test_phase_compensation_taper_selection(delta0, mode, monkeypatch):
     flags_before = dict(line.tracker.track_flags.flags)
     find_closed_orbit = line.find_closed_orbit
     searches = []
+    co_guess = line.particle_ref.copy()
+    guess_before = np.array([getattr(co_guess, key)[0]
+                             for key in ('x', 'px', 'y', 'py', 'zeta', 'delta')])
 
     def check_settings(**kwargs):
         searches.append(kwargs['method'])
+        if kwargs['method'] == '4d':
+            assert kwargs['co_guess'] is co_guess
         for name, setter in setters.items():
             np.testing.assert_array_equal(setter.get_values(), before[name])
         np.testing.assert_array_equal(
@@ -269,8 +274,11 @@ def test_phase_compensation_taper_selection(delta0, mode, monkeypatch):
     monkeypatch.setattr(line, 'find_closed_orbit', check_settings)
     line.compensate_radiation_energy_loss(
         taper_magnets=taper_magnets, delta0=delta0,
-        verbose=False, record_iterations=True)
+        verbose=False, record_iterations=True, co_guess=co_guess)
     monkeypatch.setattr(line, 'find_closed_orbit', find_closed_orbit)
+    np.testing.assert_array_equal(
+        [getattr(co_guess, key)[0] for key in ('x', 'px', 'y', 'py', 'zeta', 'delta')],
+        guess_before)
     assert searches[0] == '4d'
     if mode is True:
         assert searches == ['4d']  # Keep the automatic-tapering fast path.

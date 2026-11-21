@@ -8,7 +8,7 @@ import xobjects as xo
 
 def compensate_radiation_energy_loss(line, delta0='zero_mean', rtol_eneloss=1e-12,
                                      max_iter=100, verbose=True,
-                                     co_search_at=None, taper_magnets=True,
+                                     co_search_at=None, taper_magnets=True, co_guess=None,
                                      **kwargs):
 
     assert isinstance(line._context, xo.ContextCpu), "Only CPU context is supported"
@@ -97,7 +97,7 @@ def compensate_radiation_energy_loss(line, delta0='zero_mean', rtol_eneloss=1e-1
                 line.config.XTRACK_MULTIPOLE_NO_SYNRAD = True
                 particle_on_co_no_rad = line.find_closed_orbit(
                     method='4d', delta0=delta_start, zeta0=0,
-                    co_search_at=co_search_at)
+                    co_search_at=co_search_at, co_guess=co_guess)
 
             # Track with radiation active and RF kicks disabled to estimate the
             # uncompensated loss and arrival times for the initial RF phases.
