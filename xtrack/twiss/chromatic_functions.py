@@ -171,12 +171,17 @@ def _build_periodic_off_momentum_init(
         include_collective=twiss_config['include_collective'])
 
     delta0 = twiss_config['delta0']
+    zeta0 = twiss_config['zeta0']
     if method == '4d':
         delta0 = (delta0 + momentum_offset
                   if delta0 is not None else momentum_offset)
+    elif method == '5d':
+        delta0 = twiss_init.delta + momentum_offset
+        zeta0 = None
     twiss_init.particle_on_co = line.find_closed_orbit(
         delta0=delta0,
-        zeta0=twiss_config['zeta0'],
+        zeta0=zeta0,
+        method=method,
         zeta_shift=-(zeta_shift if method == '6d' else 0),
         co_guess=part_guess,
         start=twiss_config['start'],

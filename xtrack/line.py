@@ -2743,6 +2743,19 @@ class Line:
         return self.twiss(**kwargs)
 
     @doc_group("Tracking and Analysis")
+    def twiss5d(self, **kwargs):
+
+        """Compute Twiss with five periodic coordinates and free zeta slip.
+
+        Equivalent to ``twiss(method='5d', ...)``. Specify either ``zeta0``
+        or ``delta0``; the default is ``zeta0=0``. The full 6D normal form is
+        used, with radiation and RF kicks active.
+        """
+        assert 'method' not in kwargs, 'method cannot be provided as argument to twiss5d'
+        kwargs['method'] = '5d'
+        return self.twiss(**kwargs)
+
+    @doc_group("Tracking and Analysis")
     def twiss6d(self, **kwargs):
 
         """
@@ -3072,7 +3085,7 @@ class Line:
                  monitor_names_y=None, corrector_names_y=None,
                  n_micado=None, n_singular_values=None, rcond=None,
                  monitor_alignment=None, corrector_limits_x=None,
-                 corrector_limits_y=None):
+                 corrector_limits_y=None, method=None):
 
         '''
         Correct the beam trajectory using a linearized response matrix computed
@@ -3101,6 +3114,10 @@ class Line:
         twiss_table : TwissTable
             Twiss table used to compute the response matrix for the correction.
             If None, the twiss table is computed from the line.
+        method : {'4d', '5d', '6d'}, optional
+            Twiss method used for response optics and orbit measurements.
+            With None, response optics use 4D and orbit measurements use the
+            line's Twiss defaults, or 4D when delta0 is supplied to `correct`.
         planes : str
             Planes for which the correction is performed. It can be 'x', 'y' or
             'xy'. If None, the correction is performed for both planes.
@@ -3155,7 +3172,7 @@ class Line:
                  rcond=rcond,
                  monitor_alignment=monitor_alignment,
                  corrector_limits_x=corrector_limits_x,
-                 corrector_limits_y=corrector_limits_y)
+                 corrector_limits_y=corrector_limits_y, method=method)
 
         if run:
             correction.correct(planes=planes, n_iter=n_iter)
@@ -3243,13 +3260,22 @@ class Line:
                           spin=None,
                           num_turns_search_t_rev=None,
                           symmetrize=False,
-                          include_collective=False):
+                          include_collective=False, method=None):
 
         """
         Find the closed orbit of the beamline.
 
         Parameters
         ----------
+        method : {None, '4d', '5d', '6d'}, optional
+            With None (default), use a 6D search if neither delta0 nor zeta0
+            is supplied. If either or both are supplied, close only the four
+            transverse coordinates and constrain the supplied initial
+            longitudinal coordinates; longitudinal closure is not required.
+            With '5d', close x, px, y, py and delta, allowing
+            zeta to slip. Specify either zeta0 or delta0; the default is zeta0=0.
+            With '4d', close only the transverse coordinates (default delta0=0).
+            With '6d', close all six coordinates.
         co_guess : Particles or dict
             Particle used as first guess to compute the closed orbit. If None,
             the reference particle is used.
@@ -3307,6 +3333,9 @@ class Line:
 
         """
 
+        if method == '5d' and freeze_longitudinal:
+            raise ValueError('freeze_longitudinal is incompatible with method="5d"')
+
         if freeze_longitudinal:
             kwargs = locals().copy()
             kwargs.pop('self')
@@ -3338,7 +3367,7 @@ class Line:
                                  search_for_t_rev=search_for_t_rev,
                                  spin=spin,
                                  num_turns_search_t_rev=num_turns_search_t_rev,
-                                 symmetrize=symmetrize)
+                                 symmetrize=symmetrize, method=method)
 
     @doc_group("Tracking and Analysis")
     def get_T_matrix(self, start=None, end=None,
@@ -5238,24 +5267,35 @@ class Line:
 
     @doc_group("Radiation, Spin and Intra-Beam Scattering")
     def compensate_radiation_energy_loss(self, delta0='zero_mean', rtol_eneloss=1e-10,
-                                    max_iter=100, **kwargs):
+                                    max_iter=100, taper_magnets=True, co_guess=None, **kwargs):
 
         """
         Compensate beam energy loss from synchrotron radiation by configuring
-        RF cavities and Multipole elements (tapering).
+        RF phases and optionally tapering the magnets.
 
         Parameters
         ----------
-        delta0: float
-            Initial energy deviation. If `delta0='zero_mean'` is specified, the
-            compensation is done such that the mean energy deviation along the
-            ring is zero.
+        delta0: float or 'zero_mean'
+            Initial relative momentum deviation. If `delta0='zero_mean'` is
+            specified, the mean relative momentum deviation along the ring
+            is set to zero.
         rtol_eneloss: float
             Relative tolerance on energy loss.
         max_iter: int
             Maximum number of iterations.
+        taper_magnets: bool or list of str
+            If True (default), taper all eligible magnets using automatic
+            tapering during tracking. If False, adjust only the RF phases.
+            A list selects the magnets whose delta_taper values are updated
+            between 5D closed-orbit searches. Unselected magnets keep their
+            existing settings. The reference starts at zeta=0; with False or
+            a list, zeta is allowed to slip over a turn. Cavity voltages,
+            frequencies and harmonics stay at their configured values.
+        co_guess: Particles or dict, optional
+            Initial guess for the radiation-free closed-orbit search used to
+            initialize compensation.
         kwargs: dict
-            Additional keyword arguments passed to the twiss method.
+            Additional keyword arguments passed to the compensation function.
 
         """
         self._method_incompatible_with_compose()

@@ -85,6 +85,7 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
                                 co_search_at=co_search_at,
                                 search_for_t_rev=search_for_t_rev,
                                 spin=spin,
+                                method=method,
                                 num_turns_search_t_rev=num_turns_search_t_rev,
                                 symmetrize=False,
                                 include_collective=include_collective

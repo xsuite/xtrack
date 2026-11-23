@@ -15,7 +15,7 @@ from xobjects.context import Source
 from xobjects.test_helpers import (
     allow_kernel_compilation, for_all_test_contexts)
 
-TEST_DATA_FOLDER = pathlib.Path(__file__).parent / '../../xtrack/test_data'
+TEST_DATA_FOLDER = pathlib.Path(__file__).resolve().parents[1] / 'test_data'
 
 
 def test_internal_record_getter_source_is_not_inherited():
