@@ -41,7 +41,7 @@ def _add_periodic_solution_data_to_twiss_result(twiss_config, twiss_res):
     bets0 = W_matrix[0, 4, 4]**2 + W_matrix[0, 4, 5]**2
 
     # Compute slip factor.
-    if method == '6d':
+    if method in ('6d', '5d'):
         RR = twiss_res['R_matrix']
         dz_test = 1e-3  # All linear, so the value does not matter.
         xx = np.linalg.solve(

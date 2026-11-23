@@ -329,7 +329,7 @@ def test_kinetic_momentum_is_kept_through_a_reference_energy_increase(test_conte
     ctx2np = test_context.nparray_from_context_array
     particles = xt.Particles(_context=test_context, p0c=1e10, px=1e-3, py=-2e-3, ax=4e-4, ay=-5e-4)
 
-    xt.ReferenceEnergyIncrease(Delta_p0c=1e10).track(particles)
+    xt.ReferenceEnergyIncrease(_context=test_context, Delta_p0c=1e10).track(particles)
 
     xo.assert_allclose(ctx2np(particles.kin_px)[0] * 2e10, (1e-3 - 4e-4) * 1e10, rtol=1e-14)
     xo.assert_allclose(ctx2np(particles.kin_py)[0] * 2e10, (-2e-3 + 5e-4) * 1e10, rtol=1e-14)
