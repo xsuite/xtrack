@@ -53,7 +53,14 @@ void track_rf_kick_single_particle(
     if (absolute_time == 1) {
         double const time_s = LocalParticle_get_time_s(part);
         double const s = LocalParticle_get_s(part);
-        phase0 += 2 * PI * frequency * (time_s + s / (beta0 * C_LIGHT));
+        // Phase accumulated at time_s: f time_s cycles for a set frequency,
+        // h cycles per reference turn when locked.
+        if (harmonic != 0) {
+            phase0 += 2 * PI * (harmonic * LocalParticle_get_reference_turns(part)
+                + frequency * s / (beta0 * C_LIGHT));
+        } else {
+            phase0 += 2 * PI * frequency * (time_s + s / (beta0 * C_LIGHT));
+        }
     }
 #endif
 
