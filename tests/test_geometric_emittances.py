@@ -205,7 +205,7 @@ def test_aperture_geometric_emittances(method):
 
 @allow_kernel_compilation
 def test_aperture_geometric_defaults_and_plot_labels():
-    import matplotlib
+    matplotlib = pytest.importorskip('matplotlib')
     matplotlib.use('Agg')
     from matplotlib import pyplot as plt
 
