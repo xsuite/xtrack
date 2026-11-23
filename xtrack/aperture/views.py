@@ -6,6 +6,8 @@ from typing import Literal
 
 import numpy as np
 
+from xtrack.aperture.expressions import ApertureView
+
 from xtrack.aperture.structures import (
     FloatType, Pipe, PipePosition, Profile, ProfilePosition, Racetrack,
     ShapeTypes, _nonzero_tolerances_repr,
@@ -66,19 +68,22 @@ class ProfileView:
         return self._name
 
     @property
-    def shape(self) -> ShapeTypes:
-        return self.raw.shape
+    def shape(self) -> ApertureView:
+        return ApertureView(self._owner.ref.profiles[self.name].shape,
+                            self._owner.env._xdeps_eval.eval)
 
     @shape.setter
     def shape(self, shape: ShapeTypes):
-        self.raw.shape = shape
+        reference = self._owner.ref.profiles[self.name]
+        self._owner._remove_expressions(str(reference.shape) + '.')
+        reference.shape = shape
 
     def plot(self, len_points=128, ax=None):
         ax = self.raw.plot(
             len_points=len_points,
             ax=ax,
             c='black',
-            label=type(self.shape).__name__,
+            label=self.shape.__class__.__name__,
         )
 
         ax.set_title(f'Profile {self.name}')
@@ -176,6 +181,7 @@ class PipePositionView:
     @pipe_index.setter
     def pipe_index(self, pipe_index: int):
         self.raw.pipe_index = pipe_index
+        self._owner._touch_placement(self.name)
 
     @property
     def pipe(self) -> PipeView:
@@ -215,6 +221,7 @@ class PipePositionView:
     @survey_reference_name.setter
     def survey_reference_name(self, survey_reference_name: str):
         self.raw.survey_reference_name = survey_reference_name
+        self._owner._touch_placement(self.name)
 
     @property
     def survey_index(self) -> int:
@@ -223,6 +230,7 @@ class PipePositionView:
     @survey_index.setter
     def survey_index(self, survey_index: int):
         self.raw.survey_index = survey_index
+        self._owner._touch_placement(self.name)
 
     @property
     def transformation(self) -> np.ndarray:
@@ -231,6 +239,7 @@ class PipePositionView:
     @transformation.setter
     def transformation(self, transformation):
         self.raw.transformation = transformation
+        self._owner._touch_placement(self.name)
 
     def get_transform(self) -> Transform:
         return matrix_to_transform(self.transformation)
@@ -238,6 +247,7 @@ class PipePositionView:
     def set_transform(self, transform: Transform):
         matrix = transform_matrix(**transform._asdict())
         self.raw.transformation.to_nplike()[:] = matrix
+        self._owner._touch_placement(self.name)
 
     @property
     def shift_x(self) -> float:
@@ -362,6 +372,11 @@ class ProfilePositionView:
         )
 
     @property
+    def _expression_view(self):
+        reference = self._owner.ref.pipes[self._pipe_name].positions[self._position_index]
+        return ApertureView(reference, self._owner.env._xdeps_eval.eval)
+
+    @property
     def raw(self) -> ProfilePosition:
         pipe = self._owner._resolve_pipe(self._pipe_name)
         return pipe.positions[self._position_index]
@@ -372,7 +387,7 @@ class ProfilePositionView:
 
     @profile_index.setter
     def profile_index(self, profile_index: int):
-        self.raw.profile_index = profile_index
+        self._expression_view.profile_index = profile_index
 
     @property
     def profile(self) -> ProfileView:
@@ -386,7 +401,7 @@ class ProfilePositionView:
 
     @tol_r.setter
     def tol_r(self, value: float):
-        self.raw.tol_r = value
+        self._expression_view.tol_r = value
 
     @property
     def tol_x(self) -> float:
@@ -394,7 +409,7 @@ class ProfilePositionView:
 
     @tol_x.setter
     def tol_x(self, value: float):
-        self.raw.tol_x = value
+        self._expression_view.tol_x = value
 
     @property
     def tol_y(self) -> float:
@@ -402,13 +417,13 @@ class ProfilePositionView:
 
     @tol_y.setter
     def tol_y(self, value: float):
-        self.raw.tol_y = value
+        self._expression_view.tol_y = value
 
     def plot(self, len_points=128, ax=None):
         """Plot the profile shape and this position's transverse tolerances."""
         profile = self.profile
         ax = profile.raw.plot(
-            len_points=len_points, ax=ax, c='black', label=type(profile.shape).__name__,
+            len_points=len_points, ax=ax, c='black', label=profile.shape.__class__.__name__,
         )
 
         if self.tol_x or self.tol_y or self.tol_r:
@@ -432,7 +447,7 @@ class ProfilePositionView:
 
     @shift_s.setter
     def shift_s(self, shift_s: float):
-        self.raw.shift_s = shift_s
+        self._expression_view.shift_s = shift_s
 
     @property
     def shift_x(self) -> float:
@@ -440,7 +455,7 @@ class ProfilePositionView:
 
     @shift_x.setter
     def shift_x(self, shift_x: float):
-        self.raw.shift_x = shift_x
+        self._expression_view.shift_x = shift_x
 
     @property
     def shift_y(self) -> float:
@@ -448,7 +463,7 @@ class ProfilePositionView:
 
     @shift_y.setter
     def shift_y(self, shift_y: float):
-        self.raw.shift_y = shift_y
+        self._expression_view.shift_y = shift_y
 
     @property
     def rot_x_rad(self) -> float:
@@ -456,7 +471,7 @@ class ProfilePositionView:
 
     @rot_x_rad.setter
     def rot_x_rad(self, rot_x_rad: float):
-        self.raw.rot_x_rad = rot_x_rad
+        self._expression_view.rot_x_rad = rot_x_rad
 
     @property
     def rot_y_rad(self) -> float:
@@ -464,7 +479,7 @@ class ProfilePositionView:
 
     @rot_y_rad.setter
     def rot_y_rad(self, rot_y_rad: float):
-        self.raw.rot_y_rad = rot_y_rad
+        self._expression_view.rot_y_rad = rot_y_rad
 
     @property
     def rot_s_rad(self) -> float:
@@ -472,7 +487,7 @@ class ProfilePositionView:
 
     @rot_s_rad.setter
     def rot_s_rad(self, rot_s_rad: float):
-        self.raw.rot_s_rad = rot_s_rad
+        self._expression_view.rot_s_rad = rot_s_rad
 
     def get_transform(self, frame: Frame = 'curved'):
         if frame not in ('curved', 'straight'):
@@ -513,6 +528,11 @@ class PipeView:
         return ProfilePositionView(self._owner, self._name, item)
 
     @property
+    def _expression_view(self):
+        return ApertureView(self._owner.ref.pipes[self.name],
+                            self._owner.env._xdeps_eval.eval)
+
+    @property
     def raw(self) -> Pipe:
         return self._owner._resolve_pipe(self._name)
 
@@ -543,7 +563,7 @@ class PipeView:
 
     @curvature.setter
     def curvature(self, curvature: float):
-        self.raw.curvature = curvature
+        self._expression_view.curvature = curvature
 
     def values(self):
         return list(self)
