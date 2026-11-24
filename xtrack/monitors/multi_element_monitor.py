@@ -41,23 +41,18 @@ def _parse_monomials(monomials: MonomialRequest,
                 f'of {list(COORDS)}')
         rows = np.asarray(coord_monomials)
         rows = rows.reshape(1, -1) if rows.ndim == 1 else rows
-        for row in rows:
-            monomial = tuple(int(order) for order in row)
-            if len(monomial) != descriptor.monomial_length:
-                raise ValueError(
-                    f'Invalid monomial {monomial}: expected length '
-                    f'{descriptor.monomial_length} (6 vars + '
-                    f'{descriptor.num_params} params)')
-            if not descriptor.is_valid_monomial(monomial):
-                raise ValueError(
-                    f'Invalid monomial {monomial}: beyond the order or the '
-                    f'parameter order of the descriptor')
+        if rows.shape[1] != descriptor.monomial_length:
+            raise ValueError(
+                f'Invalid monomial {tuple(rows[0].tolist())}: expected length '
+                f'{descriptor.monomial_length} (6 vars + '
+                f'{descriptor.num_params} params)')
+        indices = descriptor.monomial_index(rows)
+        for monomial, index in zip(map(tuple, rows.tolist()), indices.tolist()):
             if (coord, monomial) in seen:
                 raise ValueError(
                     f'Monomial {monomial} requested twice for {coord!r}')
             seen.add((coord, monomial))
-            recordings.append(
-                (coord, monomial, descriptor.monomial_index(monomial)))
+            recordings.append((coord, monomial, index))
     if not recordings:
         raise ValueError('No monomials to record')
     return recordings
@@ -132,8 +127,11 @@ class MultiElementMonitor(xt.BeamElement):
                          tpsa_addresses=tpsa_addresses,
                          record_pzeta=int(ncoords >= 8),
                          record_beta0=int(ncoords == 9),
-                         monomial_indices=len(recordings),
-                         coord_indices=len(recordings),
+                         monomial_indices=np.array(
+                             [index for _, _, index in recordings], dtype=np.int64),
+                         coord_indices=np.array(
+                             [self._tpsa_coord_name_to_index[coord]
+                              for coord, _, _ in recordings], dtype=np.int64),
                          coefficients=(num_turns, len(obs_names), len(recordings)),
                          **kwargs)
         self.obs_names = obs_names
@@ -141,16 +139,13 @@ class MultiElementMonitor(xt.BeamElement):
             name: idx for idx, name in enumerate(self.obs_names)
         }
         self._map_series = None  # filled by a ParticlesTpsa track
-        self._map_ref_particle = None
 
         # `(coord, monomial)` per slot, and the reverse lookup
         self.recorded_monomials = None if monomials is None else [
             (coord, monomial) for coord, monomial, _ in recordings]
-        self._slot_index = {}
-        for slot, (coord, monomial, coefficient_index) in enumerate(recordings):
-            self.monomial_indices[slot] = coefficient_index
-            self.coord_indices[slot] = self._tpsa_coord_name_to_index[coord]
-            self._slot_index[coord, monomial] = slot
+        self._slot_index = {
+            (coord, monomial): slot
+            for slot, (coord, monomial, _) in enumerate(recordings)}
 
     def __len__(self):
         return len(self.obs_names)
@@ -207,15 +202,12 @@ class MultiElementMonitor(xt.BeamElement):
         return TpsaMap(self._recorded_maps(turn)[self._obs_index(obs_name)])
 
     def optics_at(self, obs_name, turn=None):
-        """Twiss observables of a recorded map, with its reference beta0."""
+        """Twiss observables of a recorded map, with the beta0 recorded there."""
         from xtrack.tpsa.optics import TpsaOptics
-        if self._map_ref_particle is None:
-            raise AttributeError("No reference particle recorded for TPSA optics")
-        if self.record_beta0:
-            beta0 = float(np.asarray(self.get(
-                'beta0', obs_name, turn=self.start_at_turn if turn is None else turn)).reshape(-1)[0])
-        else:
-            beta0 = float(self._map_ref_particle.beta0[0])
+        if not self.record_beta0:
+            raise AttributeError("No beta0 recorded for TPSA optics")
+        beta0 = float(np.asarray(self.get(
+            'beta0', obs_name, turn=self.start_at_turn if turn is None else turn)).reshape(-1)[0])
         return TpsaOptics(self.map_at(obs_name, turn=turn), beta0=beta0)
 
     def map_jacobian(self, turn=None):
