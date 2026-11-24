@@ -583,6 +583,7 @@ def test_multi_element_monitor(with_progress_bar, iscollective):
     xo.assert_allclose(mon.get('py', obs_name=nn_check_1), mon_1.py.T, atol=1e-14)
     xo.assert_allclose(mon.get('zeta', obs_name=nn_check_1), mon_1.zeta.T, atol=1e-14)
     xo.assert_allclose(mon.get('delta', obs_name=nn_check_1), mon_1.delta.T, atol=1e-14)
+    xo.assert_allclose(mon.get('pzeta', obs_name=nn_check_1), mon_1.ptau.T / p0.beta0[0], atol=1e-14)
 
     xo.assert_allclose(mon.get('x', obs_name=nn_check_2), mon_2.x.T, atol=1e-14)
     xo.assert_allclose(mon.get('px', obs_name=nn_check_2), mon_2.px.T, atol=1e-14)
@@ -592,7 +593,7 @@ def test_multi_element_monitor(with_progress_bar, iscollective):
     xo.assert_allclose(mon.get('delta', obs_name=nn_check_2), mon_2.delta.T, atol=1e-14)
 
     # Access all data for a given coordinate
-    assert mon.data.shape == (num_turns, len(p0.x), 7, len(tt_obs))
+    assert mon.data.shape == (num_turns, len(p0.x), 8, len(tt_obs))
     xo.assert_allclose(mon.get('x'), mon.data[:,:,0,:], atol=1e-14)
     xo.assert_allclose(mon.get('px'), mon.data[:,:,1,:], atol=1e-14)
     xo.assert_allclose(mon.get('y'), mon.data[:,:,2,:], atol=1e-14)
