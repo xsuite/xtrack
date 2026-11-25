@@ -73,6 +73,18 @@ def test_knob_output_validates_whole_vector_before_writes():
     assert_array_equal(output.read(), [0.0, 0.0])
 
 
+@pytest.mark.parametrize('indirect', [False, True])
+def test_knob_output_cannot_write_native_machine_clock(indirect):
+    """Keep t_turn_s under tracker ownership, including through expressions."""
+    line = make_line()
+    target = 't_turn_s'
+    if indirect:
+        target = 'feedback'
+        line['t_turn_s'] = '2 * total'
+    with pytest.raises(ValueError, match='cannot write the native t_turn_s clock'):
+        KnobOutput(line, target)
+
+
 @pytest.mark.parametrize('operation', ['validate', 'apply'])
 def test_output_checks_graph_after_command_transfer(operation):
     """Catch a graph change that occurs during the command's host transfer."""

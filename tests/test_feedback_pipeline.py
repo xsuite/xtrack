@@ -155,6 +155,7 @@ def test_incompatible_period_rejected(context):
     (xt.ReferenceEnergyChange, {'p0c': 8e9}, False),
     (xt.ReferenceEnergyIncrease, {'Delta_p0c': 1e9}, False),
     (xt.ReferenceEnergyIncrease, {'Delta_p0c': 1e9}, True),
+    (xt.LineSegmentMap, {'length': 1., 'energy_ref_increment': 1e6}, False),
 ])
 def test_native_reference_energy_changes_are_rejected_at_bind(
     context, element, settings, as_replica
@@ -175,7 +176,7 @@ def test_native_reference_energy_changes_are_rejected_at_bind(
     particles = xt.Particles(_context=context, p0c=7e9)
     multitracker = xt.PipelineMultiTracker([xt.PipelineBranch(line, particles)])
 
-    with pytest.raises(NotImplementedError, match='requires fixed reference energy'):
+    with pytest.raises(NotImplementedError, match='element-driven reference-energy'):
         boundary.bind(multitracker)
 
     assert events == []
@@ -298,6 +299,32 @@ def test_disabled_pipeline_holds_rejected_before_transport(context):
     tracker.enable_pipeline_hold = True
     boundary.track(num_turns=1)
     assert boundary.completed_turn == 1
+
+
+def test_shared_environment_needs_common_machine_time_settings(context):
+    """Reject branches that would hold different values of one native clock."""
+    env = xt.Environment(particle_ref=xt.Particles(p0c=7e9))
+    env.new('arc', xt.Drift, length=120.)
+    lines = {name: env.new_line(components=['arc']) for name in ('a', 'b')}
+    boundary = SharedFeedbackBoundary(tuple(lines))
+    boundary.install(lines)
+    branches = []
+    buffer = None
+    for line in lines.values():
+        line.enable_time_dependent_vars = True
+        line.build_tracker(_context=context, _buffer=buffer)
+        buffer = line.tracker._buffer
+        branches.append(xt.PipelineBranch(line, line.build_particles()))
+    boundary.bind(xt.PipelineMultiTracker(branches))
+
+    lines['a'].dt_update_time_dependent_vars = 1e-5
+    with pytest.raises(ValueError, match='common machine-time settings'):
+        boundary.track(num_turns=2)
+    assert all(branch.particles.at_turn[0] == 0 for branch in branches)
+
+    lines['b'].dt_update_time_dependent_vars = 1e-5
+    boundary.track(num_turns=2)
+    assert boundary.completed_turn == 2
 
 
 def test_incompatible_time_epoch_rejected(context):

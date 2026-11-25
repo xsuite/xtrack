@@ -9,6 +9,7 @@ import numpy as np
 import pytest
 import xobjects as xo
 import xtrack as xt
+from scipy.constants import c as clight
 from xobjects.test_helpers import (
     allow_kernel_compilation, for_all_test_contexts,
 )
@@ -36,6 +37,18 @@ def test_line_without_feedback_uses_native_build_and_pipeline(context, mocker):
 
     build_tracker.assert_called_once_with()
     np.testing.assert_array_equal(particles.at_turn, [2])
+
+
+def test_feedback_rejects_time_dependent_reference_geometry(study):
+    """Catch a transitive change in circumference before transporting a beam."""
+    env, line, _, particles = study()
+    length = env.get('arc').length
+    env['arc_length'] = f'{length} + t_turn_s'
+    env.ref['arc'].length = env.ref['arc_length']
+    line.enable_time_dependent_vars = True
+    with pytest.raises(NotImplementedError, match='time-dependent reference geometry'):
+        line.track(particles, num_turns=1)
+    np.testing.assert_array_equal(particles.at_turn, 0)
 
 
 @pytest.mark.parametrize('lose_particle', [False, True], ids=['complete', 'loss'])
@@ -236,6 +249,30 @@ def test_disable_group_retains_hardware_response_and_resume_continues(study):
     assert line.feedback.enabled
     line.track(particles, num_turns=3)
     assert any(row['executed'] for row in fb.log[-3:])
+
+
+@pytest.mark.parametrize('tau', [0., 1e-5])
+def test_physical_nominal_uses_native_machine_time(study, tau):
+    """Apply a scheduled step one boundary after its native sample."""
+    env, line, fb, particles = study(tau=tau, enable=False)
+    dt = line.get_length() / (float(particles.beta0[0]) * clight)
+    step = 1e-5
+    env.functions['step'] = xt.FunctionPieceWiseLinear(x=[0., dt/2], y=[0., step])
+    env['nominal'] = 'step(t_turn_s)'
+    line.enable_time_dependent_vars = True
+    line.feedback.enabled = False
+
+    line.track(particles, num_turns=4, log=xt.Log('nominal', 'applied'))
+
+    np.testing.assert_array_equal(line.log_last_track['nominal'], [0., step, step, step])
+    np.testing.assert_array_equal([row['target_output'][0] for row in fb.log],
+                                  [0., step, step, step])
+    expected = ([0., 0., step, step] if tau == 0.
+                else [0., 0., 0., step * -np.expm1(-dt / tau)])
+    np.testing.assert_allclose(
+        line.log_last_track['applied'], expected, rtol=1e-14, atol=0.,
+    )
+    assert not any(row['executed'] for row in fb.log)
 
 
 def test_vector_output_preflight_uses_actual_applied_readback_shape(study):

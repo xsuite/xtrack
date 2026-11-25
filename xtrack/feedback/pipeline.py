@@ -3,9 +3,10 @@
 # Copyright (c) CERN, 2026.                 #
 # ######################################### #
 
-"""Synchronize fixed-period full-turn callbacks using native pipeline holds."""
+"""Synchronize full-turn callbacks using native pipeline holds."""
 
 from collections.abc import Mapping
+from functools import partial
 import math
 from types import MappingProxyType
 
@@ -13,13 +14,16 @@ import numpy as np
 import xobjects as xo
 from scipy.constants import c as clight
 
-from ..beam_elements.reference_energy_change import ReferenceEnergyChange
-from ..beam_elements.reference_energy_increase import ReferenceEnergyIncrease
 from ..line import Line
 from ..particles import Particles
 from ..pipeline import PipelineMultiTracker, PipelineStatus
+from .hardware import PhysicalActuator
+from .output import KnobOutput, _check_time_dependent_geometry
 from .runtime import FeedbackSystem
-from .timing import _check_turn_clock_resolution
+from .timing import (
+    _CLOCK_BATCH, _CLOCK_ROUNDOFF, _check_ramp_window,
+    _check_turn_clock_resolution, _has_element_energy_change,
+)
 
 
 def _same_timestamp(value, reference):
@@ -57,10 +61,10 @@ class SharedFeedbackBoundary:
         after_feedback(completed_turn=n, time_seconds=t, updates=records)
 
     Each branch supplies a distinct particle collection on the same numerical
-    context. The clock uses fixed reference energy and a common revolution
-    period. The callback receives borrowed bunches whose native clocks still
-    show the start of the traversal. Its timestamp is the bound epoch plus
-    the elapsed full turns times the revolution period.
+    context. Branches must have common full-turn boundary times, including
+    when using an ``EnergyProgram``. The callback timestamp is the end of
+    the traversal. The borrowed bunches still show its start on their clocks.
+    Lines sharing an environment must also share its machine-time settings.
 
     Treat the borrowed bunches as read-only and apply settings for later
     transport. All branches are checked together before the callback.
@@ -105,6 +109,7 @@ class SharedFeedbackBoundary:
         self._multitracker = None
         self._system = None
         self._period = None
+        self._programs = None
         self._epoch_turn = None
         self._epoch_time = None
         self._context = None
@@ -146,7 +151,7 @@ class SharedFeedbackBoundary:
         return self
 
     def bind(self, multitracker, *, system=None):
-        """Validate complete branch membership and a common fixed-energy epoch."""
+        """Validate complete branch membership and a common turn epoch."""
         if self._lines is None:
             raise RuntimeError('Install the boundaries before binding')
         if self._multitracker is not None:
@@ -159,26 +164,30 @@ class SharedFeedbackBoundary:
         lengths = {}
         reference_energy = {}
         raw_turns = {}
+        programs = {}
         for name in self.branch_names:
             line = self._lines[name]
             tracker = self._check_line(name)
-            if any(
-                isinstance(element, (ReferenceEnergyChange, ReferenceEnergyIncrease))
-                for element in tracker._tracker_data_base.elements
-            ):
-                raise NotImplementedError(
-                    f'{name}: this boundary requires fixed reference energy'
-                )
+            programs[name] = (
+                line.energy_program if line.enable_time_dependent_vars else None
+            )
+            _check_time_dependent_geometry(line)
             p = particles[name]
             if not isinstance(p._context, (xo.ContextCpu, xo.ContextCupy)):
                 raise NotImplementedError('Only CPU/CuPy contexts are supported')
             if p._context is not tracker._context:
                 raise ValueError(f'{name}: tracker and particles need the same context')
             self._check_start(p, name)
-            beta0 = float(p._xobject.beta0[0])
+            program = programs[name]
+            first = 0
+            if program is not None:
+                # GPU storage need not place active particles before losses.
+                xp = p._context.nplike_lib
+                first = int(xp.argmax(p.state > 0))
+            beta0 = float(p._xobject.beta0[first])
             if not math.isfinite(beta0) or beta0 <= 0:
                 raise ValueError(f'{name}: expected positive finite reference speed')
-            reference_energy[name] = (float(p._xobject.p0c[0]), beta0)
+            reference_energy[name] = (float(p._xobject.p0c[first]), beta0)
             lengths[name] = self._check_geometry(line, tracker, name)
             period = lengths[name] / (beta0 * clight)
             if not np.isfinite(period) or period <= 0:
@@ -190,12 +199,18 @@ class SharedFeedbackBoundary:
                 raise ValueError(f'{name}: expected a finite nonnegative epoch')
             raw_turns[name] = self._reference_turns(p, tracker)
             turn = self._integer_turn(raw_turns[name], name)
-            _check_turn_clock_resolution(time, period)
+            if program is None:
+                _check_turn_clock_resolution(time, period)
+            else:
+                end = _check_ramp_window(program, turn, turn + 1, time, raw_turns[name])
+                period = program._elapsed_time_between_turns(turn, turn + 1)
+                _check_turn_clock_resolution(end, period)
             self._require_particles_at(p, name, turn=turn, element=0, s=0.0)
             epochs[name] = (turn, time, period)
             trackers[name] = tracker
         reference = epochs[self.reference_branch]
         reference_context = particles[self.reference_branch]._context
+        ramped = any(program is not None for program in programs.values())
         for name, epoch in epochs.items():
             if particles[name]._context is not reference_context:
                 raise NotImplementedError(
@@ -207,7 +222,7 @@ class SharedFeedbackBoundary:
                 raise ValueError(f'{name}: incompatible time epoch')
             # Compare periods on their own scale, independent of absolute time.
             if not math.isclose(
-                epoch[2], reference[2], rel_tol=128 * np.finfo(float).eps,
+                epoch[2], reference[2], rel_tol=_CLOCK_ROUNDOFF,
             ):
                 raise ValueError(f'{name}: incompatible revolution period')
         if system is not None:
@@ -220,12 +235,23 @@ class SharedFeedbackBoundary:
             if any(c.context is not reference_context
                    for c in system.controllers):
                 raise ValueError('Feedback system must use the branch context')
-            system._bind_turn_clock(reference)
+            for controller in system.controllers:
+                output = controller.output
+                if isinstance(output, PhysicalActuator):
+                    output = output._bound_output()
+                if isinstance(output, KnobOutput):
+                    output._check_reference_fields()
+            program = programs[self.reference_branch]
+            elapsed = (reference[2] if program is None else partial(
+                program._elapsed_time_between_turns, reference[0],
+            ))
+            system._bind_turn_clock((reference[0], reference[1], elapsed))
         self._system = system
         self._multitracker = multitracker
         self._particles = MappingProxyType(particles)
         self._trackers = trackers
-        self._period = reference[2]
+        self._period = None if ramped else reference[2]
+        self._programs = programs
         self._epoch_turn = reference[0]
         self._epoch_time = reference[1]
         self._context = reference_context
@@ -251,13 +277,20 @@ class SharedFeedbackBoundary:
             raise RuntimeError('Feedback boundary tracking is not reentrant')
         self._check_configuration()
         self._check_stopped_epoch()
-        _check_turn_clock_resolution(
-            self.last_time_seconds + num_turns * self._period, self._period
-        )
+        if self._period is None:
+            self._check_ramp_calendars(num_turns)
+        else:
+            _check_turn_clock_resolution(
+                self.last_time_seconds + num_turns * self._period, self._period
+            )
         if self._system is not None:
             self._system._validate_source_windows(
                 self.completed_turn, self.completed_turn + num_turns,
             )
+        for name, program in self._programs.items():
+            if program is not None:
+                self._particles[name].reference_turns = self.completed_turn
+                self._turn_start_reference_turns[name] = self.completed_turn
         start = self.callback_count
         self._tracking = True
         try:
@@ -270,6 +303,39 @@ class SharedFeedbackBoundary:
             raise
         finally:
             self._tracking = False
+
+    def _check_ramp_calendars(self, num_turns):
+        """Require common full-turn boundary times on all branches."""
+        first_turn = self.completed_turn
+        last_turn = first_turn + num_turns
+        end_times = {}
+        for name, program in self._programs.items():
+            if program is not None:
+                end_times[name] = _check_ramp_window(
+                    program, first_turn, last_turn, self._turn_start_times[name],
+                    self._turn_start_reference_turns[name],
+                )
+            else:
+                period = self._branch_periods[name]
+                end = self._epoch_time + (last_turn - self._epoch_turn) * period
+                _check_turn_clock_resolution(end, period)
+
+        # Compare from the bound epoch. Native repeated addition on a fixed
+        # branch can round differently at the start of each tracking call.
+        for start in range(first_turn, last_turn, _CLOCK_BATCH):
+            turns = np.arange(start + 1, min(start + _CLOCK_BATCH, last_turn) + 1)
+            elapsed = {}
+            for name, program in self._programs.items():
+                if program is None:
+                    elapsed[name] = (turns - self._epoch_turn) * self._branch_periods[name]
+                else:
+                    periods = program._elapsed_time_between_turns(turns - 1, turns)
+                    _check_turn_clock_resolution(end_times[name], float(periods.min()))
+                    elapsed[name] = program._elapsed_time_between_turns(self._epoch_turn, turns)
+            reference = elapsed[self.reference_branch]
+            for name, boundaries in elapsed.items():
+                if not np.allclose(boundaries, reference, rtol=_CLOCK_ROUNDOFF, atol=0.):
+                    raise ValueError(f'{name}: incompatible ramp boundary times')
 
     def _visit(self, name, particles):
         """Wait at the turn barrier and release after the common callback."""
@@ -306,9 +372,15 @@ class SharedFeedbackBoundary:
             # Other collective elements can run while a branch waits here.
             for branch_name, bunch in self._particles.items():
                 self._check_arrival(branch_name, bunch, start_turn)
-            reference_time = (
-                self._epoch_time + (self._generation - self._epoch_turn) * self._period
-            )
+            program = self._programs[self.reference_branch]
+            if program is None:
+                reference_time = (
+                    self._epoch_time
+                    + (self._generation - self._epoch_turn)
+                    * self._branch_periods[self.reference_branch]
+                )
+            else:
+                reference_time = program.get_t_s_at_turn(self._generation)
             if self._before_feedback is not None:
                 self._before_feedback(
                     completed_turn=self._generation,
@@ -349,9 +421,26 @@ class SharedFeedbackBoundary:
             raise ValueError(f'{name}: reference turns changed within a traversal')
         if not _same_timestamp(float(particles.time_s), self._turn_start_times[name]):
             raise ValueError(f'{name}: clock changed within a traversal')
-        if float(particles.t_sim) != self._branch_periods[name]:
-            raise ValueError(f'{name}: reference period changed while tracking')
-        self._check_reference_energy(name, particles, 'while tracking')
+        program = self._programs[name]
+        period = float(particles.t_sim)
+        if program is None:
+            if period != self._branch_periods[name]:
+                raise ValueError(f'{name}: reference period changed while tracking')
+            self._check_reference_energy(name, particles, 'while tracking')
+        else:
+            native_end = program.get_t_s_at_turn(start_turn + 1)
+            if not _same_timestamp(float(particles.time_s) + period, native_end):
+                raise ValueError(f'{name}: reference period disagrees with ramp')
+            line = self._lines[name]
+            # The native update can intentionally hold momentum over several
+            # turns. It still uses the analytical ramp to advance the clock.
+            sample_time = line._t_last_update_time_dependent_vars
+            p0c = program.get_p0c_at_t_s(sample_time)
+            beta0 = p0c / math.hypot(p0c, particles.mass0)
+            if not self._matches_ramp_momentum(particles, p0c, beta0):
+                raise ValueError(f'{name}: reference momentum disagrees with ramp')
+            self._reference_energy[name] = (p0c, beta0)
+            self._branch_periods[name] = period
         self._require_particles_at(
             particles, name, turn=start_turn,
             element=len(self._lines[name]) - 1, s=self._lengths[name],
@@ -385,9 +474,18 @@ class SharedFeedbackBoundary:
             particles[name] is not self._particles[name] for name in self.branch_names
         ):
             raise ValueError('Bound particle collections changed')
+        clocks = {}
         for name in self.branch_names:
             self._check_line(name)
-            self._check_geometry(self._lines[name], self._trackers[name], name)
+            line = self._lines[name]
+            self._check_geometry(line, self._trackers[name], name)
+            _check_time_dependent_geometry(line)
+            enabled = line.enable_time_dependent_vars
+            interval = line.dt_update_time_dependent_vars if enabled else None
+            held = line._t_last_update_time_dependent_vars if interval is not None else None
+            clock = enabled, interval, held
+            if clock != clocks.setdefault(line.env, clock):
+                raise ValueError(f'{name}: shared environment needs common machine-time settings')
 
     def _check_stopped_epoch(self):
         """Check that every branch is at the origin of the same traversal."""
@@ -409,12 +507,26 @@ class SharedFeedbackBoundary:
 
     def _check_reference_energy(self, name, particles, phase):
         p0c, beta0 = self._reference_energy[name]
+        if self._programs[name] is not None:
+            if not self._matches_ramp_momentum(particles, p0c, beta0):
+                raise ValueError(f'{name}: ramp reference momentum changed {phase}')
+            return
         actual_p0c = float(particles._xobject.p0c[0])
         actual_beta0 = float(particles._xobject.beta0[0])
         if (actual_p0c, actual_beta0) != (p0c, beta0):
             raise NotImplementedError(
                 f'{name}: fixed reference energy changed {phase}'
             )
+
+    @staticmethod
+    def _matches_ramp_momentum(particles, p0c, beta0):
+        """Check the reference momentum and speed of surviving particles."""
+        xp = particles._context.nplike_lib
+        active = particles.state > 0
+        tolerance = 4 * np.finfo(float).eps * beta0
+        return not bool(xp.any(active & (
+            (particles.p0c != p0c) | ~(xp.abs(particles.beta0 - beta0) <= tolerance)
+        )))
 
     def _check_line(self, name):
         line = self._lines[name]
@@ -431,10 +543,11 @@ class SharedFeedbackBoundary:
             raise ValueError(f'{name}: boundary must be the final element')
         if getattr(tracker, '_sync_time_controller', None) is not None:
             raise NotImplementedError(f'{name}: shared feedback requires full turns')
-        if line.enable_time_dependent_vars or line.energy_program is not None:
-            raise NotImplementedError(
-                f'{name}: shared feedback requires fixed reference energy'
-            )
+        program = line.energy_program if line.enable_time_dependent_vars else None
+        if program is not None and program.line is not line:
+            raise ValueError(f'{name}: EnergyProgram must be attached to its line')
+        if self._programs is not None and program is not self._programs[name]:
+            raise RuntimeError(f'{name}: EnergyProgram changed after binding')
         if line.skip_end_turn_actions or not line.reset_s_at_end_turn:
             raise ValueError('Full end-turn actions and s reset are required')
         return tracker
@@ -469,6 +582,11 @@ class SharedFeedbackBoundary:
     @staticmethod
     def _check_geometry(line, tracker, name):
         """Use the cached native geometry after checking live positions."""
+        if _has_element_energy_change(tracker):
+            raise NotImplementedError(
+                f'{name}: feedback cannot use element-driven reference-energy '
+                'changes; use an EnergyProgram'
+            )
         geometry = tracker._tracker_data_base
         if not np.array_equal(
             line._get_s_elements(mode='downstream'), geometry._line_table.s[1:]

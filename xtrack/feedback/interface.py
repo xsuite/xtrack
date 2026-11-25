@@ -6,6 +6,7 @@
 """Configure feedback elements and run them at completed line traversals."""
 
 from dataclasses import asdict, dataclass
+from functools import partial
 import keyword
 import math
 from numbers import Integral
@@ -15,18 +16,19 @@ import xobjects as xo
 from scipy.constants import c as clight
 
 from ..base_element import BeamElement, Replica
-from ..beam_elements.reference_energy_change import ReferenceEnergyChange
-from ..beam_elements.reference_energy_increase import ReferenceEnergyIncrease
 from ..composer.composer import Place, _flatten_components
 from ..particles import Particles
 from ..table import Table
 from .acquisition import Acquisition
 from .hardware import PhysicalActuator
-from .output import KnobOutput
+from .output import KnobOutput, _check_time_dependent_geometry
 from .program import _Program
 from .readout import bind_monitor
 from .runtime import FeedbackController, FeedbackSystem
-from .timing import _check_turn_clock_resolution
+from .timing import (
+    _CLOCK_BATCH, _check_ramp_window, _check_turn_clock_resolution,
+    _has_element_energy_change,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -212,9 +214,10 @@ class Feedback(BeamElement):
     the first calculation is due one interval after the tracking epoch.
     Processing and command transport delays are in seconds.
 
-    ``Line.track`` runs the group once per completed forward turn at fixed
-    reference energy. Calculations use complete pickup records and commands
-    affect subsequent transport. Array calculations use the tracking context.
+    Feedback runs at each completed forward turn, including during an active
+    ``EnergyProgram``. Element-driven reference-energy changes are not
+    supported. Commands affect subsequent transport. Array calculations use
+    the CPU or CuPy tracking context.
     After total beam loss, the bound clock and actuator continue to advance
     with invalid measurements.
     A native pipeline hold interrupts the run. Copy the line before the first
@@ -397,16 +400,7 @@ class Feedback(BeamElement):
         field_output = (
             output._bound_output() if isinstance(output, PhysicalActuator) else output
         )
-        geometry_and_energy_fields = {
-            'length', 'length_straight', 'angle', 'h', 'p0c', 'delta_p0c',
-        }
-        if any(
-            field.lstrip('_').lower() in geometry_and_energy_fields
-            for _, field, _ in field_output._field_objects.values()
-        ):
-            raise NotImplementedError(
-                'Fixed-clock feedback cannot drive reference geometry or energy'
-            )
+        field_output._check_reference_fields()
         parameters = {
             name: item.value.item()
             if item.value.shape == ()
@@ -673,13 +667,6 @@ class FeedbackLine:
         feedbacks = [fb for _, fb in placed]
         if len({fb.name for fb in feedbacks}) != len(feedbacks):
             raise ValueError('Placed feedback names must be unique')
-        if any(
-            isinstance(element, (ReferenceEnergyChange, ReferenceEnergyIncrease))
-            for element in line.tracker._tracker_data_base.elements
-        ):
-            raise NotImplementedError(
-                'Feedback reference-energy changes are not implemented'
-            )
         execution = _LineFeedbackRun(line, feedbacks)
         execution.check_configuration()
         options = [
@@ -725,6 +712,9 @@ class _LineFeedbackRun:
         self.configuration = self._configuration_signature()
         self.element_names = tuple(line.element_names)
         self.circumference = float(self.tracker._tracker_data_base.line_length)
+        self.energy_program = (
+            line.energy_program if line.enable_time_dependent_vars else None
+        )
         self.enabled = True
         self.system = None
         self.particles = None
@@ -760,8 +750,19 @@ class _LineFeedbackRun:
             raise NotImplementedError(
                 'Feedback frame-clock SyncTime is not implemented'
             )
-        if self.line.enable_time_dependent_vars or self.line.energy_program is not None:
-            raise NotImplementedError('Feedback requires fixed reference energy')
+        program = (self.line.energy_program
+                   if self.line.enable_time_dependent_vars else None)
+        if program is not self.energy_program:
+            raise RuntimeError('Feedback EnergyProgram changed after preparation')
+        if program is not None and program.line is not self.line:
+            raise ValueError('Feedback requires an EnergyProgram attached to its line')
+        if not boundary:
+            _check_time_dependent_geometry(self.line)
+            if _has_element_energy_change(self.tracker):
+                raise NotImplementedError(
+                    'Feedback cannot use element-driven reference-energy changes; '
+                    'use an EnergyProgram'
+                )
         if self.line.skip_end_turn_actions or not self.line.reset_s_at_end_turn:
             raise ValueError('Feedback needs full end-turn clock actions and s reset')
 
@@ -833,15 +834,6 @@ class _LineFeedbackRun:
             raise ValueError('Feedback requires a finite nonnegative clock epoch')
         if not math.isfinite(period) or period <= 0:
             raise ValueError('Feedback requires a positive finite revolution period')
-        _check_turn_clock_resolution(time + turns * period, period)
-        if any(
-            opts['update_frequency_hz'] is not None
-            and opts['update_frequency_hz'] * period > 1 + 128 * np.finfo(float).eps
-            for opts in self.controller_options
-        ):
-            raise NotImplementedError(
-                'Full-turn feedback cannot execute faster than the revolution frequency'
-            )
         if not math.isfinite(raw_turn) or raw_turn < 0:
             raise ValueError('Feedback needs a finite nonnegative reference turn')
         turn = round(raw_turn)
@@ -851,6 +843,29 @@ class _LineFeedbackRun:
             raise ValueError('Feedback needs an integer reference-turn epoch')
         if bool(xp.any(particles.at_turn[alive] != turn)):
             raise ValueError('Feedback particle and reference-turn epochs disagree')
+        frequencies = [opts['update_frequency_hz'] for opts in self.controller_options
+                       if opts['update_frequency_hz'] is not None]
+        longest_period = period
+        if self.energy_program is None:
+            _check_turn_clock_resolution(time + turns * period, period)
+        else:
+            program = self.energy_program
+            last_turn = turn + turns
+            end = _check_ramp_window(program, turn, last_turn, time, raw_turn)
+            longest_period = 0.
+            for start in range(turn, last_turn, _CLOCK_BATCH):
+                starts = np.arange(start, min(start + _CLOCK_BATCH, last_turn))
+                periods = program._elapsed_time_between_turns(starts, starts + 1)
+                _check_turn_clock_resolution(end, float(periods.min()))
+                longest_period = max(longest_period, float(periods.max()))
+        if any(
+            frequency * longest_period > 1 + 128 * np.finfo(float).eps
+            for frequency in frequencies
+        ):
+            raise NotImplementedError(
+                'Full-turn feedback cannot execute faster than '
+                'the revolution frequency'
+            )
         expected_turn = (
             self.system._completed_turn
             if self.system is not None and self.system._completed_turn is not None
@@ -862,23 +877,26 @@ class _LineFeedbackRun:
             for source in opts['acquisition'].sources.values():
                 source.validate_window(turn, turn + turns)
         t_sim = float(particles.t_sim)
-        if t_sim and not math.isclose(
+        if self.energy_program is None and t_sim and not math.isclose(
             t_sim, period, rel_tol=128 * np.finfo(float).eps, abs_tol=0
         ):
             raise ValueError('Feedback requires a fixed full-turn simulation period')
         p0c = float(particles._xobject.p0c[0])
         if self.system is not None:
-            if (
-                particles is not self.particles
-                or period != self.revolution_period
-                or p0c != self.p0c
-            ):
+            if self.energy_program is None:
+                reference_changed = period != self.revolution_period or p0c != self.p0c
+            else:
+                reference_changed = bool(xp.any(alive & (particles.p0c != self.p0c)))
+            if particles is not self.particles or reference_changed:
                 raise RuntimeError('Feedback particles or reference energy changed')
             tolerance = 8 * np.spacing(max(abs(self._turn_start_time), period))
             if abs(time - self._turn_start_time) > tolerance:
                 raise RuntimeError('Feedback particle clock changed outside tracking')
             if raw_turn != self._turn_start_reference_turns:
                 raise RuntimeError('Feedback reference turns changed outside tracking')
+            if (self.energy_program is not None
+                    and t_sim != self.revolution_period):
+                raise RuntimeError('Feedback reference period changed outside tracking')
             self.system._check_ownership()
             self.system._check_applied_outputs()
 
@@ -889,9 +907,15 @@ class _LineFeedbackRun:
         time, period, raw_turn = self._read_clock(particles)
         turn = round(raw_turn)
         controllers = [FeedbackController(**opts) for opts in self.controller_options]
+        elapsed = (period if self.energy_program is None else partial(
+            self.energy_program._elapsed_time_between_turns, turn,
+        ))
         self.system = FeedbackSystem(
-            controllers, lines=[self.line], _turn_clock=(turn, time, period)
+            controllers, lines=[self.line], _turn_clock=(turn, time, elapsed),
         )
+        if self.energy_program is not None:
+            # Use the admitted integer epoch for native lookup at ramp knots.
+            particles.reference_turns = raw_turn = turn
         self.epoch_turn, self.epoch_time, self.revolution_period = turn, time, period
         self.p0c = float(particles._xobject.p0c[0])
         self._turn_start_time = time
@@ -902,6 +926,11 @@ class _LineFeedbackRun:
                 controller.disable()
             fb._runtime = controller
 
+    def start_ramped_traversal(self, particles):
+        """Capture the momentum and period installed by the native tracker."""
+        self.p0c = float(self.line.particle_ref._xobject.p0c[0])
+        self.revolution_period = float(particles.t_sim)
+
     def finish_traversal(self, feedback, particles):
         """Advance the group once, before Xtrack increments the turn clock."""
         # The first element processes the entire terminal feedback block.
@@ -911,7 +940,14 @@ class _LineFeedbackRun:
             raise RuntimeError('Use ordinary line.track for prepared feedback')
         try:
             self.check_configuration(boundary=True)
-            if float(particles._xobject.p0c[0]) != self.p0c:
+            alive = particles.state > 0
+            xp = particles._context.nplike_lib
+            if self.energy_program is None:
+                changed = float(particles._xobject.p0c[0]) != self.p0c
+            else:
+                # Lost particles keep the reference momentum at their loss.
+                changed = bool(xp.any(alive & (particles.p0c != self.p0c)))
+            if changed:
                 raise RuntimeError(
                     'Feedback reference momentum changed within tracking'
                 )
@@ -928,16 +964,16 @@ class _LineFeedbackRun:
                 raise RuntimeError('Feedback turn period changed within tracking')
             previous = self.system._completed_turn
             completed = (self.epoch_turn if previous is None else previous) + 1
-            time = self.epoch_time + (completed - self.epoch_turn) * period
-            alive = particles.state > 0
-            xp = particles._context.nplike_lib
+            next_native_time = float(particles.time_s) + period
+            time = (self.epoch_time + (completed - self.epoch_turn) * period
+                    if self.energy_program is None else next_native_time)
             length = self.circumference
             tolerance = 128 * np.finfo(float).eps * max(abs(length), 1.0)
             if not bool(xp.all(xp.abs(particles.s[alive] - length) <= tolerance)):
                 raise ValueError('Feedback boundary did not complete the full line')
             self.system.step(completed, time)
             # Match the next native end-turn addition, including its rounding.
-            self._turn_start_time = float(particles.time_s) + period
+            self._turn_start_time = next_native_time
             self._turn_start_reference_turns += 1
         except BaseException as error:
             self.failure = error

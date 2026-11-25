@@ -177,6 +177,14 @@ def test_baseline_cannot_bypass_response_at_setup_or_after_graph_changes():
     assert controller.memory['calls'] == 0
 
 
+def test_actuator_cannot_drive_its_nominal_expression():
+    """Keep a nominal expression outside the actuator's feedback write set."""
+    env, _ = make_hardware()
+    env['nominal'] = '0.2 + applied'
+    with pytest.raises(ValueError, match='external ownership'):
+        PhysicalActuator(env, target='applied', baseline='nominal')
+
+
 def test_deferred_configuration_binds_after_serialization_without_fake_state():
     """Round-trip settings and read the actual applied value on binding."""
     config = PhysicalActuator(
@@ -213,9 +221,18 @@ def test_external_applied_write_requires_reconciliation_before_advancing():
 
 
 @pytest.mark.parametrize('reverse', [False, True])
-def test_other_controller_cannot_write_a_physical_actuator_nominal_input(reverse):
+@pytest.mark.parametrize('derived', [False, True])
+def test_other_controller_cannot_write_a_physical_actuator_nominal_input(
+    reverse, derived,
+):
     """Keep the nominal input independent of the controlled write set."""
     env, hardware = make_hardware()
+    knob = 'nominal'
+    if derived:
+        knob = 'recipe'
+        env[knob] = 0.2
+        env['nominal'] = '2 * recipe'
+        hardware = hardware.copy_for(env)
     physical = FeedbackController(
         'orbit', sources={'y': Source()}, output=hardware,
         program=lambda: {'outputs': {'command': [0.0]}},
@@ -224,7 +241,7 @@ def test_other_controller_cannot_write_a_physical_actuator_nominal_input(reverse
         'nominal',
         sources={'y': Source()},
         program=lambda: {'outputs': {'command': [0.2]}},
-        output=KnobOutput(env, 'nominal'),
+        output=KnobOutput(env, knob),
     )
     controllers = [physical, nominal]
     with pytest.raises(ValueError, match='external ownership'):

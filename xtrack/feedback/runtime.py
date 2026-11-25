@@ -708,7 +708,7 @@ class FeedbackSystem:
         return self._controllers
 
     def _bind_turn_clock(self, clock):
-        """Set the fixed-period clock before the first shared traversal."""
+        """Set the turn and time origin before the first shared traversal."""
         if (self._turn_clock is not None or self._completed_turn is not None
                 or self._busy or self._failure is not None):
             raise ValueError('Bind a fresh feedback system to the turn clock')
@@ -768,12 +768,16 @@ class FeedbackSystem:
     def _check_ownership(self, other_outputs=()):
         seen = set()
         setpoints = set()
+        writes = set()
         outputs = (controller.output for controller in self.controllers)
         for output in chain(outputs, other_outputs):
             keys = set(output.ownership_keys)
             keys.update(getattr(output, 'dependent_field_keys', ()))
             external = set(getattr(output, 'external_setpoint_keys', ()))
-            if setpoints & keys or external & seen or external & keys:
+            destinations = keys.union(
+                getattr(output, '_dependent_variable_keys', ())
+            )
+            if setpoints & destinations or external & (writes | destinations):
                 raise ValueError(
                     'Nominal setpoints require external ownership and cannot '
                     'write controlled fields'
@@ -783,6 +787,7 @@ class FeedbackSystem:
                     'Feedback outputs share a contribution or physical field'
                 )
             seen.update(keys)
+            writes.update(destinations)
             setpoints.update(external)
 
     def _check_applied_outputs(self):
@@ -829,9 +834,13 @@ class FeedbackSystem:
             model_time_seconds = time_seconds
             clock_origin = 0.0
             if self._turn_clock is not None:
-                # Compare relative intervals without the large absolute epoch.
-                first_turn, clock_origin, period = self._turn_clock
-                model_time_seconds = (completed_turn - first_turn) * period
+                first_turn, clock_origin, elapsed = self._turn_clock
+                # Advance hardware on elapsed time before rounding it against
+                # the absolute epoch. A ramp integrates its changing period.
+                model_time_seconds = (
+                    elapsed(completed_turn) if callable(elapsed)
+                    else (completed_turn - first_turn) * elapsed
+                )
             if self._completed_turn is None:
                 for controller in self.controllers:
                     controller.schedule._start_at(

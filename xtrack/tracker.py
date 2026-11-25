@@ -1525,6 +1525,8 @@ class Tracker:
             # Reference clock and diagnostics are prepared once per turn.
             if particles is not None and not _is_resume_within_turn(tt, tt_resume):
                 self._prepare_particle_time_s_and_reference_turns(particles)
+                if feedback is not None and feedback.energy_program is not None:
+                    feedback.start_ramped_traversal(particles)
 
             if log is not None and not _is_resume_within_turn(tt, tt_resume):
                 self._handle_log(_session_to_resume=_session_to_resume,

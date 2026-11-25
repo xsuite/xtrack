@@ -14,10 +14,16 @@ from typing import TypedDict
 
 import numpy as np
 
+from ..beam_elements.line_segment_map import LineSegmentMap
+from ..beam_elements.reference_energy_change import ReferenceEnergyChange
+from ..beam_elements.reference_energy_increase import ReferenceEnergyIncrease
+
 
 # Relative allowance for roundoff in independently advanced branch clocks.
 # Admission caps it at 1% of a revolution. Deadlines use two ULPs.
 _CLOCK_ROUNDOFF = 128 * np.finfo(float).eps
+# Bound host memory when validating long tracking ranges.
+_CLOCK_BATCH = 4096
 
 
 def _nonnegative_float(value, name):
@@ -43,6 +49,28 @@ def _check_turn_clock_resolution(time_seconds, revolution_period):
     if _CLOCK_ROUNDOFF * time_seconds > revolution_period / 100:
         raise ValueError(
             'Feedback epoch has insufficient floating-point clock resolution')
+
+
+def _check_ramp_window(program, first_turn, last_turn, start_time, native_turn):
+    """Validate the requested turn range and clock origin against the ramp."""
+    start, end = program.get_t_s_at_turn([first_turn, last_turn])
+    if abs(start_time - start) > 4 * math.ulp(max(start_time, start)):
+        # The native inverse can infer a turn a few ULPs from the integer.
+        native_time = program.get_t_s_at_turn(native_turn)
+        if abs(start_time - native_time) > 4 * math.ulp(max(start_time, native_time)):
+            raise ValueError('Feedback clock epoch disagrees with the EnergyProgram')
+    if end <= start_time:
+        raise ValueError('Feedback ramp must have increasing full-turn times')
+    return end
+
+
+def _has_element_energy_change(tracker):
+    """Detect element-driven changes of reference momentum."""
+    return any(
+        isinstance(element, (ReferenceEnergyChange, ReferenceEnergyIncrease))
+        or (isinstance(element, LineSegmentMap) and element.energy_ref_increment != 0)
+        for element in tracker._tracker_data_base.elements
+    )
 
 
 @dataclass(frozen=True)

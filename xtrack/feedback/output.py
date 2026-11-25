@@ -25,6 +25,36 @@ _SETTER_FIELDS = {
     Cavity.harmonic: ('harmonic',),
 }
 
+_REFERENCE_FIELDS = {
+    'length', 'length_straight', 'angle', 'h', 'p0c', 'delta_p0c',
+    'energy_ref_increment',
+}
+
+
+def _check_time_dependent_geometry(line):
+    """Protect the cached full-turn transport geometry from Xdeps updates."""
+    if not line.enable_time_dependent_vars:
+        return
+    env = line.env
+    names = set(line.element_names)
+    for name in line.element_names:
+        element = line.get(name)
+        if isinstance(element, Replica):
+            names.add(element.resolve(line, get_name=True))
+    time_ref = env._xdeps_vref['t_turn_s']
+    for task in time_ref._manager.find_tasks([time_ref]):
+        target = task.taskid
+        if isinstance(target, ItemRef) and isinstance(target._owner, AttrRef):
+            target = target._owner
+        if (isinstance(target, AttrRef)
+                and isinstance(target._owner, ItemRef)
+                and target._owner._owner is env._xdeps_eref
+                and target._owner._key in names
+                and target._key.lstrip('_').lower() in _REFERENCE_FIELDS):
+            raise NotImplementedError(
+                'Feedback cannot use a time-dependent reference geometry or '
+                f'element-driven energy change ({target})')
+
 
 def _host_array(values):
     """Explicit transfer for the coherent host/Xdeps output path."""
@@ -77,7 +107,9 @@ class KnobOutput:
     strengths use Xtrack's ordinary scalar storage.
     """
 
-    def __init__(self, env_or_line, targets, lower=None, upper=None):
+    def __init__(
+        self, env_or_line, targets, lower=None, upper=None, *, _read_only=False,
+    ):
         self.owner = env_or_line
         self.targets = (
             (targets,) if isinstance(targets, str) else tuple(targets)
@@ -89,6 +121,7 @@ class KnobOutput:
         if len(set(self.targets)) != len(self.targets):
             raise ValueError('Output knob targets must be unique')
         self._vars = env_or_line.vars
+        self._read_only = _read_only
         self.lower, self.upper = _limits(lower, upper, len(self.targets))
         self._field_objects = None
         self.snapshot()
@@ -103,6 +136,13 @@ class KnobOutput:
         """Identify the physical storage locations written by the graph."""
         self._check_ownership()
         return tuple(sorted(self._field_objects))
+
+    @property
+    def _dependent_variable_keys(self):
+        """Return the computed variables from the last ownership check."""
+        return tuple(
+            ('knob', id(self._vars), ref._key) for ref in self._dependent_vars
+        )
 
     def _find_dependencies(self, sources):
         """Resolve the Xdeps write set for a knob assignment."""
@@ -200,17 +240,23 @@ class KnobOutput:
             raise NotImplementedError(
                 'Feedback output cannot use linked variable setters'
             )
+        if not self._read_only and 't_turn_s' in self.targets:
+            raise ValueError('Feedback cannot write the native t_turn_s clock')
         sources = []
         for name in self.targets:
             if name not in self._vars:
                 raise KeyError(f'Feedback output knob {name!r} does not exist')
             source = self._vars[name]
-            if source._tasks:
+            if not self._read_only and source._tasks:
                 raise ValueError(
                     f'Output knob {name!r} is expression-defined '
                     'or has an Xdeps writer')
             sources.append(source)
         variables, objects = self._find_dependencies(sources)
+        if not self._read_only and any(
+            ref._key == 't_turn_s' for ref in variables
+        ):
+            raise ValueError('Feedback cannot write the native t_turn_s clock')
         if self._field_objects is not None:
             old_targets = {
                 (id(el), field, index)
@@ -227,6 +273,13 @@ class KnobOutput:
         self._field_objects = objects
         self._dependent_vars = variables
         self._sources = tuple(sources)
+
+    def _check_reference_fields(self):
+        """Reject outputs that change the reference geometry or momentum."""
+        if any(field.lstrip('_').lower() in _REFERENCE_FIELDS
+               for _, field, _ in self._field_objects.values()):
+            raise NotImplementedError(
+                'Full-turn feedback cannot drive reference geometry or energy')
 
     def read(self):
         """Return an owned host vector of the current knob values."""
@@ -289,6 +342,8 @@ class KnobOutput:
 
     def apply(self, values):
         """Apply the command and restore the write set if propagation fails."""
+        if self._read_only:
+            raise RuntimeError('Cannot write an externally owned nominal setpoint')
         values = self._validate_values(values)
         checkpoint = self._checkpoint()
         try:

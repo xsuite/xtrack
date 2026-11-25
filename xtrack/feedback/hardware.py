@@ -93,13 +93,14 @@ class PhysicalActuator:
     target : str or sequence of str
         Independent applied-field knobs already wired to elements.
     baseline : str or sequence of str, optional
-        Independent nominal setpoint knobs, one per channel. The nominal
-        defaults to zero. Setpoints may drive fields outside the system's
-        controlled write set.
+        Read-only nominal setpoints, one per channel. These can use Xdeps
+        expressions, including a machine-time programme. The nominal defaults
+        to zero. Setpoints may drive fields outside the system's controlled
+        write set.
     lower, upper : float or array, optional
-        Bounds in channel units on the total request and applied field.
-        Out-of-range values raise an error. The nominal is checked both
-        when a request is made and when a queued contribution is delivered.
+        Bounds in channel units on the applied field and on the sum of the
+        nominal and contribution. The total is checked when a contribution
+        is requested and when it is delivered.
     response_time_constant_seconds : float or array, optional
         First-order time constant in seconds, scalar or per channel.
     maximum_slew_per_second : float or array, optional
@@ -111,9 +112,13 @@ class PhysicalActuator:
     Notes
     -----
     Hold the installed field over the first interval. At each boundary,
-    advance toward the previously held total, then latch the new request.
+    advance toward the previously held total, then latch the new request
+    together with the nominal setpoint held during the completed traversal.
     Zero-time-constant channels with unrestricted slew can apply the new
-    request at that boundary. The response continues during a pause.
+    request at that boundary. A nominal setpoint sampled at turn entrance
+    therefore first affects transport on the following turn. A field wired
+    directly to ``t_turn_s`` changes at the same entrance. The response
+    continues during a pause.
     """
 
     def __init__(
@@ -157,7 +162,7 @@ class PhysicalActuator:
         ):
             raise ValueError('Baseline needs one distinct knob per actuator channel')
         self._baseline_output = (
-            KnobOutput(owner, self.baseline)
+            KnobOutput(owner, self.baseline, _read_only=True)
             if self.baseline and owner is not None
             else None
         )
@@ -227,6 +232,10 @@ class PhysicalActuator:
         return self._bound_output().dependent_field_keys
 
     @property
+    def _dependent_variable_keys(self):
+        return self._bound_output()._dependent_variable_keys
+
+    @property
     def external_setpoint_keys(self):
         """Identify nominal knobs and all physical fields they can write."""
         baseline = self._baseline_output
@@ -249,6 +258,10 @@ class PhysicalActuator:
                 raise ValueError(
                     'Nominal setpoints must not bypass the physical response'
                 )
+            if set(self._baseline_output.ownership_keys).intersection(
+                output._dependent_variable_keys,
+            ):
+                raise ValueError('Nominal setpoints require external ownership')
             nominal = self._baseline_output._read_values()
         total = output._validate_values(nominal + contribution)
         return contribution, nominal, total
