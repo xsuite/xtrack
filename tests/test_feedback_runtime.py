@@ -170,6 +170,81 @@ def test_delayed_delivery_and_response_advance_without_calculation():
     assert output.values[0] == pytest.approx(1 - np.exp(-1))
 
 
+@for_all_test_contexts(excluding=('ContextPyopencl',))
+def test_live_gain_preserves_history_and_already_queued_commands(test_context):
+    """Change gain with an outstanding request and keep the original command."""
+    env = xt.Environment()
+    env['kick'] = 0.0
+
+    def program(inputs, parameters, previous):
+        with pytest.raises(RuntimeError, match='between tracking calls'):
+            controller.set_parameter('gain', [99.0])
+        command = inputs['y'] * parameters['gain']
+        return {'outputs': {'command': command},
+                'memory': {'total': previous['total'] + inputs['y']}}
+
+    controller = FeedbackController(
+        'orbit', sources={'y': Source([3.0, 5.0], test_context)},
+        output=KnobOutput(env, 'kick'), program=program,
+        parameters={'gain': np.array([2.0], dtype=np.float32), 'count': np.uint8(1)},
+        memory={'total': 0.0}, command_delay_seconds=0.5,
+    )
+    system = FeedbackSystem([controller])
+    system.step(1, 1.0)
+    with pytest.raises(ValueError, match='parameter shape'):
+        controller.set_parameter('gain', 4.0)
+    with pytest.raises(TypeError, match='parameter dtype'):
+        controller.set_parameter('gain', [4.0j])
+    with pytest.raises(ValueError, match='must be finite'):
+        controller.set_parameter('gain', [np.inf])
+    np.testing.assert_array_equal(
+        test_context.nparray_from_context_array(controller.parameters['gain']), [2.0],
+    )
+    controller.set_parameter('gain', [4.0])
+    assert controller.parameters['gain'].dtype == np.dtype(np.float32)
+    controller.set_parameter('count', 2)
+    with pytest.raises(ValueError, match='exceed the range'):
+        controller.set_parameter('count', 256)
+    assert controller.parameters['count'] == np.uint8(2)
+    assert env['kick'] == 0.0
+    second = system.step(2, 2.0)[0]
+    np.testing.assert_array_equal(second['requested_output'], [20.0])
+    assert env['kick'] == 6.0
+    assert float(controller.memory['total']) == 8.0
+
+
+@for_all_test_contexts(excluding=('ContextPyopencl',))
+def test_acquisition_and_program_use_one_bound_parameter_snapshot(test_context, mocker):
+    """Use the Xdeps gain held during a turn throughout its calculation."""
+    env = xt.Environment()
+    env['cycle_gain'] = '2.0 * t_turn_s'
+    env['kick'] = 0.0
+
+    def transform(inputs, parameters):
+        return {'y': inputs['y'] * parameters['gain']}, True
+
+    def program(inputs, parameters):
+        return {'outputs': {'command': inputs['y'] + parameters['gain']}}
+
+    controller = FeedbackController(
+        'orbit', sources={'y': Source([3.0, 3.0], test_context)},
+        program=program, output=KnobOutput(env, 'kick'),
+        acquisition=Acquisition(transform=transform),
+        parameter_sources={'gain': (env, 'cycle_gain')},
+    )
+    system = FeedbackSystem([controller])
+    with pytest.raises(ValueError, match='bound to Xdeps'):
+        controller.set_parameter('gain', 99.0)
+    sample = mocker.spy(controller, '_sample_parameters')
+    env['t_turn_s'] = 1.0
+    system.step(1, 2.0)
+    assert env['kick'] == 8.0
+    env['t_turn_s'] = 2.0
+    system.step(2, 3.0)
+    assert env['kick'] == 16.0
+    assert sample.call_count == 2
+
+
 def test_invalid_source_clears_fresh_history_but_queued_commands_deliver():
     """Deliver an already queued command while the pickup history recovers."""
     def program(inputs):

@@ -2096,6 +2096,8 @@ class Line:
         """
 
         feedback_execution = getattr(self, '_feedback_execution', None)
+        if feedback_execution is not None and feedback_execution.tracking:
+            raise RuntimeError('Feedback tracking is not reentrant')
 
         if not isinstance(particles, xt.Particles):
             if feedback_execution is not None:
@@ -2161,20 +2163,25 @@ class Line:
                 freeze_longitudinal=freeze_longitudinal,
                 backtrack=kwargs.get('backtrack', False),
             )
+            feedback_execution.tracking = True
 
-        return self.tracker._track(
-            particles,
-            ele_start=ele_start,
-            ele_stop=ele_stop,
-            num_elements=num_elements,
-            num_turns=num_turns,
-            turn_by_turn_monitor=turn_by_turn_monitor,
-            freeze_longitudinal=freeze_longitudinal,
-            time=time,
-            with_progress=with_progress,
-            multi_element_monitor_at=multi_element_monitor_at,
-            monitor_monomials=monitor_monomials,
-            **kwargs)
+        try:
+            return self.tracker._track(
+                particles,
+                ele_start=ele_start,
+                ele_stop=ele_stop,
+                num_elements=num_elements,
+                num_turns=num_turns,
+                turn_by_turn_monitor=turn_by_turn_monitor,
+                freeze_longitudinal=freeze_longitudinal,
+                time=time,
+                with_progress=with_progress,
+                multi_element_monitor_at=multi_element_monitor_at,
+                monitor_monomials=monitor_monomials,
+                **kwargs)
+        finally:
+            if feedback_execution is not None:
+                feedback_execution.tracking = False
 
     @doc_group("Tracking and Analysis")
     def get_local_momentum_acceptance(

@@ -293,6 +293,8 @@ class SharedFeedbackBoundary:
                 self._turn_start_reference_turns[name] = self.completed_turn
         start = self.callback_count
         self._tracking = True
+        if self._system is not None:
+            self._system._tracking = True
         try:
             self._multitracker.track(num_turns=int(num_turns))
             if self._generation is not None or self.callback_count - start != num_turns:
@@ -303,6 +305,8 @@ class SharedFeedbackBoundary:
             raise
         finally:
             self._tracking = False
+            if self._system is not None:
+                self._system._tracking = False
 
     def _check_ramp_calendars(self, num_turns):
         """Require common full-turn boundary times on all branches."""

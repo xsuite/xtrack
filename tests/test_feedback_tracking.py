@@ -119,6 +119,7 @@ def study(context):
         program=None,
         order=None,
         enable=True,
+        context=context,
     ):
         env = xt.Environment()
         env['nominal'] = 0.0
@@ -229,6 +230,102 @@ def test_split_tracking_preserves_acquisition_integral_and_applied_fields(
     np.testing.assert_array_equal(
         [row['applied_output'] for row in fb.log],
         [row['applied_output'] for row in other_fb.log],
+    )
+
+
+@for_all_test_contexts(excluding=('ContextPyopencl',))
+@allow_kernel_compilation
+def test_placed_live_gain_before_and_between_tracking_calls(study, test_context):
+    """Use a new gain without replacing the prepared loop or its integral."""
+    env, line, fb, particles = study(context=test_context)
+    fb.parameters.set('gain', 0.1)
+    line.track(particles, num_turns=2)
+    integral = -0.1 * env['bpm'].mean_y[1]
+    assert float(fb.state.read('integral')) == pytest.approx(integral)
+
+    def attempt_gain_change(line, particles):
+        with pytest.raises(RuntimeError, match='between tracking calls'):
+            fb.parameters.set('gain', 99.0)
+        with pytest.raises(RuntimeError, match='not reentrant'):
+            line.track(particles, num_turns=1)
+
+    fb.parameters.set('gain', 0.2)
+    line.track(particles, num_turns=2, log=xt.Log(update=attempt_gain_change))
+    assert fb.parameters['gain'].value == 0.2
+    assert float(fb.state.read('integral')) == pytest.approx(
+        integral - 0.2 * env['bpm'].mean_y[3], abs=1e-15,
+    )
+
+    def fail_log(line, particles):
+        raise RuntimeError('Diagnostic failed')
+
+    with pytest.raises(RuntimeError, match='Diagnostic failed'):
+        line.track(particles, num_turns=1, log=xt.Log(failed=fail_log))
+    fb.parameters.set('gain', 0.3)
+    assert fb.parameters['gain'].value == 0.3
+
+
+@for_all_test_contexts(excluding=('ContextPyopencl',))
+@allow_kernel_compilation
+def test_placed_text_program_reads_bound_gain(study, test_context):
+    """Serialize by name and use the gain from that traversal's native clock."""
+    env, line, fb, particles = study(
+        enable=False, context=test_context,
+        program='outputs.kick = parameters.live_gain * acquired.y',
+    )
+    env['gain_base'] = 0.1
+    env['cycle_gain'] = 'gain_base + 2e4 * t_turn_s'
+    line.enable_time_dependent_vars = True
+    fb.parameters.bind(name='live_gain', source='cycle_gain', unit='rad/m')
+    restored = xt.feedback.Feedback.from_dict(fb.to_dict())
+    assert restored.parameters['live_gain'].source == 'cycle_gain'
+    assert 'cycle_gain' in restored.parameters.get_table()['source']
+
+    line.feedback.enable()
+    line.track(particles, num_turns=2)
+    period = float(particles.t_sim)
+    assert env['applied'] == pytest.approx(
+        (0.1 + 2e4 * period) * env['bpm'].mean_y[1], abs=1e-15,
+    )
+    env['gain_base'] = 0.2
+    line.track(particles, num_turns=2)
+    assert env['applied'] == pytest.approx(
+        (0.2 + 2e4 * 3 * period) * env['bpm'].mean_y[3], abs=1e-15,
+    )
+
+
+@pytest.mark.parametrize('ramped', [False, True])
+@for_all_test_contexts(excluding=('ContextPyopencl',))
+@allow_kernel_compilation
+def test_feedback_keeps_held_clock_after_tracking_sibling(study, test_context, ramped):
+    """Restore a line's held time before sampling its gain or reference energy."""
+    env, line, fb, _ = study(enable=False, context=test_context)
+    line.set_particle_ref('proton', p0c=0.6e9)
+    if ramped:
+        line.energy_program = xt.EnergyProgram(t_s=[0., 1e-3], p0c=[0.6e9, 1.4e9])
+    line.enable_time_dependent_vars = True
+    line.dt_update_time_dependent_vars = 30e-6
+    env['cycle_gain'] = '0.05 + 2e4 * t_turn_s'
+    fb.parameters.bind(name='cycle_gain', source='cycle_gain')
+    fb.program = 'outputs.kick = parameters.cycle_gain * acquired.y'
+
+    other = env.new_line(components=['arc'])
+    other.set_particle_ref('proton', p0c=0.6e9)
+    other.enable_time_dependent_vars = True
+    other.build_tracker(_buffer=line.tracker._buffer)
+    particles = line.build_particles(y=1e-4)
+    sibling = particles.copy()
+    sibling.time_s = 10e-6
+    line.feedback.enable()
+
+    line.track(particles, num_turns=1)
+    other.track(sibling, num_turns=1)
+    assert env['t_turn_s'] == 10e-6
+    line.track(particles, num_turns=1)
+    assert env['t_turn_s'] == 0.
+    assert env['applied'] == pytest.approx(0.05 * env['bpm'].mean_y[1])
+    np.testing.assert_array_equal(
+        test_context.nparray_from_context_array(particles.p0c), 0.6e9,
     )
 
 

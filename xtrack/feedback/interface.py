@@ -5,7 +5,7 @@
 
 """Configure feedback elements and run them at completed line traversals."""
 
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 from functools import partial
 import keyword
 import math
@@ -24,7 +24,7 @@ from .hardware import PhysicalActuator
 from .output import KnobOutput, _check_time_dependent_geometry
 from .program import _Program
 from .readout import bind_monitor
-from .runtime import FeedbackController, FeedbackSystem
+from .runtime import FeedbackController, FeedbackSystem, _parameter_array
 from .timing import (
     _CLOCK_BATCH, _check_ramp_window, _check_turn_clock_resolution,
     _has_element_energy_change,
@@ -54,11 +54,12 @@ class Output:
 
 @dataclass(frozen=True, slots=True)
 class Parameter:
-    """A named numerical parameter with immutable value and declared unit."""
+    """A numerical value or an Xdeps variable supplying it at each boundary."""
 
     name: str
-    value: np.ndarray
+    value: np.ndarray | None
     unit: str = ''
+    source: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -181,6 +182,42 @@ class Parameters(_Bindings):
         """Declare an owned parameter with a fixed numerical shape and dtype."""
         return self._add(Parameter(name, _immutable_array(value, dtype), unit))
 
+    def bind(self, *, name, source, unit=''):
+        """Sample a scalar Xdeps variable at each feedback boundary."""
+        if not isinstance(source, str) or not source:
+            raise TypeError('A feedback parameter source must be a variable name')
+        return self._add(Parameter(name, None, unit, source))
+
+    def set(self, name, value):
+        """Replace a declared numerical parameter between tracking calls."""
+        item = self[name]
+        if item.source is not None:
+            raise ValueError(f'Feedback parameter {name!r} is bound to Xdeps')
+        feedback = self._feedback
+        execution = feedback._execution
+        if execution is not None and execution.tracking:
+            raise RuntimeError('Change feedback parameters between tracking calls')
+        array = _parameter_array(
+            value, shape=item.value.shape, dtype=item.value.dtype, xp=np,
+        )
+        array = _immutable_array(array, item.value.dtype)
+        parameter = array[()] if array.ndim == 0 else array
+        if feedback._runtime is not None:
+            feedback._runtime.set_parameter(name, parameter)
+        elif execution is not None:
+            # The prepared controller has not been bound to particles yet.
+            options = execution.controller_options[execution.feedbacks.index(feedback)]
+            options['parameters'][name] = parameter
+        self._items[name] = replace(item, value=array)
+
+    def get_table(self):
+        """Inspect parameter names, units and any Xdeps source."""
+        table = super().get_table()
+        table['source'] = np.array([
+            item.source or '' for item in self._items.values()
+        ], dtype=str)
+        return table
+
 
 class State(_Bindings):
     def new(self, *, name, initial_value, unit='', dtype=None):
@@ -204,7 +241,9 @@ class Feedback(BeamElement):
     ``FeedbackController`` program contract. A callable program can use an
     ``Acquisition`` transform as ``acquisition_transform`` to process each
     completed sample before it enters the controller history. Configure
-    numerical settings in ``parameters``.
+    numerical settings in ``parameters``. Change numerical values between
+    tracking calls with ``parameters.set`` or read a Line variable through
+    ``parameters.bind``.
     Binding units are labels.
     Place the controller in the terminal feedback block and prepare that block
     with ``line.feedback.enable()``. ``active`` selects which controllers in the
@@ -402,10 +441,14 @@ class Feedback(BeamElement):
         )
         field_output._check_reference_fields()
         parameters = {
-            name: item.value.item()
-            if item.value.shape == ()
-            else xp.asarray(item.value)
+            name: item.value[()] if item.value.ndim == 0 else xp.asarray(item.value)
             for name, item in self.parameters.items()
+            if item.source is None
+        }
+        parameter_sources = {
+            name: (line, item.source)
+            for name, item in self.parameters.items()
+            if item.source is not None
         }
         state = {
             name: xp.asarray(item.initial_value) for name, item in self.state.items()
@@ -420,7 +463,7 @@ class Feedback(BeamElement):
                 acquired_names.update(name + '_history' for name in sources)
             program = _Program(
                 program, name=self.name, acquired=acquired_names,
-                parameters=parameters, state=state,
+                parameters=self.parameters, state=state,
                 output=output_binding.name, xp=xp,
             )
         return dict(
@@ -431,6 +474,7 @@ class Feedback(BeamElement):
             program=program,
             output=output,
             parameters=parameters,
+            parameter_sources=parameter_sources,
             memory=state,
             history_length=self.history_length,
             update_turns=self.update_turns,
@@ -472,7 +516,8 @@ class Feedback(BeamElement):
             first_calculation_time_seconds=self.first_calculation_time_seconds,
             inputs=[asdict(item) for _, item in self.inputs.items()],
             parameters=[
-                dict(
+                dict(name=name, source=item.source, unit=item.unit)
+                if item.source is not None else dict(
                     name=name,
                     value=_serialize_array(item.value),
                     dtype=item.value.dtype.str,
@@ -519,6 +564,9 @@ class Feedback(BeamElement):
                 item = dict(item)
                 if group == 'outputs' and item.get('actuator') is not None:
                     item['actuator'] = PhysicalActuator(**item['actuator'])
+                if group == 'parameters' and 'source' in item:
+                    result.parameters.bind(**item)
+                    continue
                 if group in ('parameters', 'state'):
                     key = 'value' if group == 'parameters' else 'initial_value'
                     item[key] = _deserialize_array(
@@ -716,6 +764,7 @@ class _LineFeedbackRun:
             line.energy_program if line.enable_time_dependent_vars else None
         )
         self.enabled = True
+        self.tracking = False
         self.system = None
         self.particles = None
         self.failure = None

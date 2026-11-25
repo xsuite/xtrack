@@ -93,6 +93,23 @@ def _configuration(mapping, xp):
     return MappingProxyType(result)
 
 
+def _parameter_array(value, *, shape, dtype, xp):
+    """Validate and copy a parameter with its declared shape and dtype."""
+    array = xp.asarray(value)
+    if array.shape != shape:
+        raise ValueError(f'Expected feedback parameter shape {shape}')
+    integer_cast = array.dtype.kind in 'iu' and dtype.kind in 'iu'
+    if not integer_cast and not np.can_cast(array.dtype, dtype, casting='same_kind'):
+        raise TypeError(f'Expected feedback parameter dtype compatible with {dtype}')
+    with np.errstate(over='ignore', invalid='ignore'):
+        candidate = array.astype(dtype, copy=True)
+    if not bool(xp.all(xp.isfinite(candidate))):
+        raise ValueError('Feedback parameter values must be finite')
+    if dtype.kind in 'iu' and bool(xp.any(candidate != array)):
+        raise ValueError(f'Feedback parameter values exceed the range of {dtype}')
+    return candidate
+
+
 @dataclass
 class _Candidate:
     controller: object
@@ -132,9 +149,15 @@ class FeedbackController:
         knobs. For a physical actuator the command is a contribution to
         its nominal setting.
     parameters, constants : mapping, optional
-        Separate callback namespaces with the same snapshot semantics.
-        Both are fixed settings for the run. Numeric scalars stay on the
-        host and numerical arrays are owned on the tracking context.
+        Initial parameter values and fixed constants in separate namespaces.
+        Change a declared numerical parameter with :meth:`set_parameter`.
+        Numeric scalars stay on the host. Arrays are owned on the tracking
+        context.
+    parameter_sources : mapping, optional
+        Read-only parameter bindings as ``name: (line_or_environment, knob)``
+        pairs. Each knob must supply a finite real scalar. At a completed
+        boundary the controller and acquisition see the knob held during
+        that traversal. Xdeps owns its value and any ``t_turn_s`` dependence.
     memory : mapping, optional
         Initial retained state. Its keys, shapes and dtypes stay fixed.
     history_length : int, optional
@@ -192,6 +215,7 @@ class FeedbackController:
         program,
         output,
         parameters=None,
+        parameter_sources=None,
         constants=None,
         memory=None,
         history_length=1,
@@ -279,7 +303,25 @@ class FeedbackController:
                 raise TypeError(
                     'Integrated feedback requires a transactional knob output'
                 )
-        self.parameters = _configuration(parameters, self.xp)
+        self._parameters = _configuration(parameters, self.xp)
+        if parameter_sources is not None and not isinstance(parameter_sources, Mapping):
+            raise TypeError('Feedback parameter sources must be a mapping')
+        parameter_sources = dict(parameter_sources or {})
+        if self._parameters.keys() & parameter_sources.keys():
+            raise ValueError('A feedback parameter cannot have a value and a source')
+        for name, source in parameter_sources.items():
+            if not isinstance(name, str) or not name:
+                raise ValueError('Parameter names must be nonempty strings')
+            if (
+                not isinstance(source, (tuple, list)) or len(source) != 2
+                or not hasattr(getattr(source[0], 'vars', None), 'val')
+                or not isinstance(source[1], str) or not source[1]
+            ):
+                raise TypeError('Bind a feedback parameter to (line or env, knob name)')
+        self._parameter_sources = MappingProxyType({
+            name: tuple(source) for name, source in parameter_sources.items()
+        })
+        self._sample_parameters()
         self.constants = _configuration(constants, self.xp)
         self.memory = _copy_mapping(memory or {}, self.xp)
         for key, value in self.memory.items():
@@ -393,6 +435,55 @@ class FeedbackController:
         if system is not None and system._busy:
             raise RuntimeError('Change controller activation between boundaries')
 
+    @property
+    def parameter_sources(self):
+        """Read-only Xdeps source bindings, keyed by callback parameter name."""
+        return self._parameter_sources
+
+    @property
+    def parameters(self):
+        """Inspect current parameter values for numerical callbacks."""
+        return _callback_configuration(self._sample_parameters(), self.xp)
+
+    def _sample_parameters(self):
+        if not self._parameter_sources:
+            return self._parameters
+        result = dict(self._parameters)
+        for name, (owner, knob) in self._parameter_sources.items():
+            value = np.asarray(owner.vars.val[knob])
+            if value.ndim != 0 or value.dtype.kind not in 'biuf':
+                raise TypeError(f'Feedback parameter {name!r} needs a real scalar')
+            result[name] = float(value)
+            if not np.isfinite(result[name]):
+                raise ValueError(f'Feedback parameter {name!r} needs a finite value')
+        return MappingProxyType(result)
+
+    def set_parameter(self, name, value):
+        """Replace a numerical parameter between tracking calls.
+
+        Preserve shape, dtype, retained state and queued commands. Change
+        source-bound parameters through their Xdeps variables.
+        """
+        system = self._system() if self._system is not None else None
+        if system is not None and (system._busy or system._tracking):
+            raise RuntimeError('Change feedback parameters between tracking calls')
+        if name in self._parameter_sources:
+            raise ValueError(f'Feedback parameter {name!r} is bound to Xdeps')
+        previous = self._parameters[name]
+        scalar = isinstance(previous, (numbers.Number, np.bool_))
+        dtype = np.asarray(previous).dtype if scalar else previous.dtype
+        result = _parameter_array(
+            value, shape=() if scalar else previous.shape, dtype=dtype,
+            xp=np if scalar else self.xp,
+        )
+        if scalar:
+            result = result[()]
+        elif isinstance(result, np.ndarray):
+            result.flags.writeable = False
+        updated = dict(self._parameters)
+        updated[name] = result
+        self._parameters = MappingProxyType(updated)
+
     def _read_sources(self, completed_turn):
         """Read one certified passage per source on the tracking context."""
         xp = self.xp
@@ -410,7 +501,7 @@ class FeedbackController:
             record_ids[name] = getattr(record, 'record_index', completed_turn - 1)
         return raw, record_ids, all_valid
 
-    def _calculate(self, inputs, event_values, completed_turn):
+    def _calculate(self, inputs, parameters, event_values, completed_turn):
         """Evaluate a callback on snapshots and validate its result."""
         xp = self.xp
         try:
@@ -419,9 +510,11 @@ class FeedbackController:
             if 'previous' in self._arguments:
                 values['previous'] = MappingProxyType(
                     _copy_mapping(self.memory, xp, readonly=True))
-            for name in ('parameters', 'constants'):
+            for name, mapping in (
+                ('parameters', parameters), ('constants', self.constants),
+            ):
                 if name in self._arguments:
-                    values[name] = _callback_configuration(getattr(self, name), xp)
+                    values[name] = _callback_configuration(mapping, xp)
             result = self.program(**{name: values[name] for name in self._arguments})
             if not isinstance(result, Mapping):
                 raise TypeError('Feedback program must return a result mapping')
@@ -461,6 +554,7 @@ class FeedbackController:
     ):
         """Stage completed measurements, one calculation and hardware response."""
         xp = self.xp
+        parameters = self._sample_parameters()
         history = {
             name: deque(values, maxlen=self.history_length)
             for name, values in self._history.items()
@@ -490,7 +584,7 @@ class FeedbackController:
                 completed_turn=completed_turn,
                 time_seconds=time_seconds,
                 valid=valid,
-                parameters=self.parameters,
+                parameters=parameters,
                 constants=self.constants,
                 record_ids=record_ids,
                 xp=xp,
@@ -585,7 +679,7 @@ class FeedbackController:
                     acquisition_record_ids=acquisition.record_ids,
                 )
             memory, requested, diagnostics = self._calculate(
-                inputs, event_values, completed_turn,
+                inputs, parameters, event_values, completed_turn,
             )
             queue.enqueue(
                 requested,
@@ -698,6 +792,7 @@ class FeedbackSystem:
         self._completed_turn = None
         self._time_seconds = None
         self._busy = False
+        self._tracking = False
         self._failure = None
         for controller in self.controllers:
             controller._system = ref(self)

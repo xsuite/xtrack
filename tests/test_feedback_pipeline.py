@@ -598,6 +598,44 @@ def test_shared_pickup_with_old_samples_is_rejected_before_tracking(context):
     np.testing.assert_allclose(bpm.mean_y[0], 9e-6, rtol=0, atol=1e-20)
 
 
+@for_all_test_contexts(excluding=('ContextPyopencl',))
+@allow_kernel_compilation
+def test_shared_feedback_gain_changes_between_tracking_calls(test_context):
+    """Keep the gain fixed while the shared boundary executes its callback."""
+    line = xt.Line(elements={
+        'ring': xt.Drift(length=120.),
+        'bpm': xt.BeamStatsMonitor(stop_at_turn=2, stats=['mean_y']),
+        'corrector': xt.Multipole(ksl=[0.]),
+    })
+    line['kick'] = 0.
+    line.ref['corrector'].ksl[0] = line.ref['kick']
+
+    def after_feedback(**event):
+        with pytest.raises(RuntimeError, match='between tracking calls'):
+            controller.set_parameter('gain', 99.)
+
+    boundary = SharedFeedbackBoundary(['beam'], after_feedback=after_feedback)
+    boundary.install({'beam': line})
+    line.build_tracker(_context=test_context)
+    particles = xt.Particles(_context=test_context, p0c=7e9, y=1e-3)
+    controller = FeedbackController(
+        'orbit', sources={'y': bind_monitor(line.get('bpm'), 'mean_y')},
+        output=KnobOutput(line, 'kick'), parameters={'gain': 0.1},
+        program=lambda inputs, parameters: {
+            'outputs': {'command': parameters['gain'] * inputs['y']},
+        },
+    )
+    system = FeedbackSystem([controller], lines=[line])
+    multitracker = xt.PipelineMultiTracker([xt.PipelineBranch(line, particles)])
+    boundary.bind(multitracker, system=system)
+
+    boundary.track(num_turns=1)
+    assert line['kick'] == pytest.approx(1e-4)
+    controller.set_parameter('gain', 0.2)
+    boundary.track(num_turns=1)
+    assert line['kick'] == pytest.approx(2e-4)
+
+
 @pytest.mark.parametrize('epoch', [0.0, 1e6])
 @pytest.mark.parametrize(('offset', 'delivery'), [(0.0, 3), (100e-12, 4)])
 def test_shared_delivery_turn_is_independent_of_epoch(
