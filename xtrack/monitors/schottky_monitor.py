@@ -46,6 +46,8 @@ class SchottkyMonitor:
 
         # First time: store bunch parameters for truncation error estimate
         if not self.initialised_with_first_tracking:
+            if len(tau) == 0:
+                return  # No alive particle has reached the monitor yet
             self.tau_max = 4 * np.std(tau)
             self.x_max = 4 * np.std(particles.x[mask_alive])
             self.y_max = 4 * np.std(particles.y[mask_alive])
@@ -158,15 +160,15 @@ class SchottkyMonitor:
                 )
             self.PSD_avg[region] = np.mean(self.instantaneous_PSDs[region], axis=0)
             print(f'{region} band of Schottky spectrum processed')
-        self._check_Taylor_approx()
+        self._check_Taylor_approx(x, y, z)
 
     def _init_processing(self, delta_q, qx, qy, band_width):
         '''
         For each region of the Schottky spectrum, create an array of normalised frequencies 
         from -band_width/2 to +band_width/2 around the center of the Schottky band. 
         '''
-        n_freq = band_width / delta_q
-        center_freq = np.arange(-(n_freq//2), (n_freq)//2) * band_width / n_freq
+        n_freq = int(round(band_width / delta_q))  # Number of bins of width delta_q
+        center_freq = (np.arange(n_freq) - n_freq // 2) * delta_q
         self.frequencies = {
             'lowerH': center_freq - (qx % 1),
             'upperH': center_freq + (qx % 1),
@@ -178,9 +180,9 @@ class SchottkyMonitor:
         self.instantaneous_PSDs = {i: [] for i in self.frequencies.keys()}
         self.PSD_avg = {i: [] for i in self.frequencies.keys()}
 
-    def _check_Taylor_approx(self):
+    def _check_Taylor_approx(self, x, y, z):
     # Longitudinal band, Eq. (2.3)
-        if self.processing_param['z']:
+        if z:
             delta_omega_max = max(self.frequencies['center']) * 2 * np.pi * self.f_rev
             max_error = self.N_macropart_max**0.5 * (delta_omega_max*self.tau_max)**self.n_taylor * \
                         np.exp(delta_omega_max*self.tau_max) / sp.special.factorial(self.n_taylor)
@@ -189,14 +191,14 @@ class SchottkyMonitor:
             print(f'Maximal Taylor truncation error in z plane to be compared against sqrt(PSD): {max_error}')
 
     # Transverse bands
-        if self.processing_param['x']:
+        if x:
             delta_omega_max = max(self.frequencies['upperH']) * 2 * np.pi * self.f_rev
             max_error = self.N_macropart_max**0.5 * self.x_max * (delta_omega_max*self.tau_max)**self.n_taylor * \
                         np.exp(delta_omega_max*self.tau_max) / sp.special.factorial(self.n_taylor)
             if np.sqrt(self.PSD_avg['upperH'][0]) < 100 * max_error:
                 print('Number of Taylor terms too low for the horizontal bands')
             print(f'Maximal Taylor truncation error in x plane to be compared against sqrt(PSD): {max_error}')
-        if self.processing_param['y']:
+        if y:
             delta_omega_max = max(self.frequencies['upperV']) * 2 * np.pi * self.f_rev
             max_error = self.N_macropart_max**0.5 * self.y_max * (delta_omega_max*self.tau_max)**self.n_taylor * \
                         np.exp(delta_omega_max*self.tau_max) / sp.special.factorial(self.n_taylor)
