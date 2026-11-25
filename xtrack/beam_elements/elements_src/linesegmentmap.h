@@ -7,6 +7,7 @@
 #define XTRACK_LINESEGMENTMAP_H
 
 #include "xtrack/headers/track.h"
+#include "xtrack/beam_elements/elements_src/absolute_rf_phase.h"
 
 
 GPUFUN
@@ -258,8 +259,8 @@ void longitudinal_motion(LocalParticle *part0,
                 double         phase  = DEG2RAD  * lag_rf + phase_rf - K_FACTOR * f_rf * tau;
                 if (absolute_time) {
                     // The kick sits at the middle of the segment, and s is updated at its end.
-                    phase += 2.0 * PI * f_rf * (LocalParticle_get_time_s(part)
-                        + (LocalParticle_get_s(part) + 0.5 * length) / (beta0 * C_LIGHT));
+                    phase += absolute_rf_phase(f_rf, LocalParticle_get_time_s(part),
+                        (LocalParticle_get_s(part) + 0.5 * length) / (beta0 * C_LIGHT));
                 }
                 double const energy   = q * v_rf * sin(phase);
                 LocalParticle_add_to_energy(part, energy, 1);

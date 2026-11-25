@@ -1,4 +1,5 @@
 import pathlib
+from decimal import Decimal, localcontext
 import numpy as np
 
 import xobjects as xo
@@ -53,3 +54,42 @@ def test_cavity_absolute_time(test_context):
     xo.assert_allclose(tw1.delta, delta_expected, atol=2e-6, rtol=0)
     tw_off_mom = line.twiss(method='4d', delta0=tw1.delta[0])
     xo.assert_allclose(tw1.x, tw_off_mom.x, atol=1e-5, rtol=0)
+
+
+@for_all_test_contexts
+def test_absolute_rf_phase_precision(test_context):
+
+    ctx2np = test_context.nparray_from_context_array
+    voltage = 1e6
+    p0c = 45.6e9
+    phase = .23
+    zeta = np.array([0., 100e-6])
+    for frequency in (400e6, 400780313.0016023):
+        elements = (
+            (xt.Cavity(_context=test_context, voltage=voltage, frequency=frequency,
+                       phase=phase, absolute_time=True), 'ptau', 0.),
+            (xt.RFMultipole(_context=test_context, voltage=voltage, frequency=frequency,
+                            phase=phase, absolute_time=True), 'ptau', 0.),
+            (xt.CrabCavity(_context=test_context, crab_voltage=voltage, frequency=frequency,
+                           phase=phase, absolute_time=True), 'px', 0.),
+            (xt.LineSegmentMap(_context=test_context, length=2., qx=0., qy=0.,
+                longitudinal_mode='nonlinear', momentum_compaction_factor=0.,
+                voltage_rf=[voltage], frequency_rf=[frequency], phase_rf=[phase],
+                absolute_time=True), 'ptau', 1.),
+        )
+        for element, coordinate, kick_offset in elements:
+            for s in (0., 1234.5):
+                for time_s in (0., 86400., -86400.):
+                    particles = xt.Particles(_context=test_context, p0c=p0c,
+                        mass0=xt.ELECTRON_MASS_EV, q0=-1, zeta=zeta, s=s, time_s=time_s)
+                    beta0 = ctx2np(particles.beta0)[0]
+                    with localcontext() as ctx:
+                        ctx.prec = 60
+                        cycles = (Decimal.from_float(frequency)
+                                  * Decimal.from_float(time_s)) % 1
+
+                    expected = voltage * np.sin(phase + 2*np.pi*(
+                        float(cycles) + frequency*(s + kick_offset - zeta)/(beta0*clight)))
+                    element.track(particles)
+                    actual = ctx2np(getattr(particles, coordinate))*p0c
+                    xo.assert_allclose(actual, expected, atol=1e-4, rtol=0)
