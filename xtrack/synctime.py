@@ -53,8 +53,8 @@ class SyncTime(BeamElement):
         particles.state[particles.state == -self.id] = 1
         particles.reorganize()
         active = particles.state > 0
-        arrival = (particles.time_s
-                   + (particles.s - particles.zeta) / (particles.beta0 * clight))
+        # Compare local offsets, not large absolute times.
+        arrival = (particles.s - particles.zeta) / (particles.beta0 * clight)
         # Allow roundoff at a shared boundary (e.g. s=C and next frame s=0).
         tol = 32 * np.finfo(float).eps * max(
             abs(lower), abs(upper), particles.t_sim)
@@ -196,11 +196,12 @@ class _SyncTimeController:
             beta0 = particles._xobject.beta0[0]
             period = self.circumference / (beta0 * clight)
             def time_at_offset(offset):
-                return time + offset * period
+                return offset * period
         else:
             turn = particles.reference_turns
             def time_at_offset(offset):
-                return program.get_t_s_at_turn(turn + offset)
+                return ((program.get_t_s_at_turn(turn + offset) - time)
+                        - particles.time_s_error)
 
         # At position s, frame edges are separated by fraction reference turns.
         # Using the SAME time map for both edges ensures exact adjacency in
@@ -209,7 +210,7 @@ class _SyncTimeController:
                        time_at_offset(self.fraction * (ss / self.circumference - .5)),
                        time_at_offset(self.fraction * (ss / self.circumference + .5)))
                       for ee, ss in self.elements]
-        particles.t_sim = time_at_offset(self.fraction) - time
+        particles.t_sim = time_at_offset(self.fraction)
         self.windows = {ee.id: (lower, upper)
                         for ee, lower, upper in boundaries}
 

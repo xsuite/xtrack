@@ -54,7 +54,8 @@ void track_rf_kick_single_particle(
     if (absolute_time == 1) {
         double const time_s = LocalParticle_get_time_s(part);
         double const s = LocalParticle_get_s(part);
-        phase0 += absolute_rf_phase(frequency, time_s, s / (beta0 * C_LIGHT));
+        phase0 += absolute_rf_phase(frequency, time_s,
+            LocalParticle_get_time_s_error(part) + s / (beta0 * C_LIGHT));
     }
 #endif
 

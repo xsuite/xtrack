@@ -1,4 +1,5 @@
 import json
+from decimal import Decimal, localcontext
 
 import numpy as np
 import pytest
@@ -828,3 +829,86 @@ def test_analytical_energy_program_serialization_and_injection_extension():
     restored = xt.EnergyProgram.from_dict(legacy)
     restored.line = line
     xo.assert_allclose(restored.get_turn_at_t_s(times), turns, rtol=0, atol=0)
+
+
+@for_all_test_contexts
+def test_reference_time_precision_across_tracking_calls(test_context):
+    line = xt.Line(elements=[xt.Drift(length=90_000.)])
+    line.build_tracker(_context=test_context)
+    p0 = xt.Particles(_context=test_context, p0c=45.6e9,
+                      mass0=xt.ELECTRON_MASS_EV, q0=-1, time_s=86400.)
+    period = line.get_length() / (float(p0._xobject.beta0[0]) * clight)
+    n_turns = 100
+
+    with localcontext() as ctx:
+        ctx.prec = 60
+        initial_time = Decimal.from_float(p0.time_s)
+        expected = initial_time + n_turns * Decimal.from_float(period)
+        for turns_per_call in (n_turns, 10, 1):
+            p = p0.copy()
+            for _ in range(n_turns // turns_per_call):
+                line.track(p, num_turns=turns_per_call)
+            actual = Decimal.from_float(p.time_s) + Decimal.from_float(p.time_s_error)
+            assert abs(actual - expected) < Decimal('1e-20')
+            assert p.time_s == float(expected)
+
+        restored = xt.Particles.from_dict(p.to_dict(), _context=test_context)
+        assert restored.time_s_error == p.time_s_error
+        line.track(restored, num_turns=n_turns, backtrack=True)
+        actual = (Decimal.from_float(restored.time_s)
+                  + Decimal.from_float(restored.time_s_error))
+        assert abs(actual - initial_time) < Decimal('1e-20')
+
+
+@for_all_test_contexts
+def test_absolute_rf_uses_compensated_reference_time(test_context):
+    n_turns = 100
+    frequency = 400780313.0016023
+    voltage = 1e6
+    p0c = 45.6e9
+    p = xt.Particles(_context=test_context, p0c=p0c,
+                     mass0=xt.ELECTRON_MASS_EV, q0=-1, time_s=86400.)
+    monitor = xt.ParticlesMonitor(start_at_turn=0, stop_at_turn=n_turns,
+                                  num_particles=1)
+    line = xt.Line(elements=[
+        xt.Cavity(voltage=voltage, frequency=frequency, absolute_time=True),
+        monitor,
+        xt.Cavity(voltage=-voltage, frequency=frequency, absolute_time=True),
+        xt.Drift(length=90_000.),
+    ])
+    line.build_tracker(_context=test_context)
+    period = line.get_length() / (float(p._xobject.beta0[0]) * clight)
+
+    with localcontext() as ctx:
+        ctx.prec = 60
+        t0, step, f = map(Decimal.from_float, (p.time_s, period, frequency))
+        expected = voltage * np.sin(2*np.pi*np.array([
+            float((f*(t0+nn*step)) % 1) for nn in range(n_turns)
+        ]))
+
+    line.track(p, num_turns=n_turns)
+    actual = monitor.ptau[0] * p0c
+    xo.assert_allclose(actual, expected, atol=1e-2, rtol=0)
+
+
+@for_all_test_contexts(excluding='ContextPyopencl')
+def test_synctime_frame_precision_at_large_reference_time(test_context):
+    line = xt.Line(elements=[xt.Drift(length=90_000.)])
+    line.particle_ref = xt.Particles(p0c=45.6e9, mass0=xt.ELECTRON_MASS_EV, q0=-1)
+    fraction = .9
+    st.install_sync_time_at_collective_elements(
+        line, frame_relative_length=fraction, with_progress=False)
+    line.build_tracker(_context=test_context)
+    p = line.build_particles()
+    p.time_s = 86400.
+    period = line.get_length() / (float(p._xobject.beta0[0]) * clight)
+    n_frames = 100
+
+    with localcontext() as ctx:
+        ctx.prec = 60
+        expected = (Decimal.from_float(p.time_s)
+                    + n_frames * Decimal.from_float(fraction * period))
+        line.track(p, num_turns=n_frames)
+        actual = Decimal.from_float(p.time_s) + Decimal.from_float(p.time_s_error)
+        assert abs(actual - expected) < Decimal('1e-20')
+    xo.assert_allclose(p.zeta, 0., rtol=0, atol=1e-8)

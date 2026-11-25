@@ -38,6 +38,7 @@ scalar_vars = (
     (xo.Float64, 'mass0'),
     (xo.Float64, 't_sim'),
     (xo.Float64, 'time_s'),
+    (xo.Float64, 'time_s_error'),
     (xo.Float64, 'reference_turns'),
 )
 
@@ -394,6 +395,7 @@ class Particles(xo.HybridClass):
         self.mass0 = kwargs.get('mass0', PROTON_MASS_EV)
         self.t_sim = kwargs.get('t_sim', 0)
         self.time_s = kwargs.get('time_s', 0)
+        self.time_s_error = kwargs.get('time_s_error', 0.)
         # Persistent accumulated reference revolutions at time_s. NAN asks the
         # tracker to initialize from time_s. Assign this after time_s, whose
         # setter invalidates the counter, to preserve an explicitly supplied pair.
@@ -1095,7 +1097,7 @@ class Particles(xo.HybridClass):
             raise NotImplementedError("Out of space, need to regenerate xobject")
 
         for tt, nn in self.scalar_vars:
-            if nn in ('t_sim', 'time_s', 'reference_turns'):
+            if nn in ('t_sim', 'time_s', 'time_s_error', 'reference_turns'):
                 # Added particles use the receiving collection's clock.
                 continue
             assert np.isclose(getattr(self, nn), getattr(part, nn),
@@ -1251,6 +1253,7 @@ class Particles(xo.HybridClass):
         # A new clock origin invalidates the accumulated reference turns.
         # Normal tracking updates both underlying fields together instead.
         self._time_s = value
+        self.time_s_error = 0.
         self.reference_turns = np.nan
 
     @property
