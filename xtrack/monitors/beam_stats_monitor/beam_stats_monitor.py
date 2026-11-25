@@ -1030,6 +1030,10 @@ class BeamStatsMonitor(BeamElement):
         Data already saved to an HDF5 output file is preserved. Use
         :meth:`start_new_frame` to also retarget the monitor to later turns.
         """
+        # Invalidate feedback views bound to this storage, including aliases.
+        generations = getattr(self._buffer, '_monitor_clear_generations', None)
+        if generations is not None and self._offset in generations:
+            generations[self._offset] += 1
         self._reset_data()
         self._reset_touched_records()
 

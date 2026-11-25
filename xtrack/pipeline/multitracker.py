@@ -1,3 +1,4 @@
+from collections import Counter
 from warnings import warn
 import xtrack as xt
 
@@ -30,6 +31,8 @@ class PipelineBranch:
         self.line = line
         self.particles = particles
         self.pipeline_status = None
+        # Time of the last machine sample for a beam sharing a line.
+        self._t_last_update_time_dependent_vars = None
 
         if self.line.tracker is None:
             raise ValueError('Tracker not built for line')
@@ -39,6 +42,9 @@ class PipelineBranch:
 class PipelineMultiTracker:
 
     def __init__(self, branches, enable_debug_log=False, verbose=False):
+        # Keep iterator inputs available for counting, tracking and resumption.
+        if iter(branches) is branches:
+            branches = list(branches)
         self.branches = branches
         self.enable_debug_log = enable_debug_log
         self.verbose = verbose
@@ -48,10 +54,20 @@ class PipelineMultiTracker:
 
     def track(self, **kwargs):
 
+        line_counts = Counter(branch.line for branch in self.branches)
         for branch in self.branches:
+            if (branch.line.enable_time_dependent_vars
+                    and line_counts[branch.line] > 1):
+                # Independent sample times for beams sharing one line.
+                # A single branch uses the line's sampling history.
+                branch.line._t_last_update_time_dependent_vars = (
+                    branch._t_last_update_time_dependent_vars)
             branch.pipeline_status = branch.line.track(
                  branch.particles, **kwargs,
                  _called_by_pipeline=True)
+            if branch.line.enable_time_dependent_vars:
+                branch._t_last_update_time_dependent_vars = (
+                    branch.line._t_last_update_time_dependent_vars)
 
         need_resume = True
         while need_resume:
@@ -76,6 +92,9 @@ class PipelineMultiTracker:
                             f"with info: {branch.pipeline_status.data['status_from_element'].info}")
 
                     branch.pipeline_status = branch.line.tracker.resume(branch.pipeline_status)
+                    if branch.line.enable_time_dependent_vars:
+                        branch._t_last_update_time_dependent_vars = (
+                            branch.line._t_last_update_time_dependent_vars)
                     need_resume = True
 
 

@@ -1922,6 +1922,12 @@ class Line:
             self.particle_ref.t_sim = (
                 self.get_length() / self.particle_ref._xobject.beta0[0] / clight)
 
+    @property_with_doc_group("Tracking and Analysis")
+    def feedback(self):
+        """Discover and enable numerical feedback elements placed in this line."""
+        from .feedback.interface import FeedbackLine
+        return FeedbackLine(self)
+
     @property_with_doc_group("Radiation, Spin and Intra-Beam Scattering")
     def xcoll(self):
         """Xcoll-specific helpers associated with this line."""
@@ -2089,7 +2095,14 @@ class Line:
             it is False and no progress bar is displayed.
         """
 
+        feedback_execution = getattr(self, '_feedback_execution', None)
+        if feedback_execution is not None and feedback_execution.tracking:
+            raise RuntimeError('Feedback tracking is not reentrant')
+
         if not isinstance(particles, xt.Particles):
+            if feedback_execution is not None:
+                raise NotImplementedError(
+                    'Placed feedback requires ordinary tracked Particles')
             from xtrack.tpsa import ParticlesTpsa
             if not isinstance(particles, ParticlesTpsa):
                 raise TypeError(f"Cannot track particles of type {type(particles)}")
@@ -2115,37 +2128,60 @@ class Line:
                 **kwargs)
 
         if not self._has_valid_tracker():
+            if feedback_execution is not None:
+                feedback_execution.check_configuration()
+            self.feedback._check_placement(require_enabled=True)
             self.build_tracker()
-        if hasattr(particles, '_needs_pipeline') and particles._needs_pipeline:
-            if '_called_by_pipeline' not in kwargs or not kwargs['_called_by_pipeline']:
-                all_kwargs = locals()
-                multitracker = xt.PipelineMultiTracker(
-                    branches=[xt.PipelineBranch(line=self, particles=particles)])
-                all_kwargs.pop('self')
-                all_kwargs.pop('particles')
-                all_kwargs.pop('kwargs')
-                all_kwargs.pop('_called_by_pipeline', None)
-                return multitracker.track(**all_kwargs, **kwargs)
+        elif self.tracker.iscollective:
+            self.feedback._check_placement(self.tracker._parts, require_enabled=True)
 
-        if '_called_by_pipeline' in kwargs: # Used only above
-            kwargs.pop('_called_by_pipeline')
+        called_by_pipeline = kwargs.pop('_called_by_pipeline', False)
+        if (
+            getattr(particles, '_needs_pipeline', False)
+            and not called_by_pipeline
+        ):
+            multitracker = xt.PipelineMultiTracker(
+                branches=[xt.PipelineBranch(line=self, particles=particles)])
+            return multitracker.track(
+                ele_start=ele_start,
+                ele_stop=ele_stop,
+                num_elements=num_elements,
+                num_turns=num_turns,
+                turn_by_turn_monitor=turn_by_turn_monitor,
+                freeze_longitudinal=freeze_longitudinal,
+                time=time,
+                with_progress=with_progress,
+                multi_element_monitor_at=multi_element_monitor_at,
+                monitor_monomials=monitor_monomials,
+                **kwargs)
 
-        if not self._has_valid_tracker():
-            self.build_tracker()
+        if feedback_execution is not None:
+            # Validate the full request before the tracker can split it into batches.
+            feedback_execution.validate_track(
+                particles, ele_start=ele_start, ele_stop=ele_stop,
+                num_elements=num_elements, num_turns=num_turns,
+                freeze_longitudinal=freeze_longitudinal,
+                backtrack=kwargs.get('backtrack', False),
+            )
+            feedback_execution.tracking = True
 
-        return self.tracker._track(
-            particles,
-            ele_start=ele_start,
-            ele_stop=ele_stop,
-            num_elements=num_elements,
-            num_turns=num_turns,
-            turn_by_turn_monitor=turn_by_turn_monitor,
-            freeze_longitudinal=freeze_longitudinal,
-            time=time,
-            with_progress=with_progress,
-            multi_element_monitor_at=multi_element_monitor_at,
-            monitor_monomials=monitor_monomials,
-            **kwargs)
+        try:
+            return self.tracker._track(
+                particles,
+                ele_start=ele_start,
+                ele_stop=ele_stop,
+                num_elements=num_elements,
+                num_turns=num_turns,
+                turn_by_turn_monitor=turn_by_turn_monitor,
+                freeze_longitudinal=freeze_longitudinal,
+                time=time,
+                with_progress=with_progress,
+                multi_element_monitor_at=multi_element_monitor_at,
+                monitor_monomials=monitor_monomials,
+                **kwargs)
+        finally:
+            if feedback_execution is not None:
+                feedback_execution.tracking = False
 
     @doc_group("Tracking and Analysis")
     def get_local_momentum_acceptance(
@@ -7565,6 +7601,18 @@ class Line:
             raise ValueError('Only scalars or references are allowed')
 
     def _get_non_collective_line(self):
+        if getattr(self, '_feedback_execution', None) is not None or (
+            self._has_valid_tracker()
+            and self.tracker.iscollective
+            and any(
+                isinstance(part, xt.feedback.Feedback)
+                and part._execution is not None
+                for part in self.tracker._parts
+            )
+        ):
+            raise NotImplementedError(
+                'Prepare optics/probes before enabling feedback: non-collective '
+                'extraction would share and modify the live feedback monitor records')
         if not self.iscollective:
             return self
         else:
@@ -8143,7 +8191,7 @@ def mk_class_namespace(extra_classes):
     except ImportError:
         log.warning("Xcoll not installed")
 
-    all_classes = all_classes + (EnergyProgram, xt.Replica)
+    all_classes = all_classes + (EnergyProgram, xt.Replica, xt.feedback.Feedback)
 
     out = AttrDict()
     for cl in all_classes:
@@ -8801,29 +8849,12 @@ class EnergyProgram:
             raise ValueError('`i_turn` outside program range')
         if momentum[0] == 0 and np.any(turns < 0):
             raise ValueError('Cannot extrapolate negative turns from rest')
-        # side='left' selects the earliest endpoint when turn knots coincide.
         n = np.maximum(turns, 0.)
-        i = np.clip(np.searchsorted(knots, n, side='left') - 1, 0, len(knots) - 2)
-        slope = (momentum[i+1] - momentum[i]) / (times[i+1] - times[i])
-        # Integrate from the lower-momentum endpoint, backwards for deceleration,
-        # so that the square root below only adds nonnegative terms.
-        anchor = i + (slope < 0)
-        direction = np.where(slope < 0, -1., 1.)
-        distance_over_c = direction * (n - knots[anchor]) * self._circumference / clight
-        p0 = momentum[anchor]
-        e0 = np.hypot(p0, self._mass0)
-        gain = np.abs(slope) * distance_over_c
-        p = np.sqrt(p0**2 + gain * (2*e0 + gain))
-        # Write D = distance_over_c and a = dP/dt, with P = p*c and
-        # E = sqrt(P**2 + (m*c**2)**2). Starting from the lower-momentum
-        # endpoint gives E-E0 = |a|*D = gain and dt = (P-P0)/|a|.
-        # Using (P-P0)*(P+P0) = E**2-E0**2 = gain*(2*E0+gain),
-        # substitute gain = |a|*D and cancel |a| to obtain
-        # dt = D*(2*E0+gain)/(P+P0), avoiding subtraction of nearby momenta.
-        # For constant nonzero P, gain=0 and this gives dt = D*E0/P0 = D/beta.
-        dt = np.divide(distance_over_c * (2*e0 + gain), p + p0,
-                       out=np.zeros_like(n), where=(p + p0) != 0)
-        out = times[anchor] + direction * dt
+        i, anchor, p = self._momentum_at_reference_turn(n)
+        dt = self._time_between_reference_momenta(
+            n - knots[anchor], momentum[anchor], p,
+        )
+        out = times[anchor] + dt
         out = np.where(n == knots[i+1], times[i+1], out)
         out = np.where(n == 0, times[0], out)
         if np.any(turns < 0):
@@ -8831,6 +8862,67 @@ class EnergyProgram:
                                 * np.hypot(momentum[0], self._mass0) / momentum[0])
             out = np.where(turns < 0, times[0] + turns*injection_period, out)
         return out.item() if out.ndim == 0 else out
+
+    def _momentum_at_reference_turn(self, n):
+        """Locate the ramp segment and evaluate p0c at reference turn n."""
+        knots = self._i_turn_at_t_s
+        times, momentum = self.p0c_interpolator.x, self.p0c_interpolator.y
+        # Select the earliest endpoint when turn knots coincide.
+        i = np.clip(np.searchsorted(knots, n, side='left') - 1, 0, len(knots) - 2)
+        slope = (momentum[i+1] - momentum[i]) / (times[i+1] - times[i])
+        # For linear p0c(t), dE/dN = (L/c) dp0c/dt. Integrate from the
+        # lower-momentum endpoint to avoid subtracting nearby energies.
+        anchor = i + (slope < 0)
+        distance_over_c = (n - knots[anchor]) * self._circumference / clight
+        p0 = momentum[anchor]
+        e0 = np.hypot(p0, self._mass0)
+        gain = slope * distance_over_c
+        p = np.sqrt(p0**2 + gain * (2*e0 + gain))
+        return i, anchor, p
+
+    def _time_between_reference_momenta(self, turns, p0, p1):
+        """Elapsed time [s] for a turn interval within one linear ramp segment."""
+        # The time-averaged beta is (p0 + p1) / (E0 + E1). This also
+        # holds at constant momentum and avoids cancellation at small dp0c.
+        energy = np.hypot(p0, self._mass0) + np.hypot(p1, self._mass0)
+        return np.divide(
+            turns * (self._circumference / clight) * energy, p0 + p1,
+            out=np.zeros_like(turns, dtype=float), where=(p0 + p1) != 0,
+        )
+
+    def _elapsed_time_between_turns(self, first_turn, last_turn):
+        """Elapsed time [s] between ordered turns inside the ramp program.
+
+        Accept scalar or broadcastable array inputs. Integrate directly so
+        short intervals retain precision at a large absolute clock time.
+        """
+        first_turn, last_turn = np.broadcast_arrays(
+            np.asarray(first_turn, dtype=float), np.asarray(last_turn, dtype=float),
+        )
+        first, _, p0 = self._momentum_at_reference_turn(first_turn)
+        last, _, p1 = self._momentum_at_reference_turn(last_turn)
+        same_segment = first == last
+        direct = self._time_between_reference_momenta(last_turn - first_turn, p0, p1)
+        if np.all(same_segment):
+            return direct.item() if direct.ndim == 0 else direct
+
+        # Integrate the two partial segments and add the full segments.
+        knots = self._i_turn_at_t_s
+        times, momentum = self.p0c_interpolator.x, self.p0c_interpolator.y
+        first_interval = self._time_between_reference_momenta(
+            knots[first + 1] - first_turn, p0, momentum[first + 1],
+        )
+        # At injection from rest, elapsed time can be nonzero for zero turns.
+        first_interval = np.where(
+            (first_turn == 0) & (knots[first + 1] == 0),
+            times[first + 1] - times[0], first_interval,
+        )
+        last_interval = self._time_between_reference_momenta(
+            last_turn - knots[last], momentum[last], p1,
+        )
+        elapsed = first_interval + (times[last] - times[first + 1]) + last_interval
+        result = np.where(same_segment, direct, elapsed)
+        return result.item() if result.ndim == 0 else result
 
     def get_p0c_at_t_s(self, t_s):
         assert not self.needs_complete, 'EnergyProgram not complete'

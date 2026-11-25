@@ -194,6 +194,32 @@ def test_monitor(test_context, line0, particles0):
 
 
 @for_all_test_contexts
+def test_particles_monitor_clear(test_context):
+    """Reuse a repeated-frame particle monitor without reallocating its data."""
+    monitor = xt.ParticlesMonitor(
+        _context=test_context, start_at_turn=0, stop_at_turn=2,
+        num_particles=1, n_repetitions=2, repetition_period=3,
+    )
+    particles = xt.Particles(_context=test_context, p0c=7e9, at_turn=3, y=1e-3)
+    monitor.track(particles)
+    assert monitor.y[1, 0, 0] == 1e-3
+    assert monitor.state[1, 0, 0] == 1
+    buffer, offset = monitor._buffer, monitor._offset
+
+    monitor.clear()
+    assert monitor._buffer is buffer and monitor._offset == offset
+    assert_equal(monitor.y, np.zeros((2, 1, 2)))
+    assert_equal(monitor.state, np.zeros((2, 1, 2)))
+    assert (monitor.start_at_turn, monitor.stop_at_turn) == (0, 2)
+    assert (monitor.n_repetitions, monitor.repetition_period) == (2, 3)
+
+    particles.y[:] = 2e-3
+    monitor.track(particles)
+    assert monitor.y[1, 0, 0] == 2e-3
+    assert monitor.state[1, 0, 0] == 1
+
+
+@for_all_test_contexts
 def test_last_turns_monitor(test_context):
     particles = xp.Particles(p0c=6.5e12, x=[1,2,3,4,5,6], _context=test_context)
 

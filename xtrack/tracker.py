@@ -192,6 +192,9 @@ class Tracker:
             parts.append(this_part)
             part_names.append(f'part_{i_part}_non_collective')
 
+        if self.iscollective:
+            line.feedback._check_placement(parts)
+
         # Build drifts to replace non-collective elements
         noncollective_xelements = []
         for ii, pp in enumerate(parts):
@@ -1426,6 +1429,11 @@ class Tracker:
         if ele_start is None:
             ele_start = 0
 
+        feedback = getattr(self.line, '_feedback_execution', None)
+        if feedback is not None and _session_to_resume is not None:
+            raise NotImplementedError(
+                'Placed feedback cannot resume a native pipeline hold')
+
         if self._sync_time_controller is not None:
             if (ele_start != 0 or ele_stop is not None or num_elements is not None
                     or _session_to_resume is not None or self._enable_pipeline_hold
@@ -1487,6 +1495,8 @@ class Tracker:
                 ) = self._prepare_collective_track_session(
                                 particles, ele_start, ele_stop,
                                 num_elements, num_turns, turn_by_turn_monitor)
+            if feedback is not None:
+                feedback.bind_runtime(particles)
             tt_resume = None
             ipp_resume = None
 
@@ -1498,12 +1508,25 @@ class Tracker:
                 and not _is_resume_within_turn(tt, tt_resume)):
                     monitor.track(particles)
 
-            # Time dependent vars and energy ramping
+            # Sample the machine at turn entry, including reference momentum.
             if self.line.enable_time_dependent_vars:
-                self._handle_time_dependent_vars(particles=particles)
+                if not _is_resume_within_turn(tt, tt_resume):
+                    self._handle_time_dependent_vars(particles=particles)
+                elif _session_to_resume['t_turn_s'] is not None:
+                    # Restore the sampled machine time without repeating the
+                    # reference-momentum transformation of particle coordinates.
+                    t_turn = _session_to_resume['t_turn_s']
+                    # Retain the sample time for the next scheduled update.
+                    self.line._t_last_update_time_dependent_vars = (
+                        _session_to_resume['t_last_update_time_dependent_vars'])
+                    if self.vars.val['t_turn_s'] != t_turn:
+                        self.vars['t_turn_s'] = t_turn
 
+            # Reference clock and diagnostics are prepared once per turn.
             if particles is not None and not _is_resume_within_turn(tt, tt_resume):
                 self._prepare_particle_time_s_and_reference_turns(particles)
+                if feedback is not None and feedback.energy_program is not None:
+                    feedback.start_ramped_traversal(particles)
 
             if log is not None and not _is_resume_within_turn(tt, tt_resume):
                 self._handle_log(_session_to_resume=_session_to_resume,
@@ -1547,6 +1570,12 @@ class Tracker:
                 if returned_by_track is not None:
                     if returned_by_track.on_hold:
 
+                        if feedback is not None:
+                            error = NotImplementedError(
+                                'Placed feedback cannot resume a native pipeline hold')
+                            feedback.failure = error
+                            raise error
+
                         assert self.enable_pipeline_hold, (
                             "Hold session not enabled for this tracker.")
 
@@ -1560,6 +1589,12 @@ class Tracker:
                             'num_turns': num_turns,
                             'flag_monitor': flag_monitor,
                             'monitor': monitor,
+                            # Machine time and time of last scheduled sample.
+                            't_turn_s': (self.vars.val['t_turn_s']
+                                         if self.line.enable_time_dependent_vars
+                                         else None),
+                            't_last_update_time_dependent_vars':
+                                self.line._t_last_update_time_dependent_vars,
                             '_context_needs_clean_active_lost_state':
                                         _context_needs_clean_active_lost_state,
                             '_need_unhide_lost_particles':
@@ -2088,11 +2123,12 @@ class Tracker:
 
         t_turn = particles.time_s
 
-        # Clean leftover from previous trackings
-        if (self.line._t_last_update_time_dependent_vars and
+        # Invalidate the sample when the reference clock moves backwards.
+        if (self.line._t_last_update_time_dependent_vars is not None and
             t_turn < self.line._t_last_update_time_dependent_vars):
             self.line._t_last_update_time_dependent_vars = None
 
+        # Sample on eligible turns and at every SyncTime frame.
         if (self._sync_time_controller is not None
             or self.line._t_last_update_time_dependent_vars is None
             or self.line.dt_update_time_dependent_vars is None
@@ -2114,6 +2150,12 @@ class Tracker:
                     mask = None
                 particles.update_p0c_and_energy_deviations(
                     p0c, update_pxpy=True, _mask=mask)
+        else:
+            # Zero-order hold of machine settings between samples, including
+            # interleaved tracking in environments with a shared t_turn_s.
+            t_held = self.line._t_last_update_time_dependent_vars
+            if self.vars.val['t_turn_s'] != t_held:
+                self.vars['t_turn_s'] = t_held
 
     def _handle_log(self, _session_to_resume, particles, log):
         if _session_to_resume is not None:
