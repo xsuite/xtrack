@@ -6,6 +6,7 @@
 #define XTRACK_TRACK_RF_H
 
 #include "xtrack/headers/track.h"
+#include "xtrack/beam_elements/elements_src/absolute_rf_phase.h"
 #include "xtrack/beam_elements/elements_src/track_magnet_drift.h"
 #include "xtrack/beam_elements/elements_src/track_magnet_configure.h"
 #include "xtrack/beam_elements/elements_src/integrator.h"
@@ -53,7 +54,7 @@ void track_rf_kick_single_particle(
     if (absolute_time == 1) {
         double const time_s = LocalParticle_get_time_s(part);
         double const s = LocalParticle_get_s(part);
-        phase0 += 2 * PI * frequency * (time_s + s / (beta0 * C_LIGHT));
+        phase0 += absolute_rf_phase(frequency, time_s, s / (beta0 * C_LIGHT));
     }
 #endif
 
