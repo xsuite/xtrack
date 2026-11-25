@@ -68,7 +68,7 @@ def test_feedback_consumes_particle_and_beam_monitor_records(
         _context=test_context, start_at_turn=0, stop_at_turn=2, num_particles=2,
     )
     env.elements['stats_bpm'] = xt.BeamStatsMonitor(
-        _context=test_context, stop_at_turn=2, stats=['mean_y'],
+        _context=test_context, stop_at_turn=2, stats=['mean_y', 'num_particles'],
         particle_id_range=(1, 2),
     )
 
@@ -105,6 +105,15 @@ outputs.kick = -(particle_centroid + acquired.centroid) / 2
     assert [row['executed'] for row in fb.log] == [True, not lose_particle]
     expected_kick = -2.5e-6 if lose_particle else 0.0
     assert env['kick_y'] == pytest.approx(expected_kick, abs=1e-15)
+
+    line.feedback.reset()
+    np.testing.assert_array_equal(env.get('particle_bpm').state, 0)
+    np.testing.assert_array_equal(env.get('stats_bpm').num_particles, 0)
+    assert env['kick_y'] == 0
+    line.feedback.enable()
+    fresh = xt.Particles(_context=test_context, p0c=7e12, y=[1e-6, 3e-6])
+    line.track(fresh, num_turns=1)
+    assert fb.log[0]['source_valid']
 
 
 @pytest.fixture
@@ -370,6 +379,227 @@ def test_physical_nominal_uses_native_machine_time(study, tau):
         line.log_last_track['applied'], expected, rtol=1e-14, atol=0.,
     )
     assert not any(row['executed'] for row in fb.log)
+
+
+@for_all_test_contexts(excluding=('ContextPyopencl',))
+@allow_kernel_compilation
+def test_feedback_reset_replays_on_same_tracker(study, test_context):
+    """Off/on/off fresh beams reproduce the off trace on one native tracker."""
+    env, line, fb, initial = study(enable=False, context=test_context)
+    env['nominal'] = env['applied'] = 2e-6
+    fb.command_delay_seconds = 5e-6
+    fb.parameters.set('gain', 0.04)
+    tracker = line.tracker
+    traces = []
+
+    for enabled in (False, True, False):
+        line.feedback.enabled = enabled
+        particles = initial.copy()
+        line.track(particles, num_turns=5)
+        traces.append(env.get('bpm').mean_y.copy())
+        assert [row['completed_turn'] for row in fb.log] == [1, 2, 3, 4, 5]
+        if enabled:
+            assert fb.log[-1]['pending_commands'] == 1
+            assert env['applied'] != 2e-6
+
+        line.feedback.reset()
+
+        assert line.tracker is tracker
+        assert not line.feedback.enabled and fb.active
+        assert not fb.log
+        assert fb.parameters['gain'].value == 0.04
+        assert fb.state.read('integral') == 0
+        assert env['applied'] == 2e-6
+        np.testing.assert_array_equal(env.get('bpm').num_particles, 0)
+        np.testing.assert_array_equal(
+            test_context.nparray_from_context_array(particles.at_turn), [5, 5],
+        )
+
+    np.testing.assert_array_equal(traces[0], traces[2])
+    assert traces[1][4] != traces[0][4]
+
+
+@pytest.mark.parametrize('restore_outputs', [True, False])
+@for_all_test_contexts(excluding=('ContextPyopencl',))
+@allow_kernel_compilation
+def test_feedback_reset_controls_applied_baseline(study, test_context, restore_outputs):
+    """Explicitly restore or keep the applied field and preserve nominal."""
+    env, line, fb, particles = study(context=test_context)
+    fresh = particles.copy()
+    line.track(particles, num_turns=3)
+    applied = env['applied']
+    assert applied != 0
+    env['nominal'] = 3e-6
+
+    line.feedback.reset(restore_outputs=restore_outputs)
+
+    expected = 0. if restore_outputs else applied
+    assert env['applied'] == expected
+    assert env['nominal'] == 3e-6
+    assert not fb.log
+
+    line.feedback.enable()
+    line.track(fresh, num_turns=1, log=xt.Log('applied'))
+    assert line.log_last_track['applied'] == [expected]
+    line.feedback.reset()
+    assert env['applied'] == expected
+
+
+@for_all_test_contexts(excluding=('ContextPyopencl',))
+@allow_kernel_compilation
+def test_feedback_reset_restores_field_at_first_traversal(study, test_context):
+    """Capture the baseline when field ownership starts."""
+    env, line, _, particles = study(context=test_context)
+    env['applied'] = 2e-6
+    line.track(particles, num_turns=3)
+    assert env['applied'] != 2e-6
+    line.feedback.reset()
+    assert env['applied'] == 2e-6
+
+
+@for_all_test_contexts(excluding=('ContextPyopencl',))
+@allow_kernel_compilation
+def test_feedback_reset_recovers_from_callback_failure(study, test_context):
+    """Discard a failed callback run and track a fresh beam on the same tracker."""
+    fail = True
+
+    def program(inputs, previous):
+        if fail:
+            raise ValueError('controller failed')
+        return {'outputs': {'kick': -inputs['y']}, 'memory': previous}
+
+    env, line, fb, initial = study(program=program, context=test_context)
+    tracker = line.tracker
+    particles = initial.copy()
+    with pytest.raises(ValueError, match='controller failed'):
+        line.track(particles, num_turns=3)
+    assert env['applied'] == 0.
+
+    line.feedback.reset()
+    np.testing.assert_array_equal(env.get('bpm').num_particles, 0.)
+    assert line.tracker is tracker
+    fail = False
+    line.feedback.enable()
+    line.track(initial, num_turns=3)
+    assert [row['completed_turn'] for row in fb.log] == [1, 2, 3]
+
+
+def test_feedback_reset_rejects_failed_internal_commit(study, monkeypatch):
+    """Require a new run when the actuator commit leaves uncertain state."""
+    env, line, fb, particles = study()
+    line.track(particles, num_turns=1)
+
+    def failed_commit(_):
+        raise RuntimeError('actuator commit failed')
+
+    monkeypatch.setattr(fb._runtime.actuator, 'commit', failed_commit)
+    with pytest.raises(RuntimeError, match='Internal feedback commit failed'):
+        line.track(particles, num_turns=1)
+    assert env['applied'] == 0.
+    with pytest.raises(RuntimeError, match='reconstruct a consistent run'):
+        line.feedback.reset()
+
+
+@for_all_test_contexts(excluding=('ContextPyopencl',))
+@allow_kernel_compilation
+def test_feedback_reset_protects_physically_shared_pickup(study, test_context):
+    """Reject a clear before changing any fields or sibling-line records."""
+    env, line, fb, particles = study(context=test_context)
+    line.track(particles, num_turns=3)
+    monitor = env.get('bpm')
+    env.elements['alias'] = xt.BeamStatsMonitor(_xobject=monitor._xobject)
+    sibling = env.new_line(components=['alias'])
+    before = monitor.num_particles.copy()
+    applied = env['applied']
+
+    with pytest.raises(RuntimeError, match='pickup.*shared by another line'):
+        line.feedback.reset()
+
+    assert sibling.tracker is None
+    assert fb.enabled
+    np.testing.assert_array_equal(monitor.num_particles, before)
+    assert env['applied'] == applied
+    line.track(particles, num_turns=1)
+
+
+def test_feedback_reset_rejects_native_tracking_callback(study):
+    """Protect the run during native tracking before the feedback boundary."""
+    _, line, fb, particles = study()
+
+    def try_reset(tracked_line, _):
+        with pytest.raises(RuntimeError, match='Reset feedback between tracking'):
+            tracked_line.feedback.reset()
+        return 1
+
+    line.track(particles, num_turns=2, log=xt.Log(attempt=try_reset))
+    assert line.log_last_track['attempt'] == [1, 1]
+    assert len(fb.log) == 2
+    line.feedback.reset()
+    assert not fb.log
+
+
+@for_all_test_contexts(excluding=('ContextPyopencl',))
+@allow_kernel_compilation
+def test_feedback_reset_replays_energy_program(study, test_context):
+    """Replay the energy, nominal field and orbit on the same tracker."""
+    env, line, fb, _ = study(tau=1e-5, enable=False, context=test_context)
+    env['nominal'] = '0.4 * t_turn_s'
+    line.particle_ref = xt.Particles(p0c=0.6e9, _context=line._context)
+    line.energy_program = xt.EnergyProgram(
+        t_s=[0.0, 1e-3], p0c=[0.6e9, 1.4e9],
+    )
+    line.enable_time_dependent_vars = True
+    initial = line.build_particles(y=3e-6)
+    tracker = line.tracker
+    times = []
+    orbits = []
+    fields = []
+    for _ in range(2):
+        particles = initial.copy()
+        line.feedback.enable()
+        line.track(particles, num_turns=6)
+        times.append([row['time_seconds'] for row in fb.log])
+        orbits.append(env.get('bpm').mean_y[:6].copy())
+        fields.append([row['applied_output'][0] for row in fb.log])
+        assert particles.p0c[0] > initial.p0c[0]
+        clock = line['t_turn_s']
+        assert clock > 0
+
+        line.feedback.reset()
+
+        assert line.tracker is tracker
+        assert line['t_turn_s'] == clock
+
+    np.testing.assert_array_equal(times[0], times[1])
+    np.testing.assert_array_equal(orbits[0], orbits[1])
+    np.testing.assert_array_equal(fields[0], fields[1])
+
+
+def test_feedback_reset_rolls_back_applied_output_if_clear_fails(study, monkeypatch):
+    """Restore the old field and flag partial pickup clears as unusable."""
+    env, line, fb, particles = study()
+    line.track(particles, num_turns=3)
+    applied = env['applied']
+    assert applied != 0
+
+    monitor = env.get('bpm')
+    clear = monitor.clear
+
+    def failed_clear():
+        assert env['applied'] == 0
+        clear()
+        raise RuntimeError('clear failed')
+
+    monkeypatch.setattr(monitor, 'clear', failed_clear)
+    with pytest.raises(RuntimeError, match='clear failed'):
+        line.feedback.reset()
+    assert env['applied'] == applied
+    np.testing.assert_array_equal(monitor.num_particles, 0)
+    assert not fb.enabled
+    with pytest.raises(RuntimeError, match='tracking failed'):
+        line.track(particles, num_turns=1)
+    with pytest.raises(RuntimeError, match='tracking failed'):
+        line.feedback.reset()
 
 
 def test_vector_output_preflight_uses_actual_applied_readback_shape(study):

@@ -1031,7 +1031,7 @@ class BeamStatsMonitor(BeamElement):
         :meth:`start_new_frame` to also retarget the monitor to later turns.
         """
         # Invalidate feedback views bound to this storage, including aliases.
-        generations = getattr(self._buffer, '_beam_stats_clear_generations', None)
+        generations = getattr(self._buffer, '_monitor_clear_generations', None)
         if generations is not None and self._offset in generations:
             generations[self._offset] += 1
         self._reset_data()

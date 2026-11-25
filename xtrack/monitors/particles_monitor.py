@@ -98,10 +98,7 @@ def _monitor_init(
         self._dressed_data = self._ParticlesClass(_xobject=self._xobject.data,
                                                   _no_reorganize=True)
         self.auto_to_numpy = auto_to_numpy
-
-        with self.data._bypass_linked_vars():
-            for tt, nn in self._ParticlesClass.per_particle_vars:
-                getattr(self.data, nn)[:] = 0
+        self.clear()
 
 def monitor_to_dict(self, **kwargs):
     out = BeamElement.to_dict(self, **kwargs)
@@ -200,6 +197,19 @@ class ParticlesMonitor(BeamElement):
     has_backtrack = True
     allow_loss_refinement = True
     _ParticlesClass = xt.Particles
+
+    def clear(self):
+        """Clear recorded coordinates in place, keeping the monitor frame.
+
+        The particle-ID and turn ranges, repetition settings and allocation
+        are preserved. A feedback readout bound to this monitor must be rebound.
+        """
+        generations = getattr(self._buffer, '_monitor_clear_generations', None)
+        if generations is not None and self._offset in generations:
+            generations[self._offset] += 1
+        with self.data._bypass_linked_vars():
+            for _, name in self._ParticlesClass.per_particle_vars:
+                getattr(self.data, name)[:] = 0
 
 
 ParticlesMonitor.__init__ = _monitor_init

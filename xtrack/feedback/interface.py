@@ -5,6 +5,7 @@
 
 """Configure feedback elements and run them at completed line traversals."""
 
+from contextlib import ExitStack
 from dataclasses import asdict, dataclass, replace
 from functools import partial
 import keyword
@@ -750,6 +751,94 @@ class FeedbackLine:
                 if fb._runtime is not None:
                     fb._runtime.disable(cancel_pending=cancel_pending)
 
+    def reset(self, *, restore_outputs=True):
+        """Reset controller state, queued commands and pickup records.
+
+        Keep the tracker, parameters and controller selection. Enable feedback
+        again before tracking fresh particles at the desired starting epoch.
+
+        Parameters
+        ----------
+        restore_outputs : bool
+            Restore the applied fields recorded at the first tracking call.
+            With False, retain the current fields. External nominal setpoints
+            are unchanged in either case.
+
+        Notes
+        -----
+        Call between tracking calls. Shared pickups cannot be cleared; other
+        diagnostics and stateful elements are not reset. A failed calculation
+        can be reset if its outputs remain consistent. Partial commits or
+        failed clears require a fresh configuration.
+        """
+        if not isinstance(restore_outputs, bool):
+            raise TypeError('restore_outputs must be Boolean')
+        line = self.line
+        execution = getattr(line, '_feedback_execution', None)
+        if execution is None:
+            return
+        if execution.tracking:
+            raise RuntimeError('Reset feedback between tracking calls')
+        execution.check_configuration(resetting=True)
+        monitors = self._pickups_for_reset(execution)
+        if execution.system is not None:
+            execution.system._check_sources()
+            execution.system._check_ownership()
+            execution.system._check_applied_outputs()
+
+        with ExitStack() as rollback:
+            try:
+                if restore_outputs:
+                    for output, initial in execution.initial_outputs:
+                        if not np.array_equal(output.snapshot(), initial):
+                            rollback.callback(
+                                output._restore_checkpoint, output._checkpoint(),
+                            )
+                            output.apply(initial)
+                for monitor in monitors.values():
+                    monitor.clear()
+            except BaseException as error:
+                # A failed device clear may have overwritten some records.
+                execution.failure = error
+                execution.reset_failed = True
+                raise
+            rollback.pop_all()
+
+        for fb in execution.feedbacks:
+            fb._execution = fb._runtime = None
+        line._feedback_execution = None
+        # Let native tracking refresh t_turn_s at the next beam's epoch.
+        line._t_last_update_time_dependent_vars = None
+
+    def _pickups_for_reset(self, execution):
+        """Identify distinct bound pickups and protect sibling-line data."""
+        line = self.line
+        monitors = {}
+        for fb, options in zip(execution.feedbacks, execution.controller_options):
+            for name, source in options['acquisition'].sources.items():
+                monitor = source.monitor
+                if not FeedbackSystem._same_element(
+                    monitor, line.get(fb.inputs[name].monitor),
+                ):
+                    raise RuntimeError(
+                        'Feedback pickup changed after preparation')
+                monitors[id(monitor._buffer), monitor._offset] = monitor
+
+        for sibling in line.env._lines_weakrefs:
+            if sibling is line:
+                continue
+            for name in FeedbackLine(sibling)._placement_names():
+                element = sibling.get(name)
+                if isinstance(element, Replica):
+                    element = element.resolve(sibling)
+                key = (id(getattr(element, '_buffer', None)),
+                       getattr(element, '_offset', None))
+                if key in monitors:
+                    raise RuntimeError(
+                        f'Cannot reset feedback with pickup {name!r} shared '
+                        'by another line')
+        return monitors
+
 
 class _LineFeedbackRun:
     """Own the configuration, clock and runtime for one prepared line."""
@@ -768,18 +857,22 @@ class _LineFeedbackRun:
         self.system = None
         self.particles = None
         self.failure = None
+        self.reset_failed = False
         self.controller_options = None
+        self.initial_outputs = ()
         self.epoch_turn = self.epoch_time = self.revolution_period = None
         self.p0c = None
         self._turn_start_time = None
         self._turn_start_reference_turns = None
 
-    def check_configuration(self, *, boundary=False):
+    def check_configuration(self, *, boundary=False, resetting=False):
         """Check the prepared configuration and, at admission, live geometry."""
         if self.failure is not None:
-            raise RuntimeError(
-                'Feedback tracking failed; reconstruct a consistent run'
-            ) from self.failure
+            failed_commit = self.system is not None and self.system._failure is not None
+            if not resetting or self.reset_failed or failed_commit:
+                raise RuntimeError(
+                    'Feedback tracking failed; reconstruct a consistent run'
+                ) from self.failure
         if self.line.tracker is not self.tracker:
             raise RuntimeError(
                 'Feedback line/tracker changed; prepare a fresh configuration'
@@ -961,6 +1054,9 @@ class _LineFeedbackRun:
         ))
         self.system = FeedbackSystem(
             controllers, lines=[self.line], _turn_clock=(turn, time, elapsed),
+        )
+        self.initial_outputs = tuple(
+            (controller.output, controller._applied.copy()) for controller in controllers
         )
         if self.energy_program is not None:
             # Use the admitted integer epoch for native lookup at ramp knots.

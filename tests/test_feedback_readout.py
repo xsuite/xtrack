@@ -268,6 +268,35 @@ def test_particles_source_masks_unwritten_ids(test_context, sandbox_cwd):
     source.validate_window(1, 2)
 
 
+@for_all_test_contexts(excluding=('ContextPyopencl',))
+def test_particle_monitor_clear_preserves_frame_and_invalidates_aliases(test_context):
+    """Clear particle records through an alias and rebind the same allocation."""
+    monitor = xt.ParticlesMonitor(
+        _context=test_context, start_at_turn=2, stop_at_turn=4,
+        particle_id_range=(3, 5), auto_to_numpy=False,
+    )
+    monitor.data.y[:] = 2e-6
+    monitor.data.state[:] = 1
+    xobject = type(monitor._xobject)._from_buffer(monitor._buffer, monitor._offset)
+    alias = xt.ParticlesMonitor(_xobject=xobject)
+    source = bind_monitor(monitor, 'y')
+    to_host = test_context.nparray_from_context_array
+    assert not alias.auto_to_numpy
+    assert_array_equal(to_host(source.read(2, completed_turn=3)), [2e-6, 2e-6])
+
+    alias.clear()
+
+    with pytest.raises(SourceInvalidatedError, match='Monitor cleared'):
+        source.read(2, completed_turn=3)
+    assert (monitor.start_at_turn, monitor.stop_at_turn) == (2, 4)
+    assert (monitor.part_id_start, monitor.part_id_end) == (3, 5)
+    rebound = bind_monitor(monitor, 'y')
+    rebound.validate_window(2, 4)
+    record = rebound.read_record(2, completed_turn=3)
+    assert_array_equal(to_host(record.value), [0.0, 0.0])
+    assert_array_equal(to_host(record.valid), [False, False])
+
+
 def test_particle_source_rejects_incompatible_selectors():
     """Require a coordinate and a single full-turn frame."""
     monitor = xt.ParticlesMonitor(

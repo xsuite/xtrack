@@ -85,6 +85,13 @@ class _TurnMonitorSource:
             offsets=[offset - self._frame_offset for _, offset in fields],
         ))
         self._frame = self._frame_signature()
+        generations = getattr(
+            self._bound_buffer, '_monitor_clear_generations', None)
+        if generations is None:
+            generations = {}
+            self._bound_buffer._monitor_clear_generations = generations
+        self._generations = generations
+        self._bound_generation = generations.setdefault(self._bound_offset, 0)
 
     def _frame_signature(self):
         header = self._bound_buffer.to_bytearray(
@@ -128,6 +135,8 @@ class _TurnMonitorSource:
             or self._frame_signature() != self._frame
         ):
             raise SourceInvalidatedError('Monitor changed; bind a new source')
+        if self._generations[self._bound_offset] != self._bound_generation:
+            raise SourceInvalidatedError('Monitor cleared; bind a new source')
 
     def validate_window(self, start_turn, stop_turn, *, sample_turns=1):
         """Check that requested samples fit the frame and are unwritten."""
@@ -229,13 +238,6 @@ class _BeamStatsSource(_TurnMonitorSource):
             if mode == 0:
                 raise ValueError('bunch_slot is not available in beam mode')
             self._slot_index = monitor.slot_index(bunch_slot)
-        generations = getattr(
-            self._bound_buffer, '_beam_stats_clear_generations', None)
-        if generations is None:
-            generations = {}
-            self._bound_buffer._beam_stats_clear_generations = generations
-        self._generations = generations
-        self._bound_generation = generations.setdefault(self._bound_offset, 0)
         # Derive the row axes from native fields so Xobject aliases can bind.
         self._shape = (records,)
         if mode in (1, 2):
@@ -256,12 +258,6 @@ class _BeamStatsSource(_TurnMonitorSource):
     def shape(self):
         """Return the selected row shape after any slot selection."""
         return self._shape[1:] if self._slot_index is None else self._shape[2:]
-
-    def validate_binding(self):
-        """Check the storage and detect clears through another wrapper."""
-        super().validate_binding()
-        if self._generations[self._bound_offset] != self._bound_generation:
-            raise SourceInvalidatedError('Monitor cleared; bind a new source')
 
     def _has_records(self, rows):
         xp = self.context.nplike_lib
