@@ -771,7 +771,7 @@ def test_reference_algebra_matches_particles(kwargs):
 @pytest.mark.parametrize('species', ['electron', 'positron', 'proton', 'Pb208', 'O16'])
 def test_named_species_magnetic_moment_matches_particles(species):
     native = xt.Particles(species, p0c=5e9)
-    mapping = xtpsa.ParticlesTpsa(pdg_id_0=species, p0c=5e9)
+    mapping = xtpsa.ParticlesTpsa(pdg_id_0=species, p0c=5e9, truncation_order=1)
     for name in ['q0', 'mass0', 'anomalous_magnetic_moment']:
         expected = float(np.asarray(getattr(native, name)).reshape(-1)[0])
         assert getattr(mapping, name) == expected
@@ -780,7 +780,7 @@ def test_named_species_magnetic_moment_matches_particles(species):
 
 
 def test_tpsa_custom_reference_keeps_anomaly_fallback():
-    mapping = xtpsa.ParticlesTpsa(pdg_id_0='electron', p0c=5e9, mass0=1e6)
+    mapping = xtpsa.ParticlesTpsa(pdg_id_0='electron', p0c=5e9, mass0=1e6, truncation_order=1)
     assert mapping.anomalous_magnetic_moment == 0.
 
 
@@ -1728,8 +1728,8 @@ def test_knob_teardown_keeps_a_series_it_did_not_promote():
     env['knob'] = .3
     line = env.new_line(components=[env.new('driven', xt.Quadrupole, length=1., k1='knob'),
                                     env.new('unrelated', xt.Quadrupole, length=1., k1=.1)])
-    line['unrelated'].k1 = madng_tpsa.Descriptor(6, 1, num_params=2, param_order=1).param(2, .6)
-    knobs = KnobParameters(line, ['knob'], madng_tpsa.Descriptor(6, 1, num_params=1, param_order=1))
+    line['unrelated'].k1 = Descriptor(6, 1, param_names=2, param_order=1).param(2, .6)
+    knobs = KnobParameters(line, ['knob'], Descriptor(6, 1, param_names=1, param_order=1))
 
     knobs.apply()
     knobs.teardown()
@@ -1743,7 +1743,7 @@ def test_knob_teardown_keeps_the_dependence_on_another_set_of_knobs():
     env['a'] = .1
     env['b'] = .2
     line = env.new_line(components=[env.new('quad', xt.Quadrupole, length=1., k1='a + 2 * b')])
-    descriptor = madng_tpsa.Descriptor(6, 1, num_params=1, param_order=1)
+    descriptor = Descriptor(6, 1, param_names=1, param_order=1)
     knobs_a = KnobParameters(line, ['a'], descriptor)
     knobs_b = KnobParameters(line, ['b'], descriptor)
     knobs_a.apply()
@@ -1764,7 +1764,7 @@ def test_knob_teardown_releases_every_element_a_shared_knob_promoted():
     env['knob'] = .3
     line = env.new_line(components=[env.new('first', xt.Quadrupole, length=1., k1='knob'),
                                     env.new('second', xt.Quadrupole, length=1., k1='knob')])
-    knobs = KnobParameters(line, ['knob'], madng_tpsa.Descriptor(6, 1, num_params=1, param_order=1))
+    knobs = KnobParameters(line, ['knob'], Descriptor(6, 1, param_names=1, param_order=1))
 
     knobs.apply()
     knobs.teardown()
@@ -1777,7 +1777,7 @@ def test_knob_apply_moves_the_knob_and_keeps_its_derivative():
     env = xt.Environment()
     env['knob'] = .3
     line = env.new_line(components=[env.new('driven', xt.Quadrupole, length=1., k1='2 * knob')])
-    knobs = KnobParameters(line, ['knob'], madng_tpsa.Descriptor(6, 1, num_params=1, param_order=1))
+    knobs = KnobParameters(line, ['knob'], Descriptor(6, 1, param_names=1, param_order=1))
     knobs.apply()
 
     knobs.apply([.5])
@@ -1791,7 +1791,7 @@ def test_knob_apply_refuses_the_wrong_number_of_values():
     env = xt.Environment()
     env['knob'] = .3
     line = env.new_line(components=[env.new('driven', xt.Quadrupole, length=1., k1='knob')])
-    knobs = KnobParameters(line, ['knob'], madng_tpsa.Descriptor(6, 1, num_params=1, param_order=1))
+    knobs = KnobParameters(line, ['knob'], Descriptor(6, 1, param_names=1, param_order=1))
     with pytest.raises(ValueError, match='one value'):
         knobs.apply([.5, .6])
 
@@ -1801,7 +1801,7 @@ def test_knob_teardown_keeps_a_dependence_that_starts_at_second_order():
     env['a'] = .1
     env['b'] = 0.
     line = env.new_line(components=[env.new('quad', xt.Quadrupole, length=1., k1='a + b * b')])
-    descriptor = madng_tpsa.Descriptor(6, 2, num_params=1, param_order=2)
+    descriptor = Descriptor(6, 2, param_names=1, param_order=2)
     knobs_a = KnobParameters(line, ['a'], descriptor)
     knobs_b = KnobParameters(line, ['b'], descriptor)
     knobs_a.apply()

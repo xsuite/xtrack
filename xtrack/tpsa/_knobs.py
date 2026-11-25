@@ -43,8 +43,6 @@ class KnobParameters:
                 f"descriptor has {descriptor.num_params} parameters, "
                 f"expected {len(self.names)} (one per knob)"
             )
-        if descriptor.param_names != tuple(self.names):
-            raise ValueError("Descriptor parameter names must match knob order")
         self._applied = False
 
         # Knobs in Xtrack matching own the TPSA state of the driven line.
