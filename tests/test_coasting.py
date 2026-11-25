@@ -121,7 +121,9 @@ def test_coasting(test_context):
                                             particles=particles
                                             ), with_progress=10)
 
+    # One intensity sample per SyncTime frame, independent of particle at_turn.
     inten = line.log_last_track['intensity']
+    assert len(inten) == num_turns
 
     f_rev_ave = 1 / tw.t_rev0 * (1 - tw.slip_factor * p.delta.mean())
     t_rev_ave = 1 / f_rev_ave
