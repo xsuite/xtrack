@@ -8,7 +8,8 @@ Copyright (c) CERN, 2026.
 Start by binding a BPM and a corrector, then measure and use the orbit response.
 Continue with two-BPM correction, actuator dynamics and a weak response
 mode. The later lessons cover bunch and slice resolution, several feedbacks
-on one line, and strong–strong collisions. Each script runs independently.
+on one line, strong–strong collisions and acceleration. Each script runs
+independently.
 
 | Example | Lesson | Approximate CPU time |
 | --- | --- | --- |
@@ -22,6 +23,7 @@ on one line, and strong–strong collisions. Each script runs independently.
 | [008_head_tail_feedback.py](008_head_tail_feedback.py) | Use a sliced pickup and an odd kick profile to damp intrabunch motion | A few seconds |
 | [009_combined_feedbacks.py](009_combined_feedbacks.py) | Run orbit, tune and head–tail feedback on the same bunch | About 15 s |
 | [010_ip_feedback.py](010_ip_feedback.py) | Control vertical IP separation with ideal and quantized BPMs during strong–strong collisions | Several minutes on CPU |
+| [011_feedback_on_energy_ramp.py](011_feedback_on_energy_ramp.py) | Compare damping and excitation as the revolution period and command delivery lag change | A few seconds |
 
 Run a file from the checkout root with Python or IPython in the environment
 where Xsuite and this Xtrack checkout are available. The figures use Matplotlib.
@@ -40,7 +42,7 @@ a 1 GeV/c electron ring with RF voltage and radiation off. The orbit feedbacks
 use turn averages to distinguish the slow orbit from coherent betatron motion.
 The other examples build small models inline to isolate the effects being studied.
 
-Examples 001–006, 008 and 009 place `xt.feedback.Feedback` on the line
+Examples 001–006, 008, 009 and 011 place `xt.feedback.Feedback` on the line
 and use ordinary `line.track(...)`. Example 005 uses a Python controller
 and an acquisition transform to pair the BPM and drive samples. The
 RF/chicane and collision studies use the experimental shared boundary.
@@ -54,3 +56,11 @@ increments. It uses four OpenMP threads by default. Set `OMP_THREADS = 0`
 for a serial context or `OMP_THREADS = 'auto'` to use the available threads.
 Set `STUDY = 'shared-correctors'` to see the single-turn correction limit
 with two bunches in each ring and one corrector setting at each of four IPs.
+
+Example 011 tracks the same launch on one tracker at two vertical tunes,
+with feedback off, immediate delivery and a fixed 0.52 µs command delay. The reference momentum follows
+an `EnergyProgram` and the corrector uses the rigidity at each passage.
+`line.feedback.reset()` clears the pickups and feedback state between runs.
+At a vertical tune of 0.14, the delayed loop damps the oscillation through
+the change in command lag. At 0.25, the same gain and delay drive the
+oscillation after the additional turn of latency.
