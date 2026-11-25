@@ -13,13 +13,14 @@ class ReferenceEnergyIncrease(BeamElement):
 
     This element-driven ramp retains conventional longitudinal updates;
     the particle clock is approximate and can depend on tracking-call
-    boundaries. Use the line's EnergyProgram for a coordinated clock
-    and reference-energy ramp.
+    boundaries, and so can the phase of a cavity at a set frequency in
+    `absolute_time` mode. Use the line's EnergyProgram for a coordinated
+    clock and reference-energy ramp.
 
     Parameters
     ----------
     Delta_p0c : float
-        Change in reference energy in eV. Default is ``0``.
+        Change in reference momentum in eV/c. Default is ``0``.
 
     '''
 

@@ -9,6 +9,8 @@ from numbers import Number
 from .masses import U_MASS_EV
 from .masses import __dict__ as mass__dict__
 from ..general import _print
+from .magnetic_moments import SpinProperties
+from .magnetic_moments import __dict__ as moment__dict__
 
 # Monte Carlo numbering scheme as defined by the Particle Data Group
 # See https://pdg.lbl.gov/2007/reviews/montecarlorpp.pdf for implementation
@@ -71,6 +73,7 @@ pdg_table = {
     1000010020: [1, '²H', 'H2', 'hydrogen-2', 'deuteron'],
     1000010030: [1, '³H', 'H3', 'hydrogen-3', 'triton']
 }
+
 
 elements = {
      1: "H",    2: "He",   3: "Li",   4: "Be",   5: "B",    6: "C",    7: "N",    8: "O",    9: "F",   10: "Ne",
@@ -539,6 +542,34 @@ def get_mass_from_pdg_id(pdg_id, allow_approximation=True, expected_mass=None, v
         raise ValueError(f"Exact mass not found for particle with PDG ID {pdg_id}.")
 
 
+def get_spin_properties_from_pdg_id(pdg_id):
+    """Return ground-state spin properties for a scalar particle name or ID.
+
+    Returns a SpinProperties tuple: spin I in units of hbar, signed magnetic
+    moment in nuclear magnetons, and BMT anomaly (g-2)/2.
+    None means unavailable or inapplicable, not zero. Electron/muon moments
+    in nuclear magnetons are derived from their anomalies and mass ratios.
+
+    Data cover every species in the packaged mass table. Known spin-zero
+    species and the neutron retain their physical spin and moment, but no
+    charge-normalized BMT anomaly. Photon fields are inapplicable here;
+    photon helicity is not a massive-particle rest-frame spin vector.
+    Other IDs return three None values. Isomers are not inferred from a nuclear
+    ground-state entry. For ions, the data describe fully stripped nuclei.
+
+    Particle and antiparticle share the charge-normalized BMT anomaly, while
+    their magnetic moments have opposite signs. See test_data/particle_data
+    for the evaluated sources and the conversion from nuclear magnetons.
+    """
+    pid = int(get_pdg_id_from_name(pdg_id))
+    record = _get_spin_properties_table().get(
+        abs(pid), SpinProperties(None, None, None))
+    if pid < 0 and record.magnetic_moment_mu_N is not None:
+        record = record._replace(
+            magnetic_moment_mu_N=-record.magnetic_moment_mu_N)
+    return record
+
+
 # Dynamically set _pdg_inv so it can be defined only here
 _PDG_inv = {}
 def get_pdg_inv():
@@ -601,6 +632,25 @@ def _get_mass_table():
                 else:
                     raise ValueError(f"Duplicate mass in Xtrack for particle {pdg_id}!")
     return _mass_table
+
+
+# Build the species lookup from named constants, as for masses above.
+_spin_properties_table = {}
+def _get_spin_properties_table():
+    if not _spin_properties_table:
+        for name, record in moment__dict__.items():
+            if not name.endswith('_SPIN_PROPERTIES'):
+                continue
+            species = name.removesuffix('_SPIN_PROPERTIES')
+            try:
+                pid = get_pdg_id_from_name(f'{species}+')
+            except ValueError:
+                pid = get_pdg_id_from_name(species)
+            pid = abs(pid)
+            if pid in _spin_properties_table:
+                raise ValueError(f'Duplicate spin properties for particle {pid}!')
+            _spin_properties_table[pid] = record
+    return _spin_properties_table
 
 
 def _mass_consistent(pdg_id, m, mask=None):

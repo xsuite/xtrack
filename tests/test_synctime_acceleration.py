@@ -684,6 +684,53 @@ def test_sync_time_clock_advances_while_all_particles_wait(test_context):
     assert p.reference_turns == 3.5
 
 
+@pytest.mark.parametrize('n_nodes', [22, 2002, 200002])
+@pytest.mark.parametrize('p0c_end', [450e9, 900e9, 100e9])
+def test_dense_energy_program_turn_time_accuracy(n_nodes, p0c_end):
+    circumference = 26658.8832
+    line = xt.Line(elements=[xt.Drift(length=circumference)])
+    line.particle_ref = xt.Particles(p0c=450e9)
+    times = np.linspace(0., 18., n_nodes)
+    momentum = np.linspace(450e9, p0c_end, n_nodes)
+    line.energy_program = xt.EnergyProgram(t_s=times, p0c=momentum)
+    program = line.energy_program
+
+    # Integrate the single linear ramp directly, independently of its sampling.
+    energy = np.hypot(momentum, line.particle_ref.mass0)
+    expected_turns = (clight / circumference * times
+                      * (momentum[0] + momentum) / (energy[0] + energy))
+    xo.assert_allclose(program.get_turn_at_t_s(times), expected_turns,
+                       rtol=2e-15, atol=1e-12)
+    # Stay inside the range even if the final knot rounds down by an ulp.
+    xo.assert_allclose(program.get_t_s_at_turn(expected_turns[:-1]), times[:-1],
+                       rtol=2e-15, atol=1e-14)
+
+
+@allow_kernel_compilation
+def test_constant_energy_program_reference_zeta():
+    circumference = 26658.8832
+    n_turns = 20000
+    line = xt.Line(elements=[xt.LineSegmentMap(
+        length=circumference, qx=.31, qy=.32, betx=1., bety=1.,
+        longitudinal_mode='nonlinear', momentum_compaction_factor=3.48e-4,
+        voltage_rf=0., frequency_rf=0.)])
+    line.particle_ref = xt.Particles(p0c=450e9)
+    beta0 = float(line.particle_ref.beta0[0])
+    times = np.linspace(0., (n_turns + 2) * circumference / (beta0 * clight),
+                        n_turns + 2)
+    line.energy_program = xt.EnergyProgram(
+        t_s=times, p0c=np.full(len(times), 450e9))
+    line.enable_time_dependent_vars = True
+    line.build_tracker()
+    particles = line.build_particles(zeta=[0.], delta=[0.])
+    line.track(particles, num_turns=n_turns, turn_by_turn_monitor=True)
+
+    # Allow rounding of the absolute clock, but not accumulated table error
+    # (which produces about 2.4e-5 m of drift with an ordinary cumulative sum).
+    xo.assert_allclose(line.record_last_track.zeta, 0., rtol=0, atol=2e-7)
+    xo.assert_allclose(particles.zeta, 0., rtol=0, atol=2e-7)
+
+
 def test_sparse_energy_program_resolves_reference_clock_speed():
     line = xt.Line(elements=[xt.Drift(length=100)])
     line.particle_ref = xt.Particles(p0c=1e8)

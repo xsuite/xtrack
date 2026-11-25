@@ -43,6 +43,10 @@ class RFMultipole(_HasKnlKsl, BeamElement):
         Longitudinal phase in radians seen by the reference particle. Default is ``0``.
     lag : float
         Deprecated longitudinal phase in degrees, added to `phase`. Default is ``0``.
+    absolute_time : bool
+        If True, the phase is computed from the absolute time of the simulation,
+        otherwise the element is synchronized with the arrival time of the
+        reference particle (zeta=0). Default is False.
     """.strip()
 
     __doc__ = '\n    '.join([_docstring_start, _for_docstring_alignment, '\n',

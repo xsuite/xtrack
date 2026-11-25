@@ -41,7 +41,7 @@ def _add_periodic_solution_data_to_twiss_result(twiss_config, twiss_res):
     bets0 = W_matrix[0, 4, 4]**2 + W_matrix[0, 4, 5]**2
 
     # Compute slip factor.
-    if method == '6d':
+    if method in ('6d', '5d'):
         RR = twiss_res['R_matrix']
         dz_test = 1e-3  # All linear, so the value does not matter.
         xx = np.linalg.solve(
@@ -72,19 +72,19 @@ def _add_periodic_solution_data_to_twiss_result(twiss_config, twiss_res):
         bets0 = -bets0
 
     twiss_res._data.update({
-        'bets0': bets0,
-        'line_length': line_length,
-        'circumference': line_length,  # deprecated
-        'T_rev0': t_rev0,  # deprecated
-        't_rev0': t_rev0,
+        'bets0': float(bets0),
+        'line_length': float(line_length),
+        'circumference': float(line_length),  # deprecated
+        'T_rev0': float(t_rev0),  # deprecated
+        't_rev0': float(t_rev0),
         'particle_on_co': part_on_co.copy(_context=xo.context_default),
-        'gamma0': gamma0,
-        'beta0': beta0,
-        'p0c': part_on_co._xobject.p0c[0],
-        'slip_factor': slip_factor,
-        'momentum_compaction_factor': momentum_compaction_factor,
-        'slip_factor_dz_ddelta': slip_factor_dzeta_ddelta,  # deprecated
-        'slip_factor_dzeta_ddelta': slip_factor_dzeta_ddelta,
+        'gamma0': float(gamma0),
+        'beta0': float(beta0),
+        'p0c': float(part_on_co._xobject.p0c[0]),
+        'slip_factor': float(slip_factor),
+        'momentum_compaction_factor': float(momentum_compaction_factor),
+        'slip_factor_dz_ddelta': float(slip_factor_dzeta_ddelta),  # deprecated
+        'slip_factor_dzeta_ddelta': float(slip_factor_dzeta_ddelta),
     })
 
     if hasattr(part_on_co, '_fsolve_info'):
@@ -131,9 +131,10 @@ def _add_periodic_solution_data_to_twiss_result(twiss_config, twiss_res):
 
         # Scalars
         twiss_res._data.update({
-            'qx': mux[-1], 'qy': muy[-1], 'qs': qs,
-            'c_minus': c_minus,
-            'c_minus_re_0': c_minus_re[0], 'c_minus_im_0': c_minus_im[0],
+            'qx': float(mux[-1]), 'qy': float(muy[-1]), 'qs': float(qs),
+            'c_minus': float(c_minus),
+            'c_minus_re_0': float(c_minus_re[0]),
+            'c_minus_im_0': float(c_minus_im[0]),
         })
 
         # Coupling columns
@@ -193,6 +194,7 @@ def _add_radiation_analysis_to_twiss_result(twiss_config, twiss_res):
                 matrix_stability_tol=None,
                 start=twiss_config['start'], end=twiss_config['end'],
                 nemitt_x=twiss_config['nemitt_x'], nemitt_y=twiss_config['nemitt_y'],
+                gemitt_x=twiss_config['gemitt_x'], gemitt_y=twiss_config['gemitt_y'],
                 step_W_sigma=twiss_config['step_W_sigma'],
                 delta0=None, zeta0=None, zeta_shift=twiss_config['zeta_shift'],
                 W_matrix=None, R_matrix=None,
@@ -235,7 +237,7 @@ def _apply_4d_longitudinal_result_convention(twiss_config, twiss_res):
     if twiss_config['method'] == '4d' and 'muzeta' in twiss_res._data:
         twiss_res.muzeta[:] = 0
         if 'qs' in twiss_res._data:
-            twiss_res._data['qs'] = 0
+            twiss_res._data['qs'] = 0.
 
 
 def _set_twiss_result_values_at(twiss_config, twiss_res):
@@ -305,8 +307,8 @@ def _add_measured_revolution_period_if_requested(twiss_config, twiss_res):
     line_length = twiss_res.s[-1]
     beta0 = twiss_res.particle_on_co.beta0[0]
     t_rev_0 = line_length / clight / beta0
-    twiss_res._data['t_rev'] = t_rev_0 - (
-        twiss_res.zeta[-1] - twiss_res.zeta[0]) / (beta0 * clight)
+    twiss_res._data['t_rev'] = float(t_rev_0 - (
+        twiss_res.zeta[-1] - twiss_res.zeta[0]) / (beta0 * clight))
     twiss_res._data['T_rev'] = twiss_res._data['t_rev']  # deprecated
 
 

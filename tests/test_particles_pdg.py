@@ -268,6 +268,90 @@ def test_lead_208():
     assert pdg.get_properties_from_pdg_id(pdg_id) == (82., 208, 82, '²⁰⁸Pb')
 
 
+@pytest.mark.parametrize('species, charge, anomaly', [
+    ('electron', -1., 0.00115965218046),
+    ('positron', 1., 0.00115965218046),
+    ('muon', -1., 0.00116592062),
+    ('anti-muon', 1., 0.00116592062),
+    ('proton', 1., 2.79284734463 - 1),
+    ('anti-proton', -1., 2.79284734463 - 1),
+])
+def test_reference_species_magnetic_anomaly(species, charge, anomaly):
+    # Names, integer IDs and the reference factory share the same defaults.
+    pid = pdg.get_pdg_id_from_name(species)
+    references = [xt.Particles(species, p0c=5e9),
+                  xt.Particles(pid, p0c=5e9),
+                  xt.Particles.reference_from_pdg_id(species, p0c=5e9)]
+    line = xt.Line(elements=[])
+    line.set_particle_ref(species, p0c=5e9)
+    references.append(line.particle_ref)
+    for particle in references:
+        assert particle.q0 == charge
+        np.testing.assert_allclose(particle.anomalous_magnetic_moment,
+                                   [anomaly], atol=0, rtol=1e-15)
+        np.testing.assert_array_equal(
+            [particle.spin_x, particle.spin_y, particle.spin_z], 0.)
+
+
+@pytest.mark.parametrize('anomaly', [0., 0.01])
+def test_reference_anomaly_override_and_persistence(anomaly, tmp_path):
+    particle = xt.Particles('electron', p0c=5e9,
+                            anomalous_magnetic_moment=anomaly, spin_y=1.)
+    path = tmp_path / 'particle.json'
+    particle.to_json(path)
+    line = xt.Line(elements=[xt.Drift(length=1.)])
+    line.particle_ref = particle.copy()
+    line_path = tmp_path / 'line.json'
+    line.to_json(line_path)
+    for restored in [particle.copy(),
+                     xt.Particles.from_dict(particle.to_dict()),
+                     xt.Particles.from_dict(xt.json.load(path)),
+                     xt.load(line_path).particle_ref]:
+        assert restored.anomalous_magnetic_moment[0] == anomaly
+        assert restored.spin_y[0] == 1.
+        assert restored.q0 == -1.
+
+
+def test_reference_anomaly_fallbacks():
+    # A per-particle label does not determine the reference or its anomaly.
+    for particle in [xt.Particles('Pb208'),
+                     xt.Particles(mass0=xt.ELECTRON_MASS_EV, q0=-1.),
+                     xt.Particles(pdg_id='electron')]:
+        assert particle.anomalous_magnetic_moment[0] == 0.
+
+
+@pytest.mark.parametrize('species, overrides', [
+    ('deuteron', dict(q0=2.)), ('He3', dict(q0=1.)),
+    ('electron', dict(mass0=1e6)),
+])
+def test_custom_reference_requires_explicit_anomaly(species, overrides):
+    custom = xt.Particles(species, **overrides)
+    assert custom.anomalous_magnetic_moment[0] == 0.
+    explicit = xt.Particles(species, anomalous_magnetic_moment=0.0123, **overrides)
+    assert explicit.anomalous_magnetic_moment[0] == 0.0123
+
+
+def test_nominal_reference_overrides_keep_species_default():
+    particle = xt.Particles('electron', mass0=xt.ELECTRON_MASS_EV, q0=-1.)
+    assert particle.anomalous_magnetic_moment[0] == 0.00115965218046
+
+
+def test_reference_anomalies_cover_mass_catalogue():
+    for pid, mass in pdg._get_mass_table().items():
+        if mass == 0:  # A photon cannot be a massive tracking reference.
+            continue
+        particle = xt.Particles(pid, p0c=5e9)
+        expected = pdg.get_spin_properties_from_pdg_id(pid).anomalous_magnetic_moment
+        assert particle.mass0 == mass
+        assert particle.anomalous_magnetic_moment[0] == (
+            0. if expected is None else expected)
+
+
+def test_unlisted_reference_anomaly_fallback():
+    particle = xt.Particles('C16', p0c=5e9)
+    assert particle.anomalous_magnetic_moment[0] == 0.
+
+
 @pytest.mark.parametrize('pdg_id, expected', [
     ('proton', [2212, 2212, 2212]),
     (['proton'], [2212, 2212, 2212]),

@@ -3,13 +3,14 @@
 # Copyright (c) CERN, 2021.                 #
 # ######################################### #
 
+from ._aperture_common import _HasInstalledPipeName
 from ..base_element import BeamElement
 import numpy as np
 import xobjects as xo
 from ..svgutils import svg_to_points
 
 
-class LimitPolygon(BeamElement):
+class LimitPolygon(_HasInstalledPipeName, BeamElement):
     """
     Beam element modeling a polygonal aperture limit.
 

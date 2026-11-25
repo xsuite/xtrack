@@ -13,7 +13,6 @@ from xtrack.environment import (
     EnvParticles,
     EnvRef,
     EnvVars,
-    EnvXfields,
     VarsTable,
 )
 from xtrack.survey import SurveyTable
@@ -55,7 +54,6 @@ def _iter_public_members(cls):
         EnvLines,
         EnvRef,
         EnvParticleRef,
-        EnvXfields,
         VarsTable,
         xt.TrajectoryCorrection,
         xd.Optimize,
@@ -75,7 +73,6 @@ def _iter_public_members(cls):
         "EnvLines",
         "EnvRef",
         "EnvParticleRef",
-        "EnvXfields",
         "VarsTable",
         "TrajectoryCorrection",
         "Optimize",

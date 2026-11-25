@@ -511,6 +511,65 @@ def test_insert_omp():
     assert line._context.omp_num_threads == 'auto'
 
 
+@pytest.mark.parametrize('with_tracker', [False, True])
+def test_table_retains_element_lengths(with_tracker):
+    env = xt.Environment()
+    env.new('prefix', xt.Drift, length=20000.)
+    env.new('q', xt.Quadrupole, length=0.11)
+    env.new('thin', xt.Multipole, length=0.7, isthick=False)
+    env.new('marker', xt.Marker)
+    env.new('replica', 'q', mode='replica')
+    line = env.new_line(['prefix', 'q', 'thin', 'marker', 'replica', 'q'])
+    if with_tracker:
+        line.build_tracker(compile=False)
+
+    for attr in [False, True]:
+        table = line.get_table(attr=attr)
+        np.testing.assert_array_equal(
+            table.length, [20000., 0.11, 0.7, 0., 0.11, 0.11, 0.])
+        np.testing.assert_array_equal(
+            table.isthick, [True, True, False, False, True, True, False])
+        assert table['s', 'thin'] == table['s', 'marker']
+        assert table['s', 'marker'] == table['s', 'replica']
+        assert table['s_start', 'thin'] == table['s_end', 'thin']
+        # Differences of large positions cannot recover the stored length.
+        assert table.s[2] - table.s[1] != table.length[1]
+
+    env['q'].length = 0.13
+    np.testing.assert_array_equal(
+        line.get_table().length, [20000., 0.13, 0.7, 0., 0.13, 0.13, 0.])
+
+
+@pytest.mark.parametrize('with_tracker', [False, True])
+@pytest.mark.parametrize('mode', ['thin', 'thick'])
+def test_table_retains_slice_lengths(with_tracker, mode):
+    env = xt.Environment()
+    env.new('prefix', xt.Drift, length=20000.)
+    env.new('q', xt.Quadrupole, length=0.11)
+    line = env.new_line(['prefix', 'q'])
+    line.slice_thick_elements(slicing_strategies=[
+        xt.Strategy(slicing=None),
+        xt.Strategy(slicing=xt.Uniform(2, mode=mode), name='q'),
+    ])
+    if with_tracker:
+        line.build_tracker(compile=False)
+
+    table = line.get_table()
+    assert table['length', 'q..0'] == 0.055
+    assert table['length', 'q..1'] == 0.055
+    assert table['isthick', 'q..0'] == (mode == 'thick')
+    np.testing.assert_array_equal(table.length[:-1], line.attr['length'])
+    np.testing.assert_array_equal(table.length, line.get_table(attr=True).length)
+    assert math.fsum(table.length * table.isthick) == 20000.11
+
+
+def test_empty_table_lengths():
+    table = xt.Line(elements=[]).get_table()
+    np.testing.assert_array_equal(table.length, [0.])
+    np.testing.assert_array_equal(table.s, [0.])
+    np.testing.assert_array_equal(table.isthick, [False])
+
+
 def test_to_pandas():
     line = xt.Line(elements=[
         xt.Drift(length=1), xt.Cavity(), xt.Drift(length=1)])
@@ -519,7 +578,7 @@ def test_to_pandas():
         df = line.to_pandas()
 
     assert tuple(df.columns) == (
-        's', 'element_type', 'name', 'isthick', 'isreplica', 'parent_name',
+        's', 'length', 'element_type', 'name', 'isthick', 'isreplica', 'parent_name',
        'parent_type', 'prototype', 'base_prototype', 'iscollective', 'element', 's_start',
        's_center', 's_end')
     assert len(df) == 4

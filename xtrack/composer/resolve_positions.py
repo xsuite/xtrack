@@ -3,6 +3,8 @@
 import numpy as np
 import xdeps as xd
 
+from .positions import CompensatedFloat
+
 
 _ALLOWED_ANCHORS = (None, 'center', 'centre', 'start', 'end')
 
@@ -30,7 +32,7 @@ def _resolve_s_positions(seq_all_places, env, refer='center', diagnostics=False)
         refer=refer,
     )
     table = aux_line.get_table()
-    table['length'] = np.diff(table.s, append=table.s[-1])
+    table['length'] = table.length * table.isthick
     table = table.rows[:-1]
 
     # If places is empty, return an empty table with the correct columns.
@@ -39,6 +41,7 @@ def _resolve_s_positions(seq_all_places, env, refer='center', diagnostics=False)
         table['s_center'] = np.array([], dtype=float)
         table['s_end'] = np.array([], dtype=float)
         table['s'] = np.array([], dtype=float)
+        table['_s_start_error'] = np.array([], dtype=float)
         table['from_'] = np.array([], dtype=object)
         table['from_anchor'] = np.array([], dtype=object)
         return table
@@ -54,7 +57,7 @@ def _resolve_s_positions(seq_all_places, env, refer='center', diagnostics=False)
 
     # If first place has at=None, it goes at s=0
     if places[0].at is None:
-        s_start_by_index[0] = 0
+        s_start_by_index[0] = CompensatedFloat()
         resolved_index_by_name[places[0].name] = 0
 
     # Scan all unresolved places and resolve those whose reference component
@@ -146,9 +149,13 @@ def _resolve_s_positions(seq_all_places, env, refer='center', diagnostics=False)
             )
         _raise_resolution_error_with_diagnostics(places, unresolved_indices)
 
-    table['s_start'] = np.array(s_start_by_index)
-    table['s_center'] = table['s_start'] + table['length'] / 2
-    table['s_end'] = table['s_start'] + table['length']
+    table['s_start'] = np.array([s.hi for s in s_start_by_index])
+    # A column follows row selection/reordering, unlike table-level metadata.
+    table['_s_start_error'] = np.array([s.lo for s in s_start_by_index])
+    table['s_center'] = np.array([
+        float(s + length / 2) for s, length in zip(s_start_by_index, table.length)])
+    table['s_end'] = np.array([
+        float(s + length) for s, length in zip(s_start_by_index, table.length)])
     table['s'] = table['s_start'].copy()
     table['from_'] = np.array(from_name_by_index)
     table['from_anchor'] = np.array(from_anchor_by_index)
@@ -167,11 +174,12 @@ def _anchor_offset(anchor, length):
 
 
 def _evaluate_position_expression(at, evaluator):
+    """Normalize a placement value without rounding an existing high/low pair."""
     if isinstance(at, str):
         at = evaluator.eval(at)
     if xd.refs.is_ref(at):
-        return at._value
-    return at
+        at = at._value
+    return at if isinstance(at, CompensatedFloat) else CompensatedFloat(float(at))
 
 
 def _format_place(index, place):

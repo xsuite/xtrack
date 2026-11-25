@@ -43,6 +43,9 @@ class TwissTable(Table):
     produced by Twiss calculations. Typical columns include longitudinal
     position, beta functions, alpha functions, dispersion, phase advances,
     coordinates, momenta, and element strengths when requested.
+
+    Global floating-point quantities produced by Twiss calculations are stored
+    as Python floats. Columns and matrices are NumPy arrays.
     """
 
     # Messages to be shown when accessing deprecated fields
@@ -171,7 +174,7 @@ class TwissTable(Table):
         import pandas as pd
         df = pd.DataFrame(data, columns=columns)
         if index is not None:
-            df.set_index(index, inplace=True)
+            df = df.set_index(index)
         return df
 
     def _extra_metadata(self):
@@ -333,9 +336,13 @@ class TwissTable(Table):
 
         Parameters
         ----------
-        at_element : str or int
+        at_element : str, int, xt.START or xt.END
             Element name or row index at which the initial conditions are
             extracted. The table must contain values at element entry.
+            ``xt.START`` and ``xt.END`` select the first and last rows of this
+            table, respectively, including for sliced tables. On a full Twiss
+            table, ``xt.END`` selects ``_end_point``, at the exit of the last
+            element.
 
         Returns
         -------
@@ -349,6 +356,11 @@ class TwissTable(Table):
         """
 
         assert self.values_at == 'entry', 'Not yet implemented for exit'
+
+        if at_element is xt.START:
+            at_element = 0
+        elif at_element is xt.END:
+            at_element = -1
 
         if isinstance(at_element, str):
             indices = np.where(self.name == at_element)[0]
@@ -416,7 +428,8 @@ class TwissTable(Table):
                         ddx=ddx, ddpx=ddpx, ddy=ddy, ddpy=ddpy,
                         reference_frame=self.reference_frame)
 
-    def get_betatron_sigmas(self, nemitt_x, nemitt_y):
+    def get_betatron_sigmas(self, nemitt_x=None, nemitt_y=None, *,
+                            gemitt_x=None, gemitt_y=None):
         """
         Compute transverse beam covariance from normalized emittances.
 
@@ -433,6 +446,10 @@ class TwissTable(Table):
         nemitt_y : float
             Vertical normalized emittance.
 
+        gemitt_x, gemitt_y : float, optional
+            Geometric transverse emittances. Provide at most one of
+            ``nemitt_*`` and ``gemitt_*`` in each plane.
+
         Returns
         -------
         xtrack.Table
@@ -446,11 +463,12 @@ class TwissTable(Table):
             stacklevel=2,
         )
         return self.get_beam_covariance(
-            nemitt_x=nemitt_x, nemitt_y=nemitt_y)
+            nemitt_x=nemitt_x, nemitt_y=nemitt_y,
+            gemitt_x=gemitt_x, gemitt_y=gemitt_y)
 
     def get_beam_covariance(self,
-            nemitt_x=None, nemitt_y=None, nemitt_zeta=None,
-            gemitt_x=None, gemitt_y=None, gemitt_zeta=None):
+            nemitt_x=None, nemitt_y=None, gemitt_x=None, gemitt_y=None,
+            nemitt_zeta=None, gemitt_zeta=None):
         """
         Compute the beam covariance matrix along the line.
 
@@ -881,7 +899,9 @@ class TwissTable(Table):
         return Table(out_dct)
 
     def get_normalized_coordinates(self, particles, nemitt_x=None, nemitt_y=None,
-                                   nemitt_zeta=None, _force_at_element=None):
+                                   gemitt_x=None, gemitt_y=None,
+                                   nemitt_zeta=None, gemitt_zeta=None,
+                                   _force_at_element=None):
         """
         Convert particle coordinates to normalized coordinates.
 
@@ -909,6 +929,12 @@ class TwissTable(Table):
             Longitudinal normalized emittance used to scale ``zeta_norm`` and
             ``pzeta_norm``. ``None`` leaves this plane without emittance scaling.
 
+        gemitt_x, gemitt_y, gemitt_zeta : float, optional
+            Geometric emittances used directly for the square-root scaling.
+            Mutually exclusive with ``nemitt_*`` in the same plane. If neither
+            form is supplied, that plane uses unit geometric emittance.
+            The supplied geometric inputs are stored as table attributes.
+
         Returns
         -------
         xtrack.Table
@@ -916,7 +942,8 @@ class TwissTable(Table):
             ``at_element``, ``x_norm``, ``px_norm``, ``y_norm``, ``py_norm``,
             ``zeta_norm``, and ``pzeta_norm``. The supplied ``nemitt_x``,
             ``nemitt_y``, and ``nemitt_zeta`` are stored as table attributes;
-            ``None`` records that no emittance scaling was applied in a plane.
+            ``None`` in both forms records that no emittance scaling was applied
+            in a plane.
         """
 
         ctx2np = particles._context.nparray_from_context_array
@@ -961,7 +988,9 @@ class TwissTable(Table):
                                                'gamma0': self.particle_on_co._xobject.gamma0[0]},
                                     nemitt_x = nemitt_x,
                                     nemitt_y = nemitt_y,
-                                    nemitt_zeta = nemitt_zeta)
+                                    nemitt_zeta = nemitt_zeta,
+                                    gemitt_x=gemitt_x, gemitt_y=gemitt_y,
+                                    gemitt_zeta=gemitt_zeta)
 
             x_norm[mask_at_ele] = XX_norm[0, :]
             px_norm[mask_at_ele] = XX_norm[1, :]
@@ -976,7 +1005,8 @@ class TwissTable(Table):
                       'py_norm': py_norm, 'zeta_norm': zeta_norm,
                       'pzeta_norm': pzeta_norm}, index='particle_id')
         out._data.update(nemitt_x=nemitt_x, nemitt_y=nemitt_y,
-                         nemitt_zeta=nemitt_zeta)
+                         nemitt_zeta=nemitt_zeta,
+                         gemitt_x=gemitt_x, gemitt_y=gemitt_y, gemitt_zeta=gemitt_zeta)
         return out
 
     def reverse(self):
@@ -1128,7 +1158,7 @@ class TwissTable(Table):
 
         if 'qs' in self.keys() and self.qs == 0:
             # 4d calculation
-            out.qs = 0
+            out.qs = 0.
             out.muzeta[:] = 0
 
         if 'spin_x' in self.keys():

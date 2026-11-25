@@ -45,7 +45,7 @@ class SecondOrderTaylorMap(BeamElement):
 
     @classmethod
     def from_line(cls, line, start, end, twiss_table=None,
-                  **kwargs):
+                  steps_r_matrix=None, steps_t_matrix=None, **kwargs):
 
         '''
         Generate a `SecondOrderTaylorMap` from a `Line` object.
@@ -62,6 +62,12 @@ class SecondOrderTaylorMap(BeamElement):
             Name of the element where the map stops.
         twiss_table : TwissTable, optional
             A `TwissTable` object. If not given, it will be computed.
+        steps_r_matrix, steps_t_matrix : dict, optional
+            Finite-difference steps for the first- and second-order coefficients,
+            respectively. Keys are ``dx``, ``dpx``, ``dy``, ``dpy``, ``dzeta``
+            and ``ddelta``; omitted keys use the corresponding defaults
+            (``dzeta=1e-5`` m for R, ``dzeta=1e-4`` m for T). The
+            second-order steps apply to both levels of the nested differences.
 
         Returns
         -------
@@ -83,10 +89,12 @@ class SecondOrderTaylorMap(BeamElement):
         twinit_out = tw.get_twiss_init(end)
 
         RR = line.get_R_matrix(
-            start=start, end=end, particle_on_co=twinit.particle_on_co
+            start=start, end=end, particle_on_co=twinit.particle_on_co,
+            steps=steps_r_matrix,
             )['R_matrix']
         TT = line.get_T_matrix(start=start, end=end,
-                                    particle_on_co=twinit.particle_on_co)
+                              particle_on_co=twinit.particle_on_co,
+                              steps=steps_t_matrix)
 
         x_co_in = np.array([
             twinit.particle_on_co.x[0],

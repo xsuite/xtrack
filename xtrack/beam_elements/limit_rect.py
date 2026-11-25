@@ -5,10 +5,10 @@
 
 from ..base_element import BeamElement
 import xobjects as xo
-from ._aperture_common import UNLIMITED
+from ._aperture_common import UNLIMITED, _HasInstalledPipeName
 
 
-class LimitRect(BeamElement):
+class LimitRect(_HasInstalledPipeName, BeamElement):
     """
     Beam element modeling a rectangular aperture limit.
 

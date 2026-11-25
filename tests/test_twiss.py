@@ -16,6 +16,43 @@ test_data_folder = pathlib.Path(
     __file__).parent.joinpath('../test_data').absolute()
 
 
+@pytest.mark.parametrize('method', ['4d', '6d'])
+@pytest.mark.parametrize('reverse', [False, True])
+def test_twiss_stores_python_float_scalars(method, reverse):
+    line = xt.Line(
+        elements=[xt.LineSegmentMap(
+            length=1., qx=0.31, qy=0.32, qs=0.01, bets=1.,
+            dqx=2., dqy=3.)],
+        element_names=['map'],
+        particle_ref=xt.Particles(p0c=1e9))
+    tw = line.twiss(method=method, reverse=reverse)
+
+    for table in [tw, tw._copy(), tw.rows[:], tw.reverse()]:
+        for name in ['qx', 'qy', 'qs', 'dqx', 'dqy', 'ddqx', 'ddqy',
+                     'c_minus', 'c_minus_re_0', 'c_minus_im_0', 'bets0',
+                     'line_length', 't_rev0', 'gamma0', 'beta0', 'p0c',
+                     'slip_factor', 'momentum_compaction_factor',
+                     'slip_factor_dzeta_ddelta']:
+            assert type(table._data[name]) is float, name
+            assert type(getattr(table, name)) is float, name
+            assert type(table[name]) is float, name
+        assert not any(isinstance(value, np.floating)
+                       for value in table._data.values())
+        assert isinstance(table.betx, np.ndarray)
+        assert isinstance(table.W_matrix, np.ndarray)
+
+    xo.assert_allclose(tw.qx, 0.31, atol=1e-12, rtol=0)
+    xo.assert_allclose(tw.qy, 0.32, atol=1e-12, rtol=0)
+    xo.assert_allclose(tw.dqx, 2., atol=1e-7, rtol=0)
+    xo.assert_allclose(tw.dqy, 3., atol=1e-7, rtol=0)
+
+    tw_open = line.twiss(method=method, reverse=reverse,
+                         init=tw.get_twiss_init('map'))
+    assert type(tw_open._data['line_length']) is float
+    assert not any(isinstance(value, np.floating)
+                   for value in tw_open._data.values())
+
+
 def test_twiss_table_to_pandas_columns():
     tw = xt.TwissTable({
         'name': np.array(['a', 'b'], dtype=object),
@@ -84,6 +121,40 @@ def test_get_twiss_init_element_selection():
     with pytest.raises(
             ValueError, match="Element 'd0' not found in the Twiss table"):
         tw.rows['d1':].get_twiss_init('d0')
+
+
+@pytest.mark.parametrize('reverse', [False, True])
+@pytest.mark.parametrize('selection', [
+    slice(None), slice('d1', None), slice(None, 'd1'), slice('d1', 'd1'),
+])
+def test_get_twiss_init_boundaries(selection, reverse):
+    line = xt.Line(
+        elements=[xt.Drift(length=1), xt.Drift(length=2)],
+        element_names=['d0', 'd1'],
+    )
+    line.particle_ref = xt.Particles(p0c=1e9)
+    tw = line.twiss4d(betx=1, bety=2, x=1e-3, px=2e-4)
+    if reverse:
+        tw = tw.reverse()
+    selected = tw.rows[selection]
+
+    for location, index in [(xt.START, 0), (xt.END, -1)]:
+        init = selected.get_twiss_init(at_element=location)
+        expected = selected.get_twiss_init(at_element=index)
+        assert init.element_name == expected.element_name == selected.name[index]
+        assert init.reference_frame == expected.reference_frame
+        np.testing.assert_array_equal(init.W_matrix, expected.W_matrix)
+        for coord in ('x', 'px', 'y', 'py', 'zeta', 'ptau', 's', 'ax', 'ay'):
+            np.testing.assert_array_equal(
+                getattr(init.particle_on_co, coord),
+                getattr(expected.particle_on_co, coord))
+        for name in ('mux', 'muy', 'muzeta', 'dzeta'):
+            assert getattr(init, name) == getattr(expected, name)
+
+    # On the full table, END selects the exit, beyond the last element entry.
+    end_init = tw.get_twiss_init(at_element=xt.END)
+    assert end_init.element_name == '_end_point'
+    np.testing.assert_array_equal(end_init.particle_on_co.s, 3.)
 
 
 def test_twiss_with_different_particle_species():

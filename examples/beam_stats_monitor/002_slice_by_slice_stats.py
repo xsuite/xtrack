@@ -23,14 +23,14 @@ bunch_spacing_zeta = line.get_length() / harmonic
 line.insert("pimms_cavity", xt.Cavity(harmonic=harmonic, voltage=10e3),
             at=0.001)
 
-filling_scheme = np.ones(NUM_SLOTS, dtype=int)
+filling_pattern = np.ones(NUM_SLOTS, dtype=int)
 selected_slots = [0, 1, 2]
 
 # Define a monitor to record slice-by-slice statistics at each turn.
 monitor = xt.BeamStatsMonitor(
     start_at_turn=0,
     stop_at_turn=NUM_TURNS,
-    filling_scheme=filling_scheme,
+    filling_pattern=filling_pattern,
     selected_slots=selected_slots,
     bunch_spacing_zeta=bunch_spacing_zeta,
     zeta_range=ZETA_RANGE,
@@ -44,7 +44,7 @@ line.insert("beam_stats_monitor", monitor, at=0)
 # Generate a multi-bunch beam.
 np.random.seed(12345)
 particles = line.xpart.generate_matched_gaussian_multibunch_beam(
-    filling_scheme=filling_scheme,
+    filling_pattern=filling_pattern,
     bunch_num_particles=NUM_PARTICLES_PER_BUNCH,
     bunch_intensity_particles=BUNCH_INTENSITY,
     nemitt_x=1e-12,

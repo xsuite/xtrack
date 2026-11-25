@@ -825,6 +825,11 @@ class Line:
         -------
         out : dict
             Dictionary representation of the line.
+
+        Raises
+        ------
+        TypeError
+            If an element to be serialized has no callable ``to_dict`` method.
         '''
 
         out = {}
@@ -834,7 +839,8 @@ class Line:
             out["xtrack_version"] = xt.__version__
 
         if include_element_dict:
-            out["elements"] = {k: el.to_dict() for k, el in self._element_dict.items()}
+            out["elements"] = {k: _serialize_element(el, k)
+                               for k, el in self._element_dict.items()}
             if include_aperture and (
                 len(self.env.aperture.profiles) or len(self.env.aperture.pipes)
             ):
@@ -965,7 +971,9 @@ class Line:
             self._full_elements_from_composer()
 
         elements = list(self._elements)
+        use_attr_lengths = self._has_valid_tracker() and not self.tracker.iscollective
 
+        length_elements = []
         isthick = []
         iscollective = []
         element_types = []
@@ -987,6 +995,12 @@ class Line:
                     ee_pname = ee.parent_name
                     ee_ptype = self[ee.parent_name].__class__.__name__
             isthick.append(_is_thick(ee, self))
+            if not use_attr_lengths:
+                if (hasattr(ee, 'length') or
+                        (hasattr(ee, 'parent_name') and hasattr(ee, 'weight'))):
+                    length_elements.append(_length(ee, self))
+                else:
+                    length_elements.append(0.)
             iscollective.append(_is_collective(ee, self))
             element_types.append(ee.__class__.__name__)
             parent_name.append(ee_pname)
@@ -1033,19 +1047,20 @@ class Line:
 
         elements += [None]
 
-        if self._has_valid_tracker() and not self.tracker.iscollective:
-            s_elements = np.zeros(len(self.element_names) + 1)
-            s_elements[1:] = np.cumsum(self.attr['length'] * isthick[:-1])
-        else:
-            s_elements = np.array(list(self._get_s_elements()) + [self.get_length()])
+        if use_attr_lengths:
+            length_elements = self.attr['length']
+        length_elements = np.concatenate((length_elements, [0.]))
+        transport_lengths = length_elements * isthick
+        s_elements = np.zeros(len(self.element_names) + 1)
+        s_elements[1:] = np.cumsum(transport_lengths[:-1])
 
-        length_elements = np.diff(s_elements, append=s_elements[-1]) # only thick elements have length here
         s_start = s_elements
-        s_end = s_elements + length_elements
-        s_center = s_start + 0.5 * length_elements
+        s_end = s_elements + transport_lengths
+        s_center = s_start + 0.5 * transport_lengths
 
         out = {
             's': s_elements,
+            'length': length_elements,
             'element_type': element_types,
             'name': list(self.element_names) + ['_end_point'],
             'isthick': isthick,
@@ -1100,6 +1115,10 @@ class Line:
         -------
         table : LineTable
             Table containing one row per element plus the ``'_end_point'`` row.
+            ``length`` contains element lengths, retained before accumulating
+            longitudinal positions. Thin elements can have nonzero lengths;
+            ``length * isthick`` gives their contribution to the line length.
+            The ``'_end_point'`` row has zero length and ``isthick=False``.
             ``base_prototype`` is the last non-None name in the prototype chain,
             or None for elements without a prototype and for ``'_end_point'``.
             If a prototype is absent from the environment, its name is used
@@ -1129,6 +1148,8 @@ class Line:
         if attr:
             with self.attr._cache_values():
                 for kk in self.attr.keys():
+                    if kk == 'length':
+                        continue  # Already retained in the layout table.
                     this_attr = self.attr[kk]
                     if hasattr(this_attr, 'get'):
                         this_attr = this_attr.get() # bring to cpu
@@ -2139,6 +2160,7 @@ class Line:
         y_norm_offset: float = 0.0,
         nemitt_x=None,
         nemitt_y=None,
+        gemitt_x=None, gemitt_y=None,
         delta_negative_limit: float = -0.10,
         delta_positive_limit: float = +0.10,
         delta_step_size: float = 0.01,
@@ -2183,6 +2205,9 @@ class Line:
             Horizontal normalized emittance (m·rad, rms).
         nemitt_y : float
             Vertical normalized emittance (m·rad, rms).
+        gemitt_x, gemitt_y : float, optional
+            Geometric transverse emittances. Provide at most one of
+            ``nemitt_*`` and ``gemitt_*`` in each plane.
         delta_negative_limit : float, default -0.10
             Lower bound of the δ scan (inclusive). Must be < 0.
         delta_positive_limit : float, default +0.10
@@ -2232,8 +2257,12 @@ class Line:
         if y_offset != 0.0 and y_norm_offset != 0.0:
             raise ValueError("Provide either y_offset or y_norm_offset, not both.")
 
-        if nemitt_x is None or nemitt_y is None:
-            raise ValueError("nemitt_x and nemitt_y must be provided.")
+        for plane, nemitt, gemitt in (('x', nemitt_x, gemitt_x),
+                                     ('y', nemitt_y, gemitt_y)):
+            if nemitt is not None and gemitt is not None:
+                raise ValueError(f'Cannot provide both nemitt_{plane} and gemitt_{plane}.')
+            if nemitt is None and gemitt is None:
+                raise ValueError(f'nemitt_{plane} or gemitt_{plane} must be provided.')
 
         if delta_negative_limit >= 0:
             raise ValueError("delta_negative_limit must be < 0")
@@ -2312,6 +2341,7 @@ class Line:
                 delta=delta_co,
                 nemitt_x=nemitt_x,
                 nemitt_y=nemitt_y,
+                gemitt_x=gemitt_x, gemitt_y=gemitt_y,
                 W_matrix=tw_init.W_matrix,
                 particle_on_co=tw_init.particle_on_co,
             )
@@ -2414,7 +2444,8 @@ class Line:
         x=None, px=None, y=None, py=None, zeta=None, delta=None, pzeta=None,
         x_norm=None, px_norm=None, y_norm=None, py_norm=None, zeta_norm=None, pzeta_norm=None,
         at_element=None, match_at_s=None,
-        nemitt_x=None, nemitt_y=None,
+        nemitt_x=None, nemitt_y=None, gemitt_x=None, gemitt_y=None,
+        nemitt_zeta=None, gemitt_zeta=None,
         weight=None,
         particle_on_co=None,
         R_matrix=None,
@@ -2426,7 +2457,6 @@ class Line:
         _capacity=None,
         mode=None,
         *, chi=None, charge_ratio=None, mass_ratio=None, pdg_id=None,
-        nemitt_zeta=None, gemitt_x=None, gemitt_y=None, gemitt_zeta=None,
         **kwargs, # They are passed to the twiss
     ):
 
@@ -2614,7 +2644,8 @@ class Line:
     def twiss(self, particle_ref=None, method=None,
         particle_on_co=None, R_matrix=None, W_matrix=None,
         delta0=None, zeta0=None, zeta_shift=None,
-        nemitt_x=None, nemitt_y=None, step_W_sigma=None,
+        nemitt_x=None, nemitt_y=None, gemitt_x=None, gemitt_y=None,
+        step_W_sigma=None,
         delta_disp=None, delta_chrom=None, zeta_disp=None,
         co_guess=None, steps_R_matrix=None,
         co_search_settings=None,
@@ -2709,6 +2740,19 @@ class Line:
         """
         assert 'method' not in kwargs, 'method cannot be provided as argument to twiss4d'
         kwargs['method'] = '4d'
+        return self.twiss(**kwargs)
+
+    @doc_group("Tracking and Analysis")
+    def twiss5d(self, **kwargs):
+
+        """Compute Twiss with five periodic coordinates and free zeta slip.
+
+        Equivalent to ``twiss(method='5d', ...)``. Specify either ``zeta0``
+        or ``delta0``; the default is ``zeta0=0``. The full 6D normal form is
+        used, with radiation and RF kicks active.
+        """
+        assert 'method' not in kwargs, 'method cannot be provided as argument to twiss5d'
+        kwargs['method'] = '5d'
         return self.twiss(**kwargs)
 
     @doc_group("Tracking and Analysis")
@@ -3041,7 +3085,7 @@ class Line:
                  monitor_names_y=None, corrector_names_y=None,
                  n_micado=None, n_singular_values=None, rcond=None,
                  monitor_alignment=None, corrector_limits_x=None,
-                 corrector_limits_y=None):
+                 corrector_limits_y=None, method=None):
 
         '''
         Correct the beam trajectory using a linearized response matrix computed
@@ -3070,6 +3114,10 @@ class Line:
         twiss_table : TwissTable
             Twiss table used to compute the response matrix for the correction.
             If None, the twiss table is computed from the line.
+        method : {'4d', '5d', '6d'}, optional
+            Twiss method used for response optics and orbit measurements.
+            With None, response optics use 4D and orbit measurements use the
+            line's Twiss defaults, or 4D when delta0 is supplied to `correct`.
         planes : str
             Planes for which the correction is performed. It can be 'x', 'y' or
             'xy'. If None, the correction is performed for both planes.
@@ -3124,7 +3172,7 @@ class Line:
                  rcond=rcond,
                  monitor_alignment=monitor_alignment,
                  corrector_limits_x=corrector_limits_x,
-                 corrector_limits_y=corrector_limits_y)
+                 corrector_limits_y=corrector_limits_y, method=method)
 
         if run:
             correction.correct(planes=planes, n_iter=n_iter)
@@ -3212,13 +3260,22 @@ class Line:
                           spin=None,
                           num_turns_search_t_rev=None,
                           symmetrize=False,
-                          include_collective=False):
+                          include_collective=False, method=None):
 
         """
         Find the closed orbit of the beamline.
 
         Parameters
         ----------
+        method : {None, '4d', '5d', '6d'}, optional
+            With None (default), use a 6D search if neither delta0 nor zeta0
+            is supplied. If either or both are supplied, close only the four
+            transverse coordinates and constrain the supplied initial
+            longitudinal coordinates; longitudinal closure is not required.
+            With '5d', close x, px, y, py and delta, allowing
+            zeta to slip. Specify either zeta0 or delta0; the default is zeta0=0.
+            With '4d', close only the transverse coordinates (default delta0=0).
+            With '6d', close all six coordinates.
         co_guess : Particles or dict
             Particle used as first guess to compute the closed orbit. If None,
             the reference particle is used.
@@ -3276,6 +3333,9 @@ class Line:
 
         """
 
+        if method == '5d' and freeze_longitudinal:
+            raise ValueError('freeze_longitudinal is incompatible with method="5d"')
+
         if freeze_longitudinal:
             kwargs = locals().copy()
             kwargs.pop('self')
@@ -3307,7 +3367,7 @@ class Line:
                                  search_for_t_rev=search_for_t_rev,
                                  spin=spin,
                                  num_turns_search_t_rev=num_turns_search_t_rev,
-                                 symmetrize=symmetrize)
+                                 symmetrize=symmetrize, method=method)
 
     @doc_group("Tracking and Analysis")
     def get_T_matrix(self, start=None, end=None,
@@ -3327,7 +3387,11 @@ class Line:
         particle_on_co : Particle
             Particle at the closed orbit (optional).
         steps : dict
-            Finite difference step for computing the second order tensor.
+            Finite-difference steps for computing the second-order tensor
+            (``dx``, ``dpx``, ``dy``, ``dpy``, ``dzeta``, ``ddelta``).
+            These steps apply to both levels of the nested differences;
+            omitted keys use the second-order defaults (``dzeta=1e-4`` m;
+            other coordinates use the same defaults as ``get_R_matrix``).
         steps_t_matrix : dict
             Deprecated. Use ``steps`` instead.
 
@@ -3366,7 +3430,8 @@ class Line:
         return self.get_T_matrix(*args, **kwargs)
 
     @doc_group("Tracking and Analysis")
-    def get_footprint(self, nemitt_x=None, nemitt_y=None, n_turns=256, n_fft=2**18,
+    def get_footprint(self, nemitt_x=None, nemitt_y=None, gemitt_x=None, gemitt_y=None,
+            n_turns=256, n_fft=2**18,
             mode='polar', r_range=None, theta_range=None, n_r=None, n_theta=None,
             x_norm_range=None, y_norm_range=None, n_x_norm=None, n_y_norm=None,
             linear_rescale_on_knobs=None,
@@ -3383,6 +3448,9 @@ class Line:
             Normalized emittance in the x-plane.
         nemitt_y : float
             Normalized emittance in the y-plane.
+        gemitt_x, gemitt_y : float, optional
+            Geometric transverse emittances. Provide at most one of
+            ``nemitt_*`` and ``gemitt_*`` in each plane.
         n_turns : int
             Number of turns for tracking.
         n_fft : int
@@ -3440,6 +3508,8 @@ class Line:
         -------
         fp : Footprint
             Footprint object containing footprint data (fp.qx, fp.qy).
+            In ``uniform_action_grid`` mode, ``fp.Jx_grid`` and ``fp.Jy_grid``
+            contain geometric actions, regardless of the input emittance convention.
 
         '''
 
@@ -3459,7 +3529,7 @@ class Line:
                         freeze_longitudinal=freeze_longitudinal,
                         delta0=delta0, zeta0=zeta0)
         else:
-            fp = Footprint(**kwargs)
+            fp = Footprint(particle_ref=self.particle_ref, **kwargs)
             fp._get_footprint(self,
                 freeze_longitudinal=freeze_longitudinal,
                 delta0=delta0, zeta0=zeta0)
@@ -3467,7 +3537,8 @@ class Line:
         return fp
 
     @doc_group("Tracking and Analysis")
-    def get_amplitude_detuning_coefficients(self, nemitt_x=1e-6, nemitt_y=1e-6,
+    def get_amplitude_detuning_coefficients(self, nemitt_x=None, nemitt_y=None,
+                gemitt_x=None, gemitt_y=None,
                 num_turns=256, a0_sigmas=0.01, a1_sigmas=0.1, a2_sigmas=0.2):
 
         '''
@@ -3481,6 +3552,9 @@ class Line:
             Normalized emittance in the x-plane. Default is 1e-6.
         nemitt_y : float
             Normalized emittance in the y-plane. Default is 1e-6.
+        gemitt_x, gemitt_y : float, optional
+            Geometric transverse emittances. Provide at most one of
+            ``nemitt_*`` and ``gemitt_*`` in each plane.
         num_turns : int
             Number of turns for tracking. Default is 256.
         a0_sigmas : float
@@ -3502,10 +3576,13 @@ class Line:
 
         import nafflib as nl
 
-        gemitt_x = (nemitt_x / self.particle_ref._xobject.beta0[0]
-                            / self.particle_ref._xobject.gamma0[0])
-        gemitt_y = (nemitt_y / self.particle_ref._xobject.beta0[0]
-                            / self.particle_ref._xobject.gamma0[0])
+        from ._emittance import _geometric_emittance
+        beta_gamma = (self.particle_ref._xobject.beta0[0]
+                      * self.particle_ref._xobject.gamma0[0])
+        gemitt_x = _geometric_emittance(
+            nemitt_x, gemitt_x, beta_gamma, 'x', default=1e-6 / beta_gamma)
+        gemitt_y = _geometric_emittance(
+            nemitt_y, gemitt_y, beta_gamma, 'y', default=1e-6 / beta_gamma)
 
         Jx_1 = a1_sigmas**2 * gemitt_x / 2
         Jx_2 = a2_sigmas**2 * gemitt_x / 2
@@ -3517,7 +3594,7 @@ class Line:
                             zeta=0, delta=0,
                             x_norm=[a1_sigmas, a2_sigmas, a0_sigmas, a0_sigmas],
                             y_norm=[a0_sigmas, a0_sigmas, a1_sigmas, a2_sigmas],
-                            nemitt_x=nemitt_x, nemitt_y=nemitt_y)
+                            gemitt_x=gemitt_x, gemitt_y=gemitt_y)
 
         self.track(particles,
                         num_turns=num_turns, time=True,
@@ -4159,7 +4236,10 @@ class Line:
         self.cut_at_s(s_cuts, s_tol=s_tol, with_progress=with_progress)
 
         tt_after_cut = self.get_table()
-        tt_after_cut['length'] = np.diff(tt_after_cut.s, append=tt_after_cut.s[-1])
+        tt_after_cut['length'] = tt_after_cut.length * tt_after_cut.isthick
+        # Concatenation keeps common columns only. Retain the insertions' residuals
+        # alongside the binary64 coordinates of the remaining line elements.
+        tt_after_cut['_s_start_error'] = np.zeros(len(tt_after_cut))
 
         # Identify old elements falling inside the insertions
         idx_remove = []
@@ -5111,16 +5191,17 @@ class Line:
 
         Parameters
         ----------
-        spin_model: str
+        spin_model: bool or str, optional
             Spin model to use. Can be None, 'auto', True, False.
         """
         self._method_incompatible_with_compose()
 
-        assert spin_model in [None, 'auto', 'True', 'False']
         if spin_model is False:
             spin_model = None
-        if spin_model is True:
+        elif spin_model is True:
             spin_model = 'auto'
+        elif spin_model not in (None, 'auto'):
+            raise ValueError("spin_model must be None, 'auto', True, or False")
 
         self._spin_model = spin_model
 
@@ -5186,24 +5267,35 @@ class Line:
 
     @doc_group("Radiation, Spin and Intra-Beam Scattering")
     def compensate_radiation_energy_loss(self, delta0='zero_mean', rtol_eneloss=1e-10,
-                                    max_iter=100, **kwargs):
+                                    max_iter=100, taper_magnets=True, co_guess=None, **kwargs):
 
         """
         Compensate beam energy loss from synchrotron radiation by configuring
-        RF cavities and Multipole elements (tapering).
+        RF phases and optionally tapering the magnets.
 
         Parameters
         ----------
-        delta0: float
-            Initial energy deviation. If `delta0='zero_mean'` is specified, the
-            compensation is done such that the mean energy deviation along the
-            ring is zero.
+        delta0: float or 'zero_mean'
+            Initial relative momentum deviation. If `delta0='zero_mean'` is
+            specified, the mean relative momentum deviation along the ring
+            is set to zero.
         rtol_eneloss: float
             Relative tolerance on energy loss.
         max_iter: int
             Maximum number of iterations.
+        taper_magnets: bool or list of str
+            If True (default), taper all eligible magnets using automatic
+            tapering during tracking. If False, adjust only the RF phases.
+            A list selects the magnets whose delta_taper values are updated
+            between 5D closed-orbit searches. Unselected magnets keep their
+            existing settings. The reference starts at zeta=0; with False or
+            a list, zeta is allowed to slip over a turn. Cavity voltages,
+            frequencies and harmonics stay at their configured values.
+        co_guess: Particles or dict, optional
+            Initial guess for the radiation-free closed-orbit search used to
+            initialize compensation.
         kwargs: dict
-            Additional keyword arguments passed to the twiss method.
+            Additional keyword arguments passed to the compensation function.
 
         """
         self._method_incompatible_with_compose()
@@ -5788,7 +5880,7 @@ class Line:
         self._method_incompatible_with_compose()
         elements_df = self.get_table().to_pandas()
         elements_df['name'] = elements_df['env_name']
-        elements_df.drop(columns='env_name', inplace=True)
+        elements_df = elements_df.drop(columns='env_name')
         names = elements_df['name'].values[:-1]  # exclude `_end_point`
         elements_df['element'] = [self.get(nn) for nn in names] + [None]
 
@@ -5973,7 +6065,8 @@ class Line:
             return newline
 
     @doc_group("Tracking and Analysis")
-    def get_line_with_second_order_maps(self, split_at):
+    def get_line_with_second_order_maps(self, split_at,
+                                       steps_r_matrix=None, steps_t_matrix=None):
 
         '''
         Return a new line with segments defined by the elements in `split_at`
@@ -5991,6 +6084,12 @@ class Line:
             referred to by their disambiguated name 'name::N' (as shown in
             the line table and in the twiss table); the same names are used
             in the returned line.
+        steps_r_matrix, steps_t_matrix : dict, optional
+            Finite-difference steps for first- and second-order map coefficients.
+            Passed to :meth:`SecondOrderTaylorMap.from_line`; the second-order
+            steps apply to both levels of the nested differences. Omitted
+            keys use the corresponding first- or second-order defaults
+            (``dzeta=1e-5`` m for R, ``dzeta=1e-4`` m for T).
 
         Returns
         -------
@@ -6048,6 +6147,8 @@ class Line:
                                     self, start=map_start,
                                     end=ele_cut_sorted[ii+1],
                                     twiss_table=tw,
+                                    steps_r_matrix=steps_r_matrix,
+                                    steps_t_matrix=steps_t_matrix,
                                     _buffer=self._buffer)
             names_map_line.append(f'map_{ii}')
             elements_map_line.append(smap)
@@ -6763,11 +6864,22 @@ class Line:
 
         Parameters
         ----------
-        name : str or iterable of str
-            Name or names of the variable(s) or element(s).
-        value : float or str
-            Value or expression of the variable to set. Can be provided only
-            if the name is associated to a variable.
+        name : str, iterable of str, mapping or Table
+            Name or names of the variable(s) or element(s). A mapping supplies
+            variable names and values. A table supplies variable names from its
+            ``name`` column and values from its ``value`` column.
+        value : float, str or iterable, optional
+            Value or expression of the variable to set. For multiple variable
+            names, an iterable supplies one value or expression per name and
+            must have the same length. A scalar is applied to every name.
+            Can be provided only if the names are associated to variables.
+            For a mapping or table, an explicit positional value overrides the
+            stored values. Iterables follow key or row order; scalars (including
+            expression strings) broadcast to all names. With an override, a table
+            needs only the ``name`` column. Mapping inputs accept no keyword
+            arguments. With a table, keyword arguments set attributes of the
+            elements in its ``env_name`` column (falling back to ``name`` if
+            absent) and cannot be combined with a positional value.
         **kwargs, float or str
             Attributes to set. Can be provided only if the name is associated
             to an element.
@@ -6780,6 +6892,14 @@ class Line:
         >>> line.set(['quad1', 'quad2'], k1=0.1, k2='3*a')
         >>> line.set(['c', 'd'], 0.1)
         >>> line.set(['e', 'f'], '3*a')
+        >>> line.set(['c', 'd'], [0.1, 0.2])
+        >>> line.set(['e', 'f'], ['3*a', '4*a'])
+        >>> line.set({'c': 0.1, 'd': '2*a'})
+        >>> line.set({'c': 0.1, 'd': 0.2}, 0.)
+        >>> line.set(table)  # table with name and value columns
+        >>> line.set(table, [0.1, 0.2])  # table with two rows
+        >>> line.set(table, 0.)
+        >>> line.set(element_table, k1='3*a')
 
         '''
         self.env.set(name, *args, **kwargs)
@@ -6787,17 +6907,18 @@ class Line:
     @doc_group("Inspection, Variables and Configuration")
     def get(self, key):
         '''
-        Get an element or the value of a variable.
+        Get elements or variable values by name.
 
         Parameters
         ----------
-        key : str
-            Name of the element or variable.
+        key : str or iterable of str
+            Name or names of the elements or variables.
 
         Returns
         -------
-        element : Element or float
-            Element or value of the variable.
+        result : Element, float or list
+            Element or variable value for a single name. For multiple names,
+            a list of results in the requested order.
 
         Examples
         --------
@@ -6816,6 +6937,9 @@ class Line:
 
             line.get('a')
             # 3.0
+
+            line.get(['a', 'qf'])
+            # [3.0, Quadrupole(...)]
         '''
         return self.env.get(key)
 
@@ -7932,6 +8056,16 @@ class LineTable(Table):
                       + DEPRECATION_INFO_PREP_1_0),
     }
 
+def _serialize_element(element, name):
+    to_dict = getattr(element, 'to_dict', None)
+    if not callable(to_dict):
+        raise TypeError(
+            f"Cannot serialize element {name!r} "
+            f"(type {type(element).__name__}): "
+            "the element does not provide a callable to_dict() method.")
+    return to_dict()
+
+
 def _deserialize_element(el, class_dict, _buffer):
     eldct = el.copy()
     eltype = class_dict[eldct.pop('__class__')]
@@ -8330,6 +8464,7 @@ class LineAttrItem:
         setter_names = []
         self._python_properties = []
         self._python_methods = []
+        is_collective_line = line.tracker.iscollective
         for ii, nn, ee in has_nn0:
             has_name = True
             if isinstance(name, str):
@@ -8363,6 +8498,21 @@ class LineAttrItem:
                 if index is not None and index >= len(getattr(inner_obj, inner_name)):
                     continue
                 self._python_properties.append((ii, inner_obj, inner_name))
+            elif has_name and is_collective_line and _is_collective(ee, line):
+                # Read collective attributes from the original element: the
+                # MultiSetter sees replacement drifts in the tracker buffer.
+                if hasattr(inner_obj, '_xobject'):
+                    if inner_name not in inner_obj._xofields:
+                        continue
+                    # Match MultiSetter's numeric storage access. For example,
+                    # a Bend's element.k0 can return 'from_h', whereas
+                    # element._xobject.k0 contains the stored numeric value.
+                    inner_obj = inner_obj._xobject
+                if not hasattr(inner_obj, inner_name):
+                    continue
+                if index is not None and index >= len(getattr(inner_obj, inner_name)):
+                    continue
+                self._python_properties.append((ii, inner_obj, inner_name))
             elif has_name and hasattr(inner_obj, '_xofields') and inner_name in inner_obj._xofields:
                 if index is not None:
                     this_len = cache_len.get(tuple(name)+(nn,), None)
@@ -8380,6 +8530,12 @@ class LineAttrItem:
         self.names = setter_names
         self._multisetter = multisetter
         self._mask = mask
+        # Field presence also includes values read outside the tracker buffer.
+        self._mask_has_field = mask
+        if is_collective_line and (self._python_properties or self._python_methods):
+            self._mask_has_field = mask.copy()
+            for item in self._python_properties + self._python_methods:
+                self._mask_has_field[item[0]] = True
 
     @property
     def multisetter(self):
@@ -8592,9 +8748,19 @@ class EnergyProgram:
         # (E1-E0)/a = dt*(P0+P1)/(E0+E1). This is exact, avoids
         # subtracting nearly equal energies, and also holds for constant P or
         # acceleration from rest. Only the original knots need to be stored.
-        delta_turns = (clight / self._circumference * np.diff(times)
-                       * (momentum[:-1] + momentum[1:]) / (energy[:-1] + energy[1:]))
-        self._i_turn_at_t_s = np.concatenate(([0.], np.cumsum(delta_turns)))
+        turn_increments = (clight / self._circumference * np.diff(times)
+                           * (momentum[:-1] + momentum[1:]) / (energy[:-1] + energy[1:]))
+        # Kahan summation keeps rounding errors from accumulating with the
+        # number of ramp samples. Errors in this table shift the reference
+        # clock and therefore zeta, even for a constant-momentum program.
+        self._i_turn_at_t_s = np.zeros(len(times))
+        total = correction = 0.
+        for ii, turn_increment in enumerate(turn_increments):
+            increment = turn_increment - correction
+            updated = total + increment
+            correction = (updated - total) - increment
+            total = updated
+            self._i_turn_at_t_s[ii + 1] = total
 
     def get_turn_at_t_s(self, t_s):
         """Accumulated reference turns, integrating the linear momentum ramp.
@@ -8888,7 +9054,8 @@ def _main_strength_from_attr(attr):
 
     main_order = attr['_own_main_order'] + attr['_parent_main_order']
 
-    mask_take_main_order = attr._cache['_own_main_order']._mask | attr._cache['_parent_main_order']._mask
+    mask_take_main_order = (attr._cache['_own_main_order']._mask_has_field
+                           | attr._cache['_parent_main_order']._mask_has_field)
 
     _main_strength_normal = np.zeros(len(main_order), dtype=np.float64)
     _main_strength_skew = np.zeros(len(main_order), dtype=np.float64)

@@ -109,7 +109,9 @@ def _shape_projection_extents(shape, direction: np.ndarray) -> tuple[float, floa
         return float(np.min(values)), float(np.max(values))
 
     elif isinstance(shape, SVGShape):
-        raise NotImplementedError('Floor projection is not implemented for SVGShape profiles.')
+        vertices = shape.build_polygon(256)
+        values = vertices @ direction
+        return float(np.min(values)), float(np.max(values))
 
     else:
         raise TypeError(f'Unsupported aperture profile shape {type(shape).__name__}.')

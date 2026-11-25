@@ -40,6 +40,7 @@ def _get_chromatic_functions(
                     end=twiss_config['end'],
                     nemitt_x=twiss_config['nemitt_x'],
                     nemitt_y=twiss_config['nemitt_y'],
+                    gemitt_x=twiss_config['gemitt_x'], gemitt_y=twiss_config['gemitt_y'],
                     step_W_sigma=twiss_config['step_W_sigma'],
                     delta_disp=twiss_config['delta_disp'],
                     use_full_inverse=twiss_config['use_full_inverse'],
@@ -92,7 +93,7 @@ def _get_chromatic_functions(
                   'ax_chrom': ax_chrom, 'ay_chrom': ay_chrom,
                   'wx_chrom': wx_chrom, 'wy_chrom': wy_chrom,
                   }
-    scalars_chrom = {'dqx': dqx, 'dqy': dqy}
+    scalars_chrom = {'dqx': float(dqx), 'dqy': float(dqy)}
 
     if on_momentum_twiss_res is not None:
 
@@ -141,7 +142,7 @@ def _get_chromatic_functions(
 
         cols_chrom.update({'ddx': ddx, 'ddpx': ddpx,
                            'ddy': ddy, 'ddpy': ddpy})
-        scalars_chrom.update({'ddqx': ddqx, 'ddqy': ddqy})
+        scalars_chrom.update({'ddqx': float(ddqx), 'ddqy': float(ddqy)})
 
     return cols_chrom, scalars_chrom
 
@@ -165,16 +166,22 @@ def _build_periodic_off_momentum_init(
         particle_on_co=on_momentum_twiss_res.particle_on_co.copy(),
         nemitt_x=twiss_config['nemitt_x'],
         nemitt_y=twiss_config['nemitt_y'],
+        gemitt_x=twiss_config['gemitt_x'], gemitt_y=twiss_config['gemitt_y'],
         W_matrix=twiss_init.W_matrix,
         include_collective=twiss_config['include_collective'])
 
     delta0 = twiss_config['delta0']
+    zeta0 = twiss_config['zeta0']
     if method == '4d':
         delta0 = (delta0 + momentum_offset
                   if delta0 is not None else momentum_offset)
+    elif method == '5d':
+        delta0 = twiss_init.delta + momentum_offset
+        zeta0 = None
     twiss_init.particle_on_co = line.find_closed_orbit(
         delta0=delta0,
-        zeta0=twiss_config['zeta0'],
+        zeta0=zeta0,
+        method=method,
         zeta_shift=-(zeta_shift if method == '6d' else 0),
         co_guess=part_guess,
         start=twiss_config['start'],

@@ -413,6 +413,9 @@ void LocalParticle_update_p0c(LocalParticle* part, double new_p0c_value) {
     LocalParticle_update_delta(part, new_delta);
     LocalParticle_scale_px(part, old_p0c / new_p0c_value);
     LocalParticle_scale_py(part, old_p0c / new_p0c_value);
+    // ax/ay carry q*A/p0 in the same normalization as canonical momenta.
+    LocalParticle_set_ax(part, LocalParticle_get_ax(part) * old_p0c / new_p0c_value);
+    LocalParticle_set_ay(part, LocalParticle_get_ay(part) * old_p0c / new_p0c_value);
     if (LocalParticle_check_track_flag(part, XS_FLAG_USE_TIME_BASED_ZETA_UPDATE)) {
         // Preserve absolute arrival time when changing the reference velocity.
         LocalParticle_set_zeta(part, LocalParticle_get_s(part)

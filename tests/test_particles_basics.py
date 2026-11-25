@@ -13,6 +13,79 @@ from xobjects.test_helpers import (
     allow_kernel_compilation, for_all_test_contexts)
 
 
+@pytest.mark.parametrize('operation', ['copy', 'move'])
+@pytest.mark.parametrize('destination', ['context', 'buffer'])
+@pytest.mark.parametrize('state', [[1, 1, 1], [0, 1, -1], [0, -1, 0]])
+@for_all_test_contexts
+def test_particles_transfer_to_cpu(test_context, operation, destination, state):
+    # On CPU, suppress construction-time reorganization to exercise the same
+    # unset-count state as GPU-created particles, even without a GPU available.
+    particles = xt.Particles(
+        _context=test_context, _no_reorganize=True, _capacity=5,
+        p0c=7e12, x=[1e-3, 2e-3, 3e-3], state=state)
+    original_state = test_context.nparray_from_context_array(particles.state).copy()
+    original_x = test_context.nparray_from_context_array(particles.x).copy()
+    cpu = xo.ContextCpu()
+    target = ({'_context': cpu} if destination == 'context'
+              else {'_buffer': cpu.new_buffer()})
+    if operation == 'copy':
+        transferred = particles.copy(**target)
+        assert particles._context is test_context
+        assert particles._num_active_particles == -1
+        assert particles._num_lost_particles == -1
+        np.testing.assert_array_equal(
+            test_context.nparray_from_context_array(particles.state), original_state)
+        np.testing.assert_array_equal(
+            test_context.nparray_from_context_array(particles.x), original_x)
+    else:
+        assert particles.move(**target) is None
+        transferred = particles
+
+    assert transferred._context is cpu
+    if destination == 'buffer':
+        assert transferred._buffer is target['_buffer']
+    active_ids = np.flatnonzero(np.array(state) > 0)
+    lost_ids = np.flatnonzero(np.array(state) <= 0)
+    order = np.concatenate([active_ids, lost_ids])
+    assert transferred._capacity == 5
+    assert transferred._num_active_particles == len(active_ids)
+    assert transferred._num_lost_particles == len(lost_ids)
+    np.testing.assert_array_equal(transferred.particle_id[:3], order)
+    np.testing.assert_array_equal(transferred.x[:3], original_x[order])
+    np.testing.assert_array_equal(transferred.state[:3], np.array(state)[order])
+    np.testing.assert_array_equal(transferred.state[3:], [-999999999] * 2)
+
+    # Check both the direct-element path (previously a silent no-op) and the
+    # line-tracking path (previously rejected the unset counts).
+    drift = xt.Drift(_context=cpu, length=0.5)
+    drift.track(transferred)
+    np.testing.assert_allclose(transferred.s[:len(active_ids)], 0.5)
+    np.testing.assert_allclose(transferred.s[len(active_ids):3], 0.)
+    line = xt.Line(elements=[drift])
+    line.build_tracker(_context=cpu)
+    line.track(transferred, _force_no_end_turn_actions=True)
+    np.testing.assert_allclose(transferred.s[:len(active_ids)], 1.)
+    np.testing.assert_allclose(transferred.s[len(active_ids):3], 0.)
+
+
+@pytest.mark.parametrize('operation', ['copy', 'move'])
+@for_all_test_contexts(excluding='ContextCpu')
+def test_particles_gpu_to_cpu_stale_counts(test_context, operation):
+    particles = xt.Particles(p0c=7e12, x=[1e-3, 2e-3, 3e-3], _capacity=5)
+    particles.move(_context=test_context)
+    assert particles._num_active_particles == 3
+    # Simulate losses on GPU, where the CPU counts are not maintained.
+    particles.state[:] = test_context.nparray_to_context_array(
+        np.array([0, 1, -1, -999999999, -999999999], dtype=np.int64))
+    if operation == 'copy':
+        particles = particles.copy(_context=xo.ContextCpu())
+    else:
+        particles.move(_context=xo.ContextCpu())
+    assert particles._num_active_particles == 1
+    assert particles._num_lost_particles == 2
+    np.testing.assert_array_equal(particles.particle_id[:3], [1, 0, 2])
+
+
 def _check_consistency_energy_variables(particles):
     # Check consistency between beta0 and gamma0
     xo.assert_allclose(particles.gamma0, 1/np.sqrt(1 - particles.beta0**2),

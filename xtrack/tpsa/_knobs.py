@@ -21,11 +21,12 @@ def _scalar_value(value: Any) -> float:
 class KnobParameters:
     """Line variables ``names`` held as parameters ``1..len(names)`` of ``descriptor``.
 
-    ``apply()`` puts the parameters in, ``apply(values)`` re-seeds them at
-    new values, and ``teardown()`` restores plain doubles.
+    ``apply()`` puts the parameters in, ``apply(values)`` moves them to new knob
+    values, ``teardown()`` puts plain doubles back in the variables and in the elements
+    they drive. An element that still depends on another parameter keeps its series.
 
-    While parameters are in the line, direct float assignments to ``line.vars``
-    remove knob dependence; call ``apply(values)`` again before tracking.
+    While the parameters are in, the knobs must be moved with ``apply``: assigning a
+    float to ``line.vars`` re-propagates constants and drops the knob dependence.
     """
 
     def __init__(self, line: Any, names: list[str], descriptor: Descriptor) -> None:
@@ -99,7 +100,9 @@ class KnobParameters:
         elements = self.line.element_dict
         for name in (self._reached if self._reached is not None else elements):
             element = elements[name]
-            if getattr(getattr(element, "_xobject", None), "_tpsa_enabled", 0):
+            if (getattr(getattr(element, "_xobject", None), "_tpsa_enabled", 0)
+                    and all(getattr(element, field).is_constant()
+                            for field in element._float_or_tpsa_fields)):
                 element.disable_tpsa()
         self._applied = False
 

@@ -768,6 +768,22 @@ def test_reference_algebra_matches_particles(kwargs):
         xo.assert_allclose(getattr(m, var), expected, rtol=1e-12, atol=0)
 
 
+@pytest.mark.parametrize('species', ['electron', 'positron', 'proton', 'Pb208', 'O16'])
+def test_named_species_magnetic_moment_matches_particles(species):
+    native = xt.Particles(species, p0c=5e9)
+    mapping = xtpsa.ParticlesTpsa(pdg_id_0=species, p0c=5e9)
+    for name in ['q0', 'mass0', 'anomalous_magnetic_moment']:
+        expected = float(np.asarray(getattr(native, name)).reshape(-1)[0])
+        assert getattr(mapping, name) == expected
+    assert mapping.to_particles().anomalous_magnetic_moment[0] == (
+        native.anomalous_magnetic_moment[0])
+
+
+def test_tpsa_custom_reference_keeps_anomaly_fallback():
+    mapping = xtpsa.ParticlesTpsa(pdg_id_0='electron', p0c=5e9, mass0=1e6)
+    assert mapping.anomalous_magnetic_moment == 0.
+
+
 def test_from_coords_view_shares_series():
     m = _offaxis_map(truncation_order=2)
     view = m.to_map()
@@ -1706,3 +1722,93 @@ def test_knob_parameter_length_validation_is_atomic():
     with pytest.raises(ValueError, match="Exactly one value"):
         knobs.apply_doubles([0.1])
     knobs.teardown()
+
+def test_knob_teardown_keeps_a_series_it_did_not_promote():
+    env = xt.Environment()
+    env['knob'] = .3
+    line = env.new_line(components=[env.new('driven', xt.Quadrupole, length=1., k1='knob'),
+                                    env.new('unrelated', xt.Quadrupole, length=1., k1=.1)])
+    line['unrelated'].k1 = madng_tpsa.Descriptor(6, 1, num_params=2, param_order=1).param(2, .6)
+    knobs = KnobParameters(line, ['knob'], madng_tpsa.Descriptor(6, 1, num_params=1, param_order=1))
+
+    knobs.apply()
+    knobs.teardown()
+
+    assert not line['driven']._tpsa_enabled
+    np.testing.assert_array_equal(line['unrelated'].k1.param_grad(), [0., 1.])
+
+
+def test_knob_teardown_keeps_the_dependence_on_another_set_of_knobs():
+    env = xt.Environment()
+    env['a'] = .1
+    env['b'] = .2
+    line = env.new_line(components=[env.new('quad', xt.Quadrupole, length=1., k1='a + 2 * b')])
+    descriptor = madng_tpsa.Descriptor(6, 1, num_params=1, param_order=1)
+    knobs_a = KnobParameters(line, ['a'], descriptor)
+    knobs_b = KnobParameters(line, ['b'], descriptor)
+    knobs_a.apply()
+    knobs_b.apply()
+
+    knobs_a.teardown()
+
+    np.testing.assert_allclose(line['quad'].k1.param_grad(), [2.])
+
+    knobs_b.teardown()
+
+    assert not line['quad']._tpsa_enabled
+    assert line['quad'].k1 == pytest.approx(.5)
+
+
+def test_knob_teardown_releases_every_element_a_shared_knob_promoted():
+    env = xt.Environment()
+    env['knob'] = .3
+    line = env.new_line(components=[env.new('first', xt.Quadrupole, length=1., k1='knob'),
+                                    env.new('second', xt.Quadrupole, length=1., k1='knob')])
+    knobs = KnobParameters(line, ['knob'], madng_tpsa.Descriptor(6, 1, num_params=1, param_order=1))
+
+    knobs.apply()
+    knobs.teardown()
+
+    assert not line['first']._tpsa_enabled
+    assert not line['second']._tpsa_enabled
+
+
+def test_knob_apply_moves_the_knob_and_keeps_its_derivative():
+    env = xt.Environment()
+    env['knob'] = .3
+    line = env.new_line(components=[env.new('driven', xt.Quadrupole, length=1., k1='2 * knob')])
+    knobs = KnobParameters(line, ['knob'], madng_tpsa.Descriptor(6, 1, num_params=1, param_order=1))
+    knobs.apply()
+
+    knobs.apply([.5])
+
+    assert line['driven'].k1.const_part == pytest.approx(1.)
+    np.testing.assert_allclose(line['driven'].k1.param_grad(), [2.])
+    knobs.teardown()
+
+
+def test_knob_apply_refuses_the_wrong_number_of_values():
+    env = xt.Environment()
+    env['knob'] = .3
+    line = env.new_line(components=[env.new('driven', xt.Quadrupole, length=1., k1='knob')])
+    knobs = KnobParameters(line, ['knob'], madng_tpsa.Descriptor(6, 1, num_params=1, param_order=1))
+    with pytest.raises(ValueError, match='one value'):
+        knobs.apply([.5, .6])
+
+
+def test_knob_teardown_keeps_a_dependence_that_starts_at_second_order():
+    env = xt.Environment()
+    env['a'] = .1
+    env['b'] = 0.
+    line = env.new_line(components=[env.new('quad', xt.Quadrupole, length=1., k1='a + b * b')])
+    descriptor = madng_tpsa.Descriptor(6, 2, num_params=1, param_order=2)
+    knobs_a = KnobParameters(line, ['a'], descriptor)
+    knobs_b = KnobParameters(line, ['b'], descriptor)
+    knobs_a.apply()
+    knobs_b.apply()
+
+    knobs_a.teardown()
+
+    assert line['quad']._tpsa_enabled
+    assert not line['quad'].k1.is_constant()
+    knobs_b.teardown()

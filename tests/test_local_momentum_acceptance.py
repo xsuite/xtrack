@@ -138,16 +138,24 @@ def test_elements_validation():
         )
 
 
-def test_nemitt_not_provided():
+@pytest.mark.parametrize('kwargs, missing_plane', [
+    ({}, 'x'),
+    ({'nemitt_x': 1e-6}, 'y'),
+    ({'gemitt_x': 1e-6}, 'y'),
+    ({'nemitt_y': 1e-6}, 'x'),
+    ({'gemitt_y': 1e-6}, 'x'),
+])
+def test_nemitt_not_provided(kwargs, missing_plane):
     """
-    nemitt_x and nemitt_y are required; omitting either must raise.
+    Each plane requires either normalized or geometric emittance.
     """
     env = xt.Environment()
     line = env.new_line(components=[env.new('d', xt.Drift, length=1.0)])
     line.set_particle_ref('electron', p0c=1e9)
 
-    with pytest.raises(ValueError, match=r"nemitt_x and nemitt_y must be provided"):
-        line.get_local_momentum_acceptance(method="4d")
+    message = f"nemitt_{missing_plane} or gemitt_{missing_plane} must be provided"
+    with pytest.raises(ValueError, match=message):
+        line.get_local_momentum_acceptance(method="4d", **kwargs)
 
 
 def test_no_particle_ref_raises():

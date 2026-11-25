@@ -17,6 +17,13 @@ DEFAULT_STEPS_R_MATRIX = {
     'dzeta': 1e-5, 'ddelta': 1e-6,
 }
 
+# Nested finite differences need a larger longitudinal step to reduce roundoff
+# in the second derivatives, especially when maps are used at large zeta.
+DEFAULT_STEPS_T_MATRIX = {
+    **DEFAULT_STEPS_R_MATRIX,
+    'dzeta': 1e-4,
+}
+
 DEFAULT_CO_SEARCH_TOL = [1e-11, 1e-11, 1e-11, 1e-11, 1e-5, 1e-9]
 
 DEFAULT_MATRIX_RESPONSIVENESS_TOL = 1e-15
@@ -35,10 +42,15 @@ VARS_FOR_TWISS_INIT_GENERATION = [
 
 def _apply_twiss_defaults(twiss_kwargs):
 
+    for plane in ('x', 'y'):
+        nn, gg = f'nemitt_{plane}', f'gemitt_{plane}'
+        if twiss_kwargs[nn] is not None and twiss_kwargs[gg] is not None:
+            raise ValueError(f'Cannot provide both {nn} and {gg}.')
+        if twiss_kwargs[nn] is None and twiss_kwargs[gg] is None:
+            twiss_kwargs[nn] = 1e-6
+
     twiss_kwargs.update({
         'step_W_sigma': twiss_kwargs['step_W_sigma'] or 0.01,
-        'nemitt_x': twiss_kwargs['nemitt_x'] or 1e-6,
-        'nemitt_y': twiss_kwargs['nemitt_y'] or 1e-6,
         'delta_disp': twiss_kwargs['delta_disp'] or 1e-5,
         'delta_chrom': twiss_kwargs['delta_chrom'] or 5e-5,
         'zeta_disp': twiss_kwargs['zeta_disp'] or 1e-3,
@@ -122,8 +134,25 @@ def _normalize_twiss_inputs(twiss_kwargs):
 
     if twiss_config['method'] is None:
         twiss_config['method'] = '6d'
-    assert twiss_config['method'] in ['6d', '4d'], (
-        'Method must be ``6d`` or ``4d``')
+    assert twiss_config['method'] in ['6d', '5d', '4d'], (
+        'Method must be ``6d``, ``5d`` or ``4d``')
+
+    if twiss_config['method'] == '5d':
+        if twiss_config['delta0'] is not None and twiss_config['zeta0'] is not None:
+            raise ValueError('delta0 and zeta0 are mutually exclusive for method="5d"')
+        if twiss_config['delta0'] is None and twiss_config['zeta0'] is None:
+            twiss_config['zeta0'] = 0
+        if (twiss_config['zeta_shift'] != 0 or twiss_config['search_for_t_rev']
+                or twiss_config['num_turns'] != 1):
+            raise ValueError('method="5d" requires zeta_shift=0, '
+                             'search_for_t_rev=False and num_turns=1')
+        if twiss_config['freeze_longitudinal']:
+            raise ValueError('freeze_longitudinal is incompatible with method="5d"')
+        if (twiss_config['co_search_at'] is not None
+                or (twiss_config['periodic'] and twiss_config['start'] is not None
+                    and twiss_config['end'] is None)):
+            raise ValueError('For a different starting element with method="5d", '
+                             'cycle the line before calling twiss')
 
     _prepare_twiss_at_s_markers(twiss_config)
     _normalize_radiation_method(twiss_config)

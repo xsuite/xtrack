@@ -18,14 +18,12 @@ typedef struct
     float_type dx;    // dispersion x
     float_type dy;    // dispersion y
     float_type delta; // relative energy deviation
-    float_type gamma; // relativistic gamma
-    float_type beta;
 } TwissLocalData;
 
 
 typedef struct {
-    float_type nemitt_x;        // normalized emittance x
-    float_type nemitt_y;        // normalized emittance y
+    float_type gemitt_x;        // geometric emittance x
+    float_type gemitt_y;        // geometric emittance y
     float_type delta_rms;         // rms energy spread
     float_type tol_co;            // tolerance for closed orbit [co_radius]
     float_type tol_disp;          // tolerance for normalized dispersion [dqf]
@@ -103,11 +101,8 @@ static inline Racetrack_s beam_racetrack(
     const float_type hy = beam->halo_y / beam->halo_primary;
     const float_type hr = beam->halo_r / beam->halo_primary;
 
-    const float_type ex = beam->nemitt_x / (twiss->gamma * twiss->beta);
-    const float_type ey = beam->nemitt_y / (twiss->gamma * twiss->beta);
-
-    const float_type sigma_x = sqrt(ex * twiss->betx) * beam->tol_beta_beating;
-    const float_type sigma_y = sqrt(ey * twiss->bety) * beam->tol_beta_beating;
+    const float_type sigma_x = sqrt(beam->gemitt_x * twiss->betx) * beam->tol_beta_beating;
+    const float_type sigma_y = sqrt(beam->gemitt_y * twiss->bety) * beam->tol_beta_beating;
 
     /*
         We describe the beam of the shape described by hx, hy, and hr as a
@@ -234,8 +229,8 @@ Contract: len(out_points)=len_points; len_poly_points=len(poly_points)
 static inline BeamLocalData beam_data_get_entry(const BeamData beam_data)
 {
     return (BeamLocalData){
-        .nemitt_x = BeamData_get_nemitt_x(beam_data),
-        .nemitt_y = BeamData_get_nemitt_y(beam_data),
+        .gemitt_x = BeamData_get_gemitt_x(beam_data),
+        .gemitt_y = BeamData_get_gemitt_y(beam_data),
         .delta_rms = BeamData_get_delta_rms(beam_data),
         .tol_co = BeamData_get_tol_co(beam_data),
         .tol_disp = BeamData_get_tol_disp(beam_data),
@@ -259,8 +254,6 @@ static inline TwissLocalData twiss_data_get_entry(const TwissData twiss_data, co
         .dx = TwissData_get_dx(twiss_data, idx_slice),
         .dy = TwissData_get_dy(twiss_data, idx_slice),
         .delta = TwissData_get_delta(twiss_data, idx_slice),
-        .gamma = TwissData_get_gamma(twiss_data),
-        .beta = TwissData_get_beta(twiss_data),
     };
 }
 
@@ -290,7 +283,7 @@ void get_max_aperture_sigma_bisection(
     #endif
 
     // TODO: Make this also compatible with GPUs
-    uint32_t cross_section_bound_index = 0;
+    int64_t cross_section_bound_index = -1;
     IF_OMP_PRAGMA("omp parallel for firstprivate(cross_section_bound_index)")
     for (uint32_t idx_slice = 0; idx_slice < num_slices; idx_slice++)
     {
@@ -380,7 +373,7 @@ void compute_beam_envelopes_at_sigma(
     #endif
 
     // TODO: Make this also compatible with GPUs
-    uint32_t bound_index = 0;
+    int64_t bound_index = -1;
     IF_OMP_PRAGMA("omp parallel for firstprivate(bound_index)")
     for (uint32_t idx_slice = 0; idx_slice < num_slices; idx_slice++)
     {
@@ -392,7 +385,9 @@ void compute_beam_envelopes_at_sigma(
         };
 
         if (include_aper_tols) {
-            bound_index = interpolate_aperture_tolerances_at_s(
+            bound_index = find_active_profile_for_s(
+                aperture_bounds, s, bound_index);
+            interpolate_aperture_tolerances_at_s(
                 model, aperture_env, aperture_bounds, s, bound_index,
                 &s_aperture_data.tol_r, &s_aperture_data.tol_x, &s_aperture_data.tol_y);
         }
@@ -535,7 +530,7 @@ void get_max_aperture_sigma_rays(
     #endif
 
     // TODO: Make this also compatible with GPUs
-    uint32_t cross_section_bound_index = 0;
+    int64_t cross_section_bound_index = -1;
     IF_OMP_PRAGMA("omp parallel for firstprivate(cross_section_bound_index)")
     for (uint32_t idx_slice = 0; idx_slice < num_slices; idx_slice++)
     {
@@ -677,7 +672,7 @@ void get_max_aperture_sigma_exact(
         int reported_percent = -1;
     #endif
 
-    uint32_t cross_section_bound_index = 0;
+    int64_t cross_section_bound_index = -1;
     IF_OMP_PRAGMA("omp parallel for firstprivate(cross_section_bound_index)")
     for (uint32_t idx_slice = 0; idx_slice < num_slices; idx_slice++)
     {

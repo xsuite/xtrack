@@ -33,7 +33,8 @@ import xtrack as xt  # To avoid circular imports
 def twiss_line(line, particle_ref=None, method=None,
         particle_on_co=None, R_matrix=None, W_matrix=None,
         delta0=None, zeta0=None, zeta_shift=None,
-        nemitt_x=None, nemitt_y=None, step_W_sigma=None,
+        nemitt_x=None, nemitt_y=None, gemitt_x=None, gemitt_y=None,
+        step_W_sigma=None,
         delta_disp=None, delta_chrom=None, zeta_disp=None,
         co_guess=None, steps_R_matrix=None,
         co_search_settings=None,
@@ -100,9 +101,14 @@ def twiss_line(line, particle_ref=None, method=None,
     Parameters
     ----------
 
-    method : {'6d', '4d'}, optional
+    method : {'6d', '5d', '4d'}, optional
         Method to be used for the computation. If '6d' the full 6D
         normal form is used. If '4d' the 4D normal form is used.
+        If '5d', x, px, y, py and delta are periodic, while zeta is allowed
+        to slip. Either zeta0 or delta0 can be provided (default zeta0=0).
+        Radiation and cavity kicks remain active and the full 6D normal form
+        is computed relative to the slipping reference orbit. This assumes
+        that the RF phase follows that reference on successive turns.
     particle_ref : xpart.Particles, optional
         Reference particle used to search for the closed orbit. If not provided,
         ``line.particle_ref`` is used.
@@ -143,11 +149,14 @@ def twiss_line(line, particle_ref=None, method=None,
         the initial conditions are defined at ``start``.
     delta0 : float, optional
         Closed-orbit ``delta`` at the start of the beam line, used when solving
-        the closed orbit in ``method='4d'``. Mutually exclusive with ``zeta0``.
+        the closed orbit in ``method='4d'`` or ``method='5d'``.
+        In 5d mode, mutually exclusive with ``zeta0``; the starting zeta is solved.
         Cannot be used in 6d mode.
     zeta0 : float, optional
         Closed-orbit ``zeta`` at the start of the beam line, used when solving
-        the closed orbit in ``method='4d'``. Mutually exclusive with ``delta0``.
+        the closed orbit in ``method='4d'`` or ``method='5d'``.
+        In 5d mode, mutually exclusive with ``delta0``; the starting delta is solved.
+        Defaults to zero in 5d mode when neither constraint is supplied.
         Cannot be used in 6d mode.
     zeta_shift : float, optional
         Offset applied to ``zeta`` during closed-orbit search (closed orbit is
@@ -201,6 +210,10 @@ def twiss_line(line, particle_ref=None, method=None,
     matrix_stability_tol : float, optional
         Tolerance to be used to check the stability of the R matrix.
         If not provided, the default value is used.
+    gemitt_x, gemitt_y : float, optional
+        Geometric transverse emittances used to set W-matrix propagation steps.
+        Mutually exclusive with the corresponding normalized emittance.
+        If neither form is provided, the normalized emittance defaults to 1e-6.
     step_W_sigma : float, optional
         Deviation in sigmas used for the propagation of the W matrix.
     nemitt_x : float, optional
@@ -316,10 +329,10 @@ def twiss_line(line, particle_ref=None, method=None,
         - `reference_frame`: reference frame used for the output (can be `proper`
           or `reverse`)
         - `periodic`: True if periodic twiss, False if open twiss
-        - `method`: method used for the computation (`4d` or `6d`)
+        - `method`: method used for the computation (`4d`, `5d` or `6d`)
     Output fields present only for periodic twiss:
         - `qx`, `qy`: transverse tunes
-        - `qs`: synchrotron tune (present only when method is `6d`)
+        - `qs`: synchrotron tune (zero in `4d` mode)
         - `dqx`, `dqy`: linear chromaticities
         - `ddqx`, `ddqy`: second-order chromaticities
         - `line_length`: length of the beam line
@@ -395,8 +408,10 @@ def twiss_line(line, particle_ref=None, method=None,
         - `spin_t_pol_buildup_s`: polarization buildup time in seconds
         - `spin_t_pol_component_s`: polarization component of the buildup time in seconds
         - `spin_t_depol_component_s`: depolarization component of the buildup time in seconds
-        - `spin_n_matrix`: invariant spin field matrix in local frame (ebe)
-        - `spin_eigenvectors`: eigenvectors of the spin one-turn matrix (ebe)
+        - `spin_n_matrix`: invariant spin field derivatives in the local frame,
+          with columns ordered as x, px, y, py, zeta, pzeta (ebe)
+        - `spin_eigenvectors`: orbital-spin eigenvectors, with rows ordered as
+          x, px, y, py, zeta, pzeta, spin_x, spin_y, spin_z (ebe)
         - `spin_dn_ddelta_x`, `spin_dn_ddelta_y`, `spin_dn_ddelta_z`: derivatives of
           the invariant spin field w.r.t. delta (ebe)
         - `spin_n0_iv`, `spin_n0_ib`: projections of equilibrium spin along the
@@ -601,6 +616,7 @@ def _compute_base_twiss(twiss_config):
         end=end,
         nemitt_x=twiss_config['nemitt_x'],
         nemitt_y=twiss_config['nemitt_y'],
+        gemitt_x=twiss_config['gemitt_x'], gemitt_y=twiss_config['gemitt_y'],
         step_W_sigma=twiss_config['step_W_sigma'],
         delta_disp=twiss_config['delta_disp'],
         use_full_inverse=twiss_config['use_full_inverse'],

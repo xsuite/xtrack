@@ -19,7 +19,8 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
                             delta_disp, symplectify,
                             matrix_responsiveness_tol,
                             matrix_stability_tol,
-                            nemitt_x, nemitt_y, step_W_sigma,
+                            step_W_sigma,
+                            nemitt_x, nemitt_y, gemitt_x=None, gemitt_y=None,
                             start=None, end=None,
                             num_turns=1,
                             co_search_at=None,
@@ -84,6 +85,7 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
                                 co_search_at=co_search_at,
                                 search_for_t_rev=search_for_t_rev,
                                 spin=spin,
+                                method=method,
                                 num_turns_search_t_rev=num_turns_search_t_rev,
                                 symmetrize=False,
                                 include_collective=include_collective
@@ -133,16 +135,18 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
                             stability_tol=None)
 
                 # Estimate beam size (betatron part)
-                gemitt_x = nemitt_x/part_on_co._xobject.beta0[0]/part_on_co._xobject.gamma0[0]
-                gemitt_y = nemitt_y/part_on_co._xobject.beta0[0]/part_on_co._xobject.gamma0[0]
+                from .._emittance import _geometric_emittance
+                beta_gamma = part_on_co._xobject.beta0[0] * part_on_co._xobject.gamma0[0]
+                emit_x = _geometric_emittance(nemitt_x, gemitt_x, beta_gamma, 'x')
+                emit_y = _geometric_emittance(nemitt_y, gemitt_y, beta_gamma, 'y')
                 betx_at_start = W[0, 0]**2 + W[0, 1]**2
                 bety_at_start = W[2, 2]**2 + W[2, 3]**2
                 gamx_at_start = W[1, 0]**2 + W[1, 1]**2
                 gamy_at_start = W[3, 2]**2 + W[3, 3]**2
-                sigma_x_start = np.sqrt(betx_at_start * gemitt_x)
-                sigma_y_start = np.sqrt(bety_at_start * gemitt_y)
-                sigma_px_start = np.sqrt(gamx_at_start * gemitt_x)
-                sigma_py_start = np.sqrt(gamy_at_start * gemitt_y)
+                sigma_x_start = np.sqrt(betx_at_start * emit_x)
+                sigma_y_start = np.sqrt(bety_at_start * emit_y)
+                sigma_px_start = np.sqrt(gamx_at_start * emit_x)
+                sigma_py_start = np.sqrt(gamy_at_start * emit_y)
 
                 if ((steps_R_matrix['dx'] < factor_adapt_steps * sigma_x_start)
                     and (steps_R_matrix['dy'] < factor_adapt_steps * sigma_y_start)

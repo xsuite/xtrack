@@ -141,8 +141,8 @@ void magnet_spin(
             double const new_ax = LocalParticle_get_ax(part);
             double const new_ay = LocalParticle_get_ay(part);
 
-            double const kin_px_mean = LocalParticle_get_px(part) + new_ax;
-            double const kin_py_mean = LocalParticle_get_py(part) + new_ay;
+            double const kin_px_mean = LocalParticle_get_px(part) - new_ax;
+            double const kin_py_mean = LocalParticle_get_py(part) - new_ay;
 
             double iv_x, iv_y, iv_z;
             direction_of_motion(kin_px_mean, kin_py_mean, delta,

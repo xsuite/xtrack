@@ -8,7 +8,8 @@ from warnings import warn
 import numpy as np
 
 from ..general import DEPRECATION_INFO_PREP_1_0
-from .twiss_defaults_and_input_preparation import DEFAULT_STEPS_R_MATRIX
+from .twiss_defaults_and_input_preparation import (
+    DEFAULT_STEPS_R_MATRIX, DEFAULT_STEPS_T_MATRIX)
 from .optics_propagation import AT_TURN_FOR_TWISS
 
 
@@ -149,24 +150,24 @@ def compute_R_matrix(*args, **kwargs):
 
 
 def _complete_steps_r_matrix_with_default(steps_R_matrix):
-    if steps_R_matrix is not None:
-        steps_in = steps_R_matrix.copy()
-        for nn in steps_in.keys():
-            assert nn in list(DEFAULT_STEPS_R_MATRIX.keys()) + ['adapted'], (
-                '``steps_R_matrix`` can contain only ' +
-                ' '.join(DEFAULT_STEPS_R_MATRIX.keys())
-            )
-        steps_R_matrix = DEFAULT_STEPS_R_MATRIX.copy()
-        steps_R_matrix.update(steps_in)
-    else:
-        steps_R_matrix = DEFAULT_STEPS_R_MATRIX.copy()
+    return _complete_steps_matrix_with_default(
+        steps_R_matrix, DEFAULT_STEPS_R_MATRIX)
 
-    return steps_R_matrix
+
+def _complete_steps_matrix_with_default(steps, defaults):
+    out = defaults.copy()
+    if steps is not None:
+        for nn in steps:
+            assert nn in list(defaults) + ['adapted'], (
+                '``steps`` can contain only ' + ' '.join(defaults)
+            )
+        out.update(steps)
+    return out
 
 def get_T_matrix_line(line, start, end, particle_on_co=None,
                             steps=None):
 
-    steps = _complete_steps_r_matrix_with_default(steps)
+    steps = _complete_steps_matrix_with_default(steps, DEFAULT_STEPS_T_MATRIX)
 
     if particle_on_co is None:
         tw = line.twiss(reverse=False)
@@ -182,13 +183,13 @@ def get_T_matrix_line(line, start, end, particle_on_co=None,
         p_plus[kk] = particle_on_co.copy()
         setattr(p_plus[kk], kk, getattr(particle_on_co, kk) + steps['d' + kk])
         R_plus[kk] = line.get_R_matrix(
-                            start=start, end=end,
+                            start=start, end=end, steps=steps,
                             particle_on_co=p_plus[kk])['R_matrix']
 
         p_minus[kk] = particle_on_co.copy()
         setattr(p_minus[kk], kk, getattr(particle_on_co, kk) - steps['d' + kk])
         R_minus[kk] = line.get_R_matrix(
-                            start=start, end=end,
+                            start=start, end=end, steps=steps,
                             particle_on_co=p_minus[kk])['R_matrix']
 
     TT = np.zeros((6, 6, 6))

@@ -3,7 +3,7 @@ import json
 import re
 import uuid
 from collections import Counter, UserDict
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from contextlib import contextmanager
 from copy import deepcopy
 from pathlib import Path
@@ -124,7 +124,7 @@ class Environment:
         self.ref = EnvRef(self)
         self._elements = EnvElements(self)
         self._particles_container = EnvParticles(self)
-        self._xfields = EnvXfields(self)
+        self._xfields = None
         self._xcoll = None
         self._enable_name_clash_check = True
         self._last_context = None
@@ -163,6 +163,7 @@ class Environment:
         if particles is not None:
             self._particles.update(particles)
 
+        self.extra_config = {}
         self.metadata = {}
 
     def _init_var_management(self, dct=None):
@@ -196,6 +197,8 @@ class Environment:
 
     def __setstate__(self, state):
         self.__dict__.update(state)
+        if '_extra_config' not in self.__dict__:
+            self._extra_config = {}
         self._lines_weakrefs = WeakSet()
         self._line_composers = WeakKeyDictionary()
         self.aperture._env_ref = ref(self)
@@ -311,6 +314,20 @@ class Environment:
     @metadata.setter
     def metadata(self, value):
         self._metadata = value
+
+    @property_with_doc_group("Editing, Inspection, Variables and Configuration")
+    def extra_config(self):
+        """Internal configuration associated with the environment.
+
+        Unlike :attr:`metadata`, this dictionary is intended for configuration
+        owned by Xsuite subsystems. It is included in environment
+        serialization and copying.
+        """
+        return self._extra_config
+
+    @extra_config.setter
+    def extra_config(self, value):
+        self._extra_config = value
 
     @doc_group("Editing, Inspection, Variables and Configuration")
     def new(self, name, prototype=None, mode=None, at=None, from_=None,
@@ -865,7 +882,8 @@ class Environment:
         -------
         Environment
             Independent copy of the environment, including elements, lines,
-            particles, variables, expressions and metadata.
+            particles, variables, expressions, extra configuration and
+            metadata.
         """
         return self.__class__.from_dict(
             self.to_dict(include_aperture=True), with_progress=with_progress)
@@ -904,7 +922,7 @@ class Environment:
         else:
             pars_with_expr = []
 
-        formatter = xd.refs.CompactFormatter(scope=None)
+        formatter = xd.refs.MadxFormatter(scope=None)
 
         for rr in pars_with_expr:
             # Assign expressions by string to avoid having to deal with the
@@ -1109,6 +1127,11 @@ class Environment:
         -------
         dict
             Serialized environment data.
+
+        Raises
+        ------
+        TypeError
+            If an element to be serialized has no callable ``to_dict`` method.
         """
 
         out = {}
@@ -1117,7 +1140,8 @@ class Environment:
         if include_version:
             out["xtrack_version"] = xt.__version__
 
-        out["elements"] = {k: el.to_dict() for k, el in self._element_dict.items()}
+        out["elements"] = {k: xt.line._serialize_element(el, k)
+                           for k, el in self._element_dict.items()}
 
         if self._particle_ref is not None:
             if isinstance(self._particle_ref, str):
@@ -1147,6 +1171,7 @@ class Environment:
                 else:
                     out['_bb_config'][nn] = vv
 
+        out["_extra_config"] = deepcopy(self.extra_config)
         out["metadata"] = deepcopy(self.metadata)
 
         if include_aperture and (len(self.aperture.profiles) or len(self.aperture.pipes)):
@@ -1258,6 +1283,8 @@ class Environment:
 
         if "metadata" in dct:
             out.metadata = dct["metadata"]
+        if "_extra_config" in dct:
+            out.extra_config = deepcopy(dct["_extra_config"])
 
         return out
 
@@ -1537,9 +1564,16 @@ class Environment:
 
         Returns
         -------
-        xfields : xtrack.environment.EnvXfields
+        xfields : xfields.XfieldsEnvironmentAPI
             Accessor exposing Xfields helper methods.
         """
+        if self._xfields is None:
+            try:
+                from xfields.environment_tools import XfieldsEnvironmentAPI
+                self._xfields = XfieldsEnvironmentAPI(self)
+            except ImportError as error:
+                raise ImportError(
+                    "Please install Xfields to use this feature.") from error
         return self._xfields
 
     @property_with_doc_group("Editing, Inspection, Variables and Configuration")
@@ -1955,11 +1989,22 @@ class Environment:
 
         Parameters
         ----------
-        name : str or iterable of str
-            Name or names of the variable(s) or element(s).
-        value : float or str
-            Value or expression of the variable to set. Can be provided only
-            if the name is associated to a variable.
+        name : str, iterable of str, mapping or Table
+            Name or names of the variable(s) or element(s). A mapping supplies
+            variable names and values. A table supplies variable names from its
+            ``name`` column and values from its ``value`` column.
+        value : float, str or iterable, optional
+            Value or expression of the variable to set. For multiple variable
+            names, an iterable supplies one value or expression per name and
+            must have the same length. A scalar is applied to every name.
+            Can be provided only if the names are associated to variables.
+            For a mapping or table, an explicit positional value overrides the
+            stored values. Iterables follow key or row order; scalars (including
+            expression strings) broadcast to all names. With an override, a table
+            needs only the ``name`` column. Mapping inputs accept no keyword
+            arguments. With a table, keyword arguments set attributes of the
+            elements in its ``env_name`` column (falling back to ``name`` if
+            absent) and cannot be combined with a positional value.
         **kwargs : float or str
             Attributes to set. Can be provided only if the name is associated
             to an element.
@@ -1972,14 +2017,63 @@ class Environment:
         >>> line.set(['quad1', 'quad2'], k1=0.1, k2='3*a')
         >>> line.set(['c', 'd'], 0.1)
         >>> line.set(['e', 'f'], '3*a')
+        >>> line.set(['c', 'd'], [0.1, 0.2])
+        >>> line.set(['e', 'f'], ['3*a', '4*a'])
+        >>> line.set({'c': 0.1, 'd': '2*a'})
+        >>> line.set({'c': 0.1, 'd': 0.2}, 0.)
+        >>> line.set(table)  # table with name and value columns
+        >>> line.set(table, [0.1, 0.2])  # table with two rows
+        >>> line.set(table, 0.)
+        >>> line.set(element_table, k1='3*a')
 
         '''
+        if isinstance(name, xd.Table) and kwargs and not args:
+            if 'name' not in name._col_names:
+                raise ValueError('Table must have a name column')
+            column = 'env_name' if 'env_name' in name._col_names else 'name'
+            return self.set(name[column], **kwargs)
+
+        if isinstance(name, (Mapping, xd.Table)):
+            if len(args) > 1 or kwargs:
+                raise ValueError('Mapping or table input accepts at most one value override '
+                                 'and no keyword arguments')
+            if isinstance(name, Mapping):
+                names = list(name.keys())
+                values = args[0] if args else name.values()
+            else:
+                if 'name' not in name._col_names:
+                    raise ValueError('Table must have a name column')
+                if not args and 'value' not in name._col_names:
+                    raise ValueError('Table must have a value column when no override is supplied')
+                names = name['name']
+                values = args[0] if args else name['value']
+            if (not isinstance(values, Iterable) or isinstance(values, (str, bytes))
+                    or (isinstance(values, np.ndarray) and values.ndim == 0)):
+                values = [values] * len(names)
+            return self.set(names, values)
+
         if hasattr(name, 'env_name'):
             name = name.env_name
         elif hasattr(name, 'name'):
             name = name.name
 
         if isinstance(name, Iterable) and not isinstance(name, str):
+            if (len(args) == 1 and not kwargs
+                    and isinstance(args[0], Iterable)
+                    and not isinstance(args[0], (str, bytes))
+                    and not (isinstance(args[0], np.ndarray) and args[0].ndim == 0)):
+                # xdeps variable references use Python string keys.
+                names = [str(nn) if isinstance(nn, np.str_) else nn for nn in name]
+                values = list(args[0])
+                if len(names) != len(values):
+                    raise ValueError('Names and values must have the same length')
+                for nn in names:
+                    if nn in self.lines:
+                        raise ValueError('Cannot set a line')
+                    if nn in self.elements:
+                        raise ValueError('Only kwargs are allowed when setting element attributes')
+                self.vars.update(dict(zip(names, values)))
+                return
             for nn in name:
                 self.set(nn, *args, **kwargs)
             return
@@ -2024,17 +2118,18 @@ class Environment:
     @doc_group("Editing, Inspection, Variables and Configuration")
     def get(self, key):
         '''
-        Get an element or the value of a variable.
+        Get elements or variable values by name.
 
         Parameters
         ----------
-        key : str
-            Name of the element or variable.
+        key : str or iterable of str
+            Name or names of the elements or variables.
 
         Returns
         -------
-        element : Element or float
-            Element or value of the variable.
+        result : Element, float or list
+            Element or variable value for a single name. For multiple names,
+            a list of results in the requested order.
 
         Examples
         --------
@@ -2050,7 +2145,13 @@ class Environment:
             value = env.get('kq')
 
             # element is the Quadrupole object; value is 0.2
+
+            env.get(['kq', 'qf'])
+            # [0.2, Quadrupole(...)]
         '''
+
+        if isinstance(key, Iterable) and not isinstance(key, (str, bytes)):
+            return [self.get(name) for name in key]
 
         if key in self._element_dict:
             return self._element_dict[key]
@@ -2428,7 +2529,8 @@ class Environment:
 
     @doc_group("Upcoming deprecations")
     def configure_beambeam_interactions(self, num_particles,
-                                        nemitt_x, nemitt_y,
+                                        nemitt_x=None, nemitt_y=None,
+                                        gemitt_x=None, gemitt_y=None,
                                         crab_strong_beam=True,
                                         use_antisymmetry=False,
                                         separation_bumps=None):
@@ -2447,6 +2549,9 @@ class Environment:
             Horizontal normalized emittance.
         nemitt_y : float
             Vertical normalized emittance.
+        gemitt_x, gemitt_y : float, optional
+            Geometric transverse emittances. Provide at most one of
+            ``nemitt_*`` and ``gemitt_*`` in each plane.
         crab_strong_beam : bool, optional
             Whether to include strong-beam crabbing.
         use_antisymmetry : bool, optional
@@ -2468,13 +2573,16 @@ class Environment:
             num_particles=num_particles,
             nemitt_x=nemitt_x,
             nemitt_y=nemitt_y,
+            gemitt_x=gemitt_x, gemitt_y=gemitt_y,
             crab_strong_beam=crab_strong_beam,
             use_antisymmetry=use_antisymmetry,
             separation_bumps=separation_bumps)
 
     @doc_group("Upcoming deprecations")
-    def apply_filling_pattern(self, filling_pattern_cw, filling_pattern_acw,
-                              i_bunch_cw, i_bunch_acw):
+    def apply_filling_pattern(
+            self, filling_pattern_cw=None, filling_pattern_acw=None,
+            i_bunch_cw=None, i_bunch_acw=None, *,
+            filled_slots_cw=None, filled_slots_acw=None):
         """
         Deprecated alias for ``env.xfields.apply_filling_pattern(...)``.
 
@@ -2488,6 +2596,9 @@ class Environment:
             Filling pattern for the clockwise beam.
         filling_pattern_acw : array_like
             Filling pattern for the anticlockwise beam.
+        filled_slots_cw, filled_slots_acw : array_like, optional
+            Sparse filled physical slots for each beam. Mutually exclusive
+            with the corresponding filling pattern.
         i_bunch_cw : int
             Bunch index for the clockwise beam.
         i_bunch_acw : int
@@ -2502,11 +2613,16 @@ class Environment:
              'in a future version. Please use '
              '`Environment.xfields.apply_filling_pattern(...)` instead.',
              FutureWarning, stacklevel=2)
-        return self.xfields.apply_filling_pattern(
+        kwargs = dict(
             filling_pattern_cw=filling_pattern_cw,
             filling_pattern_acw=filling_pattern_acw,
             i_bunch_cw=i_bunch_cw,
             i_bunch_acw=i_bunch_acw)
+        if filled_slots_cw is not None or filled_slots_acw is not None:
+            kwargs.update(
+                filled_slots_cw=filled_slots_cw,
+                filled_slots_acw=filled_slots_acw)
+        return self.xfields.apply_filling_pattern(**kwargs)
 
 
 Environment.__doc_groups__ = _ENVIRONMENT_DOC_GROUP_COLLECTOR.collect(Environment)
@@ -2846,131 +2962,6 @@ class EnvParticles:
 
     def __delitem__(self, name):
         self.remove(name)
-
-
-class EnvXfields:
-    """
-    Accessor for Xfields-related environment helpers.
-
-    Instances are available as ``env.xfields`` and expose helpers for
-    beam-beam configuration workflows.
-    """
-
-    def __init__(self, env):
-        self.env = env
-
-    def install_beambeam_interactions(self, clockwise_line, anticlockwise_line,
-                                      ip_names,
-                                      num_long_range_encounters_per_side,
-                                      num_slices_head_on,
-                                      harmonic_number, bunch_spacing_buckets,
-                                      sigmaz,
-                                      delay_at_ips_slots=None):
-        """
-        Install beam-beam interactions in two lines.
-
-        Parameters
-        ----------
-        clockwise_line : str or xtrack.Line
-            Clockwise line or line name.
-        anticlockwise_line : str or xtrack.Line
-            Anticlockwise line or line name.
-        ip_names : sequence of str
-            Interaction point names.
-        num_long_range_encounters_per_side : int or sequence of int
-            Number of long-range encounters per side.
-        num_slices_head_on : int
-            Number of longitudinal slices for head-on interactions.
-        harmonic_number : int
-            RF harmonic number.
-        bunch_spacing_buckets : int
-            Bunch spacing in RF buckets.
-        sigmaz : float
-            RMS bunch length.
-        delay_at_ips_slots : sequence of int, optional
-            Delay at interaction points in bunch slots.
-
-        Returns
-        -------
-        object
-            Result returned by the underlying beam-beam installation helper.
-        """
-        return MultilineLegacy.install_beambeam_interactions(
-            self.env,
-            clockwise_line=clockwise_line,
-            anticlockwise_line=anticlockwise_line,
-            ip_names=ip_names,
-            num_long_range_encounters_per_side=num_long_range_encounters_per_side,
-            num_slices_head_on=num_slices_head_on,
-            harmonic_number=harmonic_number,
-            bunch_spacing_buckets=bunch_spacing_buckets,
-            sigmaz=sigmaz,
-            delay_at_ips_slots=delay_at_ips_slots)
-
-    def configure_beambeam_interactions(self, num_particles,
-                                        nemitt_x, nemitt_y,
-                                        crab_strong_beam=True,
-                                        use_antisymmetry=False,
-                                        separation_bumps=None):
-        """
-        Configure installed beam-beam interactions.
-
-        Parameters
-        ----------
-        num_particles : float
-            Number of particles per bunch.
-        nemitt_x : float
-            Horizontal normalized emittance.
-        nemitt_y : float
-            Vertical normalized emittance.
-        crab_strong_beam : bool, optional
-            Whether to include strong-beam crabbing.
-        use_antisymmetry : bool, optional
-            Whether to use antisymmetry when configuring the interactions.
-        separation_bumps : object, optional
-            Separation bump configuration passed to the underlying helper.
-
-        Returns
-        -------
-        object
-            Result returned by the underlying beam-beam configuration helper.
-        """
-        return MultilineLegacy.configure_beambeam_interactions(
-            self.env,
-            num_particles=num_particles,
-            nemitt_x=nemitt_x,
-            nemitt_y=nemitt_y,
-            crab_strong_beam=crab_strong_beam,
-            use_antisymmetry=use_antisymmetry,
-            separation_bumps=separation_bumps)
-
-    def apply_filling_pattern(self, filling_pattern_cw, filling_pattern_acw,
-                              i_bunch_cw, i_bunch_acw):
-        """
-        Apply filling patterns to the configured beam-beam interactions.
-
-        Parameters
-        ----------
-        filling_pattern_cw : array_like
-            Filling pattern for the clockwise beam.
-        filling_pattern_acw : array_like
-            Filling pattern for the anticlockwise beam.
-        i_bunch_cw : int
-            Bunch index for the clockwise beam.
-        i_bunch_acw : int
-            Bunch index for the anticlockwise beam.
-
-        Returns
-        -------
-        object
-            Result returned by the underlying filling-pattern helper.
-        """
-        return MultilineLegacy.apply_filling_pattern(
-            self.env,
-            filling_pattern_cw=filling_pattern_cw,
-            filling_pattern_acw=filling_pattern_acw,
-            i_bunch_cw=i_bunch_cw,
-            i_bunch_acw=i_bunch_acw)
 
 
 class EnvRef:
@@ -3543,7 +3534,7 @@ class EnvVars:
         value = np.array([self.env._xdeps_vref[kk]._value for kk in name])
 
         if compact:
-            formatter = xd.refs.CompactFormatter(scope=None)
+            formatter = xd.refs.MadxFormatter(scope=None)
             expr = []
             expr_obj_list = []
             for kk in name:

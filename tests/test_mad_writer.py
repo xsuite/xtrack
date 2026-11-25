@@ -6,9 +6,126 @@ from cpymad.madx import Madx
 
 import xobjects as xo
 import xtrack as xt
+from xtrack.mad_writer import MadType, expr_to_mad_str, mad_assignment
 
 test_data_folder = pathlib.Path(
             __file__).parent.joinpath('../test_data').absolute()
+
+
+def test_compact_strength_expressions():
+    env = xt.Environment()
+    env['kd_0'] = 0.01
+    env['dkd_x'] = 0.2
+    env['dkd_y'] = -0.4
+    env['qx_leq'] = 0
+    env['qy_leq'] = 0
+    expressions = {
+        'kd': 'kd_0 + dkd_x * qx_leq + dkd_y * qy_leq',
+        'kda': 'kd * 9.0 / 11.0',
+        'kdb': 'kd_0 - (dkd_x - dkd_y)',
+    }
+    for name, source in expressions.items():
+        env[name] = source
+    table = env.vars.get_table()
+    for name, expected in expressions.items():
+        assert table['expr', name] == expected
+        assert expr_to_mad_str(env.vars.get_expr(name)) == expected
+
+
+@pytest.mark.parametrize('name', ['x', 'px', 'k.expr', 'expr', 'k_expr'])
+def test_mad_assignment_preserves_variable_names(name):
+    env = xt.Environment()
+    env[name] = 2.
+    assert mad_assignment('result', env.ref[name]) == f'result := {name}'
+    assert mad_assignment('result', 2 * env.ref[name]) == f'result := 2 * {name}'
+
+
+@pytest.mark.parametrize('source', ['a ** (b ** c)', '(a ** b) ** c', 'a * -b'])
+def test_compact_variable_table_roundtrip(source):
+    env = xt.Environment()
+    env.vars.update({'a': 2., 'b': 3., 'c': 2.})
+    env.ref['result'] = eval(source, {}, {name: env.ref[name] for name in 'abc'})
+    restored = xt.Environment()
+    restored.vars.update(env.vars.get_table().to_dict())
+    assert restored['result'] == env['result']
+    for current in (env, restored):
+        current['a'] = 4.
+    assert restored['result'] == env['result']
+
+
+@pytest.mark.parametrize('source,expected', [
+    ('a - (b - c)', 'a - (b - c)'),
+    ('a / (b / c)', 'a / (b / c)'),
+    ('a * (b + c)', 'a * (b + c)'),
+    ('-(-a)', '-(-a)'),
+    ('a * -b', 'a * (-b)'),
+    ('a + -b', 'a + (-b)'),
+    ('a / -b', 'a / (-b)'),
+    ('a - -2.0', 'a - (-2.0)'),
+    ('a + (b + c)', 'a + (b + c)'),
+    ('a * (b / c)', 'a * (b / c)'),
+    ('(-a) ** b', '(-a) ^ b'),
+    ('-a ** b', '-a ^ b'),
+    ('(-2.0) ** b', '(-2.0) ^ b'),
+    ('(a ** b) ** c', '(a ^ b) ^ c'),
+    ('a ** (b ** c)', 'a ^ (b ^ c)'),
+    ('a ** (-b)', 'a ^ (-b)'),
+    ('a ** (-b ** c)', 'a ^ (-b ^ c)'),
+    ('f.sin(a + b) * c', 'sin(a + b) * c'),
+    ("f['sin'](a) ** 2", 'sin(a) ^ 2'),
+    ("v['k.q'] * a", 'k.q * a'),
+    ("f.sin(1.0) ** 2", 'sin(1.0) ^ 2'),
+])
+def test_mad_expression_precedence(source, expected):
+    env = xt.Environment()
+    values = {'a': 2., 'b': 3., 'c': 2., 'k.q': 0.1}
+    for name, value in values.items():
+        env[name] = value
+    namespace = {name: env.ref[name] for name in values}
+    namespace.update(f=env._xdeps_fref, v=env._xdeps_vref)
+    expr = eval(source, {}, namespace)
+    formatted = expr_to_mad_str(expr)
+    assert formatted == expected
+    assert env.new_expr(formatted)._value == pytest.approx(expr._value)
+    with Madx(stdout=False) as mad:
+        for name, value in values.items():
+            mad.globals[name] = value
+        mad.input(f'result := {formatted};')
+        assert mad.globals['result'] == pytest.approx(expr._value)
+        # Ensure the exported expression remains deferred.
+        env['a'] = 4.
+        mad.globals['a'] = 4.
+        assert mad.globals['result'] == pytest.approx(expr._value)
+
+
+@pytest.mark.parametrize('source', [
+    '(a + b) / 2.0 + 0.192',
+    '(a ** b) ** c',
+    'a - (b - c)',
+    '-a * b + c',
+    'f.sin(a + b) * c',
+    'a',
+])
+@pytest.mark.parametrize('as_string', [False, True])
+def test_madng_deferred_expression_scope(source, as_string):
+    MAD = pytest.importorskip('pymadng').MAD
+    env = xt.Environment()
+    env.vars.update({'a': 2., 'b': 3., 'c': 2.})
+    namespace = {name: env.ref[name] for name in 'abc'}
+    namespace['f'] = env._xdeps_fref
+    expression = eval(source, {}, namespace)
+    rhs = expr_to_mad_str(expression) if as_string else expression
+    assignment = mad_assignment('result', rhs, mad_type=MadType.MADNG,
+                                substituted_vars=[])
+
+    with MAD() as mad:
+        mad.send('MADX:open_env(); a = 2.; b = 3.; c = 2.; '
+                 + assignment + '; MADX:close_env()')
+        assert mad.MADX.result == pytest.approx(expression._value)
+        env['a'] = 4.
+        mad.send('MADX.a = 4.0')
+        assert mad.MADX.result == pytest.approx(expression._value)
+
 
 @pytest.mark.parametrize('case', ['thin', 'thick'])
 def test_mad_writer(case):

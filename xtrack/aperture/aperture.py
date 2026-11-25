@@ -108,6 +108,7 @@ def _split_wrapped_s_interval(
 
 
 _aperture_doc_groups = GroupedAPICollector([
+    "Construction",
     "Loading and Serialization",
     "Aperture Computation",
     "Introspection",
@@ -115,8 +116,10 @@ _aperture_doc_groups = GroupedAPICollector([
 ])
 
 DEFAULT_HALO_PARAMS = {
-    "nemitt_x": 1e-6,
-    "nemitt_y": 1e-6,
+    "nemitt_x": None,
+    "nemitt_y": None,
+    "gemitt_x": None,
+    "gemitt_y": None,
     "delta_rms": 0.0,
     "tol_co": 0.0,
     "tol_disp": 0.0,
@@ -198,8 +201,10 @@ class LineAperture:
         ========================  =======  =====================================================
         Key                       Default  Description
         ========================  =======  =====================================================
-        ``nemitt_x``              1e-6     Normalised horizontal emittance [m·rad]
-        ``nemitt_y``              1e-6     Normalised vertical emittance [m·rad]
+        ``nemitt_x``              None     Normalised horizontal emittance [m·rad]
+        ``nemitt_y``              None     Normalised vertical emittance [m·rad]
+        ``gemitt_x``              None     Geometric horizontal emittance [m·rad]
+        ``gemitt_y``              None     Geometric vertical emittance [m·rad]
         ``delta_rms``             0.0      RMS momentum spread
         ``tol_co``                0.0      Closed-orbit tolerance [m]
         ``tol_disp``              0.0      Normalised dispersion tolerance [m]
@@ -215,8 +220,44 @@ class LineAperture:
         The dictionary is mutable; individual entries can be changed with
         ``aperture.halo_params['key'] = value`` or in bulk with
         ``aperture.halo_params.update({...})``.
+        ``gemitt_x`` and ``gemitt_y`` can be used instead of the corresponding
+        normalized emittances. Providing both forms in one plane is an error.
+        If neither form is set, the normalized emittance defaults to 1e-6.
+        The stored emittance inputs default to ``None``.
+        Normalized inputs and defaults require ``line.particle_ref`` for
+        conversion. The kernels and plot labels use geometric emittances.
         """
         return self._halo_params
+
+    def _resolve_halo_emittances(self):
+        """Return the horizontal and vertical geometric halo emittances."""
+        emittances = []
+        beta_gamma = None
+        for plane in ('x', 'y'):
+            nemitt = self.halo_params.get(f'nemitt_{plane}')
+            gemitt = self.halo_params.get(f'gemitt_{plane}')
+            if nemitt is not None and gemitt is not None:
+                raise ValueError(
+                    f'Cannot provide both nemitt_{plane} and gemitt_{plane}.')
+            if gemitt is None:
+                if beta_gamma is None:
+                    particle = self.line.particle_ref
+                    if particle is None:
+                        raise ValueError(
+                            'line.particle_ref must be set to convert normalized '
+                            'halo emittances (including defaults) to geometric emittances.')
+                    beta_gamma = particle.beta0[0] * particle.gamma0[0]
+                gemitt = (1e-6 if nemitt is None else nemitt) / beta_gamma
+            emittances.append(gemitt)
+        return tuple(emittances)
+
+    def _get_beam_data(self):
+        """Build kernel input from the halo settings and geometric emittances."""
+        params = self.halo_params.copy()
+        params.pop('nemitt_x', None)
+        params.pop('nemitt_y', None)
+        params['gemitt_x'], params['gemitt_y'] = self._resolve_halo_emittances()
+        return BeamData(**params)
 
     @halo_params.setter
     def halo_params(self, value: dict):
@@ -237,15 +278,69 @@ class LineAperture:
         """Return the pipe collection view."""
         return self.line.env.aperture.pipes
 
+    @doc_group("Construction")
     def new_profile(self, name, shape, **shape_params):
         """Create a profile in the line's aperture environment."""
         return self.line.env.aperture.new_profile(name, shape, **shape_params)
 
+    @doc_group("Construction")
     def new_pipe(self, name, curvature=0.0, positions=None):
         """Create a pipe in the line's aperture environment."""
         return self.line.env.aperture.new_pipe(
             name, curvature=curvature, positions=positions,
         )
+
+    @doc_group("Construction")
+    def new_element_pipe(self, name, profile):
+        """Create and install an element aperture using MAD-X conventions.
+
+        Parameters
+        ----------
+        name : str
+            Element in this line. Occurrence names such as ``bend::1`` are
+            accepted for repeated elements. The pipe is named ``{name}_pipe``
+            and its placement is named ``name``.
+        profile : str or ProfileView
+            Profile registered in this environment, used at both ends of a
+            thick element or once at a thin element.
+
+        Returns
+        -------
+        PipeView
+            The new pipe, already placed at the element entrance.
+
+        Notes
+        -----
+        Uses the element's current length, curvature and roll. Bends follow
+        the reference arc, using arc length also for RBends. Their pipe is
+        rolled into the bend plane, with the opposite profile rotation keeping
+        aperture axes aligned with the local reference frame (zero APER_TILT).
+        Straight elements have no aperture roll. Aperture offsets and
+        tolerances default to zero and can be edited on the returned pipe.
+        """
+        if self.is_built:
+            raise RuntimeError("Cannot place pipes after the line aperture is built.")
+        if name in self._pipe_position_name_to_index:
+            raise ValueError(f"Pipe position `{name}` already exists.")
+
+        if self.line._has_valid_tracker():
+            table = self.line.tracker._tracker_data_base._line_table
+        else:
+            table = self.line.get_table()
+        index = table.rows.get_index(name)
+        element = self.line[table.env_name[index]]
+        profile_index = self.line.env.aperture.profile_index(profile)
+        profile = self.profiles[profile_index]
+
+        length = element.length if getattr(element, 'isthick', False) else 0.0
+        curvature = getattr(element, 'h', 0.0) if length else 0.0
+        tilt = getattr(element, 'rot_s_rad', 0.0) if curvature else 0.0
+        positions = [profile.place(at=0.0, rot_s_rad=-tilt)]
+        if length:
+            positions.append(profile.place(at=length, rot_s_rad=-tilt))
+        pipe = self.new_pipe(f'{name}_pipe', curvature=curvature, positions=positions)
+        self.place_pipe(name, pipe, at=table.name[index], rot_z_rad=tilt)
+        return pipe
 
     @property
     def is_built(self):
@@ -281,6 +376,7 @@ class LineAperture:
         interpolated = survey_data.resample([anchor_s]).pose.to_nplike()
         return interpolated[0]
 
+    @doc_group("Construction")
     def place_pipe(
         self,
         name,
@@ -1061,6 +1157,7 @@ class LineAperture:
             element_name: str,
             resolution: float | None = None,
             twiss: TwissTable | None = None,
+            twiss_options: dict | None = None,
             **kwargs,
     ) -> tuple[Table, TwissTable]:
         """Compute the maximum number of sigmas at which the beam fits in the aperture at element ``element_name``.
@@ -1074,6 +1171,9 @@ class LineAperture:
             values at the entry and exit will be output.
         twiss
             Optionally provided twiss table from which to derive the initial beam parameters at the element.
+        twiss_options
+            Options passed to :meth:`xtrack.Line.twiss`, for example
+            ``{'method': '4d'}``. See :meth:`get_aperture_sigmas_at_s`.
         **kwargs
             Other parameters to be forwarded to :meth:`get_aperture_sigmas_at_s`.
 
@@ -1083,7 +1183,8 @@ class LineAperture:
         """
         s_positions = self._get_cuts_inside_element(element_name, resolution)
         twiss_init = twiss.get_twiss_init(at_element=element_name) if twiss else None
-        return self.get_aperture_sigmas_at_s(s_positions, twiss_init, **kwargs)
+        return self.get_aperture_sigmas_at_s(
+            s_positions, twiss_init, twiss_options=twiss_options, **kwargs)
 
     @doc_group("Aperture Computation")
     def get_aperture_sigmas_at_s(
@@ -1097,6 +1198,7 @@ class LineAperture:
             output_cross_sections: bool = False,
             with_progress: bool = True,
             output_contact_points: bool = False,
+            twiss_options: dict | None = None,
     ) -> tuple[Table, TwissTable]:
         """Compute the maximum number of sigmas at which the beam fits in the aperture at the given ``s_positions``.
 
@@ -1136,6 +1238,11 @@ class LineAperture:
             survey frame, not offsets from the closed orbit or pipe centre.
             If several rays tie, return the first sampled direction.
             Nonfinite ``n1`` has NaN coordinates.
+        twiss_options
+            Options passed to :meth:`xtrack.Line.twiss`, for example
+            ``{'method': '4d', 'delta0': 1e-3}``. The aperture calculation
+            requires ``reverse=False``. Provide initial conditions through
+            either ``twiss_init`` or ``twiss_options['init']``, not both.
 
         Returns
         -------
@@ -1151,7 +1258,7 @@ class LineAperture:
             raise ValueError("Contact points are supported only for method='rays'")
         sliced_twiss = self._get_sliced_twiss_at_s(
             s_positions=s_positions, twiss_init=twiss_init,
-            with_progress=with_progress)
+            with_progress=with_progress, twiss_options=twiss_options)
         table = self.get_aperture_sigmas_for_twiss(
             sliced_twiss=sliced_twiss,
             method=method,
@@ -1231,9 +1338,9 @@ class LineAperture:
             self.build_model()
 
         num_slices = len(sliced_twiss.s)
-        twiss_at_s = TwissData.from_twiss_table(self.line.particle_ref, sliced_twiss)
+        twiss_at_s = TwissData.from_twiss_table(sliced_twiss)
         survey_at_s = self._survey_data.resample(twiss_at_s.s)
-        beam_data = BeamData(**self.halo_params)
+        beam_data = self._get_beam_data()
 
         if output_cross_sections:
             interpolated_points = np.zeros(shape=(num_slices, self.num_profile_points, 2), dtype=FloatType._dtype)
@@ -1331,6 +1438,7 @@ class LineAperture:
             resolution: float | None = None,
             twiss: TwissTable | None = None,
             with_progress: bool = True,
+            twiss_options: dict | None = None,
     ) -> tuple[Table, TwissTable]:
         """Compute horizontal, vertical and diagonal (45°) max aperture sigmas at element ``element_name``.
 
@@ -1346,6 +1454,9 @@ class LineAperture:
         with_progress
             Whether to show progress while slicing the line. Defaults to
             ``True``.
+        twiss_options
+            Options passed to :meth:`xtrack.Line.twiss`, for example
+            ``{'method': '4d'}``. See :meth:`get_hvd_aperture_sigmas_at_s`.
 
         Returns
         -------
@@ -1355,7 +1466,7 @@ class LineAperture:
         twiss_init = twiss.get_twiss_init(at_element=element_name) if twiss else None
         return self.get_hvd_aperture_sigmas_at_s(
             s_positions=s_positions, twiss_init=twiss_init,
-            with_progress=with_progress)
+            with_progress=with_progress, twiss_options=twiss_options)
 
     @doc_group("Aperture Computation")
     def get_hvd_aperture_sigmas_at_s(
@@ -1363,6 +1474,7 @@ class LineAperture:
             s_positions: Iterable[float],
             twiss_init: TwissInit | None = None,
             with_progress: bool = True,
+            twiss_options: dict | None = None,
     ) -> tuple[Table, TwissTable]:
         """Compute horizontal, vertical and diagonal (45°) max aperture sigmas at the given ``s_positions``.
 
@@ -1375,6 +1487,11 @@ class LineAperture:
         with_progress
             Whether to show progress while slicing the line. Defaults to
             ``True``.
+        twiss_options
+            Options passed to :meth:`xtrack.Line.twiss`, for example
+            ``{'method': '4d', 'delta0': 1e-3}``. The aperture calculation
+            requires ``reverse=False``. Provide initial conditions through
+            either ``twiss_init`` or ``twiss_options['init']``, not both.
 
         Returns
         -------
@@ -1389,13 +1506,13 @@ class LineAperture:
 
         sliced_twiss = self._get_sliced_twiss_at_s(
             s_positions=s_positions, twiss_init=twiss_init,
-            with_progress=with_progress)
+            with_progress=with_progress, twiss_options=twiss_options)
         num_slices = len(sliced_twiss.s)
 
-        twiss_at_s = TwissData.from_twiss_table(self.line.particle_ref, sliced_twiss)
+        twiss_at_s = TwissData.from_twiss_table(sliced_twiss)
         survey_at_s = self._survey_data.resample(twiss_at_s.s)
 
-        beam_data = BeamData(**self.halo_params)
+        beam_data = self._get_beam_data()
         interpolated_points = np.zeros(shape=(num_slices, self.num_profile_points, 2), dtype=FloatType._dtype)
 
         ray_angles = np.linspace(0, 2 * np.pi, 8, endpoint=False, dtype=FloatType._dtype)
@@ -1441,6 +1558,7 @@ class LineAperture:
             sigmas: float,
             resolution: float | None = None,
             twiss: TwissTable | None = None,
+            twiss_options: dict | None = None,
             **kwargs,
     ) -> tuple[Table, TwissTable]:
         """Compute beam-envelope polygons at the cuts of ``element_name`` for a fixed sigma value.
@@ -1456,6 +1574,9 @@ class LineAperture:
             the values at the entry and exit will be output.
         twiss
             Optionally provided twiss table from which to derive the initial beam parameters at the element.
+        twiss_options
+            Options passed to :meth:`xtrack.Line.twiss`, for example
+            ``{'method': '4d'}``. See :meth:`get_envelope_at_s`.
         **kwargs
             Other parameters to be forwarded to :meth:`get_envelope_at_s`.
 
@@ -1465,7 +1586,8 @@ class LineAperture:
         """
         s_positions = self._get_cuts_inside_element(element_name, resolution)
         twiss_init = twiss.get_twiss_init(at_element=element_name) if twiss else None
-        return self.get_envelope_at_s(s_positions, sigmas, twiss_init, **kwargs)
+        return self.get_envelope_at_s(
+            s_positions, sigmas, twiss_init, twiss_options=twiss_options, **kwargs)
 
     @doc_group("Aperture Computation")
     def get_envelope_at_s(
@@ -1478,6 +1600,7 @@ class LineAperture:
             polygons: bool = True,
             extents: bool = False,
             with_progress: bool = True,
+            twiss_options: dict | None = None,
     ) -> tuple[Table, TwissTable]:
         """Compute beam-envelope polygons at the requested ``s_positions`` for a fixed sigma value.
 
@@ -1500,6 +1623,11 @@ class LineAperture:
         with_progress
             Whether to show progress while slicing the line. Defaults to
             ``True``.
+        twiss_options
+            Options passed to :meth:`xtrack.Line.twiss`, for example
+            ``{'method': '4d', 'delta0': 1e-3}``. The aperture calculation
+            requires ``reverse=False``. Provide initial conditions through
+            either ``twiss_init`` or ``twiss_options['init']``, not both.
 
         Returns
         -------
@@ -1510,7 +1638,7 @@ class LineAperture:
         """
         sliced_twiss = self._get_sliced_twiss_at_s(
             s_positions=s_positions, twiss_init=twiss_init,
-            with_progress=with_progress)
+            with_progress=with_progress, twiss_options=twiss_options)
         envelope_table = self.get_envelope_for_twiss(
             sliced_twiss=sliced_twiss,
             sigmas=sigmas,
@@ -1574,8 +1702,8 @@ class LineAperture:
             self.build_model()
 
         num_slices = len(sliced_twiss.s)
-        twiss_at_s = TwissData.from_twiss_table(self.line.particle_ref, sliced_twiss)
-        beam_data = BeamData(**self.halo_params)
+        twiss_at_s = TwissData.from_twiss_table(sliced_twiss)
+        beam_data = self._get_beam_data()
 
         envelopes = (
             np.zeros(shape=(num_slices, envelopes_num_points, 2), dtype=FloatType._dtype)
@@ -1794,17 +1922,65 @@ class LineAperture:
         """
         return self.get_cross_sections_at_s(s_positions, extents=True, polygons=False)
 
+    def _pipe_candidates_at_s(self, positions):
+        """Yield covering pipe placements, or the two neighbours across a gap."""
+        table = self.get_pipe_table()
+        model_indices = {name: i for i, name in enumerate(self._model.pipe_position_names)}
+        indices = np.array([model_indices[name] for name in table.name], dtype=int)
+        starts, ends = table.s_span_start, table.s_span_end
+        # The pipe table is ordered by longitudinal start, including on rings.
+        ordered_starts = table.s_start
+        period = self.line.get_length() if self.is_ring else None
+        tol = 1e-10
+        for s in positions:
+            if self._aperture_bounds.count == 1:
+                # The section kernel projects the only bound onto any requested plane.
+                yield [int(self._aperture_bounds.pipe_position_indices[0])]
+                continue
+            if period:
+                s %= period
+            inside = (starts - tol <= s) & (s <= ends + tol)
+            if self.is_ring:
+                inside |= ((starts > ends) & ((s >= starts - tol) | (s <= ends + tol)))
+            if inside.any():
+                covered = indices[inside]
+                if self.is_ring and len(covered) > 1:
+                    # A pipe crossing s=0 comes before one starting on this lap.
+                    wrapped = starts[inside] > s + tol
+                    covered = np.r_[covered[wrapped], covered[~wrapped]]
+                yield list(covered)
+                continue
+
+            # Between two pipes the section interpolates their end profiles.
+            right = np.searchsorted(ordered_starts, s)
+            if 0 < right < len(indices):
+                yield [indices[right - 1], indices[right]]
+            elif self.is_ring and len(indices):
+                yield [indices[-1], indices[0]]
+            else:
+                yield []
+
+    def _installed_pipe_name(self, pipes):
+        names = (self._model.pipe_position_names[i] for i in pipes)
+        return ','.join(dict.fromkeys(names)) or None
+
     @doc_group("Aperture Computation")
     def get_limit_elements_at_s(self, s_positions: list[float]) -> dict[float, LimitElement]:
-        """Obtain interpolated cross-sections as limit beam elements."""
+        """Return sampled polygon limits with their installed pipe placement names.
+
+        At a shared boundary, overlap or interpolated gap, installed_pipe_name
+        lists the contributing placements in beam order, separated by commas.
+        """
         cross_sections_table = self.get_cross_sections_at_s(s_positions)
         limit_elements = {}
-        for s, row in zip(s_positions, cross_sections_table.rows):
+        candidates = self._pipe_candidates_at_s(s_positions)
+        for s, row, pipes in zip(s_positions, cross_sections_table.rows, candidates):
             cross_section = row.cross_section
             limit_poly = LimitPolygon(
                 x_vertices=cross_section[:-1, 0],
                 y_vertices=cross_section[:-1, 1],
             )
+            limit_poly.installed_pipe_name = self._installed_pipe_name(pipes)
             limit_elements[s] = limit_poly
 
         return limit_elements
@@ -1821,6 +1997,7 @@ class LineAperture:
         plot_s_positions: Collection[float] | None = None,
         axs=None,
         with_progress: bool = True,
+        twiss_options: dict | None = None,
     ):
         """Plot aperture limits and beam-envelope extents along the line.
 
@@ -1866,6 +2043,11 @@ class LineAperture:
         with_progress
             Whether to show progress while slicing the line. Defaults to
             ``True``.
+        twiss_options
+            Options passed to :meth:`xtrack.Line.twiss`, for example
+            ``{'method': '4d', 'delta0': 1e-3}``. The aperture calculation
+            requires ``reverse=False``. Provide initial conditions through
+            either ``twiss_init`` or ``twiss_options['init']``, not both.
 
         Returns
         -------
@@ -1889,6 +2071,7 @@ class LineAperture:
             s_positions=s_sorted,
             twiss_init=twiss_init,
             with_progress=with_progress,
+            twiss_options=twiss_options,
         )
         sigmas_was_computed = sigmas is None
         if sigmas is None:
@@ -1946,11 +2129,11 @@ class LineAperture:
         ax_y.set_xlabel('s [m]')
 
         sigma_label = 'n_1' if sigmas_was_computed else 'n'
-        nemitt_x, nemitt_y = self.halo_params['nemitt_x'], self.halo_params['nemitt_y']
+        gemitt_x, gemitt_y = self._resolve_halo_emittances()
         fig.suptitle(
             fr"Extents and beam envelope at ${sigma_label} = {sigmas:.3g}$ and "
             fr"$s \in [{np.min(plot_s_positions):.3g}, {np.max(plot_s_positions):.3g}]$" + "\n"
-            fr"$\varepsilon_{{n,x}}$ = {nemitt_x:.3e}, $\varepsilon_{{n,y}}$ = {nemitt_y:.3e}"
+            fr"$\varepsilon_{{g,x}}$ = {gemitt_x:.3e}, $\varepsilon_{{g,y}}$ = {gemitt_y:.3e}"
         )
 
         return fig, axs
@@ -1967,6 +2150,7 @@ class LineAperture:
             middle='beam',
             ax=None,
             with_progress: bool = True,
+            twiss_options: dict | None = None,
     ):
         """Display transverse aperture cross-sections and beam envelopes.
 
@@ -2005,6 +2189,11 @@ class LineAperture:
         with_progress
             Whether to show progress while slicing the line. Defaults to
             ``True``.
+        twiss_options
+            Options passed to :meth:`xtrack.Line.twiss`, for example
+            ``{'method': '4d', 'delta0': 1e-3}``. The aperture calculation
+            requires ``reverse=False``. Provide initial conditions through
+            either ``twiss_init`` or ``twiss_options['init']``, not both.
 
         Returns
         -------
@@ -2033,6 +2222,7 @@ class LineAperture:
                 output_max_envelopes=True,
                 output_cross_sections=True,
                 with_progress=with_progress,
+                twiss_options=twiss_options,
             )
             sigmas = float(np.min(n1_tab.n1))
             beam_tols = n1_tab.envelope
@@ -2045,6 +2235,7 @@ class LineAperture:
                 s_positions=s_positions,
                 twiss_init=twiss_init,
                 with_progress=with_progress,
+                twiss_options=twiss_options,
             )
             beam_tols = self.get_envelope_for_twiss(
                 sliced_twiss=sliced_twiss,
@@ -2095,12 +2286,12 @@ class LineAperture:
                 ax.plot(pt[:, 0] - mid[0], pt[:, 1] - mid[1], c='skyblue', linestyle=':', label=label)
                 seen = True
 
-        nemitt_x, nemitt_y = self.halo_params['nemitt_x'], self.halo_params['nemitt_y']
+        gemitt_x, gemitt_y = self._resolve_halo_emittances()
         ax.set_aspect('equal')
         ax.set_title(
             fr"Transverse aperture at {title_location}, "
             fr"s $\in$ [{s_positions[0]:.2f}, {s_positions[-1]:.2f}], {title_sigma}," + "\n"
-            fr"$\varepsilon_{{n,x}}$ = {nemitt_x:.3e}, $\varepsilon_{{n,y}}$ = {nemitt_y:.3e}"
+            fr"$\varepsilon_{{g,x}}$ = {gemitt_x:.3e}, $\varepsilon_{{g,y}}$ = {gemitt_y:.3e}"
         )
         ax.legend()
         return ax
@@ -2222,7 +2413,18 @@ class LineAperture:
                 self._aperture_bounds.pipe_position_indices[idx] = pipe_pos_idx
                 self._aperture_bounds.profile_position_indices[idx] = profile_pos_idx
 
-        self._model.build_profile_polygons(
+        # Fill profile polygons before the bounds kernel reads them. On CPU,
+        # each slice is a contiguous numpy view; GPU support needs context arrays.
+        profile_indices = range(num_profile_polys)
+        if with_progress:
+            profile_indices = progress(
+                profile_indices, desc='Building profile polygons', total=num_profile_polys)
+        profile_points = self._profile_polygons.points.to_nplike()
+        for idx in profile_indices:
+            self._model.profiles[idx].build_polygon(
+                num_points, out_poly=profile_points[idx])
+
+        self._model.build_aperture_bounds(
             profile_polygons=self._profile_polygons,
             aperture_bounds=self._aperture_bounds,
             survey=self._survey_data,
@@ -2579,6 +2781,7 @@ class LineAperture:
             s_positions: Iterable[float],
             twiss_init: TwissInit | None = None,
             with_progress: bool = True,
+            twiss_options: dict | None = None,
     ) -> TwissTable:
         """Get a twiss table for the line with entries at each requested `s`.
 
@@ -2590,12 +2793,26 @@ class LineAperture:
             Initial conditions for the twiss.
         with_progress
             Whether to show progress while slicing the line.
+        twiss_options
+            Options passed to :meth:`xtrack.Line.twiss`, for example
+            ``{'method': '4d', 'delta0': 1e-3}``. The aperture calculation
+            requires ``reverse=False``. Provide initial conditions through
+            either ``twiss_init`` or ``twiss_options['init']``, not both.
         """
+        kwargs = dict(twiss_options or {})
+        if kwargs.get('reverse'):
+            raise ValueError("Aperture calculations require reverse=False")
+        kwargs['reverse'] = False
+        if twiss_init is not None and kwargs.get('init') is not None:
+            raise ValueError("Provide either twiss_init or twiss_options['init'], not both")
+        if kwargs.get('init') is None:
+            kwargs['init'] = twiss_init
+
         s_positions = np.array(s_positions, dtype=FloatType._dtype)
         line_sliced = self.line.copy()
         line_sliced.cut_at_s(s_positions, with_progress=with_progress)
 
-        full_twiss = line_sliced.twiss(init=twiss_init, reverse=False)
+        full_twiss = line_sliced.twiss(**kwargs)
 
         # "Authoritative" s-positions after slicing (up to cutting tolerances)
         tw_s = np.array(full_twiss.s, dtype=FloatType._dtype)

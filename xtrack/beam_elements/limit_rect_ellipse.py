@@ -6,10 +6,10 @@
 from ..base_element import BeamElement
 import numpy as np
 import xobjects as xo
-from ._aperture_common import UNLIMITED
+from ._aperture_common import UNLIMITED, _HasInstalledPipeName
 
 
-class LimitRectEllipse(BeamElement):
+class LimitRectEllipse(_HasInstalledPipeName, BeamElement):
     """
     Element modeling an aperture limit given by the intersection of
     a symmetric LimitRect and a LimitEllipse.

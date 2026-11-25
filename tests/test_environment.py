@@ -197,7 +197,7 @@ def test_vars_and_element_access_modes(container_type):
     ttv = env.vars.get_table()
     for nn in ['x1', 'x2', 'x3']:
         assert ttv['value', nn] == 3 * 3
-        assert ttv['expr', nn] == '(3.0 * x0)'
+        assert ttv['expr', nn] == '3.0 * x0'
 
     env.new('qx1', xt.Quadrupole, length=1)
     env.new('qx2', xt.Quadrupole, length=1)
@@ -207,6 +207,249 @@ def test_vars_and_element_access_modes(container_type):
     for nn in ['qx1', 'qx2', 'qx3']:
         assert env[nn].k1 == 3 * 3
         assert str(env.ref[nn].k1.xdeps.expr) == "(3.0 * vars['x0'])"
+
+
+@pytest.mark.parametrize('container_type', ['env', 'line'])
+@pytest.mark.parametrize('sequence', [list, tuple, np.array, iter])
+def test_get_multiple_names(container_type, sequence):
+    env = xt.Environment()
+    env['a'] = 2.
+    env['b'] = '3*a'
+    env.new('q', xt.Quadrupole, k1='a')
+    line = env.new_line(['q'])
+    target = env if container_type == 'env' else line
+
+    assert target.get(sequence(['b', 'a', 'b'])) == [6., 2., 6.]
+    result = target.get(sequence(['q', 'a']))
+    assert isinstance(result, list)
+    assert result[0] is env.get('q') and result[1] == 2.
+    target.set('a', 4.)
+    assert target.get(sequence(['a', 'b'])) == [4., 12.]
+    assert target.get('a') == 4.
+    assert target.get('q') is result[0]
+    assert target.get(sequence([])) == []
+    with pytest.raises(KeyError, match='missing'):
+        target.get(sequence(['a', 'missing']))
+
+
+@pytest.mark.parametrize('container_type', ['env', 'line'])
+@pytest.mark.parametrize('sequence', [list, tuple, np.array, iter])
+def test_set_paired_variable_values(container_type, sequence):
+    env = xt.Environment()
+    line = env.new_line([])
+    target = env if container_type == 'env' else line
+    env['a'] = 1.
+    env['b'] = 2.
+    env['sum'] = 'a + b'
+    env.new('q', xt.Quadrupole, k1='a + b')
+
+    target.set(sequence(['a', 'b']), sequence([3., 4.]))
+    assert env['a'] == 3. and env['b'] == 4.
+    assert env['sum'] == 7. and env['q'].k1 == 7.
+
+    target.set(sequence(['c', 'd']), sequence(['2*a', '3*b']))
+    target.set(['a', 'b'], [5., 6.])
+    assert env['c'] == 10. and env['d'] == 18.
+    assert env['sum'] == 11. and env['q'].k1 == 11.
+
+    target.set(['c', 'd'], [env.ref['a'] + 1, 0.])
+    target.set('a', 8.)
+    assert env['c'] == 9. and env['d'] == 0.
+    target.set([], [])
+
+
+@pytest.mark.parametrize('container_type', ['env', 'line'])
+@pytest.mark.parametrize('values', [[3.], [3., 4., 5.]])
+def test_set_paired_variable_length_mismatch(container_type, values):
+    env = xt.Environment()
+    line = env.new_line([])
+    target = env if container_type == 'env' else line
+    env['a'] = 1.
+    with pytest.raises(ValueError, match='same length'):
+        target.set(iter(['a', 'new_variable']), iter(values))
+    assert env['a'] == 1.
+    assert 'new_variable' not in env.vars
+
+
+@pytest.mark.parametrize('container_type', ['env', 'line'])
+@pytest.mark.parametrize('invalid_name', ['q', 'my_line'])
+def test_set_paired_values_rejects_elements_and_lines(container_type, invalid_name):
+    env = xt.Environment()
+    env.new('q', xt.Quadrupole, k1=1.)
+    line = env.new_line(['q'], name='my_line')
+    target = env if container_type == 'env' else line
+    env['a'] = 1.
+    with pytest.raises(ValueError):
+        target.set(['a', invalid_name], [2., 3.])
+    assert env['a'] == 1. and env['q'].k1 == 1.
+
+
+@pytest.mark.parametrize('container_type', ['env', 'line'])
+def test_set_broadcasting_unchanged(container_type):
+    env = xt.Environment()
+    line = env.new_line([])
+    target = env if container_type == 'env' else line
+    target.set(['a', 'b'], 2.)
+    assert env['a'] == env['b'] == 2.
+    target.set(['c', 'd'], '3*a')
+    target.set('a', 4.)
+    assert env['c'] == env['d'] == 12.
+    target.set(['a', 'b'], np.array(5.))
+    assert env['a'] == env['b'] == 5.
+
+    env.new('m1', xt.Multipole, knl=[0., 0.])
+    env.new('m2', xt.Multipole, knl=[0., 0.])
+    target.set(['m1', 'm2'], knl=[1., '2*a'])
+    target.set('a', 6.)
+    for name in ['m1', 'm2']:
+        np.testing.assert_allclose(env[name].knl, [1., 12.])
+
+
+@pytest.mark.parametrize('container_type', ['env', 'line'])
+@pytest.mark.parametrize('table_source', ['elements', 'line', 'xdeps'])
+def test_set_element_attributes_from_table(container_type, table_source):
+    env = xt.Environment()
+    env['strength'] = 2.
+    for name in ['q1', 'q2', 'q3']:
+        env.new(name, xt.Quadrupole, k1=0., length=1.)
+    line = env.new_line(['q1', 'q2', 'q3'])
+    target = env if container_type == 'env' else line
+    if table_source == 'elements':
+        selected = env.elements.get_table().rows[['q1', 'q2']]
+    elif table_source == 'line':
+        selected = line.get_table().rows[['q1', 'q2']]
+    else:
+        selected = xd.Table({'name': np.array(['q1', 'q2'])})
+
+    target.set(selected, k1='3*strength', length=2.)
+    target.set('strength', 4.)
+    for name in ['q1', 'q2']:
+        assert env[name].k1 == 12.
+        assert env[name].length == 2.
+    assert env['q3'].k1 == 0.
+    assert env['q3'].length == 1.
+    with pytest.raises(ValueError):
+        target.set(selected, 0., k1=1.)
+    with pytest.raises(ValueError, match='name column'):
+        target.set(xd.Table({'value': np.array([1.])}, index=None), k1=1.)
+
+
+@pytest.mark.parametrize('container_type', ['env', 'line'])
+def test_set_element_attributes_from_table_with_repeated_elements(container_type):
+    env = xt.Environment()
+    env['strength'] = 2.
+    env.new('d1', xt.Drift, length=1.)
+    env.new('q1', xt.Quadrupole, length=.5)
+    env.new('q2', xt.Quadrupole, length=.5)
+    line = env.new_line(['d1', 'q1', 'd1', 'q1', 'q2'])
+    target = env if container_type == 'env' else line
+    tt = line.get_table()
+
+    drifts = tt.rows[tt.element_type == 'Drift']
+    assert list(drifts.name) == ['d1::0', 'd1::1']
+    target.set(drifts, model='exact')
+    assert env['d1'].model == 'exact'
+
+    quads = tt.rows[tt.env_name == 'q1']
+    target.set(quads, k1='3*strength', integrator='yoshida-4')
+    target.set('strength', 4.)
+    assert env['q1'].k1 == 12.
+    assert env['q1'].integrator == 'yoshida-4'
+    assert env['q2'].k1 == 0.
+
+    target.set(tt.rows[tt.element_type == 'Bend'], model='exact')
+
+
+@pytest.mark.parametrize('container_type', ['env', 'line'])
+@pytest.mark.parametrize('input_type', ['dict', 'mapping', 'table', 'xdeps_table'])
+def test_set_mapping_or_table(container_type, input_type):
+    env = xt.Environment()
+    line = env.new_line([])
+    target = env if container_type == 'env' else line
+    env['source'] = 2.
+    env['a'] = env['b'] = 0.
+    env['sum'] = 'a + b'
+    env.new('q', xt.Quadrupole, k1='a + b')
+    # Deliberately use non-alphabetic order for overrides.
+    data = {'b': '3*source', 'a': 1.}
+    if input_type == 'dict':
+        assignments = data
+    elif input_type == 'mapping':
+        assignments = types.MappingProxyType(data)
+    else:
+        table_class = xt.Table if input_type == 'table' else xd.Table
+        assignments = table_class({
+            'name': np.array(list(data)),
+            'value': np.array(list(data.values()), dtype=object)})
+    target.set(assignments)
+    assert target.get(['a', 'b', 'sum']) == [1., 6., 7.]
+    target.set('source', 4.)
+    assert env['b'] == 12. and env['q'].k1 == 13.
+
+    target.set(assignments, [5., 7.])
+    assert target.get(['a', 'b', 'sum']) == [7., 5., 12.]
+    target.set(assignments, iter([8., 9.]))
+    assert target.get(['a', 'b']) == [9., 8.]
+    for scalar in (0., np.array(2.), '2*source'):
+        target.set(assignments, scalar)
+        expected = 8. if isinstance(scalar, str) else float(scalar)
+        assert env['a'] == env['b'] == expected
+        assert env['q'].k1 == 2 * expected
+    target.set('source', 6.)
+    assert env['a'] == env['b'] == 12.
+
+    with pytest.raises(ValueError, match='same length'):
+        target.set(assignments, [1.])
+    with pytest.raises(ValueError, match='at most one'):
+        target.set(assignments, 1., 2.)
+    message = ('no keyword arguments' if input_type in ('dict', 'mapping')
+               else 'Only a single value is allowed when setting variable')
+    with pytest.raises(ValueError, match=message):
+        target.set(assignments, k1=1.)
+    assert env['a'] == env['b'] == 12.
+
+
+@pytest.mark.parametrize('container_type', ['env', 'line'])
+def test_set_table_columns_and_variable_table(container_type):
+    env = xt.Environment()
+    line = env.new_line([])
+    target = env if container_type == 'env' else line
+    target.set({'a': 1., 'b': 2.})
+    saved = target.vars.get_table().rows[['b', 'a']]
+    target.set(saved, 0.)
+    assert target.get(['a', 'b']) == [0., 0.]
+    target.set(saved)
+    assert target.get(['a', 'b']) == [1., 2.]
+
+    names_only = xt.Table({'name': np.array(['b', 'a'])})
+    with pytest.raises(ValueError, match='value column'):
+        target.set(names_only)
+    target.set(names_only, [3., 4.])
+    assert target.get(['a', 'b']) == [4., 3.]
+    with pytest.raises(ValueError, match='name column'):
+        target.set(xt.Table({'value': np.array([1.])}, index=None), 0.)
+    target.set({})
+    target.set(xt.Table({'name': np.array([], dtype=str)}), 0.)
+    assert target.get(['a', 'b']) == [4., 3.]
+
+
+@pytest.mark.parametrize('container_type', ['env', 'line'])
+@pytest.mark.parametrize('input_type', ['dict', 'table'])
+@pytest.mark.parametrize('invalid_name', ['q', 'my_line'])
+@pytest.mark.parametrize('override', [(), (0.,)])
+def test_set_mapping_or_table_rejects_elements_before_mutation(
+        container_type, input_type, invalid_name, override):
+    env = xt.Environment()
+    env['a'] = 1.
+    env.new('q', xt.Quadrupole, k1=1.)
+    line = env.new_line(['q'], name='my_line')
+    target = env if container_type == 'env' else line
+    data = {'a': 2., invalid_name: 3.}
+    if input_type == 'table':
+        data = xt.Table({'name': np.array(list(data)), 'value': np.array(list(data.values()))})
+    with pytest.raises(ValueError):
+        target.set(data, *override)
+    assert env['a'] == 1. and env['q'].k1 == 1.
 
 
 def test_element_placing_at_s():
@@ -2197,16 +2440,16 @@ def test_vars_features(tmpdir):
 
     # Test compact and to_dict
     tt = env.vars.get_table()
-    assert tt['expr', 'b'] == '(3.0 * a)'
+    assert tt['expr', 'b'] == '3.0 * a'
     dd = tt.to_dict()
-    assert dd['b'] == '(3.0 * a)'
+    assert dd['b'] == '3.0 * a'
     assert dd['a'] == 3.0
 
     ee = xt.Environment()
     ee.vars.update(dd)
     assert ee['a'] == 3.0
     assert ee['b'] == 9.0
-    assert ee.vars.get_table()['expr', 'b'] == '(3.0 * a)'
+    assert ee.vars.get_table()['expr', 'b'] == '3.0 * a'
 
     with open(tmpdir / 'env.json', 'w') as fid:
         json.dump(dd, fid)
@@ -2215,7 +2458,7 @@ def test_vars_features(tmpdir):
     ee2.vars.load(Path(tmpdir) / 'env.json')
     assert ee2['a'] == 3.0
     assert ee2['b'] == 9.0
-    assert ee2.vars.get_table()['expr', 'b'] == '(3.0 * a)'
+    assert ee2.vars.get_table()['expr', 'b'] == '3.0 * a'
 
     tt1 = env.vars.get_table(compact=False)
     assert tt1['expr', 'b'] ==  "(3.0 * vars['a'])"
@@ -2414,10 +2657,12 @@ def test_insert_repeated_elements():
     tt = line.get_table()
     tt.show(cols=['name', 's_start', 's_end', 's_center'])
 
-    assert np.all(tt.name == np.array(
-        ['||drift_4', 'q0::0', 'ss::0', '||drift_6::0', 'ql', '||drift_7',
-       'q0::1', 'ss::1', '||drift_6::1', 'q0::2', '||drift_2', 'qr',
-       '||drift_1', 'mk1', 'q0::3', 'mk2', 'ss::2', '||drift_8', 'end',
+    # Generated drift names depend on exact floating-point lengths and reuse.
+    names = np.where(tt.element_type == 'Drift', '<drift>', tt.name)
+    assert np.all(names == np.array(
+        ['<drift>', 'q0::0', 'ss::0', '<drift>', 'ql', '<drift>',
+       'q0::1', 'ss::1', '<drift>', 'q0::2', '<drift>', 'qr',
+       '<drift>', 'mk1', 'q0::3', 'mk2', 'ss::2', '<drift>', 'end',
        '_end_point']))
     xo.assert_allclose(tt.s_center, np.array(
         [ 2.  ,  5.  ,  6.05,  7.55, 10.  , 12.5 , 15.  , 16.05, 17.55,
@@ -2456,10 +2701,11 @@ def test_insert_with_anchors():
     tt = line.get_table()
     tt.show(cols=['name', 's_start', 's_end', 's_center'])
 
-    assert np.all(tt.name == np.array(
-        ['||drift_4', 'q1', 'ss::0', '||drift_6::0', 'ql', '||drift_7',
-       'q2', 'ss::1', '||drift_6::1', 'q0', '||drift_2', 'qr',
-       '||drift_1', 'mk1', 'q3', 'mk2', 'ss::2', '||drift_8', 'end',
+    names = np.where(tt.element_type == 'Drift', '<drift>', tt.name)
+    assert np.all(names == np.array(
+        ['<drift>', 'q1', 'ss::0', '<drift>', 'ql', '<drift>',
+       'q2', 'ss::1', '<drift>', 'q0', '<drift>', 'qr',
+       '<drift>', 'mk1', 'q3', 'mk2', 'ss::2', '<drift>', 'end',
        '_end_point'],))
     xo.assert_allclose(tt.s_center, np.array(
         [ 2.  ,  5.  ,  6.05,  7.55, 10.  , 12.5 , 15.  , 16.05, 17.55,
@@ -2653,10 +2899,11 @@ def test_insert_line():
     tt = line.get_table()
     tt.show(cols=['name', 's_start', 's_end', 's_center'])
 
-    assert np.all(tt.name == np.array(
-        ['||drift_1', 'ql', '||drift_2', 'q0', '||drift_5', 's1',
-       '||drift_4::0', 's2', '||drift_4::1', 's3', '||drift_8', 'qr',
-       '||drift_3', 'end', '_end_point']))
+    names = np.where(tt.element_type == 'Drift', '<drift>', tt.name)
+    assert np.all(names == np.array(
+        ['<drift>', 'ql', '<drift>', 'q0', '<drift>', 's1',
+       '<drift>', 's2', '<drift>', 's3', '<drift>', 'qr',
+       '<drift>', 'end', '_end_point']))
     xo.assert_allclose(tt.s_center, np.array(
         [ 4.5 , 10.  , 15.  , 20.  , 21.5 , 22.05, 22.25, 22.45, 22.65,
         22.85, 25.95, 30.  , 40.5 , 50.  , 50.  ]),
@@ -2682,9 +2929,10 @@ def test_insert_list():
     tt = line.get_table()
     tt.show(cols=['name', 's_start', 's_end', 's_center'])
 
-    assert np.all(tt.name == np.array(
-        ['||drift_1', 'ql', '||drift_2', 'q0', '||drift_4', 's1', 's2',
-       's3', '||drift_6', 'qr', '||drift_3', 'end', '_end_point']))
+    names = np.where(tt.element_type == 'Drift', '<drift>', tt.name)
+    assert np.all(names == np.array(
+        ['<drift>', 'ql', '<drift>', 'q0', '<drift>', 's1', 's2',
+       's3', '<drift>', 'qr', '<drift>', 'end', '_end_point']))
     xo.assert_allclose(tt.s_center, np.array(
         [ 4.5 , 10.  , 15.  , 20.  , 21.5 , 22.05, 22.15, 22.25, 25.65,
         30.  , 40.5 , 50.  , 50.  ]),
@@ -3787,6 +4035,7 @@ def test_particle_ref_from_particles_container():
     assert isinstance(env2.get('my_particle'), xt.Particles)
     assert env2.get('my_particle') is not env.get('my_particle')
     xo.assert_allclose(env2['my_particle'].p0c, 5e12, rtol=0, atol=1e-9)
+
     env2['a'] = 6.
     xo.assert_allclose(env2['my_particle'].p0c, 6e12, rtol=0, atol=1e-9)
     env2['a'] = 5.
@@ -3837,6 +4086,28 @@ def test_particle_ref_from_particles_container():
     xo.assert_allclose(ll2.particle_ref.p0c, 10e12, rtol=0, atol=1e-9)
     ll2.env['my_particle'].p0c = '1e12 * a'
     xo.assert_allclose(ll2.particle_ref.p0c, 5e12, rtol=0, atol=1e-9)
+
+
+def test_environment_extra_config_is_serialized_and_copied():
+    env = xt.Environment()
+    env.extra_config['subsystem'] = {
+        'line_names': ['line_a', 'line_b'],
+        'settings': {'enabled': True},
+    }
+
+    serialized = env.to_dict()
+    assert serialized['_extra_config'] == env.extra_config
+
+    restored = xt.Environment.from_dict(serialized)
+    copied = env.copy()
+    assert restored.extra_config == env.extra_config
+    assert copied.extra_config == env.extra_config
+
+    restored.extra_config['subsystem']['settings']['enabled'] = False
+    copied.extra_config['subsystem']['line_names'].append('line_c')
+    assert env.extra_config['subsystem']['settings']['enabled'] is True
+    assert env.extra_config['subsystem']['line_names'] == ['line_a', 'line_b']
+
 
 def test_particle_ref_as_object():
 
@@ -5111,6 +5382,9 @@ def test_insert_from_anchor_center():
 
 def test_environment_xfields_beambeam_facade(monkeypatch):
 
+    from xfields.environment_tools import XfieldsEnvironmentAPI
+    from xfields.config_tools.beambeam_config_tools import particles_mode
+
     env = xt.Environment()
     calls = []
 
@@ -5126,14 +5400,13 @@ def test_environment_xfields_beambeam_facade(monkeypatch):
         calls.append(('apply', env_arg, args, kwargs))
         return 'applied'
 
-    monkeypatch.setattr(
-        xt.MultilineLegacy, 'install_beambeam_interactions', fake_install)
-    monkeypatch.setattr(
-        xt.MultilineLegacy, 'configure_beambeam_interactions', fake_configure)
-    monkeypatch.setattr(
-        xt.MultilineLegacy, 'apply_filling_pattern', fake_apply)
+    monkeypatch.setattr(particles_mode, 'install_beambeam_interactions',
+                        fake_install)
+    monkeypatch.setattr(particles_mode, 'configure_beambeam_interactions',
+                        fake_configure)
+    monkeypatch.setattr(particles_mode, 'apply_filling_pattern', fake_apply)
 
-    assert isinstance(env.xfields, xt.EnvXfields)
+    assert isinstance(env.xfields, XfieldsEnvironmentAPI)
     assert env.xfields is env.xfields
 
     assert env.xfields.install_beambeam_interactions(
@@ -5167,9 +5440,17 @@ def test_environment_xfields_beambeam_facade(monkeypatch):
             'num_particles': 1.2e11,
             'nemitt_x': 2.5e-6,
             'nemitt_y': 2.5e-6,
+            'gemitt_x': None,
+            'gemitt_y': None,
             'crab_strong_beam': True,
             'use_antisymmetry': False,
             'separation_bumps': None,
+            'filling_pattern_cw': None,
+            'filling_pattern_acw': None,
+            'i_bunch_cw': None,
+            'i_bunch_acw': None,
+            'filled_slots_cw': None,
+            'filled_slots_acw': None,
         })
 
     assert env.xfields.apply_filling_pattern([1], [1], 0, 0) == 'applied'
@@ -5179,6 +5460,8 @@ def test_environment_xfields_beambeam_facade(monkeypatch):
             'filling_pattern_acw': [1],
             'i_bunch_cw': 0,
             'i_bunch_acw': 0,
+            'filled_slots_cw': None,
+            'filled_slots_acw': None,
         })
 
     with pytest.warns(

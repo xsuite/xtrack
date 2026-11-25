@@ -24,6 +24,7 @@ void Exciter_track_local_particle(ExciterData el, LocalParticle* part0){
     double const sampling_frequency = ExciterData_get_sampling_frequency(el);
     double const frev = ExciterData_get_frev(el);
     int64_t const start_turn = ExciterData_get_start_turn(el);
+    int64_t const absolute_time = ExciterData_get_absolute_time(el);
 
     double excit_sign;
     if (LocalParticle_check_track_flag(part0, XS_FLAG_BACKTRACK)) {
@@ -41,7 +42,17 @@ void Exciter_track_local_particle(ExciterData el, LocalParticle* part0){
         double const beta0 = LocalParticle_get_beta0(part);
 
         // compute excitation sample index
-        int64_t i = sampling_frequency * ( ( at_turn - start_turn ) / frev - zeta / beta0 / C_LIGHT );
+        double arrival;
+        if (absolute_time) {
+            double const start_time = start_turn != 0 ? start_turn / frev : 0.;
+            arrival = LocalParticle_get_time_s(part) - start_time
+                + (LocalParticle_get_s(part) - zeta) / beta0 / C_LIGHT;
+        }
+        else {
+            arrival = ( at_turn - start_turn ) / frev - zeta / beta0 / C_LIGHT;
+        }
+        // floor: an arrival before the first sample has a negative index, so no kick.
+        int64_t i = (int64_t) floor(sampling_frequency * arrival);
 
         if (i >= 0 && i < nduration){
 			if (i >= nsamples){

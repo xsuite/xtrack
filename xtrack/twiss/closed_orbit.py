@@ -30,7 +30,25 @@ def find_closed_orbit_line(line, co_guess=None, particle_ref=None,
                       continue_on_closed_orbit_error=False,
                       num_turns_search_t_rev=None,
                       symmetrize=False,
-                      spin=True):
+                      spin=True, method=None):
+
+    if method not in (None, '4d', '5d', '6d'):
+        raise ValueError('method must be None, "4d", "5d" or "6d"')
+    if method == '4d' and delta0 is None and zeta0 is None:
+        delta0 = 0
+    if method == '6d' and (delta0 is not None or zeta0 is not None):
+        raise ValueError('delta0 and zeta0 cannot be provided for method="6d"')
+    if method == '5d':
+        if delta0 is not None and zeta0 is not None:
+            raise ValueError('delta0 and zeta0 are mutually exclusive for method="5d"')
+        if delta0 is None and zeta0 is None:
+            zeta0 = 0
+        if zeta_shift != 0 or search_for_t_rev or num_turns != 1:
+            raise ValueError('method="5d" requires zeta_shift=0, '
+                             'search_for_t_rev=False and num_turns=1')
+        if co_search_at is not None:
+            raise ValueError('co_search_at is not supported for method="5d"; '
+                             'cycle the line to the desired starting element')
 
     if search_for_t_rev:
         assert line.particle_ref is not None
@@ -118,7 +136,11 @@ def find_closed_orbit_line(line, co_guess=None, particle_ref=None,
                     co_guess._xobject.py[0] + shift_factor * 1e-7,
                     co_guess._xobject.zeta[0] + shift_factor * 1e-4,
                     co_guess._xobject.delta[0] + shift_factor * 1e-5])
-        if delta0 is not None and zeta0 is None:
+        if method == '5d':
+            if delta0 is not None:
+                x0[5] = delta0
+            _error_for_co = _error_for_co_search_5d
+        elif delta0 is not None and zeta0 is None:
             x0[5] = delta0
             _error_for_co = _error_for_co_search_4d_delta0
         elif delta0 is None and zeta0 is not None:
@@ -218,6 +240,14 @@ def _one_turn_map(p, particle_ref, line, zeta_shift, start, end, num_turns, symm
 
 def _error_for_co_search_6d(p, co_guess, line, zeta_shift, delta0, zeta0, start, end, num_turns, symmetrize):
     return p - _one_turn_map(p, co_guess, line, zeta_shift, start, end, num_turns, symmetrize)
+
+
+def _error_for_co_search_5d(p, co_guess, line, zeta_shift, delta0, zeta0, start, end, num_turns, symmetrize):
+    residual = p - _one_turn_map(
+        p, co_guess, line, zeta_shift, start, end, num_turns, symmetrize)
+    # Keep energy closure and replace zeta closure by the selected constraint.
+    residual[4] = p[5] - delta0 if delta0 is not None else p[4] - zeta0
+    return residual
 
 
 def _error_for_co_search_4d_delta0(p, co_guess, line, zeta_shift, delta0, zeta0, start, end, num_turns, symmetrize):

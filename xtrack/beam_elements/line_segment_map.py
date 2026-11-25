@@ -14,6 +14,7 @@ class LineSegmentMap(BeamElement):
 
     _xofields={
         'length': xo.Float64,
+        'absolute_time': xo.Int64,
 
         'qx': xo.Float64,
         'qy': xo.Float64,
@@ -66,6 +67,7 @@ class LineSegmentMap(BeamElement):
 
     _rename = {
         'lag_rf': '_lag_rf',
+        'absolute_time': '_absolute_time',
     }
 
     _extra_c_sources = [
@@ -81,6 +83,7 @@ class LineSegmentMap(BeamElement):
             momentum_compaction_factor=None,
             slippage_length=None,
             voltage_rf=None, frequency_rf=None, lag_rf=None, phase_rf=None,
+            absolute_time=False,
             dqx=0.0, dqy=0.0, ddqx=0.0, ddqy=0.0, dnqx=None, dnqy=None,
             det_xx=0.0, det_xy=0.0, det_yy=0.0, det_yx=0.0,
             energy_increment=0.0, energy_ref_increment=0.0,
@@ -181,6 +184,15 @@ class LineSegmentMap(BeamElement):
         phase_rf : list of float
             List of phases in radians of the RF kicks in the segment. Only used if
             ``longitudinal_mode`` is ``'nonlinear'`` or ``'linear_fixed_rf'``.
+        absolute_time : bool
+            If True, the RF phases are computed from the absolute time of the
+            simulation, so a frequency detuned from a harmonic of the revolution takes
+            effect. Otherwise they are synchronized with the reference particle, and it
+            has no effect. Only for ``longitudinal_mode`` ``'nonlinear'``. Default is False.
+            All the RF of a segment acts at its middle: half the slippage comes before
+            the kicks and half after, and the clock is read at ``s + length / 2``. To
+            place RF anywhere else, give it its own segment of zero length at that
+            position, between segments without RF.
         dqx : float or list of float
             Horizontal linear chromaticity of the segment.
         dqy : float or list of float
@@ -495,6 +507,10 @@ class LineSegmentMap(BeamElement):
             nargs['uncorrelated_gauss_noise'] = False
             nargs['correlated_gauss_noise'] = False
 
+        if absolute_time and longitudinal_mode != 'nonlinear':
+            raise ValueError('`absolute_time` needs `longitudinal_mode` to be "nonlinear".')
+        nargs['absolute_time'] = absolute_time
+
         # Warn if lag_rf (deprecation)
         for vv in nargs['lag_rf']:
             if vv != 0:
@@ -506,6 +522,17 @@ class LineSegmentMap(BeamElement):
                 break
 
         super().__init__(**nargs)
+
+    @property
+    def absolute_time(self):
+        return self._absolute_time
+
+    @absolute_time.setter
+    def absolute_time(self, value):
+        # The linear modes have no RF phase, so the flag would be silently ignored.
+        if value and self.longitudinal_mode != 'nonlinear':
+            raise ValueError('`absolute_time` needs `longitudinal_mode` to be "nonlinear".')
+        self._absolute_time = value
 
     @property
     def longitudinal_mode(self):
