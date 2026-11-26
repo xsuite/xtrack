@@ -1,7 +1,9 @@
 import numpy as np
+import pytest
 
 import xobjects as xo
 import xtrack as xt
+from xobjects.test_helpers import for_all_test_contexts
 
 def _polygon_signed_area(x, y):
     x_close = np.concatenate([x, x[:1]])
@@ -131,3 +133,54 @@ def test_limitpolygon_inner_circle_particles_survive():
     particles = xt.Particles(p0c=6500e9, x=sample_x, y=sample_y)
     aper.track(particles)
     xo.assert_allclose(particles.state, 1)
+
+
+@for_all_test_contexts
+@pytest.mark.parametrize('reverse', [False, True])
+@pytest.mark.parametrize('vertices, points, expected', [
+    (
+        [(2, -1), (4, -1), (4, 1), (2, 1)],
+        [(0, 0), (0.5, 0.1), (3, 0), (5, 0)],
+        [False, False, True, False],
+    ),
+    (
+        [(-3, -3), (3, -3), (3, 3), (1, 3), (1, -1), (-1, -1), (-1, 3), (-3, 3)],
+        [(0, 0), (0.2, 0.1), (2, 0), (0, -2), (-2, 0)],
+        [False, False, True, True, True],
+    ),
+    (
+        [(-2, -1), (0, -1), (0, 1), (-2, 1)],
+        [(0, 0), (-1, 0), (0.1, 0)],
+        [False, True, False],
+    ),
+], ids=['displaced', 'concave', 'origin_on_edge'])
+def test_limitpolygon_inner_circle_membership(test_context, reverse, vertices, points, expected):
+    vertices = np.array(vertices, dtype=float) * 1e-2
+    if reverse:
+        vertices = vertices[::-1]
+    points = np.array(points, dtype=float) * 1e-2
+    aperture = xt.LimitPolygon(
+        _context=test_context, x_vertices=vertices[:, 0], y_vertices=vertices[:, 1])
+    particles = xt.Particles(
+        _context=test_context, p0c=7e12, x=points[:, 0], y=points[:, 1])
+
+    aperture.track(particles)
+
+    particle_ids = test_context.nparray_from_context_array(particles.particle_id)
+    state = test_context.nparray_from_context_array(particles.state)
+    np.testing.assert_array_equal(state[np.argsort(particle_ids)] > 0, expected)
+
+
+@for_all_test_contexts
+def test_limitpolygon_inner_circle_after_vertex_update(test_context):
+    vertices = np.array([-1, 1, 1, -1]) * 1e-2
+    aperture = xt.LimitPolygon(
+        _context=test_context, x_vertices=vertices, y_vertices=[-0.01, -0.01, 0.01, 0.01])
+
+    for offset, expected in [(0, [True, False]), (0.03, [False, True]), (0, [True, False])]:
+        aperture.x_vertices[:] = test_context.nparray_to_context_array(vertices + offset)
+        particles = xt.Particles(_context=test_context, p0c=7e12, x=[0, 0.03], y=[0, 0])
+        aperture.track(particles)
+        particle_ids = test_context.nparray_from_context_array(particles.particle_id)
+        state = test_context.nparray_from_context_array(particles.state)
+        np.testing.assert_array_equal(state[np.argsort(particle_ids)] > 0, expected)
