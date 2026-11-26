@@ -381,3 +381,65 @@ def test_ring_with_radiation(test_context, thick):
                     atol=0, rtol=1e-2)
 
     xo.assert_allclose(np.std(pgen.zeta), sigma_z, atol=0, rtol=5e-3)
+
+
+@pytest.mark.parametrize('mode', ['kick_as_co', 'scale_as_co'])
+@pytest.mark.parametrize('magnet', ['bend', 'quadrupole', 'sextupole'])
+def test_reference_radiation_replay_at_each_magnet_slice(magnet, mode):
+    """Reference radiation is replayed at the slice where it was recorded."""
+    if mode == 'scale_as_co' and (xo.settings.cffi_forbid_compile or not (
+            xo.settings.force_kernel_compilation or xo.settings.allow_kernel_compilation)):
+        pytest.skip('scale_as_co requires a non-prebuilt kernel')
+
+    if magnet == 'bend':
+        element = xt.Bend(length=1., angle=.15, k0_from_h=True,
+                          edge_entry_model='suppressed', edge_exit_model='suppressed')
+        p0c, x = 4e9, 0.
+    elif magnet == 'quadrupole':
+        element = xt.Quadrupole(length=1., k1=1.)
+        p0c, x = 45.6e9, 1e-3
+    else:
+        element = xt.Sextupole(length=1., k2=10.)
+        p0c, x = 45.6e9, 1e-2
+
+    line = xt.Line(elements=[element])
+    line.particle_ref = xt.Particles('positron', p0c=p0c)
+    line.build_tracker()
+    line.configure_radiation(model='mean')
+
+    for integrator in element.get_available_integrators():
+        element.integrator = integrator
+        element.num_multipole_kicks = 0 if integrator == 'adaptive' else 30
+        line.tracker.track_flags.XS_FLAG_SR_KICK_SAME_AS_FIRST = False
+        line.config.XTRACK_SYNRAD_SCALE_SAME_AS_FIRST = False
+
+        initial = line.build_particles(x=[x, x, x], px=1e-4, py=-1e-4)
+        full = initial.copy()
+        line.track(full)
+        assert full.delta[0] < initial.delta[0]
+
+        line.tracker.track_flags.XS_FLAG_SR_KICK_SAME_AS_FIRST = mode == 'kick_as_co'
+        line.config.XTRACK_SYNRAD_SCALE_SAME_AS_FIRST = mode == 'scale_as_co'
+        same = initial.copy()
+        line.track(same)
+        assert np.all(full.state > 0) and np.all(same.state > 0)
+        reference = line.build_particles(x=x, px=1e-4, py=-1e-4)
+        line.track(reference)
+        assert reference.state[0] > 0
+        for coordinate in ('x', 'px', 'y', 'py', 'zeta', 'delta'):
+            np.testing.assert_allclose(getattr(same, coordinate), getattr(full, coordinate),
+                                       rtol=0, atol=1e-14, err_msg=integrator)
+            np.testing.assert_allclose(getattr(reference, coordinate)[0],
+                                       getattr(full, coordinate)[0], rtol=0, atol=1e-14,
+                                       err_msg=integrator)
+
+        delta0 = np.array([0., 1e-3, -1e-3])
+        particles = line.build_particles(x=[x, x, x], delta=delta0)
+        line.track(particles)
+        assert np.all(particles.state > 0)
+        if mode == 'kick_as_co':
+            change = particles.delta - delta0
+        else:
+            change = (1 + particles.delta) / (1 + delta0)
+        np.testing.assert_allclose(change, change[0], rtol=0, atol=1e-14,
+                                   err_msg=integrator)

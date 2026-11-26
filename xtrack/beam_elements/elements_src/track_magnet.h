@@ -43,6 +43,7 @@ void track_magnet_body_single_particle(
     const uint8_t do_drift_correction,
     const uint8_t kick_is_empty,
     const int8_t integrator,
+    const int64_t slice_index,
     xt_float_or_tpsa_arg k0_drift,
     xt_float_or_tpsa_arg k1_drift,
     xt_float_or_tpsa_arg ks_drift,
@@ -190,9 +191,9 @@ void track_magnet_body_single_particle(
     }
     else{
 
-        RUN_INTEGRATOR(
+        RUN_INTEGRATOR_SLICES(
             integrator, length, num_multipole_kicks, part,
-            MAGNET_DRIFT, MAGNET_KICK, WITH_RADIATION
+            MAGNET_DRIFT, MAGNET_KICK, WITH_RADIATION, slice_index
         );
 
     }
@@ -525,28 +526,54 @@ void track_magnet_particles(
                 order_rel, knl_rel, ksl_rel,
                 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
 
-        double dp_record_exit, dpx_record_exit, dpy_record_exit;
+        // Only the serial-CPU Twiss modes (kick_as_co and scale_as_co) need
+        // all particles to use the current slice's kick before it is overwritten.
+        // Ordinary CPU, OpenMP and GPU tracking use one full-element pass.
+        #if defined(XO_CONTEXT_CPU_SERIAL) && !defined(XTRACK_TPSA_TRACK) && !defined(XTRACK_MULTIPOLE_NO_SYNRAD)
+            int64_t num_tracking_passes = 1;
+            #ifdef XTRACK_SYNRAD_SCALE_SAME_AS_FIRST
+                const int8_t serial_cpu_twiss_reference_replay = 1;
+            #else
+                const int8_t serial_cpu_twiss_reference_replay =
+                    LocalParticle_check_track_flag(part0, XS_FLAG_SR_KICK_SAME_AS_FIRST);
+            #endif
+            if (serial_cpu_twiss_reference_replay && radiation_flag == 1 &&
+                    core_length > 0. && num_multipole_kicks > 0 &&
+                    LocalParticle_get__num_active_particles(part0) > 1){
+                const int64_t num_slices = integrator_num_slices(integrator, num_multipole_kicks);
+                if (num_slices > 1) num_tracking_passes = num_slices;
+            }
+        #else
+            const int64_t num_tracking_passes = 1;
+        #endif
 
-        START_PER_PARTICLE_BLOCK(part0, part);
-            track_magnet_body_single_particle(
-                part, core_length, order, inv_factorial_order,
-                knl, ksl,
-                order_rel, inv_factorial_order_rel, knl_rel, ksl_rel, rel_ref_strength,
-                factor_knl_ksl_body,
-                num_multipole_kicks, kick_rot_frame, drift_model,
-                do_drift_correction, kick_is_empty, integrator,
-                k0_drift, k1_drift, ks_drift, h_drift,
-                k0_kick, k1_kick, h_kick, hxl,
-                k0_h_correction, k1_h_correction,
-                k2, k3, k0s, k1s, k2s, k3s,
-                dks_ds,
-                x0_solenoid, y0_solenoid,
-                radiation_flag,
-                1, // spin_flag
-                radiation_record,
-                &dp_record_exit, &dpx_record_exit, &dpy_record_exit
-            );
-        END_PER_PARTICLE_BLOCK;
+        for (int64_t ipass = 0; ipass < num_tracking_passes; ++ipass){
+            const int64_t slice_index = num_tracking_passes > 1 ? ipass : -1;
+            double dp_record_exit = 0., dpx_record_exit = 0., dpy_record_exit = 0.;
+            #ifdef XTRACK_SYNRAD_SCALE_SAME_AS_FIRST
+                dp_record_exit = 1.;
+            #endif
+            START_PER_PARTICLE_BLOCK(part0, part);
+                track_magnet_body_single_particle(
+                    part, core_length, order, inv_factorial_order,
+                    knl, ksl,
+                    order_rel, inv_factorial_order_rel, knl_rel, ksl_rel, rel_ref_strength,
+                    factor_knl_ksl_body,
+                    num_multipole_kicks, kick_rot_frame, drift_model,
+                    do_drift_correction, kick_is_empty, integrator, slice_index,
+                    k0_drift, k1_drift, ks_drift, h_drift,
+                    k0_kick, k1_kick, h_kick, hxl,
+                    k0_h_correction, k1_h_correction,
+                    k2, k3, k0s, k1s, k2s, k3s,
+                    dks_ds,
+                    x0_solenoid, y0_solenoid,
+                    radiation_flag,
+                    1, // spin_flag
+                    radiation_record,
+                    &dp_record_exit, &dpx_record_exit, &dpy_record_exit
+                );
+            END_PER_PARTICLE_BLOCK;
+        }
 
         if (rbend_model == 2 && model >= 0){ // model>=0 means not kick only
             // straight body --> correct s to match the curved frame
