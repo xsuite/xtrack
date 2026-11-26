@@ -285,10 +285,10 @@ void increment_at_turn(LocalParticle* part0, int flag_reset_s, double line_lengt
     double const sum = part0->time_s + step;
     double const b = sum - part0->time_s;
     double const error = (part0->time_s - (sum - b)) + (step - b);
-    double const low = part0->time_s_error + error;
+    double const low = part0->_time_s_error + error;
     double const high = sum + low;
     double const bb = high - sum;
-    part0->time_s_error = (sum - (high - bb)) + (low - bb);
+    part0->_time_s_error = (sum - (high - bb)) + (low - bb);
     part0->time_s = high;
     part0->reference_turns += direction;
 }

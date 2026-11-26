@@ -17,14 +17,46 @@ def test_time_assignment_invalidates_reference_turns(particle_class):
     p = particle_class(p0c=1e9, time_s=1e-6, reference_turns=3.25)
     # Explicit initial clock pairs survive construction.
     assert p.time_s == 1e-6
+    assert not hasattr(p, 'time_s_error')
+    assert p._xobject._time_s_error == 0.
     assert p.reference_turns == 3.25
+    # The native clock owns the residual; conversion must read that storage.
+    p._xobject._time_s_error = -1e-23
+    if particle_class is xt.ParticlesTpsa:
+        # An incidental Python attribute must not shadow the native clock.
+        p.time_s_error = 1.
+        assert p.to_particles()._xobject._time_s_error == -1e-23
     p.time_s = 2e-6
     assert p.time_s == p._xobject.time_s == 2e-6
+    assert p._xobject._time_s_error == 0.
+    if particle_class is xt.ParticlesTpsa:
+        assert p.to_particles()._xobject._time_s_error == 0.
     assert np.isnan(p.reference_turns)
     assert np.isnan(p._xobject.reference_turns)
     # An explicit counter can also be supplied after choosing a new time.
     p.reference_turns = 4.25
     assert p.reference_turns == p._xobject.reference_turns == 4.25
+
+
+@pytest.mark.parametrize('particle_class', [xt.Particles, xt.ParticlesTpsa])
+def test_clock_residual_is_not_a_public_constructor_argument(particle_class):
+    with pytest.raises(NameError, match='time_s_error'):
+        particle_class(p0c=1e9, time_s_error=1e-23)
+
+
+@pytest.mark.parametrize('compact', [False, True])
+def test_internal_clock_residual_survives_particle_storage(compact):
+    p = xt.Particles(p0c=1e9, x=[1., 2.], time_s=1e-6, reference_turns=3.25)
+    p._xobject._time_s_error = 1e-23
+    merged = xt.Particles.merge([p, p])
+    filtered = merged.filter(np.array([True, False, False, True]))
+    record = filtered.to_dict(compact=compact)
+    assert record['_time_s_error'] == 1e-23
+    restored = xt.Particles.from_dict(record)
+    for particles in (merged, filtered, restored):
+        assert particles.time_s == 1e-6
+        assert particles._xobject._time_s_error == 1e-23
+        assert particles.reference_turns == 3.25
 
 
 @pytest.mark.parametrize('reference_turns', [np.nan, 3.25])

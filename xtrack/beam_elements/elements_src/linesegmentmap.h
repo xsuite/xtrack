@@ -260,7 +260,7 @@ void longitudinal_motion(LocalParticle *part0,
                 if (absolute_time) {
                     // The kick sits at the middle of the segment, and s is updated at its end.
                     phase += absolute_rf_phase(f_rf, LocalParticle_get_time_s(part),
-                        LocalParticle_get_time_s_error(part)
+                        LocalParticle_get__time_s_error(part)
                         + (LocalParticle_get_s(part) + 0.5 * length) / (beta0 * C_LIGHT));
                 }
                 double const energy   = q * v_rf * sin(phase);

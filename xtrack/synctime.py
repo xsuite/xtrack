@@ -201,7 +201,7 @@ class _SyncTimeController:
             turn = particles.reference_turns
             def time_at_offset(offset):
                 return ((program.get_t_s_at_turn(turn + offset) - time)
-                        - particles.time_s_error)
+                        - particles._time_s_error)
 
         # At position s, frame edges are separated by fraction reference turns.
         # Using the SAME time map for both edges ensures exact adjacency in

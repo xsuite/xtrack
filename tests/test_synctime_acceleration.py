@@ -848,15 +848,15 @@ def test_reference_time_precision_across_tracking_calls(test_context):
             p = p0.copy()
             for _ in range(n_turns // turns_per_call):
                 line.track(p, num_turns=turns_per_call)
-            actual = Decimal.from_float(p.time_s) + Decimal.from_float(p.time_s_error)
+            actual = Decimal.from_float(p.time_s) + Decimal.from_float(p._time_s_error)
             assert abs(actual - expected) < Decimal('1e-20')
             assert p.time_s == float(expected)
 
         restored = xt.Particles.from_dict(p.to_dict(), _context=test_context)
-        assert restored.time_s_error == p.time_s_error
+        assert restored._time_s_error == p._time_s_error
         line.track(restored, num_turns=n_turns, backtrack=True)
         actual = (Decimal.from_float(restored.time_s)
-                  + Decimal.from_float(restored.time_s_error))
+                  + Decimal.from_float(restored._time_s_error))
         assert abs(actual - initial_time) < Decimal('1e-20')
 
 
@@ -909,6 +909,6 @@ def test_synctime_frame_precision_at_large_reference_time(test_context):
         expected = (Decimal.from_float(p.time_s)
                     + n_frames * Decimal.from_float(fraction * period))
         line.track(p, num_turns=n_frames)
-        actual = Decimal.from_float(p.time_s) + Decimal.from_float(p.time_s_error)
+        actual = Decimal.from_float(p.time_s) + Decimal.from_float(p._time_s_error)
         assert abs(actual - expected) < Decimal('1e-20')
     xo.assert_allclose(p.zeta, 0., rtol=0, atol=1e-8)

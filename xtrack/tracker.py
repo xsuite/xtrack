@@ -2082,9 +2082,9 @@ class Tracker:
                 error = (n*a*d - c*b) / (b*d)
             else:
                 error = 0.
-            clock = (xt.CompensatedFloat(p.time_s, p.time_s_error)
+            clock = (xt.CompensatedFloat(p.time_s, p._time_s_error)
                      + xt.CompensatedFloat(advance, error))
-            p.time_s, p.time_s_error = clock.hi, clock.lo
+            p.time_s, p._time_s_error = clock.hi, clock.lo
             turn_step = (self._sync_time_controller.fraction
                          if self._sync_time_controller is not None else 1.)
             p.reference_turns += direction * num_turns * turn_step

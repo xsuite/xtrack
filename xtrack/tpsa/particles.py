@@ -17,7 +17,7 @@ _REF_VARS: tuple[str, ...] = (
     "mass0",
     "t_sim",
     "time_s",
-    "time_s_error",
+    "_time_s_error",
     "reference_turns",
     "beta0",
     "gamma0",
@@ -62,7 +62,7 @@ class TpsaParticleData(xo.Struct):
     mass0 = xo.Float64
     t_sim = xo.Float64
     time_s = xo.Float64
-    time_s_error = xo.Float64
+    _time_s_error = xo.Float64
     reference_turns = xo.Float64
     beta0 = xo.Float64
     gamma0 = xo.Float64
@@ -192,7 +192,7 @@ class ParticlesTpsa:
         """A fresh single ``xt.Particles`` at the current const part (validation use)."""
         p = self._ref_particle.copy()
         p.time_s = self.time_s
-        p.time_s_error = self.time_s_error
+        p._time_s_error = self._time_s_error
         p.t_sim = self.t_sim
         p.reference_turns = self.reference_turns
         for c, v in zip(COORDS, self.const_part):
@@ -219,7 +219,7 @@ class ParticlesTpsa:
         # Match Particles: changing the clock origin invalidates its turn counter.
         if self._xobject is not None:
             self._xobject.time_s = value
-            self._xobject.time_s_error = 0.
+            self._xobject._time_s_error = 0.
             self._xobject.reference_turns = np.nan
         else:
             self._ref_particle.time_s = value
