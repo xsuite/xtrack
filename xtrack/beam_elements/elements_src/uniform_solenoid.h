@@ -36,7 +36,7 @@ void UniformSolenoid_track_local_particle(
         /*default_integrator*/    SOLENOID_DEFAULT_INTEGRATOR,
         /*radiation_flag*/        UniformSolenoidData_get_radiation_flag(el),
         /*radiation_flag_parent*/ 0, // not used here
-        /*radiation_record*/      NULL,
+        /*radiation_record*/      (SynchrotronRadiationRecordData) UniformSolenoidData_getp_internal_record(el, part0),
         /*delta_taper*/           UniformSolenoidData_get_delta_taper(el),
         /*h*/                     0.,
         /*hxl*/                   0.,

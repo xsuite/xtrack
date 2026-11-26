@@ -7,6 +7,7 @@ import pathlib
 
 import numpy as np
 import json
+import pytest
 
 import xtrack as xt
 import xpart as xp
@@ -860,3 +861,44 @@ def test_record_standalone_mode(test_context):
         assert np.sum((table11.at_turn[:num_recorded_tab11] == i_turn)) == num_particles
         assert np.sum((table12.at_turn[:num_recorded_tab12] == i_turn)) == (num_particles
                                                             * (n_kicks1))
+
+
+@for_all_test_contexts
+@pytest.mark.parametrize('name, slicing', [
+    ('Bend', None), ('RBend', None), ('Quadrupole', None), ('Sextupole', None),
+    ('Octupole', None), ('Magnet', None), ('UniformSolenoid', None),
+    ('VariableSolenoid', None), ('Bend', 'thin'), ('Bend', 'thick'),
+    ('Quadrupole', 'thin'), ('Quadrupole', 'thick')])
+def test_photon_record_of_thick_magnets_and_slices(test_context, name, slicing):
+    """The photons a thick magnet or a slice emits are recorded, and their
+    energy is the energy the particles lose."""
+    element = {
+        'Bend': lambda: xt.Bend(length=1., angle=1e-2),
+        'RBend': lambda: xt.RBend(length_straight=1., angle=1e-2),
+        'Quadrupole': lambda: xt.Quadrupole(length=1., k1=1.),
+        'Sextupole': lambda: xt.Sextupole(length=1., k2=100.),
+        'Octupole': lambda: xt.Octupole(length=1., k3=1e4),
+        'Magnet': lambda: xt.Magnet(length=1., k0=1e-2, angle=1e-2),
+        'UniformSolenoid': lambda: xt.UniformSolenoid(length=1., ks=1.),
+        'VariableSolenoid': lambda: xt.VariableSolenoid(length=1., ks_profile=[1., 1.]),
+    }[name]()
+    line = xt.Line(elements={'element': element, 'end': xt.Marker()})
+    if slicing is not None:
+        line.slice_thick_elements([xt.Strategy(xt.Teapot(4, mode=slicing))])
+    line.particle_ref = xt.Particles(p0c=45.6e9, mass0=xt.ELECTRON_MASS_EV)
+    line.build_tracker(_context=test_context)
+    line.configure_radiation(model='quantum')
+    record_type = getattr(xt, {None: '', 'thin': 'ThinSlice', 'thick': 'ThickSlice'}[slicing] + name)
+    record = line.start_internal_logging_for_elements_of_type(record_type, capacity=100000)
+
+    particles = line.build_particles(x=np.full(1000, 1e-2), px=1e-3, y=-1e-2)
+    ptau_before = test_context.nparray_from_context_array(particles.ptau).copy()
+    line.track(particles)
+    particles.move(_context=xo.ContextCpu())
+    record.move(_context=xo.ContextCpu())
+
+    num_recorded = record._index.num_recorded
+    assert 0 < num_recorded < 100000
+    xo.assert_allclose(np.sum(record.photon_energy[:num_recorded]),
+                       -np.sum(particles.ptau - ptau_before) * particles.p0c[0],
+                       rtol=1e-6, atol=0)

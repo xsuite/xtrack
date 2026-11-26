@@ -40,7 +40,7 @@ void ThinSliceRBend_track_local_particle(
         /*default_integrator*/    RBEND_DEFAULT_INTEGRATOR,
         /*radiation_flag*/        ThinSliceRBendData_get_radiation_flag(el),
         /*radiation_flag_parent*/ ThinSliceRBendData_get__parent_radiation_flag(el),
-        /*radiation_record*/      NULL,
+        /*radiation_record*/      (SynchrotronRadiationRecordData) ThinSliceRBendData_getp_internal_record(el, part0),
         /*delta_taper*/           ThinSliceRBendData_get_delta_taper(el),
         /*h*/                     ThinSliceRBendData_get__parent_h(el),
         /*hxl*/                   0.,

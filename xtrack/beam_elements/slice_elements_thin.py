@@ -1,6 +1,7 @@
 import xobjects as xo
 
 from ..general import _pkg_root
+from ._common import SynchrotronRadiationRecord
 from .slice_base import (
     _SliceBase, COMMON_SLICE_XO_FIELDS, ID_RADIATION_FROM_PARENT,
     _raise_if_parent_has_transverse_rotation,
@@ -17,6 +18,8 @@ from ..base_element import BeamElement
 
 class _ThinSliceElementBase(_SliceBase):
 
+    # The element metaclass reads this from direct bases only
+    _internal_record_class = SynchrotronRadiationRecord
     rot_and_shift_from_parent = True
     allow_loss_refinement = False
     isthick = False

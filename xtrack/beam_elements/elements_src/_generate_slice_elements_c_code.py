@@ -238,8 +238,11 @@ for td in to_do:
                 ll = line
                 if '_getp_' in ll:
                     assert '(SynchrotronRadiationRecordData)' in ll
-                    ll = ll.split('(SynchrotronRadiationRecordData)')[0]
-                    ll += 'NULL,' # Not yet supported in slices
+                    if generating == "entry_slice" or generating == "exit_slice":
+                        ll = ll.split('(SynchrotronRadiationRecordData)')[0]
+                        ll += 'NULL,' # Edge slices do not radiate
+                    else:  # Own record, not the parent's
+                        ll = ll.replace('_getp__parent_internal_record', '_getp_internal_record')
                 out_lines[i] = ll
         assert found_integrator, "Did not find integrator line to modify"
         assert found_model, "Did not find model line to modify"

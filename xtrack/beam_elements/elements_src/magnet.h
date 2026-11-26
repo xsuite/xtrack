@@ -37,7 +37,7 @@ void Magnet_track_local_particle(
         /*default_integrator*/    BEND_DEFAULT_INTEGRATOR,
         /*radiation_flag*/        MagnetData_get_radiation_flag(el),
         /*radiation_flag_parent*/ 0, // not used here
-        /*radiation_record*/      NULL,
+        /*radiation_record*/      (SynchrotronRadiationRecordData) MagnetData_getp_internal_record(el, part0),
         /*delta_taper*/           MagnetData_get_delta_taper(el),
         /*h*/                     MagnetData_get_h(el),
         /*hxl*/                   0.,
