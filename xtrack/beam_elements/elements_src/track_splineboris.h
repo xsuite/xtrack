@@ -27,6 +27,10 @@ void SplineBoris_single_particle(
     const int      multipole_order,
     const double   length,
     const int      n_steps,
+    const int      steps_to_track,
+    double         s_local,
+    const int      update_s,
+    const int8_t   serial_cpu_twiss_reference_replay,
     const double   shift_x,
     const double   shift_y,
     const double   scale_b,
@@ -35,7 +39,10 @@ void SplineBoris_single_particle(
     GPUGLMEM const double* knl,
     GPUGLMEM const double* ksl,
     const int64_t  radiation_flag,
-    SynchrotronRadiationRecordData radiation_record
+    SynchrotronRadiationRecordData radiation_record,
+    double* dp_record_exit,
+    double* dpx_record_exit,
+    double* dpy_record_exit
 ){
 
     // Skip dead particles (state <= 0)
@@ -92,20 +99,16 @@ void SplineBoris_single_particle(
     const double ds   = (backtrack ? -L : L) / (double) n_steps;
     const double half_ds = 0.5 * ds;
     
-    // Local s coordinate for stepping through the element.
-    // Backtracking traverses the same field map from L to 0.
-    double s_local = backtrack ? L : 0.0;
-
     #ifndef XTRACK_MULTIPOLE_NO_SYNRAD
     // Variables for radiation tracking (if needed)
     double old_kin_px = 0.0, old_kin_py = 0.0;
-    double dp_record_exit = 0.0, dpx_record_exit = 0.0, dpy_record_exit = 0.0;
     #endif
 
     // ----------------------------------------------------------------------
     //  Loop over Boris substeps
     // ----------------------------------------------------------------------
-    for (int istep = 0; istep < n_steps; ++istep) {
+    int istep = 0;
+    for (; istep < steps_to_track; ++istep) {
 
         // Recalculate energy, gamma and total momentum each step
         // since ptau/delta may change (e.g., from radiation)
@@ -324,12 +327,18 @@ void SplineBoris_single_particle(
                 l_path,
                 radiation_flag,
                 radiation_record,
-                &dp_record_exit, &dpx_record_exit, &dpy_record_exit
+                dp_record_exit, dpx_record_exit, dpy_record_exit
             );
         }
         px = LocalParticle_get_px(part) * P0;
         py = LocalParticle_get_py(part) * P0;
         #endif
+    }
+
+    // A failed Boris step must not resume at the next field sample during replay.
+    const int8_t invalid_step = serial_cpu_twiss_reference_replay && istep < steps_to_track;
+    if (invalid_step){
+        LocalParticle_set_state(part, XT_INVALID_BORIS_STEP);
     }
 
     // ------------------------------------------------------------------
@@ -339,8 +348,10 @@ void SplineBoris_single_particle(
     LocalParticle_set_x(part, x);
     LocalParticle_set_y(part, y);
 
-    // s: Add signed element length to particle's s coordinate (like Drift element)
-    LocalParticle_add_to_s(part, backtrack ? -L : L);
+    // Advance the particle's global s by the element length only on the final pass.
+    if (update_s && !invalid_step){
+        LocalParticle_add_to_s(part, backtrack ? -L : L);
+    }
 
     // Convert physical momenta back to dimensionless px, py (relative to p0)
     LocalParticle_set_px(part, px / P0);

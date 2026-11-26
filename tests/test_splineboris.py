@@ -1787,3 +1787,82 @@ def test_splineboris_spin_quadrupole(case, atol):
     xo.assert_allclose(p.spin_x[0], p_ref.spin_x[0], atol=atol, rtol=0)
     xo.assert_allclose(p.spin_y[0], p_ref.spin_y[0], atol=atol, rtol=0)
     xo.assert_allclose(p.spin_z[0], p_ref.spin_z[0], atol=atol, rtol=0)
+
+
+@pytest.mark.parametrize('ramp', [False, True])
+@pytest.mark.parametrize('mode', ['kick_as_co', 'scale_as_co'])
+def test_splineboris_reference_radiation_replay_at_each_step(ramp, mode):
+    """Replay the closed-orbit radiation kick at its original Boris step."""
+    if mode == 'scale_as_co' and (xo.settings.cffi_forbid_compile or not (
+            xo.settings.force_kernel_compilation or xo.settings.allow_kernel_compilation)):
+        pytest.skip('scale_as_co requires a non-prebuilt kernel')
+
+    length = .3
+    by = (xt.Spline4(0., 2./length, 2., 2./length, 1.) if ramp
+          else xt.Spline4(2., 0., 2., 0., 2.))
+    line = xt.Line(elements=[xt.SplineBoris(length=length, n_steps=30, by=(by,))])
+    line.particle_ref = xt.Particles('positron', p0c=4e9)
+    line.build_tracker()
+    line.reset_s_at_end_turn = False
+    line.configure_radiation(model='mean')
+
+    # Identical initial particles must follow the same map in full and
+    # reference-replay tracking, including transverse radiation kicks.
+    initial = line.build_particles(x=[0., 0., 0.], px=1e-4, py=-1e-4)
+    full = initial.copy()
+    line.track(full)
+    assert full.delta[0] < initial.delta[0]
+    xo.assert_allclose(full.s, length, rtol=0, atol=1e-14)
+
+    line.tracker.track_flags.XS_FLAG_SR_KICK_SAME_AS_FIRST = mode == 'kick_as_co'
+    line.config.XTRACK_SYNRAD_SCALE_SAME_AS_FIRST = mode == 'scale_as_co'
+    same = initial.copy()
+    line.track(same)
+    assert np.all(full.state > 0) and np.all(same.state > 0)
+    reference = line.build_particles(px=1e-4, py=-1e-4)
+    line.track(reference)
+    assert reference.state[0] > 0
+    for coordinate in ('x', 'px', 'y', 'py', 'zeta', 'delta', 's'):
+        xo.assert_allclose(getattr(same, coordinate), getattr(full, coordinate),
+                           rtol=0, atol=1e-14)
+        xo.assert_allclose(getattr(reference, coordinate)[0],
+                           getattr(full, coordinate)[0], rtol=0, atol=1e-14)
+
+    # Different-energy particles receive the same reference kick (or scale)
+    # at each step, not the last step's kick repeated throughout the element.
+    delta0 = np.array([0., 1e-3, -1e-3])
+    particles = line.build_particles(x=[0., 1e-6, -1e-6], delta=delta0)
+    line.track(particles)
+    assert np.all(particles.state > 0)
+    if mode == 'kick_as_co':
+        change = particles.delta - delta0
+    else:
+        change = (1 + particles.delta) / (1 + delta0)
+    xo.assert_allclose(change, change[0], rtol=0, atol=1e-14)
+
+
+def test_splineboris_reference_radiation_does_not_resume_failed_step():
+    """Do not resume an invalid Boris trajectory or replay a missing reference kick."""
+    line = xt.Line(elements=[xt.SplineBoris(
+        length=.3, n_steps=2, by=(xt.Spline4(-2., 0., 2., 0., 0.),),
+    )])
+    line.particle_ref = xt.Particles('positron', p0c=4e9)
+    line.build_tracker()
+    line.configure_radiation(model='mean')
+    line.tracker.track_flags.XS_FLAG_SR_KICK_SAME_AS_FIRST = True
+
+    # The first half-kick makes the longitudinal momentum undefined for px=.995.
+    # The opposite field in the next step would otherwise let it resume.
+    for px in ([.995, 0.], [0., .995]):
+        particles = line.build_particles(x=[0., 0.], px=px)
+        line.track(particles)
+        order = np.argsort(particles.particle_id)
+        state = particles.state[order]
+        x = particles.x[order]
+        assert state[1] < 0
+        xo.assert_allclose(x[1], 0., rtol=0, atol=1e-14)
+        if px[0] == .995:
+            assert state[0] < 0
+            xo.assert_allclose(x[0], 0., rtol=0, atol=1e-14)
+        else:
+            assert state[0] > 0
