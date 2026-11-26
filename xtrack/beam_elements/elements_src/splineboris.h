@@ -70,27 +70,74 @@ void SplineBoris_track_local_particle(SplineBorisData el, LocalParticle* part0){
         }
     }
 
-    // Process all particles using the same parameter array (shared across particles)
-    START_PER_PARTICLE_BLOCK(part0, part);
-        SplineBoris_single_particle(
-            part,
-            bs,
-            by_ptrs,
-            bx_ptrs,
-            multipole_order,
-            length,
-            n_steps,
-            shift_x,
-            shift_y,
-            scale_b,
-            order,
-            inv_factorial_order,
-            knl,
-            ksl,
-            radiation_flag,
-            radiation_record
-        );
-    END_PER_PARTICLE_BLOCK;
+    // Only the serial-CPU Twiss modes (kick_as_co and scale_as_co) need
+    // all particles to use the current step's kick before it is overwritten.
+    // Ordinary CPU, OpenMP and GPU tracking use one full-element pass.
+    const int8_t backtrack = LocalParticle_check_track_flag(part0, XS_FLAG_BACKTRACK);
+    const double ds = (backtrack ? -length : length) / n_steps;
+    #if defined(XO_CONTEXT_CPU_SERIAL) && !defined(XTRACK_MULTIPOLE_NO_SYNRAD)
+        int8_t serial_cpu_twiss_reference_replay = 0;
+        if (radiation_flag == 1 && ds > 0. &&
+                LocalParticle_get__num_active_particles(part0) > 1){
+            #ifdef XTRACK_SYNRAD_SCALE_SAME_AS_FIRST
+                serial_cpu_twiss_reference_replay = 1;
+            #else
+                serial_cpu_twiss_reference_replay =
+                    LocalParticle_check_track_flag(part0, XS_FLAG_SR_KICK_SAME_AS_FIRST);
+            #endif
+        }
+    #else
+        const int8_t serial_cpu_twiss_reference_replay = 0;
+    #endif
+
+    const int num_tracking_passes = serial_cpu_twiss_reference_replay ? n_steps : 1;
+    const int steps_to_track = serial_cpu_twiss_reference_replay ? 1 : n_steps;
+    double s_local = backtrack ? length : 0.;
+    for (int ipass = 0; ipass < num_tracking_passes; ++ipass){
+        double dp_record_exit = 0., dpx_record_exit = 0., dpy_record_exit = 0.;
+        int8_t reference_step_failed = 0;
+        #ifdef XTRACK_SYNRAD_SCALE_SAME_AS_FIRST
+            dp_record_exit = 1.;
+        #endif
+        START_PER_PARTICLE_BLOCK(part0, part);
+            if (reference_step_failed){
+                // There is no reference kick to replay for this step.
+                if (LocalParticle_get_state(part) > 0){
+                    LocalParticle_set_state(part, XT_INVALID_BORIS_STEP);
+                }
+            } else {
+                SplineBoris_single_particle(
+                    part,
+                    bs,
+                    by_ptrs,
+                    bx_ptrs,
+                    multipole_order,
+                    length,
+                    n_steps,
+                    steps_to_track,
+                    s_local,
+                    ipass == num_tracking_passes - 1,
+                    serial_cpu_twiss_reference_replay,
+                    shift_x,
+                    shift_y,
+                    scale_b,
+                    order,
+                    inv_factorial_order,
+                    knl,
+                    ksl,
+                    radiation_flag,
+                    radiation_record,
+                    &dp_record_exit, &dpx_record_exit, &dpy_record_exit
+                );
+                if (serial_cpu_twiss_reference_replay && part->ipart == 0 &&
+                        LocalParticle_get_state(part) <= 0){
+                    reference_step_failed = 1;
+                }
+            }
+        END_PER_PARTICLE_BLOCK;
+        if (reference_step_failed) break;
+        s_local += ds;
+    }
 
     #ifndef __GNUC__
         free(by_storage);
