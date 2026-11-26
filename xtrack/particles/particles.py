@@ -38,6 +38,7 @@ scalar_vars = (
     (xo.Float64, 'mass0'),
     (xo.Float64, 't_sim'),
     (xo.Float64, 'time_s'),
+    (xo.Float64, '_time_s_error'),
     (xo.Float64, 'reference_turns'),
 )
 
@@ -394,6 +395,7 @@ class Particles(xo.HybridClass):
         self.mass0 = kwargs.get('mass0', PROTON_MASS_EV)
         self.t_sim = kwargs.get('t_sim', 0)
         self.time_s = kwargs.get('time_s', 0)
+        self._time_s_error = kwargs.get('_time_s_error', 0.)
         # Persistent accumulated reference revolutions at time_s. NAN asks the
         # tracker to initialize from time_s. Assign this after time_s, whose
         # setter invalidates the counter, to preserve an explicitly supplied pair.
@@ -561,6 +563,7 @@ class Particles(xo.HybridClass):
             Whether to minimize the size of the dictionary. Defaults to False.
         remove_underscored : bool, optional
             Whether to remove underscored variables from the dictionary.
+            The internal clock residual is retained for exact restart.
             Defaults to True.
         remove_unused_space : bool, optional
             Whether to remove unused space from the arrays. Defaults to
@@ -611,6 +614,8 @@ class Particles(xo.HybridClass):
         if remove_underscored:
             for kk in list(dct.keys()):
                 if kk.startswith('_'):
+                    if kk == '_time_s_error':
+                        continue
                     if keep_rng_state and kk.startswith('_rng'):
                         continue
                     del (dct[kk])
@@ -1095,7 +1100,7 @@ class Particles(xo.HybridClass):
             raise NotImplementedError("Out of space, need to regenerate xobject")
 
         for tt, nn in self.scalar_vars:
-            if nn in ('t_sim', 'time_s', 'reference_turns'):
+            if nn in ('t_sim', 'time_s', '_time_s_error', 'reference_turns'):
                 # Added particles use the receiving collection's clock.
                 continue
             assert np.isclose(getattr(self, nn), getattr(part, nn),
@@ -1251,6 +1256,7 @@ class Particles(xo.HybridClass):
         # A new clock origin invalidates the accumulated reference turns.
         # Normal tracking updates both underlying fields together instead.
         self._time_s = value
+        self._time_s_error = 0.
         self.reference_turns = np.nan
 
     @property

@@ -280,7 +280,16 @@ void increment_at_turn(LocalParticle* part0, int flag_reset_s, double line_lengt
     END_PER_PARTICLE_BLOCK;
     // Advance the local clock once per tracking context, not once per particle
     // in a CPU chunk. The Python tracker advances the shared Particles values.
-    part0->time_s += direction * part0->t_sim;
+    // Compensated addition of the frame duration (two sums).
+    double const step = direction * part0->t_sim;
+    double const sum = part0->time_s + step;
+    double const b = sum - part0->time_s;
+    double const error = (part0->time_s - (sum - b)) + (step - b);
+    double const low = part0->_time_s_error + error;
+    double const high = sum + low;
+    double const bb = high - sum;
+    part0->_time_s_error = (sum - (high - bb)) + (low - bb);
+    part0->time_s = high;
     part0->reference_turns += direction;
 }
 
