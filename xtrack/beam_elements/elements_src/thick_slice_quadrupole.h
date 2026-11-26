@@ -40,7 +40,7 @@ void ThickSliceQuadrupole_track_local_particle(
         /*default_integrator*/    QUADRUPOLE_DEFAULT_INTEGRATOR,
         /*radiation_flag*/        ThickSliceQuadrupoleData_get_radiation_flag(el),
         /*radiation_flag_parent*/ ThickSliceQuadrupoleData_get__parent_radiation_flag(el),
-        /*radiation_record*/      NULL,
+        /*radiation_record*/      (SynchrotronRadiationRecordData) ThickSliceQuadrupoleData_getp_internal_record(el, part0),
         /*delta_taper*/           ThickSliceQuadrupoleData_get_delta_taper(el),
         /*h*/                     0.,
         /*hxl*/                   0.,

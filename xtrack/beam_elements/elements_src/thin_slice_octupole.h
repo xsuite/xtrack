@@ -40,7 +40,7 @@ void ThinSliceOctupole_track_local_particle(
         /*default_integrator*/    OCTUPOLE_DEFAULT_INTEGRATOR,
         /*radiation_flag*/        ThinSliceOctupoleData_get_radiation_flag(el),
         /*radiation_flag_parent*/ ThinSliceOctupoleData_get__parent_radiation_flag(el),
-        /*radiation_record*/      NULL,
+        /*radiation_record*/      (SynchrotronRadiationRecordData) ThinSliceOctupoleData_getp_internal_record(el, part0),
         /*delta_taper*/           ThinSliceOctupoleData_get_delta_taper(el),
         /*h*/                     0.,
         /*hxl*/                   0.,

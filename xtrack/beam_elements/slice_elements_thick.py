@@ -2,6 +2,7 @@ import numpy as np
 import xobjects as xo
 
 from ..base_element import BeamElement
+from ._common import SynchrotronRadiationRecord
 from .slice_base import _SliceBase, COMMON_SLICE_XO_FIELDS
 from .bend import Bend
 from .bfield_expansion import BFieldExpansion
@@ -18,6 +19,8 @@ from .uniform_solenoid import UniformSolenoid
 
 class _ThickSliceElementBase(_SliceBase):
 
+    # The element metaclass reads this from direct bases only
+    _internal_record_class = SynchrotronRadiationRecord
     rot_and_shift_from_parent = True
     allow_loss_refinement = True
     isthick = True

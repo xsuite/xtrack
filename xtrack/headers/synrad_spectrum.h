@@ -459,6 +459,24 @@ int64_t synrad_emit_total_energy_loss(LocalParticle *part, double B_T,
     return nphot;
 }
 
+// Energy removed by a mean step, recorded when twiss sets XS_FLAG_SR_RECORD_MEAN
+GPUFUN
+void synrad_record_mean_step(LocalParticle *part, double energy, RecordIndex record_index,
+                             SynchrotronRadiationRecordData record){
+    int64_t i_slot = RecordIndex_get_slot(record_index);
+    if (i_slot>=0){
+        SynchrotronRadiationRecordData_set_photon_energy(record, i_slot, energy);
+        SynchrotronRadiationRecordData_set_at_element(record, i_slot,
+                                    LocalParticle_get_at_element(part));
+        SynchrotronRadiationRecordData_set_at_turn(record, i_slot,
+                                    LocalParticle_get_at_turn(part));
+        SynchrotronRadiationRecordData_set_particle_id(record, i_slot,
+                                    LocalParticle_get_particle_id(part));
+        SynchrotronRadiationRecordData_set_particle_delta(record, i_slot,
+                                    LocalParticle_get_delta(part));
+    }
+}
+
 GPUFUN
 int64_t synrad_emit_photons(LocalParticle *part, double B_T,
                             double lpath /* m */,

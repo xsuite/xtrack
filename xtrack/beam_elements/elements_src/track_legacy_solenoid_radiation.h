@@ -217,8 +217,17 @@ void legacy_solenoid_apply_radiation_single_particle(
     LocalParticle_add_to_py(part, -new_ay);
 
     if (radiation_flag == 1){
+        uint8_t const record_mean = record
+            && LocalParticle_check_track_flag(part, XS_FLAG_SR_RECORD_MEAN);
+        double const energy_before = record_mean ? LocalParticle_get_energy0(part)
+            + LocalParticle_get_ptau(part) * LocalParticle_get_p0c(part) : 0.;
         synrad_average_kick(part, B_perp_T, l_path,
             dp_record_exit, dpx_record_exit, dpy_record_exit);
+        if (record_mean){
+            synrad_record_mean_step(part, energy_before - LocalParticle_get_energy0(part)
+                - LocalParticle_get_ptau(part) * LocalParticle_get_p0c(part),
+                SynchrotronRadiationRecordData_getp__index(record), record);
+        }
     }
     else if (radiation_flag == 2){
         synrad_emit_photons(part, B_perp_T, l_path, record_index, record);
