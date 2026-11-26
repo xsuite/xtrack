@@ -27,22 +27,28 @@ void LimitPolygon_track_local_particle(LimitPolygonData el,
 
     #ifdef XO_CONTEXT_CPU
         // Compute `inner_radius_sq`
+        int64_t origin_is_inside = 0;
         for (int64_t ii = 0; ii < N_edg; ii++) {
-            int64_t const jj = (ii + 1) % N_edg;
+            int64_t const jj = ii == 0 ? N_edg - 1 : ii - 1;
             double const x0 = LimitPolygonData_get_x_vertices(el, ii);
             double const y0 = LimitPolygonData_get_y_vertices(el, ii);
             double const x1 = LimitPolygonData_get_x_vertices(el, jj);
             double const y1 = LimitPolygonData_get_y_vertices(el, jj);
+            // Use the same ray-crossing test as for particle membership.
+            if (((y0 > 0.0) != (y1 > 0.0))
+                    && (0.0 < (x1 - x0) * (-y0) / (y1 - y0) + x0)) {
+                origin_is_inside = !origin_is_inside;
+            }
             double const dx = x1 - x0;
-        double const dy = y1 - y0;
-        double const seg_len_sq = dx * dx + dy * dy;
-        double dist_sq;
+            double const dy = y1 - y0;
+            double const seg_len_sq = dx * dx + dy * dy;
+            double dist_sq;
 
-        // Distance from the origin to this edge segment. Project the origin
-        // onto the edge line, then clamp the projection to the finite segment.
-        if (seg_len_sq > 0.0) {
-            double t = -(x0 * dx + y0 * dy) / seg_len_sq;
-            if (t < 0.0) {
+            // Distance from the origin to this edge segment. Project the origin
+            // onto the edge line, then clamp the projection to the finite segment.
+            if (seg_len_sq > 0.0) {
+                double t = -(x0 * dx + y0 * dy) / seg_len_sq;
+                if (t < 0.0) {
                     t = 0.0;
                 } else if (t > 1.0) {
                     t = 1.0;
@@ -58,13 +64,17 @@ void LimitPolygon_track_local_particle(LimitPolygonData el,
                 inner_radius_sq = dist_sq;
             }
         }
+        // The circle is inscribed only if its centre is inside the polygon.
+        if (!origin_is_inside) {
+            inner_radius_sq = 0.0;
+        }
     #endif
 
     START_PER_PARTICLE_BLOCK(part0, part);
         double const x = LocalParticle_get_x(part);
         double const y = LocalParticle_get_y(part);
 
-        if (x * x + y * y > inner_radius_sq) {
+        if (x * x + y * y >= inner_radius_sq) {
             int64_t ii = 0;
             int64_t jj = N_edg - 1;
             int64_t is_alive = 0;
