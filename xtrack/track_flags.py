@@ -10,6 +10,7 @@ flag_mapping = {
     'XS_FLAG_SR_TAPER': 5,
     'XS_FLAG_SR_KICK_SAME_AS_FIRST': 6,
     'XS_FLAG_USE_TIME_BASED_ZETA_UPDATE': 7,
+    'XS_FLAG_SR_RECORD_MEAN': 8,
 }
 
 flag_defaults = {
@@ -20,6 +21,7 @@ flag_defaults = {
     'XS_FLAG_SR_TAPER': False,
     'XS_FLAG_SR_KICK_SAME_AS_FIRST': False,
     'XS_FLAG_USE_TIME_BASED_ZETA_UPDATE': False,
+    'XS_FLAG_SR_RECORD_MEAN': False,
 }
 
 c_header_flag_mapping = """

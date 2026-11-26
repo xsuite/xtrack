@@ -15,21 +15,56 @@ from ..table import Table
 from .beam_covariance import _build_sigma_table
 from .trajectory_curvatures import _get_trajectory_curvatures
 
+from ..beam_elements._common import SynchrotronRadiationRecord
+from ..internal_record import init_internal_record, start_internal_logging
+
 import xtrack as xt  # To avoid circular imports
 
 
 def _get_eneloss_and_damping_rates(particle_on_co, R_matrix,
                                        px_co, py_co, ptau_co, W_matrix,
                                        t_rev0, line, radiation_method):
-    diff_ptau = np.diff(ptau_co)
-    mask_loss = diff_ptau < 0
-
-    # Explicitly exclude cavities from the energy loss calculation
-    # (decelerating cavities should not contribute to the energy loss)
-    mask_cav = line.tracker._tracker_data_base._line_table.element_type=='Cavity'
-    mask_loss = mask_loss & ~mask_cav[:-1]
-
-    eloss_turn = -sum(diff_ptau[mask_loss]) * particle_on_co._xobject.p0c[0]
+    # U0 is the energy radiated over one closed-orbit turn, summed from the record
+    radiating = list({id(ee): ee for ee in line.tracker._tracker_data_base._elements
+                      if getattr(ee, '_internal_record_class', None)
+                      is SynchrotronRadiationRecord}.values())
+    io_buffer = line.tracker.io_buffer
+    logging_before = [(ee._internal_record_id.offset, ee._internal_record_id.buffer_id,
+                       getattr(ee, 'io_buffer', None), getattr(ee, 'record', None))
+                      for ee in radiating]
+    ctx2np = line._context.nparray_from_context_array
+    capacity = len(line.element_names)
+    record = None
+    # Deleting a record does not release its io-buffer space
+    try:
+        with xt.line._preserve_track_flags(line):
+            line.tracker.track_flags.XS_FLAG_SR_RECORD_MEAN = True
+            while True:
+                record = init_internal_record(SynchrotronRadiationRecord, capacity,
+                                              io_buffer)
+                if radiating:
+                    start_internal_logging(radiating, record, io_buffer)
+                line.track(particle_on_co.copy())
+                if record._index.num_recorded < capacity:
+                    break
+                io_buffer.free(record._offset, record._xobject._size)
+                record = None
+                capacity *= 4
+        num_recorded = record._index.num_recorded
+        energy_radiated = ctx2np(record.photon_energy)[:num_recorded].copy()
+        delta_radiated = ctx2np(record.particle_delta)[:num_recorded].copy()
+    finally:
+        for ee, (offset, buffer_id, ee_io_buffer, ee_record) in zip(radiating,
+                                                                    logging_before):
+            ee._internal_record_id.offset = offset
+            ee._internal_record_id.buffer_id = buffer_id
+            ee.io_buffer = ee_io_buffer
+            ee.record = ee_record
+        if record is not None:
+            io_buffer.free(record._offset, record._xobject._size)
+    beta0 = particle_on_co._xobject.beta0[0]
+    ptau_radiated = np.sqrt((1 + delta_radiated)**2 - 1 + 1 / beta0**2) - 1 / beta0
+    eloss_turn = np.sum(energy_radiated)
 
     # Get eigenvalues
     w0, v0 = np.linalg.eig(R_matrix)
@@ -47,7 +82,7 @@ def _get_eneloss_and_damping_rates(particle_on_co, R_matrix,
     # https://cds.cern.ch/record/175614 , Eq. 4.24
     partition_numbers = (
         damping_constants_turns * 2
-        / (-np.sum(diff_ptau[mask_loss] / (1 + ptau_co[:-1][mask_loss]))))
+        / np.sum(energy_radiated / particle_on_co._xobject.p0c[0] / (1 + ptau_radiated)))
 
     eneloss_damp_res = {
         'eneloss_turn': float(eloss_turn), # deprecated

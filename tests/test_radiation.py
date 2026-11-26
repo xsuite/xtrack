@@ -13,6 +13,7 @@ from scipy.constants import epsilon_0, hbar
 import xobjects as xo
 import xpart as xp
 import xtrack as xt
+from xtrack.twiss import radiation as twiss_radiation
 from xobjects.test_helpers import for_all_test_contexts, fix_random_seed
 
 import pytest
@@ -216,6 +217,71 @@ def test_radiation_analysis_with_decelerating_cavity():
     xo.assert_allclose(
         twiss_one_decelerating.partition_numbers.sum(), 4, rtol=1e-4)
 
+
+
+@pytest.mark.parametrize('form', ['thick slices', 'thin slices', 'RFMultipole'])
+def test_radiation_analysis_counts_only_the_radiated_energy(form):
+    """Only radiation enters U0: a decelerating Cavity, its slices and an RFMultipole
+    give the same U0 and partition numbers. A user's record stays attached and empty."""
+    result = {}
+    for case in ('Cavity', form):
+        line = xt.load(test_data_folder / 'clic_dr/line_for_taper.json')
+        if case == 'RFMultipole':
+            line.append('decelerating', xt.RFMultipole(
+                voltage=20e6, frequency=2852 * clight / line.get_length(), lag=270,
+                knl=[0.], ksl=[0.], pn=[0.], ps=[0.]))
+        else:
+            line.append('decelerating', xt.Cavity(length=1., voltage=20e6, harmonic=2852,
+                                                  phase=1.5 * np.pi))
+        if case.endswith('slices'):
+            line.slice_thick_elements([xt.Strategy(None), xt.Strategy(
+                xt.Teapot(4, mode=case.split()[0]), name='decelerating')])
+        line.build_tracker()
+        line.configure_radiation(model='mean')
+        record = line.start_internal_logging_for_elements_of_type(
+            xt.Multipole, capacity=1000)
+        tw = line.twiss(radiation_analysis=True)
+        multipole = next(ee for ee in line.element_dict.values()
+                         if isinstance(ee, xt.Multipole))
+        assert multipole.record is record
+        line.track(tw.particle_on_co.copy())
+        assert record._index.num_recorded == 0
+        result[case] = tw
+
+    assert result[form].energy_loss > 2e8
+    xo.assert_allclose(result[form].energy_loss, result['Cavity'].energy_loss,
+                       rtol=1e-6, atol=0)
+    xo.assert_allclose(result[form].partition_numbers.sum(), 4, rtol=1e-4, atol=0)
+    xo.assert_allclose(result[form].partition_numbers,
+                       result['Cavity'].partition_numbers, rtol=1e-5, atol=0)
+
+
+def test_radiation_analysis_releases_its_record(monkeypatch):
+    """Repeated analyses do not grow the io buffer; an error restores logging and flags."""
+    line = xt.load(test_data_folder / 'clic_dr/line_for_taper.json')
+    line.build_tracker()
+    line.configure_radiation(model='mean')
+    record = line.start_internal_logging_for_elements_of_type(xt.Multipole, capacity=1000)
+    multipole = next(ee for ee in line.element_dict.values() if isinstance(ee, xt.Multipole))
+    io_buffer = line.tracker.io_buffer
+    in_use = lambda: io_buffer.capacity - sum(ch.end - ch.start for ch in io_buffer.chunks)
+
+    line.twiss(radiation_analysis=True)
+    used = in_use()
+    for _ in range(3):
+        line.twiss(radiation_analysis=True)
+    assert in_use() == used
+
+    start_internal_logging = twiss_radiation.start_internal_logging
+    def start_then_fail(*args, **kwargs):
+        start_internal_logging(*args, **kwargs)
+        raise RuntimeError('record turn failed')
+    monkeypatch.setattr(twiss_radiation, 'start_internal_logging', start_then_fail)
+    with pytest.raises(RuntimeError, match='record turn failed'):
+        line.twiss(radiation_analysis=True)
+    assert multipole.record is record
+    assert not line.tracker.track_flags.XS_FLAG_SR_RECORD_MEAN
+    assert in_use() == used
 
 @for_all_test_contexts(excluding=('ContextCupy', 'ContextPyopencl'))
 @pytest.mark.parametrize('thick', [False, True])
