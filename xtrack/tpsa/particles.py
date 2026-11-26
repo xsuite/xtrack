@@ -123,6 +123,7 @@ class ParticlesTpsa(TpsaMap[Tpsa]):
         descriptor: Descriptor | None = None,
         truncation_order: int | None = None,
         param_names: Sequence[str] | None = None,
+        param_order: int = 1,
         line_length: float = 0.0,
         track_flags: int = 0,
         **kwargs: Any,
@@ -165,7 +166,10 @@ class ParticlesTpsa(TpsaMap[Tpsa]):
                 raise ValueError("Provide truncation_order or a descriptor")
         if descriptor is None:
             descriptor = Descriptor(
-                var_names=COORDS, order=truncation_order, param_names=param_names
+                var_names=COORDS,
+                order=truncation_order,
+                param_names=param_names,
+                param_order=param_order,
             )
         if descriptor.var_names != COORDS:
             raise ValueError(
@@ -422,6 +426,7 @@ class ParticlesTpsa(TpsaMap[Tpsa]):
         not copied. Not trackable.
         """
         if extend:
+            # TODO: this loses the names of the extra coordinates.. Can we do better?
             self._sync_derived_coordinates()
             return TpsaTensor([*self.components, *self._extra_coords.values()])
         else:
