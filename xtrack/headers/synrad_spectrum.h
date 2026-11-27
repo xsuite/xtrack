@@ -256,7 +256,7 @@ int64_t synrad_largest_power_of_two_leq(int64_t value){
 
 GPUFUN
 int64_t synrad_total_energy_find_grid_index_direct_segment(
-        double const value, GPUGLMEM const double* grid, int64_t size,
+        double const value, const double* grid, int64_t size,
         int64_t is_log_spaced){
 
     if (value <= grid[0])
@@ -291,8 +291,8 @@ int64_t synrad_total_energy_find_grid_index_direct_segment(
 GPUFUN
 double synrad_total_energy_interpolate_segment(
         double const value,
-        GPUGLMEM const double* grid,
-        GPUGLMEM const double* table,
+        const double* grid,
+        const double* table,
         int64_t offset,
         int64_t size,
         int64_t is_log_spaced){
@@ -326,7 +326,7 @@ double synrad_total_energy_interpolate_segment(
 
 GPUFUN
 double synrad_total_energy_interpolate_log_table(
-        double const u, GPUGLMEM const double* table){
+        double const u, const double* table){
 
     if (u < XTRACK_SYNRAD_TOTAL_ENERGY_TAIL_PROBABILITY_MAX){
         return synrad_total_energy_interpolate_segment(

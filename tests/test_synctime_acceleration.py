@@ -578,6 +578,8 @@ def test_element_reference_ramp_uses_conventional_zeta_updates(
 @for_all_test_contexts
 @pytest.mark.parametrize('time_based', [False, True])
 def test_element_reference_update_at_nonzero_s(test_context, time_based):
+    if time_based and isinstance(test_context, xo.ContextPyopencl):
+        pytest.skip('Energy program updates not supported on OpenCL')
     line = xt.Line(elements=[xt.Drift(length=37.),
                             xt.ReferenceEnergyIncrease(Delta_p0c=1e8),
                             xt.Drift(length=63.)])
@@ -599,7 +601,7 @@ def test_element_reference_update_at_nonzero_s(test_context, time_based):
     assert line.tracker.track_flags.XS_FLAG_USE_TIME_BASED_ZETA_UPDATE == time_based
 
 
-@for_all_test_contexts
+@for_all_test_contexts(excluding='ContextPyopencl')
 def test_time_based_zeta_flag_follows_tracking_configuration(test_context):
     line = xt.Line(elements=[xt.Drift(length=100.)])
     line.particle_ref = xt.Particles(p0c=1e9)
@@ -626,7 +628,7 @@ def test_time_based_zeta_flag_follows_tracking_configuration(test_context):
         assert sync_line.tracker.track_flags.XS_FLAG_USE_TIME_BASED_ZETA_UPDATE
 
 
-@for_all_test_contexts
+@for_all_test_contexts(excluding='ContextPyopencl')
 @pytest.mark.parametrize('reset_s', [True, False])
 def test_energy_program_clock_preserves_physical_flight_time(test_context, reset_s):
     line = xt.Line(elements=[xt.Drift(length=100)])
@@ -662,7 +664,7 @@ def test_energy_program_clock_preserves_physical_flight_time(test_context, reset
     xo.assert_allclose(p.time_s, before + period, rtol=1e-15)
 
 
-@for_all_test_contexts
+@for_all_test_contexts(excluding='ContextPyopencl')
 def test_sync_time_clock_advances_while_all_particles_wait(test_context):
     line = xt.Line(elements=[xt.Drift(length=100)])
     st.install_sync_time_at_collective_elements(line, frame_relative_length=.5)

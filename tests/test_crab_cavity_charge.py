@@ -23,7 +23,7 @@ def test_crab_cavity_charge_kicks_and_symplecticity(test_context):
                               charge_ratio=charge_ratio, mass_ratio=mass_ratio,
                               x=0.02, px=1e-4, y=-0.015, py=2e-4,
                               zeta=0.05, delta=1e-3)
-            beta0 = float(p0.beta0[0])
+            beta0 = test_context.nparray_from_context_array(p0.beta0)[0]
             k = 2 * np.pi * cavity.frequency / c
             phase = cavity.phase - k * 0.05 / beta0
             kick = abs(q0) * charge_ratio / mass_ratio * cavity.crab_voltage / 1e9

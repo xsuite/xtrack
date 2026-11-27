@@ -18,8 +18,8 @@ void MagnetEdge_track_local_particle(MagnetEdgeData el, LocalParticle* part0)
     const double* knorm = MagnetEdgeData_getp1_kn(el, 0);
     const double* kskew = MagnetEdgeData_getp1_ks(el, 0);
     const int64_t k_order = MagnetEdgeData_get_k_order(el);
-    const double* knl = MagnetEdgeData_getp1_knl(el, 0);
-    const double* ksl = MagnetEdgeData_getp1_ksl(el, 0);
+    GPUGLMEM const double* knl = MagnetEdgeData_getp1_knl(el, 0);
+    GPUGLMEM const double* ksl = MagnetEdgeData_getp1_ksl(el, 0);
     const int64_t kl_order = MagnetEdgeData_get_kl_order(el);
     const double ks = 0.; // Not supported yet in MagnetEdge
     const double length = MagnetEdgeData_get_length(el);
