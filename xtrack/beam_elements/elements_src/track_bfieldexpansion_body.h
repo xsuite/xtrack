@@ -1,6 +1,81 @@
+#include "xtrack/beam_elements/elements_src/track_magnet_spin_helpers.h"
+
+#ifndef XTRACK_BFIELDEXPANSION_SPIN
+#define XTRACK_BFIELDEXPANSION_SPIN
+GPUFUN
+void bfieldexpansion_spin_rhs(
+    const double h_ref,
+    const double beta0,
+    const double gamma0,
+    const double q0,
+    const double mass0,    
+    const double G_spin,
+    const double chi,
+    const double z[6],
+    const HamiltonianFlow* flow,
+    const double spin[3],
+    double kspin[3]
+){
+    // Returns dS/ds based on T-BMT differential equation for magnetic fields 
+
+    const double ptau = z[5];
+    const double delta = flow->delta;
+    const double gamma = gamma0 * (1.0 + beta0 * ptau);
+    const double beta = sqrt(1.0 - 1.0 / (gamma * gamma));
+    const double mass0_kg = mass0 * QELEM / (C_LIGHT * C_LIGHT);
+    const double P_J = mass0_kg * beta * gamma * C_LIGHT;
+    const double brho_part = P_J / (q0 * QELEM);
+    const double brho_ref = mass0_kg * beta0 * gamma0 * C_LIGHT / (q0 * QELEM);
+
+    const double kin_px = z[1] - chi * flow->pot.Ax;
+    const double kin_py = z[3] - chi * flow->pot.Ay;
+    const double Bx_T = flow->pot.Bx * brho_ref;
+    const double By_T = flow->pot.By * brho_ref;
+    const double Bz_T = flow->pot.Bs * brho_ref;
+
+    double iv_x, iv_y, iv_z;
+    direction_of_motion(kin_px, kin_py, delta,
+                        &iv_x, &iv_y, &iv_z);
+
+    double B_par_spin_x, B_par_spin_y, B_par_spin_z;
+    double B_perp_spin_x, B_perp_spin_y, B_perp_spin_z;
+
+    separate_par_perp_components(
+        Bx_T,
+        By_T,
+        Bz_T,
+        iv_x,
+        iv_y,
+        iv_z,
+        &B_par_spin_x,
+        &B_par_spin_y,
+        &B_par_spin_z,
+        &B_perp_spin_x,
+        &B_perp_spin_y,
+        &B_perp_spin_z);
+
+    const double Omega_BMT_x = -1 / brho_part * (
+        (1 + G_spin * gamma) * B_perp_spin_x + (1 + G_spin) * B_par_spin_x);
+    const double Omega_BMT_y = -1 / brho_part * (
+        (1 + G_spin * gamma) * B_perp_spin_y + (1 + G_spin) * B_par_spin_y);
+    const double Omega_BMT_z = -1 / brho_part * (
+        (1 + G_spin * gamma) * B_perp_spin_z + (1 + G_spin) * B_par_spin_z);
+
+    const double dl_ds = (1 + h_ref * z[0]) * flow->one_plus_delta / flow->root;
+
+    const double Omega_x = Omega_BMT_x * dl_ds;
+    const double Omega_y = Omega_BMT_y * dl_ds + h_ref;
+    const double Omega_z = Omega_BMT_z * dl_ds;
+
+    kspin[0] = Omega_y * spin[2] - Omega_z * spin[1];
+    kspin[1] = Omega_z * spin[0] - Omega_x * spin[2];
+    kspin[2] = Omega_x * spin[1] - Omega_y * spin[0];
+}
+
+#endif // XTRACK_BFIELDEXPANSION_SPIN
+
 /* Intentionally included twice: specialize the integration loop for each
  * geometry, with no geometry dispatch inside the Runge-Kutta stages. */
-
 GPUFUN
 int HAMILTONIAN_FLOW(Expansion *f, const double beta0, const double chi,
                      double s, const double z[6], HamiltonianFlow *flow) {
@@ -68,6 +143,10 @@ void TRACK_EXPANSION(
         int valid = 1;
         const double beta0  = LocalParticle_get_beta0(part);
         const double chi    = LocalParticle_get_chi(part);
+        const double gamma0 = LocalParticle_get_gamma0(part);
+        const double q0     = LocalParticle_get_q0(part);
+        const double mass0  = LocalParticle_get_mass0(part);
+        const double G_spin = LocalParticle_get_anomalous_magnetic_moment(part);
 
         const double x      = LocalParticle_get_x(part);
         const double px     = LocalParticle_get_px(part);
@@ -78,6 +157,12 @@ void TRACK_EXPANSION(
         const double ax     = LocalParticle_get_ax(part);
         const double ay     = LocalParticle_get_ay(part);
         double z[6] = {x, px, y, py, tau, ptau};
+
+        double spin[3] = {
+            LocalParticle_get_spin_x(part),
+            LocalParticle_get_spin_y(part),
+            LocalParticle_get_spin_z(part)};
+        const int track_spin = (spin[0] != 0. || spin[1] != 0. || spin[2] != 0.);
 
         // Momentum has to be continuous, vector potential discontinuous, update canonical momentum
         if (pkin_const) {
@@ -91,36 +176,50 @@ void TRACK_EXPANSION(
 
         double s = s_start;
         double ztmp[6];
+        double spintmp[3] = {0.0, 0.0, 0.0};
         for (int step = 0; valid && step < nstep; ++step) {
-            double k1[6], k2[6], k3[6], k4[6];
+            double k1[6], k2[6], k3[6], k4[6];	
+            double ks1[3] = {0.0, 0.0, 0.0};
+            double ks2[3] = {0.0, 0.0, 0.0};
+            double ks3[3] = {0.0, 0.0, 0.0};
+            double ks4[3] = {0.0, 0.0, 0.0};
 
             if (HAMILTONIAN_FLOW(&f, beta0, chi, s, z, &flow) != 0) {
                 valid = 0;
                 break;
             }
             for (int i = 0; i < 6; ++i) k1[i] = flow.rhs[i];
+            if (track_spin) bfieldexpansion_spin_rhs(f.h, beta0, gamma0, q0, mass0, G_spin, chi, z, &flow, spin, ks1);
             for (int i = 0; i < 6; ++i) ztmp[i] = z[i] + 0.5 * ds * k1[i];
+            if (track_spin) for (int i = 0; i < 3; ++i) spintmp[i] = spin[i] + 0.5 * ds * ks1[i];
 
             if (HAMILTONIAN_FLOW(&f, beta0, chi, s + 0.5 * ds, ztmp, &flow) != 0) {
                 valid = 0;
                 break;
             }
             for (int i = 0; i < 6; ++i) k2[i] = flow.rhs[i];
+            if (track_spin) bfieldexpansion_spin_rhs(f.h, beta0, gamma0, q0, mass0, G_spin, chi, ztmp, &flow, spintmp, ks2);
             for (int i = 0; i < 6; ++i) ztmp[i] = z[i] + 0.5 * ds * k2[i];
+            if (track_spin) for (int i = 0; i < 3; ++i) spintmp[i] = spin[i] + 0.5 * ds * ks2[i];
 
             if (HAMILTONIAN_FLOW(&f, beta0, chi, s + 0.5 * ds, ztmp, &flow) != 0) {
                 valid = 0;
                 break;
             }
             for (int i = 0; i < 6; ++i) k3[i] = flow.rhs[i];
+            if (track_spin) bfieldexpansion_spin_rhs(f.h, beta0, gamma0, q0, mass0, G_spin, chi, ztmp, &flow, spintmp, ks3);
             for (int i = 0; i < 6; ++i) ztmp[i] = z[i] + ds * k3[i];
+            if (track_spin) for (int i = 0; i < 3; ++i) spintmp[i] = spin[i] + ds * ks3[i];
 
             if (HAMILTONIAN_FLOW(&f, beta0, chi, s + ds, ztmp, &flow) != 0) {
                 valid = 0;
                 break;
             }
             for (int i = 0; i < 6; ++i) k4[i] = flow.rhs[i];
+            if (track_spin) bfieldexpansion_spin_rhs(f.h, beta0, gamma0, q0, mass0, G_spin, chi, ztmp, &flow, spintmp, ks4);
+
             for (int i = 0; i < 6; ++i) z[i] += ds * (k1[i] + 2.0*k2[i] + 2.0*k3[i] + k4[i]) / 6.0;
+            if (track_spin) for (int i = 0; i < 3; ++i) spin[i] += ds * (ks1[i] + 2.0*ks2[i] + 2.0*ks3[i] + ks4[i]) / 6.0;
 
             s += ds;
         }
@@ -151,6 +250,12 @@ void TRACK_EXPANSION(
             LocalParticle_set_zeta(part, z[4]*beta0);
             LocalParticle_update_ptau(part, z[5]);
             LocalParticle_add_to_s(part, ds*nstep);
+
+            if (track_spin){
+                LocalParticle_set_spin_x(part, spin[0]);
+                LocalParticle_set_spin_y(part, spin[1]);
+                LocalParticle_set_spin_z(part, spin[2]);
+            }
         }
     END_PER_PARTICLE_BLOCK
 }
