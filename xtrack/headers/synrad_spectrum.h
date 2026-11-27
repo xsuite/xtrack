@@ -23,20 +23,22 @@ void synrad_average_kick(LocalParticle* part, double B_T, double lpath,
                          double* dp_record, double* dpx_record, double* dpy_record
                         ){
     double const gamma0  = LocalParticle_get_gamma0(part);
-    double const mass0 = LocalParticle_get_mass0(part);
-    double const q0 = LocalParticle_get_q0(part);
+    double const charge_ratio = LocalParticle_get_charge_ratio(part);
+    double const mass_ratio = charge_ratio / LocalParticle_get_chi(part);
+    double const mass = LocalParticle_get_mass0(part) * mass_ratio;
+    double const q = LocalParticle_get_q0(part) * charge_ratio;
 
-    double const Q0_coulomb = fabs(q0) * QELEM;
-    double const mass0_kg = mass0 / C_LIGHT / C_LIGHT * QELEM;
+    double const Q_coulomb = fabs(q) * QELEM;
+    double const mass_kg = mass / C_LIGHT / C_LIGHT * QELEM;
 
     double const delta  = LocalParticle_get_delta(part);
     double const gamma = gamma0 * (1 + delta); // Ultra-relativistic approximation
 
-    double const r0_m = Q0_coulomb * Q0_coulomb/  (4 * PI * EPSILON_0 * mass0_kg * C_LIGHT * C_LIGHT);
+    double const r0_m = Q_coulomb * Q_coulomb/  (4 * PI * EPSILON_0 * mass_kg * C_LIGHT * C_LIGHT);
 
-    double const Ps_W = 2 * r0_m * C_LIGHT * Q0_coulomb * Q0_coulomb * gamma * gamma * B_T * B_T / (3 * mass0_kg);
+    double const Ps_W = 2 * r0_m * C_LIGHT * Q_coulomb * Q_coulomb * gamma * gamma * B_T * B_T / (3 * mass_kg);
     double const Delta_E_eV = Ps_W * lpath / C_LIGHT / QELEM;
-    double f_t = 1 - Delta_E_eV / (gamma0 * mass0 * (1 + delta));
+    double f_t = 1 - Delta_E_eV / (gamma0 * mass * (1 + delta));
 
     #ifdef XTRACK_SYNRAD_SCALE_SAME_AS_FIRST
     if (part -> ipart == 0){
@@ -207,15 +209,16 @@ double synrad_gen_photon_energy_normalized(LocalParticle *part)
 }
 
 GPUFUN
-double synrad_average_number_of_photons(double mass0, double q0,
+double synrad_average_number_of_photons(double mass, double q,
                           double beta0_gamma0, double B_T, double lpath){
 
-    double const mass0_kg = mass0 * QELEM / C_LIGHT / C_LIGHT;
-    /*a*/ double const P0_J = mass0_kg * beta0_gamma0 * C_LIGHT;
-    double const Q0_coulomb = fabs(q0) * QELEM;
-    double const curv = B_T / P0_J * Q0_coulomb;
+    double const mass_kg = mass * QELEM / C_LIGHT / C_LIGHT;
+    double const P0_J = mass_kg * beta0_gamma0 * C_LIGHT;
+    double const Q_coulomb = fabs(q) * QELEM;
+    double const curv = B_T / P0_J * Q_coulomb;
     double const kick = curv * lpath;
-    return 2.5/SQRT3*ALPHA_EM*beta0_gamma0*fabs(kick);
+    // q is the particle charge in units of e; the radiation coupling is q^2*alpha.
+    return 2.5/SQRT3*ALPHA_EM*q*q*beta0_gamma0*fabs(kick);
 }
 
 GPUFUN
@@ -412,30 +415,32 @@ int64_t synrad_emit_total_energy_loss(LocalParticle *part, double B_T,
     if (fabs(B_T) < 1e-4)
         return 0;
 
-    // TODO Introduce effect of chi and mass_ratio!!!
-    double const mass0 = LocalParticle_get_mass0(part); // eV
-    double const q0 = LocalParticle_get_q0(part); // e
+    double const charge_ratio = LocalParticle_get_charge_ratio(part);
+    double const mass_ratio = charge_ratio / LocalParticle_get_chi(part);
+    double const mass = LocalParticle_get_mass0(part) * mass_ratio; // eV
+    double const q = LocalParticle_get_q0(part) * charge_ratio; // e
     double const gamma0  = LocalParticle_get_gamma0(part);
     double const beta0  = LocalParticle_get_beta0(part);
 
     double const average_nphotons = synrad_average_number_of_photons(
-        mass0, q0, beta0 * gamma0, B_T, lpath);
+        mass, q, beta0 * gamma0, B_T, lpath);
     int64_t const nphot = synrad_gen_photon_count(part, average_nphotons);
 
     if (nphot == 0)
         return 0;
 
-    double const Q0_coulomb = fabs(q0) * QELEM;
+    double const Q_coulomb = fabs(q) * QELEM;
 
-    double const mass0_kg = mass0 * QELEM / C_LIGHT / C_LIGHT;
-    double const P0_J = mass0_kg * beta0 * gamma0 * C_LIGHT;
-    double const curv = B_T / P0_J * Q0_coulomb;
+    double const mass_kg = mass * QELEM / C_LIGHT / C_LIGHT;
+    double const P0_J = mass_kg * beta0 * gamma0 * C_LIGHT;
+    double const curv = B_T / P0_J * Q_coulomb;
 
     double const delta  = LocalParticle_get_delta(part);
     double gamma = gamma0 * (1 + delta); // Ultra-relativistic approximation
 
-    double const initial_energy = LocalParticle_get_energy0(part)
-	                          + LocalParticle_get_ptau(part)*LocalParticle_get_p0c(part); // eV
+    // Convert the mass-normalized energy coordinates to physical energy.
+    double const initial_energy = (LocalParticle_get_energy0(part)
+        + LocalParticle_get_ptau(part)*LocalParticle_get_p0c(part)) * mass_ratio; // eV
     double energy_loss_total = 0.0; // eV
 
     double const c1 = 1.5 * 1.973269804593025e-07; // hbar * c = 1.973269804593025e-07 eV * m
@@ -471,26 +476,28 @@ int64_t synrad_emit_photons(LocalParticle *part, double B_T,
 
     int64_t nphot = 0;
 
-    // TODO Introduce effect of chi and mass_ratio!!!
-    double const mass0 = LocalParticle_get_mass0(part); // eV
-    double const q0 = LocalParticle_get_q0(part); // e
+    double const charge_ratio = LocalParticle_get_charge_ratio(part);
+    double const mass_ratio = charge_ratio / LocalParticle_get_chi(part);
+    double const mass = LocalParticle_get_mass0(part) * mass_ratio; // eV
+    double const q = LocalParticle_get_q0(part) * charge_ratio; // e
     double const gamma0  = LocalParticle_get_gamma0(part);
     double const beta0  = LocalParticle_get_beta0(part);
 
-    double const Q0_coulomb = fabs(q0) * QELEM;
+    double const Q_coulomb = fabs(q) * QELEM;
 
-    double const mass0_kg = mass0 * QELEM / C_LIGHT / C_LIGHT;
-    double const P0_J = mass0_kg * beta0 * gamma0 * C_LIGHT;
-    double const curv = B_T / P0_J * Q0_coulomb;
+    double const mass_kg = mass * QELEM / C_LIGHT / C_LIGHT;
+    double const P0_J = mass_kg * beta0 * gamma0 * C_LIGHT;
+    double const curv = B_T / P0_J * Q_coulomb;
 
     double const delta  = LocalParticle_get_delta(part);
     double gamma = gamma0 * (1 + delta); // Ultra-relativistic approximation
 
-    double const initial_energy = LocalParticle_get_energy0(part)
-	                          + LocalParticle_get_ptau(part)*LocalParticle_get_p0c(part); // eV
+    // Convert the mass-normalized energy coordinates to physical energy.
+    double const initial_energy = (LocalParticle_get_energy0(part)
+        + LocalParticle_get_ptau(part)*LocalParticle_get_p0c(part)) * mass_ratio; // eV
     double energy = initial_energy; // eV
     double n = RandomExponential_generate(part); // path_length / mean_free_path;
-    while (n < synrad_average_number_of_photons(mass0, q0, beta0 * gamma0, B_T, lpath)) {
+    while (n < synrad_average_number_of_photons(mass, q, beta0 * gamma0, B_T, lpath)) {
         nphot++;
         double const c1 = 1.5 * 1.973269804593025e-07; // hbar * c = 1.973269804593025e-07 eV * m
         double const energy_critical = c1 * (gamma*gamma*gamma0) * curv; // eV
