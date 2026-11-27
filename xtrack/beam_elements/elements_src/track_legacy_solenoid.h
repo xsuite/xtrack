@@ -18,7 +18,8 @@ void Solenoid_thick_track_single_particle(
     double ks,
     int64_t radiation_flag
 ) {
-    const double sk = ks / 2;
+    const double chi = LocalParticle_get_chi(part);
+    const double sk = chi * ks / 2;
 
     if (IS_ZERO(sk)) {
         Drift_single_particle_exact(part, length);
@@ -72,8 +73,8 @@ void Solenoid_thick_track_single_particle(
     double const P0_J = p0c * QELEM / C_LIGHT;
     double const brho = P0_J / QELEM / q0;
     double const Bz = brho * ks;
-    double const new_ax = -0.5 * Bz * new_y * q0 * QELEM / P0_J;
-    double const new_ay = 0.5 * Bz * new_x * q0 * QELEM / P0_J;
+    double const new_ax = -0.5 * Bz * new_y * q0 * QELEM / P0_J * chi;
+    double const new_ay = 0.5 * Bz * new_x * q0 * QELEM / P0_J * chi;
 
     LocalParticle_set_x(part, new_x);
     LocalParticle_set_px(part, new_px);

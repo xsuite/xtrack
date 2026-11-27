@@ -472,7 +472,7 @@ void track_solenoid_single_particle(
     double x0_solenoid,
     double y0_solenoid
 ) {
-    const xt_float_or_tpsa sk = ks / 2;
+    const xt_float_or_tpsa sk = LocalParticle_get_chi(part) * ks / 2;
 
     if (IS_ZERO(sk)) {
         track_exact_drift_single_particle(part, length);
@@ -518,8 +518,9 @@ void track_solenoid_single_particle(
     const xt_float_or_tpsa new_y = cosTh * rps2 + si * rps3;
     const xt_float_or_tpsa new_py = cosTh * rps3 - sk * sinTh * rps2;
     const xt_float_or_tpsa add_to_zeta = length * (1 - one_plus_delta / (pz * rvv));
-    const xt_float_or_tpsa new_ax = -0.5 * ks * new_y;
-    const xt_float_or_tpsa new_ay = 0.5 * ks * new_x;
+    // ax/ay include chi, so px-ax and py-ay are the kinetic momenta.
+    const xt_float_or_tpsa new_ax = -sk * new_y;
+    const xt_float_or_tpsa new_ay = sk * new_x;
 
     LocalParticle_set_x(part, new_x + x0_solenoid);
     LocalParticle_set_px(part, new_px);
