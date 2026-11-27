@@ -136,7 +136,8 @@ void magnet_spin(
             double const beta = beta0 * rvv;
             double const mass0_kg = mass0 * QELEM / C_LIGHT / C_LIGHT;
             double const P_J = mass0_kg * beta * gamma * C_LIGHT;
-            double const brho_part = P_J / (q0 * QELEM);
+            // P_J uses the reference mass; m/m0 divided by q/q0 is 1/chi.
+            double const brho_part = P_J / (q0 * QELEM * LocalParticle_get_chi(part));
 
             double const new_ax = LocalParticle_get_ax(part);
             double const new_ay = LocalParticle_get_ay(part);

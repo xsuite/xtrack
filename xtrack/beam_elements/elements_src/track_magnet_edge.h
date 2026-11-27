@@ -71,8 +71,9 @@ void track_magnet_edge_particles(
     }
     else {
         START_PER_PARTICLE_BLOCK(part0, part);
-            LocalParticle_set_ax(part, -0.5 * ksol * (LocalParticle_get_y(part) - y0_solenoid));
-            LocalParticle_set_ay(part, 0.5 * ksol * (LocalParticle_get_x(part) - x0_solenoid));
+            double const chi = LocalParticle_get_chi(part);
+            LocalParticle_set_ax(part, -0.5 * chi * ksol * (LocalParticle_get_y(part) - y0_solenoid));
+            LocalParticle_set_ay(part, 0.5 * chi * ksol * (LocalParticle_get_x(part) - x0_solenoid));
         END_PER_PARTICLE_BLOCK;
     }
 

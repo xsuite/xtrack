@@ -90,10 +90,11 @@ void legacy_solenoid_apply_radiation_single_particle(
     double const P_J = mass0_kg * beta * gamma * C_LIGHT;
     double const Q0_coulomb = q0 * QELEM;
     double const brho0 = p0c / C_LIGHT / q0;
+    double const brho_part = P_J / (Q0_coulomb * LocalParticle_get_chi(part));
 
-    // Estimate magnetic field
-    double Bx_T = -kappa_y * P_J / Q0_coulomb;
-    double By_T = kappa_x * P_J / Q0_coulomb;
+    // Recover the physical field from curvature using the particle's rigidity.
+    double Bx_T = -kappa_y * brho_part;
+    double By_T = kappa_x * brho_part;
     double const B_perp_T = sqrt(Bx_T * Bx_T + By_T * By_T); //this one is used for radiation
 
     // I kill Bx and By if there is ks (for spin), need to find a better solution
@@ -141,8 +142,6 @@ void legacy_solenoid_apply_radiation_single_particle(
             double const B_perp_spin_x = Bx_T - B_par_spin_x;
             double const B_perp_spin_y = By_T - B_par_spin_y;
             double const B_perp_spin_z = Bz_T - B_par_spin_z;
-
-            double const brho_part = P_J / (q0 * QELEM);
 
             double const G_spin = LocalParticle_get_anomalous_magnetic_moment(part);
 
