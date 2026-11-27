@@ -414,8 +414,21 @@ class MultilineLegacy:
 
 class MultiTwiss(dict):
 
-    def __init__(self):
-        self.__dict__ = self
+    def __getattribute__(self, key):
+        # Keep attribute access without a self-referencing instance dictionary.
+        # Stored keys take precedence over dict methods (e.g. a line 'items').
+        try:
+            return dict.__getitem__(self, key)
+        except KeyError:
+            return object.__getattribute__(self, key)
+
+    __setattr__ = dict.__setitem__
+
+    def __delattr__(self, key):
+        try:
+            dict.__delitem__(self, key)
+        except KeyError:
+            raise AttributeError(key) from None
 
 def _dispatch_twiss_kwargs(kwargs, lines):
     kwargs_per_twiss = {}
