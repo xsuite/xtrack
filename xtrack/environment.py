@@ -3217,6 +3217,7 @@ def _reverse_element(env, name):
         for i in range(0, len(ee.ksl), 2):
             ee_ref.ksl[i] = -(ee_ref.ksl[i]._expr or ee_ref.ksl[i]._value)
 
+    _exchange_fields('edge_entry_active', 'edge_exit_active')
     _exchange_fields('edge_entry_model', 'edge_exit_model')
     _exchange_fields('edge_entry_angle', 'edge_exit_angle')
     _exchange_fields('edge_entry_angle_fdown', 'edge_exit_angle_fdown')
