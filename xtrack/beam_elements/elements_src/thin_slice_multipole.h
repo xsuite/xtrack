@@ -38,7 +38,7 @@ void ThinSliceMultipole_track_local_particle(ThinSliceMultipoleData el, LocalPar
         /*default_integrator*/    MULTIPOLE_DEFAULT_INTEGRATOR,
         /*radiation_flag*/        ThinSliceMultipoleData_get_radiation_flag(el),
         /*radiation_flag_parent*/ ThinSliceMultipoleData_get__parent_radiation_flag(el),
-        /*radiation_record*/      NULL,
+        /*radiation_record*/      (SynchrotronRadiationRecordData) ThinSliceMultipoleData_getp_internal_record(el, part0),
         /*delta_taper*/           ThinSliceMultipoleData_get_delta_taper(el),
         /*h*/                     0.,
         /*hxl*/                   ThinSliceMultipoleData_get__parent_hxl(el),

@@ -2,7 +2,6 @@ import xobjects as xo
 
 from ..base_element import BeamElement
 from ..random import RandomUniformAccurate, RandomExponential
-from ._common import SynchrotronRadiationRecord
 
 ID_RADIATION_FROM_PARENT = 10
 
@@ -28,7 +27,6 @@ class _SliceBase:
     _force_moveable = True
 
     _depends_on = [RandomUniformAccurate, RandomExponential]
-    _internal_record_class = SynchrotronRadiationRecord
 
     def to_dict(self, **kwargs):
         dct = BeamElement.to_dict(self, **kwargs)

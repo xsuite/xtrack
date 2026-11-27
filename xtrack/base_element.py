@@ -446,9 +446,15 @@ class MetaBeamElement(xo.MetaHybridClass):
         # Handle internal record
         if '_internal_record_class' in data.keys():
             data['_xofields']['_internal_record_id'] = RecordIdentifier
-            if '_skip_in_to_dict' not in data.keys():
-                data['_skip_in_to_dict'] = []
-            data['_skip_in_to_dict'].append('_internal_record_id')
+            # Keep the inherited entries, e.g. the slices' '_parent'
+            skip_in_to_dict = data.get('_skip_in_to_dict')
+            if skip_in_to_dict is None:
+                skip_in_to_dict = []
+                for base in bases:
+                    if hasattr(base, '_skip_in_to_dict'):
+                        skip_in_to_dict = base._skip_in_to_dict
+                        break
+            data['_skip_in_to_dict'] = [*skip_in_to_dict, '_internal_record_id']
 
             depends_on.append(RecordIndex)
             depends_on.append(data['_internal_record_class']._XoStruct)
