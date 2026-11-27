@@ -24,7 +24,7 @@ def test_line_segment_map_on_absolute_time_with_detuned_rf_reaches_the_analytic_
 
     line.track(particles, num_turns=4000, turn_by_turn_monitor=True)
 
-    delta = line._context.nparray_from_context_array(line.record_last_track.delta)[0]
+    delta = line.record_last_track.delta[0]  # The monitor returns numpy arrays
     xo.assert_allclose(delta.mean(), expected, rtol=.01, atol=0)
 
 

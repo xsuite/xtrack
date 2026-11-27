@@ -131,5 +131,5 @@ def test_exciter_on_absolute_time_follows_the_lab_clock_through_a_ramp(test_cont
     particles.s = s_exciter
     line.track(particles, ele_start='exciter', ele_stop='after')
     sample_read = -ctx2np(particles.px)[0] / 1e-9
-    lab_clock_sample = sampling_frequency * (ctx2np(particles.time_s) + s_exciter / (ctx2np(particles.beta0)[0] * clight))
+    lab_clock_sample = sampling_frequency * (particles.time_s + s_exciter / (ctx2np(particles.beta0)[0] * clight))
     assert abs(sample_read - lab_clock_sample) <= 1.

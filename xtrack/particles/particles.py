@@ -1910,13 +1910,14 @@ class Particles(xo.HybridClass):
 
         if update_pxpy:
             if isinstance(self._context, xo.ContextPyopencl):
-                raise NotImplementedError # Issue with masking
+                # PyOpenCL arrays cannot be indexed with a boolean mask
+                mask = _mask_to_where(mask, self._context)
             scale_pxpy = old_p0c[mask] / new_p0c[mask]
-            self.px[mask] *= scale_pxpy
-            self.py[mask] *= scale_pxpy
+            self.px[mask] = self.px[mask] * scale_pxpy
+            self.py[mask] = self.py[mask] * scale_pxpy
             # ax/ay carry q*A/p0 in the same normalization as px/py.
-            self.ax[mask] *= scale_pxpy
-            self.ay[mask] *= scale_pxpy
+            self.ax[mask] = self.ax[mask] * scale_pxpy
+            self.ay[mask] = self.ay[mask] * scale_pxpy
 
 
 def _mask_to_where(mask, ctx):
