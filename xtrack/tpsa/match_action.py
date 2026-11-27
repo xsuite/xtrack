@@ -10,17 +10,18 @@ from typing import Any
 
 import numpy as np
 
-import madng_tpsa
+from madng_tpsa import Descriptor
 import xtrack as xt
 
 from ..match import Action, TargetRelPhaseAdvance
 from ..twiss.twiss_init import _6d_w_matrix
 from ._knobs import KnobParameters, _scalar_value
-from .particles import ParticlesTpsa
+from .particles import ParticlesTpsa, COORDS
 
 # Optics quantities served by TpsaOptics, orbit quantities by the map's param_jacobian.
 _OPTICS_QTYS = ("betx", "bety", "alfx", "alfy", "mux", "muy", "dx", "dpx", "dy", "dpy")
-_ORBIT_QTYS = ("x", "px", "y", "py", "zeta", "delta")
+# Preserve the public delta target, but keep pzeta as the canonical map component.
+_ORBIT_QTYS = (*COORDS, "delta")
 _PHASE_QTYS = ("mux", "muy")
 
 
@@ -41,17 +42,20 @@ class ActionTpsaTrack(Action):
 
     The element fields hold TPSA handles for the whole match. Call ``teardown()`` to put
     plain doubles back.
+
+    The matching line must initially contain no independently TPSA-enabled
+    elements; the knob manager otherwise cannot safely restore their state.
     """
 
-    def __init__(self, line, vary_names, targets=(), tw_kwargs=None, order=2,
+    def __init__(self, line, vary_names, targets=(), tw_kwargs=None, truncation_order=2,
                  **kwargs):
         self.line = line
         self.vary_names = list(vary_names)
         self.targets = list(targets)
-        self.order = order
+        self.truncation_order = truncation_order
         # The value-only map carries no parameters and can be one order less
         # as derivatives are not required.
-        self.plain_order = max(1, order - 1)
+        self.plain_order = max(1, truncation_order - 1)
         self.tw_kwargs = dict(tw_kwargs or {})
         self.tw_kwargs.update(kwargs)
         self.optics_target_locations = None   # all observed locations (ordered, unique)
@@ -74,7 +78,9 @@ class ActionTpsaTrack(Action):
         self._build_parametric = bool(flag)
 
     def prepare(self, force=False):
-        if self._already_prepared and not force:
+        if self._already_prepared and force:
+            self.teardown()
+        if self._already_prepared:
             return
 
         init = self.tw_kwargs.get("init", None)
@@ -115,48 +121,45 @@ class ActionTpsaTrack(Action):
             else:
                 raise NotImplementedError(f"unsupported target {target!r}")
 
-        if has_phase or (cols & set(_PHASE_QTYS)):
-            # Any mux/muy column is unwrapped against the seed phase (phi0), also when
-            # it comes from a plain located target rather than a phase-advance one.
-            add_loc(self._seed_name)
+        # Phase unwrapping uses an explicit seed normalising matrix, not a
+        # potentially remapped monitor sample at the end of a turn.
         self.optics_target_locations = locs
         self._col_names = cols
         self._target_meta = meta
 
-        # Resolve the tracked range. For a ring cut at the segment end (e.g. lhcb1 cut
-        # at ip1), ``end`` resolves to an index at/before ``start``: the segment is the
-        # tail of the line, so track to the physical end and read wrap-around locations
-        # (index <= start) at the line's last element (same physical point).
-        # Without start and end the range is the whole ring: the seed is the cut point,
-        # reached again at the line end, so a target there means the tracked value.
+        # Track right up to the requested end. The final map is available
+        # directly from the tracked particle, so do NOT observe an endpoint
+        # by running one extra element or replacing it with names[-1].
         names = list(self.line.element_names)
-        end = self.tw_kwargs.get("end", None)
+        end = self.tw_kwargs.get("end")
         self._start_idx = names.index(self._seed_name)
-        end_idx = names.index(end) if end is not None else len(names)
-        self._wrap = end_idx <= self._start_idx
-        self._track_stop = None if self._wrap else end
-        full_ring = self.tw_kwargs.get("start", None) is None and end is None
-
-        def observed_at(loc):
+        self._end_idx = names.index(end) if end is not None else len(names)
+        self._wrap = self._end_idx <= self._start_idx
+        self._track_stop = end
+        self._full_ring = end is None and self.tw_kwargs.get("start") is None
+        self._final_loc = end if end is not None else (
+            self._seed_name if self._full_ring else None)
+        self._obs_turn = {}
+        for loc in self.optics_target_locations:
             idx = names.index(loc)
-            if self._wrap and idx < self._start_idx:
-                return names[-1]
-            if full_ring and idx <= self._start_idx:
-                return names[-1]
-            return loc
-
-        self._obs_name = {loc: observed_at(loc)
-                          for loc in self.optics_target_locations}
+            self._obs_turn[loc] = int(self._wrap and idx < self._start_idx)
 
         # One descriptor for the whole match: the line variables, the element fields the
         # expressions reach, the tracked map and the recorded maps all live in it.
         # Parameter k+1 is vary_names[k], which is what makes TpsaOptics.gradient() come
         # out in vary order.
-        self._descriptor = madng_tpsa.Descriptor(
-            6, self.order, params=list(self.vary_names), param_order=1)
+        self._descriptor = Descriptor(
+            var_names=COORDS,
+            order=self.truncation_order,
+            param_names=list(self.vary_names),
+            param_order=1
+        )
         # The value-only map carries no parameters and only plain_order, which is what
         # makes it cheap.
-        self._plain_descriptor = madng_tpsa.Descriptor(6, self.plain_order)
+        self._plain_descriptor = Descriptor(
+            var_names=COORDS,
+            order=self.plain_order
+        )
         self._knobs = KnobParameters(self.line, self.vary_names, self._descriptor)
         self._knobs.apply()
         self._already_prepared = True
@@ -169,7 +172,7 @@ class ActionTpsaTrack(Action):
         self._already_prepared = False
 
     def _seed_map(self, parametric=True):
-        """A fresh map seeded with the periodic orbit + W-matrix at the start."""
+        """Seed the actual canonical W matrix, including linear coupling."""
         init = self._init
         pref = self.line.particle_ref
 
@@ -177,18 +180,23 @@ class ActionTpsaTrack(Action):
             return float(init[qty, self._seed_name])
 
         m = ParticlesTpsa(
-            order=self.order if parametric else self.plain_order,
+            truncation_order=self.truncation_order if parametric else self.plain_order,
             descriptor=self._descriptor if parametric else self._plain_descriptor,
-            mass0=float(pref.mass0),
-            q0=float(pref.q0),
-            p0c=float(pref.p0c[0]),
+            mass0=float(pref.mass0), q0=float(pref.q0), p0c=float(pref.p0c[0]),
             x=at("x"), px=at("px"), y=at("y"), py=at("py"),
-            zeta=at("zeta"), delta=at("delta"),
+            zeta=at("zeta"), pzeta=at("pzeta"),
         )
-        m.set_jacobian(_6d_w_matrix(
-            at("betx"), at("bety"), at("alfx"), at("alfy"), 1.0,
-            at("dx"), at("dpx"), at("dy"), at("dpy"),
-        ))
+        try:
+            W = np.asarray(init["W_matrix", self._seed_name], dtype=float)
+        except (KeyError, AttributeError):
+            # Older Twiss results may not carry W. The fallback is explicitly
+            # uncoupled and scaled from delta-dispersion to canonical pzeta.
+            W = _6d_w_matrix(
+                at("betx"), at("bety"), at("alfx"), at("alfy"), 1.0,
+                at("dx"), at("dpx"), at("dy"), at("dpy"),
+            )
+            W[:4, 5] *= (1 + m.pzeta.const_part * m.beta0**2) / (1 + m.delta.const_part)
+        m.set_jacobian(W)
         return m
 
     def run(self):
@@ -207,10 +215,11 @@ class ActionTpsaTrack(Action):
 
         try:
             m = self._seed_map(parametric)
-            # Unique physical positions (distinct logical locations may resolve to the same
-            # element, e.g. 'ip1' and 'ip1.l1' after the ring-cut remap).
-            obs = list(dict.fromkeys(self._obs_name[loc]
-                                     for loc in self.optics_target_locations))
+            self._seed_optics = m.optics()
+            # The endpoint is returned by the tracked map. All other locations
+            # are observed at their true element, not aliased to the last element.
+            obs = [loc for loc in self.optics_target_locations
+                   if loc != self._final_loc]
             self.line.track(
                 m,
                 ele_start=self.tw_kwargs.get("start", 0),
@@ -219,12 +228,18 @@ class ActionTpsaTrack(Action):
             )
             self._monitor = self.line.tracker.record_multi_element_last_track
             self._last_parametric = parametric
-
-            # One map view + one TpsaOptics per location, reused for all quantities and the
-            # Jacobian.
-            self._views = {loc: self._monitor.map_at(self._obs_name[loc])
-                           for loc in self.optics_target_locations}
-            self._optics = {loc: v.optics() for loc, v in self._views.items()}
+            self._views = {}
+            for loc in self.optics_target_locations:
+                if loc == self._final_loc:
+                    self._views[loc] = m.to_map()
+                else:
+                    self._views[loc] = self._monitor.map_at(
+                        loc, turn=self._monitor.start_at_turn + self._obs_turn[loc])
+            self._optics = {
+                loc: (m.optics() if loc == self._final_loc else self._monitor.optics_at(
+                    loc, turn=self._monitor.start_at_turn + self._obs_turn[loc]))
+                for loc in self._views
+            }
             self._phase_cont = self._continuous_phases()
 
             # Result table: fill every requested column at every observed location.
@@ -243,21 +258,25 @@ class ActionTpsaTrack(Action):
         the seed). ``cont[var][loc]`` compares as ``cont[end] - cont[start]``."""
         cont = {}
         for var in (self._col_names & set(_PHASE_QTYS)):
-            phi0 = getattr(self._optics[self._seed_name], var)     # seed map phase
+            phi0 = getattr(self._seed_optics, var)
             mu_ref0 = float(self._init[var, self._seed_name])
             d = {}
             for loc in self.optics_target_locations:
-                frac_adv = getattr(self._optics[loc], var) - phi0   # from seed, fractional
-                ref_adv = float(self._init[var, self._obs_name[loc]]) - mu_ref0
-                d[loc] = frac_adv + round(ref_adv - frac_adv)        # snap integer to ref
+                frac_adv = getattr(self._optics[loc], var) - phi0
+                ref_adv = float(self._init[var, loc]) - mu_ref0
+                d[loc] = frac_adv + round(ref_adv - frac_adv)
             cont[var] = d
         return cont
 
     def _value(self, loc, qty):
         if qty in _PHASE_QTYS:
             return self._phase_cont[qty][loc]
-        if qty in _ORBIT_QTYS:
-            return self._views[loc].const_part[_ORBIT_QTYS.index(qty)]
+        if qty == 'delta':
+            pzeta = float(self._views[loc].components[5].const_part)
+            beta0 = self._optics[loc].beta0
+            return np.sqrt(1 + 2 * pzeta + beta0**2 * pzeta**2) - 1
+        if qty in COORDS:
+            return self._views[loc].const_part[COORDS.index(qty)]
         return getattr(self._optics[loc], qty)
 
     def acquire_jacobian(self):
@@ -270,12 +289,21 @@ class ActionTpsaTrack(Action):
         for i, meta in enumerate(self._target_meta):
             if meta[0] == "phase":
                 _, var, start, end = meta
-                # integer offset is knob-independent -> difference of fractional grads
-                jac[i, :] = self._optics[end].gradient(var) - self._optics[start].gradient(var)
+                # The seed W-matrix is fixed during one match evaluation.
+                start_grad = (np.zeros(len(self.vary_names)) if start == self._seed_name
+                              else self._optics[start].gradient(var))
+                jac[i, :] = self._optics[end].gradient(var) - start_grad
             else:
                 _, qty, loc = meta
-                if qty in _ORBIT_QTYS:
-                    jac[i, :] = self._views[loc].param_jacobian()[_ORBIT_QTYS.index(qty)]
+                if qty == 'delta':
+                    pzeta = float(self._views[loc].components[5].const_part)
+                    beta0 = self._optics[loc].beta0
+                    delta = self._value(loc, 'delta')
+                    ddelta_dpzeta = (1 + beta0**2 * pzeta) / (1 + delta)
+                    jac[i, :] = (ddelta_dpzeta *
+                        self._views[loc].evaluate_jacobian(wrt='params')[5])
+                elif qty in COORDS:
+                    jac[i, :] = self._views[loc].evaluate_jacobian(wrt='params')[COORDS.index(qty)]
                 else:
                     jac[i, :] = self._optics[loc].gradient(qty)
         return jac

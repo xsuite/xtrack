@@ -2,12 +2,12 @@ from __future__ import annotations
 
 from typing import Sequence
 
-import madng_tpsa
+from madng_tpsa import ffi, Descriptor, TpsaMap
 import numpy as np
 
 import xtrack as xt
 import xobjects as xo
-from xtrack.tpsa.particles import COORDS, ParticlesTpsa
+from xtrack.tpsa.particles import COORDS
 
 # A monomial is the per-variable orders, a tuple once parsed. A request is
 # several of them, or the ones wanted per output coordinate.
@@ -17,7 +17,7 @@ MonomialRequest = (list[Monomial] | np.ndarray
 
 
 def _parse_monomials(monomials: MonomialRequest,
-                     descriptor: madng_tpsa.Descriptor) -> list[tuple]:
+                     descriptor: Descriptor) -> list[tuple]:
     """Expand the requested monomials into a list of tuples.
 
     Each requested coefficient becomes one recording `(coord, monomial,
@@ -41,23 +41,18 @@ def _parse_monomials(monomials: MonomialRequest,
                 f'of {list(COORDS)}')
         rows = np.asarray(coord_monomials)
         rows = rows.reshape(1, -1) if rows.ndim == 1 else rows
-        for row in rows:
-            monomial = tuple(int(order) for order in row)
-            if len(monomial) != descriptor.monomial_length:
-                raise ValueError(
-                    f'Invalid monomial {monomial}: expected length '
-                    f'{descriptor.monomial_length} (6 vars + '
-                    f'{descriptor.num_params} params)')
-            if not descriptor.is_valid_monomial(monomial):
-                raise ValueError(
-                    f'Invalid monomial {monomial}: beyond the order or the '
-                    f'parameter order of the descriptor')
+        if rows.shape[1] != descriptor.monomial_length:
+            raise ValueError(
+                f'Invalid monomial {tuple(rows[0].tolist())}: expected length '
+                f'{descriptor.monomial_length} (6 vars + '
+                f'{descriptor.num_params} params)')
+        indices = descriptor.monomial_index(rows)
+        for monomial, index in zip(map(tuple, rows.tolist()), indices.tolist()):
             if (coord, monomial) in seen:
                 raise ValueError(
                     f'Monomial {monomial} requested twice for {coord!r}')
             seen.add((coord, monomial))
-            recordings.append(
-                (coord, monomial, descriptor.monomial_index(monomial)))
+            recordings.append((coord, monomial, index))
     if not recordings:
         raise ValueError('No monomials to record')
     return recordings
@@ -79,6 +74,8 @@ class MultiElementMonitor(xt.BeamElement):
         'monomial_indices': xo.Int64[:],  # descriptor coefficient index per slot
         'coord_indices': xo.Int64[:],     # output coordinate index per slot
         'coefficients': xo.Float64[:, :, :], # turns, location, slot
+        'record_pzeta': xo.Int64,  # guard for 8+-coordinate data buffers
+        'record_beta0': xo.Int64,  # local reference beta0 for TPSA optics
     }
 
     behaves_like_drift = True
@@ -89,8 +86,13 @@ class MultiElementMonitor(xt.BeamElement):
         '#include "xtrack/monitors/multi_element_monitor.h"',
     ]
 
-    _coord_name_to_index = {'x': 0, 'px': 1, 'y': 2, 'py': 3,
-                            'zeta': 4, 'delta': 5, 's': 6}
+    # Preserve legacy scalar-monitor coordinates and add canonical pzeta at 7.
+    _data_coord_name_to_index = {'x': 0, 'px': 1, 'y': 2, 'py': 3,
+                                 'zeta': 4, 'delta': 5, 's': 6,
+                                 'pzeta': 7, 'beta0': 8}
+    _tpsa_coord_name_to_index = {
+        name: ii for ii, name in enumerate(COORDS)
+    }
 
     def __init__(self, start_at_turn, stop_at_turn,
                  part_id_start, part_id_end,
@@ -99,7 +101,7 @@ class MultiElementMonitor(xt.BeamElement):
                  obs_names,
                  tpsa_addresses=(0, 0, 0),
                  monomials: MonomialRequest | None = None,
-                 descriptor: madng_tpsa.Descriptor | None = None,
+                 descriptor: Descriptor | None = None,
                  **kwargs):
         """Records coordinates at the observed locations, as well as
         the TPSA maps when tracking TPSAs.
@@ -111,7 +113,10 @@ class MultiElementMonitor(xt.BeamElement):
         """
 
         recordings = ([] if monomials is None
-                      else _parse_monomials(monomials, descriptor))
+                       else _parse_monomials(monomials, descriptor))
+        ncoords = data[2] if isinstance(data, tuple) else data.shape[2]
+        if ncoords not in (7, 8, 9):
+            raise ValueError("MultiElementMonitor data needs 7, 8, or 9 coordinates")
         num_turns = stop_at_turn - start_at_turn
         super().__init__(start_at_turn=start_at_turn,
                          stop_at_turn=stop_at_turn,
@@ -120,8 +125,13 @@ class MultiElementMonitor(xt.BeamElement):
                          at_element_mapping=at_element_mapping,
                          data=data,
                          tpsa_addresses=tpsa_addresses,
-                         monomial_indices=len(recordings),
-                         coord_indices=len(recordings),
+                         record_pzeta=int(ncoords >= 8),
+                         record_beta0=int(ncoords == 9),
+                         monomial_indices=np.array(
+                             [index for _, _, index in recordings], dtype=np.int64),
+                         coord_indices=np.array(
+                             [self._tpsa_coord_name_to_index[coord]
+                              for coord, _, _ in recordings], dtype=np.int64),
                          coefficients=(num_turns, len(obs_names), len(recordings)),
                          **kwargs)
         self.obs_names = obs_names
@@ -129,16 +139,13 @@ class MultiElementMonitor(xt.BeamElement):
             name: idx for idx, name in enumerate(self.obs_names)
         }
         self._map_series = None  # filled by a ParticlesTpsa track
-        self._map_ref_particle = None
 
         # `(coord, monomial)` per slot, and the reverse lookup
         self.recorded_monomials = None if monomials is None else [
             (coord, monomial) for coord, monomial, _ in recordings]
-        self._slot_index = {}
-        for slot, (coord, monomial, coefficient_index) in enumerate(recordings):
-            self.monomial_indices[slot] = coefficient_index
-            self.coord_indices[slot] = self._coord_name_to_index[coord]
-            self._slot_index[coord, monomial] = slot
+        self._slot_index = {
+            (coord, monomial): slot
+            for slot, (coord, monomial, _) in enumerate(recordings)}
 
     def __len__(self):
         return len(self.obs_names)
@@ -192,9 +199,16 @@ class MultiElementMonitor(xt.BeamElement):
 
     def map_at(self, obs_name, turn=None):
         """The full TPSA map recorded at a location, sharing the series."""
-        return ParticlesTpsa._from_coords(
-            self._recorded_maps(turn)[self._obs_index(obs_name)],
-            self._map_ref_particle)
+        return TpsaMap(self._recorded_maps(turn)[self._obs_index(obs_name)])
+
+    def optics_at(self, obs_name, turn=None):
+        """Twiss observables of a recorded map, with the beta0 recorded there."""
+        from xtrack.tpsa.optics import TpsaOptics
+        if not self.record_beta0:
+            raise AttributeError("No beta0 recorded for TPSA optics")
+        beta0 = float(np.asarray(self.get(
+            'beta0', obs_name, turn=self.start_at_turn if turn is None else turn)).reshape(-1)[0])
+        return TpsaOptics(self.map_at(obs_name, turn=turn), beta0=beta0)
 
     def map_jacobian(self, turn=None):
         """Recorded transfer matrices, one per location, `(num_locations, 6, 6)`."""
@@ -213,7 +227,7 @@ class MultiElementMonitor(xt.BeamElement):
                 f'obs_names=[{obs_names_str}]{recorded})')
 
     @staticmethod
-    def build_tpsa_addresses(descriptor: madng_tpsa.Descriptor,
+    def build_tpsa_addresses(descriptor: Descriptor,
                              num_locations: int, num_turns: int):
         """Preallocated series for the full TPSA maps, and the addresses C writes to.
 
@@ -228,7 +242,6 @@ class MultiElementMonitor(xt.BeamElement):
             [[descriptor.zero() for _ in COORDS] for _ in range(num_locations)]
             for _ in range(num_turns)
         ]
-        ffi = madng_tpsa.ffi
         addresses = np.array(
             [
                 int(ffi.cast("uintptr_t", one_series.ptr))
@@ -241,7 +254,9 @@ class MultiElementMonitor(xt.BeamElement):
         return series, addresses
 
     def get(self, coordinate, obs_name=None, particle_id=None, turn=None):
-        coord_index = self._coord_name_to_index[coordinate]
+        coord_index = self._data_coord_name_to_index[coordinate]
+        if coord_index >= self.data.shape[2]:
+            raise KeyError(f"Coordinate {coordinate!r} not recorded in this monitor")
 
         if obs_name is None:
             obs_index = slice(None)

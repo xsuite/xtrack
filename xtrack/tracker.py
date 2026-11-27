@@ -920,8 +920,7 @@ class Tracker:
 
             LocalParticle_set_state(&lpart, 1);
             LocalParticle_set_at_element(&lpart, ele_start);
-            LocalParticle_update_delta(&lpart, LocalParticle_get_delta(&lpart));
-            LocalParticle_set_s(&lpart, 0.0);
+            LocalParticle_update_pzeta(&lpart, LocalParticle_get_pzeta(&lpart));
             LocalParticle_set_ax(&lpart, 0.0);
             LocalParticle_set_ay(&lpart, 0.0);
 
@@ -1909,9 +1908,9 @@ class Tracker:
         else:
             part_id_start, part_id_end = 0, 1  # a map is a single particle
         num_particles = part_id_end - part_id_start
-        num_coordinates = 7 # hardcoded for now (C code of the monitor
-                             # needs to be extended if different number
-                             # of coordinates is needed)
+        # Preserve scalar monitor's delta while storing canonical pzeta.
+        # TPSA optics also needs beta0 local to each observation point.
+        num_coordinates = 9 if tpsa_descriptor is not None else 8
         num_elements = len(obs_names)
         num_turns = num_turns if num_turns is not None else 1
 
@@ -1922,8 +1921,9 @@ class Tracker:
                 tpsa_descriptor, num_elements, num_turns)
 
         multi_element_monitor = xt.MultiElementMonitor(
-            start_at_turn=0,
-            stop_at_turn=num_turns,
+            start_at_turn=(int(particles.at_turn) if tpsa_descriptor is not None else 0),
+            stop_at_turn=(int(particles.at_turn) + num_turns
+                          if tpsa_descriptor is not None else num_turns),
             part_id_start=part_id_start,
             part_id_end=part_id_end,
             at_element_mapping=at_element_mapping,
@@ -1934,8 +1934,6 @@ class Tracker:
             obs_names=obs_names
         )
         multi_element_monitor._map_series = map_series
-        if tpsa_descriptor is not None:
-            multi_element_monitor._map_ref_particle = particles._ref_particle
 
         return multi_element_monitor
 

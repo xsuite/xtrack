@@ -43,7 +43,9 @@ void MultiElementMonitor_track_local_particle(MultiElementMonitorData el,
                 double const py = xt_float_or_tpsa_const_part(LocalParticle_get_py(part));
                 double const zeta = xt_float_or_tpsa_const_part(LocalParticle_get_zeta(part));
                 double const delta = xt_float_or_tpsa_const_part(LocalParticle_get_delta(part));
+                double const pzeta = xt_float_or_tpsa_const_part(LocalParticle_get_pzeta(part));
                 double const s = xt_float_or_tpsa_const_part(LocalParticle_get_s(part));
+                double const beta0 = LocalParticle_get_beta0(part);
 
                 MultiElementMonitorData_set_data(
                     el, turn_index, particle_index, 0, store_at, x);
@@ -59,6 +61,14 @@ void MultiElementMonitor_track_local_particle(MultiElementMonitorData el,
                     el, turn_index, particle_index, 5, store_at, delta);
                 MultiElementMonitorData_set_data(
                     el, turn_index, particle_index, 6, store_at, s);
+                if (MultiElementMonitorData_get_record_pzeta(el)) {
+                    MultiElementMonitorData_set_data(
+                        el, turn_index, particle_index, 7, store_at, pzeta);
+                }
+                if (MultiElementMonitorData_get_record_beta0(el)) {
+                    MultiElementMonitorData_set_data(
+                        el, turn_index, particle_index, 8, store_at, beta0);
+                }
 
 #ifdef XTRACK_TPSA_TRACK
                 // `data` only holds the constant part, so the map is recorded on
@@ -77,12 +87,12 @@ void MultiElementMonitor_track_local_particle(MultiElementMonitorData el,
                     XT_MONITOR_STORE_MAP(2, y)
                     XT_MONITOR_STORE_MAP(3, py)
                     XT_MONITOR_STORE_MAP(4, zeta)
-                    XT_MONITOR_STORE_MAP(5, delta)
+                    XT_MONITOR_STORE_MAP(5, pzeta)
 
                     #undef XT_MONITOR_STORE_MAP
                 } else if (num_slots > 0){
                     tpsa_t* const series[6] = {part->x, part->px, part->y,
-                                               part->py, part->zeta, part->delta};
+                                               part->py, part->zeta, part->pzeta};
                     for (int64_t slot = 0; slot < num_slots; slot++){
                         int64_t const coord =
                             MultiElementMonitorData_get_coord_indices(el, slot);

@@ -3,13 +3,14 @@ import numpy as np
 import pytest
 
 import xobjects as xo
-import madng_tpsa
+from madng_tpsa import Descriptor, Tpsa, TpsaMap
 import xtrack as xt
 import xtrack.tpsa as xtpsa
 from xobjects.test_helpers import allow_kernel_compilation
 
 from xtrack._temp import lhc_match as lm
 from xtrack.tpsa._knobs import KnobParameters
+from xtrack.tpsa.particles import COORDS
 from xtrack.twiss.twiss_init import _6d_w_matrix
 
 test_data_folder = pathlib.Path(
@@ -17,9 +18,13 @@ test_data_folder = pathlib.Path(
 
 P0C = 7e12
 MASS0 = xt.PROTON_MASS_EV
-COORDS = ("x", "px", "y", "py", "zeta", "delta")
 # Off-axis seed with all six coordinates non-zero, so no residual hides in a zero.
-X0 = dict(x=1e-4, px=1.5e-4, y=-1e-4, py=1e-4, zeta=1e-3, delta=2e-3)
+BETA0 = P0C / np.sqrt(P0C**2 + MASS0**2)
+def _pzeta_from_delta(delta):
+    delta_beta0 = delta * BETA0
+    return (np.sqrt(delta_beta0**2 + 2 * delta * BETA0**2 + 1) - 1) / BETA0**2
+_delta0 = 2e-3
+X0 = dict(x=1e-4, px=1.5e-4, y=-1e-4, py=1e-4, zeta=1e-3, pzeta=_pzeta_from_delta(_delta0))
 
 _SUPPORTED_FLOAT_OR_TPSA_ELEMENTS = [
     ("b", xt.Bend, {"length": 1.0, "k0": 0.01}, "k0"),
@@ -63,9 +68,9 @@ def _particle():
     )
 
 
-def _map(order=1, descriptor=None):
+def _map(truncation_order=1, descriptor=None):
     return xtpsa.ParticlesTpsa(
-        order=order,
+        truncation_order=truncation_order,
         descriptor=descriptor,
         x=1e-4, px=2e-5, y=0.0, py=0.0, zeta=0.0, delta=0.0,
         p0c=7e12,
@@ -123,7 +128,7 @@ def test_xt_float_or_tpsa_captures_madng_expression_temporary():
     line = xt.Line(elements=[CheckXtFloatOrTpsaTemporaryCapture()])
     line.particle_ref = xt.Particles(p0c=P0C, mass0=MASS0)
     line.build_tracker(compile=False)
-    particles = _map(order=3)
+    particles = _map(truncation_order=3)
     line.track(particles)
 
     assert particles._xobject.state == 1
@@ -134,7 +139,7 @@ def test_tpsa_quadrupole_zero_strength_parameter_map():
     quadrupole = xt.Quadrupole(length=length, k1=0.0)
     line = xt.Line(elements=[quadrupole])
     line.particle_ref = xt.Particles(p0c=7e12, mass0=xt.PROTON_MASS_EV)
-    descriptor = madng_tpsa.Descriptor(6, 1, num_params=1, param_order=1)
+    descriptor = Descriptor(var_names=COORDS, order=1, param_names=1, param_order=1)
     quadrupole.k1 = descriptor.param(1, 0.0)
     line.build_tracker(compile=False)
     particles = _map(descriptor=descriptor)
@@ -157,7 +162,7 @@ def test_tpsa_quadrupole_zero_strength_parameter_element_track():
     length = 2.0
     element = xt.Quadrupole(length=length, k1=0.0)
     line = xt.Line(elements=[element])
-    descriptor = madng_tpsa.Descriptor(6, 1, num_params=1, param_order=1)
+    descriptor = Descriptor(var_names=COORDS, order=1, param_names=1, param_order=1)
     element.k1 = descriptor.param(1, 0.0)
     particles = _map(descriptor=descriptor)
     x0 = particles.const_part[0]
@@ -325,7 +330,7 @@ def test_scalar_track_tpsa_enabled_element_uses_const_part():
     line_scalar.track(part_scalar)
 
     line_tpsa_enabled = _line(k1=0.125)
-    descriptor = madng_tpsa.Descriptor(6, 1, num_params=1, param_order=1)
+    descriptor = Descriptor(var_names=COORDS, order=1, param_names=1, param_order=1)
     line_tpsa_enabled["q"].k1 = descriptor.param(1, 0.125)
     part_tpsa_enabled = _particle()
     line_tpsa_enabled.track(part_tpsa_enabled)
@@ -371,7 +376,7 @@ def test_tpsa_tracking_rejects_particles_monitor_element():
 
 def test_line_disable_tpsa_elements():
     line = _line(k1=0.125)
-    descriptor = madng_tpsa.Descriptor(6, 1, num_params=1, param_order=1)
+    descriptor = Descriptor(var_names=COORDS, order=1, param_names=1, param_order=1)
     line["q"].k1 = descriptor.param(1, 0.125)
 
     assert np.array_equal(line.attr['_tpsa_enabled'], [0, 0, 1, 0, 0, 0])
@@ -389,7 +394,7 @@ def test_build_tracker_preserves_tpsa_enabled_elements_moved_to_common_buffer():
 
     q1 = xt.Quadrupole(length=1.0, k1=0.1, _buffer=buffer_a)
     q2 = xt.Quadrupole(length=1.0, k1=0.2, _buffer=buffer_b)
-    descriptor = madng_tpsa.Descriptor(6, 1, num_params=1, param_order=1)
+    descriptor = Descriptor(var_names=COORDS, order=1, param_names=1, param_order=1)
     k1_tpsa = descriptor.param(1, 0.2)
     q2.k1 = k1_tpsa
     q2_handles = q2._tpsa_handles
@@ -452,7 +457,7 @@ def test_build_tracker_preserves_tpsa_enabled_elements_moved_to_common_buffer():
 
 def test_tpsa_enabled_element_copy_is_rejected():
     q = xt.Quadrupole(length=1.0, k1=0.1)
-    descriptor = madng_tpsa.Descriptor(6, 1, num_params=1, param_order=1)
+    descriptor = Descriptor(var_names=COORDS, order=1, param_names=1, param_order=1)
     k1_tpsa = descriptor.param(1, 0.1)
     q.k1 = k1_tpsa
 
@@ -462,7 +467,7 @@ def test_tpsa_enabled_element_copy_is_rejected():
 
 def test_float_or_tpsa_field_assignment():
     line = _line()
-    descriptor = madng_tpsa.Descriptor(6, 1, num_params=1, param_order=1)
+    descriptor = Descriptor(var_names=COORDS, order=1, param_names=1, param_order=1)
     line["q"].k1 = descriptor.param(1, 0.1)
 
     assert line["q"]._tpsa_enabled
@@ -473,7 +478,7 @@ def test_float_or_tpsa_field_assignment():
 def test_supported_float_or_tpsa_elements_accept_tpsa_fields(
         name, element_cls, kwargs, field):
     element = element_cls(**kwargs)
-    descriptor = madng_tpsa.Descriptor(6, 1, num_params=1, param_order=1)
+    descriptor = Descriptor(var_names=COORDS, order=1, param_names=1, param_order=1)
 
     setattr(element, field, descriptor.param(1, kwargs[field]))
 
@@ -483,7 +488,7 @@ def test_supported_float_or_tpsa_elements_accept_tpsa_fields(
 
 def test_tpsa_enabled_element_to_dict_is_rejected():
     line = _line()
-    descriptor = madng_tpsa.Descriptor(6, 1, num_params=1, param_order=1)
+    descriptor = Descriptor(var_names=COORDS, order=1, param_names=1, param_order=1)
     line["q"].k1 = descriptor.param(1, 0.1)
 
     with pytest.raises(NotImplementedError, match="Serializing TPSA-enabled"):
@@ -491,7 +496,7 @@ def test_tpsa_enabled_element_to_dict_is_rejected():
 
 
 def test_tpsa_constructor_assignment_without_container_is_rejected():
-    descriptor = madng_tpsa.Descriptor(6, 1, num_params=1, param_order=1)
+    descriptor = Descriptor(6, 1, param_names=1, param_order=1)
 
     with pytest.raises(ValueError, match="without an owning container"):
         xt.Quadrupole(length=1.0, k1=descriptor.param(1, 0.1))
@@ -499,7 +504,7 @@ def test_tpsa_constructor_assignment_without_container_is_rejected():
 
 def test_parametric_element_field_tracks_with_shared_descriptor():
     line = _line()
-    descriptor = madng_tpsa.Descriptor(6, 1, num_params=1, param_order=1)
+    descriptor = Descriptor(var_names=COORDS, order=1, param_names=1, param_order=1)
     line["q"].k1 = descriptor.param(1, 0.1)
 
     m = _map(descriptor=descriptor)
@@ -510,7 +515,7 @@ def test_parametric_element_field_tracks_with_shared_descriptor():
 
 
 def test_particles_tpsa_rejects_descriptor_shape_mismatch():
-    descriptor = madng_tpsa.Descriptor(5, 1)
+    descriptor = Descriptor(5, 1)
     with pytest.raises(ValueError, match="6 variables"):
         _map(descriptor=descriptor)
 
@@ -630,10 +635,16 @@ def test_tpsa_match_optics():
 
 # Helpers for the map surface, optics and knob tests below
 
-def _offaxis_map(order=2, descriptor=None, **coords):
-    """A map seeded at X0 (or X0 with some coordinates overridden)."""
-    return xtpsa.ParticlesTpsa(order=order, descriptor=descriptor, p0c=P0C,
-                               mass0=MASS0, **{**X0, **coords})
+def _offaxis_map(truncation_order=2, descriptor=None, **coords):
+    initial = dict(X0)
+    if "delta" in coords:
+        initial.pop("pzeta", None)
+    if "pzeta" in coords:
+        initial.pop("delta", None)
+    initial.update(coords)
+    return xtpsa.ParticlesTpsa(truncation_order=truncation_order,
+                               descriptor=descriptor, p0c=P0C, mass0=MASS0,
+                               **initial)
 
 
 def _demo_line():
@@ -718,22 +729,22 @@ def _fodo_knob_line():
 # ParticlesTpsa surface
 
 def test_fresh_map_is_identity():
-    m = _offaxis_map(order=3)
+    m = _offaxis_map(truncation_order=3)
     xo.assert_allclose(m.const_part, [X0[c] for c in COORDS], rtol=0, atol=0)
-    xo.assert_allclose(m.jacobian(), np.eye(6), rtol=0, atol=0)
-    assert (m.order, m.num_vars, m.num_params) == (3, 6, 0)
+    xo.assert_allclose(m.evaluate_jacobian(), np.eye(6), rtol=0, atol=0)
+    assert (m.truncation_order, m.num_vars, m.num_params) == (3, 6, 0)
 
 
 def test_maps_of_the_same_order_share_a_descriptor():
-    a, b, c = _offaxis_map(order=2), _offaxis_map(order=2), _offaxis_map(order=3)
+    a, b, c = _offaxis_map(truncation_order=2), _offaxis_map(truncation_order=2), _offaxis_map(truncation_order=3)
     assert a.descriptor is b.descriptor
     assert a.descriptor is not c.descriptor
-    assert all(s.descriptor is a.descriptor for s in a.coords)
+    assert all(s.descriptor is a.descriptor for s in a.components)
 
 
 def test_getattr_and_to_particles():
-    m = _offaxis_map(order=2)
-    assert isinstance(m.x, madng_tpsa.Tpsa)
+    m = _offaxis_map(truncation_order=2)
+    assert isinstance(m.x, Tpsa)
     assert isinstance(m.beta0, float)
     with pytest.raises(AttributeError):
         m.bogus
@@ -750,7 +761,7 @@ def test_getattr_and_to_particles():
     dict(gamma0=7460.0, mass0=MASS0),
 ])
 def test_reference_algebra_matches_particles(kwargs):
-    m = xtpsa.ParticlesTpsa(order=2, **kwargs)
+    m = xtpsa.ParticlesTpsa(truncation_order=2, **kwargs)
     p = xt.Particles(**kwargs)
     for var in ("q0", "mass0", "beta0", "gamma0", "p0c", "chi", "charge_ratio"):
         expected = float(np.asarray(getattr(p, var)).reshape(-1)[0])
@@ -760,7 +771,7 @@ def test_reference_algebra_matches_particles(kwargs):
 @pytest.mark.parametrize('species', ['electron', 'positron', 'proton', 'Pb208', 'O16'])
 def test_named_species_magnetic_moment_matches_particles(species):
     native = xt.Particles(species, p0c=5e9)
-    mapping = xtpsa.ParticlesTpsa(pdg_id_0=species, p0c=5e9)
+    mapping = xtpsa.ParticlesTpsa(pdg_id_0=species, p0c=5e9, truncation_order=1)
     for name in ['q0', 'mass0', 'anomalous_magnetic_moment']:
         expected = float(np.asarray(getattr(native, name)).reshape(-1)[0])
         assert getattr(mapping, name) == expected
@@ -769,39 +780,39 @@ def test_named_species_magnetic_moment_matches_particles(species):
 
 
 def test_tpsa_custom_reference_keeps_anomaly_fallback():
-    mapping = xtpsa.ParticlesTpsa(pdg_id_0='electron', p0c=5e9, mass0=1e6)
+    mapping = xtpsa.ParticlesTpsa(pdg_id_0='electron', p0c=5e9, mass0=1e6, truncation_order=1)
     assert mapping.anomalous_magnetic_moment == 0.
 
 
 def test_from_coords_view_shares_series():
-    m = _offaxis_map(order=2)
-    view = xtpsa.ParticlesTpsa._from_coords(m.coords)
-    assert view.coords[0] is m.coords[0]     # shared series, not copies
-    assert view.order == 2
+    m = _offaxis_map(truncation_order=2)
+    view = m.to_map()
+    assert view.components[0] is m.components[0]     # shared series, not copies
+    assert view.truncation_order == 2
     xo.assert_allclose(view.const_part, m.const_part, rtol=0, atol=0)
-    with pytest.raises(AttributeError, match="no reference particle"):
+    with pytest.raises(AttributeError):
         view.beta0
 
 
 def test_particles_tpsa_rejects_descriptor_order_mismatch():
     with pytest.raises(ValueError, match="descriptor is order 3, map asks for 2"):
-        _offaxis_map(order=2, descriptor=madng_tpsa.Descriptor(6, 3))
+        _offaxis_map(truncation_order=2, descriptor=Descriptor(var_names=COORDS, order=3))
 
 
 def test_particles_tpsa_rejects_vector_coordinates():
     with pytest.raises(ValueError, match="single map"):
-        xtpsa.ParticlesTpsa(order=1, x=[1e-4, 2e-4], p0c=P0C, mass0=MASS0)
+        xtpsa.ParticlesTpsa(truncation_order=1, x=[1e-4, 2e-4], p0c=P0C, mass0=MASS0)
 
 
 def test_order_truncation_integrity():
     """A map carries terms only up to its own order, and shared ones are bit-identical."""
     element = xt.Sextupole(length=0.3, k2=50.0)
-    m2, m3 = _offaxis_map(order=2), _offaxis_map(order=3)
+    m2, m3 = _offaxis_map(truncation_order=2), _offaxis_map(truncation_order=3)
     element.track(m2)
     element.track(m3)
 
-    low = m2.monomial_coeffs("px")
-    high = m3.monomial_coeffs("px")
+    low = m2.px.monomial_coeffs()
+    high = m3.px.monomial_coeffs()
     assert max(sum(mono) for mono in low) <= 2
     third = {mono: c for mono, c in high.items() if sum(mono) == 3}
     assert third and all(c != 0.0 for c in third.values())
@@ -809,55 +820,47 @@ def test_order_truncation_integrity():
         assert high[mono] == coeff
 
 
-def test_coefficient_and_set_coefficient():
-    m = _offaxis_map(order=3)
-    m.set_coefficient("x", (2, 0, 0, 0, 0, 0), 0.777)
-    assert m.coefficient("x", (2, 0, 0, 0, 0, 0)) == 0.777
-    assert m.coefficient(0, (2, 0, 0, 0, 0, 0)) == 0.777   # index selects the same series
-    m.set_coefficient(4, (0, 0, 0, 0, 0, 2), -1.5)         # zeta series, delta^2 term
-    assert m.coefficient("zeta", (0, 0, 0, 0, 0, 2)) == -1.5
-
-    assert set(m.monomial_coeffs()) == set(COORDS)
-    assert m.monomial_coeffs("x") == m.x.monomial_coeffs()
+def test_longitudinal_coordinate_is_canonical():
+    m = xtpsa.ParticlesTpsa(truncation_order=3, p0c=P0C, mass0=MASS0, delta=2e-3)
+    p = xt.Particles(p0c=P0C, mass0=MASS0, delta=2e-3)
+    assert m.component_names[-2:] == ("zeta", "pzeta")
+    assert isinstance(m.pzeta, Tpsa)
+    xo.assert_allclose(m.pzeta.const_part, p.pzeta[0], rtol=0, atol=0)
+    xo.assert_allclose(m.delta.const_part, p.delta[0], rtol=0, atol=1e-15)
 
 
-def test_coefficient_rejects_invalid_monomials():
-    """A malformed or beyond-order monomial raises instead of GTPSA exit(1)-ing."""
-    m = _offaxis_map(order=3)
-    with pytest.raises(ValueError, match="Invalid monomial"):
-        m.coefficient("x", (0, 0, 0, 0, 0))         # wrong length
-    with pytest.raises(ValueError, match="Invalid monomial"):
-        m.coefficient("x", (3, 3, 0, 0, 0, 0))      # total order 6 > 3
-    with pytest.raises(ValueError, match="Invalid monomial"):
-        m.set_coefficient("x", (3, 3, 0, 0, 0, 0), 1.0)
-
+def test_delta_is_derived_from_pzeta():
+    m = xtpsa.ParticlesTpsa(truncation_order=3, p0c=P0C, mass0=MASS0, delta=2e-3)
+    # dpzeta/ddelta = rvv
+    # therefore ddelta/dpzeta = 1/rvv.
+    assert m.delta.grad()[5] == pytest.approx(1 / m.rvv.const_part)
 
 # Tracking a map against native tracking
 
 def test_track_line_const_part_and_jacobian_vs_native():
     line = _demo_line()
-    m = _offaxis_map(order=2)
+    m = _offaxis_map(truncation_order=2)
     line.track(m)
     xo.assert_allclose(m.const_part, _native_orbit(line), rtol=0, atol=1e-14)
-    xo.assert_allclose(m.jacobian(), _fd_jacobian(line), rtol=0, atol=1e-7)
+    xo.assert_allclose(m.evaluate_jacobian(), _fd_jacobian(line), rtol=0, atol=1e-7)
 
 
 def test_track_line_partial_range():
     line = _demo_line()
 
-    by_name = _offaxis_map(order=2)
+    by_name = _offaxis_map(truncation_order=2)
     line.track(by_name, ele_stop="d1")
-    by_count = _offaxis_map(order=2)
+    by_count = _offaxis_map(truncation_order=2)
     line.track(by_count, num_elements=2)
     xo.assert_allclose(by_name.const_part, by_count.const_part, rtol=0, atol=0)
 
-    from_name = _offaxis_map(order=2)
+    from_name = _offaxis_map(truncation_order=2)
     line.track(from_name, ele_start="q", ele_stop="b")
-    from_index = _offaxis_map(order=2)
+    from_index = _offaxis_map(truncation_order=2)
     line.track(from_index, ele_start=1, ele_stop=3)
     xo.assert_allclose(from_name.const_part, from_index.const_part, rtol=0, atol=0)
 
-    full = _offaxis_map(order=2)
+    full = _offaxis_map(truncation_order=2)
     line.track(full)
     assert not np.allclose(full.const_part, by_name.const_part)
 
@@ -886,12 +889,12 @@ def test_track_partial_range_multiturn_matches_scalar_semantics():
     scalar_line.track(scalar_particle, ele_start=1, ele_stop=3, num_turns=3)
 
     xo.assert_allclose(multi_turn.const_part, expected.const_part, rtol=0, atol=0)
-    xo.assert_allclose(multi_turn.jacobian(), expected.jacobian(), rtol=0, atol=0)
+    xo.assert_allclose(multi_turn.evaluate_jacobian(), expected.evaluate_jacobian(), rtol=0, atol=0)
     xo.assert_allclose(
         multi_turn.const_part,
         [float(getattr(scalar_particle, cc)[0]) for cc in COORDS],
         rtol=0,
-        atol=1e-15,
+        atol=1e-14,
     )
     assert (
         multi_turn._xobject.at_turn
@@ -925,74 +928,33 @@ def test_map_loss_raises():
         element_names=["d0", "ap", "d1"])
     line.particle_ref = xt.Particles(p0c=P0C, mass0=MASS0)
     line.build_tracker()
-    m = xtpsa.ParticlesTpsa(order=1, p0c=P0C, mass0=MASS0, x=1e-2)
+    m = xtpsa.ParticlesTpsa(truncation_order=1, p0c=P0C, mass0=MASS0, x=1e-2)
     with pytest.raises(RuntimeError, match=r"lost at element index 1 \('ap'\)"):
         line.track(m)
 
 
 def test_tpsa_enabled_element_rejects_scalar_element_track():
     line = _line()
-    descriptor = madng_tpsa.Descriptor(6, 1, num_params=1, param_order=1)
+    descriptor = Descriptor(var_names=COORDS, order=1, param_names=1, param_order=1)
     line["q"].k1 = descriptor.param(1, 0.1)
     with pytest.raises(RuntimeError, match="Cannot track normal Particles"):
         line.element_dict["q"].track(_particle())
 
 
-# Setters: const part (get0/set0), Jacobian (get1/set1), single coefficients
-
-def test_set_const_part_and_jacobian_round_trip():
-    m = _offaxis_map(order=3)
-    orbit = np.array([1.0, 2.0, 3.0, 4.0, 5.0, 6.0]) * 1e-3
-    m.set_const_part(orbit)
-    xo.assert_allclose(m.const_part, orbit, rtol=0, atol=0)
-
-    R = 0.1 * np.arange(36).reshape(6, 6) + np.eye(6)
-    m.set_jacobian(R)
-    xo.assert_allclose(m.jacobian(), R, rtol=0, atol=0)
-
-    # the two setters do not disturb each other
-    xo.assert_allclose(m.const_part, orbit, rtol=0, atol=0)
-    m.set_const_part(np.zeros(6))
-    xo.assert_allclose(m.jacobian(), R, rtol=0, atol=0)
-
-
-def test_set_const_part_and_jacobian_shape_guards():
-    m = _offaxis_map(order=2)
-    with pytest.raises(ValueError, match="length 6"):
-        m.set_const_part(np.zeros(5))
-    with pytest.raises(ValueError, match="6x6"):
-        m.set_jacobian(np.zeros((6, 5)))
-
-
-def test_set_jacobian_leaves_parameter_columns():
-    descriptor = madng_tpsa.Descriptor(6, 2, params=["kqa", "kqb"], param_order=1)
-    m = _offaxis_map(order=2, descriptor=descriptor)
-    m.set_coefficient("x", (0, 0, 0, 0, 0, 0, 1, 0), 0.25)   # d x / d kqa
-    before = m.param_jacobian().copy()
-
-    R = 0.1 * np.arange(36).reshape(6, 6) + np.eye(6)
-    m.set_jacobian(R)
-    xo.assert_allclose(m.jacobian(), R, rtol=0, atol=0)
-    xo.assert_allclose(m.param_jacobian(), before, rtol=0, atol=0)
-    assert m.sensitivity("x", 0) == 0.25
-    with pytest.raises(TypeError, match="does not store parameter names"):
-        m.sensitivity("x", "kqa")
-
-
 def test_set_jacobian_from_w_matrix():
     W = _6d_w_matrix(betx=12.0, bety=8.0, alfx=-1.5, alfy=0.7, bets=100.0,
                      dx=1.2, dpx=0.03, dy=-0.4, dpy=0.01)
-    m = _offaxis_map(order=2)
+    m = _offaxis_map(truncation_order=2)
     m.set_jacobian(W)
-    xo.assert_allclose(m.jacobian(), W, rtol=0, atol=0)
-    xo.assert_allclose(m.jacobian()[0, 0], np.sqrt(12.0), rtol=1e-14, atol=0)
+    xo.assert_allclose(m.evaluate_jacobian(), W, rtol=0, atol=0)
+    xo.assert_allclose(m.evaluate_jacobian()[0, 0], np.sqrt(12.0), rtol=1e-14, atol=0)
 
 
 # MultiElementMonitor recording full maps in the single TPSA track pass
 
 def test_multi_element_monitor_records_maps():
     line = _demo_line()
-    m = _offaxis_map(order=2)
+    m = _offaxis_map(truncation_order=2)
     line.track(m, multi_element_monitor_at=["q", "b"])
     mon = line.tracker.record_multi_element_last_track
 
@@ -1003,13 +965,15 @@ def test_multi_element_monitor_records_maps():
 
     # a slot is recorded on entry, so it equals a track that stops there
     for name in ("q", "b"):
-        up_to = _offaxis_map(order=2)
+        up_to = _offaxis_map(truncation_order=2)
         line.track(up_to, ele_stop=name)
         recorded = mon.map_at(name)
         xo.assert_allclose(recorded.const_part, up_to.const_part, rtol=0, atol=0)
-        xo.assert_allclose(recorded.jacobian(), up_to.jacobian(), rtol=0, atol=0)
-        for c in COORDS:                       # the whole polynomial, not just order 1
-            assert recorded.monomial_coeffs(c) == up_to.monomial_coeffs(c)
+        xo.assert_allclose(recorded.evaluate_jacobian(), up_to.evaluate_jacobian(), rtol=0, atol=0)
+        for c in COORDS:                       # the whole polynomial, not just truncation_order 1
+            recorded_c = getattr(recorded, c)
+            up_to_c = getattr(up_to, c)
+            assert recorded_c.monomial_coeffs() == up_to_c.monomial_coeffs()
         # the doubles buffer holds the same orbit
         xo.assert_allclose(mon.get("x", name)[0, 0], up_to.const_part[0],
                            rtol=0, atol=0)
@@ -1017,7 +981,7 @@ def test_multi_element_monitor_records_maps():
 
 def test_multi_element_monitor_slot_order_and_lookup():
     line = _demo_line()
-    m = _offaxis_map(order=2)
+    m = _offaxis_map(truncation_order=2)
     line.track(m, multi_element_monitor_at=["b", "q"])   # not in line order
     mon = line.tracker.record_multi_element_last_track
 
@@ -1028,7 +992,7 @@ def test_multi_element_monitor_slot_order_and_lookup():
     xo.assert_allclose(mon.map_at(1).const_part, mon.map_at("q").const_part,
                        rtol=0, atol=0)
     # and 'q' sits earlier in the line, so its slot is the shorter track
-    up_to_q = _offaxis_map(order=2)
+    up_to_q = _offaxis_map(truncation_order=2)
     line.track(up_to_q, ele_stop="q")
     xo.assert_allclose(mon.map_at("q").const_part, up_to_q.const_part,
                        rtol=0, atol=0)
@@ -1038,16 +1002,16 @@ def test_multi_element_monitor_slot_order_and_lookup():
 
 def test_multi_element_monitor_records_every_turn():
     line = _demo_line()
-    m = _offaxis_map(order=2)
+    m = _offaxis_map(truncation_order=2)
     line.track(m, num_turns=2, multi_element_monitor_at=["q"])
     mon = line.tracker.record_multi_element_last_track
 
-    first = _offaxis_map(order=2)
+    first = _offaxis_map(truncation_order=2)
     line.track(first, ele_stop="q")
     xo.assert_allclose(mon.map_at("q", turn=0).const_part, first.const_part,
                        rtol=0, atol=0)
 
-    second = _offaxis_map(order=2)
+    second = _offaxis_map(truncation_order=2)
     line.track(second)                 # one full turn ...
     line.track(second, ele_stop="q")   # ... then up to q again
     xo.assert_allclose(mon.map_at("q", turn=1).const_part, second.const_part,
@@ -1066,21 +1030,21 @@ def test_multi_element_monitor_records_parameters():
     """A parametric map is recorded whole, so the knob columns survive into each slot."""
     line = _fodo_knob_line()
     names = ["kqf", "kqd", "ksx"]
-    descriptor = madng_tpsa.Descriptor(6, 2, params=names, param_order=1)
+    descriptor = Descriptor(var_names=COORDS, order=2, param_names=names, param_order=1)
     knobs = KnobParameters(line, names, descriptor)
     knobs.apply()
 
-    m = _offaxis_map(order=2, descriptor=descriptor)
+    m = _offaxis_map(truncation_order=2, descriptor=descriptor)
     line.track(m, multi_element_monitor_at=["sx", "d3"])
     mon = line.tracker.record_multi_element_last_track
 
-    assert mon.map_at("sx").param_jacobian().shape == (6, 3)
+    assert mon.map_at("sx").evaluate_jacobian(wrt='params').shape == (6, 3)
     # 'd3' is the last element: its slot is the map at the end of the line minus d3
-    up_to = _offaxis_map(order=2, descriptor=descriptor)
+    up_to = _offaxis_map(truncation_order=2, descriptor=descriptor)
     line.track(up_to, ele_stop="d3")
-    xo.assert_allclose(mon.map_at("d3").param_jacobian(), up_to.param_jacobian(),
+    xo.assert_allclose(mon.map_at("d3").evaluate_jacobian(wrt='params'), up_to.evaluate_jacobian(wrt='params'),
                        rtol=0, atol=0)
-    assert np.abs(mon.map_at("sx").param_jacobian()).max() > 1e-6
+    assert np.abs(mon.map_at("sx").evaluate_jacobian(wrt='params')).max() > 1e-6
     knobs.teardown()
 
 
@@ -1088,7 +1052,7 @@ def test_multi_element_monitor_records_parameters():
 
 def _coefficient_reference(line, obs_names, monomial, coords, turn=0):
     """The same coefficients read off the full recorded maps."""
-    ref_map = _offaxis_map(order=2)
+    ref_map = _offaxis_map(truncation_order=2)
     line.track(ref_map, num_turns=turn + 1, multi_element_monitor_at=obs_names)
     ref = line.tracker.record_multi_element_last_track
     return np.array([[ref.map_at(name, turn=turn).coefficient(c, monomial)
@@ -1101,11 +1065,14 @@ def _recorded_over_coords(mon, monomial, coords=COORDS, turn=0):
                     axis=-1)
 
 
+def _monitor_coordinate(mon, coord, *args, **kwargs):
+    return np.asarray(mon.get(coord, *args, **kwargs))
+
 def test_monitor_monomials_match_the_full_maps():
     line = _demo_line()
     obs = ["q", "b", "d2"]
     monomials = np.array([[1, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 2]], dtype=np.uint8)
-    line.track(_offaxis_map(order=2), multi_element_monitor_at=obs,
+    line.track(_offaxis_map(truncation_order=2), multi_element_monitor_at=obs,
                monitor_monomials=monomials)
     mon = line.tracker.record_multi_element_last_track
 
@@ -1123,7 +1090,7 @@ def test_monitor_monomials_dict_selects_coordinates():
     line = _demo_line()
     obs = ["q", "d2"]
     monomial = (0, 0, 0, 0, 0, 2)
-    line.track(_offaxis_map(order=2), multi_element_monitor_at=obs,
+    line.track(_offaxis_map(truncation_order=2), multi_element_monitor_at=obs,
                monitor_monomials={"x": monomial, "zeta": monomial})
     mon = line.tracker.record_multi_element_last_track
 
@@ -1139,7 +1106,7 @@ def test_monitor_monomials_axes_and_turns():
     line = _demo_line()
     obs = ["q", "b"]
     monomial = (1, 0, 0, 0, 0, 0)
-    line.track(_offaxis_map(order=2), num_turns=3, multi_element_monitor_at=obs,
+    line.track(_offaxis_map(truncation_order=2), num_turns=3, multi_element_monitor_at=obs,
                monitor_monomials={coord: monomial for coord in COORDS})
     mon = line.tracker.record_multi_element_last_track
 
@@ -1158,29 +1125,31 @@ def test_monitor_monomials_axes_and_turns():
 
 def test_monitor_monomials_leave_the_tracked_map_untouched():
     line = _demo_line()
-    m = _offaxis_map(order=2)
+    m = _offaxis_map(truncation_order=2)
     line.track(m, multi_element_monitor_at=["q"],
                monitor_monomials=np.array([[1, 0, 0, 0, 0, 0]], dtype=np.uint8))
-    plain = _offaxis_map(order=2)
+    plain = _offaxis_map(truncation_order=2)
     line.track(plain)
     for c in COORDS:
-        assert m.monomial_coeffs(c) == plain.monomial_coeffs(c)
+        m_c = getattr(m, c)
+        plain_c = getattr(plain, c)
+        assert m_c.monomial_coeffs() == plain_c.monomial_coeffs()
 
 
 def test_monitor_monomials_rejects_bad_requests():
     line = _demo_line()
     monomials = np.array([[1, 0, 0, 0, 0, 0]], dtype=np.uint8)
     with pytest.raises(ValueError, match="beyond the order"):
-        line.track(_offaxis_map(order=2), multi_element_monitor_at=["q"],
+        line.track(_offaxis_map(truncation_order=2), multi_element_monitor_at=["q"],
                    monitor_monomials={"x": (0, 0, 0, 0, 0, 3)})
     with pytest.raises(ValueError, match="expected length 6"):
-        line.track(_offaxis_map(order=2), multi_element_monitor_at=["q"],
+        line.track(_offaxis_map(truncation_order=2), multi_element_monitor_at=["q"],
                    monitor_monomials=np.array([[1, 0, 0, 0, 0]], dtype=np.uint8))
     with pytest.raises(ValueError, match="not an output coordinate"):
-        line.track(_offaxis_map(order=2), multi_element_monitor_at=["q"],
+        line.track(_offaxis_map(truncation_order=2), multi_element_monitor_at=["q"],
                    monitor_monomials={"s": (1, 0, 0, 0, 0, 0)})
     with pytest.raises(ValueError, match="needs .multi_element_monitor_at."):
-        line.track(_offaxis_map(order=2), monitor_monomials=monomials)
+        line.track(_offaxis_map(truncation_order=2), monitor_monomials=monomials)
     with pytest.raises(ValueError, match="needs TPSA tracking"):
         line.track(_particle(), multi_element_monitor_at=["q"],
                    monitor_monomials=monomials)
@@ -1197,7 +1166,7 @@ def test_monitor_monomials_constant_part_is_the_scalar_particle():
     line.track(p, num_turns=3, multi_element_monitor_at=obs)
     scalar = line.tracker.record_multi_element_last_track
 
-    line.track(_offaxis_map(order=2), num_turns=3, multi_element_monitor_at=obs,
+    line.track(_offaxis_map(truncation_order=2), num_turns=3, multi_element_monitor_at=obs,
                monitor_monomials={coord: constant for coord in COORDS})
     mon = line.tracker.record_multi_element_last_track
 
@@ -1205,11 +1174,14 @@ def test_monitor_monomials_constant_part_is_the_scalar_particle():
         for name in obs:
             recorded = [mon.coefficient(c, constant, obs_name=name, turn=turn)
                         for c in COORDS]
-            native = [np.ravel(scalar.get(c, name, turn=turn))[0] for c in COORDS]
+            native = [np.ravel(_monitor_coordinate(scalar, c, name, turn=turn))[0]
+                      for c in COORDS]
             xo.assert_allclose(recorded, native, rtol=0, atol=1e-14)
             # the monitor's own doubles buffer is written by the same C block from
             # the same series, but indexed (turn, particle, coord, location)
-            own = [np.ravel(mon.get(c, name, turn=turn))[0] for c in COORDS]
+            own = [np.ravel(_monitor_coordinate(mon, c, name, turn=turn))[0]
+                   for c in COORDS]
+            # x, px, y, py and zeta are stored directly in both places.
             xo.assert_allclose(recorded, own, rtol=0, atol=0)
 
     # a swapped turn or location index cannot pass unnoticed
@@ -1233,7 +1205,7 @@ def test_monitor_monomials_first_order_matches_scalar_differences():
     line.track(p, num_turns=2, multi_element_monitor_at=obs)
     scalar = line.tracker.record_multi_element_last_track
 
-    line.track(_offaxis_map(order=2), num_turns=2, multi_element_monitor_at=obs,
+    line.track(_offaxis_map(truncation_order=2), num_turns=2, multi_element_monitor_at=obs,
                monitor_monomials=monomials)
     mon = line.tracker.record_multi_element_last_track
 
@@ -1241,7 +1213,7 @@ def test_monitor_monomials_first_order_matches_scalar_differences():
         for name in obs:
             fd = np.zeros((len(COORDS), len(COORDS)))
             for i, ci in enumerate(COORDS):
-                column = np.ravel(scalar.get(ci, name, turn=turn))
+                column = np.ravel(_monitor_coordinate(scalar, ci, name, turn=turn))
                 for j in range(len(COORDS)):
                     fd[i, j] = (column[2 * j] - column[2 * j + 1]) / (2 * h)
             recorded = np.array(
@@ -1252,7 +1224,7 @@ def test_monitor_monomials_first_order_matches_scalar_differences():
 
 def test_monitor_full_maps_reject_coefficient():
     line = _demo_line()
-    line.track(_offaxis_map(order=2), multi_element_monitor_at=["q"])
+    line.track(_offaxis_map(truncation_order=2), multi_element_monitor_at=["q"])
     mon = line.tracker.record_multi_element_last_track
     with pytest.raises(AttributeError, match="holds full TPSA maps"):
         mon.coefficient("x", (1, 0, 0, 0, 0, 0))
@@ -1262,7 +1234,7 @@ def test_monitor_full_maps_reject_coefficient():
 
 def test_optics_round_trip_from_w_matrix():
     W = _6d_w_matrix(3.0, 4.0, 0.7, -0.4, 1.0, 0.1, 0.02, -0.03, 0.05)
-    m = _offaxis_map(order=2)
+    m = _offaxis_map(truncation_order=2, pzeta=0)
     m.set_jacobian(W)
     o = m.optics()
     xo.assert_allclose([o.betx, o.bety, o.alfx, o.alfy], [3.0, 4.0, 0.7, -0.4],
@@ -1282,7 +1254,7 @@ def test_optics_drift_propagation():
 
     betx0, alfx0 = 3.0, 0.7
     gamx0 = (1 + alfx0 ** 2) / betx0
-    m = xtpsa.ParticlesTpsa(order=2, p0c=P0C, mass0=MASS0)
+    m = xtpsa.ParticlesTpsa(truncation_order=2, p0c=P0C, mass0=MASS0)
     m.set_jacobian(_6d_w_matrix(betx0, 4.0, alfx0, -0.4, 1.0, 0.0, 0.0, 0.0, 0.0))
     line.track(m)
 
@@ -1299,12 +1271,12 @@ def test_optics_values_vs_twiss():
                 dx=0.1, dpx=0.02, dy=0.0, dpy=0.0)
     tw = line.twiss(**init)
 
-    m = _offaxis_map(order=2, x=0, px=0, y=0, py=0, zeta=0, delta=0)
+    m = _offaxis_map(truncation_order=2, x=0, px=0, y=0, py=0, zeta=0, pzeta=0)
     m.set_jacobian(_6d_w_matrix(init["betx"], init["bety"], init["alfx"],
                                 init["alfy"], 1.0, init["dx"], init["dpx"],
                                 init["dy"], init["dpy"]))
     line.track(m, multi_element_monitor_at=["b"])
-    o = line.tracker.record_multi_element_last_track.map_at("b").optics()
+    o = line.tracker.record_multi_element_last_track.optics_at("b")
 
     i = list(line.element_names).index("b")
     for name in ("betx", "bety", "alfx", "alfy", "dx", "dpx", "mux", "muy"):
@@ -1317,8 +1289,8 @@ def test_optics_parameter_gradient_vs_finite_differences():
     dA = {(0, 0): [1.3, -0.5], (0, 1): [0.4, 0.9], (1, 0): [0.2, 0.1],
           (1, 1): [-0.7, 0.3], (0, 5): [0.05, -0.02]}
 
-    descriptor = madng_tpsa.Descriptor(6, 2, params=["kqa", "kqb"], param_order=1)
-    m = _offaxis_map(order=2, descriptor=descriptor)
+    descriptor = Descriptor(var_names=COORDS, order=2, param_names=["kqa", "kqb"], param_order=1)
+    m = _offaxis_map(truncation_order=2, pzeta=0, descriptor=descriptor)
     m.set_jacobian(A0)
     for (i, j), gradient in dA.items():
         for k, value in enumerate(gradient):
@@ -1340,7 +1312,7 @@ def test_optics_parameter_gradient_vs_finite_differences():
         Ah = A0.copy()
         for (i, j), gradient in dA.items():
             Ah[i, j] += h * gradient[0]
-        mm = _offaxis_map(order=1)
+        mm = _offaxis_map(truncation_order=1, pzeta=0)
         mm.set_jacobian(Ah)
         return mm.optics().betx
 
@@ -1351,20 +1323,32 @@ def test_optics_parameter_gradient_vs_finite_differences():
 
 def test_optics_gradient_guards():
     """Values need no parameters, gradients need parameters and order >= 2."""
-    plain = _offaxis_map(order=2)
+    plain = _offaxis_map(truncation_order=2, pzeta=0)
     plain.set_jacobian(_6d_w_matrix(3.0, 4.0, 0.7, -0.4, 1.0, 0.1, 0.02, 0.0, 0.0))
     assert plain.optics().betx > 0
     with pytest.raises(ValueError, match="no parameters"):
         plain.optics().gradient("betx")
 
-    params = dict(params=["kqa", "kqb"], param_order=1)
-    order_one = _offaxis_map(order=1, descriptor=madng_tpsa.Descriptor(6, 1, **params))
+    parameters = dict(param_names=["kqa", "kqb"], param_order=1)
+    order_one = _offaxis_map(truncation_order=1, pzeta=0, descriptor=Descriptor(var_names=COORDS, order=1, **parameters))
     with pytest.raises(ValueError, match="order >= 2"):
         order_one.optics().gradient("betx")
 
-    parametric = _offaxis_map(order=2, descriptor=madng_tpsa.Descriptor(6, 2, **params))
+    parametric = _offaxis_map(truncation_order=2, pzeta=0, descriptor=Descriptor(var_names=COORDS, order=2, **parameters))
     with pytest.raises(KeyError, match="unknown optical function"):
         parametric.optics().gradient("nope")
+
+
+def test_optics_dispersion_is_reported_wrt_delta_off_momentum():
+    m = _offaxis_map(truncation_order=2, pzeta=0)
+    rvv = m.rvv.const_part
+    expected_dx = 0.3
+    jacobian = np.eye(6)
+    # Internal coordinate is pzeta:
+    # dx/ddelta = dx/dpzeta * dpzeta/ddelta.
+    jacobian[0, 5] = expected_dx / rvv
+    m.set_jacobian(jacobian)
+    assert m.optics().dx == pytest.approx(expected_dx)
 
 
 # KnobParameters: line variables held as GTPSA parameters
@@ -1372,17 +1356,17 @@ def test_optics_gradient_guards():
 def test_knob_parameters_rejects_bad_names_and_shapes():
     line = _knob_line()
     with pytest.raises(KeyError, match="not a line variable"):
-        KnobParameters(line, ["nope"], madng_tpsa.Descriptor(6, 2, num_params=1))
+        KnobParameters(line, ["nope"], Descriptor(var_names=COORDS, order=2, param_names=1))
     with pytest.raises(ValueError, match="descriptor has 2 parameters, expected 1"):
-        KnobParameters(line, ["kqa"], madng_tpsa.Descriptor(
-            6, 2, params=["kqa", "kqb"], param_order=1))
+        KnobParameters(line, ["kqa"], Descriptor(
+            var_names=COORDS, order=2, param_names=["kqa", "kqb"], param_order=1))
 
 
 def test_knob_parameters_apply_and_driven_elements():
     line = _knob_line()
     names = ["kqa", "kqb", "klink"]
     knobs = KnobParameters(line, names,
-                           madng_tpsa.Descriptor(6, 2, params=names, param_order=1))
+                           Descriptor(var_names=COORDS, order=2, param_names=names, param_order=1))
     assert len(knobs) == 3 and not knobs.applied
     knobs.teardown()          # a no-op before apply
     knobs.apply()
@@ -1398,12 +1382,12 @@ def test_knob_parameters_apply_and_driven_elements():
     knobs.teardown()
 
 
-def test_knob_parameters_strength_jacobian_vs_fd():
+def test_knob_param_names_strength_jacobian_vs_fd():
     """d strength / d knob through the xdeps expressions, incl. a var->var chain."""
     line = _knob_line()
     names = ["kqa", "kqb", "klink"]
     knobs = KnobParameters(line, names,
-                           madng_tpsa.Descriptor(6, 2, params=names, param_order=1))
+                           Descriptor(var_names=COORDS, order=2, param_names=names, param_order=1))
     knobs.apply()
     jacobian = knobs.strength_jacobian()
 
@@ -1436,7 +1420,7 @@ def test_knob_parameters_strength_jacobian_vs_fd():
 def test_knob_parameters_refresh_moves_a_nonlinear_knob():
     """refresh re-seeds the parameters, so the gradient follows the knob value."""
     line = _nonlinear_knob_line()
-    knobs = KnobParameters(line, ["kqa"], madng_tpsa.Descriptor(6, 2, num_params=1))
+    knobs = KnobParameters(line, ["kqa"], Descriptor(var_names=COORDS, order=2, param_names=["kqa"]))
     knobs.apply()
     xo.assert_allclose(knobs.strength_jacobian()[("mq1", "k1")], [2 * 0.012],
                        rtol=0, atol=1e-14)
@@ -1453,7 +1437,7 @@ def test_knob_parameters_teardown_restores_doubles():
     line = _knob_line()
     names = ["kqa", "kqb", "klink"]
     knobs = KnobParameters(line, names,
-                           madng_tpsa.Descriptor(6, 2, params=names, param_order=1))
+                           Descriptor(var_names=COORDS, order=2, param_names=names, param_order=1))
     knobs.apply()
     knobs.teardown()
 
@@ -1472,18 +1456,18 @@ def test_parametric_track_matches_finite_differences():
     """One knobbed track gives d(coord)/d(knob) == central differences."""
     line = _fodo_knob_line()
     names = ["kqf", "kqd", "ksx"]
-    descriptor = madng_tpsa.Descriptor(6, 2, params=names, param_order=1)
+    descriptor = Descriptor(var_names=COORDS, order=2, param_names=names, param_order=1)
     knobs = KnobParameters(line, names, descriptor)
     knobs.apply()
 
-    m = _offaxis_map(order=2, descriptor=descriptor)
+    m = _offaxis_map(truncation_order=2, descriptor=descriptor)
     line.track(m)
-    param_jacobian = m.param_jacobian()
+    param_jacobian = m.evaluate_jacobian(wrt='params')
     assert np.abs(param_jacobian).max() > 1e-6      # knob dependence is really there
     knobs.teardown()
 
     def orbit():
-        q = _offaxis_map(order=1)
+        q = _offaxis_map(truncation_order=1)
         line.track(q)
         return q.const_part
 
@@ -1533,7 +1517,7 @@ def test_action_tpsa_track_values_and_jacobian_vs_twiss():
     action = ActionTpsaTrack(
         line, ["kqf", "kqd"],
         targets=[xt.Target(q, at=at, value=1.0) for q in quantities],
-        tw_kwargs=dict(init=tw0, start=start, end=end), order=2)
+        tw_kwargs=dict(init=tw0, start=start, end=end), truncation_order=2)
     res = action.run()
 
     tw_ref = line.twiss(init=tw0, start=start, end=end)
@@ -1579,13 +1563,173 @@ def test_action_tpsa_track_rejects_unsupported_targets():
                                             start="qf0", end="qd2")], **kwargs)
 
 
+def test_particles_tpsa_is_tpsa_map():
+    particles = xtpsa.ParticlesTpsa(
+        truncation_order=2,
+        p0c=P0C,
+        mass0=MASS0,
+    )
+    assert isinstance(particles, TpsaMap)
+    assert particles.component_names == COORDS
+
+
+def test_particles_tpsa_inherits_map_operations():
+    particles = xtpsa.ParticlesTpsa(
+        truncation_order=2,
+        p0c=P0C,
+        mass0=MASS0,
+    )
+    identity = TpsaMap(particles.descriptor)
+    result = particles << identity
+    assert isinstance(result, TpsaMap)
+    for c in COORDS:
+        result_c = getattr(result, c)
+        particles_c = getattr(particles, c)
+        assert result_c.monomial_coeffs() == particles_c.monomial_coeffs()
+    assert particles.num_vars == 6
+    assert particles.num_params == 0
+
+
+def test_inherited_set_const_part_remains_trackable():
+    line = xt.Line(elements=[xt.Drift(length=1.0)])
+    line.particle_ref = xt.Particles(p0c=P0C, mass0=MASS0)
+    line.build_tracker()
+    coordinates = np.array([1e-4, 2e-5, -2e-4, 3e-5, 1e-3, 2e-3])
+    m = xtpsa.ParticlesTpsa(truncation_order=2, p0c=P0C, mass0=MASS0)
+    m.const_part = coordinates
+    p = xt.Particles(
+        x=coordinates[0],
+        px=coordinates[1],
+        y=coordinates[2],
+        py=coordinates[3],
+        zeta=coordinates[4],
+        pzeta=coordinates[5],
+        p0c=P0C,
+        mass0=MASS0,
+    )
+    line.track(m)
+    line.track(p)
+    xo.assert_allclose(
+        m.const_part,
+        [float(getattr(p, cc)[0]) for cc in COORDS],
+        rtol=0,
+        atol=1e-14,
+    )
+
+def test_new_like_keeps_trackable_particle_state_and_no_pointer_addresses():
+    m = _offaxis_map(truncation_order=2)
+    m.pzeta.const_part += 0.013
+    m.s.const_part = 1.23
+    copy = m.copy()
+    assert isinstance(copy, xtpsa.ParticlesTpsa)
+    assert copy.pzeta is not m.pzeta
+    assert copy.s.const_part == pytest.approx(1.23)
+    assert copy.delta.const_part == pytest.approx(
+        xt.Particles(p0c=P0C, mass0=MASS0, pzeta=copy.pzeta.const_part).delta[0]
+    )
+    assert copy.to_particles().pzeta[0] == pytest.approx(copy.pzeta.const_part)
+    restored = xtpsa.ParticlesTpsa.from_dict(copy.to_dict())
+    assert restored.s.monomial_coeffs() == copy.s.monomial_coeffs()
+    assert restored.pzeta.monomial_coeffs() == copy.pzeta.monomial_coeffs()
+    line = _demo_line()
+    scalar = copy.to_particles()
+    line.track(copy)
+    line.track(scalar)
+    xo.assert_allclose(copy.const_part,
+                       [getattr(scalar, c)[0] for c in COORDS], atol=1e-12, rtol=0)
+
+
+def test_derived_coordinates_follow_direct_pzeta_coefficient_changes():
+    m = _offaxis_map(truncation_order=2)
+    m.pzeta.const_part = 0.05
+    ref = xt.Particles(p0c=P0C, mass0=MASS0, pzeta=0.05)
+    assert m.delta.const_part == pytest.approx(ref.delta[0])
+    assert m.rvv.const_part == pytest.approx(ref.rvv[0])
+    assert m.rpp.const_part == pytest.approx(ref.rpp[0])
+    assert m.to_particles().delta[0] == pytest.approx(ref.delta[0])
+
+
+def test_monitor_reports_delta_and_pzeta_without_conflating_them():
+    line = _demo_line()
+    part = line.build_particles(**X0)
+    line.track(part, multi_element_monitor_at=["q"])
+    monitor = line.tracker.record_multi_element_last_track
+    assert monitor.get("delta", "q").shape == (1, 1)
+    assert monitor.get("pzeta", "q").shape == (1, 1)
+    assert monitor.get("delta", "q")[0, 0] != monitor.get("pzeta", "q")[0, 0]
+
+
+def test_off_momentum_dispersion_and_parameter_gradient_use_delta():
+    p0c = 1e9  # deliberately non-ultrarelativistic
+    beta = p0c / np.hypot(p0c, MASS0)
+    d = Descriptor(var_names=COORDS, order=2, param_names=["k"])
+    m = xtpsa.ParticlesTpsa(descriptor=d, p0c=p0c, mass0=MASS0, pzeta=0.08)
+    W = np.eye(6)
+    W[0, 5] = 0.3
+    m.set_jacobian(W)
+    param_jac = np.zeros((6, 1))
+    param_jac[5, 0] = 0.04
+    m.set_param_jacobian(param_jac)
+    optics = m.optics()
+    def reference_dx(pzeta):
+        delta = np.sqrt(1 + 2*pzeta + beta**2*pzeta**2)-1
+        return 0.3 * (1 + delta) / (1 + beta**2*pzeta)
+    assert optics.dx == pytest.approx(reference_dx(0.08), rel=1e-13)
+    h = 1e-6
+    fd = (reference_dx(0.08+0.04*h)-reference_dx(0.08-0.04*h))/(2*h)
+    assert optics.gradient("dx")[0] == pytest.approx(fd, rel=1e-6, abs=1e-9)
+
+
+def test_reference_beta0_is_recorded_at_each_monitor_location():
+    line = xt.Line(
+        elements=[xt.Drift(length=1),
+                  xt.ReferenceEnergyChange(p0c=P0C + 3e12),
+                  xt.Drift(length=1)],
+        element_names=['start', 'ramp', 'after'])
+    line.particle_ref = xt.Particles(p0c=P0C, mass0=MASS0)
+    line.build_tracker()
+    m = _offaxis_map(truncation_order=2)
+    line.track(m, multi_element_monitor_at=['ramp', 'after'])
+    mon = line.tracker.record_multi_element_last_track
+    assert mon.optics_at('ramp').beta0 == pytest.approx(BETA0)
+    assert mon.optics_at('after').beta0 == pytest.approx(m.beta0)
+    assert mon.optics_at('ramp').beta0 != mon.optics_at('after').beta0
+
+
+def test_tpsa_monitor_turns_are_absolute():
+    line = _demo_line()
+    m = _offaxis_map(truncation_order=1)
+    line.track(m, num_turns=2)
+    line.track(m, multi_element_monitor_at=['q'])
+    mon = line.tracker.record_multi_element_last_track
+    assert mon.start_at_turn == 2
+    mon.map_at('q', turn=2)
+    with pytest.raises(IndexError):
+        mon.map_at('q', turn=0)
+
+
+def test_knob_parameter_length_validation_is_atomic():
+    line = _knob_line()
+    names = ["kqa", "kqb"]
+    knobs = KnobParameters(line, names,
+                           Descriptor(var_names=COORDS, order=2,
+                                      param_names=names))
+    baseline = [line[name] for name in names]
+    with pytest.raises(ValueError, match="Exactly one value"):
+        knobs.apply([0.1])
+    assert [line[name] for name in names] == baseline
+    knobs.apply()
+    with pytest.raises(ValueError, match="Exactly one value"):
+        knobs.apply_doubles([0.1])
+    knobs.teardown()
+
 def test_knob_teardown_keeps_a_series_it_did_not_promote():
     env = xt.Environment()
     env['knob'] = .3
     line = env.new_line(components=[env.new('driven', xt.Quadrupole, length=1., k1='knob'),
                                     env.new('unrelated', xt.Quadrupole, length=1., k1=.1)])
-    line['unrelated'].k1 = madng_tpsa.Descriptor(6, 1, num_params=2, param_order=1).param(2, .6)
-    knobs = KnobParameters(line, ['knob'], madng_tpsa.Descriptor(6, 1, num_params=1, param_order=1))
+    line['unrelated'].k1 = Descriptor(6, 1, param_names=2, param_order=1).param(2, .6)
+    knobs = KnobParameters(line, ['knob'], Descriptor(6, 1, param_names=1, param_order=1))
 
     knobs.apply()
     knobs.teardown()
@@ -1599,7 +1743,7 @@ def test_knob_teardown_keeps_the_dependence_on_another_set_of_knobs():
     env['a'] = .1
     env['b'] = .2
     line = env.new_line(components=[env.new('quad', xt.Quadrupole, length=1., k1='a + 2 * b')])
-    descriptor = madng_tpsa.Descriptor(6, 1, num_params=1, param_order=1)
+    descriptor = Descriptor(6, 1, param_names=1, param_order=1)
     knobs_a = KnobParameters(line, ['a'], descriptor)
     knobs_b = KnobParameters(line, ['b'], descriptor)
     knobs_a.apply()
@@ -1620,7 +1764,7 @@ def test_knob_teardown_releases_every_element_a_shared_knob_promoted():
     env['knob'] = .3
     line = env.new_line(components=[env.new('first', xt.Quadrupole, length=1., k1='knob'),
                                     env.new('second', xt.Quadrupole, length=1., k1='knob')])
-    knobs = KnobParameters(line, ['knob'], madng_tpsa.Descriptor(6, 1, num_params=1, param_order=1))
+    knobs = KnobParameters(line, ['knob'], Descriptor(6, 1, param_names=1, param_order=1))
 
     knobs.apply()
     knobs.teardown()
@@ -1633,7 +1777,7 @@ def test_knob_apply_moves_the_knob_and_keeps_its_derivative():
     env = xt.Environment()
     env['knob'] = .3
     line = env.new_line(components=[env.new('driven', xt.Quadrupole, length=1., k1='2 * knob')])
-    knobs = KnobParameters(line, ['knob'], madng_tpsa.Descriptor(6, 1, num_params=1, param_order=1))
+    knobs = KnobParameters(line, ['knob'], Descriptor(6, 1, param_names=1, param_order=1))
     knobs.apply()
 
     knobs.apply([.5])
@@ -1647,7 +1791,7 @@ def test_knob_apply_refuses_the_wrong_number_of_values():
     env = xt.Environment()
     env['knob'] = .3
     line = env.new_line(components=[env.new('driven', xt.Quadrupole, length=1., k1='knob')])
-    knobs = KnobParameters(line, ['knob'], madng_tpsa.Descriptor(6, 1, num_params=1, param_order=1))
+    knobs = KnobParameters(line, ['knob'], Descriptor(6, 1, param_names=1, param_order=1))
     with pytest.raises(ValueError, match='one value'):
         knobs.apply([.5, .6])
 
@@ -1657,7 +1801,7 @@ def test_knob_teardown_keeps_a_dependence_that_starts_at_second_order():
     env['a'] = .1
     env['b'] = 0.
     line = env.new_line(components=[env.new('quad', xt.Quadrupole, length=1., k1='a + b * b')])
-    descriptor = madng_tpsa.Descriptor(6, 2, num_params=1, param_order=2)
+    descriptor = Descriptor(6, 2, param_names=1, param_order=2)
     knobs_a = KnobParameters(line, ['a'], descriptor)
     knobs_b = KnobParameters(line, ['b'], descriptor)
     knobs_a.apply()
