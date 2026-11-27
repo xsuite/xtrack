@@ -18,8 +18,8 @@ void MagnetKick_track_local_particle(
     const double length = MagnetKickData_get_length(el);
     const int64_t order = MagnetKickData_get_order(el);
     const double inv_factorial_order = MagnetKickData_get_inv_factorial_order(el);
-    const double* knl = MagnetKickData_getp1_knl(el, 0);
-    const double* ksl = MagnetKickData_getp1_ksl(el, 0);
+    GPUGLMEM const double* knl = MagnetKickData_getp1_knl(el, 0);
+    GPUGLMEM const double* ksl = MagnetKickData_getp1_ksl(el, 0);
     const double factor_knl_ksl = MagnetKickData_get_factor_knl_ksl(el);
     const double kick_weight = MagnetKickData_get_kick_weight(el);
     const double k0 = MagnetKickData_get_k0(el);
