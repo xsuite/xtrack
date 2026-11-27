@@ -505,3 +505,63 @@ class ParticlesTpsa(TpsaMap[Tpsa]):
                 mono = [0] * self.descriptor.monomial_length
                 mono[self.num_vars + parameter] = 1
                 self.set_coefficient(row_idx, mono, value)
+
+    def substitute(self, var_subs=None, param_subs=None, /, **substitutions) -> Self:
+        # Derived coordinates will be recalculated,
+        # so we only substitute independent quantities.
+        names = (*COORDS, *_EXTRA_COORDS)
+        components = [*self.components, *(self._extra_coords[name] for name in _EXTRA_COORDS),]
+        tensor = TpsaTensor(components)
+        substituted = tensor.substitute(var_subs, param_subs, **substitutions)
+        if substituted.is_complex:
+            raise TypeError("ParticlesTpsa does not support complex coordinates")
+        values = dict(zip(names, substituted.flat, strict=True))
+
+        # Construct a new trackable particle with the
+        # substituted canonical coordinates.
+        kwargs = self._particle_kwargs()
+        kwargs.update({name: values[name] for name in COORDS})
+
+        result = type(self)(
+            descriptor=substituted.descriptor,
+            line_length=float(self._xobject.line_length),
+            track_flags=int(self._xobject.track_flags),
+            **kwargs,
+        )
+
+        # Update independent auxiliary TPSAs in place,
+        # retaining the C-linked handles.
+        for name in _EXTRA_COORDS:
+            lib.mad_tpsa_copy(values[name].ptr, result._extra_coords[name].ptr)
+
+        return result
+
+    def translate(self, offsets) -> Self:
+        offsets = tuple(offsets)
+        if len(offsets) != self.num_vars:
+            raise ValueError(f"Expected {self.num_vars} offsets")
+        substitutions = tuple(
+            variable + offset
+            for variable, offset in zip(self.descriptor.vars(), offsets, strict=True)
+        )
+        return self.substitute(substitutions)
+
+    # Map operations that are epxected to lose Particles metadata
+
+    def compose(self, other: TpsaMap) -> TpsaMap:
+        return self.to_map().compose(other)
+
+    def inverse(self) -> TpsaMap:
+        return self.to_map().inverse()
+
+    def partial_inverse(self, select) -> TpsaMap:
+        return self.to_map().partial_inverse(select)
+
+    def exp_poisson(self, *args, **kwargs) -> TpsaMap:
+        return self.to_map().exp_poisson(*args, **kwargs)
+
+    def exp_fgrad(self, *args, **kwargs) -> TpsaMap:
+        return self.to_map().exp_fgrad(*args, **kwargs)
+
+    def to_complex(self, *args, **kwargs) -> TpsaMap:
+        return self.to_map().to_complex(*args, **kwargs)
